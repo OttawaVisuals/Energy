@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrofit Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 2rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:56px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
+.logo span{color:var(--amber2);font-style:italic}
+.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:3.5rem 2rem 0;text-align:center}
+.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:640px;margin:0 auto 1rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:480px;margin:0 auto 2.5rem}
+
+/* ── Filters ── */
+.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:1.5rem 1.5rem 0;max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
+.filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.filter-group select{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select:hover{border-color:var(--navy)}
+.filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.filter-reset{height:40px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
+.filter-reset:hover{border-color:var(--navy);color:var(--navy)}
+.filter-count-bar{max-width:900px;margin:0 auto;background:var(--white);padding:.75rem 1.5rem 1.25rem}
+.filter-count{font-size:13px;color:var(--muted)}
+.filter-count strong{color:var(--text);font-weight:500}
+
+/* ── Layout ── */
+main{max-width:900px;margin:0 auto;padding:2rem 2rem 4rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+@media(max-width:620px){.grid-2{grid-template-columns:1fr}}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.methodology{max-width:900px;margin:1.5rem auto 0;padding:0 1rem}
+.methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:1rem 1.25rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
+.methodology details[open] summary::after{content:'–'}
+.methodology summary:hover{background:var(--cream)}
+.methodology .method-body{padding:0 1.25rem 1.25rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
+.methodology .method-body p{margin:0 0 .6rem}
+.methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:1.1rem 1.25rem;box-shadow:var(--shadow)}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-value.accent{color:var(--amber)}
+.stat-value.green{color:var(--green)}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-sm{height:180px}
+.cw-md{height:220px}
+.cw-lg{height:280px}
+.cw-xl{height:360px}
+
+/* ── Measure bars ── */
+.measure-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.measure-label{font-size:13px;color:var(--text);width:185px;flex-shrink:0}
+.bar-track{flex:1;height:7px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-pct{font-size:12px;color:var(--muted);width:34px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+
+/* ── KPI insulation ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi-item{background:var(--surface);border-radius:var(--r-md);padding:1rem}
+.kpi-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+.kpi-values{display:flex;align-items:center;gap:8px}
+.kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
+.kpi-arrow{color:var(--light);font-size:14px}
+.kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
+.kpi-unit{font-size:11px;color:var(--light);margin-top:2px}
+.kpi-delta{font-size:12px;margin-top:4px}
+.kpi-delta.good{color:var(--green)}
+.kpi-delta.bad{color:var(--red)}
+
+/* ── EUI KPI ── */
+.eui-row{display:flex;align-items:center;gap:2rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.eui-stat{text-align:center}
+.eui-val{font-family:'Fraunces',Georgia,serif;font-size:2.5rem;font-weight:300;line-height:1}
+.eui-pre-val{color:var(--red)}
+.eui-post-val{color:var(--green)}
+.eui-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.eui-arrow-big{font-size:2rem;color:var(--light)}
+.eui-saving{font-family:'Fraunces',Georgia,serif;font-size:1.8rem;font-weight:300;color:var(--green)}
+
+/* ── Table ── */
+.sort-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.sort-label{font-size:12px;color:var(--muted);margin-right:2px}
+.sort-btn{font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.sort-btn:hover{border-color:var(--navy);color:var(--navy)}
+.sort-btn.active{background:var(--navy);border-color:var(--navy);color:var(--white)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--surface);color:var(--text);vertical-align:middle}
+tr.data-row:last-child td{border-bottom:none}
+tr.data-row:hover td{background:var(--cream);cursor:pointer}
+tr.data-row.open td{background:var(--cream)}
+tr.data-row:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+tr.data-row:focus-visible td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+#sankey-svg path:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+tr.detail-row td{padding:0;border-bottom:1px solid var(--border);background:var(--cream)}
+.detail-inner{padding:1rem 1rem 1.25rem;display:none}
+tr.detail-row.open .detail-inner{display:block}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge-deep{background:#D4EFDF;color:#1A5C3A}
+.badge-medium{background:#D6E8F8;color:#1A4A72}
+.badge-shallow{background:#EEF0F2;color:#4A5568}
+.badge-neg{background:#FADED9;color:#7C2318}
+.saving-pos{color:var(--green);font-weight:500;font-variant-numeric:tabular-nums}
+.saving-neg{color:var(--red);font-weight:500;font-variant-numeric:tabular-nums}
+.fuel-chip{display:inline-block;font-size:11px;padding:2px 6px;background:var(--surface);color:var(--muted);border-radius:4px}
+.fuel-arrow{color:var(--light);font-size:11px}
+.measure-chips{display:flex;flex-wrap:wrap;gap:4px}
+.measure-chip{font-size:11px;padding:2px 6px;border-radius:4px;background:var(--navy);color:rgba(255,255,255,.9)}
+.tbl-footer{font-size:12px;color:var(--light);margin-top:10px;text-align:right}
+
+/* ── Spider ── */
+#spider-svg text{font-family:'Inter',sans-serif}
+
+/* ── Misc ── */
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.state-msg strong{display:block;font-size:1rem;color:var(--text);margin-bottom:4px}
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1.5rem;line-height:1.8}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+@media(max-width:600px){header{padding:0 1rem}.hero{padding:2.5rem 1rem 0}.filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}main{padding:1.5rem 1rem 3rem}.measure-label{width:120px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">retrofit<span id="logo-province">Canada</span></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <select id="province-sel" style="height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s">
+      <option value="">Select province…</option>
+      <option value="AB">Alberta</option>
+      <option value="BC">British Columbia</option>
+      <option value="MB">Manitoba</option>
+      <option value="NB">New Brunswick</option>
+      <option value="NF">Newfoundland & Labrador</option>
+      <option value="NS">Nova Scotia</option>
+      <option value="ON">Ontario</option>
+      <option value="PE">Prince Edward Island</option>
+      <option value="QC">Quebec</option>
+      <option value="SK">Saskatchewan</option>
+    </select>
+    <div class="header-badge" id="header-badge">EnerGuide data</div>
+  </div>
+</header>
+
+<div class="hero" id="hero-section">
+  <p class="hero-eyebrow" id="hero-eyebrow">Select a province above to begin</p>
+  <h1>What did <em>homes like yours</em> do — and did it work?</h1>
+  <p class="hero-sub">Real audit data from Canadian homes. Select your province, then pick your FSA to find retrofits comparable to yours and see actual energy savings — or browse province-wide trends by house type.</p>
+  <div class="filter-bar">
+    <div class="filter-group"><label for="fsa-sel">Your FSA</label>
+      <select id="fsa-sel">
+        <option value="">All areas (province-wide)</option>
+      </select>
+    </div>
+    <div class="filter-group"><label for="type-sel">House type</label>
+      <select id="type-sel"><option value="">All types</option></select>
+    </div>
+    <div class="filter-group" style="display:none"><label for="fuel-sel">Heating fuel</label>
+      <select id="fuel-sel"><option value="">All fuels</option></select>
+    </div>
+    <div class="filter-group" style="display:none"><label for="depth-sel">Retrofit depth</label>
+      <select id="depth-sel">
+        <option value="">Any depth</option>
+        <option value="Deep_Retrofit">Deep — over 50% savings</option>
+        <option value="Medium_Retrofit">Medium — 10 to 50%</option>
+        <option value="Shallow_Retrofit">Shallow — under 10%</option>
+      </select>
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">Reset</button>
+  </div>
+  <div class="filter-count-bar">
+    <span class="filter-count"><strong id="result-count">—</strong> retrofits match</span>
+  </div>
+</div>
+
+<!-- Shared SVG defs for EUI gradient (referenced by id, no random IDs needed) -->
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="eui-grad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#1A7A55"/>
+      <stop offset="40%" stop-color="#C8881A"/>
+      <stop offset="100%" stop-color="#B33A2E"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<main>
+
+  <!-- Top stats -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
+    <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² saved</div></div>
+    <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr saved</div></div>
+    <div class="stat-card"><div class="stat-label">Deep retrofits</div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Heat pumps added</div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Fuel switches</div><div class="stat-value" id="s-fs">—</div><div class="stat-sub">changed heating fuel</div></div>
+    <div class="stat-card"><div class="stat-label">Solar PV added</div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+  </div>
+
+  <!-- Year + Floor area -->
+  <div class="grid-2">
+    <div class="card"><div class="card-title">Year built</div><div class="cw cw-sm"><canvas id="year-chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Floor area (m²)</div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div>
+  </div>
+
+  <!-- Type + Storeys donuts -->
+  <div class="grid-2">
+    <div class="card"><div class="card-title">Building type</div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Number of storeys</div><div class="cw cw-md"><canvas id="storey-chart"></canvas></div></div>
+  </div>
+
+  <!-- Sankey -->
+  <div class="card">
+    <div class="card-title">Heating fuel flow — aggregate energy pre → post (GWh)</div>
+    <div style="overflow-x:auto;position:relative">
+      <svg id="sankey-svg" style="width:100%;min-width:500px" height="320"></svg>
+      <div id="sankey-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
+    </div>
+    <p class="note">Flow width = total energy (GWh) across all matched homes. Grey flows = same fuel, no switch. Coloured flows = fuel switch. Hover a flow for details.</p>
+  </div>
+
+  <!-- EUI -->
+  <div class="card">
+    <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
+    <div class="eui-row" id="eui-kpis"></div>
+    <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
+    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Outliers above 500 kWh/m² clipped for scale.</p>
+    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#1A7A55;margin:1.25rem 0 .5rem">EUI reduction (kWh/m²) — among homes that improved</div>
+    <div class="cw cw-sm"><canvas id="eui-delta-chart"></canvas></div>
+    <p class="note" style="margin-top:8px">Only homes where EUI decreased after retrofit. Bin width = 10 kWh/m².</p>
+  </div>
+
+  <!-- GHG emissions -->
+  <div class="card">
+    <div class="card-title">GHG emissions — tCO2e per year</div>
+    <div class="eui-row" id="ghg-kpis"></div>
+    <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
+    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix.</p>
+  </div>
+
+  <!-- Heat loss -->
+  <div class="card">
+    <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
+    <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
+    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better.</p>
+  </div>
+
+  <!-- Solar PV -->
+  <div class="card">
+    <div class="card-title">Solar PV adoption</div>
+    <div class="eui-row" id="solar-kpis"></div>
+    <p class="note">Share of matched homes with solar PV recorded pre- and post-retrofit, and the median system size among adopters.</p>
+  </div>
+
+  <!-- Waterfall: mirror bars -->
+  <div class="card">
+    <div class="card-title">Energy by fuel — pre vs post · median kWh across all matched homes</div>
+    <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
+    <p class="note">Navy ▲ = pre-retrofit, green ▼ = post-retrofit. Each bar starts from zero. The height difference = energy saved. Electricity often rises when homes switch to heat pumps. Each bar is an <strong>independent median</strong>, so the individual fuel bars will not add up exactly to the TOTAL bar — that is expected behaviour of medians, not an error. Hover any bar for exact values.</p>
+  </div>
+
+  <!-- Insulation KPIs + distributions -->
+  <div class="card">
+    <div class="card-title">Insulation &amp; air leakage — median pre → post</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <p class="note" style="margin-bottom:1rem">RSI = thermal resistance (higher = better). ACH50 = air changes per hour at 50 Pa (lower = better).</p>
+    <div class="grid-2" style="margin-bottom:0.75rem">
+      <div><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem">Roof insulation RSI — pre &amp; post</div><div class="cw cw-sm"><canvas id="roof-chart"></canvas></div></div>
+      <div><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem">Air leakage ACH50 — pre &amp; post</div><div class="cw cw-sm"><canvas id="air-chart"></canvas></div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:0">
+      <div><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#1A7A55;margin-bottom:.75rem">Roof RSI improvement (post − pre, among homes that improved)</div><div class="cw cw-sm"><canvas id="roof-delta-chart"></canvas></div></div>
+      <div><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#1A7A55;margin-bottom:.75rem">Air leakage reduction (pre − post, among homes that improved)</div><div class="cw cw-sm"><canvas id="air-delta-chart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Measures + Spider -->
+  <div class="grid-2">
+    <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
+    <div class="card">
+      <div class="card-title">Retrofit profile — spider chart</div>
+      <svg id="spider-svg" viewBox="0 0 340 280" style="width:100%;display:block"></svg>
+    </div>
+  </div>
+
+  <!-- Energy saving distribution 1% -->
+  <div class="card">
+    <div class="card-title">Energy saving distribution — 1% increments</div>
+    <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
+    <p class="note">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</p>
+  </div>
+
+  <!-- Wall + Foundation insulation -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Wall insulation RSI — pre &amp; post</div>
+      <div class="cw cw-sm"><canvas id="wall-chart"></canvas></div>
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#1A7A55;margin:.75rem 0 .5rem">Improvement (among homes that improved)</div>
+      <div class="cw cw-sm"><canvas id="wall-delta-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Foundation insulation RSI — pre &amp; post</div>
+      <div class="cw cw-sm"><canvas id="fnd-chart"></canvas></div>
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#1A7A55;margin:.75rem 0 .5rem">Improvement (among homes that improved)</div>
+      <div class="cw cw-sm"><canvas id="fnd-delta-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Table (FSA mode only — province-wide view has no row-level data) -->
+  <div class="card" id="table-card">
+    <div class="card-title">Individual retrofits — click a row for detail</div>
+    <div class="sort-row">
+      <span class="sort-label">Sort by</span>
+      <button class="sort-btn active" id="sb-saving" onclick="sortBy('saving')">Energy saving</button>
+      <button class="sort-btn" id="sb-year" onclick="sortBy('year')">Year built</button>
+      <button class="sort-btn" id="sb-area" onclick="sortBy('area')">Floor area</button>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>FSA</th><th>Type</th><th>Built</th><th>m²</th>
+          <th>EUI kWh/m²</th><th>Fuel</th><th>Saving</th><th>Depth</th>
+        </tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+    <div class="tbl-footer" id="tbl-footer"></div>
+  </div>
+
+</main>
+
+<section class="methodology" aria-label="Methodology">
+  <details>
+    <summary>How this data was built — methodology</summary>
+    <div class="method-body">
+      <p>This tool visualises real home-energy audits, but the numbers go through several steps before they reach the charts. Here is the whole journey in plain terms.</p>
+
+      <h4>1 · Where the data comes from</h4>
+      <p>Every figure starts from Natural Resources Canada's <strong>EnerGuide / Energy Rating System (ERS)</strong> open dataset — the official record of home-energy audits across Canada, covering audit years <strong>2004–2025</strong>. An audit is a trained energy advisor visiting a home and modelling, with NRCan's HOT2000 software, how much energy it uses and where that energy is lost.</p>
+
+      <h4>2 · Matching "before" and "after"</h4>
+      <p>Each audit record is tagged as an evaluation type. We treat type <strong>D</strong> as the <em>initial</em> ("before") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after") evaluation. A home is identified by a stable address ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
+
+      <h4>3 · Making sure it's really the same home</h4>
+      <p>To avoid accidentally comparing two different homes (or a home that had a major addition), a pair is kept only if, between the two audits, the <strong>floor area changed by no more than 10%</strong> and the <strong>house type, number of storeys, and number of dwelling units stayed the same</strong>. Pairs that fail these checks are removed before anything is counted.</p>
+
+      <h4>4 · Putting everything in the same units</h4>
+      <p>The source records each fuel in its own unit, so we convert everything to a common one — <strong>kilowatt-hours (kWh)</strong> — before comparing: natural gas from cubic metres, oil and propane from litres, wood from tonnes, and the overall total from megajoules. Electricity is already in kWh. Greenhouse-gas emissions come straight from the audit (tonnes CO₂e per year) and already include emissions from electricity using each province's grid mix, so fuel-switching to electricity is accounted for fairly.</p>
+
+      <h4>5 · Fields we calculate ourselves</h4>
+      <p>From the audit values we derive the numbers you see:</p>
+      <p><strong>EUI (energy use intensity)</strong> = total energy ÷ floor area, in <code>kWh/m²</code> — lets a small efficient home and a large one be compared fairly.<br>
+      <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose (common when a home switches to a heat pump — electricity goes up even as emissions fall).<br>
+      <strong>Retrofit depth</strong>, based on how much total energy fell: <em>Shallow</em> = up to 10% saved, <em>Medium</em> = 10–50% saved, <em>Deep</em> = 50% or more saved.<br>
+      <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).</p>
+
+      <h4>6 · What counts as an "upgrade"</h4>
+      <p>Each measure is flagged per home using a sensible threshold, so tiny modelling wiggles don't get counted as real work:</p>
+      <p><strong>Roof / wall / foundation / floor insulation</strong> — the insulation value went up by more than 10%.<br>
+      <strong>Air sealing</strong> — air leakage dropped by more than 10%.<br>
+      <strong>Windows changed</strong> — the recorded window type is different before vs after.<br>
+      <strong>Heating system changed</strong> — the heating fuel or equipment type is different.<br>
+      <strong>Heat pump added</strong> — no heat pump recorded before, one recorded after.</p>
+
+      <h4>7 · Two views, two ways of counting</h4>
+      <p>When you pick a single <strong>FSA</strong> (the first three characters of a postal code), the tool loads the actual individual audit records for that area and calculates everything live in your browser — that is why you also get the sortable table of individual homes.</p>
+      <p>When you look at a whole <strong>province</strong>, doing that over hundreds of thousands of records would be slow, so the medians and chart shapes are <strong>pre-calculated once</strong> with a Python script and shipped as a compact summary, broken down by house type. Both paths use the <em>same</em> bucket widths and definitions, so the two views agree.</p>
+
+      <h4>8 · How the histograms are built</h4>
+      <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, heat-loss buckets <code>5 GJ/yr</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
+
+      <h4>9 · Things to keep in mind</h4>
+      <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Each bar in the fuel chart is an independent median, so individual fuels won't sum exactly to the total. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
+    </div>
+  </details>
+</section>
+
+<footer>
+  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2025<br>
+  Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// NOTE: PapaParse/pako removed — data now ships as pre-split JSON, no CSV
+// parsing or gzip decompression needed client-side.
+const BASE_URL='https://raw.githubusercontent.com/OttawaVisuals/Ottawa-Visuals/main/Energy/';
+const FSA_JSON_BASE=`${BASE_URL}fsa_json/`;       // fsa_json/<PROV>/<FSA>.json + _index.json
+const PROVINCE_JSON_BASE=`${BASE_URL}province_json/`; // province_json/<PROV>.json
+
+const PROVINCES={
+  AB:{name:'Alberta',short:'AB'},
+  BC:{name:'British Columbia',short:'BC'},
+  MB:{name:'Manitoba',short:'MB'},
+  NB:{name:'New Brunswick',short:'NB'},
+  NF:{name:'Newfoundland & Labrador',short:'NF'},
+  NS:{name:'Nova Scotia',short:'NS'},
+  ON:{name:'Ontario',short:'ON'},
+  PE:{name:'Prince Edward Island',short:'PE'},
+  QC:{name:'Quebec',short:'QC'},
+  SK:{name:'Saskatchewan',short:'SK'},
+};
+
+let PROVINCE_CODE='';
+let SELECTED_FSA='';          // '' = province-wide view, else FSA-view
+let SELECTED_TYPE='';         // house-type filter, used by BOTH views (province dropdown
+                               // drives the precomputed slice; FSA view filters FILTERED as before)
+let MODE='none';              // 'none' | 'province' | 'fsa'
+
+const FUEL_COLORS={
+  'Oil':'#B33A2E','Electricity':'#378ADD','Propane':'#C8881A',
+  'Mixed Wood':'#6B4C2A','Mixed wood':'#6B4C2A','Hardwood':'#8B6343',
+  'Natural Gas':'#533AB7','Wood Pellets':'#A07040'
+};
+
+const MEASURES=[
+  {key:'Air_Tightness_Upgrade',        label:'Air sealing',           color:'#C8881A'},
+  {key:'Roof_Insulation_Upgrade',       label:'Roof insulation',       color:'#0B2545'},
+  {key:'Foundation_Insulation_Upgrade', label:'Foundation insulation', color:'#1A7A55'},
+  {key:'Wall_Insulation_Upgrade',       label:'Wall insulation',       color:'#378ADD'},
+  {key:'HeatPump_Addition',            label:'Heat pump added',        color:'#D85A30'},
+  {key:'Heating_Change',              label:'Heating system changed',  color:'#533AB7'},
+  {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0'},
+  {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82'},
+];
+
+// ── Bin widths (single source of truth) ───────────────────────────
+// FSA-mode renderers bin raw rows on the fly; these widths MUST match the
+// ones used in precompute_province_stats.py, or the province-wide view and
+// the FSA view will show differently-shaped histograms for the same data.
+// Keeping them in one object makes that contract explicit and editable in
+// one place instead of scattered as magic numbers across ~6 renderers.
+const BINS={
+  year:10,        // year-built decade buckets
+  area:50,        // floor-area buckets (m²)
+  eui:20,         // energy-use-intensity buckets (kWh/m²)
+  ghg:1,          // GHG buckets (tCO2e/yr)
+  heatloss:5,     // heat-loss buckets (GJ/yr)
+  savingsPct:1    // energy-saving histogram (whole %)
+};
+
+// Pre/post bar palette. Pre = navy, Post = green — a colour-blind-safe pair
+// (the old pre=red / post=green pairing is the classic red–green confusion
+// case). Used by every pre/post comparison histogram.
+const PRE_FILL='rgba(11,37,69,0.5)', PRE_LINE='#0B2545';
+const POST_FILL='rgba(26,122,85,0.5)', POST_LINE='#1A7A55';
+
+
+
+let ALL=[],FILTERED=[],SORT='saving';
+const charts={};
+const FSA_CACHE=new Map();        // `${prov}|${fsa}` -> reconstructed row objects
+const PROVINCE_SUMMARY_CACHE=new Map(); // prov -> parsed province_json payload
+const FSA_INDEX_CACHE=new Map();  // prov -> [{fsa,row_count}, ...] from _index.json
+let LOAD_TOKEN=0; // guards against a slow stale fetch landing after a newer one started
+
+const $=id=>document.getElementById(id);
+const flag=(r,k)=>r[k]==='True'||r[k]===true||r[k]==='1'||r[k]===1;
+const num=v=>{const n=parseFloat(v);return v===null||v===undefined||isNaN(n)?null:n;};
+const norm=t=>t?t.trim().replace(/\b\w/g,c=>c.toUpperCase()):'';
+const fmtPct=v=>v>=0?`+${Math.round(v*100)}%`:`${Math.round(v*100)}%`;
+const median=arr=>{
+  const s=[...arr].filter(v=>v!=null).sort((a,b)=>a-b);
+  if(!s.length)return null;
+  const m=Math.floor(s.length/2);
+  return s.length%2?s[m]:(s[m-1]+s[m])/2;
+};
+function dc(key){if(charts[key]){charts[key].destroy();delete charts[key];}}
+
+// Wire a Sankey flow path for interaction across input types:
+//  - mouse: hover shows the floating tip and tracks the cursor
+//  - touch: tap shows the tip near the finger (mobile had no tooltip before)
+//  - keyboard: the path is focusable; focus shows the tip, blur hides it
+//  - screen readers: the same text is exposed as an aria-label
+// `anchorXY` returns {x,y} in client coords for positioning on touch/focus.
+function attachFlowTip(el,tipText){
+  el.style.cursor='pointer';
+  el.setAttribute('tabindex','0');
+  el.setAttribute('role','img');
+  el.setAttribute('aria-label',tipText.replace(/ \| /g,', '));
+  const tip=$('sankey-tip');
+  const showAt=(x,y)=>{tip.textContent=tipText;tip.style.display='block';tip.style.left=(x+14)+'px';tip.style.top=(y-10)+'px';};
+  const hide=()=>{tip.style.display='none';};
+  el.addEventListener('mouseenter',e=>showAt(e.clientX,e.clientY));
+  el.addEventListener('mousemove',e=>showAt(e.clientX,e.clientY));
+  el.addEventListener('mouseleave',hide);
+  el.addEventListener('touchstart',e=>{
+    const t=e.touches[0];if(t)showAt(t.clientX,t.clientY);
+    e.stopPropagation();
+  },{passive:true});
+  el.addEventListener('focus',()=>{
+    const r=el.getBoundingClientRect();
+    showAt(r.left+r.width/2,r.top+r.height/2);
+  });
+  el.addEventListener('blur',hide);
+}
+// One document-level tap outside any flow dismisses an open touch tip.
+document.addEventListener('touchstart',e=>{
+  if(!(e.target instanceof SVGPathElement))$('sankey-tip').style.display='none';
+},{passive:true});
+
+// ── Load ──────────────────────────────────────────────────────────
+// NOTE: the FSA JSON now ships already-decoded (human-readable BldgType,
+// fuel, etc.), so the old ers_web_keys.json lookup table and CODED_COLS
+// decode step have been removed — they were dead code and the keys file
+// no longer exists on the server.
+
+function fetchJSON(url){
+  return fetch(url).then(r=>{
+    if(!r.ok)throw new Error(`fetch failed (${r.status}): ${url}`);
+    return r.json();
+  });
+}
+
+// Reconstruct row objects from the {columns,rows} array-of-arrays format
+// the split_fsa_json.py pipeline emits (saves ~75% bytes vs array-of-objects
+// by not repeating ~50 key names on every row over the wire).
+function reconstructRows(payload){
+  const cols=payload.columns;
+  return payload.rows.map(row=>{
+    const obj={};
+    for(let i=0;i<cols.length;i++)obj[cols[i]]=row[i];
+    return obj;
+  });
+}
+
+function fetchFsaIndex(prov){
+  if(FSA_INDEX_CACHE.has(prov))return Promise.resolve(FSA_INDEX_CACHE.get(prov));
+  return fetchJSON(`${FSA_JSON_BASE}${prov}/_index.json`)
+    .then(idx=>{FSA_INDEX_CACHE.set(prov,idx);return idx;});
+}
+
+function fetchFsaRows(prov,fsa){
+  const key=`${prov}|${fsa}`;
+  if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
+  console.time(`[load] fsa fetch ${fsa}`);
+  return fetchJSON(`${FSA_JSON_BASE}${prov}/${fsa}.json`)
+    .then(payload=>{
+      const rows=reconstructRows(payload);
+      FSA_CACHE.set(key,rows);
+      console.timeEnd(`[load] fsa fetch ${fsa}`);
+      return rows;
+    });
+}
+
+function fetchProvinceSummary(prov){
+  if(PROVINCE_SUMMARY_CACHE.has(prov))return Promise.resolve(PROVINCE_SUMMARY_CACHE.get(prov));
+  console.time(`[load] province summary ${prov}`);
+  return fetchJSON(`${PROVINCE_JSON_BASE}${prov}.json`)
+    .then(payload=>{
+      PROVINCE_SUMMARY_CACHE.set(prov,payload);
+      console.timeEnd(`[load] province summary ${prov}`);
+      return payload;
+    });
+}
+
+// Populate the FSA dropdown for the current province from its _index.json.
+// Replaces the old hardcoded PEI-only <option> list.
+function populateFsaDropdown(prov,fsaIndex){
+  const sel=$('fsa-sel');
+  sel.innerHTML='<option value="">All areas (province-wide)</option>';
+  fsaIndex.forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.fsa;
+    o.textContent=`${e.fsa} (${e.row_count.toLocaleString()} homes)`;
+    sel.appendChild(o);
+  });
+}
+
+// Populate the house-type dropdown. Source of truth differs by mode:
+// province mode -> keys of by_type in the precomputed summary (fixed, ~6 types)
+// fsa mode -> distinct BldgType values actually present in that FSA's rows
+function populateTypeDropdown(types){
+  const sel=$('type-sel');
+  const prevValue=sel.value;
+  sel.innerHTML='<option value="">All types</option>';
+  types.forEach(t=>{
+    if(t==='All types')return; // already represented by the blank option
+    const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value===prevValue))sel.value=prevValue;
+}
+
+function load(){
+  if(!PROVINCE_CODE)return;
+  const prov=PROVINCES[PROVINCE_CODE];
+  const myToken=++LOAD_TOKEN;
+
+  $('logo-province').textContent=prov.short;
+  $('hero-eyebrow').textContent=`${prov.name} · Home energy retrofits`;
+  $('footer-province').textContent=`${prov.name} audits`;
+  $('header-badge').textContent=`EnerGuide data · ${prov.name} · loading…`;
+
+  // Always (re)build the FSA dropdown for the selected province first —
+  // needed whether the user ends up in province or FSA mode.
+  fetchFsaIndex(PROVINCE_CODE).then(idx=>{
+    if(myToken!==LOAD_TOKEN)return;
+    populateFsaDropdown(PROVINCE_CODE,idx);
+    if(SELECTED_FSA){
+      loadFsaView(myToken);
+    }else{
+      loadProvinceView(myToken);
+    }
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;
+    console.error(err);
+    document.querySelector('main').innerHTML=
+      `<div class="state-msg"><strong>Could not load data</strong>Could not fetch the FSA index for ${prov.name}.</div>`;
+  });
+}
+
+function loadFsaView(myToken){
+  MODE='fsa';
+  const prov=PROVINCES[PROVINCE_CODE];
+  $('result-count').textContent='…';
+  fetchFsaRows(PROVINCE_CODE,SELECTED_FSA).then(rows=>{
+    if(myToken!==LOAD_TOKEN)return;
+    ALL=rows;
+    const types=[...new Set(ALL.map(r=>r.BldgType).filter(Boolean))].sort();
+    const fuels=[...new Set(ALL.map(r=>r.Pre_HeatFuel).filter(Boolean))].sort();
+    populateTypeDropdown(types);
+    const fuelEl=$('fuel-sel');fuelEl.innerHTML='<option value="">All fuels</option>';
+    fuels.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fuelEl.appendChild(o);});
+    showFsaFilterControls(true);
+    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} audits`;
+    applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;
+    console.error(err);
+    document.querySelector('main').innerHTML=
+      `<div class="state-msg"><strong>Could not load data</strong>Could not fetch data for FSA ${SELECTED_FSA}.</div>`;
+  });
+}
+
+function loadProvinceView(myToken){
+  MODE='province';
+  const prov=PROVINCES[PROVINCE_CODE];
+  $('result-count').textContent='…';
+  fetchProvinceSummary(PROVINCE_CODE).then(payload=>{
+    if(myToken!==LOAD_TOKEN)return;
+    const types=Object.keys(payload.by_type);
+    populateTypeDropdown(types);
+    showFsaFilterControls(false);
+    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} audits`;
+    renderProvince(payload);
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;
+    console.error(err);
+    document.querySelector('main').innerHTML=
+      `<div class="state-msg"><strong>Could not load data</strong>Could not fetch the province summary for ${prov.name}.</div>`;
+  });
+}
+
+// Fuel + depth filters are FSA-view only (see project notes): province-wide
+// view only exposes FSA + house type. Hide/show the two extra controls
+// and the reset button's behaviour accordingly.
+function showFsaFilterControls(show){
+  const display=show?'':'none';
+  $('fuel-sel').closest('.filter-group').style.display=display;
+  $('depth-sel').closest('.filter-group').style.display=display;
+}
+
+function applyFilters(){
+  // Only meaningful in FSA mode — province mode re-fetches/re-slices via
+  // loadProvinceView()+renderProvince() instead.
+  if(MODE!=='fsa'){return;}
+  const type=$('type-sel').value,
+        fuel=$('fuel-sel').value,depth=$('depth-sel').value;
+  FILTERED=ALL.filter(r=>
+    (!type||r.BldgType===type)&&
+    (!fuel||r.Pre_HeatFuel===fuel)&&(!depth||flag(r,depth)));
+  render();
+}
+function resetFilters(){
+  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  if(MODE==='fsa'){
+    FILTERED=[...ALL];render();
+  }else if(MODE==='province'){
+    SELECTED_TYPE='';
+    loadProvinceView(++LOAD_TOKEN);
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render(){
+  $('table-card').style.display='';
+  const n=FILTERED.length;
+  $('result-count').textContent=n.toLocaleString();
+  const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
+  const med=median(savings);
+  $('s-median').textContent=med!==null?Math.round(med*100)+'%':'—';
+  $('s-median-sub').textContent=med!==null?(med>=0?'median energy saved':'median energy increased'):'';
+  const deep=FILTERED.filter(r=>flag(r,'Deep_Retrofit')).length;
+  const hp=FILTERED.filter(r=>flag(r,'HeatPump_Addition')).length;
+  const fs=FILTERED.filter(r=>flag(r,'FuelSwitch')).length;
+  $('s-deep').textContent=deep.toLocaleString();
+  $('s-deep-sub').textContent=n?`${Math.round(deep/n*100)}% of matched homes`:'';
+  $('s-hp').textContent=hp.toLocaleString();
+  $('s-hp-sub').textContent=n?`${Math.round(hp/n*100)}% of retrofits`:'';
+  $('s-fs').textContent=fs.toLocaleString();
+
+  // Compute EUIs once here and pass to all consumers
+  const preEUIs=FILTERED.map(r=>{const e=num(r.Pre_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
+  const postEUIs=FILTERED.map(r=>{const e=num(r.Post_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
+  const euiSave=median(preEUIs)-median(postEUIs);
+  $('s-eui-saving').textContent=euiSave?Math.round(euiSave):'—';
+  window._euiMedianPre=Math.round(median(preEUIs)||0);
+  window._euiMedianPost=Math.round(median(postEUIs)||0);
+
+  const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
+  const ghgPost=FILTERED.map(r=>num(r.Post_GHG)).filter(v=>v!==null);
+  const ghgSave=median(ghgPre)!==null&&median(ghgPost)!==null?median(ghgPre)-median(ghgPost):null;
+  $('s-ghg-saving').textContent=ghgSave!==null?ghgSave.toFixed(1):'—';
+
+  const solarPost=FILTERED.filter(r=>num(r.Post_SolarPV)>0).length;
+  $('s-solar').textContent=solarPost.toLocaleString();
+  $('s-solar-sub').textContent=n?`${Math.round(solarPost/n*100)}% of matched homes`:'';
+
+  renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
+  renderSankey();renderEUI(preEUIs,postEUIs);renderGHG();renderHeatLoss();renderSolar(n);renderWaterfall();
+  renderKPI();renderInsulDist(preEUIs,postEUIs);renderMeasures(n);renderSpider(n);
+  renderHist(savings);renderTable();
+}
+
+// ── Year built histogram ──────────────────────────────────────────
+function renderYearHist(){
+  dc('year');
+  const bins={};
+  FILTERED.forEach(r=>{
+    const y=parseInt(r.YearBuilt);
+    if(!y||y<1850||y>2030)return;
+    const d=Math.floor(y/BINS.year)*BINS.year;
+    bins[d]=(bins[d]||0)+1;
+  });
+  const labels=Object.keys(bins).sort();
+  charts['year']=new Chart($('year-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:labels.map(k=>bins[k]),backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}s`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+              y:{ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Floor area histogram ──────────────────────────────────────────
+function renderAreaHist(){
+  dc('area');
+  const bins={};
+  FILTERED.forEach(r=>{
+    const a=parseFloat(r.FloorArea);
+    if(!a||a>700)return;
+    const b=Math.floor(a/BINS.area)*BINS.area;
+    bins[b]=(bins[b]||0)+1;
+  });
+  const labels=Object.keys(bins).sort((a,b)=>a-b);
+  charts['area']=new Chart($('area-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:labels.map(k=>bins[k]),backgroundColor:'#1A7A55CC',borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+              y:{ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Donut helper ──────────────────────────────────────────────────
+function donut(canvasId,countMap,chartKey,n){
+  dc(chartKey);
+  const entries=Object.entries(countMap).sort((a,b)=>b[1]-a[1]);
+  const top=entries.slice(0,5);
+  const other=entries.slice(5).reduce((s,[,v])=>s+v,0);
+  if(other>0)top.push(['Other',other]);
+  const COLS=['#0B2545','#1A7A55','#C8881A','#378ADD','#D85A30','#8A9BB0'];
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'doughnut',
+    data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:COLS,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:8}},
+        tooltip:{callbacks:{label:i=>`${i.label}: ${i.raw.toLocaleString()} (${Math.round(i.raw/n*100)}%)`}}}}
+  });
+}
+function renderTypeDonut(){
+  const c={};FILTERED.forEach(r=>{if(r.BldgType)c[r.BldgType]=(c[r.BldgType]||0)+1;});
+  donut('type-chart',c,'type',FILTERED.length);
+}
+function renderStoreyDonut(){
+  const MAP={'split entry / raised basement':'Split entry','two and a half':'2.5 storeys',
+    'three storeys':'3 storeys','two storeys':'2 storeys','one storey':'1 storey',
+    'one and a half':'1.5 storeys','split level':'Split level','split entry/raised base.':'Split entry'};
+  const c={};
+  FILTERED.forEach(r=>{const key=(r.Storeys||'').toLowerCase();const s=MAP[key]||r.Storeys||'Unknown';c[s]=(c[s]||0)+1;});
+  donut('storey-chart',c,'storey',FILTERED.length);
+}
+
+// ── Sankey ────────────────────────────────────────────────────────
+function renderSankey(){
+  const svg=$('sankey-svg');svg.innerHTML='';
+  if(!FILTERED.length)return;
+  const flows={};
+  FILTERED.forEach(r=>{
+    const pf=r.Pre_HeatFuel,qf=r.Post_HeatFuel;
+    if(!pf||!qf)return;
+    const k=`${pf}|||${qf}`;
+    if(!flows[k])flows[k]={pre:0,post:0};
+    flows[k].pre+=(num(r.Pre_TotalEnergy)||0);
+    flows[k].post+=(num(r.Post_TotalEnergy)||0);
+  });
+  const preMap={},postMap={};
+  Object.entries(flows).forEach(([k,v])=>{
+    const [a,b]=k.split('|||');
+    preMap[a]=(preMap[a]||0)+v.pre;
+    postMap[b]=(postMap[b]||0)+v.post;
+  });
+  const preFuels=Object.entries(preMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const postFuels=Object.entries(postMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const totalPre=Object.values(preMap).reduce((s,v)=>s+v,0);
+  const cw=svg.parentElement.clientWidth||700;
+  const W=Math.max(cw,500),H=320,PAD=10,BAR=14,LX=145,RX=W-145;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('height',H);
+  const usable=H-PAD*2-20;
+
+  function layoutNodes(fuels,map,x){
+    let y=PAD;
+    return fuels.map(f=>{
+      const h=Math.max(3,(map[f]/totalPre)*usable);
+      const node={f,x,y,h};y+=h+4;return node;
+    });
+  }
+  const preNodes=layoutNodes(preFuels,preMap,LX);
+  const postNodes=layoutNodes(postFuels,postMap,RX);
+  const preNM={},postNM={};
+  preNodes.forEach(n=>preNM[n.f]=n);
+  postNodes.forEach(n=>postNM[n.f]=n);
+  const preUsed={},postUsed={};
+  preNodes.forEach(n=>{preUsed[n.f]=0;});
+  postNodes.forEach(n=>{postUsed[n.f]=0;});
+
+  const flowList=Object.entries(flows).sort((a,b)=>b[1].pre-a[1].pre);
+  flowList.forEach(([k,v])=>{
+    const [a,b]=k.split('|||');
+    const pn=preNM[a],qn=postNM[b];if(!pn||!qn)return;
+    const fh=Math.max(2,(v.pre/totalPre)*usable);
+    const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
+    preUsed[a]+=fh;postUsed[b]+=fh;
+    const same=a===b;
+    const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
+    const mx=(LX+BAR+RX)/2;
+    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fh} C${mx},${qy+fh} ${mx},${py+fh} ${LX+BAR},${py+fh}Z`;
+    const el=document.createElementNS('http://www.w3.org/2000/svg','path');
+    el.setAttribute('d',path);
+    el.setAttribute('fill',col);
+    el.setAttribute('opacity',same?'0.45':'0.7');
+    const tipText=`${a} → ${b} | Pre: ${(v.pre/1e6).toFixed(2)} GWh | Post: ${(v.post/1e6).toFixed(2)} GWh | Change: ${((v.post-v.pre)/1e6).toFixed(2)} GWh`;
+    attachFlowTip(el,tipText);
+    svg.appendChild(el);
+  });
+
+  function drawNodes(nodes,isLeft){
+    nodes.forEach(n=>{
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
+      rect.setAttribute('width',BAR);rect.setAttribute('height',Math.max(3,n.h));
+      rect.setAttribute('fill',FUEL_COLORS[n.f]||'#8A9BB0');rect.setAttribute('rx',2);
+      svg.appendChild(rect);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      const tx=isLeft?n.x-6:n.x+BAR+6;
+      t.setAttribute('x',tx);t.setAttribute('y',n.y+Math.max(3,n.h)/2+4);
+      t.setAttribute('text-anchor',isLeft?'end':'start');
+      t.setAttribute('font-size','11');t.setAttribute('fill','#1C2B3A');
+      t.setAttribute('font-family','Inter,sans-serif');
+      const ghw=isLeft?(preMap[n.f]||0):(postMap[n.f]||0);
+      t.textContent=`${n.f} (${(ghw/1e6).toFixed(1)} GWh)`;
+      svg.appendChild(t);
+    });
+  }
+  drawNodes(preNodes,true);drawNodes(postNodes,false);
+}
+
+// ── EUI ───────────────────────────────────────────────────────────
+function renderEUI(preEUIs,postEUIs){
+  const preM=median(preEUIs),postM=median(postEUIs);
+  const saving=preM&&postM?Math.round(preM-postM):null;
+  $('eui-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
+    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² saved</div></div>`:''}`;
+  dc('eui');
+  function euiBins(vals,step=BINS.eui){
+    const b={};
+    vals.forEach(v=>{if(v>500)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
+    return b;
+  }
+  const preBins=euiBins(preEUIs),postBins=euiBins(postEUIs);
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts['eui']=new Chart($('eui-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+20} kWh/m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'kWh/m²',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── GHG emissions ─────────────────────────────────────────────────
+function renderGHG(){
+  const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
+  const ghgPost=FILTERED.map(r=>num(r.Post_GHG)).filter(v=>v!==null);
+  const preM=median(ghgPre),postM=median(ghgPost);
+  const saving=preM!==null&&postM!==null?(preM-postM):null;
+  $('ghg-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!==null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!==null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
+    ${saving!==null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr saved</div></div>`:''}`;
+  dc('ghg');
+  if(!ghgPre.length&&!ghgPost.length)return;
+  function ghgBins(vals,step=BINS.ghg){
+    const b={};
+    vals.forEach(v=>{if(v>30)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
+    return b;
+  }
+  const preBins=ghgBins(ghgPre),postBins=ghgBins(ghgPost);
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts['ghg']=new Chart($('ghg-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+1} tCO2e/yr`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'tCO2e/yr',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Heat loss ─────────────────────────────────────────────────────
+function renderHeatLoss(){
+  dc('heatloss');
+  const pre=FILTERED.map(r=>num(r.Pre_HeatLoss)).filter(v=>v!==null&&v>0&&v<=150);
+  const post=FILTERED.map(r=>num(r.Post_HeatLoss)).filter(v=>v!==null&&v>0&&v<=150);
+  if(!pre.length&&!post.length)return;
+  function bins(vals,step=BINS.heatloss){
+    const b={};
+    vals.forEach(v=>{const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
+    return b;
+  }
+  const preBins=bins(pre),postBins=bins(post);
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts['heatloss']=new Chart($('heatloss-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+5} GJ/yr`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'GJ/yr',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Solar PV ──────────────────────────────────────────────────────
+function renderSolar(n){
+  const preAdopt=FILTERED.filter(r=>num(r.Pre_SolarPV)>0);
+  const postAdopt=FILTERED.filter(r=>num(r.Post_SolarPV)>0);
+  const prePct=n?Math.round(preAdopt.length/n*100):0;
+  const postPct=n?Math.round(postAdopt.length/n*100):0;
+  const sizes=postAdopt.map(r=>num(r.Post_SolarPV)).filter(v=>v!==null&&v>0);
+  const medSize=median(sizes);
+  $('solar-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${prePct}%</div><div class="eui-lbl">Pre-retrofit<br>with solar PV</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postPct}%</div><div class="eui-lbl">Post-retrofit<br>with solar PV</div></div>
+    ${medSize?`<div style="margin-left:auto;text-align:right"><div class="eui-saving" style="color:var(--amber)">${medSize.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">median kW among adopters</div></div>`:''}`;
+}
+
+// ── Waterfall (pre bars from 0 on left, post bars from 0 on right, per fuel) ──
+function renderWaterfall(){
+  dc('waterfall');
+  // NOTE: fuel column names are hardcoded (Pre_Electricity, Pre_NaturalGas, etc.)
+  // If new fuel types are added to the CSV, add them here. Key = CSV column suffix, lbl = display name.
+  const FUELS=[['Electricity','Electricity'],['NaturalGas','Natural Gas'],['Oil','Oil'],['Propane','Propane'],['Wood','Wood']];
+  const fuelLabels=[],preVals=[],postVals=[];
+  FUELS.forEach(([key,lbl])=>{
+    const pre=FILTERED.map(r=>num(r[`Pre_${key}`])||0);
+    const post=FILTERED.map(r=>num(r[`Post_${key}`])||0);
+    const pm=Math.round(median(pre));
+    const qm=Math.round(median(post));
+    if(pm===0&&qm===0)return;
+    fuelLabels.push(lbl);preVals.push(pm);postVals.push(qm);
+  });
+  // Add TOTAL
+  fuelLabels.push('TOTAL');
+  preVals.push(Math.round(median(FILTERED.map(r=>num(r.Pre_TotalEnergy)||0))));
+  postVals.push(Math.round(median(FILTERED.map(r=>num(r.Post_TotalEnergy)||0))));
+
+  // Build interleaved labels: for each fuel, show "Fuel (Pre)" then "Fuel (Post)"
+  // Pre bars get navy, post bars get green, both from 0
+  const labels=[];
+  const barData=[];
+  const barColors=[];
+  const barBorders=[];
+  const tooltipData=[];
+
+  fuelLabels.forEach((lbl,i)=>{
+    labels.push(lbl+' ▲');
+    barData.push(preVals[i]);
+    barColors.push('rgba(11,37,69,0.75)');
+    barBorders.push('#0B2545');
+    tooltipData.push({type:'pre',fuel:lbl,val:preVals[i],post:postVals[i]});
+
+    labels.push(lbl+' ▼');
+    barData.push(postVals[i]);
+    barColors.push('rgba(26,122,85,0.75)');
+    barBorders.push('#1A7A55');
+    tooltipData.push({type:'post',fuel:lbl,val:postVals[i],pre:preVals[i]});
+  });
+
+  charts['waterfall']=new Chart($('waterfall-chart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        data:barData,
+        backgroundColor:barColors,
+        borderColor:barBorders,
+        borderWidth:1,
+        borderRadius:3,
+        barPercentage:0.6
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:i=>tooltipData[i[0].dataIndex].fuel,
+            label:function(i){
+              const d=tooltipData[i.dataIndex];
+              if(d.type==='pre'){
+                const saving=d.val-d.post;
+                return[`Pre: ${d.val.toLocaleString()} kWh`,`Post: ${d.post.toLocaleString()} kWh`,`Saving: ${saving.toLocaleString()} kWh (${d.val>0?Math.round(saving/d.val*100):0}%)`];
+              }
+              const saving=d.pre-d.val;
+              return[`Post: ${d.val.toLocaleString()} kWh`,`Pre: ${d.pre.toLocaleString()} kWh`,`Saving: ${saving.toLocaleString()} kWh (${d.pre>0?Math.round(saving/d.pre*100):0}%)`];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{font:{size:10},color:'#5C6E82',maxRotation:0},
+          grid:{display:false}
+        },
+        y:{
+          title:{display:true,text:'kWh (median, all homes)',font:{size:11},color:'#5C6E82'},
+          ticks:{font:{size:11},color:'#8A9BB0',callback:function(v){return `${(v/1000).toFixed(0)}k`;}},
+          grid:{color:'#E8EDF4'},min:0
+        }
+      }
+    }
+  });
+}
+
+// ── Insulation KPI ────────────────────────────────────────────────
+function renderKPI(){
+  const KPIs=[
+    {label:'Roof insulation',pre:'Pre_RoofInsulation',post:'Post_RoofInsulation',unit:'RSI',hi:true},
+    {label:'Wall insulation',pre:'Pre_WallInsulation',post:'Post_WallInsulation',unit:'RSI',hi:true},
+    {label:'Foundation ins.',pre:'Pre_FoundationInsulation',post:'Post_FoundationInsulation',unit:'RSI',hi:true},
+    {label:'Air leakage',pre:'Pre_AirLeakage',post:'Post_AirLeakage',unit:'ACH50',hi:false},
+  ];
+  $('kpi-grid').innerHTML=KPIs.map(k=>{
+    const pv=FILTERED.map(r=>num(r[k.pre])).filter(v=>v!==null&&v>0);
+    const qv=FILTERED.map(r=>num(r[k.post])).filter(v=>v!==null&&v>0);
+    const pm=median(pv),qm=median(qv);
+    if(pm===null||qm===null)return'';
+    const d=qm-pm,imp=k.hi?d>0:d<0;
+    return `<div class="kpi-item">
+      <div class="kpi-name">${k.label}</div>
+      <div class="kpi-values"><div class="kpi-pre">${pm.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${qm.toFixed(1)}</div></div>
+      <div class="kpi-unit">${k.unit}</div>
+      <div class="kpi-delta ${imp?'good':'bad'}">${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Insulation pre/post histogram ─────────────────────────────────
+function insulHist(canvasId,chartKey,preCol,postCol,maxVal,step,unit){
+  dc(chartKey);
+  function mkBins(col){
+    const b={};
+    FILTERED.forEach(r=>{const v=num(r[col]);if(v===null||v<=0||v>maxVal)return;const k=(Math.floor(v/step)*step).toFixed(2);b[k]=(b[k]||0)+1;});
+    return b;
+  }
+  const pBins=mkBins(preCol),qBins=mkBins(postCol);
+  const allKeys=[...new Set([...Object.keys(pBins),...Object.keys(qBins)])].map(Number).sort((a,b)=>a-b);
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys.map(k=>k.toFixed(1)),datasets:[
+      {label:'Pre',data:allKeys.map(k=>pBins[k.toFixed(2)]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post',data:allKeys.map(k=>qBins[k.toFixed(2)]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},
+        tooltip:{callbacks:{title:i=>`${i[0].label} ${unit}`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:unit,font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:12},grid:{display:false}},
+              y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Delta (improvement) histogram ─────────────────────────────────
+function deltaHist(canvasId,chartKey,preCol,postCol,maxDelta,step,unit,invert){
+  dc(chartKey);
+  const deltas=[];
+  FILTERED.forEach(r=>{
+    const pre=num(r[preCol]),post=num(r[postCol]);
+    if(pre===null||post===null||pre<=0||post<=0)return;
+    const d=invert?(pre-post):(post-pre);
+    if(d>0&&d<=maxDelta)deltas.push(d);
+  });
+  if(!deltas.length)return;
+  // Use range labels: floor to bin start, label as "X–Y"
+  const bins={};
+  deltas.forEach(d=>{
+    const lo=(Math.floor(d/step)*step);
+    const hi=lo+step;
+    const k=lo.toFixed(2); // key for sorting
+    if(!bins[k])bins[k]={lo,hi,count:0};
+    bins[k].count++;
+  });
+  const keys=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  const entries=keys.map(k=>bins[k.toFixed(2)]);
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels:entries.map(e=>`${e.lo.toFixed(1)}–${e.hi.toFixed(1)}`),datasets:[{
+      data:entries.map(e=>e.count),
+      backgroundColor:'rgba(26,122,85,0.65)',
+      borderColor:'#1A7A55',borderWidth:1,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>`${i[0].label} ${unit} improvement`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:`Improvement (${unit})`,font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:14},grid:{display:false}},
+        y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+// ── EUI delta histogram ───────────────────────────────────────────
+function euiDeltaHist(preEUIs,postEUIs){
+  dc('eui-delta');
+  // preEUIs and postEUIs are already per-home EUI values (kWh/m²) passed from render()
+  // We need paired deltas, so we recompute pairing from FILTERED (arrays may differ in length due to nulls)
+  const deltas=[];
+  FILTERED.forEach(r=>{
+    const pre=num(r.Pre_TotalEnergy),post=num(r.Post_TotalEnergy),area=num(r.FloorArea);
+    if(!pre||!post||!area||area<=0)return;
+    const d=(pre-post)/area;
+    if(d>0&&d<=500)deltas.push(d);
+  });
+  if(!deltas.length)return;
+  const step=10;
+  const bins={};
+  deltas.forEach(d=>{
+    const lo=Math.floor(d/step)*step;
+    const hi=lo+step;
+    const k=lo.toFixed(0);
+    if(!bins[k])bins[k]={lo,hi,count:0};
+    bins[k].count++;
+  });
+  const keys=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  const entries=keys.map(k=>bins[k.toFixed(0)]);
+  charts['eui-delta']=new Chart($('eui-delta-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:entries.map(e=>`${e.lo}–${e.hi}`),datasets:[{
+      data:entries.map(e=>e.count),
+      backgroundColor:'rgba(26,122,85,0.65)',
+      borderColor:'#1A7A55',borderWidth:1,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>`${i[0].label} kWh/m² reduction`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:'EUI reduction (kWh/m²)',font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:14},grid:{display:false}},
+        y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+function renderInsulDist(preEUIs,postEUIs){
+  insulHist('roof-chart','roof','Pre_RoofInsulation','Post_RoofInsulation',14,0.5,'RSI');
+  insulHist('air-chart','air','Pre_AirLeakage','Post_AirLeakage',20,0.5,'ACH50');
+  insulHist('wall-chart','wall','Pre_WallInsulation','Post_WallInsulation',7,0.25,'RSI');
+  insulHist('fnd-chart','fnd','Pre_FoundationInsulation','Post_FoundationInsulation',6,0.25,'RSI');
+  deltaHist('roof-delta-chart','roof-delta','Pre_RoofInsulation','Post_RoofInsulation',12,0.5,'RSI',false);
+  deltaHist('air-delta-chart','air-delta','Pre_AirLeakage','Post_AirLeakage',15,0.5,'ACH50',true);
+  deltaHist('wall-delta-chart','wall-delta','Pre_WallInsulation','Post_WallInsulation',5,0.25,'RSI',false);
+  deltaHist('fnd-delta-chart','fnd-delta','Pre_FoundationInsulation','Post_FoundationInsulation',5,0.25,'RSI',false);
+  euiDeltaHist(preEUIs,postEUIs);
+}
+
+// ── Measures bar ──────────────────────────────────────────────────
+function renderMeasures(n){
+  if(!n){$('measures-list').innerHTML='<div class="state-msg"><strong>No matches</strong></div>';return;}
+  $('measures-list').innerHTML=MEASURES.map(m=>{
+    const c=FILTERED.filter(r=>flag(r,m.key)).length,p=Math.round(c/n*100);
+    return `<div class="measure-row"><div class="measure-label">${m.label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${m.color}"></div></div><div class="bar-pct">${p}%</div></div>`;
+  }).join('');
+}
+
+// ── Spider chart ──────────────────────────────────────────────────
+function renderSpider(n){
+  const svg=$('spider-svg');svg.innerHTML='';
+  if(!n)return;
+  const axes=MEASURES.map(m=>({label:m.label,value:n?FILTERED.filter(r=>flag(r,m.key)).length/n:0,color:m.color}));
+  svg.setAttribute('role','img');
+  svg.setAttribute('aria-label','Share of retrofits including each measure: '+
+    axes.map(a=>`${a.label} ${Math.round(a.value*100)}%`).join(', '));
+  const W=340,H=280,cx=155,cy=140,R=88,N=axes.length;
+  [0.25,0.5,0.75,1].forEach(frac=>{
+    const pts=axes.map((_,i)=>{const a=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(a)*R*frac,cy+Math.sin(a)*R*frac];});
+    const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('fill','none');poly.setAttribute('stroke','#D2D8E3');poly.setAttribute('stroke-width','0.75');
+    svg.appendChild(poly);
+    const rl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    rl.setAttribute('x',cx+3);rl.setAttribute('y',cy-R*frac+3);
+    rl.setAttribute('font-size','8');rl.setAttribute('fill','#8A9BB0');rl.setAttribute('font-family','Inter,sans-serif');
+    rl.textContent=`${Math.round(frac*100)}%`;
+    svg.appendChild(rl);
+  });
+  axes.forEach((_,i)=>{
+    const a=(i/N)*Math.PI*2-Math.PI/2;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',cx);line.setAttribute('y1',cy);
+    line.setAttribute('x2',cx+Math.cos(a)*R);line.setAttribute('y2',cy+Math.sin(a)*R);
+    line.setAttribute('stroke','#D2D8E3');line.setAttribute('stroke-width','0.75');
+    svg.appendChild(line);
+  });
+  const pts=axes.map((a,i)=>{const ang=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(ang)*R*a.value,cy+Math.sin(ang)*R*a.value];});
+  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+  poly.setAttribute('fill','rgba(11,37,69,0.12)');poly.setAttribute('stroke','#0B2545');poly.setAttribute('stroke-width','1.5');
+  svg.appendChild(poly);
+  axes.forEach((a,i)=>{
+    const ang=(i/N)*Math.PI*2-Math.PI/2;
+    const dx=cx+Math.cos(ang)*R*a.value,dy=cy+Math.sin(ang)*R*a.value;
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',dx);circle.setAttribute('cy',dy);circle.setAttribute('r','4');
+    circle.setAttribute('fill',a.color);circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','1.5');
+    circle.innerHTML=`<title>${a.label}: ${Math.round(a.value*100)}%</title>`;
+    svg.appendChild(circle);
+    const LABEL_R=R+26;
+    const lx=cx+Math.cos(ang)*LABEL_R,ly=cy+Math.sin(ang)*LABEL_R;
+    const anchor=Math.cos(ang)>0.2?'start':Math.cos(ang)<-0.2?'end':'middle';
+    const words=a.label.split(' ');
+    const half=Math.ceil(words.length/2);
+    const line1=words.slice(0,half).join(' ');
+    const line2=words.slice(half).join(' ');
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',lx);txt.setAttribute('y',ly);
+    txt.setAttribute('text-anchor',anchor);txt.setAttribute('font-size','9.5');
+    txt.setAttribute('fill','#1C2B3A');txt.setAttribute('font-family','Inter,sans-serif');
+    txt.innerHTML=`<tspan x="${lx}" dy="-0.5em">${line1}</tspan><tspan x="${lx}" dy="1.2em">${line2}</tspan>`;
+    svg.appendChild(txt);
+    if(Math.round(a.value*100)>5){
+      const vx=cx+Math.cos(ang)*(R*a.value-10),vy=cy+Math.sin(ang)*(R*a.value-10);
+      const vt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      vt.setAttribute('x',vx);vt.setAttribute('y',vy+3);
+      vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','8');
+      vt.setAttribute('fill','#fff');vt.setAttribute('font-family','Inter,sans-serif');vt.setAttribute('font-weight','500');
+      vt.textContent=`${Math.round(a.value*100)}%`;
+      svg.appendChild(vt);
+    }
+  });
+}
+
+// ── Energy saving histogram (1% bins) ────────────────────────────
+function renderHist(savings){
+  dc('hist');
+  if(!savings.length)return;
+  // Avoid Math.min(...savings)/Math.max(...savings): spreading 600k+ elements
+  // as call arguments overflows the engine's call stack. Plain loop has no such limit.
+  let minRaw=savings[0],maxRaw=savings[0];
+  for(let i=1;i<savings.length;i++){
+    const v=savings[i];
+    if(v<minRaw)minRaw=v;
+    if(v>maxRaw)maxRaw=v;
+  }
+  const minV=Math.floor(minRaw*100);
+  const maxV=Math.ceil(maxRaw*100);
+  const bins={};
+  for(let i=minV;i<=maxV;i++)bins[i]=0;
+  savings.forEach(v=>{const b=Math.round(v*100);if(bins[b]!==undefined)bins[b]++;});
+  const labels=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  charts['hist']=new Chart($('hist-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:labels.map(k=>`${k}%`),datasets:[{
+      data:labels.map(k=>bins[k]),
+      backgroundColor:labels.map(k=>k<0?'rgba(179,58,46,0.6)':'rgba(26,122,85,0.6)'),
+      borderColor:labels.map(k=>k<0?'#B33A2E':'#1A7A55'),
+      borderWidth:0.5,borderRadius:0,barPercentage:1.0,categoryPercentage:1.0
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:'#5C6E82'},
+          ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:30,
+            callback:function(v,i){const l=labels[i];return l%10===0?`${l}%`:''}},
+          grid:{display:false}},
+        y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// PROVINCE-WIDE VIEW (no FSA selected) — reads precomputed bins/medians
+// from province_json/<PROV>.json instead of scanning raw rows. Kept
+// separate from the FSA-mode renderers above by design: FSA mode is
+// proven/working code operating on real rows, this operates on a fixed,
+// limited filter surface (house type only — see project notes on why
+// fuel/depth aren't available province-wide) precomputed in Python.
+// Bin widths/thresholds here MUST match precompute_province_stats.py
+// exactly or the two views will show different numbers for the same data.
+// ════════════════════════════════════════════════════════════════
+
+function renderProvince(payload){
+  const slice=payload.by_type[SELECTED_TYPE||'All types'];
+  if(!slice){
+    $('result-count').textContent='0';
+    return;
+  }
+  const n=slice.row_count||0;
+  $('result-count').textContent=n.toLocaleString();
+
+  const med=slice.median_saving_pct;
+  $('s-median').textContent=med!=null?Math.round(med*100)+'%':'—';
+  $('s-median-sub').textContent=med!=null?(med>=0?'median energy saved':'median energy increased'):'';
+
+  $('s-deep').textContent=(slice.deep_retrofit_count||0).toLocaleString();
+  $('s-deep-sub').textContent=n?`${Math.round((slice.deep_retrofit_count||0)/n*100)}% of matched homes`:'';
+  $('s-hp').textContent=(slice.heat_pump_count||0).toLocaleString();
+  $('s-hp-sub').textContent=n?`${Math.round((slice.heat_pump_count||0)/n*100)}% of retrofits`:'';
+  $('s-fs').textContent=(slice.fuel_switch_count||0).toLocaleString();
+
+  $('s-eui-saving').textContent=slice.eui_saving!=null?slice.eui_saving:'—';
+  window._euiMedianPre=Math.round(slice.eui_pre_median||0);
+  window._euiMedianPost=Math.round(slice.eui_post_median||0);
+
+  $('s-ghg-saving').textContent=slice.ghg_saving!=null?slice.ghg_saving.toFixed(1):'—';
+
+  $('s-solar').textContent=(slice.solar_post_count||0).toLocaleString();
+  $('s-solar-sub').textContent=n?`${slice.solar_post_pct||0}% of matched homes`:'';
+
+  renderProvinceYearHist(slice);
+  renderProvinceAreaHist(slice);
+  renderProvinceTypeDonut(payload);
+  renderProvinceStoreyDonut(slice);
+  renderProvinceSankey(slice);
+  renderProvinceEUI(slice);
+  renderProvinceGHG(slice);
+  renderProvinceHeatLoss(slice);
+  renderProvinceSolar(slice);
+  renderProvinceWaterfall(slice);
+  renderProvinceKPI(slice);
+  renderProvinceInsulDist(slice);
+  renderProvinceMeasures(slice);
+  renderProvinceSpider(slice);
+  renderProvinceHist(slice);
+  $('table-card').style.display='none';
+}
+
+// Bin objects from precompute_province_stats.py have integer/numeric keys
+// already (e.g. {"1990":42}); this turns one into Chart.js-ready
+// sorted [labels, data] arrays, mirroring how each FSA-mode renderer
+// builds `allKeys` from its own bins{} object.
+function sortedBinArrays(bins){
+  const keys=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  return [keys, keys.map(k=>bins[k]||0)];
+}
+
+function renderProvinceYearHist(slice){
+  dc('year');
+  const [labels,data]=sortedBinArrays(slice.year_built_bins||{});
+  charts['year']=new Chart($('year-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}s`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+              y:{ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+function renderProvinceAreaHist(slice){
+  dc('area');
+  const [labels,data]=sortedBinArrays(slice.floor_area_bins||{});
+  charts['area']=new Chart($('area-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:'#1A7A55CC',borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+              y:{ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// Same donut() helper used by FSA mode — it already takes a precomputed
+// countMap, so no province-specific variant needed for the drawing itself.
+function renderProvinceTypeDonut(payload){
+  // When a specific house type is selected the full-mix donut is misleading
+  // (it stays unchanged while the result count drops). Show the selected
+  // type as a single slice instead, so the donut matches the active filter.
+  if(SELECTED_TYPE && payload.by_type[SELECTED_TYPE]){
+    const slice=payload.by_type[SELECTED_TYPE];
+    donut('type-chart',{[SELECTED_TYPE]:slice.row_count||0},'type',slice.row_count||0);
+  }else{
+    const allSlice=payload.by_type['All types'];
+    donut('type-chart',allSlice.type_counts||{},'type',allSlice.row_count||0);
+  }
+}
+function renderProvinceStoreyDonut(slice){
+  donut('storey-chart',slice.storey_counts||{},'storey',slice.row_count||0);
+}
+
+function renderProvinceSankey(slice){
+  const svg=$('sankey-svg');svg.innerHTML='';
+  const flows=slice.sankey_flows||{};
+  if(!Object.keys(flows).length)return;
+  const preMap={},postMap={};
+  Object.entries(flows).forEach(([k,v])=>{
+    const [a,b]=k.split('|||');
+    preMap[a]=(preMap[a]||0)+v.pre;
+    postMap[b]=(postMap[b]||0)+v.post;
+  });
+  const preFuels=Object.entries(preMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const postFuels=Object.entries(postMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const totalPre=Object.values(preMap).reduce((s,v)=>s+v,0);
+  const cw=svg.parentElement.clientWidth||700;
+  const W=Math.max(cw,500),H=320,PAD=10,BAR=14,LX=145,RX=W-145;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('height',H);
+  const usable=H-PAD*2-20;
+
+  function layoutNodes(fuels,map,x){
+    let y=PAD;
+    return fuels.map(f=>{
+      const h=Math.max(3,(map[f]/totalPre)*usable);
+      const node={f,x,y,h};y+=h+4;return node;
+    });
+  }
+  const preNodes=layoutNodes(preFuels,preMap,LX);
+  const postNodes=layoutNodes(postFuels,postMap,RX);
+  const preNM={},postNM={};
+  preNodes.forEach(n=>preNM[n.f]=n);
+  postNodes.forEach(n=>postNM[n.f]=n);
+  const preUsed={},postUsed={};
+  preNodes.forEach(n=>{preUsed[n.f]=0;});
+  postNodes.forEach(n=>{postUsed[n.f]=0;});
+
+  const flowList=Object.entries(flows).sort((a,b)=>b[1].pre-a[1].pre);
+  flowList.forEach(([k,v])=>{
+    const [a,b]=k.split('|||');
+    const pn=preNM[a],qn=postNM[b];if(!pn||!qn)return;
+    const fh=Math.max(2,(v.pre/totalPre)*usable);
+    const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
+    preUsed[a]+=fh;postUsed[b]+=fh;
+    const same=a===b;
+    const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
+    const mx=(LX+BAR+RX)/2;
+    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fh} C${mx},${qy+fh} ${mx},${py+fh} ${LX+BAR},${py+fh}Z`;
+    const el=document.createElementNS('http://www.w3.org/2000/svg','path');
+    el.setAttribute('d',path);
+    el.setAttribute('fill',col);
+    el.setAttribute('opacity',same?'0.45':'0.7');
+    const tipText=`${a} → ${b} | Pre: ${(v.pre/1e6).toFixed(2)} GWh | Post: ${(v.post/1e6).toFixed(2)} GWh | Change: ${((v.post-v.pre)/1e6).toFixed(2)} GWh`;
+    attachFlowTip(el,tipText);
+    svg.appendChild(el);
+  });
+
+  function drawNodes(nodes,isLeft){
+    nodes.forEach(n=>{
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
+      rect.setAttribute('width',BAR);rect.setAttribute('height',Math.max(3,n.h));
+      rect.setAttribute('fill',FUEL_COLORS[n.f]||'#8A9BB0');rect.setAttribute('rx',2);
+      svg.appendChild(rect);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      const tx=isLeft?n.x-6:n.x+BAR+6;
+      t.setAttribute('x',tx);t.setAttribute('y',n.y+Math.max(3,n.h)/2+4);
+      t.setAttribute('text-anchor',isLeft?'end':'start');
+      t.setAttribute('font-size','11');t.setAttribute('fill','#1C2B3A');
+      t.setAttribute('font-family','Inter,sans-serif');
+      const ghw=isLeft?(preMap[n.f]||0):(postMap[n.f]||0);
+      t.textContent=`${n.f} (${(ghw/1e6).toFixed(1)} GWh)`;
+      svg.appendChild(t);
+    });
+  }
+  drawNodes(preNodes,true);drawNodes(postNodes,false);
+}
+
+function renderProvinceEUI(slice){
+  const preM=slice.eui_pre_median,postM=slice.eui_post_median;
+  const saving=slice.eui_saving;
+  $('eui-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
+    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² saved</div></div>`:''}`;
+  dc('eui');
+  const [preKeys,preData]=sortedBinArrays(slice.eui_pre_bins||{});
+  const [postKeys,postData]=sortedBinArrays(slice.eui_post_bins||{});
+  const allKeys=[...new Set([...preKeys,...postKeys])].sort((a,b)=>a-b);
+  const preBins=slice.eui_pre_bins||{},postBins=slice.eui_post_bins||{};
+  charts['eui']=new Chart($('eui-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+20} kWh/m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'kWh/m²',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+function renderProvinceGHG(slice){
+  const preM=slice.ghg_pre_median,postM=slice.ghg_post_median;
+  const saving=slice.ghg_saving;
+  $('ghg-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
+    ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr saved</div></div>`:''}`;
+  dc('ghg');
+  const preBins=slice.ghg_pre_bins||{},postBins=slice.ghg_post_bins||{};
+  if(!Object.keys(preBins).length&&!Object.keys(postBins).length)return;
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts['ghg']=new Chart($('ghg-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+1} tCO2e/yr`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'tCO2e/yr',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+function renderProvinceHeatLoss(slice){
+  dc('heatloss');
+  const preBins=slice.heatloss_pre_bins||{},postBins=slice.heatloss_post_bins||{};
+  if(!Object.keys(preBins).length&&!Object.keys(postBins).length)return;
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts['heatloss']=new Chart($('heatloss-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys,datasets:[
+      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+5} GJ/yr`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:'GJ/yr',font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+function renderProvinceSolar(slice){
+  const prePct=slice.solar_pre_pct||0,postPct=slice.solar_post_pct||0;
+  const medSize=slice.solar_median_kw;
+  $('solar-kpis').innerHTML=`
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${prePct}%</div><div class="eui-lbl">Pre-retrofit<br>with solar PV</div></div>
+    <div class="eui-arrow-big">→</div>
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postPct}%</div><div class="eui-lbl">Post-retrofit<br>with solar PV</div></div>
+    ${medSize?`<div style="margin-left:auto;text-align:right"><div class="eui-saving" style="color:var(--amber)">${medSize.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">median kW among adopters</div></div>`:''}`;
+}
+
+function renderProvinceWaterfall(slice){
+  dc('waterfall');
+  const waterfall=slice.waterfall||[];
+  const labels=[],barData=[],barColors=[],barBorders=[],tooltipData=[];
+  waterfall.forEach(w=>{
+    labels.push(w.fuel+' ▲');
+    barData.push(w.pre);
+    barColors.push('rgba(11,37,69,0.75)');
+    barBorders.push('#0B2545');
+    tooltipData.push({type:'pre',fuel:w.fuel,val:w.pre,post:w.post});
+
+    labels.push(w.fuel+' ▼');
+    barData.push(w.post);
+    barColors.push('rgba(26,122,85,0.75)');
+    barBorders.push('#1A7A55');
+    tooltipData.push({type:'post',fuel:w.fuel,val:w.post,pre:w.pre});
+  });
+
+  charts['waterfall']=new Chart($('waterfall-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:barData,backgroundColor:barColors,borderColor:barBorders,borderWidth:1,borderRadius:3,barPercentage:0.6}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          title:i=>tooltipData[i[0].dataIndex].fuel,
+          label:function(i){
+            const d=tooltipData[i.dataIndex];
+            if(d.type==='pre'){
+              const saving=d.val-d.post;
+              return[`Pre: ${d.val.toLocaleString()} kWh`,`Post: ${d.post.toLocaleString()} kWh`,`Saving: ${saving.toLocaleString()} kWh (${d.val>0?Math.round(saving/d.val*100):0}%)`];
+            }
+            const saving=d.pre-d.val;
+            return[`Post: ${d.val.toLocaleString()} kWh`,`Pre: ${d.pre.toLocaleString()} kWh`,`Saving: ${saving.toLocaleString()} kWh (${d.pre>0?Math.round(saving/d.pre*100):0}%)`];
+          }
+        }}
+      },
+      scales:{
+        x:{ticks:{font:{size:10},color:'#5C6E82',maxRotation:0},grid:{display:false}},
+        y:{title:{display:true,text:'kWh (median, all homes)',font:{size:11},color:'#5C6E82'},
+          ticks:{font:{size:11},color:'#8A9BB0',callback:function(v){return `${(v/1000).toFixed(0)}k`;}},
+          grid:{color:'#E8EDF4'},min:0}
+      }
+    }
+  });
+}
+
+function renderProvinceKPI(slice){
+  const kpis=slice.insulation_kpis||[];
+  $('kpi-grid').innerHTML=kpis.map(k=>{
+    const d=k.post-k.pre,imp=k.higher_is_better?d>0:d<0;
+    return `<div class="kpi-item">
+      <div class="kpi-name">${k.label}</div>
+      <div class="kpi-values"><div class="kpi-pre">${k.pre.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${k.post.toFixed(1)}</div></div>
+      <div class="kpi-unit">${k.unit}</div>
+      <div class="kpi-delta ${imp?'good':'bad'}">${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}</div>
+    </div>`;
+  }).join('');
+}
+
+function provinceInsulHist(canvasId,chartKey,histData,unit){
+  dc(chartKey);
+  const preBins=histData.pre_bins||{},postBins=histData.post_bins||{};
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels:allKeys.map(k=>k.toFixed(1)),datasets:[
+      {label:'Pre',data:allKeys.map(k=>preBins[k.toFixed(2)]??preBins[k]??0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
+      {label:'Post',data:allKeys.map(k=>postBins[k.toFixed(2)]??postBins[k]??0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},
+        tooltip:{callbacks:{title:i=>`${i[0].label} ${unit}`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{title:{display:true,text:unit,font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:12},grid:{display:false}},
+              y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+function provinceDeltaHist(canvasId,chartKey,deltaBins,unit){
+  dc(chartKey);
+  const keys=Object.keys(deltaBins).map(Number).sort((a,b)=>a-b);
+  if(!keys.length)return;
+  // delta_bins keys are bin-start values; infer step from the smallest gap
+  // (matches how precompute_province_stats.py's bin_counts() keys them).
+  // Bin counts are always small (a few hundred at most) so a spread here is
+  // safe, but a loop is used anyway for consistency with renderHist's fix.
+  let step=1;
+  if(keys.length>1){
+    step=keys[1]-keys[0];
+    for(let i=2;i<keys.length;i++)step=Math.min(step,keys[i]-keys[i-1]);
+  }
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels:keys.map(k=>`${k.toFixed(1)}–${(k+step).toFixed(1)}`),datasets:[{
+      data:keys.map(k=>deltaBins[k]),
+      backgroundColor:'rgba(26,122,85,0.65)',borderColor:'#1A7A55',borderWidth:1,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>`${i[0].label} ${unit} improvement`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:`Improvement (${unit})`,font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:14},grid:{display:false}},
+        y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+function provinceEuiDeltaHist(eui_delta_bins){
+  dc('eui-delta');
+  const keys=Object.keys(eui_delta_bins).map(Number).sort((a,b)=>a-b);
+  if(!keys.length)return;
+  let step=10;
+  if(keys.length>1){
+    step=keys[1]-keys[0];
+    for(let i=2;i<keys.length;i++)step=Math.min(step,keys[i]-keys[i-1]);
+  }
+  charts['eui-delta']=new Chart($('eui-delta-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:keys.map(k=>`${k}–${k+step}`),datasets:[{
+      data:keys.map(k=>eui_delta_bins[k]),
+      backgroundColor:'rgba(26,122,85,0.65)',borderColor:'#1A7A55',borderWidth:1,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>`${i[0].label} kWh/m² reduction`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:'EUI reduction (kWh/m²)',font:{size:10},color:'#5C6E82'},ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:14},grid:{display:false}},
+        y:{ticks:{font:{size:9},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+function renderProvinceInsulDist(slice){
+  const ih=slice.insulation_histograms||{};
+  if(ih.roof)provinceInsulHist('roof-chart','roof',ih.roof,ih.roof.unit||'RSI');
+  if(ih.air)provinceInsulHist('air-chart','air',ih.air,ih.air.unit||'ACH50');
+  if(ih.wall)provinceInsulHist('wall-chart','wall',ih.wall,ih.wall.unit||'RSI');
+  if(ih.fnd)provinceInsulHist('fnd-chart','fnd',ih.fnd,ih.fnd.unit||'RSI');
+  if(ih.roof)provinceDeltaHist('roof-delta-chart','roof-delta',ih.roof.delta_bins||{},ih.roof.unit||'RSI');
+  if(ih.air)provinceDeltaHist('air-delta-chart','air-delta',ih.air.delta_bins||{},ih.air.unit||'ACH50');
+  if(ih.wall)provinceDeltaHist('wall-delta-chart','wall-delta',ih.wall.delta_bins||{},ih.wall.unit||'RSI');
+  if(ih.fnd)provinceDeltaHist('fnd-delta-chart','fnd-delta',ih.fnd.delta_bins||{},ih.fnd.unit||'RSI');
+  provinceEuiDeltaHist(slice.eui_delta_bins||{});
+}
+
+function renderProvinceMeasures(slice){
+  const n=slice.row_count||0;
+  const measures=slice.measures||[];
+  if(!n){$('measures-list').innerHTML='<div class="state-msg"><strong>No matches</strong></div>';return;}
+  $('measures-list').innerHTML=measures.map(m=>
+    `<div class="measure-row"><div class="measure-label">${m.label}</div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${MEASURES.find(x=>x.key===m.key)?.color||'#8A9BB0'}"></div></div><div class="bar-pct">${m.pct}%</div></div>`
+  ).join('');
+}
+
+function renderProvinceSpider(slice){
+  const svg=$('spider-svg');svg.innerHTML='';
+  const n=slice.row_count||0;
+  if(!n)return;
+  const measures=slice.measures||[];
+  const axes=measures.map(m=>({
+    label:m.label,
+    value:m.pct/100,
+    color:MEASURES.find(x=>x.key===m.key)?.color||'#8A9BB0'
+  }));
+  const W=340,H=280,cx=155,cy=140,R=88,N=axes.length;
+  [0.25,0.5,0.75,1].forEach(frac=>{
+    const pts=axes.map((_,i)=>{const a=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(a)*R*frac,cy+Math.sin(a)*R*frac];});
+    const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('fill','none');poly.setAttribute('stroke','#D2D8E3');poly.setAttribute('stroke-width','0.75');
+    svg.appendChild(poly);
+    const rl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    rl.setAttribute('x',cx+3);rl.setAttribute('y',cy-R*frac+3);
+    rl.setAttribute('font-size','8');rl.setAttribute('fill','#8A9BB0');rl.setAttribute('font-family','Inter,sans-serif');
+    rl.textContent=`${Math.round(frac*100)}%`;
+    svg.appendChild(rl);
+  });
+  axes.forEach((_,i)=>{
+    const a=(i/N)*Math.PI*2-Math.PI/2;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',cx);line.setAttribute('y1',cy);
+    line.setAttribute('x2',cx+Math.cos(a)*R);line.setAttribute('y2',cy+Math.sin(a)*R);
+    line.setAttribute('stroke','#D2D8E3');line.setAttribute('stroke-width','0.75');
+    svg.appendChild(line);
+  });
+  const pts=axes.map((a,i)=>{const ang=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(ang)*R*a.value,cy+Math.sin(ang)*R*a.value];});
+  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
+  poly.setAttribute('fill','rgba(11,37,69,0.12)');poly.setAttribute('stroke','#0B2545');poly.setAttribute('stroke-width','1.5');
+  svg.appendChild(poly);
+  axes.forEach((a,i)=>{
+    const ang=(i/N)*Math.PI*2-Math.PI/2;
+    const dx=cx+Math.cos(ang)*R*a.value,dy=cy+Math.sin(ang)*R*a.value;
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',dx);circle.setAttribute('cy',dy);circle.setAttribute('r','4');
+    circle.setAttribute('fill',a.color);circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','1.5');
+    circle.innerHTML=`<title>${a.label}: ${Math.round(a.value*100)}%</title>`;
+    svg.appendChild(circle);
+    const LABEL_R=R+26;
+    const lx=cx+Math.cos(ang)*LABEL_R,ly=cy+Math.sin(ang)*LABEL_R;
+    const anchor=Math.cos(ang)>0.2?'start':Math.cos(ang)<-0.2?'end':'middle';
+    const words=a.label.split(' ');
+    const half=Math.ceil(words.length/2);
+    const line1=words.slice(0,half).join(' ');
+    const line2=words.slice(half).join(' ');
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',lx);txt.setAttribute('y',ly);
+    txt.setAttribute('text-anchor',anchor);txt.setAttribute('font-size','9.5');
+    txt.setAttribute('fill','#1C2B3A');txt.setAttribute('font-family','Inter,sans-serif');
+    txt.innerHTML=`<tspan x="${lx}" dy="-0.5em">${line1}</tspan><tspan x="${lx}" dy="1.2em">${line2}</tspan>`;
+    svg.appendChild(txt);
+    if(Math.round(a.value*100)>5){
+      const vx=cx+Math.cos(ang)*(R*a.value-10),vy=cy+Math.sin(ang)*(R*a.value-10);
+      const vt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      vt.setAttribute('x',vx);vt.setAttribute('y',vy+3);
+      vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','8');
+      vt.setAttribute('fill','#fff');vt.setAttribute('font-family','Inter,sans-serif');vt.setAttribute('font-weight','500');
+      vt.textContent=`${Math.round(a.value*100)}%`;
+      svg.appendChild(vt);
+    }
+  });
+}
+
+function renderProvinceHist(slice){
+  dc('hist');
+  const bins=slice.savings_pct_bins||{};
+  const keys=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+  if(!keys.length)return;
+  charts['hist']=new Chart($('hist-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:keys.map(k=>`${k}%`),datasets:[{
+      data:keys.map(k=>bins[k]),
+      backgroundColor:keys.map(k=>k<0?'rgba(179,58,46,0.6)':'rgba(26,122,85,0.6)'),
+      borderColor:keys.map(k=>k<0?'#B33A2E':'#1A7A55'),
+      borderWidth:0.5,borderRadius:0,barPercentage:1.0,categoryPercentage:1.0
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
+      scales:{
+        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:'#5C6E82'},
+          ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:30,
+            callback:function(v,i){const l=keys[i];return l%10===0?`${l}%`:''}},
+          grid:{display:false}},
+        y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+      }
+    }
+  });
+}
+
+// (Table card is hidden entirely in province mode — see renderProvince() —
+// since no row-level data is shipped province-wide.)
+
+// ── EUI gradient bar for table ────────────────────────────────────
+function makeEUIBar(preEUI,postEUI,medPre,medPost){
+  const MAX=750,W=120,H=18,MH=10;
+  if(!preEUI&&!postEUI)return '—';
+  const px=v=>Math.min(W,Math.max(0,Math.round(v/MAX*W)));
+  const preX=preEUI?px(preEUI):null;
+  const postX=postEUI?px(postEUI):null;
+  const medPreX=medPre?px(medPre):null;
+  const medPostX=medPost?px(medPost):null;
+  // Use shared #eui-grad defined once in static HTML — no random IDs needed
+  let s=`<svg viewBox="0 0 ${W} ${H+14}" width="${W}" height="${H+14}" style="display:block;overflow:visible">
+    <rect x="0" y="4" width="${W}" height="${MH}" fill="url(#eui-grad)" rx="3" opacity="0.25"/>`;
+  if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke="#0B2545" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke="#1A7A55" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="4" fill="#0B2545" stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
+  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="4" fill="#1A7A55" stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
+  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill="#0B2545" font-family="Inter,sans-serif">${preEUI}</text>`;
+  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill="#1A7A55" font-family="Inter,sans-serif">${postEUI}</text>`;
+  s+=`</svg>`;
+  return s;
+}
+
+// ── Table ─────────────────────────────────────────────────────────
+function sortBy(key){
+  SORT=key;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  $('sb-'+key).classList.add('active');
+  renderTable();
+}
+
+function makeInlineSVG(r){
+  const KPIs=[
+    {label:'Roof RSI',pre:num(r.Pre_RoofInsulation),post:num(r.Post_RoofInsulation),max:12,hi:true},
+    {label:'Wall RSI',pre:num(r.Pre_WallInsulation),post:num(r.Post_WallInsulation),max:6,hi:true},
+    {label:'Fnd RSI',pre:num(r.Pre_FoundationInsulation),post:num(r.Post_FoundationInsulation),max:4,hi:true},
+    {label:'Air ACH50',pre:num(r.Pre_AirLeakage),post:num(r.Post_AirLeakage),max:20,hi:false},
+  ];
+  const barW=160,barH=12,gap=28,startX=70;
+  const svgH=KPIs.length*gap+10;
+  let html=`<div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
+  <div>
+    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Envelope measures</div>
+    <svg viewBox="0 0 ${startX+barW+60} ${svgH}" style="width:${startX+barW+60}px;max-width:100%;display:block">`;
+  KPIs.forEach((k,i)=>{
+    const y=i*gap+8;
+    html+=`<text x="${startX-6}" y="${y+barH/2+4}" text-anchor="end" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${k.label}</text>`;
+    const preW=k.pre?Math.max(2,Math.min(barW,k.pre/k.max*barW)):0;
+    const postW=k.post?Math.max(2,Math.min(barW,k.post/k.max*barW)):0;
+    html+=`<rect x="${startX}" y="${y}" width="${barW}" height="${barH}" fill="#E8EDF4" rx="3"/>`;
+    html+=`<rect x="${startX}" y="${y}" width="${preW}" height="${barH/2}" fill="#0B254599" rx="2"/>`;
+    html+=`<rect x="${startX}" y="${y+barH/2}" width="${postW}" height="${barH/2}" fill="#1A7A5599" rx="2"/>`;
+    const pStr=k.pre?k.pre.toFixed(1):'—',qStr=k.post?k.post.toFixed(1):'—';
+    const imp=k.hi?(k.post||0)>(k.pre||0):(k.post||0)<(k.pre||0);
+    html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?'#1A7A55':'#B33A2E'}">${qStr}</tspan></text>`;
+  });
+  html+=`</svg>
+    <div style="display:flex;gap:12px;margin-top:4px">
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:16px;height:4px;background:#0B254599;border-radius:2px"></span>Pre</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:16px;height:4px;background:#1A7A5599;border-radius:2px"></span>Post</span>
+    </div>
+  </div>`;
+
+  // EUI bar in detail panel
+  const preEUI=num(r.Pre_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Pre_TotalEnergy)/num(r.FloorArea)):null;
+  const postEUI=num(r.Post_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Post_TotalEnergy)/num(r.FloorArea)):null;
+
+  html+=`<div>
+    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">HVAC &amp; energy</div>
+    <table style="font-size:12px;border-collapse:collapse">`;
+  const rows=[
+    ['Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel,null],
+    ['Heating type',r.Pre_HeatType,r.Post_HeatType,null],
+    ['Heat pump',r.Pre_HPType||'—',r.Post_HPType||'—',null],
+    ['Pre energy',r.Pre_TotalEnergy?`${Math.round(num(r.Pre_TotalEnergy)).toLocaleString()} kWh`:'—',null,null],
+    ['Post energy',null,r.Post_TotalEnergy?`${Math.round(num(r.Post_TotalEnergy)).toLocaleString()} kWh`:'—',null],
+    ['EUI kWh/m²',preEUI,postEUI,'eui'],
+    ['GHG tCO2e/yr',num(r.Pre_GHG)!==null?num(r.Pre_GHG).toFixed(1):'—',num(r.Post_GHG)!==null?num(r.Post_GHG).toFixed(1):'—',null],
+    ['Heat loss GJ/yr',num(r.Pre_HeatLoss)!==null?num(r.Pre_HeatLoss).toFixed(1):'—',num(r.Post_HeatLoss)!==null?num(r.Post_HeatLoss).toFixed(1):'—',null],
+    ['Solar PV kW',num(r.Pre_SolarPV)?num(r.Pre_SolarPV).toFixed(1):'—',num(r.Post_SolarPV)?num(r.Post_SolarPV).toFixed(1):'—',null],
+    ['Pre audit',r.Pre_Date||'—',null,null],
+    ['Post audit',null,r.Post_Date||'—',null],
+  ];
+  rows.forEach(([lbl,pre,post,type])=>{
+    if(type==='eui'){
+      html+=`<tr><td style="padding:3px 8px 3px 0;color:#5C6E82;white-space:nowrap">${lbl}</td>
+        <td colspan="2" style="padding:4px 0">${makeEUIBar(pre,post,window._euiMedianPre,window._euiMedianPost)}</td></tr>`;
+      return;
+    }
+    const preCell=pre||'';
+    const postCell=post!==null&&post!==undefined?post:'';
+    const changed=pre&&post&&pre!==post;
+    html+=`<tr>
+      <td style="padding:3px 8px 3px 0;color:#5C6E82;white-space:nowrap">${lbl}</td>
+      <td style="padding:3px 6px;color:${changed?'#B33A2E':'#1C2B3A'}">${preCell}</td>
+      ${post!==null&&post!==undefined?`<td style="padding:3px 0 3px 6px;color:${changed?'#1A7A55':'#1C2B3A'}">→ ${postCell}</td>`:'<td></td>'}
+    </tr>`;
+  });
+  html+=`</table></div></div>`;
+  return html;
+}
+
+function renderTable(){
+  const MAX=100;
+  let rows=[...FILTERED];
+  if(SORT==='saving')rows.sort((a,b)=>(num(b.EnergySavingPct)||0)-(num(a.EnergySavingPct)||0));
+  else if(SORT==='year')rows.sort((a,b)=>parseInt(a.YearBuilt||9999)-parseInt(b.YearBuilt||9999));
+  else if(SORT==='area')rows.sort((a,b)=>(num(b.FloorArea)||0)-(num(a.FloorArea)||0));
+  const shown=rows.slice(0,MAX);
+  const tbody=$('tbl-body');
+  if(!shown.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="state-msg"><strong>No matching retrofits</strong></div></td></tr>`;
+    $('tbl-footer').textContent='';return;
+  }
+  tbody.innerHTML=shown.map((r,idx)=>{
+    const sv=num(r.EnergySavingPct);
+    const svCell=sv!==null?`<span class="${sv>=0?'saving-pos':'saving-neg'}">${fmtPct(sv)}</span>`:'—';
+    let badge='';
+    if(flag(r,'Deep_Retrofit'))badge='<span class="badge badge-deep">Deep</span>';
+    else if(flag(r,'Medium_Retrofit'))badge='<span class="badge badge-medium">Medium</span>';
+    else if(flag(r,'Shallow_Retrofit'))badge='<span class="badge badge-shallow">Shallow</span>';
+    else if(sv!==null&&sv<0)badge='<span class="badge badge-neg">Increased</span>';
+    const fuelCell=flag(r,'FuelSwitch')
+      ?`<span class="fuel-chip">${r.Pre_HeatFuel||'?'}</span><span class="fuel-arrow"> → </span><span class="fuel-chip">${r.Post_HeatFuel||'?'}</span>`
+      :`<span class="fuel-chip">${r.Pre_HeatFuel||'?'}</span>`;
+    const preEUI=num(r.Pre_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Pre_TotalEnergy)/num(r.FloorArea)):null;
+    const postEUI=num(r.Post_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Post_TotalEnergy)/num(r.FloorArea)):null;
+    return `<tr class="data-row" onclick="toggleRow(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRow(${idx});}" tabindex="0" role="button" aria-expanded="false" id="row-${idx}">
+      <td>${r.FSA||'—'}</td><td>${r.BldgType||'—'}</td><td>${r.YearBuilt||'—'}</td>
+      <td>${r.FloorArea?Math.round(parseFloat(r.FloorArea)):'—'}</td>
+      <td>${makeEUIBar(preEUI,postEUI,window._euiMedianPre,window._euiMedianPost)}</td>
+      <td>${fuelCell}</td><td>${svCell}</td><td>${badge}</td>
+    </tr>
+    <tr class="detail-row" id="detail-${idx}"><td colspan="8"><div class="detail-inner" id="detail-inner-${idx}"></div></td></tr>`;
+  }).join('');
+  window._tableRows=shown;
+  $('tbl-footer').textContent=rows.length>MAX
+    ?`Showing top ${MAX} of ${rows.length.toLocaleString()} matching retrofits`
+    :`${rows.length.toLocaleString()} matching retrofits`;
+}
+
+function toggleRow(idx){
+  const dataRow=$(`row-${idx}`),detailRow=$(`detail-${idx}`),inner=$(`detail-inner-${idx}`);
+  const isOpen=dataRow.classList.contains('open');
+  document.querySelectorAll('.data-row.open').forEach(r=>{r.classList.remove('open');r.setAttribute('aria-expanded','false');});
+  document.querySelectorAll('.detail-row.open').forEach(r=>r.classList.remove('open'));
+  if(!isOpen){
+    dataRow.classList.add('open');detailRow.classList.add('open');
+    dataRow.setAttribute('aria-expanded','true');
+    if(!inner.dataset.rendered){
+      inner.innerHTML=makeInlineSVG(window._tableRows[idx]);
+      inner.dataset.rendered='1';
+    }
+  }
+}
+
+// Wire province selector
+$('province-sel').addEventListener('change',function(){
+  PROVINCE_CODE=this.value;
+  if(!PROVINCE_CODE)return;
+  // Reset filters when province changes
+  SELECTED_FSA='';SELECTED_TYPE='';
+  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  $('fsa-sel').value='';
+  load();
+});
+
+// FSA dropdown switches between province-wide and FSA-level view.
+// Listener is attached once here (not rebuilt per-load like type/fuel/depth
+// used to be) since #fsa-sel itself is never replaced, only its <option>s.
+$('fsa-sel').addEventListener('change',function(){
+  SELECTED_FSA=this.value;
+  if(!PROVINCE_CODE)return;
+  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  // Mint a fresh token so a slow fetch from a previously-selected FSA that
+  // lands after this one is discarded by the myToken!==LOAD_TOKEN guard.
+  const myToken=++LOAD_TOKEN;
+  if(SELECTED_FSA){
+    loadFsaView(myToken);
+  }else{
+    loadProvinceView(myToken);
+  }
+});
+
+// House-type dropdown: behaviour differs by mode (see applyFilters/renderProvince).
+$('type-sel').addEventListener('change',function(){
+  SELECTED_TYPE=this.value;
+  if(MODE==='fsa'){
+    applyFilters();
+  }else if(MODE==='province'){
+    const payload=PROVINCE_SUMMARY_CACHE.get(PROVINCE_CODE);
+    if(payload)renderProvince(payload);
+  }
+});
+$('fuel-sel').addEventListener('change',applyFilters);
+$('depth-sel').addEventListener('change',applyFilters);
+
+</script>
+</body>
+</html>
