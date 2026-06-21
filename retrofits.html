@@ -174,7 +174,30 @@ tr.detail-row.open .detail-inner{display:block}
 footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
 footer a{color:rgba(255,255,255,.6);text-decoration:none}
 footer a:hover{color:var(--amber2)}
-@media(max-width:600px){header{padding:0 1rem}.hero{padding:1.75rem 1rem 0}.filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}main{padding:1rem 1rem 2rem}.measure-label{width:120px}}
+@media(max-width:600px){
+  header{padding:0 1rem}
+  .hero{padding:1.75rem 1rem 0}
+  .filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}
+  main{padding:1rem 1rem 2rem}
+  .measure-label{width:120px}
+  .header-badge{display:none}
+  #province-sel{max-width:130px;font-size:12px}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+  .eui-val{font-size:1.9rem}
+  .eui-arrow-big{font-size:1.5rem}
+  .eui-saving{font-size:1.4rem}
+  table{font-size:12px}
+  th,td{padding:6px 7px}
+  .card-title-row,.measure-chart-title-row{gap:8px}
+  .chart-toggle-btn{padding:3px 7px}
+}
+@media(max-width:420px){
+  .logo{font-size:14px}
+  #province-sel{max-width:105px;font-size:11px}
+  .stats-grid,.kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
@@ -886,9 +909,10 @@ function renderAreaHist(){
 // each slice instead of a separate legend, so the donut is self-contained.
 const donutLeaderLines={
   id:'donutLeaderLines',
-  afterDraw(chart){
+  afterDraw(chart,args,opts){
     const meta=chart.getDatasetMeta(0);
     if(!meta||!meta.data.length)return;
+    const narrow=opts&&opts.narrow;
     const {ctx,chartArea}=chart;
     const data=chart.data.datasets[0].data;
     const labels=chart.data.labels;
@@ -925,11 +949,11 @@ const donutLeaderLines={
     }
     layout(-1);layout(1);
     ctx.save();
-    ctx.font='11px Inter, sans-serif';
+    ctx.font=narrow?'9px Inter, sans-serif':'11px Inter, sans-serif';
     ctx.lineWidth=1;
     pts.forEach(p=>{
-      const elbowX=cx+p.side*(p.outerRadius+10);
-      const labelX=cx+p.side*(p.outerRadius+32);
+      const elbowX=cx+p.side*(p.outerRadius+(narrow?5:10));
+      const labelX=cx+p.side*(p.outerRadius+(narrow?16:32));
       ctx.strokeStyle='#B8C4D4';
       ctx.beginPath();
       ctx.moveTo(p.ex,p.ey);
@@ -951,13 +975,18 @@ function donut(canvasId,countMap,chartKey,n){
   const other=entries.slice(5).reduce((s,[,v])=>s+v,0);
   if(other>0)top.push(['Other',other]);
   const COLS=['#0B2545','#1A7A55','#C8881A','#378ADD','#D85A30','#8A9BB0'];
+  // Leader-line labels need side padding to sit in; on a narrow phone
+  // screen 95px each side would swallow the whole canvas, so shrink it
+  // (and the plugin's own offsets) when the viewport is small.
+  const narrow=window.innerWidth<480;
+  const padX=narrow?40:95;
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'doughnut',
     plugins:[donutLeaderLines],
     data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:COLS,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
-      layout:{padding:{left:95,right:95,top:8,bottom:8}},
-      plugins:{legend:{display:false},
+      layout:{padding:{left:padX,right:padX,top:8,bottom:8}},
+      plugins:{legend:{display:false},donutLeaderLines:{narrow},
         tooltip:{callbacks:{label:i=>`${i.label}: ${i.raw.toLocaleString()} (${Math.round(i.raw/n*100)}%)`}}}}
   });
 }
@@ -2031,7 +2060,7 @@ function makeInlineSVG(r){
   const barW=160,barH=12,gap=28,startX=78;
   const svgH=KPIs.length*gap+10;
   html+=`<div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
-  <div>
+  <div style="min-width:0;max-width:100%">
     <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Envelope measures</div>
     <svg viewBox="0 0 ${startX+barW+70} ${svgH}" style="width:${startX+barW+70}px;max-width:100%;display:block">`;
   KPIs.forEach((k,i)=>{
@@ -2089,9 +2118,9 @@ function makeInlineSVG(r){
     <td style="padding:3px 0;color:var(--light)">${yearGap!==null?`${yearGap} yr apart`:'—'}</td>
   </tr>`;
 
-  html+=`<div>
+  html+=`<div style="min-width:0;flex:1">
     <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">HVAC &amp; energy</div>
-    <table style="font-size:12px;border-collapse:collapse">
+    <div style="overflow-x:auto"><table style="font-size:12px;border-collapse:collapse;width:100%">
       <thead><tr>${th('Measure')}${th('Pre-audit')}${th('Post-audit')}${th('Savings')}</tr></thead>
       <tbody>
         ${auditYearRow}
@@ -2103,7 +2132,7 @@ function makeInlineSVG(r){
         ${numRow('Heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'GJ/yr',false,1)}
         ${numRow('Solar PV',num(r.Pre_SolarPV),num(r.Post_SolarPV),'kW',true,1)}
       </tbody>
-    </table>
+    </table></div>
   </div></div>`;
   return html;
 }
