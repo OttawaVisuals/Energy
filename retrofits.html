@@ -1025,17 +1025,29 @@ function renderSankey(){
   const preFuels=Object.entries(preMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   const postFuels=Object.entries(postMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   const totalPre=Object.values(preMap).reduce((s,v)=>s+v,0);
+  const totalPost=Object.values(postMap).reduce((s,v)=>s+v,0);
   const cw=svg.parentElement.clientWidth||700;
   const W=Math.max(cw,500),H=420,PAD=10,BAR=14,LX=145,RX=W-145;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.setAttribute('height',H);
-  const usable=H-PAD*2-20;
+  // Gap reserved between stacked category bars on each side.
+  const GAP=20;
+  const usablePre=H-PAD*2-20-(preFuels.length-1)*GAP;
+  const usablePost=H-PAD*2-20-(postFuels.length-1)*GAP;
+  // One shared GWh-per-pixel scale for BOTH sides, so bar heights stay
+  // absolutely comparable across pre vs post (a 17.6 GWh bar should look
+  // bigger than a 13.0 GWh bar no matter which side it's on) — using each
+  // side's own total independently, as before, normalizes each side to
+  // its own 100%, which hides any difference in total energy between
+  // sides. The scale is capped by whichever side is tighter on room so
+  // neither stack overflows its half of the chart.
+  const scale=Math.min(usablePre/totalPre,usablePost/totalPost);
 
   function layoutNodes(fuels,map,x){
     let y=PAD;
     return fuels.map(f=>{
-      const h=Math.max(3,(map[f]/totalPre)*usable);
-      const node={f,x,y,h};y+=h+4;return node;
+      const h=Math.max(3,map[f]*scale);
+      const node={f,x,y,h};y+=h+GAP;return node;
     });
   }
   const preNodes=layoutNodes(preFuels,preMap,LX);
@@ -1047,17 +1059,23 @@ function renderSankey(){
   preNodes.forEach(n=>{preUsed[n.f]=0;});
   postNodes.forEach(n=>{postUsed[n.f]=0;});
 
+  // Each flow's ribbon is a trapezoid: width on the left is v.pre*scale
+  // (so all flows out of a pre-node sum exactly to that node's height),
+  // width on the right is v.post*scale (same for the post-node) — using
+  // the same shared scale as the bars above so flow widths stay
+  // consistent with them.
   const flowList=Object.entries(flows).sort((a,b)=>b[1].pre-a[1].pre);
   flowList.forEach(([k,v])=>{
     const [a,b]=k.split('|||');
     const pn=preNM[a],qn=postNM[b];if(!pn||!qn)return;
-    const fh=Math.max(2,(v.pre/totalPre)*usable);
+    const fhPre=Math.max(2,v.pre*scale);
+    const fhPost=Math.max(2,v.post*scale);
     const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
-    preUsed[a]+=fh;postUsed[b]+=fh;
+    preUsed[a]+=fhPre;postUsed[b]+=fhPost;
     const same=a===b;
     const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
     const mx=(LX+BAR+RX)/2;
-    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fh} C${mx},${qy+fh} ${mx},${py+fh} ${LX+BAR},${py+fh}Z`;
+    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fhPost} C${mx},${qy+fhPost} ${mx},${py+fhPre} ${LX+BAR},${py+fhPre}Z`;
     const el=document.createElementNS('http://www.w3.org/2000/svg','path');
     el.setAttribute('d',path);
     el.setAttribute('fill',col);
@@ -1726,17 +1744,23 @@ function renderProvinceSankey(slice){
   const preFuels=Object.entries(preMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   const postFuels=Object.entries(postMap).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   const totalPre=Object.values(preMap).reduce((s,v)=>s+v,0);
+  const totalPost=Object.values(postMap).reduce((s,v)=>s+v,0);
   const cw=svg.parentElement.clientWidth||700;
   const W=Math.max(cw,500),H=420,PAD=10,BAR=14,LX=145,RX=W-145;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.setAttribute('height',H);
-  const usable=H-PAD*2-20;
+  const GAP=20;
+  const usablePre=H-PAD*2-20-(preFuels.length-1)*GAP;
+  const usablePost=H-PAD*2-20-(postFuels.length-1)*GAP;
+  // One shared GWh-per-pixel scale for both sides — see renderSankey for
+  // why (keeps bar heights absolutely comparable across pre vs post).
+  const scale=Math.min(usablePre/totalPre,usablePost/totalPost);
 
   function layoutNodes(fuels,map,x){
     let y=PAD;
     return fuels.map(f=>{
-      const h=Math.max(3,(map[f]/totalPre)*usable);
-      const node={f,x,y,h};y+=h+4;return node;
+      const h=Math.max(3,map[f]*scale);
+      const node={f,x,y,h};y+=h+GAP;return node;
     });
   }
   const preNodes=layoutNodes(preFuels,preMap,LX);
@@ -1752,13 +1776,14 @@ function renderProvinceSankey(slice){
   flowList.forEach(([k,v])=>{
     const [a,b]=k.split('|||');
     const pn=preNM[a],qn=postNM[b];if(!pn||!qn)return;
-    const fh=Math.max(2,(v.pre/totalPre)*usable);
+    const fhPre=Math.max(2,v.pre*scale);
+    const fhPost=Math.max(2,v.post*scale);
     const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
-    preUsed[a]+=fh;postUsed[b]+=fh;
+    preUsed[a]+=fhPre;postUsed[b]+=fhPost;
     const same=a===b;
     const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
     const mx=(LX+BAR+RX)/2;
-    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fh} C${mx},${qy+fh} ${mx},${py+fh} ${LX+BAR},${py+fh}Z`;
+    const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fhPost} C${mx},${qy+fhPost} ${mx},${py+fhPre} ${LX+BAR},${py+fhPre}Z`;
     const el=document.createElementNS('http://www.w3.org/2000/svg','path');
     el.setAttribute('d',path);
     el.setAttribute('fill',col);
