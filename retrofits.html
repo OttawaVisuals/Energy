@@ -119,9 +119,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .measure-chart-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem}
 .measure-chart-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.75rem}
 .measure-chart-title-row .measure-chart-title{margin-bottom:0}
-.chart-toggle{display:flex;gap:4px}
-.chart-toggle-btn{font-size:10.5px;padding:3px 9px;border:1px solid var(--border);border-radius:14px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
-.chart-toggle-btn.active{background:var(--navy);border-color:var(--navy);color:var(--white)}
 
 /* ── EUI KPI ── */
 .eui-row{display:flex;align-items:center;gap:1.25rem;margin-bottom:.85rem;flex-wrap:wrap}
@@ -191,7 +188,6 @@ footer a:hover{color:var(--amber2)}
   table{font-size:12px}
   th,td{padding:6px 7px}
   .card-title-row,.measure-chart-title-row{gap:8px}
-  .chart-toggle-btn{padding:3px 7px}
 }
 @media(max-width:420px){
   .logo{font-size:14px}
@@ -206,6 +202,7 @@ footer a:hover{color:var(--amber2)}
   <div class="logo">retrofit<span id="logo-province">Canada</span></div>
   <div style="display:flex;align-items:center;gap:12px">
     <select id="province-sel" style="height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s">
+      <option value="CA" selected>All of Canada</option>
       <option value="">Select province…</option>
       <option value="AB">Alberta</option>
       <option value="BC">British Columbia</option>
@@ -301,43 +298,25 @@ footer a:hover{color:var(--amber2)}
 
   <!-- EUI -->
   <div class="card">
-    <div class="card-title-row">
-      <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
-      <div class="chart-toggle" id="eui-toggle">
-        <button class="chart-toggle-btn active" onclick="setMeasureMode('eui','value',this)">Pre / Post</button>
-        <button class="chart-toggle-btn" onclick="setMeasureMode('eui','delta',this)">Reduction</button>
-      </div>
-    </div>
+    <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
-    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Outliers above 500 kWh/m² clipped for scale. Switch to "Reduction" to see, for the homes that improved, how much their EUI dropped by.</p>
+    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</p>
   </div>
 
   <!-- GHG emissions -->
   <div class="card">
-    <div class="card-title-row">
-      <div class="card-title">GHG emissions — tCO2e per year</div>
-      <div class="chart-toggle" id="ghg-toggle">
-        <button class="chart-toggle-btn active" onclick="setMeasureMode('ghg','value',this)">Pre / Post</button>
-        <button class="chart-toggle-btn" onclick="setMeasureMode('ghg','delta',this)">Reduction</button>
-      </div>
-    </div>
+    <div class="card-title">GHG emissions — tCO2e per year</div>
     <div class="eui-row" id="ghg-kpis"></div>
     <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
-    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix.</p>
+    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
   </div>
 
   <!-- Heat loss -->
   <div class="card">
-    <div class="card-title-row">
-      <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
-      <div class="chart-toggle" id="heatloss-toggle">
-        <button class="chart-toggle-btn active" onclick="setMeasureMode('heatloss','value',this)">Pre / Post</button>
-        <button class="chart-toggle-btn" onclick="setMeasureMode('heatloss','delta',this)">Reduction</button>
-      </div>
-    </div>
+    <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
-    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better.</p>
+    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
   </div>
 
   <!-- Solar PV -->
@@ -362,40 +341,24 @@ footer a:hover{color:var(--amber2)}
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
         <div class="measure-chart-title">Roof insulation</div>
-        <div class="chart-toggle" id="roof-toggle">
-          <button class="chart-toggle-btn active" onclick="setMeasureMode('roof','value',this)">Pre / Post</button>
-          <button class="chart-toggle-btn" onclick="setMeasureMode('roof','delta',this)">Improvement</button>
-        </div>
       </div>
       <div class="cw cw-lg"><canvas id="roof-chart"></canvas></div>
     </div>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
         <div class="measure-chart-title">Wall insulation</div>
-        <div class="chart-toggle" id="wall-toggle">
-          <button class="chart-toggle-btn active" onclick="setMeasureMode('wall','value',this)">Pre / Post</button>
-          <button class="chart-toggle-btn" onclick="setMeasureMode('wall','delta',this)">Improvement</button>
-        </div>
       </div>
       <div class="cw cw-lg"><canvas id="wall-chart"></canvas></div>
     </div>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
         <div class="measure-chart-title">Foundation insulation</div>
-        <div class="chart-toggle" id="fnd-toggle">
-          <button class="chart-toggle-btn active" onclick="setMeasureMode('fnd','value',this)">Pre / Post</button>
-          <button class="chart-toggle-btn" onclick="setMeasureMode('fnd','delta',this)">Improvement</button>
-        </div>
       </div>
       <div class="cw cw-lg"><canvas id="fnd-chart"></canvas></div>
     </div>
     <div class="measure-chart-block" style="margin-bottom:0">
       <div class="measure-chart-title-row">
         <div class="measure-chart-title">Air leakage</div>
-        <div class="chart-toggle" id="air-toggle">
-          <button class="chart-toggle-btn active" onclick="setMeasureMode('air','value',this)">Pre / Post</button>
-          <button class="chart-toggle-btn" onclick="setMeasureMode('air','delta',this)">Improvement</button>
-        </div>
       </div>
       <div class="cw cw-lg"><canvas id="air-chart"></canvas></div>
     </div>
@@ -500,6 +463,7 @@ const FSA_JSON_BASE=`${BASE_URL}fsa_json/`;       // fsa_json/<PROV>/<FSA>.json 
 const PROVINCE_JSON_BASE=`${BASE_URL}province_json/`; // province_json/<PROV>.json
 
 const PROVINCES={
+  CA:{name:'All of Canada',short:'CA'},
   AB:{name:'Alberta',short:'AB'},
   BC:{name:'British Columbia',short:'BC'},
   MB:{name:'Manitoba',short:'MB'},
@@ -512,7 +476,7 @@ const PROVINCES={
   SK:{name:'Saskatchewan',short:'SK'},
 };
 
-let PROVINCE_CODE='';
+let PROVINCE_CODE='CA'; // landing default — see #province-sel's selected option
 let SELECTED_FSA='';          // '' = province-wide view, else FSA-view
 let SELECTED_TYPE='';         // house-type filter, used by BOTH views (province dropdown
                                // drives the precomputed slice; FSA view filters FILTERED as before)
@@ -713,6 +677,18 @@ function load(){
   $('hero-eyebrow').textContent=`${prov.name} · Home energy retrofits`;
   $('footer-province').textContent=`${prov.name} audits`;
   $('header-badge').textContent=`EnerGuide data · ${prov.name} · loading…`;
+
+  // "All of Canada" is a synthetic aggregate (see aggregate_canada.py) with
+  // no per-FSA breakdown — fsa_json has no CA/ folder, so skip straight to
+  // the province-wide (here, country-wide) summary view.
+  if(PROVINCE_CODE==='CA'){
+    SELECTED_FSA='';
+    $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
+    $('fsa-sel').disabled=true;
+    loadProvinceView(myToken);
+    return;
+  }
+  $('fsa-sel').disabled=false;
 
   // Always (re)build the FSA dropdown for the selected province first —
   // needed whether the user ends up in province or FSA mode.
@@ -1128,7 +1104,7 @@ function renderEUI(preEUIs,postEUIs){
     const d=(pre-post)/area;
     if(d>0&&d<=500){const k=Math.floor(d/BINS.eui)*BINS.eui;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
-  drawCombinedMeasureChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
+  drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
 }
 
 // ── GHG emissions ─────────────────────────────────────────────────
@@ -1155,8 +1131,7 @@ function renderGHG(){
     const d=pre-post;
     if(d>0&&d<=30){const k=Math.floor(d/BINS.ghg)*BINS.ghg;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
-  enableMeasureToggle('ghg');
-  drawCombinedMeasureChart('ghg-chart','ghg',preBins,postBins,deltaBins,'tCO2e/yr');
+  drawComboChart('ghg-chart','ghg',preBins,postBins,deltaBins,'tCO2e/yr');
 }
 
 // ── Heat loss ─────────────────────────────────────────────────────
@@ -1176,8 +1151,7 @@ function renderHeatLoss(){
     const d=pre-post;
     if(d>0&&d<=150){const k=Math.floor(d/BINS.heatloss)*BINS.heatloss;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
-  enableMeasureToggle('heatloss');
-  drawCombinedMeasureChart('heatloss-chart','heatloss',preBins,postBins,deltaBins,'GJ/yr');
+  drawComboChart('heatloss-chart','heatloss',preBins,postBins,deltaBins,'GJ/yr');
 }
 
 // ── Solar PV ──────────────────────────────────────────────────────
@@ -1307,23 +1281,18 @@ function paintFuelBreakdown(fuelLabels,preVals,postVals){
   drawPrePostRow(preVals,'Pre-retrofit',row1Y);
   drawPrePostRow(postVals,'Post-retrofit',row2Y);
 
-  // Savings row: per-fuel pre−post delta, its own width scale (green = saved, red = increased)
+  // Savings row: ONE bar for total savings, on the same px-per-kWh scale as
+  // the pre/post rows above (totalMax/usableW), not its own independent scale.
   const row3Y=row2Y+rowH+rowGap+8;
-  const deltas=fuelLabels.map((_,i)=>preVals[i]-postVals[i]);
-  const totalAbsDelta=deltas.reduce((s,v)=>s+Math.abs(v),0)||1;
-  let x3=leftLabelW;
-  drawRowLabel('Savings',row3Y);
-  fuelLabels.forEach((lbl,i)=>{
-    const bw=Math.max((Math.abs(deltas[i])/totalAbsDelta)*usableW,1);
-    const saved=deltas[i]>=0;
-    ctx.fillStyle=saved?'#1A7A55':'#B33A2E';
-    roundRectPath(ctx,x3,row3Y,bw,rowH,4);ctx.fill();
-    drawValueLabel(x3,bw,row3Y,`${saved?'−':'+'}${fmt(Math.abs(deltas[i]))}`,true);
-    _fuelBoxes.push({x:x3,y:row3Y,w:bw,h:rowH,fuel:lbl,rowLabel:'Savings',value:deltas[i]});
-    x3+=bw+gapPx;
-  });
-
   const totalSaved=preVals.reduce((s,v)=>s+v,0)-postVals.reduce((s,v)=>s+v,0);
+  const sx=usableW/totalMax;
+  const savedBw=Math.max(Math.abs(totalSaved)*sx,2);
+  drawRowLabel('Savings',row3Y);
+  ctx.fillStyle=totalSaved>=0?'#1A7A55':'#B33A2E';
+  roundRectPath(ctx,leftLabelW,row3Y,savedBw,rowH,4);ctx.fill();
+  drawValueLabel(leftLabelW,savedBw,row3Y,`${totalSaved>=0?'−':'+'}${fmt(Math.abs(totalSaved))}`,true);
+  _fuelBoxes.push({x:leftLabelW,y:row3Y,w:savedBw,h:rowH,fuel:'Total',rowLabel:'Savings',value:totalSaved});
+
   ctx.font='600 11px Inter, sans-serif';ctx.textAlign='left';ctx.fillStyle='#1C2B3A';
   ctx.fillText(`${totalSaved>=0?'Total saved':'Total increased'}: ${Math.abs(Math.round(totalSaved)).toLocaleString()} kWh`,leftLabelW,row3Y+rowH+18);
 }
@@ -1390,62 +1359,22 @@ function renderKPI(n,fs){
 }
 
 // ── Insulation pre/post histogram ─────────────────────────────────
-// Shared by FSA and province modes: one combined chart per measure with
-// Pre, Post, and Improvement sharing the same axis (same pattern as the
-// EUI chart) so the value distribution and the improvement distribution
-// no longer need two separate canvases.
-// State backing the Pre/Post <-> Reduction toggle buttons: each combined
-// chart's bins are kept here so a button click can redraw without
-// re-fetching or recomputing anything.
-const MEASURE_DATA={},MEASURE_MODE={};
-
-function setMeasureMode(chartKey,mode,btn){
-  MEASURE_MODE[chartKey]=mode;
-  if(btn){
-    btn.parentElement.querySelectorAll('.chart-toggle-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  const d=MEASURE_DATA[chartKey];
-  if(d)drawCombinedMeasureChart(d.canvasId,chartKey,d.preBins,d.postBins,d.deltaBins,d.unit);
-}
-
-// Province mode doesn't ship a precomputed delta histogram for every
-// measure (only EUI and the insulation/air-leakage ones) — grey out the
-// Reduction/Improvement button rather than letting it render an empty
-// chart. FSA mode always has raw rows to compute a delta from, so it
-// re-enables the button on the way back.
-function disableMeasureToggle(chartKey){
-  MEASURE_MODE[chartKey]='value';
-  const grp=document.getElementById(chartKey+'-toggle');
-  if(!grp)return;
-  grp.querySelectorAll('.chart-toggle-btn').forEach((b,i)=>{
-    b.classList.toggle('active',i===0);
-    b.disabled=i!==0;
-    b.style.opacity=i!==0?'0.4':'';
-    b.style.cursor=i!==0?'not-allowed':'';
-  });
-}
-function enableMeasureToggle(chartKey){
-  const grp=document.getElementById(chartKey+'-toggle');
-  if(!grp)return;
-  grp.querySelectorAll('.chart-toggle-btn').forEach(b=>{b.disabled=false;b.style.opacity='';b.style.cursor='';});
-}
-
-function drawCombinedMeasureChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
-  MEASURE_DATA[chartKey]={canvasId,preBins,postBins,deltaBins,unit};
-  const mode=MEASURE_MODE[chartKey]||'value';
+// Shared by FSA and province modes, and by EUI/GHG/heat-loss above: one
+// combined chart per measure — Pre/Post as filled area lines, Improvement
+// as bars — all on the same axis, so no value/reduction toggle is needed.
+// The Improvement dataset is simply omitted when deltaBins is empty (some
+// province-precomputed measures don't ship a delta histogram).
+function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
   dc(chartKey);
-  let allKeys,datasets;
-  if(mode==='delta'){
-    allKeys=Object.keys(deltaBins).map(Number).sort((a,b)=>a-b);
-    datasets=[{label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A',borderColor:'#C8881A',borderWidth:1,borderRadius:2}];
-  }else{
-    allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins)])].map(Number).sort((a,b)=>a-b);
-    datasets=[
-      {label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),backgroundColor:PRE_FILL,borderColor:PRE_LINE,borderWidth:1,borderRadius:2},
-      {label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),backgroundColor:POST_FILL,borderColor:POST_LINE,borderWidth:1,borderRadius:2},
-    ];
+  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins),...Object.keys(deltaBins)])].map(Number).sort((a,b)=>a-b);
+  const datasets=[];
+  if(Object.keys(deltaBins).length){
+    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A99',borderColor:'#C8881A',borderWidth:1,borderRadius:2,order:2});
   }
+  datasets.push(
+    {type:'line',label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
+    {type:'line',label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
+  );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
     data:{labels:allKeys,datasets},
@@ -1487,13 +1416,13 @@ function fsaMeasureBins(preCol,postCol,maxVal,step,toR,invert){
 
 function renderInsulDist(){
   let b=fsaMeasureBins('Pre_RoofInsulation','Post_RoofInsulation',80,2,true,false);
-  drawCombinedMeasureChart('roof-chart','roof',b.preBins,b.postBins,b.deltaBins,'R-value');
+  drawComboChart('roof-chart','roof',b.preBins,b.postBins,b.deltaBins,'R-value');
   b=fsaMeasureBins('Pre_WallInsulation','Post_WallInsulation',40,2,true,false);
-  drawCombinedMeasureChart('wall-chart','wall',b.preBins,b.postBins,b.deltaBins,'R-value');
+  drawComboChart('wall-chart','wall',b.preBins,b.postBins,b.deltaBins,'R-value');
   b=fsaMeasureBins('Pre_FoundationInsulation','Post_FoundationInsulation',35,2,true,false);
-  drawCombinedMeasureChart('fnd-chart','fnd',b.preBins,b.postBins,b.deltaBins,'R-value');
+  drawComboChart('fnd-chart','fnd',b.preBins,b.postBins,b.deltaBins,'R-value');
   b=fsaMeasureBins('Pre_AirLeakage','Post_AirLeakage',20,1,false,true);
-  drawCombinedMeasureChart('air-chart','air',b.preBins,b.postBins,b.deltaBins,'ACH50');
+  drawComboChart('air-chart','air',b.preBins,b.postBins,b.deltaBins,'ACH50');
 }
 
 // ── Measures bar ──────────────────────────────────────────────────
@@ -1886,7 +1815,7 @@ function renderProvinceEUI(slice){
     const k2=Math.floor(Number(k)/BINS.eui)*BINS.eui;
     deltaBins[k2]=(deltaBins[k2]||0)+v;
   });
-  drawCombinedMeasureChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
+  drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
 }
 
 function renderProvinceGHG(slice){
@@ -1901,14 +1830,12 @@ function renderProvinceGHG(slice){
   // Province-precomputed stats don't ship a GHG delta histogram (only EUI
   // has one), so the Reduction view has nothing to show here — disable it
   // rather than rendering an empty chart on click.
-  disableMeasureToggle('ghg');
-  drawCombinedMeasureChart('ghg-chart','ghg',preBins,postBins,{},'tCO2e/yr');
+  drawComboChart('ghg-chart','ghg',preBins,postBins,{},'tCO2e/yr');
 }
 
 function renderProvinceHeatLoss(slice){
   const preBins=slice.heatloss_pre_bins||{},postBins=slice.heatloss_post_bins||{};
-  disableMeasureToggle('heatloss');
-  drawCombinedMeasureChart('heatloss-chart','heatloss',preBins,postBins,{},'GJ/yr');
+  drawComboChart('heatloss-chart','heatloss',preBins,postBins,{},'GJ/yr');
 }
 
 function renderProvinceSolar(slice){
@@ -1990,10 +1917,10 @@ function provinceMeasureBins(histData,maxVal,step,toR){
 
 function renderProvinceInsulDist(slice){
   const ih=slice.insulation_histograms||{};
-  if(ih.roof){const b=provinceMeasureBins(ih.roof,80,2,true);drawCombinedMeasureChart('roof-chart','roof',b.preBins,b.postBins,b.deltaBins,'R-value');}
-  if(ih.wall){const b=provinceMeasureBins(ih.wall,40,2,true);drawCombinedMeasureChart('wall-chart','wall',b.preBins,b.postBins,b.deltaBins,'R-value');}
-  if(ih.fnd){const b=provinceMeasureBins(ih.fnd,35,2,true);drawCombinedMeasureChart('fnd-chart','fnd',b.preBins,b.postBins,b.deltaBins,'R-value');}
-  if(ih.air){const b=provinceMeasureBins(ih.air,20,1,false);drawCombinedMeasureChart('air-chart','air',b.preBins,b.postBins,b.deltaBins,'ACH50');}
+  if(ih.roof){const b=provinceMeasureBins(ih.roof,80,2,true);drawComboChart('roof-chart','roof',b.preBins,b.postBins,b.deltaBins,'R-value');}
+  if(ih.wall){const b=provinceMeasureBins(ih.wall,40,2,true);drawComboChart('wall-chart','wall',b.preBins,b.postBins,b.deltaBins,'R-value');}
+  if(ih.fnd){const b=provinceMeasureBins(ih.fnd,35,2,true);drawComboChart('fnd-chart','fnd',b.preBins,b.postBins,b.deltaBins,'R-value');}
+  if(ih.air){const b=provinceMeasureBins(ih.air,20,1,false);drawComboChart('air-chart','air',b.preBins,b.postBins,b.deltaBins,'ACH50');}
 }
 
 function renderProvinceMeasures(slice){
@@ -2319,6 +2246,10 @@ $('type-sel').addEventListener('change',function(){
 $('fuel-sel').addEventListener('change',applyFilters);
 $('depth-sel').addEventListener('change',applyFilters);
 
+// Landing default: load "All of Canada" immediately instead of waiting on
+// an empty page until the user picks a province (matches province-sel's
+// pre-selected option).
+load();
 </script>
 </body>
 </html>

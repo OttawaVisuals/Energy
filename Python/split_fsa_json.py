@@ -82,6 +82,7 @@ KEEP_COLS = [
     'Pre_TotalEnergy', 'Post_TotalEnergy',
     'Pre_HeatFuel', 'Post_HeatFuel', 'Pre_HeatType', 'Post_HeatType',
     'Pre_HPType', 'Post_HPType',
+    'Pre_HPAHRI', 'Post_HPAHRI',
     'Pre_WindowCode', 'Post_WindowCode',
     'Pre_AirLeakage', 'Post_AirLeakage',
     'Pre_RoofInsulation', 'Post_RoofInsulation',
@@ -188,6 +189,24 @@ def coerce_value(v):
     return v
 
 
+def top_ahri_set(df, n=5, min_digits=4):
+    """
+    The AHRI column identifies a specific certified heat pump model — too
+    granular to expose per-home as-is (long tail of near-unique values, and
+    some short junk/placeholder codes). Per explicit request: only the
+    province's own top N most common AHRI numbers (with >= min_digits
+    digits) are kept; every other value is blanked to null at FSA-file
+    write time. This mirrors the top-N AHRI numbers shown in that same
+    province's precompute_province_stats.py output, so the two views agree.
+    """
+    vals = pd.concat([df.get('Pre_HPAHRI', pd.Series(dtype=str)),
+                       df.get('Post_HPAHRI', pd.Series(dtype=str))])
+    vals = vals.dropna().astype(str).str.strip()
+    vals = vals[vals.str.count(r'\d') >= min_digits]
+    vals = vals[vals != '']
+    return set(vals.value_counts().head(n).index)
+
+
 def split_province(parquet_path, out_root):
     province = Path(parquet_path).stem.replace('ers_web_', '')
     print(f"\n--- {province} ---")
@@ -199,6 +218,11 @@ def split_province(parquet_path, out_root):
     if 'FSA' not in df.columns:
         print(f"  !! no FSA column — skipping")
         return
+
+    top_ahri = top_ahri_set(df)
+    for col in ('Pre_HPAHRI', 'Post_HPAHRI'):
+        if col in df.columns:
+            df[col] = df[col].where(df[col].astype(str).str.strip().isin(top_ahri))
 
     cols_present = [c for c in KEEP_COLS if c in df.columns]
     missing = [c for c in KEEP_COLS if c not in df.columns]
