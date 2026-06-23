@@ -137,6 +137,8 @@ BASE_MAPPING = [
     ('Post_HPType',             'HPSOURCE',        'E', None),
     ('Pre_HPCOP',               'COP',             'D', None),
     ('Post_HPCOP',              'COP',             'E', None),
+    ('Pre_HPAHRI',              'AHRI',            'D', None),    # AHRI cert number for the heat pump
+    ('Post_HPAHRI',             'AHRI',            'E', None),
 
     # --- Heat loss (proxy for peak heating demand / equipment sizing) ---
     ('Pre_HeatLoss',            'EGHDESHTLOSS',    'D', 0.001),    # W -> kW

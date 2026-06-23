@@ -398,6 +398,33 @@ def compute_slice(df):
         measures.append({'key': key, 'label': label, 'count': c, 'pct': pct})
     out['measures'] = measures
 
+    # ---- Heat pump AHRI numbers + window codes ----
+    # Full counts are stored (not just the top N) so aggregate_canada.py can
+    # sum them across provinces and re-rank for an accurate NATIONAL top N —
+    # truncating to top N here first would silently drop a code/number that's
+    # locally #6 everywhere but nationally #1. The *_top fields below are a
+    # display-ready convenience slice of this same province's own counts.
+    def code_counts(series, min_digits=0):
+        s = series.dropna().astype(str).str.strip()
+        if min_digits:
+            s = s[s.str.count(r'\d') >= min_digits]
+        s = s[s != '']
+        return s.value_counts().to_dict()
+
+    def top_n(counts, n):
+        return [{'code': k, 'count': v} for k, v in
+                sorted(counts.items(), key=lambda kv: -kv[1])[:n]]
+
+    ahri_vals = pd.concat([df.get('Pre_HPAHRI', pd.Series(dtype=str)),
+                           df.get('Post_HPAHRI', pd.Series(dtype=str))])
+    out['ahri_counts'] = code_counts(ahri_vals, min_digits=4)
+    out['top_ahri_numbers'] = top_n(out['ahri_counts'], 5)
+
+    out['window_pre_counts'] = code_counts(df.get('Pre_WindowCode', pd.Series(dtype=str)))
+    out['window_post_counts'] = code_counts(df.get('Post_WindowCode', pd.Series(dtype=str)))
+    out['window_pre_top'] = top_n(out['window_pre_counts'], 10)
+    out['window_post_top'] = top_n(out['window_post_counts'], 10)
+
     return out
 
 
