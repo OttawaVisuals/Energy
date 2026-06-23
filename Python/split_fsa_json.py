@@ -189,6 +189,22 @@ def coerce_value(v):
     return v
 
 
+def normalize_ahri_cols(df):
+    """
+    Defensive: some source AHRI values carry a stray trailing '.0' (the same
+    model double-counted under two keys, e.g. '211644151' vs '211644151.0')
+    — normalize even though ers_web_pipeline.py now does this too, in case
+    the parquet being read here predates that fix. Must run before
+    top_ahri_set() and the masking step below, or the dedup doesn't help.
+    """
+    df = df.copy()
+    for col in ('Pre_HPAHRI', 'Post_HPAHRI'):
+        if col in df.columns:
+            s = df[col].astype(str).str.strip().str.replace(r'\.0+$', '', regex=True)
+            df[col] = s.replace({'': np.nan, 'nan': np.nan, 'None': np.nan})
+    return df
+
+
 def top_ahri_set(df, n=5, min_digits=4):
     """
     The AHRI column identifies a specific certified heat pump model — too
@@ -213,6 +229,7 @@ def split_province(parquet_path, out_root):
     df = pd.read_parquet(parquet_path)
     df = normalize_categoricals(df)
     df = add_year_columns(df)
+    df = normalize_ahri_cols(df)
     print(f"  loaded {len(df):,} rows")
 
     if 'FSA' not in df.columns:
