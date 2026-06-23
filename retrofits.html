@@ -347,11 +347,11 @@ footer a:hover{color:var(--amber2)}
     <p class="note">Share of matched homes with solar PV recorded pre- and post-retrofit, and the median system size among adopters.</p>
   </div>
 
-  <!-- Waterfall: pre fuels cascade up, post fuels cascade down, final savings bar -->
+  <!-- Fuel breakdown: pre/post box-fill rows per fuel, plus a per-fuel savings row -->
   <div class="card">
-    <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · mean kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
+    <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
     <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
-    <p class="note">Pre-retrofit fuel use cascades up to the total (navy), then post-retrofit fuel use cascades back down from that total (amber). The final green bar is the resulting total energy saved. This chart uses the <strong>mean</strong> (not median, unlike the rest of this page) so each fuel's share adds up exactly to the total — and so fuels used by a minority of homes still show up instead of medianing to zero. Electricity often rises when homes switch to heat pumps — that shows as an upward step within the amber section. Hover any bar for exact values.</p>
+    <p class="note">Each fuel gets a box sized to its larger of pre/post use; the fill level shows the actual pre or post value as a share of that box, so a half-filled box means usage dropped by half. The bottom row shows the resulting saving (green) or increase (red) per fuel. This chart uses <strong>total</strong> energy summed across all matched homes (not the median used elsewhere on this page), so each fuel's share adds up to the true total — and a fuel used by a minority of homes still shows up instead of medianing to zero. Hover any box for exact values.</p>
   </div>
 
   <!-- Insulation KPIs + distributions -->
@@ -1195,9 +1195,9 @@ function renderSolar(n){
     ${medSize?`<div style="margin-left:auto;text-align:right"><div class="eui-saving" style="color:var(--amber)">${medSize.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">median kW among adopters</div></div>`:''}`;
 }
 
-// ── Mirrored bar chart: pre energy use per fuel goes up, post goes down ──
+// ── Fuel breakdown: per-fuel pre/post boxes (sized to max(pre,post), filled
+// to the actual value) plus a per-fuel savings/increase row underneath ──
 function renderWaterfall(){
-  dc('waterfall');
   // NOTE: fuel column names are hardcoded (Pre_Electricity, Pre_NaturalGas, etc.)
   // If new fuel types are added to the CSV, add them here. Key = CSV column suffix, lbl = display name.
   const FUELS=[['Electricity','Electricity'],['NaturalGas','Natural Gas'],['Oil','Oil'],['Propane','Propane'],['Wood','Wood']];
@@ -1205,89 +1205,149 @@ function renderWaterfall(){
   FUELS.forEach(([key,lbl])=>{
     const pre=FILTERED.map(r=>num(r[`Pre_${key}`])||0);
     const post=FILTERED.map(r=>num(r[`Post_${key}`])||0);
-    const pm=Math.round(mean(pre));
-    const qm=Math.round(mean(post));
-    if(pm===0&&qm===0)return;
-    fuelLabels.push(lbl);preVals.push(pm);postVals.push(qm);
+    const pt=Math.round(pre.reduce((s,v)=>s+v,0));
+    const qt=Math.round(post.reduce((s,v)=>s+v,0));
+    if(pt===0&&qt===0)return;
+    fuelLabels.push(lbl);preVals.push(pt);postVals.push(qt);
   });
-  drawWaterfall(fuelLabels,preVals,postVals);
+  drawFuelBreakdown(fuelLabels,preVals,postVals);
 }
 
-// Value labels drawn directly onto each cascade bar.
-const waterfallValueLabels={
-  id:'waterfallValueLabels',
-  afterDatasetsDraw(chart,args,opts){
-    const bars=opts&&opts.bars;
-    if(!bars)return;
-    const {ctx}=chart;
-    const meta=chart.getDatasetMeta(0);
-    ctx.save();
-    ctx.font='600 10px Inter, sans-serif';
-    ctx.textAlign='center';
-    meta.data.forEach((el,i)=>{
-      const b=bars[i];
-      const topPx=Math.min(el.y,el.base)-6;
-      ctx.fillStyle=b.group==='pre'?'#0B2545':b.group==='post'?'#C8881A':(b.val>=0?'#1A7A55':'#B33A2E');
-      ctx.fillText(`${Math.round(Math.abs(b.val)).toLocaleString()}`,el.x,topPx);
-    });
-    ctx.restore();
+// ── Custom canvas chart (not Chart.js — the partial-fill boxes are bespoke) ──
+let _fuelBreakdownArgs=null,_fuelBreakdownRO=null,_fuelTooltipEl=null,_fuelBoxes=[];
+
+function drawFuelBreakdown(fuelLabels,preVals,postVals){
+  _fuelBreakdownArgs=[fuelLabels,preVals,postVals];
+  const canvas=$('waterfall-chart');
+  setChartLegend('waterfall-legend',fuelLabels.map(lbl=>({label:lbl,color:FUEL_COLORS[lbl]||'#8A9BB0'})));
+  if(!_fuelBreakdownRO){
+    _fuelBreakdownRO=new ResizeObserver(()=>{ if(_fuelBreakdownArgs)paintFuelBreakdown(..._fuelBreakdownArgs); });
+    _fuelBreakdownRO.observe(canvas.parentElement);
+    canvas.addEventListener('mousemove',onFuelBreakdownHover);
+    canvas.addEventListener('mouseleave',hideFuelTooltip);
   }
-};
+  paintFuelBreakdown(fuelLabels,preVals,postVals);
+}
 
-// Shared by FSA and province modes — builds a true cascading waterfall:
-// pre-retrofit fuel use stacks up to the pre total, post-retrofit fuel use
-// stacks back down from that same total, and a single bar at the end shows
-// the resulting gap (total energy saved).
-function drawWaterfall(fuelLabels,preVals,postVals){
-  const PRE_COLOR='#0B2545',POST_COLOR='#C8881A',SAVE_COLOR='#1A7A55',LOSS_COLOR='#B33A2E';
-  setChartLegend('waterfall-legend',[{label:'Pre energy',color:PRE_COLOR},{label:'Post energy',color:POST_COLOR},{label:'Total savings',color:SAVE_COLOR}]);
-  let running=0;
-  const bars=[];
-  fuelLabels.forEach((lbl,i)=>{
-    const start=running;running+=preVals[i];
-    bars.push({range:[Math.min(start,running),Math.max(start,running)],boundary:running,group:'pre',label:lbl,val:preVals[i]});
-  });
-  const preTotal=running;
-  fuelLabels.forEach((lbl,i)=>{
-    const start=running;running-=postVals[i];
-    bars.push({range:[Math.min(start,running),Math.max(start,running)],boundary:running,group:'post',label:lbl,val:postVals[i]});
-  });
-  const savings=running; // preTotal - sum(postVals) == preTotal - postTotal
-  bars.push({range:[Math.min(0,savings),Math.max(0,savings)],boundary:null,group:'savings',label:'Total savings',val:savings});
+function roundRectPath(ctx,x,y,w,h,r){
+  r=Math.max(0,Math.min(r,w/2,h/2));
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
 
-  const labels=bars.map(b=>b.label);
-  const bgColors=bars.map(b=>b.group==='pre'?PRE_COLOR+'CC':b.group==='post'?POST_COLOR+'CC':(savings>=0?SAVE_COLOR:LOSS_COLOR)+'CC');
-  const borderColors=bars.map(b=>b.group==='pre'?PRE_COLOR:b.group==='post'?POST_COLOR:(savings>=0?SAVE_COLOR:LOSS_COLOR));
+function paintFuelBreakdown(fuelLabels,preVals,postVals){
+  const canvas=$('waterfall-chart');
+  const wrap=canvas.parentElement;
+  const wCss=wrap.clientWidth||300,hCss=wrap.clientHeight||280;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=wCss*dpr;canvas.height=hCss*dpr;
+  canvas.style.width=wCss+'px';canvas.style.height=hCss+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,wCss,hCss);
+  _fuelBoxes=[];
 
-  charts['waterfall']=new Chart($('waterfall-chart').getContext('2d'),{
-    type:'bar',
-    plugins:[waterfallValueLabels],
-    data:{labels,datasets:[{data:bars.map(b=>b.range),backgroundColor:bgColors,borderColor:borderColors,borderWidth:1,borderRadius:3,barPercentage:0.7}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      layout:{padding:{top:18}},
-      plugins:{
-        legend:{display:false},
-        waterfallValueLabels:{bars},
-        tooltip:{callbacks:{
-          title:i=>bars[i[0].dataIndex].label,
-          label:i=>{
-            const b=bars[i.dataIndex];
-            if(b.group==='savings')return `${b.val>=0?'Saved':'Increased by'}: ${Math.abs(b.val).toLocaleString()} kWh`;
-            return `${b.group==='pre'?'Pre-retrofit':'Post-retrofit'}: ${b.val.toLocaleString()} kWh`;
-          }
-        }}
-      },
-      scales:{
-        x:{ticks:{font:{size:10},color:'#5C6E82',maxRotation:0},grid:{display:false}},
-        y:{
-          title:{display:true,text:'kWh (mean, all homes)',font:{size:11},color:'#5C6E82'},
-          ticks:{font:{size:11},color:'#8A9BB0',callback:function(v){return `${(Math.abs(v)/1000).toFixed(0)}k`;}},
-          grid:{color:'#E8EDF4'},min:0
-        }
+  if(!fuelLabels.length){
+    ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
+    ctx.fillText('No fuel data for this selection',wCss/2,hCss/2);
+    return;
+  }
+
+  const leftLabelW=96,rightPad=12,topPad=8,rowGap=20,rowH=54,gapPx=4;
+  const drawW=wCss-leftLabelW-rightPad;
+  const colors=fuelLabels.map(l=>FUEL_COLORS[l]||'#8A9BB0');
+
+  function drawValueLabel(x,bw,yTop,text,light){
+    ctx.font='600 11px Inter, sans-serif';ctx.textAlign='center';
+    if(ctx.measureText(text).width>bw-6)return; // skip if it would overflow the box
+    ctx.fillStyle=light?'#fff':'#1C2B3A';
+    ctx.fillText(text,x+bw/2,yTop+rowH/2+4);
+  }
+  // Compact form (5.9B / 21M / 1.2k) for boxes too narrow for the full number.
+  const fmt=v=>Math.abs(v)>=1000?new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(v):Math.round(v).toLocaleString();
+  function drawRowLabel(text,yTop){
+    ctx.font='600 11px Inter, sans-serif';ctx.fillStyle='#5C6E82';ctx.textAlign='right';
+    ctx.fillText(text,leftLabelW-10,yTop+rowH/2+4);
+  }
+
+  // Pre/post rows: each fuel's box width = its max(pre,post) share of the total;
+  // the same box widths/positions are reused for both rows so they align.
+  const maxVals=fuelLabels.map((_,i)=>Math.max(preVals[i],postVals[i],1));
+  const totalMax=maxVals.reduce((s,v)=>s+v,0)||1;
+  const usableW=drawW-gapPx*(fuelLabels.length-1);
+  const boxWidths=maxVals.map(v=>(v/totalMax)*usableW);
+
+  function drawPrePostRow(vals,label,yTop){
+    let x=leftLabelW;
+    drawRowLabel(label,yTop);
+    fuelLabels.forEach((lbl,i)=>{
+      const bw=boxWidths[i];
+      const ratio=Math.max(0,Math.min(1,vals[i]/maxVals[i]));
+      ctx.fillStyle=colors[i]+'22';ctx.strokeStyle=colors[i];ctx.lineWidth=1.25;
+      roundRectPath(ctx,x,yTop,bw,rowH,4);ctx.fill();ctx.stroke();
+      if(ratio>0){
+        ctx.save();
+        roundRectPath(ctx,x,yTop,bw,rowH,4);ctx.clip();
+        ctx.fillStyle=colors[i];
+        ctx.fillRect(x,yTop,bw*ratio,rowH);
+        ctx.restore();
       }
-    }
+      drawValueLabel(x,bw,yTop,fmt(vals[i]),ratio>0.55);
+      _fuelBoxes.push({x,y:yTop,w:bw,h:rowH,fuel:lbl,rowLabel:label,value:vals[i]});
+      x+=bw+gapPx;
+    });
+  }
+
+  const row1Y=topPad,row2Y=row1Y+rowH+rowGap;
+  drawPrePostRow(preVals,'Pre-retrofit',row1Y);
+  drawPrePostRow(postVals,'Post-retrofit',row2Y);
+
+  // Savings row: per-fuel pre−post delta, its own width scale (green = saved, red = increased)
+  const row3Y=row2Y+rowH+rowGap+8;
+  const deltas=fuelLabels.map((_,i)=>preVals[i]-postVals[i]);
+  const totalAbsDelta=deltas.reduce((s,v)=>s+Math.abs(v),0)||1;
+  let x3=leftLabelW;
+  drawRowLabel('Savings',row3Y);
+  fuelLabels.forEach((lbl,i)=>{
+    const bw=Math.max((Math.abs(deltas[i])/totalAbsDelta)*usableW,1);
+    const saved=deltas[i]>=0;
+    ctx.fillStyle=saved?'#1A7A55':'#B33A2E';
+    roundRectPath(ctx,x3,row3Y,bw,rowH,4);ctx.fill();
+    drawValueLabel(x3,bw,row3Y,`${saved?'−':'+'}${fmt(Math.abs(deltas[i]))}`,true);
+    _fuelBoxes.push({x:x3,y:row3Y,w:bw,h:rowH,fuel:lbl,rowLabel:'Savings',value:deltas[i]});
+    x3+=bw+gapPx;
   });
+
+  const totalSaved=preVals.reduce((s,v)=>s+v,0)-postVals.reduce((s,v)=>s+v,0);
+  ctx.font='600 11px Inter, sans-serif';ctx.textAlign='left';ctx.fillStyle='#1C2B3A';
+  ctx.fillText(`${totalSaved>=0?'Total saved':'Total increased'}: ${Math.abs(Math.round(totalSaved)).toLocaleString()} kWh`,leftLabelW,row3Y+rowH+18);
+}
+
+function ensureFuelTooltip(){
+  if(_fuelTooltipEl)return _fuelTooltipEl;
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;pointer-events:none;background:#0B2545;color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;box-shadow:0 4px 12px rgba(11,37,69,.25);z-index:1000;display:none;font-family:Inter,sans-serif;line-height:1.4';
+  document.body.appendChild(el);
+  return (_fuelTooltipEl=el);
+}
+function hideFuelTooltip(){ if(_fuelTooltipEl)_fuelTooltipEl.style.display='none'; }
+function onFuelBreakdownHover(e){
+  const rect=$('waterfall-chart').getBoundingClientRect();
+  const x=e.clientX-rect.left,y=e.clientY-rect.top;
+  const hit=_fuelBoxes.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);
+  const tip=ensureFuelTooltip();
+  if(!hit){tip.style.display='none';return;}
+  tip.innerHTML=hit.rowLabel==='Savings'
+    ?`<strong>${hit.fuel}</strong><br>${hit.value>=0?'Saved':'Increased'}: ${Math.abs(Math.round(hit.value)).toLocaleString()} kWh`
+    :`<strong>${hit.fuel}</strong> — ${hit.rowLabel}<br>${Math.round(hit.value).toLocaleString()} kWh`;
+  tip.style.display='block';
+  tip.style.left=(e.clientX+12)+'px';
+  tip.style.top=(e.clientY+12)+'px';
 }
 
 // ── Insulation KPI ────────────────────────────────────────────────
@@ -1862,10 +1922,16 @@ function renderProvinceSolar(slice){
 }
 
 function renderProvinceWaterfall(slice){
-  dc('waterfall');
+  // slice.waterfall ships pre-computed per-home MEANS (not totals — the raw
+  // rows aren't shipped to the browser in province mode). Multiply by the
+  // matched row count to approximate the group total; exact in FSA mode
+  // (renderWaterfall), where raw rows are available to sum directly.
   const waterfall=(slice.waterfall||[]).filter(w=>w.fuel!=='TOTAL');
-  const fuelLabels=waterfall.map(w=>w.fuel),preVals=waterfall.map(w=>w.pre),postVals=waterfall.map(w=>w.post);
-  drawWaterfall(fuelLabels,preVals,postVals);
+  const n=slice.row_count||0;
+  const fuelLabels=waterfall.map(w=>w.fuel);
+  const preVals=waterfall.map(w=>Math.round(w.pre*n));
+  const postVals=waterfall.map(w=>Math.round(w.post*n));
+  drawFuelBreakdown(fuelLabels,preVals,postVals);
 }
 
 function renderProvinceKPI(slice){
