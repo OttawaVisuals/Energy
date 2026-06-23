@@ -297,6 +297,16 @@ def coerce_numeric(s):
     return pd.to_numeric(s, errors='coerce')
 
 
+# AHRI is an identifier, not a number, but some source-CSV years write it as
+# e.g. '211644151' and others as '211644151.0' for the same model — without
+# this, the same AHRI number gets counted as two different ones downstream
+# (confirmed: ~20% of ON's unique AHRI codes were such .0-suffixed dupes).
+def clean_ahri(s):
+    s = s.astype(str).str.strip()
+    s = s.str.replace(r'\.0+$', '', regex=True)
+    return s.replace({'': pd.NA, 'nan': pd.NA, 'None': pd.NA})
+
+
 def apply_mapping(df, mapping):
     data = {}
     for col_name, orig, _, conv in mapping:
@@ -304,6 +314,8 @@ def apply_mapping(df, mapping):
             data[col_name] = pd.Series(pd.NA, index=df.index)
         elif conv is not None:
             data[col_name] = coerce_numeric(df[orig]) * conv
+        elif col_name in ('Pre_HPAHRI', 'Post_HPAHRI'):
+            data[col_name] = clean_ahri(df[orig])
         else:
             data[col_name] = df[orig]
     return pd.DataFrame(data, index=df.index)

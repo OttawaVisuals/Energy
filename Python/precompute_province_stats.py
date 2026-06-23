@@ -406,6 +406,11 @@ def compute_slice(df):
     # display-ready convenience slice of this same province's own counts.
     def code_counts(series, min_digits=0):
         s = series.dropna().astype(str).str.strip()
+        # Defensive: some source AHRI values carry a stray trailing '.0'
+        # (same model double-counted under two keys) — normalize even though
+        # ers_web_pipeline.py now does this too, in case the parquet being
+        # read here predates that fix.
+        s = s.str.replace(r'\.0+$', '', regex=True)
         if min_digits:
             s = s[s.str.count(r'\d') >= min_digits]
         s = s[s != '']
