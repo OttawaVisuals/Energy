@@ -23,10 +23,19 @@ precomputed bins/medians/counts, so:
 """
 import json
 import glob
+import os
 from collections import defaultdict
 
+# Same OUTPUT_DIR as precompute_province_stats.py / ers_web_pipeline.py —
+# this reads the province JSONs that script just wrote and writes CA.json
+# back into that same province_json folder, right alongside them.
+OUTPUT_DIR = r"C:\ERS\web"
+PROVINCE_JSON_DIR = os.path.join(OUTPUT_DIR, "province_json")
+CA_JSON_PATH = os.path.join(PROVINCE_JSON_DIR, "CA.json")
+
 PROVINCE_FILES = sorted(
-    f for f in glob.glob("province_json/*.json") if not f.endswith("CA.json")
+    f for f in glob.glob(os.path.join(PROVINCE_JSON_DIR, "*.json"))
+    if not f.endswith("CA.json")
 )
 
 INSULATION_KPI_MAP = [
@@ -60,6 +69,10 @@ def weighted_median_from_bins(bins):
 
 
 def main():
+    if not PROVINCE_FILES:
+        print(f"!! no province JSONs found in {PROVINCE_JSON_DIR} — run precompute_province_stats.py first")
+        return
+
     slices = []
     total_rows = 0
     for path in PROVINCE_FILES:
@@ -188,9 +201,9 @@ def main():
     )
 
     payload = {"province": "CA", "total_rows": total_rows, "by_type": {"All types": out}}
-    with open("province_json/CA.json", "w", encoding="utf-8") as f:
+    with open(CA_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
-    print(f"Wrote province_json/CA.json — {total_rows:,} total rows across {len(PROVINCE_FILES)} provinces/territories")
+    print(f"Wrote {CA_JSON_PATH} — {total_rows:,} total rows across {len(PROVINCE_FILES)} provinces/territories")
 
 
 if __name__ == "__main__":
