@@ -194,6 +194,22 @@ footer a:hover{color:var(--amber2)}
   #province-sel{max-width:105px;font-size:11px}
   .stats-grid,.kpi-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── Section headers (group the dashboard into themed sections) ── */
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px}
+
+/* ── Equipment code lists (AHRI / windows): let the decoded name wrap and
+   sit above a muted raw-code line, instead of the fixed-width insulation
+   rows that share .measure-row/.measure-label. ── */
+.equip-list .measure-row{align-items:flex-start}
+.equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
+.equip-list .measure-label .ml-code{display:block;line-height:1.3}
+.equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
+.equip-list .bar-track{margin-top:6px}
+.equip-list .bar-pct{margin-top:6px}
 </style>
 </head>
 <body>
@@ -263,30 +279,77 @@ footer a:hover{color:var(--amber2)}
 
 <main>
 
-  <!-- Top stats -->
+  <div class="section-head">
+    <h2>Did the retrofits work?</h2>
+    <p class="sec-sub">The bottom-line outcome across every matched home in this view.</p>
+  </div>
+
+<!-- Top stats -->
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
-    <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² saved</div></div>
-    <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr saved</div></div>
+    <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
+    <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
     <div class="stat-card"><div class="stat-label">Deep retrofits</div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Heat pumps added</div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Fuel switches</div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
     <div class="stat-card"><div class="stat-label">Solar PV added</div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
   </div>
 
-  <!-- Year + Floor area -->
-  <div class="grid-2">
-    <div class="card"><div class="card-title-row"><div class="card-title">Year built</div><div class="chart-legend-inline" id="year-legend"></div></div><div class="cw cw-sm"><canvas id="year-chart"></canvas></div></div>
-    <div class="card"><div class="card-title-row"><div class="card-title">Floor area (m²)</div><div class="chart-legend-inline" id="area-legend"></div></div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div>
+  
+
+<!-- Energy saving distribution 1% -->
+  <div class="card">
+    <div class="card-title">Energy saving distribution — 1% increments</div>
+    <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
+    <p class="note">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</p>
   </div>
 
-  <!-- Type + Storeys donuts -->
-  <div class="grid-2">
-    <div class="card"><div class="card-title">Building type</div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
-    <div class="card"><div class="card-title">Number of storeys</div><div class="cw cw-md"><canvas id="storey-chart"></canvas></div></div>
+  
+
+  <div class="section-head">
+    <h2>Energy &amp; emissions — before vs after</h2>
+    <p class="sec-sub">How much each home used and emitted before and after the work, and how the fuel mix shifted.</p>
   </div>
 
-  <!-- Sankey -->
+<!-- EUI -->
+  <div class="card">
+    <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
+    <div class="eui-row" id="eui-kpis"></div>
+    <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
+    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</p>
+  </div>
+
+  
+
+<!-- GHG emissions -->
+  <div class="card">
+    <div class="card-title">GHG emissions — tCO2e per year</div>
+    <div class="eui-row" id="ghg-kpis"></div>
+    <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
+    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
+  </div>
+
+  
+
+<!-- Heat loss -->
+  <div class="card">
+    <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
+    <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
+    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
+  </div>
+
+  
+
+<!-- Fuel breakdown: pre/post box-fill rows per fuel, plus a per-fuel savings row -->
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
+    <p class="note">Each fuel gets a box sized to its larger of pre/post use; the fill level shows the actual pre or post value as a share of that box, so a half-filled box means usage dropped by half. The bottom row shows the resulting saving (green) or increase (red) per fuel. This chart uses <strong>total</strong> energy summed across all matched homes (not the median used elsewhere on this page), so each fuel's share adds up to the true total — and a fuel used by a minority of homes still shows up instead of medianing to zero. Hover any box for exact values.</p>
+  </div>
+
+  
+
+<!-- Sankey -->
   <div class="card">
     <div class="card-title">Heating fuel flow — aggregate energy pre → post (GWh)</div>
     <div style="overflow-x:auto;position:relative">
@@ -296,44 +359,25 @@ footer a:hover{color:var(--amber2)}
     <p class="note">Flow width = total energy (GWh) across all matched homes. Grey flows = same fuel, no switch. Coloured flows = fuel switch. Hover a flow for details.</p>
   </div>
 
-  <!-- EUI -->
-  <div class="card">
-    <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
-    <div class="eui-row" id="eui-kpis"></div>
-    <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
-    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</p>
+  
+
+  <div class="section-head">
+    <h2>What was upgraded</h2>
+    <p class="sec-sub">Which measures were carried out, and how far insulation and airtightness actually moved.</p>
   </div>
 
-  <!-- GHG emissions -->
-  <div class="card">
-    <div class="card-title">GHG emissions — tCO2e per year</div>
-    <div class="eui-row" id="ghg-kpis"></div>
-    <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
-    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
+<!-- Measures + Spider -->
+  <div class="grid-2">
+    <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
+    <div class="card">
+      <div class="card-title">Retrofit profile — spider chart</div>
+      <svg id="spider-svg" viewBox="0 0 340 280" style="width:100%;display:block"></svg>
+    </div>
   </div>
 
-  <!-- Heat loss -->
-  <div class="card">
-    <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
-    <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
-    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
-  </div>
+  
 
-  <!-- Solar PV -->
-  <div class="card">
-    <div class="card-title">Solar PV adoption</div>
-    <div class="eui-row" id="solar-kpis"></div>
-    <p class="note">Share of matched homes with solar PV recorded pre- and post-retrofit, and the median system size among adopters.</p>
-  </div>
-
-  <!-- Fuel breakdown: pre/post box-fill rows per fuel, plus a per-fuel savings row -->
-  <div class="card">
-    <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
-    <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
-    <p class="note">Each fuel gets a box sized to its larger of pre/post use; the fill level shows the actual pre or post value as a share of that box, so a half-filled box means usage dropped by half. The bottom row shows the resulting saving (green) or increase (red) per fuel. This chart uses <strong>total</strong> energy summed across all matched homes (not the median used elsewhere on this page), so each fuel's share adds up to the true total — and a fuel used by a minority of homes still shows up instead of medianing to zero. Hover any box for exact values.</p>
-  </div>
-
-  <!-- Insulation KPIs + distributions -->
+<!-- Insulation KPIs + distributions -->
   <div class="card">
     <div class="card-title">Insulation &amp; air leakage — median pre → post</div>
     <div class="kpi-grid" id="kpi-grid"></div>
@@ -364,23 +408,106 @@ footer a:hover{color:var(--amber2)}
     </div>
   </div>
 
-  <!-- Measures + Spider -->
+  
+
+<!-- Solar PV -->
+  <div class="card">
+    <div class="card-title">Solar PV adoption</div>
+    <div class="eui-row" id="solar-kpis"></div>
+    <p class="note">Share of matched homes with solar PV recorded pre- and post-retrofit, and the median system size among adopters.</p>
+  </div>
+
+  
+
+  <div class="section-head">
+    <h2>The homes in this view</h2>
+    <p class="sec-sub">Who these retrofitted homes are — vintage, size, type — and how they sit within the wider neighbourhood.</p>
+  </div>
+
+<!-- Year + Floor area -->
   <div class="grid-2">
-    <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
+    <div class="card"><div class="card-title-row"><div class="card-title">Year built</div><div class="chart-legend-inline" id="year-legend"></div></div><div class="cw cw-sm"><canvas id="year-chart"></canvas></div></div>
+    <div class="card"><div class="card-title-row"><div class="card-title">Floor area (m²)</div><div class="chart-legend-inline" id="area-legend"></div></div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div>
+  </div>
+
+  
+
+<!-- Type + Storeys donuts -->
+  <div class="grid-2">
+    <div class="card"><div class="card-title">Building type</div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Number of storeys</div><div class="cw cw-md"><canvas id="storey-chart"></canvas></div></div>
+  </div>
+
+  
+
+<!-- Neighbourhood housing stock — 2021 Census, FSA-level only (no Canada/
+       province-wide rollup yet — see retrofits.html notes). Hidden outside
+       FSA mode by toggleCensusCard(). -->
+  <div class="card" id="census-card" style="display:none">
+    <div class="card-title">Neighbourhood housing stock — 2021 Census</div>
+    <div class="kpi-grid" id="census-coverage-kpis"></div>
+    <div class="grid-2" style="margin-top:1rem">
+      <div>
+        <div class="measure-chart-title" style="margin-bottom:.5rem">Dwelling type</div>
+        <div id="census-dwelling-type"></div>
+      </div>
+      <div>
+        <div class="measure-chart-title" style="margin-bottom:.5rem">Tenure</div>
+        <div id="census-tenure"></div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:1rem">
+      <div>
+        <div class="measure-chart-title" style="margin-bottom:.5rem">Period of construction</div>
+        <div id="census-period"></div>
+      </div>
+      <div>
+        <div class="measure-chart-title" style="margin-bottom:.5rem">Dwelling condition</div>
+        <div id="census-condition"></div>
+      </div>
+    </div>
+    <div class="kpi-grid" id="census-owner-kpis" style="margin-top:1rem"></div>
+    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. "Audit coverage" above compares the two. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
+  </div>
+
+  
+
+  <div class="section-head">
+    <h2>Equipment detail</h2>
+    <p class="sec-sub">Raw heat-pump and window references recorded for the matched homes.</p>
+  </div>
+
+<!-- Heat pump AHRI numbers + window codes -->
+  <div class="grid-2">
     <div class="card">
-      <div class="card-title">Retrofit profile — spider chart</div>
-      <svg id="spider-svg" viewBox="0 0 340 280" style="width:100%;display:block"></svg>
+      <div class="card-title">Common heat pump models (AHRI number)</div>
+      <div id="ahri-list" class="equip-list"></div>
+      <p class="note">Top 5 most common AHRI certification numbers among heat pumps in matched homes (pre- and post-retrofit combined). Numbers outside the top 5 are not shown individually to avoid singling out near-unique installations.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Common window codes</div>
+      <div class="grid-2">
+        <div>
+          <div class="measure-chart-title" style="margin-bottom:.5rem">Pre-retrofit</div>
+          <div id="window-pre-list" class="equip-list"></div>
+        </div>
+        <div>
+          <div class="measure-chart-title" style="margin-bottom:.5rem">Post-retrofit</div>
+          <div id="window-post-list" class="equip-list"></div>
+        </div>
+      </div>
+      <p class="note">Top 10 window codes by frequency. No public lookup table exists yet to decode codes into U-value/frame type/glazing — raw NRCan codes shown as-is.</p>
     </div>
   </div>
 
-  <!-- Energy saving distribution 1% -->
-  <div class="card">
-    <div class="card-title">Energy saving distribution — 1% increments</div>
-    <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</p>
+  
+
+  <div class="section-head" id="sec-individual">
+    <h2>Individual retrofits</h2>
+    <p class="sec-sub">Every matched home in this FSA, one row each — click to expand. (FSA view only.)</p>
   </div>
 
-  <!-- Table (FSA mode only — province-wide view has no row-level data) -->
+<!-- Table (FSA mode only — province-wide view has no row-level data) -->
   <div class="card" id="table-card">
     <div class="card-title">Individual retrofits — click a row for detail</div>
     <div class="sort-row">
@@ -531,6 +658,55 @@ const FSA_CACHE=new Map();        // `${prov}|${fsa}` -> reconstructed row objec
 const PROVINCE_SUMMARY_CACHE=new Map(); // prov -> parsed province_json payload
 const FSA_INDEX_CACHE=new Map();  // prov -> [{fsa,row_count}, ...] from _index.json
 let LOAD_TOKEN=0; // guards against a slow stale fetch landing after a newer one started
+let _lastProvinceSlice=null; // last rendered province slice, for re-rendering equipment lists when lookups arrive
+
+// 2021 Census housing-stock data, one ~1.1MB file keyed by FSA code (see
+// Python/extract_fsa_census.py) — small enough to fetch once and keep
+// entirely in memory, no per-FSA splitting needed like fsa_json/ has.
+const CENSUS_JSON_URL=`${BASE_URL}census_json/fsa_census.json`;
+let CENSUS_DATA=null, CENSUS_FETCH=null;
+function fetchCensusData(){
+  if(CENSUS_DATA)return Promise.resolve(CENSUS_DATA);
+  if(!CENSUS_FETCH)CENSUS_FETCH=fetchJSON(CENSUS_JSON_URL).then(d=>{CENSUS_DATA=d;return d;});
+  return CENSUS_FETCH;
+}
+
+// ── Equipment code lookups (optional, fail-soft) ────────────────────
+// Two small JSON dictionaries decode raw NRCan codes into readable names.
+// Both are fetched once at startup; if either is missing (404) or hasn't
+// landed yet, decoding silently falls back to the raw code, so the page
+// works with or without these files present on the server.
+//   lookup/ahri_numbers.json : { "<ahri>": "Brand \u00b7 Model" }
+//                           or { "<ahri>": {"brand":"\u2026","model":"\u2026"} }
+//   lookup/window_codes.json : { "<code>": "Description" }
+//                           or { "<code>": {"description":"\u2026"} }
+const AHRI_LOOKUP_URL=`${BASE_URL}lookup/ahri_numbers.json`;
+const WINDOW_LOOKUP_URL=`${BASE_URL}lookup/window_codes.json`;
+let AHRI_LOOKUP=null, WINDOW_LOOKUP=null;
+function fetchLookups(){
+  fetchJSON(AHRI_LOOKUP_URL).then(d=>{AHRI_LOOKUP=d;reRenderEquipmentLists();}).catch(()=>{AHRI_LOOKUP={};});
+  fetchJSON(WINDOW_LOOKUP_URL).then(d=>{WINDOW_LOOKUP=d;reRenderEquipmentLists();}).catch(()=>{WINDOW_LOOKUP={};});
+}
+function decodeAhri(code){
+  const c=String(code).trim();
+  const hit=AHRI_LOOKUP&&AHRI_LOOKUP[c];
+  if(!hit)return{main:c,sub:null};
+  const name=typeof hit==='string'?hit:[hit.brand,hit.model].filter(Boolean).join(' \u00b7 ');
+  return name?{main:name,sub:`AHRI ${c}`}:{main:c,sub:null};
+}
+function decodeWindow(code){
+  const c=String(code).trim();
+  const hit=WINDOW_LOOKUP&&WINDOW_LOOKUP[c];
+  if(!hit)return{main:c,sub:null};
+  const desc=typeof hit==='string'?hit:(hit.description||hit.desc||'');
+  return desc?{main:desc,sub:`Code ${c}`}:{main:c,sub:null};
+}
+// Re-render just the AHRI/window lists in the current mode (called when a
+// lookup file resolves after the initial paint).
+function reRenderEquipmentLists(){
+  if(MODE==='fsa')renderAhriWindowFsa();
+  else if(MODE==='province'&&_lastProvinceSlice)renderAhriWindowProvince(_lastProvinceSlice);
+}
 
 const $=id=>document.getElementById(id);
 const flag=(r,k)=>r[k]==='True'||r[k]===true||r[k]==='1'||r[k]===1;
@@ -722,6 +898,7 @@ function loadFsaView(myToken){
     fuels.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fuelEl.appendChild(o);});
     showFsaFilterControls(true);
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} audits`;
+    renderCensus(SELECTED_FSA,ALL.length);
     applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
@@ -740,6 +917,7 @@ function loadProvinceView(myToken){
     const types=Object.keys(payload.by_type);
     populateTypeDropdown(types);
     showFsaFilterControls(false);
+    toggleCensusCard(false); // census is FSA-level only — no province/Canada rollup yet
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} audits`;
     renderProvince(payload);
   }).catch(err=>{
@@ -783,6 +961,7 @@ function resetFilters(){
 // ── Render ────────────────────────────────────────────────────────
 function render(){
   $('table-card').style.display='';
+  $('sec-individual').style.display='';
   const n=FILTERED.length;
   $('result-count').textContent=n.toLocaleString();
   const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
@@ -802,23 +981,33 @@ function render(){
   // Compute EUIs once here and pass to all consumers
   const preEUIs=FILTERED.map(r=>{const e=num(r.Pre_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
   const postEUIs=FILTERED.map(r=>{const e=num(r.Post_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
-  const euiSave=median(preEUIs)-median(postEUIs);
-  $('s-eui-saving').textContent=euiSave?Math.round(euiSave):'—';
+  // Headline "median saving" = median of each home's OWN (pre-post) change,
+  // not median(pre)-median(post). The latter is the gap between two separate
+  // medians, a figure no individual home experienced, and it wouldn't match
+  // the per-home delta histogram drawn lower down. Same fix for GHG below.
+  const euiDeltas=FILTERED.map(r=>{
+    const e0=num(r.Pre_TotalEnergy),e1=num(r.Post_TotalEnergy),a=num(r.FloorArea);
+    return(e0!=null&&e1!=null&&a&&a>0)?(e0-e1)/a:null;
+  }).filter(v=>v!==null);
+  const euiSave=median(euiDeltas);
+  $('s-eui-saving').textContent=euiSave!=null?Math.round(euiSave):'—';
   window._euiMedianPre=Math.round(median(preEUIs)||0);
   window._euiMedianPost=Math.round(median(postEUIs)||0);
 
-  const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
-  const ghgPost=FILTERED.map(r=>num(r.Post_GHG)).filter(v=>v!==null);
-  const ghgSave=median(ghgPre)!==null&&median(ghgPost)!==null?median(ghgPre)-median(ghgPost):null;
-  $('s-ghg-saving').textContent=ghgSave!==null?ghgSave.toFixed(1):'—';
+  const ghgDeltas=FILTERED.map(r=>{
+    const g0=num(r.Pre_GHG),g1=num(r.Post_GHG);
+    return(g0!=null&&g1!=null)?(g0-g1):null;
+  }).filter(v=>v!==null);
+  const ghgSave=median(ghgDeltas);
+  $('s-ghg-saving').textContent=ghgSave!=null?ghgSave.toFixed(1):'—';
 
   const solarPost=FILTERED.filter(r=>num(r.Post_SolarPV)>0).length;
   $('s-solar').textContent=solarPost.toLocaleString();
   $('s-solar-sub').textContent=n?`${Math.round(solarPost/n*100)}% of matched homes`:'';
 
   renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
-  renderSankey();renderEUI(preEUIs,postEUIs);renderGHG();renderHeatLoss();renderSolar(n);renderWaterfall();
-  renderKPI(n,fs);renderInsulDist();renderMeasures(n);renderSpider(n);
+  renderSankey();renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderHeatLoss();renderSolar(n);renderWaterfall();
+  renderKPI(n,fs);renderInsulDist();renderMeasures(n);renderSpider(n);renderAhriWindowFsa();
   renderHist(savings);renderTable();
 }
 
@@ -1083,14 +1272,15 @@ function renderSankey(){
 }
 
 // ── EUI ───────────────────────────────────────────────────────────
-function renderEUI(preEUIs,postEUIs){
+function renderEUI(preEUIs,postEUIs,saveMedian){
   const preM=median(preEUIs),postM=median(postEUIs);
-  const saving=preM&&postM?Math.round(preM-postM):null;
+  const sv=saveMedian!=null?Math.round(saveMedian):null;
+  const svStr=sv!=null?(sv>=0?`−${sv}`:`+${-sv}`):null; // reduction shown as −, increase as +
   $('eui-kpis').innerHTML=`
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
-    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² saved</div></div>`:''}`;
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · median home</div></div>`:''}`;
   function euiBins(vals,step=BINS.eui){
     const b={};
     vals.forEach(v=>{if(v>500)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
@@ -1108,16 +1298,17 @@ function renderEUI(preEUIs,postEUIs){
 }
 
 // ── GHG emissions ─────────────────────────────────────────────────
-function renderGHG(){
+function renderGHG(saveMedian){
   const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
   const ghgPost=FILTERED.map(r=>num(r.Post_GHG)).filter(v=>v!==null);
   const preM=median(ghgPre),postM=median(ghgPost);
-  const saving=preM!==null&&postM!==null?(preM-postM):null;
+  const sv=saveMedian!=null?saveMedian:null;
+  const svStr=sv!=null?(sv>=0?`−${sv.toFixed(1)}`:`+${(-sv).toFixed(1)}`):null;
   $('ghg-kpis').innerHTML=`
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!==null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!==null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
-    ${saving!==null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr saved</div></div>`:''}`;
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr · median home</div></div>`:''}`;
   function ghgBins(vals,step=BINS.ghg){
     const b={};
     vals.forEach(v=>{if(v>30)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
@@ -1167,6 +1358,107 @@ function renderSolar(n){
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postPct}%</div><div class="eui-lbl">Post-retrofit<br>with solar PV</div></div>
     ${medSize?`<div style="margin-left:auto;text-align:right"><div class="eui-saving" style="color:var(--amber)">${medSize.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">median kW among adopters</div></div>`:''}`;
+}
+
+// ── Heat pump AHRI numbers + window codes ──────────────────────────
+function barListHTML(items){
+  if(!items||!items.length)return '<div class="state-msg" style="padding:1rem"><strong>No data</strong></div>';
+  const max=Math.max(...items.map(i=>i.count))||1;
+  return items.map(i=>{
+    const main=i.main!=null?i.main:i.code;
+    const sub=i.sub?`<span class="ml-sub">${i.sub}</span>`:'';
+    return `<div class="measure-row"><div class="measure-label"><span class="ml-code">${main}</span>${sub}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(i.count/max*100)}%;background:#C8881A"></div></div><div class="bar-pct">${Math.round(i.count).toLocaleString()}</div></div>`;
+  }).join('');
+}
+
+// Mirrors the AHRI/window top-N logic in precompute_province_stats.py /
+// split_fsa_json.py, but client-side over whatever rows are currently
+// FILTERED — used only in FSA mode, where raw per-home AHRI/WindowCode
+// values are available (province mode uses the precomputed top_ahri_numbers/
+// window_pre_top/window_post_top fields instead, see renderAhriWindowProvince).
+function topCounts(rows,cols,n,minDigits){
+  const counts={};
+  rows.forEach(r=>cols.forEach(c=>{
+    const v=r[c];
+    if(v===null||v===undefined||v==='')return;
+    const s=String(v).trim();
+    if(minDigits&&(s.match(/\d/g)||[]).length<minDigits)return;
+    counts[s]=(counts[s]||0)+1;
+  }));
+  return Object.entries(counts).map(([code,count])=>({code,count})).sort((a,b)=>b.count-a.count).slice(0,n);
+}
+function renderAhriWindowFsa(){
+  const dec=(cols,n,minDigits,decoder)=>topCounts(FILTERED,cols,n,minDigits)
+    .map(i=>{const d=decoder(i.code);return{main:d.main,sub:d.sub,count:i.count};});
+  $('ahri-list').innerHTML=barListHTML(dec(['Pre_HPAHRI','Post_HPAHRI'],5,4,decodeAhri));
+  $('window-pre-list').innerHTML=barListHTML(dec(['Pre_WindowCode'],10,0,decodeWindow));
+  $('window-post-list').innerHTML=barListHTML(dec(['Post_WindowCode'],10,0,decodeWindow));
+}
+function renderAhriWindowProvince(slice){
+  const toItems=(list,decoder)=>(list||[]).map(x=>{const d=decoder(x.code);return{main:d.main,sub:d.sub,count:Math.round(x.count)};});
+  $('ahri-list').innerHTML=barListHTML(toItems(slice.top_ahri_numbers,decodeAhri));
+  $('window-pre-list').innerHTML=barListHTML(toItems(slice.window_pre_top,decodeWindow));
+  $('window-post-list').innerHTML=barListHTML(toItems(slice.window_post_top,decodeWindow));
+}
+
+// ── Neighbourhood housing stock (2021 Census, FSA-level) ────────────
+const DWELLING_TYPE_LABELS={single_detached:'Single-detached',semi_detached:'Semi-detached',row_house:'Row house',duplex_apt:'Duplex apt',apt_low_rise:'Apt (<5 storeys)',apt_high_rise:'Apt (5+ storeys)',other_single_attached:'Other attached',movable:'Movable'};
+const PERIOD_LABELS={'1960_or_before':'1960 or before','1961_1980':'1961–1980','1981_1990':'1981–1990','1991_2000':'1991–2000','2001_2005':'2001–2005','2006_2010':'2006–2010','2011_2015':'2011–2015','2016_2021':'2016–2021'};
+
+function toggleCensusCard(show){
+  $('census-card').style.display=show?'':'none';
+}
+
+function censusBarList(obj){
+  const entries=Object.entries(obj).filter(([,v])=>v!==null&&v!==undefined);
+  if(!entries.length)return '<div class="state-msg" style="padding:.5rem"><strong>—</strong></div>';
+  const total=entries.reduce((s,[,v])=>s+v,0)||1;
+  return entries.map(([label,v])=>{
+    const p=Math.round(v/total*100);
+    return `<div class="measure-row"><div class="measure-label">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:#0B2545"></div></div><div class="bar-pct">${p}%</div></div>`;
+  }).join('');
+}
+
+function renderCensus(fsa,auditedCount){
+  toggleCensusCard(true);
+  $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Loading…</div></div>';
+  fetchCensusData().then(data=>{
+    const c=data[fsa];
+    if(!c){
+      $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">No census data for this FSA</div></div>';
+      ['census-dwelling-type','census-tenure','census-period','census-condition','census-owner-kpis'].forEach(id=>$(id).innerHTML='');
+      return;
+    }
+    const coverage=c.total_dwellings?Math.round(auditedCount/c.total_dwellings*100):null;
+    $('census-coverage-kpis').innerHTML=`
+      <div class="kpi-item"><div class="kpi-name">Total private dwellings</div><div class="kpi-values"><div class="kpi-pct">${c.total_dwellings!=null?c.total_dwellings.toLocaleString():'—'}</div></div><div class="kpi-unit">2021 Census</div></div>
+      <div class="kpi-item"><div class="kpi-name">Audited homes (this FSA)</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
+      <div class="kpi-item"><div class="kpi-name">Audit coverage</div><div class="kpi-values"><div class="kpi-pct">${coverage!=null?coverage+'%':'—'}</div></div><div class="kpi-unit">of all dwellings</div></div>`;
+
+    const dt={};
+    Object.entries(c.dwelling_type||{}).forEach(([k,v])=>{dt[DWELLING_TYPE_LABELS[k]||k]=v;});
+    $('census-dwelling-type').innerHTML=censusBarList(dt);
+
+    const ten=c.tenure||{};
+    $('census-tenure').innerHTML=censusBarList({Owner:ten.owner,Renter:ten.renter});
+
+    const pc={};
+    Object.entries(c.period_of_construction||{}).forEach(([k,v])=>{pc[PERIOD_LABELS[k]||k]=v;});
+    $('census-period').innerHTML=censusBarList(pc);
+
+    const cond=c.condition||{};
+    $('census-condition').innerHTML=censusBarList({'Minor repairs only':cond.minor_repairs,'Major repairs needed':cond.major_repairs});
+
+    const o=c.owner_stats||{};
+    $('census-owner-kpis').innerHTML=`
+      <div class="kpi-item"><div class="kpi-name">Owners with a mortgage</div><div class="kpi-values"><div class="kpi-pct">${o.pct_with_mortgage!=null?o.pct_with_mortgage+'%':'—'}</div></div></div>
+      <div class="kpi-item"><div class="kpi-name">Spending 30%+ on shelter</div><div class="kpi-values"><div class="kpi-pct">${o.pct_spending_30pct_shelter!=null?o.pct_spending_30pct_shelter+'%':'—'}</div></div></div>
+      <div class="kpi-item"><div class="kpi-name">In core housing need</div><div class="kpi-values"><div class="kpi-pct">${o.pct_core_housing_need!=null?o.pct_core_housing_need+'%':'—'}</div></div></div>
+      <div class="kpi-item"><div class="kpi-name">Median dwelling value</div><div class="kpi-values"><div class="kpi-pct">${o.median_dwelling_value!=null?'$'+o.median_dwelling_value.toLocaleString():'—'}</div></div></div>`;
+  }).catch(err=>{
+    console.error(err);
+    $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Could not load census data</div></div>';
+  });
 }
 
 // ── Fuel breakdown: per-fuel pre/post boxes (sized to max(pre,post), filled
@@ -1573,6 +1865,7 @@ function renderProvince(payload){
     $('result-count').textContent='0';
     return;
   }
+  _lastProvinceSlice=slice;
   const n=slice.row_count||0;
   $('result-count').textContent=n.toLocaleString();
 
@@ -1611,7 +1904,9 @@ function renderProvince(payload){
   renderProvinceMeasures(slice);
   renderProvinceSpider(slice);
   renderProvinceHist(slice);
+  renderAhriWindowProvince(slice);
   $('table-card').style.display='none';
+  $('sec-individual').style.display='none';
 }
 
 // Bin objects from precompute_province_stats.py have integer/numeric keys
@@ -2249,6 +2544,7 @@ $('depth-sel').addEventListener('change',applyFilters);
 // Landing default: load "All of Canada" immediately instead of waiting on
 // an empty page until the user picks a province (matches province-sel's
 // pre-selected option).
+fetchLookups();
 load();
 </script>
 </body>
