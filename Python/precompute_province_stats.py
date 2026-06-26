@@ -427,8 +427,8 @@ def compute_slice(df):
 
     out['window_pre_counts'] = code_counts(df.get('Pre_WindowCode', pd.Series(dtype=str)))
     out['window_post_counts'] = code_counts(df.get('Post_WindowCode', pd.Series(dtype=str)))
-    out['window_pre_top'] = top_n(out['window_pre_counts'], 10)
-    out['window_post_top'] = top_n(out['window_post_counts'], 10)
+    out['window_pre_top'] = top_n(out['window_pre_counts'], 5)
+    out['window_post_top'] = top_n(out['window_post_counts'], 5)
 
     return out
 

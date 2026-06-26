@@ -35,6 +35,12 @@ import xml.etree.ElementTree as ET
 SUPPORT_XLSX = "Support.xlsx"
 PROVINCE_JSON_DIR = "province_json"
 OUT_PATH = os.path.join("lookup", "window_codes.json")
+COMPONENTS_OUT_PATH = os.path.join("lookup", "window_components.json")
+
+# Position -> attribute name, used as keys in window_components.json so the
+# frontend can decode a code into named parts (for the "what changed
+# pre->post" comparison) instead of just a single description string.
+POSITION_NAMES = {1: "glazing", 2: "coating", 3: "fill", 4: "spacer", 5: "window_type", 6: "frame"}
 
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
       "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships"}
@@ -146,6 +152,14 @@ def main():
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"wrote {OUT_PATH} — {len(out)} decoded codes")
+
+    # Per-digit value->category tables, keyed by attribute name, so the
+    # frontend can decode any code into its 6 named parts and compare two
+    # codes (pre vs post) attribute-by-attribute, not just as whole strings.
+    components = {POSITION_NAMES[pos]: table for pos, table in tables.items()}
+    with open(COMPONENTS_OUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(components, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"wrote {COMPONENTS_OUT_PATH}")
 
 
 if __name__ == "__main__":
