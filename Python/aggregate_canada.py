@@ -105,8 +105,8 @@ def main():
                 sorted(counts.items(), key=lambda kv: -kv[1])[:n]]
 
     out["top_ahri_numbers"] = top_n(out["ahri_counts"], 5)
-    out["window_pre_top"] = top_n(out["window_pre_counts"], 10)
-    out["window_post_top"] = top_n(out["window_post_counts"], 10)
+    out["window_pre_top"] = top_n(out["window_pre_counts"], 5)
+    out["window_post_top"] = top_n(out["window_post_counts"], 5)
 
     for key in ["deep_retrofit_count", "fuel_switch_count", "heat_pump_count", "solar_post_count"]:
         out[key] = round(sum(s.get(key, 0) for s in slices))
