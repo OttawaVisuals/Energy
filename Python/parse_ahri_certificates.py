@@ -35,10 +35,15 @@ from pypdf import PdfReader
 CERT_DIR = "ahri_certificates"
 OUT_PATH = "ahri_certificates_parsed.csv"
 
-# The one consistently-glued line at the top of every certificate.
+# The one consistently-glued line at the top of every certificate. Status
+# can be multi-word ("Production Stopped") and discontinued models insert
+# an extra "Model Discontinued Date : <date>" clause before the real issue
+# date — status is captured non-greedily so it stops at whichever of those
+# two literal markers comes first, rather than assuming "Date" is next.
 TOP_LINE_RE = re.compile(
     r"AHRI Certified Reference Number\s*:\s*(?P<ref>\d+)\s*"
-    r"Model Status\s*:\s*(?P<status>[A-Za-z]+?)\s*"
+    r"Model Status\s*:\s*(?P<status>.+?)\s*"
+    r"(?:Model Discontinued Date\s*:\s*[\d/-]+\s*)?"
     r"Date\s*:\s*(?P<date>[\d/-]+)"
 )
 

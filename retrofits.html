@@ -162,8 +162,6 @@ tr.detail-row.open .detail-inner{display:block}
 .measure-chip{font-size:11px;padding:2px 6px;border-radius:4px;background:var(--navy);color:rgba(255,255,255,.9)}
 .tbl-footer{font-size:12px;color:var(--light);margin-top:10px;text-align:right}
 
-/* ── Spider ── */
-#spider-svg text{font-family:'Inter',sans-serif}
 
 /* ── Misc ── */
 .state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
@@ -319,7 +317,17 @@ footer a:hover{color:var(--amber2)}
     <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</p>
   </div>
 
-  
+
+
+<!-- EUI slopegraph — individual homes, FSA mode only (no row-level data in
+     province-wide view). Hidden by toggleSlopegraphCard(). -->
+  <div class="card" id="slopegraph-card" style="display:none">
+    <div class="card-title-row"><div class="card-title">Every home, pre → post EUI</div><div class="chart-legend-inline" id="slope-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="slope-chart"></canvas></div>
+    <p class="note">Each line is one matched home: left point = pre-retrofit EUI, right point = post-retrofit EUI. Colour = number of retrofit measures done (see legend) — darker lines did more, so a darker band ending lower shows whether doing more measures tracks with bigger drops. Lines are drawn at low opacity so darker bands show where homes cluster. Outliers above 500 kWh/m² clipped for scale, same as the chart above.</p>
+  </div>
+
+
 
 <!-- GHG emissions -->
   <div class="card">
@@ -366,16 +374,21 @@ footer a:hover{color:var(--amber2)}
     <p class="sec-sub">Which measures were carried out, and how far insulation and airtightness actually moved.</p>
   </div>
 
-<!-- Measures + Spider -->
-  <div class="grid-2">
-    <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
-    <div class="card">
-      <div class="card-title">Retrofit profile — spider chart</div>
-      <svg id="spider-svg" viewBox="0 0 340 280" style="width:100%;display:block"></svg>
-    </div>
+<!-- Measures -->
+  <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
+
+
+
+<!-- Measures by vintage — FSA mode only (needs row-level YearBuilt + per-
+     measure flags; province-wide precomputed stats don't cross-tabulate
+     these two). Hidden by toggleVintageCard(). -->
+  <div class="card" id="vintage-card" style="display:none">
+    <div class="card-title">Measures by vintage</div>
+    <div class="cw cw-xl"><canvas id="vintage-chart"></canvas></div>
+    <p class="note">For homes built in each decade, the share that got each measure. Vintage buckets with fewer than 20 matched homes are dropped to avoid noisy percentages.</p>
   </div>
 
-  
+
 
 <!-- Insulation KPIs + distributions -->
   <div class="card">
@@ -434,7 +447,7 @@ footer a:hover{color:var(--amber2)}
 
 <!-- Type + Storeys donuts -->
   <div class="grid-2">
-    <div class="card"><div class="card-title">Building type</div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
+    <div class="card"><div class="card-title-row"><div class="card-title">Building type</div><div class="chart-legend-inline" id="type-legend"></div></div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
     <div class="card"><div class="card-title">Number of storeys</div><div class="cw cw-md"><canvas id="storey-chart"></canvas></div></div>
   </div>
 
@@ -448,26 +461,18 @@ footer a:hover{color:var(--amber2)}
     <div class="kpi-grid" id="census-coverage-kpis"></div>
     <div class="grid-2" style="margin-top:1rem">
       <div>
-        <div class="measure-chart-title" style="margin-bottom:.5rem">Dwelling type</div>
-        <div id="census-dwelling-type"></div>
-      </div>
-      <div>
         <div class="measure-chart-title" style="margin-bottom:.5rem">Tenure</div>
-        <div id="census-tenure"></div>
-      </div>
-    </div>
-    <div class="grid-2" style="margin-top:1rem">
-      <div>
-        <div class="measure-chart-title" style="margin-bottom:.5rem">Period of construction</div>
-        <div id="census-period"></div>
+        <div style="position:relative;height:140px"><canvas id="census-tenure-gauge"></canvas></div>
+        <div class="chart-legend-inline" id="census-tenure-legend" style="justify-content:center;margin-top:4px"></div>
       </div>
       <div>
         <div class="measure-chart-title" style="margin-bottom:.5rem">Dwelling condition</div>
-        <div id="census-condition"></div>
+        <div style="position:relative;height:140px"><canvas id="census-condition-gauge"></canvas></div>
+        <div class="chart-legend-inline" id="census-condition-legend" style="justify-content:center;margin-top:4px"></div>
       </div>
     </div>
     <div class="kpi-grid" id="census-owner-kpis" style="margin-top:1rem"></div>
-    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. "Audit coverage" above compares the two. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
+    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. "Audit coverage" above compares the two — see also the Building type and Year built charts above, which overlay this same census data for direct comparison. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
   </div>
 
   
@@ -496,8 +501,16 @@ footer a:hover{color:var(--amber2)}
           <div id="window-post-list" class="equip-list"></div>
         </div>
       </div>
-      <p class="note">Top 10 window codes by frequency. No public lookup table exists yet to decode codes into U-value/frame type/glazing — raw NRCan codes shown as-is.</p>
+      <p class="note">Top 5 window codes by frequency, decoded into glazing/coating/fill/spacer/frame using NRCan's published code tables.</p>
     </div>
+  </div>
+
+  <!-- Most common window changes — FSA mode only (needs paired per-home
+       pre/post codes). Hidden by toggleWindowChangesCard(). -->
+  <div class="card" id="window-changes-card" style="display:none">
+    <div class="card-title">Most common window changes</div>
+    <div id="window-changes-list" class="equip-list"></div>
+    <p class="note">For homes with a decodable window code both before and after, the share where each attribute changed at all, ranked — top 5 of 6 tracked attributes. Glazing and coating are the two attributes that most directly drive a window's R-value, so they're worth watching specifically. "Most often" shows the single most common from → to change for that attribute. Codes outside NRCan's standard table (custom/user-defined windows) aren't included.</p>
   </div>
 
   
@@ -682,10 +695,16 @@ function fetchCensusData(){
 //                           or { "<code>": {"description":"\u2026"} }
 const AHRI_LOOKUP_URL=`${BASE_URL}lookup/ahri_numbers.json`;
 const WINDOW_LOOKUP_URL=`${BASE_URL}lookup/window_codes.json`;
-let AHRI_LOOKUP=null, WINDOW_LOOKUP=null;
+// Per-digit value->category tables (glazing/coating/fill/spacer/window_type/
+// frame), separate from WINDOW_LOOKUP's whole-code descriptions — lets the
+// frontend decode a code into named parts and compare pre vs post
+// attribute-by-attribute (see renderWindowChanges).
+const WINDOW_COMPONENTS_URL=`${BASE_URL}lookup/window_components.json`;
+let AHRI_LOOKUP=null, WINDOW_LOOKUP=null, WINDOW_COMPONENTS=null;
 function fetchLookups(){
   fetchJSON(AHRI_LOOKUP_URL).then(d=>{AHRI_LOOKUP=d;reRenderEquipmentLists();}).catch(()=>{AHRI_LOOKUP={};});
   fetchJSON(WINDOW_LOOKUP_URL).then(d=>{WINDOW_LOOKUP=d;reRenderEquipmentLists();}).catch(()=>{WINDOW_LOOKUP={};});
+  fetchJSON(WINDOW_COMPONENTS_URL).then(d=>{WINDOW_COMPONENTS=d;reRenderEquipmentLists();}).catch(()=>{WINDOW_COMPONENTS={};});
 }
 function decodeAhri(code){
   const c=String(code).trim();
@@ -704,8 +723,35 @@ function decodeWindow(code){
 // Re-render just the AHRI/window lists in the current mode (called when a
 // lookup file resolves after the initial paint).
 function reRenderEquipmentLists(){
-  if(MODE==='fsa')renderAhriWindowFsa();
+  if(MODE==='fsa'){renderAhriWindowFsa();renderWindowChanges();}
   else if(MODE==='province'&&_lastProvinceSlice)renderAhriWindowProvince(_lastProvinceSlice);
+}
+
+const WINDOW_ATTRS=[
+  {key:'glazing',label:'Glazing (panes/coats)'},
+  {key:'coating',label:'Coating/tint'},
+  {key:'fill',label:'Gas fill'},
+  {key:'spacer',label:'Spacer'},
+  {key:'window_type',label:'Window type'},
+  {key:'frame',label:'Frame material'},
+];
+// Decode a WINDOWCODE into its 6 named parts using window_components.json.
+// Returns null if components haven't loaded yet, or the code doesn't
+// cleanly decode (non-6-digit, or a digit value outside the standard table
+// — i.e. a "user defined" code per NRCan's own column description).
+function decodeWindowParts(code){
+  if(!WINDOW_COMPONENTS||!code)return null;
+  const s=String(code).trim().padStart(6,'0');
+  if(s.length!==6)return null;
+  const out={};
+  for(let i=0;i<WINDOW_ATTRS.length;i++){
+    const{key}=WINDOW_ATTRS[i];
+    const table=WINDOW_COMPONENTS[key];
+    const cat=table&&table[s[i]];
+    if(!cat)return null;
+    out[key]=cat;
+  }
+  return out;
 }
 
 const $=id=>document.getElementById(id);
@@ -918,6 +964,9 @@ function loadProvinceView(myToken){
     populateTypeDropdown(types);
     showFsaFilterControls(false);
     toggleCensusCard(false); // census is FSA-level only — no province/Canada rollup yet
+    toggleSlopegraphCard(false); // needs row-level pre/post pairs, province view has none
+    toggleVintageCard(false); // needs row-level YearBuilt + measure flags, province view has none
+    toggleWindowChangesCard(false); // needs paired per-home pre/post codes, province view has none
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} audits`;
     renderProvince(payload);
   }).catch(err=>{
@@ -1005,9 +1054,13 @@ function render(){
   $('s-solar').textContent=solarPost.toLocaleString();
   $('s-solar-sub').textContent=n?`${Math.round(solarPost/n*100)}% of matched homes`:'';
 
+  toggleSlopegraphCard(true);
+  toggleVintageCard(true);
+  toggleWindowChangesCard(true);
   renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
   renderSankey();renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderHeatLoss();renderSolar(n);renderWaterfall();
-  renderKPI(n,fs);renderInsulDist();renderMeasures(n);renderSpider(n);renderAhriWindowFsa();
+  renderKPI(n,fs);renderInsulDist();renderMeasures(n);renderAhriWindowFsa();
+  renderSlopegraph();renderVintageMeasures();renderWindowChanges();
   renderHist(savings);renderTable();
 }
 
@@ -1018,29 +1071,66 @@ function setChartLegend(id,items){
   $(id).innerHTML=items.map(it=>`<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${it.color}"></span>${it.label}</div>`).join('');
 }
 
+// Same boundaries as the census period_of_construction buckets, so the
+// audited-homes histogram and the FSA-wide census line share one x-axis —
+// needed to judge whether the audited sample is representative (see
+// renderYearHist). "2022_plus" exists only on the audited side; the 2021
+// census obviously has no data past 2021.
+const CENSUS_PERIOD_BUCKETS=[
+  {key:'1960_or_before',label:'1960 or before',test:y=>y<=1960},
+  {key:'1961_1980',label:'1961–1980',test:y=>y>=1961&&y<=1980},
+  {key:'1981_1990',label:'1981–1990',test:y=>y>=1981&&y<=1990},
+  {key:'1991_2000',label:'1991–2000',test:y=>y>=1991&&y<=2000},
+  {key:'2001_2005',label:'2001–2005',test:y=>y>=2001&&y<=2005},
+  {key:'2006_2010',label:'2006–2010',test:y=>y>=2006&&y<=2010},
+  {key:'2011_2015',label:'2011–2015',test:y=>y>=2011&&y<=2015},
+  {key:'2016_2021',label:'2016–2021',test:y=>y>=2016&&y<=2021},
+  {key:'2022_plus',label:'2022+',test:y=>y>=2022},
+];
+
 function renderYearHist(){
   dc('year');
-  const sdBins={},atBins={};
+  const counts=CENSUS_PERIOD_BUCKETS.map(()=>0);
+  let n=0;
   FILTERED.forEach(r=>{
     const y=parseInt(r.YearBuilt);
     if(!y||y<1850||y>2030)return;
-    const d=Math.floor(y/BINS.year)*BINS.year;
-    const bins=r.BldgType==='Single Detached'?sdBins:atBins;
-    bins[d]=(bins[d]||0)+1;
+    const i=CENSUS_PERIOD_BUCKETS.findIndex(b=>b.test(y));
+    if(i<0)return;
+    counts[i]++;n++;
   });
-  const labels=[...new Set([...Object.keys(sdBins),...Object.keys(atBins)])].sort();
-  setChartLegend('year-legend',[{label:'Single detached',color:'#0B2545CC'},{label:'Attached',color:'#378ADDCC'}]);
-  charts['year']=new Chart($('year-chart').getContext('2d'),{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Single detached',data:labels.map(k=>sdBins[k]||0),backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
-      {label:'Attached',data:labels.map(k=>atBins[k]||0),backgroundColor:'#378ADDCC',borderWidth:0,borderRadius:2},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}s`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
-  });
+  const labels=CENSUS_PERIOD_BUCKETS.map(b=>b.label);
+  const auditedPct=counts.map(c=>n?Math.round(c/n*1000)/10:0);
+
+  const draw=censusPct=>{
+    setChartLegend('year-legend',censusPct
+      ?[{label:'Audited homes',color:'#0B2545CC'},{label:'All FSA dwellings (census)',color:'#C8881A'}]
+      :[{label:'Audited homes',color:'#0B2545CC'}]);
+    const datasets=[{type:'bar',label:'Audited homes',data:auditedPct,backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2,order:2}];
+    if(censusPct)datasets.push({type:'line',label:'All FSA dwellings (census)',data:censusPct,borderColor:'#C8881A',backgroundColor:'#C8881A',pointRadius:3,borderWidth:2,tension:0.2,fill:false,order:1});
+    dc('year');
+    charts['year']=new Chart($('year-chart').getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw}%`}}},
+        scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+                y:{ticks:{font:{size:10},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'}}}}
+    });
+  };
+
+  draw(null);
+  if(!SELECTED_FSA)return;
+  fetchCensusData().then(data=>{
+    const c=data[SELECTED_FSA];
+    if(!c||!c.period_of_construction)return;
+    const totalDwellings=Object.values(c.period_of_construction).reduce((s,v)=>s+(v||0),0)||1;
+    const censusPct=CENSUS_PERIOD_BUCKETS.map(b=>{
+      const v=c.period_of_construction[b.key];
+      return v!=null?Math.round(v/totalDwellings*1000)/10:null;
+    });
+    draw(censusPct);
+  }).catch(()=>{});
 }
 
 // ── Floor area histogram ──────────────────────────────────────────
@@ -1155,9 +1245,72 @@ function donut(canvasId,countMap,chartKey,n){
         tooltip:{callbacks:{label:i=>`${i.label}: ${i.raw.toLocaleString()} (${Math.round(i.raw/n*100)}%)`}}}}
   });
 }
+// Best-effort cross-walk from EnerGuide BldgType strings to the census's
+// 8 dwelling_type buckets, so the two can be compared on one chart. The two
+// taxonomies don't line up exactly (e.g. a "Detached Duplex" — a standalone
+// building with 2 units — has no clean census equivalent; "Apartment" could
+// be low- or high-rise) — this is an approximation, not an exact mapping.
+const BLDG_TO_CENSUS_TYPE={
+  'Single Detached':'single_detached',
+  'Double/Semi-Detached':'semi_detached','Double/Semi Detached':'semi_detached',
+  'Attached Duplex':'semi_detached','Duplex (Non-MURB)':'semi_detached',
+  'Row House, End Unit':'row_house','Row House, Middle Unit':'row_house',
+  'Row, End Unit':'row_house','Row, Middle Unit':'row_house',
+  'Apartment Row':'row_house','Attached Triplex':'row_house',
+  'Apartment':'apt_low_rise','Detached Triplex':'apt_low_rise','Triplex (Non-MURB)':'apt_low_rise',
+  'Detached Duplex':'duplex_apt',
+  'Mobile Home':'movable',
+};
+
 function renderTypeDonut(){
   const c={};FILTERED.forEach(r=>{if(r.BldgType)c[r.BldgType]=(c[r.BldgType]||0)+1;});
-  donut('type-chart',c,'type',FILTERED.length);
+
+  if(!SELECTED_FSA){
+    setChartLegend('type-legend',[]);
+    donut('type-chart',c,'type',FILTERED.length);
+    return;
+  }
+  fetchCensusData().then(data=>{
+    const census=data[SELECTED_FSA]&&data[SELECTED_FSA].dwelling_type;
+    if(!census){
+      setChartLegend('type-legend',[]);
+      donut('type-chart',c,'type',FILTERED.length);
+      return;
+    }
+    const auditedByCensusType={};
+    Object.entries(c).forEach(([bldg,n])=>{
+      const k=BLDG_TO_CENSUS_TYPE[bldg]||'other_single_attached';
+      auditedByCensusType[k]=(auditedByCensusType[k]||0)+n;
+    });
+    const auditedTotal=Object.values(auditedByCensusType).reduce((s,v)=>s+v,0)||1;
+    const censusTotal=Object.values(census).reduce((s,v)=>s+(v||0),0)||1;
+    const keys=Object.keys(DWELLING_TYPE_LABELS).filter(k=>(auditedByCensusType[k]||0)+(census[k]||0)>0);
+
+    // Grouped bars (not a 2nd donut ring) — easier to actually compare two
+    // distributions' shapes than two concentric rings of similar hue.
+    dc('type');
+    setChartLegend('type-legend',[
+      {label:'Audited homes',color:'#0B2545CC'},
+      {label:'All FSA dwellings (census)',color:'#C8881A'},
+    ]);
+    keys.sort((a,b)=>(census[b]||0)/censusTotal-(census[a]||0)/censusTotal);
+    charts['type']=new Chart($('type-chart').getContext('2d'),{
+      type:'bar',
+      data:{labels:keys.map(k=>DWELLING_TYPE_LABELS[k]),datasets:[
+        {label:'Audited homes',data:keys.map(k=>Math.round((auditedByCensusType[k]||0)/auditedTotal*1000)/10),
+          backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
+        {label:'All FSA dwellings',data:keys.map(k=>Math.round((census[k]||0)/censusTotal*1000)/10),
+          backgroundColor:'#C8881A',borderWidth:0,borderRadius:2},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw}%`}}},
+        scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+                y:{ticks:{font:{size:10},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'}}}}
+    });
+  }).catch(()=>{
+    setChartLegend('type-legend',[]);
+    donut('type-chart',c,'type',FILTERED.length);
+  });
 }
 function renderStoreyDonut(){
   const MAP={'split entry / raised basement':'Split entry','two and a half':'2.5 storeys',
@@ -1297,6 +1450,121 @@ function renderEUI(preEUIs,postEUIs,saveMedian){
   drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
 }
 
+// ── EUI slopegraph (FSA mode only — needs row-level pre/post pairs) ──
+// Custom canvas, not Chart.js: hundreds of low-opacity individual lines is
+// not something Chart.js's per-dataset model handles cheaply, and there's
+// no need for per-line interactivity here (same reasoning as the fuel
+// breakdown chart above).
+function toggleSlopegraphCard(show){
+  $('slopegraph-card').style.display=show?'':'none';
+}
+
+// One distinct colour per measure-count increment (0..MEASURES.length),
+// rather than a smooth gradient — stepped hue from blue (fewest measures)
+// to red (most), so each count is visually distinguishable on its own.
+function hslToRgbStr(h,s,l){
+  s/=100;l/=100;
+  const k=n=>(n+h/30)%12;
+  const a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return[f(0),f(8),f(4)].map(v=>Math.round(v*255)).join(',');
+}
+function buildSlopePalette(n){
+  const out=[];
+  for(let i=0;i<=n;i++)out.push(hslToRgbStr(210-(210/n)*i,70,45));
+  return out;
+}
+
+let _slopeArgs=null,_slopeRO=null;
+function renderSlopegraph(){
+  const maxMeasures=MEASURES.length;
+  const palette=buildSlopePalette(maxMeasures);
+  const pairs=FILTERED.map(r=>{
+    const e0=num(r.Pre_TotalEnergy),e1=num(r.Post_TotalEnergy),a=num(r.FloorArea);
+    if(e0==null||e1==null||!a||a<=0)return null;
+    const pre=e0/a,post=e1/a;
+    if(pre>500||post>500)return null; // clip outliers, same cap as the EUI chart above
+    const measureCount=MEASURES.filter(m=>flag(r,m.key)).length;
+    return[pre,post,measureCount];
+  }).filter(Boolean);
+  // Draw higher measure-counts last so the rarer, more-interesting lines
+  // aren't buried under the (usually much larger) low-count mass.
+  pairs.sort((a,b)=>a[2]-b[2]);
+  _slopeArgs=[pairs,palette];
+  setChartLegend('slope-legend',palette.map((c,i)=>(
+    {label:i===maxMeasures?`${i}+`:`${i}`,color:`rgb(${c})`}
+  )));
+  const canvas=$('slope-chart');
+  if(!_slopeRO){
+    _slopeRO=new ResizeObserver(()=>{ if(_slopeArgs)paintSlopegraph(..._slopeArgs); });
+    _slopeRO.observe(canvas.parentElement);
+  }
+  paintSlopegraph(pairs,palette);
+}
+
+function paintSlopegraph(pairs,palette){
+  const canvas=$('slope-chart');
+  const wrap=canvas.parentElement;
+  const wCss=wrap.clientWidth||300,hCss=wrap.clientHeight||280;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=wCss*dpr;canvas.height=hCss*dpr;
+  canvas.style.width=wCss+'px';canvas.style.height=hCss+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,wCss,hCss);
+
+  if(!pairs.length){
+    ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
+    ctx.fillText('No data for this selection',wCss/2,hCss/2);
+    return;
+  }
+
+  const leftPad=68,rightPad=56,topPad=14,bottomPad=28;
+  const xLeft=leftPad,xRight=wCss-rightPad;
+  const yTop=topPad,yBot=hCss-bottomPad;
+  const maxVal=Math.max(...pairs.map(p=>Math.max(p[0],p[1])),1);
+  const y=v=>yBot-(v/maxVal)*(yBot-yTop);
+
+  // Gridlines + axis labels (4 evenly-spaced reference lines).
+  ctx.strokeStyle='#E8EDF4';ctx.lineWidth=1;ctx.font='11px Inter, sans-serif';
+  ctx.fillStyle='#8A9BB0';ctx.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const v=maxVal*i/4,yy=y(v);
+    ctx.beginPath();ctx.moveTo(xLeft,yy);ctx.lineTo(xRight,yy);ctx.stroke();
+    ctx.fillText(Math.round(v).toLocaleString(),xLeft-8,yy+3);
+  }
+
+  // Column headers.
+  ctx.font='600 12px Inter, sans-serif';ctx.fillStyle='#5C6E82';
+  ctx.textAlign='left';ctx.fillText('Pre-retrofit',xLeft,yTop-2);
+  ctx.textAlign='right';ctx.fillText('Post-retrofit',xRight,yTop-2);
+
+  // Density-aware base opacity: fewer homes -> more opaque individual lines.
+  // High-measure-count homes are always the minority (most homes do 0-3
+  // measures) — without a boost their lines vanish under the much larger
+  // low-count mass at the same alpha, defeating the point of the colour
+  // encoding. Scale opacity up to 2x for the highest measure count.
+  const baseAlpha=Math.max(0.04,Math.min(0.5,40/pairs.length));
+  const maxIdx=palette.length-1;
+  ctx.lineWidth=1.1;
+  pairs.forEach(([pre,post,measureCount])=>{
+    const idx=Math.min(measureCount,maxIdx);
+    const alpha=Math.min(baseAlpha*(0.7+1.3*(idx/maxIdx)),0.9);
+    ctx.strokeStyle=`rgba(${palette[idx]},${alpha})`;
+    ctx.beginPath();
+    ctx.moveTo(xLeft,y(pre));
+    ctx.lineTo(xRight,y(post));
+    ctx.stroke();
+  });
+
+  ctx.save();
+  ctx.translate(14,(yTop+yBot)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='11px Inter, sans-serif';ctx.fillStyle='#8A9BB0';ctx.textAlign='center';
+  ctx.fillText('kWh/m²',0,0);
+  ctx.restore();
+}
+
 // ── GHG emissions ─────────────────────────────────────────────────
 function renderGHG(saveMedian){
   const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
@@ -1391,32 +1659,99 @@ function renderAhriWindowFsa(){
   const dec=(cols,n,minDigits,decoder)=>topCounts(FILTERED,cols,n,minDigits)
     .map(i=>{const d=decoder(i.code);return{main:d.main,sub:d.sub,count:i.count};});
   $('ahri-list').innerHTML=barListHTML(dec(['Pre_HPAHRI','Post_HPAHRI'],5,4,decodeAhri));
-  $('window-pre-list').innerHTML=barListHTML(dec(['Pre_WindowCode'],10,0,decodeWindow));
-  $('window-post-list').innerHTML=barListHTML(dec(['Post_WindowCode'],10,0,decodeWindow));
+  $('window-pre-list').innerHTML=barListHTML(dec(['Pre_WindowCode'],5,0,decodeWindow));
+  $('window-post-list').innerHTML=barListHTML(dec(['Post_WindowCode'],5,0,decodeWindow));
 }
 function renderAhriWindowProvince(slice){
-  const toItems=(list,decoder)=>(list||[]).map(x=>{const d=decoder(x.code);return{main:d.main,sub:d.sub,count:Math.round(x.count)};});
+  const toItems=(list,decoder)=>(list||[]).slice(0,5).map(x=>{const d=decoder(x.code);return{main:d.main,sub:d.sub,count:Math.round(x.count)};});
   $('ahri-list').innerHTML=barListHTML(toItems(slice.top_ahri_numbers,decodeAhri));
   $('window-pre-list').innerHTML=barListHTML(toItems(slice.window_pre_top,decodeWindow));
   $('window-post-list').innerHTML=barListHTML(toItems(slice.window_post_top,decodeWindow));
 }
 
+// ── Most common window changes (FSA mode only — needs paired per-home
+// Pre/Post window codes; province mode only ships independent pre/post
+// frequency counts, not paired, so this comparison isn't possible there) ──
+function toggleWindowChangesCard(show){
+  $('window-changes-card').style.display=show?'':'none';
+}
+function renderWindowChanges(){
+  if(!WINDOW_COMPONENTS){$('window-changes-list').innerHTML='<div class="state-msg" style="padding:1rem"><strong>Loading…</strong></div>';return;}
+  const changeCounts={},transitionCounts={};
+  let nDecoded=0;
+  FILTERED.forEach(r=>{
+    const pre=decodeWindowParts(r.Pre_WindowCode),post=decodeWindowParts(r.Post_WindowCode);
+    if(!pre||!post)return;
+    nDecoded++;
+    WINDOW_ATTRS.forEach(({key})=>{
+      if(pre[key]===post[key])return;
+      changeCounts[key]=(changeCounts[key]||0)+1;
+      const tKey=key+'|||'+pre[key]+'|||'+post[key];
+      transitionCounts[tKey]=(transitionCounts[tKey]||0)+1;
+    });
+  });
+
+  if(!nDecoded){
+    $('window-changes-list').innerHTML='<div class="state-msg" style="padding:1rem"><strong>No decodable window codes for this selection</strong></div>';
+    return;
+  }
+
+  const items=WINDOW_ATTRS.map(({key,label})=>{
+    const changed=changeCounts[key]||0;
+    let topTransition=null,topCount=0;
+    Object.entries(transitionCounts).forEach(([tKey,c])=>{
+      if(!tKey.startsWith(key+'|||'))return;
+      if(c>topCount){topCount=c;topTransition=tKey;}
+    });
+    const sub=topTransition?(()=>{const[,from,to]=topTransition.split('|||');return`Most often: ${from} → ${to}`;})():null;
+    return{main:label,sub,count:Math.round(changed/nDecoded*100)};
+  }).sort((a,b)=>b.count-a.count).slice(0,5);
+
+  $('window-changes-list').innerHTML=items.map(i=>{
+    const sub=i.sub?`<span class="ml-sub">${i.sub}</span>`:'';
+    return`<div class="measure-row"><div class="measure-label"><span class="ml-code">${i.main}</span>${sub}</div><div class="bar-track"><div class="bar-fill" style="width:${i.count}%;background:#C8881A"></div></div><div class="bar-pct">${i.count}%</div></div>`;
+  }).join('');
+}
+
 // ── Neighbourhood housing stock (2021 Census, FSA-level) ────────────
 const DWELLING_TYPE_LABELS={single_detached:'Single-detached',semi_detached:'Semi-detached',row_house:'Row house',duplex_apt:'Duplex apt',apt_low_rise:'Apt (<5 storeys)',apt_high_rise:'Apt (5+ storeys)',other_single_attached:'Other attached',movable:'Movable'};
-const PERIOD_LABELS={'1960_or_before':'1960 or before','1961_1980':'1961–1980','1981_1990':'1981–1990','1991_2000':'1991–2000','2001_2005':'2001–2005','2006_2010':'2006–2010','2011_2015':'2011–2015','2016_2021':'2016–2021'};
 
 function toggleCensusCard(show){
   $('census-card').style.display=show?'':'none';
 }
 
-function censusBarList(obj){
-  const entries=Object.entries(obj).filter(([,v])=>v!==null&&v!==undefined);
-  if(!entries.length)return '<div class="state-msg" style="padding:.5rem"><strong>—</strong></div>';
-  const total=entries.reduce((s,[,v])=>s+v,0)||1;
-  return entries.map(([label,v])=>{
-    const p=Math.round(v/total*100);
-    return `<div class="measure-row"><div class="measure-label">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:#0B2545"></div></div><div class="bar-pct">${p}%</div></div>`;
-  }).join('');
+// Half-doughnut "gauge": one value as a % of a two-category whole, drawn as
+// a semicircle with the value's share filled in. Chart.js has no native
+// gauge type — this is the standard half-doughnut trick (rotation/circumference
+// restricted to 180°) plus a center-text plugin for the big number.
+const gaugeCenterText={
+  id:'gaugeCenterText',
+  afterDraw(chart,args,opts){
+    const{ctx,chartArea}=chart;
+    const cx=(chartArea.left+chartArea.right)/2;
+    const cy=chartArea.bottom;
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.fillStyle='#1C2B3A';
+    ctx.font='600 22px Inter, sans-serif';
+    ctx.fillText(opts.text,cx,cy-6);
+    if(opts.sub){
+      ctx.font='11px Inter, sans-serif';ctx.fillStyle='#8A9BB0';
+      ctx.fillText(opts.sub,cx,cy+12);
+    }
+    ctx.restore();
+  }
+};
+function drawGauge(canvasId,chartKey,pct,color,centerText,sub){
+  dc(chartKey);
+  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
+    type:'doughnut',
+    plugins:[gaugeCenterText],
+    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,'#E8EDF4'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      rotation:-90,circumference:180,cutout:'72%',
+      plugins:{legend:{display:false},tooltip:{enabled:false},gaugeCenterText:{text:centerText,sub}}}
+  });
 }
 
 function renderCensus(fsa,auditedCount){
@@ -1426,7 +1761,8 @@ function renderCensus(fsa,auditedCount){
     const c=data[fsa];
     if(!c){
       $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">No census data for this FSA</div></div>';
-      ['census-dwelling-type','census-tenure','census-period','census-condition','census-owner-kpis'].forEach(id=>$(id).innerHTML='');
+      ['census-owner-kpis','census-tenure-legend','census-condition-legend'].forEach(id=>$(id).innerHTML='');
+      dc('censusTenure');dc('censusCondition');
       return;
     }
     const coverage=c.total_dwellings?Math.round(auditedCount/c.total_dwellings*100):null;
@@ -1435,19 +1771,27 @@ function renderCensus(fsa,auditedCount){
       <div class="kpi-item"><div class="kpi-name">Audited homes (this FSA)</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
       <div class="kpi-item"><div class="kpi-name">Audit coverage</div><div class="kpi-values"><div class="kpi-pct">${coverage!=null?coverage+'%':'—'}</div></div><div class="kpi-unit">of all dwellings</div></div>`;
 
-    const dt={};
-    Object.entries(c.dwelling_type||{}).forEach(([k,v])=>{dt[DWELLING_TYPE_LABELS[k]||k]=v;});
-    $('census-dwelling-type').innerHTML=censusBarList(dt);
-
     const ten=c.tenure||{};
-    $('census-tenure').innerHTML=censusBarList({Owner:ten.owner,Renter:ten.renter});
-
-    const pc={};
-    Object.entries(c.period_of_construction||{}).forEach(([k,v])=>{pc[PERIOD_LABELS[k]||k]=v;});
-    $('census-period').innerHTML=censusBarList(pc);
+    const tenTotal=(ten.owner||0)+(ten.renter||0);
+    const ownerPct=tenTotal?Math.round(ten.owner/tenTotal*100):null;
+    if(ownerPct!=null){
+      drawGauge('census-tenure-gauge','censusTenure',ownerPct,'#0B2545',ownerPct+'%','owner-occupied');
+      setChartLegend('census-tenure-legend',[{label:`Owner ${ownerPct}%`,color:'#0B2545'},{label:`Renter ${100-ownerPct}%`,color:'#E8EDF4'}]);
+    }else{
+      dc('censusTenure');
+      setChartLegend('census-tenure-legend',[]);
+    }
 
     const cond=c.condition||{};
-    $('census-condition').innerHTML=censusBarList({'Minor repairs only':cond.minor_repairs,'Major repairs needed':cond.major_repairs});
+    const condTotal=(cond.minor_repairs||0)+(cond.major_repairs||0);
+    const majorPct=condTotal?Math.round(cond.major_repairs/condTotal*100):null;
+    if(majorPct!=null){
+      drawGauge('census-condition-gauge','censusCondition',majorPct,'#B33A2E',majorPct+'%','need major repairs');
+      setChartLegend('census-condition-legend',[{label:`Major repairs ${majorPct}%`,color:'#B33A2E'},{label:`Minor/none ${100-majorPct}%`,color:'#E8EDF4'}]);
+    }else{
+      dc('censusCondition');
+      setChartLegend('census-condition-legend',[]);
+    }
 
     const o=c.owner_stats||{};
     $('census-owner-kpis').innerHTML=`
@@ -1660,12 +2004,14 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
   dc(chartKey);
   const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins),...Object.keys(deltaBins)])].map(Number).sort((a,b)=>a-b);
   const datasets=[];
+  // Chart.js draws LOWER order values on top — bar needs order:1 (front) and
+  // the lines order:2 (behind), or the area fills paint over the bars.
   if(Object.keys(deltaBins).length){
-    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A99',borderColor:'#C8881A',borderWidth:1,borderRadius:2,order:2});
+    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A99',borderColor:'#C8881A',borderWidth:1,borderRadius:2,order:1});
   }
   datasets.push(
-    {type:'line',label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
-    {type:'line',label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
+    {type:'line',label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
   );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
@@ -1728,85 +2074,61 @@ function renderMeasures(n){
   ).join('');
 }
 
-// ── Spider chart ──────────────────────────────────────────────────
-// The %-value label sits on top of the data polygon, which is a very pale
-// translucent fill — plain white text was nearly invisible there. A solid
-// pill in the axis's own color behind the text fixes contrast regardless
-// of what's underneath.
-function drawSpiderValueLabel(svg,vx,vy,pct,color){
-  const txt=`${pct}%`;
-  const w=Math.max(24,txt.length*7+10),h=15;
-  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  bg.setAttribute('x',vx-w/2);bg.setAttribute('y',vy-h/2);
-  bg.setAttribute('width',w);bg.setAttribute('height',h);
-  bg.setAttribute('rx',5);bg.setAttribute('fill',color);
-  svg.appendChild(bg);
-  const vt=document.createElementNS('http://www.w3.org/2000/svg','text');
-  vt.setAttribute('x',vx);vt.setAttribute('y',vy+3.5);
-  vt.setAttribute('text-anchor','middle');vt.setAttribute('font-size','9.5');
-  vt.setAttribute('fill','#fff');vt.setAttribute('font-family','Inter,sans-serif');vt.setAttribute('font-weight','700');
-  vt.textContent=txt;
-  svg.appendChild(vt);
+// ── Measures by vintage (FSA mode only) ─────────────────────────────
+function toggleVintageCard(show){
+  $('vintage-card').style.display=show?'':'none';
 }
-function renderSpider(n){
-  const svg=$('spider-svg');svg.innerHTML='';
-  if(!n)return;
-  const axes=MEASURES.map(m=>({label:m.label,value:n?FILTERED.filter(r=>flag(r,m.key)).length/n:0,color:m.color}));
-  svg.setAttribute('role','img');
-  svg.setAttribute('aria-label','Share of retrofits including each measure: '+
-    axes.map(a=>`${a.label} ${Math.round(a.value*100)}%`).join(', '));
-  const W=340,H=280,cx=155,cy=140,R=88,N=axes.length;
-  [0.25,0.5,0.75,1].forEach(frac=>{
-    const pts=axes.map((_,i)=>{const a=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(a)*R*frac,cy+Math.sin(a)*R*frac];});
-    const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
-    poly.setAttribute('fill','none');poly.setAttribute('stroke','#D2D8E3');poly.setAttribute('stroke-width','0.75');
-    svg.appendChild(poly);
-    const rl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    rl.setAttribute('x',cx+3);rl.setAttribute('y',cy-R*frac+3);
-    rl.setAttribute('font-size','8');rl.setAttribute('fill','#8A9BB0');rl.setAttribute('font-family','Inter,sans-serif');
-    rl.textContent=`${Math.round(frac*100)}%`;
-    svg.appendChild(rl);
+
+function renderVintageMeasures(){
+  dc('vintage');
+  const buckets={}; // decade -> {total, [measureKey]: count}
+  FILTERED.forEach(r=>{
+    const yr=parseInt(r.YearBuilt);
+    if(!yr||yr<1850||yr>2030)return;
+    const d=Math.floor(yr/BINS.year)*BINS.year;
+    if(!buckets[d])buckets[d]={total:0};
+    buckets[d].total++;
+    MEASURES.forEach(m=>{ if(flag(r,m.key))buckets[d][m.key]=(buckets[d][m.key]||0)+1; });
   });
-  axes.forEach((_,i)=>{
-    const a=(i/N)*Math.PI*2-Math.PI/2;
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',cx);line.setAttribute('y1',cy);
-    line.setAttribute('x2',cx+Math.cos(a)*R);line.setAttribute('y2',cy+Math.sin(a)*R);
-    line.setAttribute('stroke','#D2D8E3');line.setAttribute('stroke-width','0.75');
-    svg.appendChild(line);
+  const labels=Object.keys(buckets).map(Number).sort((a,b)=>a-b)
+    .filter(d=>buckets[d].total>=20); // drop noisy small buckets
+
+  if(!labels.length){
+    drawEmptyCanvasMsg('vintage-chart','Not enough homes per vintage to show this breakdown');
+    return;
+  }
+
+  charts['vintage']=new Chart($('vintage-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:labels.map(d=>`${d}s`),datasets:MEASURES.map(m=>({
+      label:m.label,
+      data:labels.map(d=>Math.round((buckets[d][m.key]||0)/buckets[d].total*100)),
+      backgroundColor:m.color,borderWidth:0,borderRadius:2,
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},
+        tooltip:{callbacks:{
+          title:i=>`Built ${i[0].label}`,
+          label:i=>`${i.dataset.label}: ${i.raw}% (n=${buckets[labels[i.dataIndex]].total})`,
+        }}},
+      scales:{x:{ticks:{font:{size:11},color:'#5C6E82'},grid:{display:false}},
+              y:{ticks:{font:{size:11},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'},max:100}}}
   });
-  const pts=axes.map((a,i)=>{const ang=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(ang)*R*a.value,cy+Math.sin(ang)*R*a.value];});
-  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-  poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
-  poly.setAttribute('fill','rgba(11,37,69,0.12)');poly.setAttribute('stroke','#0B2545');poly.setAttribute('stroke-width','1.5');
-  svg.appendChild(poly);
-  axes.forEach((a,i)=>{
-    const ang=(i/N)*Math.PI*2-Math.PI/2;
-    const dx=cx+Math.cos(ang)*R*a.value,dy=cy+Math.sin(ang)*R*a.value;
-    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circle.setAttribute('cx',dx);circle.setAttribute('cy',dy);circle.setAttribute('r','4');
-    circle.setAttribute('fill',a.color);circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','1.5');
-    circle.innerHTML=`<title>${a.label}: ${Math.round(a.value*100)}%</title>`;
-    svg.appendChild(circle);
-    const LABEL_R=R+26;
-    const lx=cx+Math.cos(ang)*LABEL_R,ly=cy+Math.sin(ang)*LABEL_R;
-    const anchor=Math.cos(ang)>0.2?'start':Math.cos(ang)<-0.2?'end':'middle';
-    const words=a.label.split(' ');
-    const half=Math.ceil(words.length/2);
-    const line1=words.slice(0,half).join(' ');
-    const line2=words.slice(half).join(' ');
-    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x',lx);txt.setAttribute('y',ly);
-    txt.setAttribute('text-anchor',anchor);txt.setAttribute('font-size','9.5');
-    txt.setAttribute('fill','#1C2B3A');txt.setAttribute('font-family','Inter,sans-serif');
-    txt.innerHTML=`<tspan x="${lx}" dy="-0.5em">${line1}</tspan><tspan x="${lx}" dy="1.2em">${line2}</tspan>`;
-    svg.appendChild(txt);
-    if(Math.round(a.value*100)>3){
-      const vx=cx+Math.cos(ang)*(R*a.value+13),vy=cy+Math.sin(ang)*(R*a.value+13);
-      drawSpiderValueLabel(svg,vx,vy,Math.round(a.value*100),a.color);
-    }
-  });
+}
+
+function drawEmptyCanvasMsg(canvasId,msg){
+  dc(canvasId.replace('-chart',''));
+  const canvas=$(canvasId);
+  const wrap=canvas.parentElement;
+  const wCss=wrap.clientWidth||300,hCss=wrap.clientHeight||200;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=wCss*dpr;canvas.height=hCss*dpr;
+  canvas.style.width=wCss+'px';canvas.style.height=hCss+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,wCss,hCss);
+  ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
+  ctx.fillText(msg,wCss/2,hCss/2);
 }
 
 // ── Energy saving histogram (1% bins) ────────────────────────────
@@ -1902,7 +2224,6 @@ function renderProvince(payload){
   renderProvinceKPI(slice);
   renderProvinceInsulDist(slice);
   renderProvinceMeasures(slice);
-  renderProvinceSpider(slice);
   renderProvinceHist(slice);
   renderAhriWindowProvince(slice);
   $('table-card').style.display='none';
@@ -2225,70 +2546,6 @@ function renderProvinceMeasures(slice){
   $('measures-list').innerHTML=[...measures].sort((a,b)=>b.pct-a.pct).map(m=>
     `<div class="measure-row"><div class="measure-label">${m.label}</div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${MEASURES.find(x=>x.key===m.key)?.color||'#8A9BB0'}"></div></div><div class="bar-pct">${m.pct}%</div></div>`
   ).join('');
-}
-
-function renderProvinceSpider(slice){
-  const svg=$('spider-svg');svg.innerHTML='';
-  const n=slice.row_count||0;
-  if(!n)return;
-  const measures=slice.measures||[];
-  const axes=measures.map(m=>({
-    label:m.label,
-    value:m.pct/100,
-    color:MEASURES.find(x=>x.key===m.key)?.color||'#8A9BB0'
-  }));
-  const W=340,H=280,cx=155,cy=140,R=88,N=axes.length;
-  [0.25,0.5,0.75,1].forEach(frac=>{
-    const pts=axes.map((_,i)=>{const a=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(a)*R*frac,cy+Math.sin(a)*R*frac];});
-    const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
-    poly.setAttribute('fill','none');poly.setAttribute('stroke','#D2D8E3');poly.setAttribute('stroke-width','0.75');
-    svg.appendChild(poly);
-    const rl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    rl.setAttribute('x',cx+3);rl.setAttribute('y',cy-R*frac+3);
-    rl.setAttribute('font-size','8');rl.setAttribute('fill','#8A9BB0');rl.setAttribute('font-family','Inter,sans-serif');
-    rl.textContent=`${Math.round(frac*100)}%`;
-    svg.appendChild(rl);
-  });
-  axes.forEach((_,i)=>{
-    const a=(i/N)*Math.PI*2-Math.PI/2;
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',cx);line.setAttribute('y1',cy);
-    line.setAttribute('x2',cx+Math.cos(a)*R);line.setAttribute('y2',cy+Math.sin(a)*R);
-    line.setAttribute('stroke','#D2D8E3');line.setAttribute('stroke-width','0.75');
-    svg.appendChild(line);
-  });
-  const pts=axes.map((a,i)=>{const ang=(i/N)*Math.PI*2-Math.PI/2;return[cx+Math.cos(ang)*R*a.value,cy+Math.sin(ang)*R*a.value];});
-  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-  poly.setAttribute('points',pts.map(p=>p.join(',')).join(' '));
-  poly.setAttribute('fill','rgba(11,37,69,0.12)');poly.setAttribute('stroke','#0B2545');poly.setAttribute('stroke-width','1.5');
-  svg.appendChild(poly);
-  axes.forEach((a,i)=>{
-    const ang=(i/N)*Math.PI*2-Math.PI/2;
-    const dx=cx+Math.cos(ang)*R*a.value,dy=cy+Math.sin(ang)*R*a.value;
-    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circle.setAttribute('cx',dx);circle.setAttribute('cy',dy);circle.setAttribute('r','4');
-    circle.setAttribute('fill',a.color);circle.setAttribute('stroke','#fff');circle.setAttribute('stroke-width','1.5');
-    circle.innerHTML=`<title>${a.label}: ${Math.round(a.value*100)}%</title>`;
-    svg.appendChild(circle);
-    const LABEL_R=R+26;
-    const lx=cx+Math.cos(ang)*LABEL_R,ly=cy+Math.sin(ang)*LABEL_R;
-    const anchor=Math.cos(ang)>0.2?'start':Math.cos(ang)<-0.2?'end':'middle';
-    const words=a.label.split(' ');
-    const half=Math.ceil(words.length/2);
-    const line1=words.slice(0,half).join(' ');
-    const line2=words.slice(half).join(' ');
-    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x',lx);txt.setAttribute('y',ly);
-    txt.setAttribute('text-anchor',anchor);txt.setAttribute('font-size','9.5');
-    txt.setAttribute('fill','#1C2B3A');txt.setAttribute('font-family','Inter,sans-serif');
-    txt.innerHTML=`<tspan x="${lx}" dy="-0.5em">${line1}</tspan><tspan x="${lx}" dy="1.2em">${line2}</tspan>`;
-    svg.appendChild(txt);
-    if(Math.round(a.value*100)>3){
-      const vx=cx+Math.cos(ang)*(R*a.value+13),vy=cy+Math.sin(ang)*(R*a.value+13);
-      drawSpiderValueLabel(svg,vx,vy,Math.round(a.value*100),a.color);
-    }
-  });
 }
 
 function renderProvinceHist(slice){
