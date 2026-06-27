@@ -3088,18 +3088,22 @@ function resetFsaMapZoom(){
 }
 // +/- zoom buttons: scale the current viewBox around its own centre.
 // factor<1 zooms in, factor>1 zooms out. Clamped between the full province
-// extent (can't zoom out past it) and 4% of it (can't zoom in indefinitely
-// past the basemap tiles' actual resolution).
+// extent (can't zoom out past it) and a small fraction of it, low enough to
+// tell apart adjacent small FSAs. loadSharpTiles re-fetches a higher-zoom
+// basemap for the new view each time, so going this far in doesn't just
+// stretch the original blurry province-level tiles.
 function zoomFsaMapBy(factor){
   if(!MAP_STATE)return;
   const svg=$('fsa-map-svg');
   const[x0,y0,w,h]=svg.getAttribute('viewBox').split(' ').map(Number);
   const[,,fullW]=MAP_STATE.fullViewBox;
   const cx=x0+w/2,cy=y0+h/2;
-  const newW=Math.max(fullW*0.04,Math.min(fullW,w*factor));
+  const newW=Math.max(fullW*0.0015,Math.min(fullW,w*factor));
   const scale=newW/w,newH=h*scale;
-  svg.setAttribute('viewBox',`${cx-newW/2} ${cy-newH/2} ${newW} ${newH}`);
+  const newX0=cx-newW/2,newY0=cy-newH/2;
+  svg.setAttribute('viewBox',`${newX0} ${newY0} ${newW} ${newH}`);
   $('map-reset-btn').style.display=(newW<fullW-0.5)?'':'none';
+  loadSharpTiles([newX0,newY0,newX0+newW,newY0+newH]);
 }
 // Distinct from resetFsaMapZoom: that's just "zoom back out" (used by the
 // Reset view button) and keeps the FSA highlighted. This additionally
@@ -3119,15 +3123,19 @@ function wireFsaMapPan(svg){
   const DRAG_THRESHOLD=4;
   svg.addEventListener('pointerdown',e=>{
     if(!MAP_STATE)return;
-    dragging=true;moved=false;
+    dragging=true;moved=false;_mapDragged=false;
     startX=e.clientX;startY=e.clientY;
     startBox=svg.getAttribute('viewBox').split(' ').map(Number);
-    svg.setPointerCapture(e.pointerId);
+    // Pointer capture is deferred until a drag is confirmed (see pointermove)
+    // — capturing immediately on every pointerdown redirects the resulting
+    // click event's target to the svg itself instead of the path actually
+    // under the cursor, which broke FSA selection on plain clicks entirely.
   });
   svg.addEventListener('pointermove',e=>{
     if(!dragging||!MAP_STATE)return;
     const dx=e.clientX-startX,dy=e.clientY-startY;
     if(!moved&&Math.hypot(dx,dy)<DRAG_THRESHOLD)return;
+    if(!moved)svg.setPointerCapture(e.pointerId);
     moved=true;_mapDragged=true;
     hideFsaMapTip();
     const rect=svg.getBoundingClientRect();
