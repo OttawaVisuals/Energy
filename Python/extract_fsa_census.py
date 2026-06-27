@@ -8,6 +8,7 @@ characteristics x 1,646 FSAs) and writes one compact JSON keyed by FSA code.
 
 Selected characteristics (see CHAR_MAP below for the exact CHARACTERISTIC_ID
 -> output-field mapping):
+  - Population, 2021
   - Total private dwellings
   - Dwelling type (single-detached, semi, row, duplex apt, low/high-rise
     apt, other single-attached, movable)
@@ -41,6 +42,7 @@ ROWS_PER_FSA = 2631
 
 # CHARACTERISTIC_ID -> (group, field). Group=None means top-level field.
 CHAR_MAP = {
+    1: (None, "population"),
     4: (None, "total_dwellings"),
     42: ("dwelling_type", "single_detached"),
     43: ("dwelling_type", "semi_detached"),
