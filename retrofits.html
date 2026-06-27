@@ -69,10 +69,16 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
 #fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md)}
-.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s}
+.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.78}
 .fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
 .fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
 .fsa-shape.no-data{cursor:default}
+.map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--white);color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button:last-child{border-bottom:none}
+.map-zoom-ctrl button:hover{background:var(--surface)}
+.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
+.map-attribution a{color:#5a6b80}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
 .methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -300,6 +306,11 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="map-svg-wrap">
     <svg id="fsa-map-svg" viewBox="0 0 600 600" role="img" aria-label="Map of forward sortation areas in this province"></svg>
+    <div class="map-zoom-ctrl">
+      <button id="map-zoom-in" type="button" aria-label="Zoom in" onclick="zoomFsaMapBy(0.7)">+</button>
+      <button id="map-zoom-out" type="button" aria-label="Zoom out" onclick="zoomFsaMapBy(1/0.7)">–</button>
+    </div>
+    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
     <div id="map-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
   </div>
 </div>
@@ -2803,16 +2814,41 @@ function fetchGeoJSON(prov){
   return fetchJSON(`${GEO_JSON_BASE}${prov}.json`).then(d=>{GEO_CACHE.set(prov,d);return d;});
 }
 
-const MAP_SCALE=1000; // px per degree of longitude at the province's mid-latitude
-let MAP_STATE=null; // {prov, features:[{fsa,d,bbox}], fullViewBox, indexByFsa}
+// Standard slippy-map (Web Mercator) tile pixel projection — needed so the
+// FSA polygons line up with real OpenStreetMap raster tiles drawn behind
+// them. lon2x/lat2y give the pixel position of a lon/lat at a given integer
+// zoom level, in the same 256px/tile grid OSM tile servers use.
+function lon2x(lon,z){return(lon+180)/360*Math.pow(2,z)*256;}
+function lat2y(lat,z){
+  const rad=lat*Math.PI/180;
+  return(1-Math.log(Math.tan(rad)+1/Math.cos(rad))/Math.PI)/2*Math.pow(2,z)*256;
+}
+// Highest integer zoom whose bbox still fits inside targetW x targetH, so
+// the initial view is as sharp as possible without fetching tiles outside
+// the visible area.
+function pickTileZoom(minLon,maxLon,minLat,maxLat,targetW,targetH){
+  for(let z=15;z>=2;z--){
+    const w=lon2x(maxLon,z)-lon2x(minLon,z);
+    const h=lat2y(minLat,z)-lat2y(maxLat,z);
+    if(w<=targetW&&h<=targetH)return z;
+  }
+  return 2;
+}
+const TILE_URL_SUBDOMAINS=['a','b','c'];
+function tileUrl(z,x,y){
+  const sub=TILE_URL_SUBDOMAINS[(x+y)%TILE_URL_SUBDOMAINS.length];
+  return`https://${sub}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+}
+
+let MAP_STATE=null; // {prov, z, origin:[ox,oy], features:[{fsa,d,bbox}], fullViewBox, indexByFsa, tilesD}
 let _mapTipEl=null;
 
 function toggleFsaMapCard(show){
   $('fsa-map-card').style.display=show?'':'none';
 }
 
-function projectRing(ring,minLon,maxLat,cosMid){
-  return ring.map(([lon,lat])=>[(lon-minLon)*cosMid*MAP_SCALE,(maxLat-lat)*MAP_SCALE]);
+function projectRing(ring,originX,originY,z){
+  return ring.map(([lon,lat])=>[lon2x(lon,z)-originX,lat2y(lat,z)-originY]);
 }
 
 function ringsToPathD(rings){
@@ -2823,7 +2859,7 @@ function loadFsaMap(prov,fsaIndex){
   toggleFsaMapCard(true);
   $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
   resetFsaMapZoom();
-  fetchGeoJSON(prov).then(geojson=>{
+  Promise.all([fetchGeoJSON(prov),fetchCensusData().catch(()=>({}))]).then(([geojson,census])=>{
     if(PROVINCE_CODE!==prov)return; // user already switched province before this resolved
     let minLon=Infinity,maxLon=-Infinity,minLat=Infinity,maxLat=-Infinity;
     geojson.features.forEach(ft=>{
@@ -2833,18 +2869,24 @@ function loadFsaMap(prov,fsaIndex){
         if(lat<minLat)minLat=lat;if(lat>maxLat)maxLat=lat;
       })));
     });
-    const cosMid=Math.cos((minLat+maxLat)/2*Math.PI/180);
-    const W=(maxLon-minLon)*cosMid*MAP_SCALE,H=(maxLat-minLat)*MAP_SCALE;
+    // Target a bit larger than the final on-screen size so zooming in with
+    // the +/- buttons stays reasonably sharp before tile pixelation kicks in.
+    const z=pickTileZoom(minLon,maxLon,minLat,maxLat,1400,1400);
+    const originX=lon2x(minLon,z),originY=lat2y(maxLat,z);
+    const W=lon2x(maxLon,z)-originX,H=lat2y(minLat,z)-originY;
 
     const indexByFsa={};
-    (fsaIndex||[]).forEach(e=>{indexByFsa[e.fsa]=e;});
+    (fsaIndex||[]).forEach(e=>{
+      const pop=census[e.fsa]&&census[e.fsa].population!=null?census[e.fsa].population:null;
+      indexByFsa[e.fsa]={...e,population:pop};
+    });
 
     const features=geojson.features.map(ft=>{
       const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
       const allRings=[];
       let fMinX=Infinity,fMaxX=-Infinity,fMinY=Infinity,fMaxY=-Infinity;
       polys.forEach(rings=>rings.forEach(ring=>{
-        const pts=projectRing(ring,minLon,maxLat,cosMid);
+        const pts=projectRing(ring,originX,originY,z);
         pts.forEach(([x,y])=>{
           if(x<fMinX)fMinX=x;if(x>fMaxX)fMaxX=x;
           if(y<fMinY)fMinY=y;if(y>fMaxY)fMaxY=y;
@@ -2854,7 +2896,19 @@ function loadFsaMap(prov,fsaIndex){
       return{fsa:ft.properties.CFSAUID,d:ringsToPathD(allRings),bbox:[fMinX,fMinY,fMaxX,fMaxY]};
     });
 
-    MAP_STATE={prov,features,fullViewBox:[0,0,W,H],indexByFsa};
+    // One tile of buffer beyond the bbox on each side so panning/zooming
+    // near the edges doesn't immediately show empty gaps.
+    const tileMinX=Math.floor(originX/256)-1,tileMaxX=Math.floor((originX+W)/256)+1;
+    const tileMinY=Math.floor(originY/256)-1,tileMaxY=Math.floor((originY+H)/256)+1;
+    let tilesMarkup='';
+    for(let ty=tileMinY;ty<=tileMaxY;ty++){
+      for(let tx=tileMinX;tx<=tileMaxX;tx++){
+        const x=tx*256-originX,y=ty*256-originY;
+        tilesMarkup+=`<image href="${tileUrl(z,tx,ty)}" x="${x}" y="${y}" width="256" height="256"></image>`;
+      }
+    }
+
+    MAP_STATE={prov,z,features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup};
     paintFsaMap();
   }).catch(err=>{
     console.error(err);
@@ -2904,11 +2958,12 @@ function paintFsaMap(){
   const svg=$('fsa-map-svg');
   const colorOf=buildFsaColorScale(MAP_STATE);
   svg.setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
-  svg.innerHTML=MAP_STATE.features.map(f=>{
+  const shapesMarkup=MAP_STATE.features.map(f=>{
     const entry=MAP_STATE.indexByFsa[f.fsa];
     const cls='fsa-shape'+(!entry?' no-data':'')+(f.fsa===SELECTED_FSA?' is-selected':'');
     return`<path class="${cls}" d="${f.d}" fill="${colorOf(entry)}" data-fsa="${f.fsa}"></path>`;
   }).join('');
+  svg.innerHTML=MAP_STATE.tilesMarkup+shapesMarkup;
   if(!svg.dataset.wired){
     svg.addEventListener('mousemove',onFsaMapHover);
     svg.addEventListener('mouseleave',hideFsaMapTip);
@@ -2924,6 +2979,7 @@ function onFsaMapHover(e){
   const fsa=el.dataset.fsa,entry=MAP_STATE.indexByFsa[fsa];
   const lines=[`<strong>${fsa}</strong>`];
   if(entry){
+    if(entry.population!=null)lines.push(`${entry.population.toLocaleString()} population`);
     lines.push(`${entry.row_count.toLocaleString()} audits`);
     if(entry.median_saving_pct!=null)lines.push(`${Math.round(entry.median_saving_pct*100)}% median saving`);
   }else{
@@ -2965,6 +3021,21 @@ function zoomFsaMapTo(fsa){
 function resetFsaMapZoom(){
   if(MAP_STATE)$('fsa-map-svg').setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
   $('map-reset-btn').style.display='none';
+}
+// +/- zoom buttons: scale the current viewBox around its own centre.
+// factor<1 zooms in, factor>1 zooms out. Clamped between the full province
+// extent (can't zoom out past it) and 4% of it (can't zoom in indefinitely
+// past the basemap tiles' actual resolution).
+function zoomFsaMapBy(factor){
+  if(!MAP_STATE)return;
+  const svg=$('fsa-map-svg');
+  const[x0,y0,w,h]=svg.getAttribute('viewBox').split(' ').map(Number);
+  const[,,fullW]=MAP_STATE.fullViewBox;
+  const cx=x0+w/2,cy=y0+h/2;
+  const newW=Math.max(fullW*0.04,Math.min(fullW,w*factor));
+  const scale=newW/w,newH=h*scale;
+  svg.setAttribute('viewBox',`${cx-newW/2} ${cy-newH/2} ${newW} ${newH}`);
+  $('map-reset-btn').style.display=(newW<fullW-0.5)?'':'none';
 }
 // Distinct from resetFsaMapZoom: that's just "zoom back out" (used by the
 // Reset view button) and keeps the FSA highlighted. This additionally
