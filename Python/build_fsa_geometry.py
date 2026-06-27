@@ -1,33 +1,47 @@
 """
 build_fsa_geometry.py
 
-Converts StatCan's 2021 FSA cartographic boundary shapefile into small
-per-province JSON files of simplified polygon rings in lon/lat, for the
-FSA choropleth map on retrofits.html.
+Converts StatCan's 2021 FSA cartographic boundary shapefile into per-province
+GeoJSON files for the FSA choropleth map on retrofits.html — replaces the
+manual mapshaper.org browser-console workflow (10 provinces x several
+console commands each) with one script run.
 
 INPUT: lfsa000b21a_e.shp (+ .dbf/.shx/.prj) from StatCan's boundary file
        (https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/
        boundary-limites/files-fichiers/lfsa000b21a_e.zip, ~162MB zipped).
        Set SHP_PATH below to wherever you extracted it.
 
-WHY NO GDAL/pyproj/shapely: none are installed and this machine has no
-GIS tooling (no GDAL, no mapshaper/node). The shapefile's CRS is NAD83
-Statistics Canada Lambert (a 2-standard-parallel Lambert Conformal Conic,
-confirmed via the .prj file) — the inverse projection formula (Snyder,
-"Map Projections: A Working Manual") is implemented from scratch below
-and round-trip-verified to ~1e-14 degrees against forward-projected test
-points before being trusted on real data.
+WHY NO GDAL/pyproj/shapely/mapshaper: none are installed and this machine
+has no GIS/Node tooling. The shapefile's CRS is NAD83 Statistics Canada
+Lambert (a 2-standard-parallel Lambert Conformal Conic, confirmed via the
+.prj file) — the inverse projection formula (Snyder, "Map Projections: A
+Working Manual") is implemented from scratch below and round-trip-verified
+to ~1e-14 degrees against forward-projected test points before being
+trusted on real data.
 
-OUTPUT FORMAT — deliberately NOT GeoJSON: each FSA's geometry is just a
-list of closed rings in [lon,lat] pairs, meant to be drawn as one SVG
-<path> per FSA with fill-rule:evenodd. This sidesteps GeoJSON's outer-
-ring/hole winding-order rules entirely (evenodd fill handles holes
-correctly regardless of winding) — not needed for a filled choropleth.
-  geo_json/<PROV>.json -> { "<FSA>": [ [[lon,lat],...], [[lon,lat],...] ], ... }
+WHY VARIABLE SIMPLIFICATION TOLERANCE (not a single fixed tolerance, and not
+mapshaper's "keep-shapes"): a single tolerance applied uniformly either
+leaves huge rural/coastal FSAs far too detailed (most of the file size, with
+detail nobody can see at province zoom) or collapses small dense urban FSAs
+into near-degenerate triangles (mapshaper's keep-shapes only guarantees a
+shape doesn't fully vanish — 3-4 points — not that it still looks like a
+real polygon; confirmed this happening to ~91 Ontario FSAs incl. K1L when
+mapshaper.org was used by hand with a uniform percentage). Tolerance here
+scales with each shape's own LANDAREA (StatCan field, sq km): small/dense
+shapes get a tight tolerance (more points kept, real shape preserved),
+huge ones get a loose tolerance (file size controlled). MIN_RING_POINTS
+on top of that guarantees every ring keeps at least that many vertices
+(resampled from the original if DP simplifies below it), regardless of
+tolerance — a hard floor mapshaper's keep-shapes doesn't provide.
 
-Polygons are simplified with a pure-Python Douglas-Peucker implementation
-(tolerance in degrees, ~DP_TOLERANCE) since the source shapefile is far too
-detailed for a web map (e.g. one mid-sized FSA alone had 34,000+ points).
+OUTPUT FORMAT: standard GeoJSON FeatureCollection per province, matching
+what retrofits.html's fetchGeoJSON/loadFsaMap already expect — properties.
+CFSAUID + a MultiPolygon geometry (each ring shipped as its own single-ring
+"polygon" entry; this dataset has no true donut/hole FSAs, so there's no
+need to detect ring nesting/winding to build true GeoJSON holes).
+  geo_json/<PROV>.json -> {"type":"FeatureCollection","features":[
+    {"type":"Feature","properties":{"CFSAUID":fsa},
+     "geometry":{"type":"MultiPolygon","coordinates":[[ring],[ring],...]}}, ...]}
 """
 
 import json
@@ -38,15 +52,49 @@ import shapefile
 
 SHP_PATH = r"C:\Users\simon\AppData\Local\Temp\fsa_shp\lfsa000b21a_e\lfsa000b21a_e.shp"
 OUT_DIR = "geo_json"
-DP_TOLERANCE = 0.0008  # degrees, ~80-90m — tuned for file size vs. visible shape fidelity
+
+# (max LANDAREA in sq km, DP tolerance in degrees) — first bucket whose
+# max area fits the shape wins. ~0.00005deg is ~5m, ~0.002deg is ~200m.
+# Tuned by checking actual file sizes/vertex counts against the previous
+# (broken) mapshaper output, not a precise physical derivation.
+TOLERANCE_BUCKETS = [
+    (10, 0.00003),
+    (50, 0.00008),
+    (200, 0.0002),
+    (1000, 0.0006),
+    (float("inf"), 0.0018),
+]
+MIN_RING_POINTS = 10  # hard floor — see WHY VARIABLE SIMPLIFICATION above
+# Upper bound per ring, regardless of area: a few Northern Ontario FSAs
+# (e.g. P0X) are dense with thousands of small lakes and have 600k+ raw
+# points — far more than their LANDAREA bucket alone would suggest needs
+# keeping. If the area-based tolerance still leaves a ring over this count,
+# tolerance is doubled and DP re-run until it's under the cap.
+MAX_RING_POINTS = 1500
+# Below this bounding-box diagonal (metres, in the source Lambert CRS — cheap
+# to check before reprojecting), a ring is dropped entirely unless it's a
+# shape's single largest ring. Rural Northern Ontario FSAs can have several
+# thousand separate rings (one per small lake/island, e.g. P0X has 4,938,
+# two-thirds of them under 50 raw points) that are invisible at province
+# zoom anyway — keeping MIN_RING_POINTS on all of them, instead of dropping
+# them, was the actual cause of the multi-MB blowup, not the area-tolerance
+# buckets themselves.
+MIN_RING_BBOX_DIAGONAL_M = 800
+
+
+def tolerance_for_area(area_km2):
+    for max_area, tol in TOLERANCE_BUCKETS:
+        if area_km2 <= max_area:
+            return tol
+    return TOLERANCE_BUCKETS[-1][1]
 
 # StatCan PRUID -> this project's province code (matches PROVINCES in
-# retrofits.html). Territories (60/61/62) are included even though they're
-# not in the province dropdown, in case they're wanted later — harmless if
-# unused.
+# retrofits.html). Territories aren't in the province dropdown and one
+# (Nunavut) has a single FSA covering 600k+ raw points, so they're skipped
+# entirely rather than processed and left unused.
 PRUID_TO_PROV = {
     "10": "NF", "11": "PE", "12": "NS", "13": "NB", "24": "QC", "35": "ON",
-    "46": "MB", "47": "SK", "48": "AB", "59": "BC", "60": "YT", "61": "NT", "62": "NU",
+    "46": "MB", "47": "SK", "48": "AB", "59": "BC",
 }
 
 # ── Inverse NAD83 Statistics Canada Lambert (2 standard parallels) ─────────
@@ -119,10 +167,28 @@ def douglas_peucker(points, tol):
     return [points[0], points[-1]]
 
 
+def ensure_min_points(simplified, original, min_pts):
+    """
+    DP guarantees a tolerance-bounded shape, not a point count — small/
+    simple rings can come out as a bare triangle even at a tight tolerance.
+    If that happens and the original ring actually had more detail to give,
+    resample it evenly instead of accepting the degenerate result (this is
+    the hard floor mapshaper's "keep-shapes" doesn't provide — that only
+    promises a ring won't fully vanish, not that it keeps min_pts vertices).
+    """
+    if len(simplified) >= min_pts or len(original) <= min_pts:
+        return simplified
+    step = (len(original) - 1) / (min_pts - 1)
+    idxs = sorted({round(i * step) for i in range(min_pts)})
+    idxs[-1] = len(original) - 1  # keep the ring closed
+    return [original[i] for i in idxs]
+
+
 def main():
     sf = shapefile.Reader(SHP_PATH, encoding="latin-1")
     by_province = {}
     skipped_prov = set()
+    n = len(sf)
 
     for i, sr in enumerate(sf.iterShapeRecords()):
         fsa = sr.record["CFSAUID"]
@@ -132,30 +198,58 @@ def main():
             skipped_prov.add(pruid)
             continue
 
+        base_tol = tolerance_for_area(sr.record["LANDAREA"])
         shape = sr.shape
         parts = list(shape.parts) + [len(shape.points)]
+        ring_slices = [(parts[p], parts[p + 1]) for p in range(len(parts) - 1)]
+
+        def bbox_diag(pts):
+            xs = [pt[0] for pt in pts]
+            ys = [pt[1] for pt in pts]
+            return math.hypot(max(xs) - min(xs), max(ys) - min(ys))
+
+        diags = [bbox_diag(shape.points[s:e]) for s, e in ring_slices]
+        main_ring_idx = max(range(len(diags)), key=lambda i: diags[i]) if diags else None
+
         rings = []
-        for p in range(len(parts) - 1):
-            ring_pts = shape.points[parts[p]:parts[p + 1]]
+        for i, (s, e) in enumerate(ring_slices):
+            if i != main_ring_idx and diags[i] < MIN_RING_BBOX_DIAGONAL_M:
+                continue  # tiny lake/island, invisible at province zoom
+            ring_pts = shape.points[s:e]
             lonlat = [inverse_lambert(x, y) for x, y in ring_pts]
-            simplified = douglas_peucker(lonlat, DP_TOLERANCE)
+            tol = base_tol
+            simplified = douglas_peucker(lonlat, tol)
+            while len(simplified) > MAX_RING_POINTS:
+                tol *= 1.6
+                simplified = douglas_peucker(lonlat, tol)
+            simplified = ensure_min_points(simplified, lonlat, MIN_RING_POINTS)
             if len(simplified) >= 3:
                 rings.append([[round(lon, 5), round(lat, 5)] for lon, lat in simplified])
 
-        by_province.setdefault(prov, {})[fsa] = rings
+        by_province.setdefault(prov, []).append((fsa, rings))
         if (i + 1) % 200 == 0:
-            print(f"  processed {i+1}/{len(sf)}")
+            print(f"  processed {i+1}/{n}")
 
     if skipped_prov:
         print(f"  skipped PRUIDs not in PRUID_TO_PROV: {sorted(skipped_prov)}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    for prov, fsas in by_province.items():
+    for prov, fsa_rings in by_province.items():
+        features = [
+            {
+                "type": "Feature",
+                "properties": {"CFSAUID": fsa},
+                "geometry": {"type": "MultiPolygon", "coordinates": [[ring] for ring in rings]},
+            }
+            for fsa, rings in fsa_rings
+        ]
         out_path = os.path.join(OUT_DIR, f"{prov}.json")
         with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(fsas, f, separators=(",", ":"))
+            json.dump({"type": "FeatureCollection", "features": features}, f, separators=(",", ":"))
         size_kb = os.path.getsize(out_path) / 1024
-        print(f"  wrote {out_path} — {len(fsas)} FSAs, {size_kb:.0f} KB")
+        n_degenerate = sum(1 for _, rings in fsa_rings if sum(len(r) for r in rings) <= 5)
+        print(f"  wrote {out_path} — {len(fsa_rings)} FSAs, {size_kb:.0f} KB, "
+              f"{n_degenerate} degenerate shapes")
 
 
 if __name__ == "__main__":
