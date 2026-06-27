@@ -65,6 +65,14 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.map-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
+.map-svg-wrap{position:relative}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md)}
+.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s}
+.fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
+.fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
+.fsa-shape.no-data{cursor:default}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
 .methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -274,6 +282,27 @@ footer a:hover{color:var(--amber2)}
     </linearGradient>
   </defs>
 </svg>
+
+<!-- FSA map: visual companion to the "Your FSA" dropdown above — click a
+     shape to select that FSA the same way picking it from the dropdown
+     would. Hidden for "All of Canada" (no combined map yet) and for any
+     province whose boundary file hasn't been generated. -->
+<div class="map-wrap" id="fsa-map-card" style="display:none">
+  <div class="map-head">
+    <div>
+      <div class="card-title" style="margin-bottom:0">Find your area</div>
+      <p class="note" style="margin:2px 0 0">Click an FSA to select it. Colour = <span id="map-color-meaning">audits collected</span>.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="chart-legend-inline" id="map-legend"></div>
+      <button class="filter-reset" id="map-reset-btn" style="display:none" onclick="resetFsaMapZoom()">Reset view</button>
+    </div>
+  </div>
+  <div class="map-svg-wrap">
+    <svg id="fsa-map-svg" viewBox="0 0 600 600" role="img" aria-label="Map of forward sortation areas in this province"></svg>
+    <div id="map-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
+  </div>
+</div>
 
 <main>
 
@@ -907,6 +936,7 @@ function load(){
     SELECTED_FSA='';
     $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
     $('fsa-sel').disabled=true;
+    toggleFsaMapCard(false); // no combined Canada-wide map yet
     loadProvinceView(myToken);
     return;
   }
@@ -917,6 +947,7 @@ function load(){
   fetchFsaIndex(PROVINCE_CODE).then(idx=>{
     if(myToken!==LOAD_TOKEN)return;
     populateFsaDropdown(PROVINCE_CODE,idx);
+    loadFsaMap(PROVINCE_CODE,idx);
     if(SELECTED_FSA){
       loadFsaView(myToken);
     }else{
@@ -2757,6 +2788,192 @@ function toggleRow(idx){
   }
 }
 
+// ── FSA map — visual companion to the "Your FSA" dropdown ──────────
+// Polygons come from StatCan's 2021 FSA cartographic boundary file,
+// reprojected to plain lon/lat and simplified with mapshaper (see
+// Python/build_fsa_geometry.py's docstring for why — no GDAL/mapshaper
+// install on the data-prep machine, so this used the StatCan source +
+// mapshaper.org directly instead). Some newer FSAs (created/split after
+// the 2021 census) have no polygon and simply won't appear on the map —
+// they're still selectable via the dropdown as before.
+const GEO_JSON_BASE=`${BASE_URL}geo_json/`;
+const GEO_CACHE=new Map();
+function fetchGeoJSON(prov){
+  if(GEO_CACHE.has(prov))return Promise.resolve(GEO_CACHE.get(prov));
+  return fetchJSON(`${GEO_JSON_BASE}${prov}.json`).then(d=>{GEO_CACHE.set(prov,d);return d;});
+}
+
+const MAP_SCALE=1000; // px per degree of longitude at the province's mid-latitude
+let MAP_STATE=null; // {prov, features:[{fsa,d,bbox}], fullViewBox, indexByFsa}
+let _mapTipEl=null;
+
+function toggleFsaMapCard(show){
+  $('fsa-map-card').style.display=show?'':'none';
+}
+
+function projectRing(ring,minLon,maxLat,cosMid){
+  return ring.map(([lon,lat])=>[(lon-minLon)*cosMid*MAP_SCALE,(maxLat-lat)*MAP_SCALE]);
+}
+
+function ringsToPathD(rings){
+  return rings.map(pts=>'M'+pts.map(p=>p.join(',')).join('L')+'Z').join(' ');
+}
+
+function loadFsaMap(prov,fsaIndex){
+  toggleFsaMapCard(true);
+  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
+  resetFsaMapZoom();
+  fetchGeoJSON(prov).then(geojson=>{
+    if(PROVINCE_CODE!==prov)return; // user already switched province before this resolved
+    let minLon=Infinity,maxLon=-Infinity,minLat=Infinity,maxLat=-Infinity;
+    geojson.features.forEach(ft=>{
+      const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
+      polys.forEach(rings=>rings.forEach(ring=>ring.forEach(([lon,lat])=>{
+        if(lon<minLon)minLon=lon;if(lon>maxLon)maxLon=lon;
+        if(lat<minLat)minLat=lat;if(lat>maxLat)maxLat=lat;
+      })));
+    });
+    const cosMid=Math.cos((minLat+maxLat)/2*Math.PI/180);
+    const W=(maxLon-minLon)*cosMid*MAP_SCALE,H=(maxLat-minLat)*MAP_SCALE;
+
+    const indexByFsa={};
+    (fsaIndex||[]).forEach(e=>{indexByFsa[e.fsa]=e;});
+
+    const features=geojson.features.map(ft=>{
+      const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
+      const allRings=[];
+      let fMinX=Infinity,fMaxX=-Infinity,fMinY=Infinity,fMaxY=-Infinity;
+      polys.forEach(rings=>rings.forEach(ring=>{
+        const pts=projectRing(ring,minLon,maxLat,cosMid);
+        pts.forEach(([x,y])=>{
+          if(x<fMinX)fMinX=x;if(x>fMaxX)fMaxX=x;
+          if(y<fMinY)fMinY=y;if(y>fMaxY)fMaxY=y;
+        });
+        allRings.push(pts);
+      }));
+      return{fsa:ft.properties.CFSAUID,d:ringsToPathD(allRings),bbox:[fMinX,fMinY,fMaxX,fMaxY]};
+    });
+
+    MAP_STATE={prov,features,fullViewBox:[0,0,W,H],indexByFsa};
+    paintFsaMap();
+  }).catch(err=>{
+    console.error(err);
+    $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Map not available for this province</text>';
+    MAP_STATE=null;
+  });
+}
+
+// Sequential (audit count) or diverging (median saving %, centred on 0)
+// single-pass colour scale, built fresh per province since the
+// interesting range differs province to province.
+function buildFsaColorScale(state){
+  const vals=state.features.map(f=>state.indexByFsa[f.fsa]).filter(Boolean);
+  const haveSavings=vals.some(e=>e.median_saving_pct!=null);
+  if(haveSavings){
+    const savings=vals.map(e=>e.median_saving_pct).filter(v=>v!=null);
+    const lo=Math.min(...savings,0),hi=Math.max(...savings,0);
+    $('map-color-meaning').textContent='median energy saving';
+    setChartLegend('map-legend',[
+      {label:`${Math.round(lo*100)}% (increase)`,color:'#B33A2E'},
+      {label:'0%',color:'#E8EDF4'},
+      {label:`${Math.round(hi*100)}%+ saved`,color:'#1A7A55'},
+    ]);
+    return e=>{
+      if(!e||e.median_saving_pct==null)return'#D3D9E2';
+      const v=e.median_saving_pct;
+      return v>=0?lerpColor([232,237,244],[26,122,85],hi>0?v/hi:0):lerpColor([232,237,244],[179,58,46],lo<0?v/lo:0);
+    };
+  }
+  const counts=vals.map(e=>e.row_count||0);
+  const maxCount=Math.max(...counts,1);
+  $('map-color-meaning').textContent='audits collected';
+  setChartLegend('map-legend',[
+    {label:'Fewer audits',color:'#E6ECF5'},
+    {label:'More audits',color:'#0B2545'},
+  ]);
+  return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxCount)):'#D3D9E2';
+}
+function lerpColor(lo,hi,t){
+  t=Math.max(0,Math.min(1,t));
+  const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));
+  return`rgb(${c.join(',')})`;
+}
+
+function paintFsaMap(){
+  if(!MAP_STATE)return;
+  const svg=$('fsa-map-svg');
+  const colorOf=buildFsaColorScale(MAP_STATE);
+  svg.setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
+  svg.innerHTML=MAP_STATE.features.map(f=>{
+    const entry=MAP_STATE.indexByFsa[f.fsa];
+    const cls='fsa-shape'+(!entry?' no-data':'')+(f.fsa===SELECTED_FSA?' is-selected':'');
+    return`<path class="${cls}" d="${f.d}" fill="${colorOf(entry)}" data-fsa="${f.fsa}"></path>`;
+  }).join('');
+  if(!svg.dataset.wired){
+    svg.addEventListener('mousemove',onFsaMapHover);
+    svg.addEventListener('mouseleave',hideFsaMapTip);
+    svg.addEventListener('click',onFsaMapClick);
+    svg.dataset.wired='1';
+  }
+}
+
+function onFsaMapHover(e){
+  const el=e.target.closest('.fsa-shape');
+  if(!_mapTipEl)_mapTipEl=$('map-tip');
+  if(!el){hideFsaMapTip();return;}
+  const fsa=el.dataset.fsa,entry=MAP_STATE.indexByFsa[fsa];
+  const lines=[`<strong>${fsa}</strong>`];
+  if(entry){
+    lines.push(`${entry.row_count.toLocaleString()} audits`);
+    if(entry.median_saving_pct!=null)lines.push(`${Math.round(entry.median_saving_pct*100)}% median saving`);
+  }else{
+    lines.push('No audit data');
+  }
+  _mapTipEl.innerHTML=lines.join('<br>');
+  _mapTipEl.style.display='block';
+  _mapTipEl.style.left=(e.clientX+14)+'px';
+  _mapTipEl.style.top=(e.clientY+14)+'px';
+}
+function hideFsaMapTip(){
+  if(_mapTipEl)_mapTipEl.style.display='none';
+}
+
+function onFsaMapClick(e){
+  const el=e.target.closest('.fsa-shape');
+  if(!el||!MAP_STATE)return;
+  const fsa=el.dataset.fsa;
+  if(!MAP_STATE.indexByFsa[fsa])return; // no audit data for this FSA — nothing to select
+  const fsaSel=$('fsa-sel');
+  fsaSel.value=fsa;
+  fsaSel.dispatchEvent(new Event('change',{bubbles:true}));
+  zoomFsaMapTo(fsa);
+}
+
+// Called both from the map's own click handler and from the FSA dropdown's
+// change listener, so the map stays in sync regardless of which control
+// the user actually used.
+function zoomFsaMapTo(fsa){
+  if(!MAP_STATE)return;
+  const f=MAP_STATE.features.find(x=>x.fsa===fsa);
+  document.querySelectorAll('#fsa-map-svg .fsa-shape').forEach(p=>p.classList.toggle('is-selected',p.dataset.fsa===fsa));
+  if(!f)return;
+  const[x0,y0,x1,y1]=f.bbox;
+  const padX=(x1-x0)*0.25+4,padY=(y1-y0)*0.25+4;
+  $('fsa-map-svg').setAttribute('viewBox',`${x0-padX} ${y0-padY} ${(x1-x0)+padX*2} ${(y1-y0)+padY*2}`);
+  $('map-reset-btn').style.display='';
+}
+function resetFsaMapZoom(){
+  if(MAP_STATE)$('fsa-map-svg').setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
+  $('map-reset-btn').style.display='none';
+}
+// Distinct from resetFsaMapZoom: that's just "zoom back out" (used by the
+// Reset view button) and keeps the FSA highlighted. This additionally
+// clears the highlight — used when the dropdown goes back to "All areas".
+function clearFsaMapSelection(){
+  document.querySelectorAll('#fsa-map-svg .fsa-shape.is-selected').forEach(p=>p.classList.remove('is-selected'));
+  resetFsaMapZoom();
+}
+
 // Wire province selector
 $('province-sel').addEventListener('change',function(){
   PROVINCE_CODE=this.value;
@@ -2780,8 +2997,10 @@ $('fsa-sel').addEventListener('change',function(){
   const myToken=++LOAD_TOKEN;
   if(SELECTED_FSA){
     loadFsaView(myToken);
+    zoomFsaMapTo(SELECTED_FSA);
   }else{
     loadProvinceView(myToken);
+    clearFsaMapSelection();
   }
 });
 
