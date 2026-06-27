@@ -262,7 +262,11 @@ def split_province(parquet_path, out_root):
         out_path = os.path.join(prov_dir, f"{fsa}.json")
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
-        index.append({'fsa': fsa, 'row_count': len(rows)})
+        # Median (not mean) energy-saving %, matching the "median home"
+        # convention used everywhere else on the page — for the FSA map.
+        savings = pd.to_numeric(group['EnergySavingPct'], errors='coerce').dropna()
+        median_saving_pct = round(float(savings.median()), 4) if len(savings) else None
+        index.append({'fsa': fsa, 'row_count': len(rows), 'median_saving_pct': median_saving_pct})
         n_files += 1
 
     index.sort(key=lambda d: d['fsa'])
