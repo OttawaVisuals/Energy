@@ -68,7 +68,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .map-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
-#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md)}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
+#fsa-map-svg:active{cursor:grabbing}
 .fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.78}
 .fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
 .fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
@@ -2823,6 +2824,14 @@ function lat2y(lat,z){
   const rad=lat*Math.PI/180;
   return(1-Math.log(Math.tan(rad)+1/Math.cos(rad))/Math.PI)/2*Math.pow(2,z)*256;
 }
+// Inverse of lon2x/lat2y — needed to turn a feature's pixel-space bbox (in
+// MAP_STATE's coordinate system) back into lon/lat so a sharper zoom level
+// can be picked and fetched just for that bbox (see loadSharpTiles).
+function x2lon(x,z){return x/(256*Math.pow(2,z))*360-180;}
+function y2lat(y,z){
+  const n=Math.PI-2*Math.PI*y/(256*Math.pow(2,z));
+  return 180/Math.PI*Math.atan((Math.exp(n)-Math.exp(-n))/2);
+}
 // Highest integer zoom whose bbox still fits inside targetW x targetH, so
 // the initial view is as sharp as possible without fetching tiles outside
 // the visible area.
@@ -2833,6 +2842,18 @@ function pickTileZoom(minLon,maxLon,minLat,maxLat,targetW,targetH){
     if(w<=targetW&&h<=targetH)return z;
   }
   return 2;
+}
+// Opposite search direction from pickTileZoom: smallest zoom whose bbox is
+// already AT LEAST targetW x targetH, so a small FSA's basemap tiles are
+// genuinely higher-resolution rather than just the province tiles stretched
+// via viewBox zoom (which is what made zoomed-in FSAs look blurry).
+function pickSharperZoom(minLon,maxLon,minLat,maxLat,targetW,targetH,maxZoom){
+  for(let z=2;z<=maxZoom;z++){
+    const w=lon2x(maxLon,z)-lon2x(minLon,z);
+    const h=lat2y(minLat,z)-lat2y(maxLat,z);
+    if(w>=targetW&&h>=targetH)return z;
+  }
+  return maxZoom;
 }
 const TILE_URL_SUBDOMAINS=['a','b','c'];
 function tileUrl(z,x,y){
@@ -2908,7 +2929,7 @@ function loadFsaMap(prov,fsaIndex){
       }
     }
 
-    MAP_STATE={prov,z,features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup};
+    MAP_STATE={prov,z,origin:[originX,originY],features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup};
     paintFsaMap();
   }).catch(err=>{
     console.error(err);
@@ -2961,15 +2982,51 @@ function paintFsaMap(){
   const shapesMarkup=MAP_STATE.features.map(f=>{
     const entry=MAP_STATE.indexByFsa[f.fsa];
     const cls='fsa-shape'+(!entry?' no-data':'')+(f.fsa===SELECTED_FSA?' is-selected':'');
-    return`<path class="${cls}" d="${f.d}" fill="${colorOf(entry)}" data-fsa="${f.fsa}"></path>`;
+    return`<path class="${cls}" d="${f.d}" fill="${colorOf(entry)}" data-fsa="${f.fsa}" vector-effect="non-scaling-stroke"></path>`;
   }).join('');
-  svg.innerHTML=MAP_STATE.tilesMarkup+shapesMarkup;
+  // #fsa-map-sharp-tiles sits between the base (province-wide) tiles and the
+  // FSA shapes — loadSharpTiles fills it with a higher-zoom tile set scoped
+  // to whichever FSA is zoomed into, so that view isn't just the base tiles
+  // stretched blurry by the viewBox zoom. Empty at full-province zoom.
+  svg.innerHTML=MAP_STATE.tilesMarkup+'<g id="fsa-map-sharp-tiles"></g>'+shapesMarkup;
   if(!svg.dataset.wired){
     svg.addEventListener('mousemove',onFsaMapHover);
     svg.addEventListener('mouseleave',hideFsaMapTip);
     svg.addEventListener('click',onFsaMapClick);
+    wireFsaMapPan(svg);
     svg.dataset.wired='1';
   }
+}
+
+// Fetches a higher-zoom OSM tile set scoped to pixelBbox (in MAP_STATE's
+// existing zoom-z coordinate system) and positions those tiles in that same
+// coordinate system by scaling — i.e. "overzooming" the tile request without
+// having to reproject MAP_STATE's polygons (which already look fine at any
+// zoom since they're vector paths; only the raster basemap needed this).
+function loadSharpTiles(pixelBbox){
+  const g=document.getElementById('fsa-map-sharp-tiles');
+  if(!g)return;
+  if(!MAP_STATE){g.innerHTML='';return;}
+  const{z:baseZ,prov}=MAP_STATE;
+  const[ox,oy]=MAP_STATE.origin||[0,0];
+  const[px0,py0,px1,py1]=pixelBbox;
+  const minLon=x2lon(px0+ox,baseZ),maxLon=x2lon(px1+ox,baseZ);
+  const maxLat=y2lat(py0+oy,baseZ),minLat=y2lat(py1+oy,baseZ);
+  const z2=pickSharperZoom(minLon,maxLon,minLat,maxLat,900,900,17);
+  if(z2<=baseZ){g.innerHTML='';return;}
+  const scale=Math.pow(2,baseZ-z2); // <1 — size of one z2 tile in base-z units
+  const worldX0=lon2x(minLon,z2),worldX1=lon2x(maxLon,z2);
+  const worldY0=lat2y(maxLat,z2),worldY1=lat2y(minLat,z2);
+  const tileMinX=Math.floor(worldX0/256)-1,tileMaxX=Math.floor(worldX1/256)+1;
+  const tileMinY=Math.floor(worldY0/256)-1,tileMaxY=Math.floor(worldY1/256)+1;
+  let markup='';
+  for(let ty=tileMinY;ty<=tileMaxY;ty++){
+    for(let tx=tileMinX;tx<=tileMaxX;tx++){
+      const x=tx*256*scale-ox,y=ty*256*scale-oy,size=256*scale;
+      markup+=`<image href="${tileUrl(z2,tx,ty)}" x="${x}" y="${y}" width="${size}" height="${size}"></image>`;
+    }
+  }
+  if(MAP_STATE&&MAP_STATE.prov===prov)g.innerHTML=markup;
 }
 
 function onFsaMapHover(e){
@@ -2994,7 +3051,10 @@ function hideFsaMapTip(){
   if(_mapTipEl)_mapTipEl.style.display='none';
 }
 
+let _mapDragged=false; // set by wireFsaMapPan, suppresses the click that follows a drag
+
 function onFsaMapClick(e){
+  if(_mapDragged){_mapDragged=false;return;}
   const el=e.target.closest('.fsa-shape');
   if(!el||!MAP_STATE)return;
   const fsa=el.dataset.fsa;
@@ -3015,12 +3075,16 @@ function zoomFsaMapTo(fsa){
   if(!f)return;
   const[x0,y0,x1,y1]=f.bbox;
   const padX=(x1-x0)*0.25+4,padY=(y1-y0)*0.25+4;
-  $('fsa-map-svg').setAttribute('viewBox',`${x0-padX} ${y0-padY} ${(x1-x0)+padX*2} ${(y1-y0)+padY*2}`);
+  const box=[x0-padX,y0-padY,(x1-x0)+padX*2,(y1-y0)+padY*2];
+  $('fsa-map-svg').setAttribute('viewBox',box.join(' '));
   $('map-reset-btn').style.display='';
+  loadSharpTiles([box[0],box[1],box[0]+box[2],box[1]+box[3]]);
 }
 function resetFsaMapZoom(){
   if(MAP_STATE)$('fsa-map-svg').setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
   $('map-reset-btn').style.display='none';
+  const g=document.getElementById('fsa-map-sharp-tiles');
+  if(g)g.innerHTML='';
 }
 // +/- zoom buttons: scale the current viewBox around its own centre.
 // factor<1 zooms in, factor>1 zooms out. Clamped between the full province
@@ -3043,6 +3107,54 @@ function zoomFsaMapBy(factor){
 function clearFsaMapSelection(){
   document.querySelectorAll('#fsa-map-svg .fsa-shape.is-selected').forEach(p=>p.classList.remove('is-selected'));
   resetFsaMapZoom();
+}
+
+// Drag-to-pan: translates the current viewBox by the same screen-pixel
+// delta the pointer moved, converted into viewBox units via the SVG's
+// rendered size. Panning is clamped so the view can't drift away from the
+// province entirely. A small movement threshold distinguishes a pan from a
+// plain click (which still needs to reach onFsaMapClick to select an FSA).
+function wireFsaMapPan(svg){
+  let dragging=false,moved=false,startX=0,startY=0,startBox=null;
+  const DRAG_THRESHOLD=4;
+  svg.addEventListener('pointerdown',e=>{
+    if(!MAP_STATE)return;
+    dragging=true;moved=false;
+    startX=e.clientX;startY=e.clientY;
+    startBox=svg.getAttribute('viewBox').split(' ').map(Number);
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove',e=>{
+    if(!dragging||!MAP_STATE)return;
+    const dx=e.clientX-startX,dy=e.clientY-startY;
+    if(!moved&&Math.hypot(dx,dy)<DRAG_THRESHOLD)return;
+    moved=true;_mapDragged=true;
+    hideFsaMapTip();
+    const rect=svg.getBoundingClientRect();
+    const[,,w,h]=startBox;
+    const unitsPerPxX=w/rect.width,unitsPerPxY=h/rect.height;
+    const[fx0,fy0,fw,fh]=MAP_STATE.fullViewBox;
+    let x0=startBox[0]-dx*unitsPerPxX,y0=startBox[1]-dy*unitsPerPxY;
+    // Clamp so the viewBox can drift at most half its own size past the
+    // full province extent on any side — keeps panning bounded without
+    // forcing it to stay fully inside (panning right up to an edge FSA
+    // should still be comfortable).
+    x0=Math.max(fx0-w*0.5,Math.min(fx0+fw-w*0.5,x0));
+    y0=Math.max(fy0-h*0.5,Math.min(fy0+fh-h*0.5,y0));
+    svg.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);
+    $('map-reset-btn').style.display='';
+  });
+  function endDrag(e){
+    if(!dragging)return;
+    dragging=false;
+    if(svg.hasPointerCapture&&svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);
+    if(moved){
+      const box=svg.getAttribute('viewBox').split(' ').map(Number);
+      loadSharpTiles([box[0],box[1],box[0]+box[2],box[1]+box[3]]);
+    }
+  }
+  svg.addEventListener('pointerup',endDrag);
+  svg.addEventListener('pointercancel',endDrag);
 }
 
 // Wire province selector
