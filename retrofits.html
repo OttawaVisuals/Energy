@@ -25,6 +25,24 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 .logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
 .logo span{color:var(--amber2);font-style:italic}
 .header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+/* ── Simple / Advanced mode toggle ──
+   Visibility is driven purely by body.mode-simple/.mode-advanced + the
+   [data-mode="advanced"] attribute on each Advanced-only section — no JS
+   branching per section. !important is needed because some of these same
+   elements also get inline style.display toggled by the FSA-vs-province
+   logic (toggleSlopegraphCard etc.) — that logic clears the inline style
+   (display:'') when shown, which this rule must still be able to override
+   in Simple mode. */
+body.mode-simple [data-mode="advanced"]{display:none!important}
+/* Shortened captions for Simple, full technical captions for Advanced — two
+   spans in the same .note, never two copies of the chart logic. */
+body.mode-simple .cap-advanced{display:none}
+body.mode-advanced .cap-simple{display:none}
+.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--white)}
+@media(max-width:600px){.mode-btn{padding:5px 9px;font-size:11px}}
 /* #province-sel sets color:white for the closed control (legible on the
    navy header), but <option> inherits that into its own popup, which the
    browser renders on a plain white background — white-on-white. Force
@@ -226,10 +244,29 @@ footer a:hover{color:var(--amber2)}
 </style>
 </head>
 <body>
+<script>
+// Resolved and applied as the very first thing in <body>, before any visible
+// markup is parsed, so there's no flash of the wrong mode. Order per spec:
+// ?view= URL param, then a saved localStorage choice, then default Simple.
+// A URL param is treated as an explicit choice too (persisted to
+// localStorage) so a colleague who bookmarks ?view=advanced keeps seeing it
+// on later visits even once the param is gone.
+(function(){
+  var urlView=new URLSearchParams(location.search).get('view');
+  var mode=(urlView==='advanced'||urlView==='simple')?urlView:(localStorage.getItem('viewMode')||'simple');
+  if(mode!=='advanced')mode='simple';
+  try{localStorage.setItem('viewMode',mode);}catch(e){}
+  document.body.className='mode-'+mode;
+})();
+</script>
 
 <header>
   <div class="logo">retrofit<span id="logo-province">Canada</span></div>
   <div style="display:flex;align-items:center;gap:12px">
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+    </div>
     <select id="province-sel" style="height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s">
       <option value="CA" selected>All of Canada</option>
       <option value="">Select province…</option>
@@ -340,7 +377,7 @@ footer a:hover{color:var(--amber2)}
   <div class="card">
     <div class="card-title">Energy saving distribution — 1% increments</div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</p>
+    <p class="note"><span class="cap-simple">Most homes save energy; a few use more, often after switching to a heat pump.</span><span class="cap-advanced">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</span></p>
   </div>
 
   
@@ -355,14 +392,14 @@ footer a:hover{color:var(--amber2)}
     <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
-    <p class="note">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</p>
+    <p class="note"><span class="cap-simple">Energy use per square metre, before and after — lower is more efficient.</span><span class="cap-advanced">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</span></p>
   </div>
 
 
 
 <!-- EUI slopegraph — individual homes, FSA mode only (no row-level data in
      province-wide view). Hidden by toggleSlopegraphCard(). -->
-  <div class="card" id="slopegraph-card" style="display:none">
+  <div class="card" id="slopegraph-card" data-mode="advanced" style="display:none">
     <div class="card-title-row"><div class="card-title">Every home, pre → post EUI</div><div class="chart-legend-inline" id="slope-legend"></div></div>
     <div class="cw cw-lg"><canvas id="slope-chart"></canvas></div>
     <p class="note">Each line is one matched home: left point = pre-retrofit EUI, right point = post-retrofit EUI. Colour = number of retrofit measures done (see legend) — darker lines did more, so a darker band ending lower shows whether doing more measures tracks with bigger drops. Lines are drawn at low opacity so darker bands show where homes cluster. Outliers above 500 kWh/m² clipped for scale, same as the chart above.</p>
@@ -375,7 +412,7 @@ footer a:hover{color:var(--amber2)}
     <div class="card-title">GHG emissions — tCO2e per year</div>
     <div class="eui-row" id="ghg-kpis"></div>
     <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
-    <p class="note">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
+    <p class="note"><span class="cap-simple">Greenhouse gas emissions from home energy use, before and after.</span><span class="cap-advanced">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
   </div>
 
   
@@ -384,13 +421,13 @@ footer a:hover{color:var(--amber2)}
   <div class="card">
     <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
-    <p class="note">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</p>
+    <p class="note"><span class="cap-simple">How much heat the home loses, before and after — lower is better.</span><span class="cap-advanced">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
   </div>
 
   
 
 <!-- Fuel breakdown: pre/post box-fill rows per fuel, plus a per-fuel savings row -->
-  <div class="card">
+  <div class="card" data-mode="advanced">
     <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
     <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
     <p class="note">Each fuel gets a box sized to its larger of pre/post use; the fill level shows the actual pre or post value as a share of that box, so a half-filled box means usage dropped by half. The bottom row shows the resulting saving (green) or increase (red) per fuel. This chart uses <strong>total</strong> energy summed across all matched homes (not the median used elsewhere on this page), so each fuel's share adds up to the true total — and a fuel used by a minority of homes still shows up instead of medianing to zero. Hover any box for exact values.</p>
@@ -399,7 +436,7 @@ footer a:hover{color:var(--amber2)}
   
 
 <!-- Sankey -->
-  <div class="card">
+  <div class="card" data-mode="advanced">
     <div class="card-title">Heating fuel flow — aggregate energy pre → post (GWh)</div>
     <div style="overflow-x:auto;position:relative">
       <svg id="sankey-svg" style="width:100%;min-width:500px" height="420"></svg>
@@ -423,7 +460,7 @@ footer a:hover{color:var(--amber2)}
 <!-- Measures by vintage — FSA mode only (needs row-level YearBuilt + per-
      measure flags; province-wide precomputed stats don't cross-tabulate
      these two). Hidden by toggleVintageCard(). -->
-  <div class="card" id="vintage-card" style="display:none">
+  <div class="card" id="vintage-card" data-mode="advanced" style="display:none">
     <div class="card-title">Measures by vintage</div>
     <div class="cw cw-xl"><canvas id="vintage-chart"></canvas></div>
     <p class="note">For homes built in each decade, the share that got each measure. Vintage buckets with fewer than 20 matched homes are dropped to avoid noisy percentages.</p>
@@ -435,7 +472,7 @@ footer a:hover{color:var(--amber2)}
   <div class="card">
     <div class="card-title">Insulation &amp; air leakage — median pre → post</div>
     <div class="kpi-grid" id="kpi-grid"></div>
-    <p class="note" style="margin-bottom:1rem">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</p>
+    <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
         <div class="measure-chart-title">Roof insulation</div>
@@ -465,7 +502,7 @@ footer a:hover{color:var(--amber2)}
   
 
 <!-- Solar PV -->
-  <div class="card">
+  <div class="card" data-mode="advanced">
     <div class="card-title">Solar PV adoption</div>
     <div class="eui-row" id="solar-kpis"></div>
     <p class="note">Share of matched homes with solar PV recorded pre- and post-retrofit, and the median system size among adopters.</p>
@@ -473,31 +510,31 @@ footer a:hover{color:var(--amber2)}
 
   
 
-  <div class="section-head">
+  <div class="section-head" data-mode="advanced">
     <h2>The homes in this view</h2>
     <p class="sec-sub">Who these retrofitted homes are — vintage, size, type — and how they sit within the wider neighbourhood.</p>
   </div>
 
 <!-- Year + Floor area -->
-  <div class="grid-2">
+  <div class="grid-2" data-mode="advanced">
     <div class="card"><div class="card-title-row"><div class="card-title">Year built</div><div class="chart-legend-inline" id="year-legend"></div></div><div class="cw cw-sm"><canvas id="year-chart"></canvas></div></div>
     <div class="card"><div class="card-title-row"><div class="card-title">Floor area (m²)</div><div class="chart-legend-inline" id="area-legend"></div></div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div>
   </div>
 
-  
+
 
 <!-- Type + Storeys donuts -->
-  <div class="grid-2">
+  <div class="grid-2" data-mode="advanced">
     <div class="card"><div class="card-title-row"><div class="card-title">Building type</div><div class="chart-legend-inline" id="type-legend"></div></div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
     <div class="card"><div class="card-title">Number of storeys</div><div class="cw cw-md"><canvas id="storey-chart"></canvas></div></div>
   </div>
 
-  
+
 
 <!-- Neighbourhood housing stock — 2021 Census, FSA-level only (no Canada/
        province-wide rollup yet — see retrofits.html notes). Hidden outside
        FSA mode by toggleCensusCard(). -->
-  <div class="card" id="census-card" style="display:none">
+  <div class="card" id="census-card" data-mode="advanced" style="display:none">
     <div class="card-title">Neighbourhood housing stock — 2021 Census</div>
     <div class="kpi-grid" id="census-coverage-kpis"></div>
     <div class="grid-2" style="margin-top:1rem">
@@ -518,13 +555,13 @@ footer a:hover{color:var(--amber2)}
 
   
 
-  <div class="section-head">
+  <div class="section-head" data-mode="advanced">
     <h2>Equipment detail</h2>
     <p class="sec-sub">Raw heat-pump and window references recorded for the matched homes.</p>
   </div>
 
 <!-- Heat pump AHRI numbers + window codes -->
-  <div class="grid-2">
+  <div class="grid-2" data-mode="advanced">
     <div class="card">
       <div class="card-title">Common heat pump models (AHRI number)</div>
       <div id="ahri-list" class="equip-list"></div>
@@ -548,7 +585,7 @@ footer a:hover{color:var(--amber2)}
 
   <!-- Most common window changes — FSA mode only (needs paired per-home
        pre/post codes). Hidden by toggleWindowChangesCard(). -->
-  <div class="card" id="window-changes-card" style="display:none">
+  <div class="card" id="window-changes-card" data-mode="advanced" style="display:none">
     <div class="card-title">Most common window changes</div>
     <div id="window-changes-list" class="equip-list"></div>
     <p class="note">For homes with a decodable window code both before and after, the share where each attribute changed at all, ranked — top 5 of 6 tracked attributes. Glazing and coating are the two attributes that most directly drive a window's R-value, so they're worth watching specifically. "Most often" shows the single most common from → to change for that attribute. Codes outside NRCan's standard table (custom/user-defined windows) aren't included.</p>
@@ -556,13 +593,13 @@ footer a:hover{color:var(--amber2)}
 
   
 
-  <div class="section-head" id="sec-individual">
+  <div class="section-head" id="sec-individual" data-mode="advanced">
     <h2>Individual retrofits</h2>
     <p class="sec-sub">Every matched home in this FSA, one row each — click to expand. (FSA view only.)</p>
   </div>
 
 <!-- Table (FSA mode only — province-wide view has no row-level data) -->
-  <div class="card" id="table-card">
+  <div class="card" id="table-card" data-mode="advanced">
     <div class="card-title">Individual retrofits — click a row for detail</div>
     <div class="sort-row">
       <span class="sort-label">Sort by</span>
@@ -713,6 +750,7 @@ const PROVINCE_SUMMARY_CACHE=new Map(); // prov -> parsed province_json payload
 const FSA_INDEX_CACHE=new Map();  // prov -> [{fsa,row_count}, ...] from _index.json
 let LOAD_TOKEN=0; // guards against a slow stale fetch landing after a newer one started
 let _lastProvinceSlice=null; // last rendered province slice, for re-rendering equipment lists when lookups arrive
+let _lastProvincePayload=null; // full province payload, for re-running Advanced-only renderers on mode switch
 
 // 2021 Census housing-stock data, one ~1.1MB file keyed by FSA code (see
 // Python/extract_fsa_census.py) — small enough to fetch once and keep
@@ -764,6 +802,7 @@ function decodeWindow(code){
 // Re-render just the AHRI/window lists in the current mode (called when a
 // lookup file resolves after the initial paint).
 function reRenderEquipmentLists(){
+  if(!isAdvancedMode())return; // not visible yet — renderAdvancedSections() covers it on switch
   if(MODE==='fsa'){renderAhriWindowFsa();renderWindowChanges();}
   else if(MODE==='province'&&_lastProvinceSlice)renderAhriWindowProvince(_lastProvinceSlice);
 }
@@ -987,8 +1026,7 @@ function loadFsaView(myToken){
     fuels.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fuelEl.appendChild(o);});
     showFsaFilterControls(true);
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} audits`;
-    renderCensus(SELECTED_FSA,ALL.length);
-    applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows
+    applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows; render() -> renderAdvancedSections() covers census
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
     console.error(err);
@@ -1100,11 +1138,38 @@ function render(){
   toggleSlopegraphCard(true);
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
-  renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
-  renderSankey();renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderHeatLoss();renderSolar(n);renderWaterfall();
-  renderKPI(n,fs);renderInsulDist();renderMeasures(n);renderAhriWindowFsa();
-  renderSlopegraph();renderVintageMeasures();renderWindowChanges();
-  renderHist(savings);renderTable();
+  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderHeatLoss();
+  renderKPI(n,fs);renderInsulDist();renderMeasures(n);
+  renderHist(savings);
+  renderAdvancedSections();
+}
+
+// Renderers for cards/sections that are Advanced-only (see the data-mode=
+// "advanced" attribute in the HTML — this is the JS-side half of the same
+// split: visibility is CSS-driven, but there's no reason to spend Chart.js
+// draw time on a chart nobody can see in Simple mode). Called from the end
+// of render()/renderProvince() (gated, so a no-op while in Simple) and again
+// from setViewMode() when switching into Advanced, using whichever data is
+// currently cached — that's what makes the switch itself feel instant
+// rather than re-fetching anything.
+function renderAdvancedSections(){
+  if(!isAdvancedMode())return;
+  if(MODE==='fsa'){
+    renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
+    renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
+    renderSlopegraph();renderVintageMeasures();renderWindowChanges();renderTable();
+    if(SELECTED_FSA)renderCensus(SELECTED_FSA,ALL.length);
+  }else if(MODE==='province'){
+    if(!_lastProvincePayload||!_lastProvinceSlice)return;
+    renderProvinceYearHist(_lastProvincePayload);
+    renderProvinceAreaHist(_lastProvincePayload);
+    renderProvinceTypeDonut(_lastProvincePayload);
+    renderProvinceStoreyDonut(_lastProvinceSlice);
+    renderProvinceSankey(_lastProvinceSlice);
+    renderProvinceSolar(_lastProvinceSlice);
+    renderProvinceWaterfall(_lastProvinceSlice);
+    renderAhriWindowProvince(_lastProvinceSlice);
+  }
 }
 
 // ── Year built histogram ──────────────────────────────────────────
@@ -2231,6 +2296,7 @@ function renderProvince(payload){
     return;
   }
   _lastProvinceSlice=slice;
+  _lastProvincePayload=payload;
   const n=slice.row_count||0;
   $('result-count').textContent=n.toLocaleString();
 
@@ -2254,21 +2320,14 @@ function renderProvince(payload){
   $('s-solar').textContent=(slice.solar_post_count||0).toLocaleString();
   $('s-solar-sub').textContent=n?`${slice.solar_post_pct||0}% of matched homes`:'';
 
-  renderProvinceYearHist(payload);
-  renderProvinceAreaHist(payload);
-  renderProvinceTypeDonut(payload);
-  renderProvinceStoreyDonut(slice);
-  renderProvinceSankey(slice);
   renderProvinceEUI(slice);
   renderProvinceGHG(slice);
   renderProvinceHeatLoss(slice);
-  renderProvinceSolar(slice);
-  renderProvinceWaterfall(slice);
   renderProvinceKPI(slice);
   renderProvinceInsulDist(slice);
   renderProvinceMeasures(slice);
   renderProvinceHist(slice);
-  renderAhriWindowProvince(slice);
+  renderAdvancedSections();
   $('table-card').style.display='none';
   $('sec-individual').style.display='none';
 }
@@ -3208,10 +3267,29 @@ $('type-sel').addEventListener('change',function(){
 $('fuel-sel').addEventListener('change',applyFilters);
 $('depth-sel').addEventListener('change',applyFilters);
 
+// ── Simple / Advanced mode ──────────────────────────────────────────
+// body.mode-simple/.mode-advanced (set as early as possible, in the inline
+// script right after <body>, to avoid a flash of the wrong mode) is the
+// single source of truth for visibility — every Advanced-only section just
+// has data-mode="advanced" and a CSS rule hides it in Simple. This is the
+// JS-side counterpart: which mode is active right now, and re-running the
+// Advanced-only renderers (using whatever's already cached — no re-fetch)
+// when the user switches into Advanced, since render()/renderProvince()
+// skip them entirely while in Simple to save the Chart.js draw cost.
+function isAdvancedMode(){return document.body.classList.contains('mode-advanced');}
+function setViewMode(mode){
+  if(mode!=='advanced')mode='simple';
+  document.body.className='mode-'+mode;
+  try{localStorage.setItem('viewMode',mode);}catch(e){}
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===mode));
+  renderAdvancedSections();
+}
+
 // Landing default: load "All of Canada" immediately instead of waiting on
 // an empty page until the user picks a province (matches province-sel's
 // pre-selected option).
 fetchLookups();
+document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===(isAdvancedMode()?'advanced':'simple')));
 load();
 </script>
 </body>
