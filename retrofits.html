@@ -239,6 +239,8 @@ footer a:hover{color:var(--amber2)}
 .equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
 .equip-list .measure-label .ml-code{display:block;line-height:1.3}
 .equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
+.equip-list .measure-label .ml-badges{display:block;margin-top:4px}
+.equip-list .measure-label .ml-badges .badge{margin-right:4px}
 .equip-list .bar-track{margin-top:6px}
 .equip-list .bar-pct{margin-top:6px}
 </style>
@@ -788,9 +790,14 @@ function fetchLookups(){
 function decodeAhri(code){
   const c=String(code).trim();
   const hit=AHRI_LOOKUP&&AHRI_LOOKUP[c];
-  if(!hit)return{main:c,sub:null};
+  if(!hit)return{main:c,sub:null,badges:[]};
+  const isObj=typeof hit==='object';
   const name=typeof hit==='string'?hit:[hit.brand,hit.model].filter(Boolean).join(' \u00b7 ');
-  return name?{main:name,sub:`AHRI ${c}`}:{main:c,sub:null};
+  const badges=[];
+  const status=isObj?hit.model_status:null;
+  if(status)badges.push({label:status,cls:/^active$/i.test(status)?'badge-deep':'badge-neg'});
+  if(isObj&&String(hit.cold_climate).toLowerCase()==='yes')badges.push({label:'Cold Climate',cls:'badge-medium'});
+  return name?{main:name,sub:`AHRI ${c}`,badges}:{main:c,sub:null,badges};
 }
 function decodeWindow(code){
   const c=String(code).trim();
@@ -1743,7 +1750,8 @@ function barListHTML(items){
   return items.map(i=>{
     const main=i.main!=null?i.main:i.code;
     const sub=i.sub?`<span class="ml-sub">${i.sub}</span>`:'';
-    return `<div class="measure-row"><div class="measure-label"><span class="ml-code">${main}</span>${sub}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(i.count/max*100)}%;background:#C8881A"></div></div><div class="bar-pct">${Math.round(i.count).toLocaleString()}</div></div>`;
+    const badges=(i.badges&&i.badges.length)?`<span class="ml-badges">${i.badges.map(b=>`<span class="badge ${b.cls}">${b.label}</span>`).join('')}</span>`:'';
+    return `<div class="measure-row"><div class="measure-label"><span class="ml-code">${main}</span>${sub}${badges}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(i.count/max*100)}%;background:#C8881A"></div></div><div class="bar-pct">${Math.round(i.count).toLocaleString()}</div></div>`;
   }).join('');
 }
 
@@ -1765,13 +1773,13 @@ function topCounts(rows,cols,n,minDigits){
 }
 function renderAhriWindowFsa(){
   const dec=(cols,n,minDigits,decoder)=>topCounts(FILTERED,cols,n,minDigits)
-    .map(i=>{const d=decoder(i.code);return{main:d.main,sub:d.sub,count:i.count};});
+    .map(i=>{const d=decoder(i.code);return{...d,count:i.count};});
   $('ahri-list').innerHTML=barListHTML(dec(['Pre_HPAHRI','Post_HPAHRI'],5,4,decodeAhri));
   $('window-pre-list').innerHTML=barListHTML(dec(['Pre_WindowCode'],5,0,decodeWindow));
   $('window-post-list').innerHTML=barListHTML(dec(['Post_WindowCode'],5,0,decodeWindow));
 }
 function renderAhriWindowProvince(slice){
-  const toItems=(list,decoder)=>(list||[]).slice(0,5).map(x=>{const d=decoder(x.code);return{main:d.main,sub:d.sub,count:Math.round(x.count)};});
+  const toItems=(list,decoder)=>(list||[]).slice(0,5).map(x=>{const d=decoder(x.code);return{...d,count:Math.round(x.count)};});
   $('ahri-list').innerHTML=barListHTML(toItems(slice.top_ahri_numbers,decodeAhri));
   $('window-pre-list').innerHTML=barListHTML(toItems(slice.window_pre_top,decodeWindow));
   $('window-post-list').innerHTML=barListHTML(toItems(slice.window_post_top,decodeWindow));
