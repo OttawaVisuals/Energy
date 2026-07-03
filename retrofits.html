@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Retrofit Explorer</title>
+<title>Retrofit Explorer — real Canadian home energy retrofits</title>
+<meta name="description" content="Explore 500,000+ real Canadian home energy retrofits from NRCan EnerGuide audits. Enter your postal code to see what homes like yours did — insulation, heat pumps, fuel switches — and the energy and GHG savings their audits estimate.">
+<meta property="og:title" content="Retrofit Explorer — what did homes like yours do, and did it work?">
+<meta property="og:description" content="500,000+ matched before/after EnerGuide audits across Canada. See real retrofit measures and modelled energy savings for your postal area.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M16 6 5 15h3v10h7v-6h2v6h7V15h3z' fill='%23E8A124'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
@@ -43,6 +48,11 @@ body.mode-advanced .cap-simple{display:none}
 .mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
 .mode-btn:not(.active):hover{color:var(--white)}
 @media(max-width:600px){.mode-btn{padding:5px 9px;font-size:11px}}
+/* #province-sel styling lives here, NOT in an inline style attribute: the
+   chevron data-URI contains double quotes, and \" inside an HTML attribute
+   is not an escape — it terminated the style attr early, spilling the rest
+   of the CSS out as garbage attributes and 404ing on a mangled URL. */
+#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
 /* #province-sel sets color:white for the closed control (legible on the
    navy header), but <option> inherits that into its own popup, which the
    browser renders on a plain white background — white-on-white. Force
@@ -63,6 +73,10 @@ body.mode-advanced .cap-simple{display:none}
 .filter-group select{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
 .filter-group select:hover{border-color:var(--navy)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.filter-group input{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
+.filter-group input::placeholder{color:var(--light);text-transform:none}
+.filter-group input:hover{border-color:var(--navy)}
+.filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .filter-reset{height:40px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--navy);color:var(--navy)}
 .filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.5rem 1.25rem .85rem}
@@ -71,6 +85,9 @@ body.mode-advanced .cap-simple{display:none}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+/* While a new selection is fetching, dim the stale charts instead of
+   leaving them looking current — cleared by render()/renderProvince(). */
+main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
 @media(max-width:620px){.grid-2{grid-template-columns:1fr}}
 
@@ -269,15 +286,16 @@ footer a:hover{color:var(--amber2)}
       <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
       <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
     </div>
-    <select id="province-sel" style="height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s">
+    <select id="province-sel">
       <option value="CA" selected>All of Canada</option>
-      <option value="">Select province…</option>
       <option value="AB">Alberta</option>
       <option value="BC">British Columbia</option>
       <option value="MB">Manitoba</option>
       <option value="NB">New Brunswick</option>
       <option value="NF">Newfoundland & Labrador</option>
+      <option value="NT">Northwest Territories</option>
       <option value="NS">Nova Scotia</option>
+      <option value="NU">Nunavut</option>
       <option value="ON">Ontario</option>
       <option value="PE">Prince Edward Island</option>
       <option value="QC">Quebec</option>
@@ -290,9 +308,12 @@ footer a:hover{color:var(--amber2)}
 <div class="hero" id="hero-section">
   <p class="hero-eyebrow" id="hero-eyebrow">Select a province above to begin</p>
   <h1>What did <em>homes like yours</em> do — and did it work?</h1>
-  <p class="hero-sub">Real audit data from Canadian homes. Select your province, then pick your FSA to find retrofits comparable to yours and see actual energy savings — or browse province-wide trends by house type.</p>
+  <p class="hero-sub">Real audit data from Canadian homes. Enter your postal code — or pick a province and area — to find retrofits comparable to yours and see the energy savings their audits estimate, or browse province-wide trends by house type.</p>
   <div class="filter-bar">
-    <div class="filter-group"><label for="fsa-sel">Your FSA</label>
+    <div class="filter-group" style="flex:0 1 200px"><label for="pc-input">Your postal code</label>
+      <input id="pc-input" type="text" autocomplete="postal-code" maxlength="7" placeholder="e.g. K1A 0B1" aria-describedby="pc-hint">
+    </div>
+    <div class="filter-group"><label for="fsa-sel">Your area (FSA)</label>
       <select id="fsa-sel">
         <option value="">All areas (province-wide)</option>
       </select>
@@ -315,6 +336,8 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="filter-count-bar">
     <span class="filter-count"><strong id="result-count">—</strong> retrofits match</span>
+    <span class="filter-count" id="small-n-warn" style="display:none;color:var(--amber)"> · Small sample — medians and percentages here are noisy, read them as rough indications only</span>
+    <span class="filter-count" id="pc-hint" style="display:none;color:var(--red)" role="status"></span>
   </div>
 </div>
 
@@ -337,7 +360,7 @@ footer a:hover{color:var(--amber2)}
   <div class="map-head">
     <div>
       <div class="card-title" style="margin-bottom:0">Find your area</div>
-      <p class="note" style="margin:2px 0 0">Click an FSA to select it. Colour = <span id="map-color-meaning">audits collected</span>.</p>
+      <p class="note" style="margin:2px 0 0">Click an FSA to select it. Colour = <span id="map-color-meaning">audited homes</span>.</p>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <div class="chart-legend-inline" id="map-legend"></div>
@@ -419,11 +442,11 @@ footer a:hover{color:var(--amber2)}
 
   
 
-<!-- Heat loss -->
+<!-- Design heat loss (kW — peak heating demand, NOT annual energy) -->
   <div class="card">
-    <div class="card-title">Heat loss — pre &amp; post (GJ/yr)</div>
+    <div class="card-title">Design heat loss — pre &amp; post (kW)</div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">How much heat the home loses, before and after — lower is better.</span><span class="cap-advanced">Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
+    <p class="note"><span class="cap-simple">The heating power a home needs on the coldest design day — lower means a better-sealed, better-insulated home that's cheaper to keep warm.</span><span class="cap-advanced">Modelled design heat loss (kW) at the design outdoor temperature — the peak heating demand the envelope imposes, i.e. what heating equipment is sized against. A lower post value can allow a smaller furnace or heat pump at replacement time. Pre/post shown as filled areas; amber bars show the per-home reduction distribution.</span></p>
   </div>
 
   
@@ -646,7 +669,8 @@ footer a:hover{color:var(--amber2)}
       <p><strong>EUI (energy use intensity)</strong> = total energy ÷ floor area, in <code>kWh/m²</code> — lets a small efficient home and a large one be compared fairly.<br>
       <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose (common when a home switches to a heat pump — electricity goes up even as emissions fall).<br>
       <strong>Retrofit depth</strong>, based on how much total energy fell: <em>Shallow</em> = up to 10% saved, <em>Medium</em> = 10–50% saved, <em>Deep</em> = 50% or more saved.<br>
-      <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).</p>
+      <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).<br>
+      <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.</p>
 
       <h4>6 · What counts as an "upgrade"</h4>
       <p>Each measure is flagged per home using a sensible threshold, so tiny modelling wiggles don't get counted as real work:</p>
@@ -661,16 +685,17 @@ footer a:hover{color:var(--amber2)}
       <p>When you look at a whole <strong>province</strong>, doing that over hundreds of thousands of records would be slow, so the medians and chart shapes are <strong>pre-calculated once</strong> with a Python script and shipped as a compact summary, broken down by house type. Both paths use the <em>same</em> bucket widths and definitions, so the two views agree.</p>
 
       <h4>8 · How the histograms are built</h4>
-      <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, heat-loss buckets <code>5 GJ/yr</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
+      <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, design-heat-loss buckets <code>2 kW</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
 
       <h4>9 · Things to keep in mind</h4>
-      <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Each bar in the fuel chart is an independent median, so individual fuels won't sum exactly to the total. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
+      <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
+      <p class="caveats"><strong>The sample is self-selected.</strong> Requiring both a before and an after audit means these are overwhelmingly homes that took part in retrofit incentive programs (which required the follow-up audit) and finished their planned work. Homeowners who renovated without a program, or who started and never booked the follow-up, are not captured — so the savings shown here are likely somewhat higher than what a randomly chosen renovation achieves, and the homes themselves skew toward owners motivated enough to go through a grant process.</p>
     </div>
   </details>
 </section>
 
 <footer>
-  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2025<br>
+  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2025 · dataset last rebuilt July 2026<br>
   Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.
 </footer>
 
@@ -678,7 +703,12 @@ footer a:hover{color:var(--amber2)}
 <script>
 // NOTE: PapaParse/pako removed — data now ships as pre-split JSON, no CSV
 // parsing or gzip decompression needed client-side.
-const BASE_URL='https://raw.githubusercontent.com/OttawaVisuals/Energy/main/';
+// When served from localhost (python -m http.server in Energy/), read the
+// data folders sitting next to this file instead of the published GitHub
+// copy — so local pipeline changes are visible before being pushed.
+const BASE_URL=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
+  ?'./'
+  :'https://raw.githubusercontent.com/OttawaVisuals/Energy/main/';
 const FSA_JSON_BASE=`${BASE_URL}fsa_json/`;       // fsa_json/<PROV>/<FSA>.json + _index.json
 const PROVINCE_JSON_BASE=`${BASE_URL}province_json/`; // province_json/<PROV>.json
 
@@ -689,7 +719,9 @@ const PROVINCES={
   MB:{name:'Manitoba',short:'MB'},
   NB:{name:'New Brunswick',short:'NB'},
   NF:{name:'Newfoundland & Labrador',short:'NF'},
+  NT:{name:'Northwest Territories',short:'NT'},
   NS:{name:'Nova Scotia',short:'NS'},
+  NU:{name:'Nunavut',short:'NU'},
   ON:{name:'Ontario',short:'ON'},
   PE:{name:'Prince Edward Island',short:'PE'},
   QC:{name:'Quebec',short:'QC'},
@@ -730,7 +762,7 @@ const BINS={
   area:50,        // floor-area buckets (m²)
   eui:20,         // energy-use-intensity buckets (kWh/m²)
   ghg:1,          // GHG buckets (tCO2e/yr)
-  heatloss:2,     // heat-loss buckets (GJ/yr)
+  heatloss:2,     // design heat loss buckets (kW — peak demand, not GJ/yr)
   savingsPct:1    // energy-saving histogram (whole %)
 };
 
@@ -842,10 +874,15 @@ function decodeWindowParts(code){
 }
 
 const $=id=>document.getElementById(id);
+// Dim the dashboard while a new selection's data is in flight (see the
+// main.is-loading CSS rule). Set by the three load*() entry points, cleared
+// at the end of render()/renderProvince() and on fetch failure.
+const setLoading=on=>document.querySelector('main').classList.toggle('is-loading',!!on);
 const flag=(r,k)=>r[k]==='True'||r[k]===true||r[k]==='1'||r[k]===1;
 const num=v=>{const n=parseFloat(v);return v===null||v===undefined||isNaN(n)?null:n;};
 const norm=t=>t?t.trim().replace(/\b\w/g,c=>c.toUpperCase()):'';
-const fmtPct=v=>v>=0?`+${Math.round(v*100)}%`:`${Math.round(v*100)}%`;
+// Same +/− convention (with a real minus glyph U+2212) as the KPI blocks.
+const fmtPct=v=>v>=0?`+${Math.round(v*100)}%`:`−${Math.round(-v*100)}%`;
 const median=arr=>{
   const s=[...arr].filter(v=>v!=null).sort((a,b)=>a-b);
   if(!s.length)return null;
@@ -981,6 +1018,7 @@ function load(){
   if(!PROVINCE_CODE)return;
   const prov=PROVINCES[PROVINCE_CODE];
   const myToken=++LOAD_TOKEN;
+  setLoading(true);
 
   $('logo-province').textContent=prov.short;
   $('hero-eyebrow').textContent=`${prov.name} · Home energy retrofits`;
@@ -1000,11 +1038,21 @@ function load(){
   }
   $('fsa-sel').disabled=false;
 
+  // Warm the province-summary cache in parallel with the index fetch — the
+  // two are independent, and province mode needs both, so fetching them
+  // sequentially (the old behaviour) added a full round trip for nothing.
+  if(!SELECTED_FSA)fetchProvinceSummary(PROVINCE_CODE).catch(()=>{});
+
   // Always (re)build the FSA dropdown for the selected province first —
   // needed whether the user ends up in province or FSA mode.
   fetchFsaIndex(PROVINCE_CODE).then(idx=>{
     if(myToken!==LOAD_TOKEN)return;
     populateFsaDropdown(PROVINCE_CODE,idx);
+    // SELECTED_FSA may have been set before the dropdown existed (deep link
+    // or postal-code jump): validate it against the index and sync the UI
+    // (and the share URL, in case an invalid ?fsa= was dropped).
+    if(SELECTED_FSA&&!idx.some(e=>e.fsa===SELECTED_FSA)){SELECTED_FSA='';updateShareUrl();}
+    $('fsa-sel').value=SELECTED_FSA;
     loadFsaMap(PROVINCE_CODE,idx);
     if(SELECTED_FSA){
       loadFsaView(myToken);
@@ -1014,6 +1062,7 @@ function load(){
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
     console.error(err);
+    setLoading(false);
     document.querySelector('main').innerHTML=
       `<div class="state-msg"><strong>Could not load data</strong>Could not fetch the FSA index for ${prov.name}.</div>`;
   });
@@ -1022,6 +1071,7 @@ function load(){
 function loadFsaView(myToken){
   MODE='fsa';
   const prov=PROVINCES[PROVINCE_CODE];
+  setLoading(true);
   $('result-count').textContent='…';
   fetchFsaRows(PROVINCE_CODE,SELECTED_FSA).then(rows=>{
     if(myToken!==LOAD_TOKEN)return;
@@ -1032,11 +1082,12 @@ function loadFsaView(myToken){
     const fuelEl=$('fuel-sel');fuelEl.innerHTML='<option value="">All fuels</option>';
     fuels.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fuelEl.appendChild(o);});
     showFsaFilterControls(true);
-    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} audits`;
+    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} matched homes`;
     applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows; render() -> renderAdvancedSections() covers census
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
     console.error(err);
+    setLoading(false);
     document.querySelector('main').innerHTML=
       `<div class="state-msg"><strong>Could not load data</strong>Could not fetch data for FSA ${SELECTED_FSA}.</div>`;
   });
@@ -1045,6 +1096,7 @@ function loadFsaView(myToken){
 function loadProvinceView(myToken){
   MODE='province';
   const prov=PROVINCES[PROVINCE_CODE];
+  setLoading(true);
   $('result-count').textContent='…';
   fetchProvinceSummary(PROVINCE_CODE).then(payload=>{
     if(myToken!==LOAD_TOKEN)return;
@@ -1055,11 +1107,12 @@ function loadProvinceView(myToken){
     toggleSlopegraphCard(false); // needs row-level pre/post pairs, province view has none
     toggleVintageCard(false); // needs row-level YearBuilt + measure flags, province view has none
     toggleWindowChangesCard(false); // needs paired per-home pre/post codes, province view has none
-    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} audits`;
+    $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} matched homes`;
     renderProvince(payload);
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
     console.error(err);
+    setLoading(false);
     document.querySelector('main').innerHTML=
       `<div class="state-msg"><strong>Could not load data</strong>Could not fetch the province summary for ${prov.name}.</div>`;
   });
@@ -1101,6 +1154,7 @@ function render(){
   $('sec-individual').style.display='';
   const n=FILTERED.length;
   $('result-count').textContent=n.toLocaleString();
+  $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
   const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
   const med=median(savings);
   $('s-median').textContent=med!==null?Math.round(med*100)+'%':'—';
@@ -1111,7 +1165,7 @@ function render(){
   $('s-deep').textContent=deep.toLocaleString();
   $('s-deep-sub').textContent=n?`${Math.round(deep/n*100)}% of matched homes`:'';
   $('s-hp').textContent=hp.toLocaleString();
-  $('s-hp-sub').textContent=n?`${Math.round(hp/n*100)}% of retrofits`:'';
+  $('s-hp-sub').textContent=n?`${Math.round(hp/n*100)}% of matched homes`:'';
   $('s-fs').textContent=fs.toLocaleString();
   $('s-fs-sub').textContent=n?`${Math.round(fs/n*100)}% of matched homes`:'';
 
@@ -1149,6 +1203,7 @@ function render(){
   renderKPI(n,fs);renderInsulDist();renderMeasures(n);
   renderHist(savings);
   renderAdvancedSections();
+  setLoading(false);
 }
 
 // Renderers for cards/sections that are Advanced-only (see the data-mode=
@@ -1708,7 +1763,7 @@ function renderGHG(saveMedian){
   drawComboChart('ghg-chart','ghg',preBins,postBins,deltaBins,'tCO2e/yr');
 }
 
-// ── Heat loss ─────────────────────────────────────────────────────
+// ── Design heat loss (kW — see ers_web_pipeline.py: EGHDESHTLOSS W→kW) ──
 function renderHeatLoss(){
   const pre=FILTERED.map(r=>num(r.Pre_HeatLoss)).filter(v=>v!==null&&v>0&&v<=150);
   const post=FILTERED.map(r=>num(r.Post_HeatLoss)).filter(v=>v!==null&&v>0&&v<=150);
@@ -1725,7 +1780,7 @@ function renderHeatLoss(){
     const d=pre-post;
     if(d>0&&d<=150){const k=Math.floor(d/BINS.heatloss)*BINS.heatloss;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
-  drawComboChart('heatloss-chart','heatloss',preBins,postBins,deltaBins,'GJ/yr');
+  drawComboChart('heatloss-chart','heatloss',preBins,postBins,deltaBins,'kW');
 }
 
 // ── Solar PV ──────────────────────────────────────────────────────
@@ -2307,6 +2362,7 @@ function renderProvince(payload){
   _lastProvincePayload=payload;
   const n=slice.row_count||0;
   $('result-count').textContent=n.toLocaleString();
+  $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
 
   const med=slice.median_saving_pct;
   $('s-median').textContent=med!=null?Math.round(med*100)+'%':'—';
@@ -2315,7 +2371,7 @@ function renderProvince(payload){
   $('s-deep').textContent=(slice.deep_retrofit_count||0).toLocaleString();
   $('s-deep-sub').textContent=n?`${Math.round((slice.deep_retrofit_count||0)/n*100)}% of matched homes`:'';
   $('s-hp').textContent=(slice.heat_pump_count||0).toLocaleString();
-  $('s-hp-sub').textContent=n?`${Math.round((slice.heat_pump_count||0)/n*100)}% of retrofits`:'';
+  $('s-hp-sub').textContent=n?`${Math.round((slice.heat_pump_count||0)/n*100)}% of matched homes`:'';
   $('s-fs').textContent=(slice.fuel_switch_count||0).toLocaleString();
   $('s-fs-sub').textContent=n?`${Math.round((slice.fuel_switch_count||0)/n*100)}% of matched homes`:'';
 
@@ -2338,6 +2394,7 @@ function renderProvince(payload){
   renderAdvancedSections();
   $('table-card').style.display='none';
   $('sec-individual').style.display='none';
+  setLoading(false);
 }
 
 // Bin objects from precompute_province_stats.py have integer/numeric keys
@@ -2531,7 +2588,7 @@ function renderProvinceEUI(slice){
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
-    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² saved</div></div>`:''}`;
+    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · median home</div></div>`:''}`;
   const preBins=slice.eui_pre_bins||{},postBins=slice.eui_post_bins||{};
   // eui_delta_bins ships at a 10 kWh/m² step (see precompute_province_stats.py);
   // re-bucket to the 20 kWh/m² step used here so it can share the same x-axis.
@@ -2551,17 +2608,19 @@ function renderProvinceGHG(slice){
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
-    ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr saved</div></div>`:''}`;
+    ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr · median home</div></div>`:''}`;
   const preBins=slice.ghg_pre_bins||{},postBins=slice.ghg_post_bins||{};
-  // Province-precomputed stats don't ship a GHG delta histogram (only EUI
-  // has one), so the Reduction view has nothing to show here — disable it
-  // rather than rendering an empty chart on click.
-  drawComboChart('ghg-chart','ghg',preBins,postBins,{},'tCO2e/yr');
+  // ghg_delta_bins ships from precompute_province_stats.py at the same
+  // 1 tCO2e step used here; older province files without it just omit the
+  // Improvement bars ({} fallback), same as before the field existed.
+  drawComboChart('ghg-chart','ghg',preBins,postBins,slice.ghg_delta_bins||{},'tCO2e/yr');
 }
 
 function renderProvinceHeatLoss(slice){
+  // Design heat loss in kW (peak demand), 2 kW bins — must match both
+  // BINS.heatloss and precompute_province_stats.py's step=2.
   const preBins=slice.heatloss_pre_bins||{},postBins=slice.heatloss_post_bins||{};
-  drawComboChart('heatloss-chart','heatloss',preBins,postBins,{},'GJ/yr');
+  drawComboChart('heatloss-chart','heatloss',preBins,postBins,slice.heatloss_delta_bins||{},'kW');
 }
 
 function renderProvinceSolar(slice){
@@ -2805,7 +2864,7 @@ function makeInlineSVG(r){
         ${textRow('Heat pump',r.Pre_HPType,r.Post_HPType)}
         ${numRow('Energy',num(r.Pre_TotalEnergy),num(r.Post_TotalEnergy),'kWh',false,0)}
         ${numRow('GHG',num(r.Pre_GHG),num(r.Post_GHG),'tCO2e/yr',false,1)}
-        ${numRow('Heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'GJ/yr',false,1)}
+        ${numRow('Design heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'kW',false,1)}
         ${numRow('Solar PV',num(r.Pre_SolarPV),num(r.Post_SolarPV),'kW',true,1)}
       </tbody>
     </table></div>
@@ -2947,8 +3006,13 @@ function loadFsaMap(prov,fsaIndex){
   toggleFsaMapCard(true);
   $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
   resetFsaMapZoom();
-  Promise.all([fetchGeoJSON(prov),fetchCensusData().catch(()=>({}))]).then(([geojson,census])=>{
+  // Census is only used here for the tooltip's population line, so don't
+  // block painting 500+ polygons on that ~1.2MB fetch — paint now, then
+  // patch population into indexByFsa in place once census resolves (the
+  // tooltip reads indexByFsa live on hover, so no repaint is needed).
+  fetchGeoJSON(prov).then(geojson=>{
     if(PROVINCE_CODE!==prov)return; // user already switched province before this resolved
+    const census={};
     let minLon=Infinity,maxLon=-Infinity,minLat=Infinity,maxLat=-Infinity;
     geojson.features.forEach(ft=>{
       const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
@@ -2998,6 +3062,12 @@ function loadFsaMap(prov,fsaIndex){
 
     MAP_STATE={prov,z,origin:[originX,originY],features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup};
     paintFsaMap();
+    fetchCensusData().then(c=>{
+      if(!MAP_STATE||MAP_STATE.prov!==prov)return;
+      Object.keys(MAP_STATE.indexByFsa).forEach(f=>{
+        if(c[f]&&c[f].population!=null)MAP_STATE.indexByFsa[f].population=c[f].population;
+      });
+    }).catch(()=>{});
   }).catch(err=>{
     console.error(err);
     $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Map not available for this province</text>';
@@ -3028,10 +3098,10 @@ function buildFsaColorScale(state){
   }
   const counts=vals.map(e=>e.row_count||0);
   const maxCount=Math.max(...counts,1);
-  $('map-color-meaning').textContent='audits collected';
+  $('map-color-meaning').textContent='audited homes';
   setChartLegend('map-legend',[
-    {label:'Fewer audits',color:'#E6ECF5'},
-    {label:'More audits',color:'#0B2545'},
+    {label:'Fewer audited homes',color:'#E6ECF5'},
+    {label:'More audited homes',color:'#0B2545'},
   ]);
   return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxCount)):'#D3D9E2';
 }
@@ -3063,6 +3133,10 @@ function paintFsaMap(){
     wireFsaMapPan(svg);
     svg.dataset.wired='1';
   }
+  // If an FSA was already selected before the map finished loading (deep
+  // link or postal-code jump), zoom straight to it — the usual zoom happens
+  // in the fsa-sel change handler, which fired before MAP_STATE existed.
+  if(SELECTED_FSA)zoomFsaMapTo(SELECTED_FSA);
 }
 
 // Fetches a higher-zoom OSM tile set scoped to pixelBbox (in MAP_STATE's
@@ -3104,7 +3178,7 @@ function onFsaMapHover(e){
   const lines=[`<strong>${fsa}</strong>`];
   if(entry){
     if(entry.population!=null)lines.push(`${entry.population.toLocaleString()} population`);
-    lines.push(`${entry.row_count.toLocaleString()} audits`);
+    lines.push(`${entry.row_count.toLocaleString()} audited homes`);
     if(entry.median_saving_pct!=null)lines.push(`${Math.round(entry.median_saving_pct*100)}% median saving`);
   }else{
     lines.push('No audit data');
@@ -3232,6 +3306,74 @@ function wireFsaMapPan(svg){
   svg.addEventListener('pointercancel',endDrag);
 }
 
+// ── Shareable URLs ──────────────────────────────────────────────────
+// Keeps ?prov=&fsa= in the address bar in sync with the current selection
+// (replaceState — no history spam), so a view can be copied and sent to
+// someone else. parseDeepLink() is the read side, run once before the
+// initial load(). The existing ?view= param is preserved untouched.
+function updateShareUrl(){
+  const p=new URLSearchParams(location.search);
+  p.delete('prov');p.delete('fsa');
+  if(PROVINCE_CODE&&PROVINCE_CODE!=='CA')p.set('prov',PROVINCE_CODE);
+  if(SELECTED_FSA)p.set('fsa',SELECTED_FSA);
+  const q=p.toString();
+  history.replaceState(null,'',location.pathname+(q?'?'+q:''));
+  // Keep the tab/bookmark title in step with the shared view.
+  const prov=PROVINCES[PROVINCE_CODE];
+  const where=SELECTED_FSA?`${SELECTED_FSA}, ${prov?prov.name:''}`:(prov&&PROVINCE_CODE!=='CA'?prov.name:'');
+  document.title=where?`Retrofit Explorer — ${where}`:'Retrofit Explorer — real Canadian home energy retrofits';
+}
+function parseDeepLink(){
+  const p=new URLSearchParams(location.search);
+  const prov=(p.get('prov')||'').toUpperCase();
+  const fsa=(p.get('fsa')||'').toUpperCase();
+  if(PROVINCES[prov]&&prov!=='CA'){
+    PROVINCE_CODE=prov;
+    $('province-sel').value=prov;
+    // Validated for real against the province's _index.json inside load().
+    if(/^[A-Z]\d[A-Z]$/.test(fsa))SELECTED_FSA=fsa;
+  }
+}
+
+// ── Postal-code quick find ──────────────────────────────────────────
+// People know their postal code, not the term "FSA" — the first letter
+// pins the province (postal district), the first three characters are the
+// FSA. X covers both territories, so try each index until one contains it.
+const POSTAL_PROV={A:['NF'],B:['NS'],C:['PE'],E:['NB'],G:['QC'],H:['QC'],J:['QC'],
+  K:['ON'],L:['ON'],M:['ON'],N:['ON'],P:['ON'],R:['MB'],S:['SK'],T:['AB'],V:['BC'],X:['NT','NU'],Y:[]};
+function showPcHint(msg){
+  const el=$('pc-hint');
+  el.textContent=msg||'';
+  el.style.display=msg?'':'none';
+}
+function goToPostal(raw){
+  const m=String(raw||'').trim().toUpperCase().replace(/\s+/g,'').match(/^([A-Z]\d[A-Z])/);
+  if(!m){showPcHint('Enter a valid Canadian postal code, e.g. K1A 0B1.');return;}
+  const fsa=m[1];
+  const provs=POSTAL_PROV[fsa[0]];
+  if(!provs){showPcHint(`"${fsa[0]}" is not a Canadian postal district.`);return;}
+  if(!provs.length){showPcHint('Yukon has too few matched audits to appear in this dataset.');return;}
+  showPcHint('');
+  (function tryNext(i){
+    if(i>=provs.length){
+      showPcHint(`No matched retrofits recorded for ${fsa} — try the province-wide view instead.`);
+      return;
+    }
+    fetchFsaIndex(provs[i]).then(idx=>{
+      if(!idx.some(e=>e.fsa===fsa)){tryNext(i+1);return;}
+      PROVINCE_CODE=provs[i];
+      SELECTED_FSA=fsa;
+      SELECTED_TYPE='';
+      $('province-sel').value=PROVINCE_CODE;
+      ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+      updateShareUrl();
+      load(); // syncs the FSA dropdown + map zoom itself once the index re-resolves (cached)
+    }).catch(()=>tryNext(i+1));
+  })(0);
+}
+$('pc-input').addEventListener('keydown',e=>{if(e.key==='Enter')goToPostal(e.target.value);});
+$('pc-input').addEventListener('change',e=>{if(e.target.value.trim())goToPostal(e.target.value);});
+
 // Wire province selector
 $('province-sel').addEventListener('change',function(){
   PROVINCE_CODE=this.value;
@@ -3240,6 +3382,8 @@ $('province-sel').addEventListener('change',function(){
   SELECTED_FSA='';SELECTED_TYPE='';
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
   $('fsa-sel').value='';
+  $('pc-input').value='';showPcHint('');
+  updateShareUrl();
   load();
 });
 
@@ -3250,6 +3394,7 @@ $('fsa-sel').addEventListener('change',function(){
   SELECTED_FSA=this.value;
   if(!PROVINCE_CODE)return;
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  updateShareUrl();
   // Mint a fresh token so a slow fetch from a previously-selected FSA that
   // lands after this one is discarded by the myToken!==LOAD_TOKEN guard.
   const myToken=++LOAD_TOKEN;
@@ -3298,6 +3443,8 @@ function setViewMode(mode){
 // pre-selected option).
 fetchLookups();
 document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===(isAdvancedMode()?'advanced':'simple')));
+parseDeepLink(); // ?prov=&fsa= override the CA landing default when present
+updateShareUrl(); // canonicalise the params + set the tab title to match
 load();
 </script>
 </body>

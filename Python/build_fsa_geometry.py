@@ -80,6 +80,12 @@ MAX_RING_POINTS = 1500
 # them, was the actual cause of the multi-MB blowup, not the area-tolerance
 # buckets themselves.
 MIN_RING_BBOX_DIAGONAL_M = 800
+# Territory-scale FSAs (Nunavut's X0A alone is ~1.9M km² of Arctic
+# archipelago) render at a zoom where even a 5 km island is sub-pixel —
+# without a coarser floor, NU.json came out at 2.8 MB for 3 features,
+# larger than all 520 Ontario FSAs combined.
+MIN_RING_BBOX_DIAGONAL_M_HUGE = 8000   # applied when LANDAREA > HUGE_AREA_KM2
+HUGE_AREA_KM2 = 50000
 
 
 def tolerance_for_area(area_km2):
@@ -89,12 +95,12 @@ def tolerance_for_area(area_km2):
     return TOLERANCE_BUCKETS[-1][1]
 
 # StatCan PRUID -> this project's province code (matches PROVINCES in
-# retrofits.html). Territories aren't in the province dropdown and one
-# (Nunavut) has a single FSA covering 600k+ raw points, so they're skipped
-# entirely rather than processed and left unused.
+# retrofits.html). NT (61) and NU (62) are included since the dropdown now
+# lists both; Yukon (60) stays out — no matched audits in the ERS data, so
+# there's nothing to draw a map for.
 PRUID_TO_PROV = {
     "10": "NF", "11": "PE", "12": "NS", "13": "NB", "24": "QC", "35": "ON",
-    "46": "MB", "47": "SK", "48": "AB", "59": "BC",
+    "46": "MB", "47": "SK", "48": "AB", "59": "BC", "61": "NT", "62": "NU",
 }
 
 # ── Inverse NAD83 Statistics Canada Lambert (2 standard parallels) ─────────
@@ -210,10 +216,13 @@ def main():
 
         diags = [bbox_diag(shape.points[s:e]) for s, e in ring_slices]
         main_ring_idx = max(range(len(diags)), key=lambda i: diags[i]) if diags else None
+        min_diag = (MIN_RING_BBOX_DIAGONAL_M_HUGE
+                    if sr.record["LANDAREA"] > HUGE_AREA_KM2
+                    else MIN_RING_BBOX_DIAGONAL_M)
 
         rings = []
         for i, (s, e) in enumerate(ring_slices):
-            if i != main_ring_idx and diags[i] < MIN_RING_BBOX_DIAGONAL_M:
+            if i != main_ring_idx and diags[i] < min_diag:
                 continue  # tiny lake/island, invisible at province zoom
             ring_pts = shape.points[s:e]
             lonlat = [inverse_lambert(x, y) for x, y in ring_pts]

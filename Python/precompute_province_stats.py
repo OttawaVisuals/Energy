@@ -242,6 +242,16 @@ def compute_slice(df):
     out['ghg_pre_bins'] = bin_counts(ghg_pre, step=1, max_val=30)
     out['ghg_post_bins'] = bin_counts(ghg_post, step=1, max_val=30)
 
+    # Per-home GHG improvement histogram (mirrors renderGHG()'s deltaBins:
+    # d = pre - post, kept where 0 < d <= 30, same 1 tCO2e step) — previously
+    # missing, which left the province view without the amber Improvement bars
+    # the FSA view shows on this chart.
+    ghg_pair = pd.DataFrame({'pre': num(df.get('Pre_GHG')),
+                             'post': num(df.get('Post_GHG'))}).dropna()
+    ghg_deltas = (ghg_pair['pre'] - ghg_pair['post'])
+    ghg_deltas = ghg_deltas[(ghg_deltas > 0) & (ghg_deltas <= 30)].to_numpy()
+    out['ghg_delta_bins'] = bin_counts(ghg_deltas, step=1)
+
     # ---- Solar (mirrors renderSolar()) ----
     pre_solar = num(df.get('Pre_SolarPV'))
     post_solar = num(df.get('Post_SolarPV'))
@@ -282,13 +292,23 @@ def compute_slice(df):
     ]
     out['storey_counts'] = pd.Series(storey_final).value_counts().to_dict()
 
-    # ---- Heat loss (mirrors renderHeatLoss(): 5-unit bins, 0 < v <= 150) ----
-    hl_pre = num(df.get('Pre_HeatLoss'))
-    hl_post = num(df.get('Post_HeatLoss'))
-    hl_pre = hl_pre[(hl_pre > 0) & (hl_pre <= 150)].dropna().to_numpy()
-    hl_post = hl_post[(hl_post > 0) & (hl_post <= 150)].dropna().to_numpy()
-    out['heatloss_pre_bins'] = bin_counts(hl_pre, step=5)
-    out['heatloss_post_bins'] = bin_counts(hl_post, step=5)
+    # ---- Design heat loss (mirrors renderHeatLoss(): BINS.heatloss=2 kW bins,
+    # 0 < v <= 150). Values are kW (design/peak heating demand, from
+    # EGHDESHTLOSS W*0.001 in ers_web_pipeline.py) — NOT annual GJ. ----
+    hl_pre_s = num(df.get('Pre_HeatLoss'))
+    hl_post_s = num(df.get('Post_HeatLoss'))
+    hl_pre = hl_pre_s[(hl_pre_s > 0) & (hl_pre_s <= 150)].dropna().to_numpy()
+    hl_post = hl_post_s[(hl_post_s > 0) & (hl_post_s <= 150)].dropna().to_numpy()
+    out['heatloss_pre_bins'] = bin_counts(hl_pre, step=2)
+    out['heatloss_post_bins'] = bin_counts(hl_post, step=2)
+
+    # Per-home improvement histogram (mirrors renderHeatLoss()'s deltaBins:
+    # d = pre - post, kept where 0 < d <= 150, same 2 kW step).
+    hl_pair = pd.DataFrame({'pre': hl_pre_s, 'post': hl_post_s}).dropna()
+    hl_pair = hl_pair[(hl_pair['pre'] > 0) & (hl_pair['post'] > 0)]
+    hl_deltas = (hl_pair['pre'] - hl_pair['post'])
+    hl_deltas = hl_deltas[(hl_deltas > 0) & (hl_deltas <= 150)].to_numpy()
+    out['heatloss_delta_bins'] = bin_counts(hl_deltas, step=2)
 
     # ---- Savings histogram (mirrors renderHist(): 1% bins on EnergySavingPct) ----
     if savings.size:
@@ -317,18 +337,26 @@ def compute_slice(df):
                 'pre': float(row['pre']), 'post': float(row['post'])}
     out['sankey_flows'] = flows
 
-    # ---- Waterfall (mirrors renderWaterfall(): median per fuel column, pre/post) ----
+    # ---- Waterfall (per-home MEANS per fuel column, pre/post) ----
+    # MEANS, not medians: renderProvinceWaterfall() multiplies these by
+    # row_count to recover group totals (mean*n == sum exactly), matching the
+    # FSA view which sums raw rows. A median here would also zero out any
+    # fuel used by fewer than half the homes, silently dropping minority
+    # fuels (oil, wood, propane) from the chart entirely — the exact flaw
+    # the JS `mean` helper's comment documents.
     waterfall = []
     for key, label in WATERFALL_FUELS:
         pre_col = num(df.get(f'Pre_{key}')).fillna(0).to_numpy()
         post_col = num(df.get(f'Post_{key}')).fillna(0).to_numpy()
-        pm = round(median(pre_col) or 0)
-        qm = round(median(post_col) or 0)
+        pm = round(float(pre_col.mean())) if pre_col.size else 0
+        qm = round(float(post_col.mean())) if post_col.size else 0
         if pm == 0 and qm == 0:
             continue
         waterfall.append({'fuel': label, 'pre': pm, 'post': qm})
-    total_pre = round(median(pre_e.fillna(0).to_numpy()) or 0)
-    total_post = round(median(post_e.fillna(0).to_numpy()) or 0)
+    total_pre_arr = pre_e.fillna(0).to_numpy()
+    total_post_arr = post_e.fillna(0).to_numpy()
+    total_pre = round(float(total_pre_arr.mean())) if total_pre_arr.size else 0
+    total_post = round(float(total_post_arr.mean())) if total_post_arr.size else 0
     waterfall.append({'fuel': 'TOTAL', 'pre': total_pre, 'post': total_post})
     out['waterfall'] = waterfall
 

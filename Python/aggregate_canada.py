@@ -89,8 +89,8 @@ def main():
     # Additive bin/count fields.
     for key in [
         "eui_pre_bins", "eui_post_bins", "eui_delta_bins",
-        "ghg_pre_bins", "ghg_post_bins",
-        "heatloss_pre_bins", "heatloss_post_bins",
+        "ghg_pre_bins", "ghg_post_bins", "ghg_delta_bins",
+        "heatloss_pre_bins", "heatloss_post_bins", "heatloss_delta_bins",
         "floor_area_bins", "year_built_bins", "savings_pct_bins",
         "storey_counts", "type_counts",
         "ahri_counts", "window_pre_counts", "window_post_counts",
