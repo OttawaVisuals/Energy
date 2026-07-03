@@ -154,14 +154,36 @@ def add_year_columns(df):
     return df
 
 
-def coerce_value(v):
+# Per-column float precision. Energy columns are annual kWh — sub-kWh digits
+# are pure noise (the source models to ~0.1 Wh) and were ~20% of each file's
+# gzipped size. Everything else numeric gets 2 dp (RSI/ACH/GHG/kW values are
+# only ever displayed at 0-1 dp and binned far coarser than that);
+# EnergySavingPct keeps 4 dp because 1%-bin boundaries round from it.
+INT_COLS = {
+    'Pre_TotalEnergy', 'Post_TotalEnergy',
+    'Pre_Electricity', 'Post_Electricity', 'Pre_NaturalGas', 'Post_NaturalGas',
+    'Pre_Oil', 'Post_Oil', 'Pre_Propane', 'Post_Propane', 'Pre_Wood', 'Post_Wood',
+}
+PRECISION_4_COLS = {'EnergySavingPct'}
+
+
+def _round_for(col, f):
+    if col in INT_COLS:
+        return round(f)
+    if col in PRECISION_4_COLS:
+        return round(f, 4)
+    r = round(f, 2)
+    return int(r) if float(r).is_integer() else r
+
+
+def coerce_value(v, col=None):
     """
     Convert a single cell to its JSON-ready form:
       - NaN/NaT/None -> None
       - numeric-looking strings -> int or float (old pipeline stored some
         numeric columns as strings; this avoids shipping '175.5' as a string
         when 175.5 is half the bytes and what the JS num() helper wants anyway)
-      - numpy scalar types -> native Python types
+      - numpy scalar types -> native Python types, rounded per _round_for
       - everything else -> left as-is
     """
     if v is None:
@@ -178,12 +200,12 @@ def coerce_value(v):
     if isinstance(v, (np.integer,)):
         return int(v)
     if isinstance(v, (np.floating, float)):
-        return round(float(v), 4)
+        return _round_for(col, float(v))
     if isinstance(v, str):
         s = v.strip()
         try:
             f = float(s)
-            return int(f) if f.is_integer() else round(f, 4)
+            return int(f) if f.is_integer() else _round_for(col, f)
         except ValueError:
             return v
     return v
@@ -255,7 +277,7 @@ def split_province(parquet_path, out_root):
         if not fsa or pd.isna(fsa):
             continue
         rows = [
-            [coerce_value(v) for v in row]
+            [coerce_value(v, c) for c, v in zip(cols_present, row)]
             for row in group[cols_present].itertuples(index=False, name=None)
         ]
         payload = {'columns': cols_present, 'rows': rows}
