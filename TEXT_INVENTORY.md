@@ -31,11 +31,12 @@ Cross-cutting wording conventions currently in use (candidates to standardize):
 |---|---|---|
 | `retrofit` + province short code | `.logo` / `#logo-province` | `#logo-province` starts as `Canada`; `load()` sets it to the province short code (`CA`, `AB`, …). |
 | `Simple` / `Advanced` | `.mode-btn` buttons | Always. Active button styled; `setViewMode()` toggles. |
-| Province dropdown options | `#province-sel` | `All of Canada` (selected), `Select province…`, then the 10 provinces (Alberta … Saskatchewan). |
+| Province dropdown options | `#province-sel` | `All of Canada` (selected), then the 10 provinces + `Northwest Territories` + `Nunavut` (alphabetical). |
 | `EnerGuide data` | `.header-badge` `#header-badge` | Initial. Then overwritten per scope (next rows). Hidden under 600px. |
 | `EnerGuide data · {province} · loading…` | `#header-badge` | While `load()` is fetching. |
-| `EnerGuide data · {province} · {n} audits` | `#header-badge` | Province/Canada view loaded. |
-| `EnerGuide data · {province} · {FSA} · {n} audits` | `#header-badge` | FSA view loaded. |
+| `EnerGuide data · {province} · {n} matched homes` | `#header-badge` | Province/Canada view loaded. |
+| `EnerGuide data · {province} · {FSA} · {n} matched homes` | `#header-badge` | FSA view loaded. |
+| Document title: `Retrofit Explorer — real Canadian home energy retrofits` / `Retrofit Explorer — {province}` / `Retrofit Explorer — {FSA}, {province}` | `<title>` via `updateShareUrl()` | Follows the current selection (also what a shared/bookmarked link shows). |
 
 ---
 
@@ -46,13 +47,18 @@ Cross-cutting wording conventions currently in use (candidates to standardize):
 | `Select a province above to begin` | `.hero-eyebrow` `#hero-eyebrow` | Initial only. |
 | `{province} · Home energy retrofits` | `#hero-eyebrow` | After `load()`. |
 | `What did homes like yours do — and did it work?` ("homes like yours" italic/amber) | `.hero h1` | Always (static). |
-| `Real audit data from Canadian homes. Select your province, then pick your FSA to find retrofits comparable to yours and see actual energy savings — or browse province-wide trends by house type.` | `.hero-sub` | Always (static). |
+| `Real audit data from Canadian homes. Enter your postal code — or pick a province and area — to find retrofits comparable to yours and see the energy savings their audits estimate, or browse province-wide trends by house type.` | `.hero-sub` | Always (static). |
 
 ### 2a. Filter bar
 
 | Text | Element | Condition |
 |---|---|---|
-| `Your FSA` (label) | `#fsa-sel` group | Always. |
+| `Your postal code` (label) / placeholder `e.g. K1A 0B1` | `#pc-input` group | Always. Enter/blur jumps straight to that FSA's view. |
+| Postal hint: `Enter a valid Canadian postal code, e.g. K1A 0B1.` | `#pc-hint` | Input doesn't start with letter-digit-letter. |
+| Postal hint: `"{letter}" is not a Canadian postal district.` | `#pc-hint` | First letter maps to no province. |
+| Postal hint: `Yukon has too few matched audits to appear in this dataset.` | `#pc-hint` | Postal code starts with `Y`. |
+| Postal hint: `No matched retrofits recorded for {FSA} — try the province-wide view instead.` | `#pc-hint` | FSA absent from every candidate province's `_index.json`. |
+| `Your area (FSA)` (label) | `#fsa-sel` group | Always. |
 | `All areas (province-wide)` | `#fsa-sel` default option | Province with FSA data. |
 | `{FSA} ({n} homes)` | `#fsa-sel` options | Per FSA from `_index.json`. |
 | `Not available for All of Canada` | `#fsa-sel` | Scope = CA (dropdown disabled). |
@@ -61,6 +67,7 @@ Cross-cutting wording conventions currently in use (candidates to standardize):
 | `Retrofit depth` (label) | `#depth-sel` group | **FSA mode only**. Options: `Any depth`, `Deep — over 50% savings`, `Medium — 10 to 50%`, `Shallow — under 10%`. |
 | `Reset` | `.filter-reset` | Always. |
 | `{n} retrofits match` (`{n}` = `—`, `…`, or count) | `.filter-count` / `#result-count` | `—` initial, `…` while loading, then count. |
+| ` · Small sample — medians and percentages here are noisy, read them as rough indications only` | `#small-n-warn` | Current view has 1–29 matched homes (either mode). |
 
 ---
 
@@ -71,14 +78,14 @@ Whole card (`#fsa-map-card`) shown only when a province with a boundary file is 
 | Text | Element / source | Condition |
 |---|---|---|
 | `Find your area` | `.card-title` | Always when card shown. |
-| `Click an FSA to select it. Colour = {meaning}.` | `.note` / `#map-color-meaning` | `{meaning}` = `audits collected` (default/sequential scale) **or** `median energy saving` (when FSAs have `median_saving_pct`). |
+| `Click an FSA to select it. Colour = {meaning}.` | `.note` / `#map-color-meaning` | `{meaning}` = `audited homes` (default/sequential scale) **or** `median energy saving` (when FSAs have `median_saving_pct`). |
 | `Reset view` | `#map-reset-btn` | Visible only when zoomed/panned in. |
-| Legend (audit scale): `Fewer audits` / `More audits` | `#map-legend` | When colouring by audit count. |
+| Legend (audit scale): `Fewer audited homes` / `More audited homes` | `#map-legend` | When colouring by audit count. |
 | Legend (savings scale): `{lo}% (increase)` / `0%` / `{hi}%+ saved` | `#map-legend` | When colouring by median saving. |
 | `© OpenStreetMap contributors` | `.map-attribution` | Always (static). |
 | `Loading map…` | `#fsa-map-svg` | While geometry fetches. |
 | `Map not available for this province` | `#fsa-map-svg` | Geometry fetch failed. |
-| **Tooltip** `{FSA}` + `{population} population` + `{n} audits` + `{p}% median saving` | `#map-tip` (`onFsaMapHover`) | Hover over an FSA with data; population/saving lines only if present. |
+| **Tooltip** `{FSA}` + `{population} population` + `{n} audited homes` + `{p}% median saving` | `#map-tip` (`onFsaMapHover`) | Hover over an FSA with data; population appears once the census file resolves (map paints before it). |
 | **Tooltip** `{FSA}` + `No audit data` | `#map-tip` | Hover over an FSA without audit data. |
 | `Zoom in` / `Zoom out` (aria-labels) | zoom buttons | Always. |
 
@@ -100,7 +107,7 @@ Each card has a fixed **label** + dynamic **value** + dynamic **sub**. Values co
 | `Median EUI saving` | `{n}` or `—` | `kWh/m² · median home` (static) | — |
 | `Median GHG saving` | `{n}` or `—` | `tCO2e/yr · median home` (static) | — |
 | `Deep retrofits` | `{n}` | `{p}% of matched homes` | Sub empty if n=0. |
-| `Heat pumps added` | `{n}` | `{p}% of retrofits` | Sub empty if n=0. |
+| `Heat pumps added` | `{n}` | `{p}% of matched homes` | Sub empty if n=0. |
 | `Fuel switches` | `{n}` | `changed heating fuel` (static; sub `{p}% of matched homes` computed but the static HTML sub reads "changed heating fuel") | ⚠ see inconsistencies. |
 | `Solar PV added` | `{n}` | `{p}% of matched homes` | Sub empty if n=0. |
 
@@ -130,7 +137,7 @@ Heading (always visible):
 |---|---|---|
 | `Energy use intensity (EUI) — kWh per m²` | `.card-title` | Always. |
 | KPI: `{pre}` `Pre-retrofit median / kWh/m²` → `{post}` `Post-retrofit median / kWh/m²` | `renderEUI` / `renderProvinceEUI` | Always; values `—` if missing. |
-| KPI saving block: `{−n or +n}` + `kWh/m² · median home` (FSA) **or** `kWh/m² saved` (province) | same | ⚠ Two different sub-labels for the same number across modes. Shown only when a saving exists. |
+| KPI saving block: `{−n or +n}` + `kWh/m² · median home` | same | Same sub-label in both modes. Shown only when a saving exists. |
 | **Caption (Simple):** `Energy use per square metre, before and after — lower is more efficient.` | `.cap-simple` | Simple. |
 | **Caption (Advanced):** `EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.` | `.cap-advanced` | Advanced. |
 
@@ -152,17 +159,17 @@ Advanced-only **and** FSA-only (`toggleSlopegraphCard`).
 |---|---|---|
 | `GHG emissions — tCO2e per year` | `.card-title` | Always. |
 | KPI: `{pre}` `Pre-retrofit median / tCO2e/yr` → `{post}` `Post-retrofit median / tCO2e/yr` | `renderGHG` / `renderProvinceGHG` | Always. |
-| KPI saving: `{−n/+n}` + `tCO2e/yr · median home` (FSA) **or** `tCO2e/yr saved` (province) | same | ⚠ Two sub-labels again. |
+| KPI saving: `{−n/+n}` + `tCO2e/yr · median home` | same | Same sub-label in both modes. |
 | **Caption (Simple):** `Greenhouse gas emissions from home energy use, before and after.` | `.cap-simple` | Simple. |
 | **Caption (Advanced):** `Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.` | `.cap-advanced` | Advanced. |
 
-### 5d. Heat loss card (always visible)
+### 5d. Design heat loss card (always visible)
 
 | Text | Source | Condition |
 |---|---|---|
-| `Heat loss — pre & post (GJ/yr)` | `.card-title` | Always. |
-| **Caption (Simple):** `How much heat the home loses, before and after — lower is better.` | `.cap-simple` | Simple. |
-| **Caption (Advanced):** `Total modelled heat loss through the building envelope and ventilation. Lower is better. Pre/post shown as filled areas; amber bars show the reduction distribution.` | `.cap-advanced` | Advanced. |
+| `Design heat loss — pre & post (kW)` | `.card-title` | Always. (kW = peak heating demand — design heat loss, not annual GJ.) |
+| **Caption (Simple):** `The heating power a home needs on the coldest design day — lower means a better-sealed, better-insulated home that's cheaper to keep warm.` | `.cap-simple` | Simple. |
+| **Caption (Advanced):** `Modelled design heat loss (kW) at the design outdoor temperature — the peak heating demand the envelope imposes, i.e. what heating equipment is sized against. A lower post value can allow a smaller furnace or heat pump at replacement time. Pre/post shown as filled areas; amber bars show the per-home reduction distribution.` | `.cap-advanced` | Advanced. |
 
 ### 5e. Energy by fuel card (Advanced-only)
 
@@ -339,7 +346,7 @@ Advanced-only **and** FSA-only (hidden in province mode via `render()`/`renderPr
 | Legend: `Pre` / `Post` | Always. |
 | Measure chips (`{measure label}`) or `No measures flagged` | Chips if any flag set. |
 | `HVAC & energy` (heading); column headers `Measure`, `Pre-audit`, `Post-audit`, `Savings` | Always. |
-| Rows: `Audit year` (`{n} yr apart`), `Heating fuel`, `Heating type`, `Heat pump` (`Changed` / `—`), `Energy`, `GHG`, `Heat loss`, `Solar PV` | Per row; `Changed`/`—` or numeric delta. |
+| Rows: `Audit year` (`{n} yr apart`), `Heating fuel`, `Heating type`, `Heat pump` (`Changed` / `—`), `Energy`, `GHG`, `Design heat loss` (kW), `Solar PV` | Per row; `Changed`/`—` or numeric delta. |
 
 ---
 
@@ -358,10 +365,8 @@ Static long-form copy. Summary + 9 subsections.
 | `5 · Fields we calculate ourselves` | EUI, Energy saving %, Retrofit depth (Shallow ≤10%, Medium 10–50%, Deep ≥50%), Fuel switch. |
 | `6 · What counts as an "upgrade"` | Insulation +>10%, air sealing −>10%, windows differ, heating differs, heat pump newly present. |
 | `7 · Two views, two ways of counting` | FSA = live in-browser from raw rows; province = precomputed in Python by house type. |
-| `8 · How the histograms are built` | Bucket widths: 20 kWh/m², 5 GJ/yr, 1% saving; improvement charts count only homes that improved. |
-| `9 · Things to keep in mind` (caveats) | Modelled not metered; per-fuel medians don't sum; outliers clipped (>500 kWh/m²); pre-retrofit solar rarely recorded; no cost data. |
-
-> ⚠ The methodology says heat-loss buckets are `5 GJ/yr`, but the code (`BINS.heatloss`) uses **2 GJ/yr**. See inconsistencies.
+| `8 · How the histograms are built` | Bucket widths: 20 kWh/m², 2 kW design heat loss, 1% saving; improvement charts count only homes that improved. |
+| `9 · Things to keep in mind` (caveats) | Two paragraphs: (a) modelled not metered; outliers clipped (>500 kWh/m²); pre-retrofit solar rarely recorded; no cost data. (b) **The sample is self-selected** — mostly incentive-program participants who completed the work and booked the follow-up audit; savings likely run higher than a randomly chosen renovation. |
 
 ---
 
@@ -369,7 +374,7 @@ Static long-form copy. Summary + 9 subsections.
 
 | Text | Source | Condition |
 |---|---|---|
-| `Data: Natural Resources Canada EnerGuide · {scope} audits 2004–2025` | `footer` / `#footer-province` | `#footer-province` = `Canadian home energy audits` initially, then `{province} audits`. |
+| `Data: Natural Resources Canada EnerGuide · {scope} audits 2004–2025 · dataset last rebuilt July 2026` | `footer` / `#footer-province` | `#footer-province` = `Canadian home energy audits` initially, then `{province} audits`. |
 | `Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.` | `footer` | Always. |
 
 ---
@@ -385,27 +390,23 @@ Static long-form copy. Summary + 9 subsections.
 
 ---
 
-## Appendix A — Wording inconsistencies to resolve
+## Appendix A — Wording inconsistencies (status)
 
-These are the concrete mismatches surfaced while inventorying. Standardizing these is likely the point of this exercise.
+Resolved in the July 2026 accuracy & UX pass unless noted.
 
-1. **EUI / GHG saving sub-label differs by scope.**
-   - FSA mode: `kWh/m² · median home` / `tCO2e/yr · median home`
-   - Province mode: `kWh/m² saved` / `tCO2e/yr saved`
-   - The stat-card subs (section 4a) use a third form: `kWh/m² · median home`, `tCO2e/yr · median home`. Pick one phrasing.
+1. ✅ **EUI / GHG saving sub-label** — both modes now read `kWh/m² · median home` / `tCO2e/yr · median home` (matches the stat-card subs).
 
-2. **Count nouns are inconsistent.** The page variously says `matched homes`, `retrofits`, `audits`, `homes`, `dwellings` for related counts:
-   - `{n} retrofits match` (filter), `% of matched homes` (deep/solar/fuel), `% of retrofits` (heat pumps), `{n} audits` (header/map), `{n} homes` (FSA dropdown / chart tooltips), `matching retrofits` (table footer). Decide a canonical term per concept (audited home vs retrofit vs dwelling).
+2. ◐ **Count nouns** — largely standardized: header badge and map now say `matched homes` / `audited homes`; `Heat pumps added` now `% of matched homes` like its siblings. Still in use deliberately: `{n} retrofits match` (filter bar — counting retrofits, not homes, reads naturally there), `{n} homes` (FSA dropdown), `matching retrofits` (table footer).
 
-3. **`Fuel switches` stat sub.** Static HTML reads `changed heating fuel`; JS overwrites it with `{p}% of matched homes`. Confirm intended copy.
+3. ✅ **`Fuel switches` stat sub** — the JS-written `{p}% of matched homes` is the intended copy (the static `changed heating fuel` is only a pre-load placeholder).
 
-4. **Heat-loss bucket width.** Methodology §8 says `5 GJ/yr`; code uses `2 GJ/yr` (`BINS.heatloss`). Fix one.
+4. ✅ **Heat-loss bucket width and unit** — the real unit was neither `5 GJ/yr` nor `2 GJ/yr`: the column is *design heat loss in kW*. Methodology, card title, tooltips and both binning paths now agree on **2 kW**.
 
-5. **Saving sign glyph.** Reductions use `−` (U+2212) in KPI/fuel blocks but `fmtPct` in the table uses a plain hyphen for negatives and `+` for positives. Align the minus glyph and +/− convention.
+5. ✅ **Saving sign glyph** — `fmtPct` now uses the real minus (U+2212), matching the KPI/fuel blocks.
 
-6. **"Foundation" label is abbreviated only in the KPI grid** (`Foundation ins.`) vs full `Foundation insulation` elsewhere. Minor.
+6. **"Foundation ins."** abbreviation in the KPI grid — kept (space constraint). Minor.
 
-7. **Heading punctuation / em-dash usage** is consistent (good) — em dashes throughout card titles. Keep as the house style.
+7. **Em-dash house style** — kept.
 
 ---
 
@@ -413,5 +414,5 @@ These are the concrete mismatches surfaced while inventorying. Standardizing the
 
 - **Measure labels** (`MEASURES`): Air sealing · Roof insulation · Foundation insulation · Wall insulation · Heat pump added · Heating system changed · Windows changed · Floor insulation.
 - **Retrofit depth:** Deep (≥50%) · Medium (10–50%) · Shallow (≤10%) · Increased (negative).
-- **Units shown:** `kWh/m²` (EUI), `tCO2e/yr` (GHG), `GJ/yr` (heat loss), `R-value` / `RSI` / `ACH50` (envelope), `kW` (solar), `GWh` (Sankey/fuel aggregate), `%` (savings/shares).
+- **Units shown:** `kWh/m²` (EUI), `tCO2e/yr` (GHG), `kW` (design heat loss — peak demand; also solar PV size), `R-value` / `RSI` / `ACH50` (envelope), `GWh` (Sankey/fuel aggregate), `%` (savings/shares).
 - **Pre/Post wording:** always `Pre-retrofit` / `Post-retrofit` (charts) or `Pre-audit` / `Post-audit` (table detail) — note this is two different pairings.

@@ -38,7 +38,8 @@ For a selected province (or a single FSA within it):
 
 - Headline stats: median energy saving, EUI saving, GHG saving, deep retrofits, heat pumps added, fuel switches, solar PV added.
 - Distributions: year built, floor area, building type, storeys.
-- Energy: EUI (pre vs post), GHG emissions, heat loss, an energy-by-fuel comparison, and a fuel-flow Sankey.
+- Energy: EUI (pre vs post), GHG emissions, design heat loss (kW — peak heating
+  demand, not annual energy), an energy-by-fuel comparison, and a fuel-flow Sankey.
 - Envelope: insulation (roof / wall / foundation) and air-tightness, pre vs post, plus improvement-only histograms.
 - A measures breakdown and retrofit-profile spider chart.
 - A 1%-increment energy-saving distribution.
@@ -60,10 +61,11 @@ Energy/
    │  ├─ T0A.json                   # raw matched rows for one FSA
    │  └─ … (one file per FSA)
    └─ …
-scripts/
+Python/
 ├─ ers_web_pipeline.py              # Step 1: raw ERS CSVs -> per-province parquet
 ├─ split_fsa_json.py                # Step 2: parquet -> per-FSA JSON
-└─ precompute_province_stats.py     # Step 3: parquet -> province summaries
+├─ precompute_province_stats.py     # Step 3: parquet -> province summaries
+└─ aggregate_canada.py              # Step 4: province summaries -> CA.json rollup
 ```
 
 The front-end fetches data from the `main` branch via `raw.githubusercontent.com`
@@ -271,7 +273,7 @@ must agree on bucket widths or the same data will look different across the two 
 The front-end widths live in one object near the top of the `<script>`:
 
 ```js
-const BINS = { year:10, area:50, eui:20, ghg:1, heatloss:5, savingsPct:1 };
+const BINS = { year:10, area:50, eui:20, ghg:1, heatloss:2, savingsPct:1 };
 ```
 
 These must match `precompute_province_stats.py`:
@@ -281,8 +283,8 @@ These must match `precompute_province_stats.py`:
 | Year built | 10 yr | `year` | `step=10` |
 | Floor area | 50 m² | `area` | `step=50`, max 700 |
 | EUI | 20 kWh/m² | `eui` | `step=20`, max 500 |
-| GHG | 1 tCO₂e/yr | `ghg` | `step=1`, max 30 |
-| Heat loss | 5 GJ/yr | `heatloss` | `step=5`, 0–150 |
+| GHG | 1 tCO₂e/yr | `ghg` | `step=1`, max 30 (pre/post **and** delta) |
+| Design heat loss | 2 kW | `heatloss` | `step=2`, 0–150 (pre/post **and** delta) |
 | Saving % | 1% | `savingsPct` | per-1% |
 | EUI improvement | 10 kWh/m² | (renderer literal) | `step=10`, 0–500 |
 | Roof / air insul. | 0.5 | (renderer arg) | `step=0.5` |
@@ -331,8 +333,10 @@ cd Energy && python -m http.server 8000
 # visit http://localhost:8000/retrofits.html
 ```
 
-To test against **local** data, temporarily point `BASE_URL` (top of the `<script>`) at a
-local path and serve the `Energy/` folder.
+When served from `localhost`/`127.0.0.1`, `BASE_URL` automatically switches to relative
+paths, so the page reads the `fsa_json/`, `province_json/`, `geo_json/`, `census_json/`
+and `lookup/` folders sitting next to it — local pipeline output is testable before
+pushing. Any other host reads the published GitHub copy.
 
 ---
 
@@ -351,9 +355,16 @@ page redeploy needed.
   Real consumption varies with weather and occupant behaviour.
 - **Matched homes only.** A home needs exactly one before and one after audit (after dated
   later), and must pass the same-home checks (≤10% area change; unchanged type/storeys/units).
-- **Medians aren't additive.** In the energy-by-fuel chart each bar is an independent
-  median, so individual fuel bars won't sum exactly to the TOTAL bar. Expected, not a bug.
-- **Outliers clipped** for readability (e.g. EUI > 500 kWh/m², GHG > 30, heat loss > 150).
+- **The sample is self-selected.** Requiring a matched before/after audit pair means the
+  data is dominated by incentive-program participants who completed their retrofit and
+  booked the follow-up audit. Savings shown likely run higher than for a randomly chosen
+  renovation. (Also stated in the in-page methodology.)
+- **Energy-by-fuel uses means/totals, not medians.** The FSA view sums raw rows; the
+  province summaries ship per-home *means* per fuel (mean × row count = exact total).
+  Means are additive across fuels and keep minority fuels (oil, wood, propane) visible —
+  a median would zero out any fuel used by fewer than half the homes.
+- **Outliers clipped** for readability (e.g. EUI > 500 kWh/m², GHG > 30 tCO₂e/yr,
+  design heat loss > 150 kW).
 - **Solar pre vs post.** `Pre_/Post_SolarPV` both read the audit's `KWPV` (kW DC). Pre-retrofit
   audits rarely record existing PV, so `solar_pre_pct` is typically ~0 and "solar added"
   reflects systems present at the follow-up audit — it may slightly overcount homes that
@@ -365,6 +376,40 @@ page redeploy needed.
 ---
 
 ## Changelog
+
+### 2026-07 accuracy & UX pass
+- **Heat loss relabelled to its true unit.** `Pre/Post_HeatLoss` is *design heat loss*
+  in **kW** (EGHDESHTLOSS, W → kW) — peak heating demand, what equipment is sized to —
+  not annual GJ. The chart, tooltips, per-home detail table, and methodology previously
+  said "GJ/yr"; all now say kW and explain the sizing angle.
+- **Heat-loss bin contract fixed.** JS `BINS.heatloss` was 2 while Step 3 used `step=5`,
+  so the FSA and province views binned the same data differently. Both are now 2 kW.
+- **Province waterfall now uses means, not medians.** Step 3 computed per-fuel *medians*,
+  which zeroed out minority fuels (oil/wood/propane vanished from the chart) and didn't
+  match the FSA view's raw totals. It now ships per-home means (mean × row count = exact
+  total). ON, for example, now shows all five fuels.
+- **Province view gained GHG and heat-loss improvement histograms** (`ghg_delta_bins`,
+  `heatloss_delta_bins` in Step 3 + `aggregate_canada.py`), matching the FSA view's amber
+  Improvement bars.
+- **Broken `#province-sel` inline style fixed** — backslash-escaped quotes inside an HTML
+  attribute truncated the style, spilled garbage attributes onto the element, and 404'd on
+  a mangled URL. Styling moved into the stylesheet.
+- **Postal-code quick find** — type a postal code, land directly on your FSA (first letter
+  → province, first three characters → FSA; X tries NT then NU).
+- **Shareable deep links** — `?prov=ON&fsa=K0A` in the URL, kept in sync via
+  `replaceState`, validated against `_index.json` on load.
+- **NT and Nunavut selectable** — their data always existed (and was counted in the Canada
+  totals) but wasn't reachable from the dropdown. Map degrades gracefully (no boundary file).
+- **Small-sample warning** — views with fewer than 30 matched homes get an explicit
+  "medians are noisy" caution in the count bar.
+- **Selection-bias disclosure** added to the in-page methodology and this README.
+- **Faster loads** — province summary now fetched in parallel with the FSA index instead
+  of after it; the FSA map paints without waiting for the ~1.2 MB census file (population
+  is patched into tooltips when it arrives).
+- **Local dev** — `BASE_URL` auto-switches to relative paths on `localhost`, so
+  `python -m http.server` serves your local data instead of the published GitHub copy.
+- Label consistency: "Heat pumps added" now reads "% of matched homes" like every other
+  stat; hero copy says savings are estimates (modelled), not "actual".
 
 ### Front-end fixes
 - **Removed dead code** — `KEYS_URL` / `CODED_COLS` and the old `ers_web_keys.json` decode
