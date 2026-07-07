@@ -5,47 +5,61 @@ Combine the Ottawa WWIS "extracted well data" into a single multi-layer
 GeoPackage, ottawa_geothermal.gpkg, following the plan in
 Ottawa_Geothermal_Project_Summary.md.
 
-This is the *rich* dataset: instead of one bucketed lithology per well (which
-is what Data/processed/wwis_ottawa.geojson already gives you), it keeps the
-Access database's relational detail -- every formation interval, every water
-strike, every pump test -- as separate layers, plus a one-row-per-well summary
-layer with geometry joined from the WWIS shapefile.
+This is the *rich* dataset: it keeps the Access database's relational detail
+(every formation interval, water strike, pump test, construction element) as
+separate layers, plus a one-row-per-well summary layer whose geometry, total
+depth, depth-to-bedrock and static level come from the (clean, metric) WWIS
+shapefile.
+
+The column names, code tables and units below were all derived from the actual
+Ottawa exports in Geothermal/Data (tbl*_Ottawa.csv + wwis_out.shp), not from
+the generic WWIS docs -- so it should run against your files as-is.
 
 Layers produced:
-    wells         one row per WELL_ID: geometry + summary + derived fields
-    formations    one row per formation interval (decoded lithology)
-    water         one row per water strike (decoded kind)
-    pump_tests    one row per pump test
-    construction  casing + screen + hole intervals, stacked
+    wells         one row per WELL_ID: geometry + depths + summary + derived fields
+    formations    one row per formation interval (decoded lithology, metres)
+    water         one row per water strike (decoded kind, metres)
+    pump_tests    one row per pump test (metres, L/min)
+    construction  casing + screen + hole intervals, stacked (metres)
 
-Inputs (all live on your machine, none are committed to the repo):
-    --access   Either a FOLDER of exported Ottawa tables (CSV), or the .mdb
-               file itself. Expected tables (the *_Ottawa suffix is optional):
-                   tblWWR, tblBore_Hole, tblFormation, tblWater,
-                   tblPump_Test, tblCasing, tblScreen, tblHole
-               plus lookup tables:  _code_formation_Material, _code_water_kind,
-                   _codeWaterUse, _code_final_status, _codeColor,
-                   _code_construct_method, _code_casing_material
-    --shp      wwis_out.shp (the WWIS shapefile, for geometry)
-    --out      output .gpkg path (default: Data/processed/ottawa_geothermal.gpkg)
+--------------------------------------------------------------------------
+UNITS.  The Access tables store depths in a mix of ft / m / cm / inch and
+pumping rates in GPM / LPM, with a *_UOM column naming the unit per row.
+Everything is converted to metres and L/min. The shapefile (DEPTH, DP_BEDROCK,
+STATIC_LEV) is already in metres and is treated as authoritative for the
+per-well summary values.
+
+CODE TABLES.  USE_1ST, FINAL_STA, MAT1-3, water kind, casing material, colour
+etc. are numeric/letter codes. The _code_* lookup tables were NOT in the
+export, so this script ships with the codes confirmed from the data preview /
+project summary as a built-in fallback, and will PREFER real _code_*.csv files
+if you drop them next to the data (see --access). Any code it can't resolve is
+passed through as "code:NN" rather than silently mislabelled -- so if you see
+those in the output, export the matching _code_* table and rerun.
+--------------------------------------------------------------------------
+
+Inputs:
+    --access   Folder holding the exported tbl*_Ottawa.csv files
+               (default: Geothermal/Data). If you also export the lookup
+               tables (_code_formation_Material.csv, _code_water_kind.csv,
+               _codeWaterUse.csv, _code_final_status.csv, _codeColor.csv,
+               _code_casing_material.csv, _code_construct_method.csv) into the
+               same folder, they override the built-in defaults.
+               A .mdb/.accdb file also works if pandas_access + mdbtools are
+               installed.
+    --shp      wwis_out.shp  (default: Geothermal/Data/wwis_out.shp)
+    --out      output .gpkg  (default: Geothermal/Data/processed/ottawa_geothermal.gpkg)
 
 Dependencies:
     pip install geopandas pandas shapely pyproj
-    # only if you point --access at a .mdb instead of exported CSVs:
-    pip install pandas_access        # and system 'mdbtools' (apt/brew install mdbtools)
+    # only if --access points at a .mdb instead of CSVs:
+    pip install pandas_access          # plus system 'mdbtools'
 
 Usage:
-    # from a folder of CSV exports:
-    python combine_wells.py --access ../Data/Raw/WWIS/ottawa_tables \
-        --shp ../Data/Raw/WWIS/wwis_out.shp
-
-    # or straight from the Access file:
-    python combine_wells.py --access "../Data/Raw/WWIS/Data2024Q4  250723 181853.mdb" \
-        --shp ../Data/Raw/WWIS/wwis_out.shp
-
-The script is deliberately chatty: for every table it prints how many rows it
-loaded and which expected columns it could/couldn't find, so you can see what
-matched before trusting the output.
+    python Geothermal/scripts/combine_wells.py
+    # or explicit:
+    python Geothermal/scripts/combine_wells.py \
+        --access Geothermal/Data --shp Geothermal/Data/wwis_out.shp
 """
 
 import argparse
@@ -56,58 +70,91 @@ import pandas as pd
 
 try:
     import geopandas as gpd
-    from shapely.geometry import Point
 except ImportError:
     sys.exit("geopandas is required: pip install geopandas pandas shapely pyproj")
 
 
 # --------------------------------------------------------------------------
-# Reference lookups (used for derived fields, independent of the DB lookups)
+# Built-in code lookups (confirmed from the Ottawa export preview + summary).
+# Real _code_*.csv files, if present, override/extend these at load time.
+# Keys are stored both zero-padded ("05") and bare ("5").
 # --------------------------------------------------------------------------
 
-# Approximate mid-range thermal conductivity (W/m.K) from published GSHP design
-# literature. Keyed by the lithology bucket we normalise decoded materials to.
-# These are ESTIMATES from lithology, NOT measured values -- WWIS has no TRT data.
+BUILTIN = {
+    "formation_material": {
+        "00": "UNKNOWN TYPE", "01": "FILL", "02": "TOPSOIL", "03": "MUCK",
+        "04": "PEAT", "05": "CLAY", "08": "FINE SAND", "09": "MEDIUM SAND",
+        "10": "COARSE SAND", "11": "GRAVEL", "12": "STONES",
+        "15": "LIMESTONE", "16": "DOLOMITE", "17": "SHALE", "18": "SANDSTONE",
+    },
+    "water_kind": {
+        "1": "FRESH", "2": "SALTY", "3": "SULPHUR", "4": "MINERAL",
+        "6": "GAS", "7": "IRON",
+    },
+    "water_use": {
+        "1": "Domestic", "2": "Livestock", "3": "Irrigation", "4": "Industrial",
+    },
+    "final_status": {
+        "1": "Water Supply", "2": "Observation Well", "3": "Test Hole",
+        "4": "Recharge Well",
+    },
+    "colour": {
+        "1": "WHITE", "2": "GREY", "3": "BLUE", "4": "GREEN",
+    },
+    "casing_material": {
+        "1": "STEEL", "2": "GALVANIZED", "3": "CONCRETE", "4": "OPEN HOLE",
+        "5": "PLASTIC",
+    },
+    "construct_method": {
+        "0": "Not Known", "1": "Cable Tool", "2": "Rotary (Convent.)",
+        "3": "Rotary (Reverse)", "4": "Rotary (Air)",
+    },
+}
+
+# Which _code_*.csv (by table name stem) feeds which lookup.
+CODE_FILE = {
+    "formation_material": "_code_formation_Material",
+    "water_kind": "_code_water_kind",
+    "water_use": "_codeWaterUse",
+    "final_status": "_code_final_status",
+    "colour": "_codeColor",
+    "casing_material": "_code_casing_material",
+    "construct_method": "_code_construct_method",
+}
+
+# lithology bucket -> approximate mid-range thermal conductivity (W/m.K),
+# from published GSHP design literature. ESTIMATES from lithology, not measured.
 CONDUCTIVITY_WM = {
-    "limestone": 2.8, "dolostone": 3.0, "dolomite": 3.0, "sandstone": 2.3,
-    "shale": 1.9, "granite": 3.2, "gneiss": 3.0, "clay": 1.4, "silt": 1.5,
-    "sand": 2.4, "gravel": 2.0, "till": 1.8, "limestone/shale": 2.3,
+    "limestone": 2.8, "dolostone": 3.0, "sandstone": 2.3, "shale": 1.9,
+    "granite": 3.2, "gneiss": 3.0, "clay": 1.4, "silt": 1.5, "sand": 2.4,
+    "gravel": 2.0, "till": 1.8, "fill": 1.5,
 }
 
-# Map raw decoded material words -> normalised lithology bucket used above.
-LITHOLOGY_BUCKET = {
-    "limestone": "limestone", "lmsn": "limestone",
-    "dolomite": "dolostone", "dolostone": "dolostone", "dlst": "dolostone",
-    "sandstone": "sandstone", "snds": "sandstone",
-    "shale": "shale", "shle": "shale",
-    "granite": "granite", "grnt": "granite",
+# decoded material word -> lithology bucket used above.
+BUCKET = {
+    "limestone": "limestone", "dolomite": "dolostone", "dolostone": "dolostone",
+    "sandstone": "sandstone", "shale": "shale", "slate": "shale",
+    "granite": "granite", "greenstone": "granite", "quartzite": "granite",
     "gneiss": "gneiss",
-    "clay": "clay",
-    "silt": "silt",
-    "fine sand": "sand", "medium sand": "sand", "coarse sand": "sand",
-    "sand": "sand",
-    "gravel": "gravel", "stones": "gravel",
+    "clay": "clay", "silt": "silt",
+    "fine sand": "sand", "medium sand": "sand", "coarse sand": "sand", "sand": "sand",
+    "gravel": "gravel", "stones": "gravel", "boulders": "gravel",
     "till": "till", "hardpan": "till",
+    "fill": "fill", "topsoil": "fill", "muck": "fill", "peat": "fill",
 }
 
+BEDROCK = {"limestone", "dolostone", "sandstone", "shale", "granite", "gneiss"}
 
-def conductivity_class(value):
-    if value is None or pd.isna(value):
-        return "unknown"
-    if value < 2.0:
-        return "low"
-    if value <= 2.8:
-        return "medium"
-    return "high"
+# Length units -> metres; rate units -> litres/min.
+LEN_TO_M = {"ft": 0.3048, "m": 1.0, "cm": 0.01, "inch": 0.0254, "in": 0.0254}
+RATE_TO_LPM = {"gpm": 3.785411784, "igpm": 4.54609, "lpm": 1.0, "l/min": 1.0}
 
 
 # --------------------------------------------------------------------------
-# Loading Access exports (folder of CSVs) or the .mdb directly
+# Table loading (CSV folder or .mdb)
 # --------------------------------------------------------------------------
 
 class Source:
-    """Uniform table loader over either a CSV folder or an .mdb file."""
-
     def __init__(self, path: Path):
         self.path = path
         self.is_mdb = path.is_file() and path.suffix.lower() in (".mdb", ".accdb")
@@ -115,50 +162,42 @@ class Source:
             try:
                 import pandas_access as mdb
             except ImportError:
-                sys.exit(
-                    "Reading a .mdb needs: pip install pandas_access "
-                    "(and system 'mdbtools'). Or export the tables to CSV and "
-                    "point --access at the folder instead."
-                )
+                sys.exit("Reading a .mdb needs: pip install pandas_access (+ system mdbtools). "
+                         "Or export the tables to CSV and point --access at the folder.")
             self._mdb = mdb
-            self._tables = {t.lower(): t for t in mdb.list_tables(str(path))}
+            self._store = {t.lower(): t for t in mdb.list_tables(str(path))}
         else:
             if not path.is_dir():
                 sys.exit(f"--access must be a .mdb file or a folder of CSVs: {path}")
-            self._csvs = {p.stem.lower(): p for p in path.glob("*.csv")}
+            self._store = {p.stem.lower(): p for p in path.glob("*.csv")}
 
-    def _resolve(self, name: str):
-        """Find a table whether or not it carries the _Ottawa suffix / case."""
+    def _resolve(self, name):
         key = name.lower()
-        candidates = [key, key + "_ottawa"]
-        store = self._tables if self.is_mdb else self._csvs
-        for c in candidates:
-            if c in store:
-                return store[c]
-        # loose contains-match as a last resort
-        for k in store:
+        for c in (key, key + "_ottawa"):
+            if c in self._store:
+                return self._store[c]
+        for k, v in self._store.items():          # loose prefix match
             if k.startswith(key):
-                return store[k]
+                return v
         return None
 
-    def table(self, name: str, required=False) -> pd.DataFrame:
+    def table(self, name, required=False):
         found = self._resolve(name)
         if found is None:
-            msg = f"  [table] {name}: NOT FOUND"
             if required:
-                sys.exit(msg + " (required)")
-            print(msg + " (skipping)")
-            return pd.DataFrame()
+                sys.exit(f"  [table] {name}: NOT FOUND (required)")
+            return None
         if self.is_mdb:
             df = self._mdb.read_table(str(self.path), found)
+            df.columns = [str(c) for c in df.columns]
         else:
             df = pd.read_csv(found, dtype=str, low_memory=False)
-        print(f"  [table] {name}: {len(df):,} rows  <- {found}")
+        print(f"  [table] {name}: {len(df):,} rows")
         return df
 
 
-def col(df: pd.DataFrame, *names):
-    """Return the first matching column name (case-insensitive) or None."""
+def col(df, *names):
+    """First matching column name, case-insensitive."""
     lower = {c.lower(): c for c in df.columns}
     for n in names:
         if n.lower() in lower:
@@ -166,321 +205,338 @@ def col(df: pd.DataFrame, *names):
     return None
 
 
-def report_cols(df, wanted: dict):
-    """wanted = {logical_name: actual_or_None}; print what matched."""
-    got = [k for k, v in wanted.items() if v]
-    missing = [k for k, v in wanted.items() if not v]
-    if got:
-        print(f"    matched: {', '.join(got)}")
-    if missing:
-        print(f"    MISSING: {', '.join(missing)}")
-
-
-def as_num(series):
-    return pd.to_numeric(series, errors="coerce")
-
-
 # --------------------------------------------------------------------------
-# Lookup-dictionary builder from _code_* tables
+# Lookups
 # --------------------------------------------------------------------------
 
-def build_lookup(src: Source, table_name: str) -> dict:
-    """Return {code(str) -> description} from a two-column _code_* table."""
-    df = src.table(table_name)
-    if df.empty:
-        return {}
-    code_c = col(df, "code", "id", df.columns[0])
-    desc_c = col(df, "description", "descr", "name", "value", df.columns[-1])
-    out = {}
-    for _, r in df.iterrows():
-        code = str(r[code_c]).strip()
-        # normalise "5" and "05" to the same key
-        out[code] = str(r[desc_c]).strip()
-        if code.isdigit():
-            out[str(int(code))] = str(r[desc_c]).strip()
-            out[code.zfill(2)] = str(r[desc_c]).strip()
-    return out
+def _norm_key(code):
+    s = str(code).strip()
+    return s.zfill(2) if s.isdigit() else s
 
 
-def decode(code, lookup: dict):
+def load_lookups(src: Source) -> dict:
+    lut = {}
+    for key, builtin in BUILTIN.items():
+        table = {}
+        for c, d in builtin.items():
+            table[_norm_key(c)] = d
+        df = src.table(CODE_FILE[key])          # real _code_* overrides builtin
+        if df is not None:
+            code_c = col(df, "CODE", "code", df.columns[0])
+            des_c = col(df, "DES", "DESCRIPTION", "des", "name", df.columns[1])
+            n = 0
+            for _, r in df.iterrows():
+                desc = str(r[des_c]).strip()
+                if desc and desc.lower() != "nan":
+                    table[_norm_key(r[code_c])] = desc
+                    n += 1
+            print(f"    -> {key}: loaded {n} codes from {CODE_FILE[key]}")
+        else:
+            print(f"    -> {key}: using {len(table)} built-in codes "
+                  f"(export {CODE_FILE[key]}.csv for the full list)")
+        lut[key] = table
+    return lut
+
+
+def decode(code, table):
     if code is None or (isinstance(code, float) and pd.isna(code)):
         return None
     s = str(code).strip()
     if s == "" or s.lower() == "nan":
         return None
-    return lookup.get(s) or lookup.get(s.lstrip("0")) or lookup.get(s.zfill(2)) or s
+    hit = table.get(_norm_key(s)) or table.get(s)
+    return hit if hit is not None else f"code:{s}"
+
+
+def to_bucket(material):
+    if not material or pd.isna(material):
+        return "unknown"
+    m = str(material).lower()
+    for word, bucket in BUCKET.items():
+        if word in m:
+            return bucket
+    return "unknown"
+
+
+# --------------------------------------------------------------------------
+# Unit conversion (vectorised, per-row UOM)
+# --------------------------------------------------------------------------
+
+def num(series):
+    return pd.to_numeric(series, errors="coerce")
+
+
+def to_metres(value_col, uom_col):
+    v = num(value_col)
+    factor = uom_col.astype(str).str.strip().str.lower().map(LEN_TO_M) if uom_col is not None else 1.0
+    if uom_col is not None:
+        factor = factor.fillna(0.3048)          # WWIS default is feet
+    return v * factor
+
+
+def to_lpm(value_col, uom_col):
+    v = num(value_col)
+    if uom_col is None:
+        return v * 3.785411784                  # assume GPM
+    factor = uom_col.astype(str).str.strip().str.lower().map(RATE_TO_LPM).fillna(3.785411784)
+    return v * factor
 
 
 # --------------------------------------------------------------------------
 # Layer builders
 # --------------------------------------------------------------------------
 
-def build_formations(src, mat_lookup, color_lookup):
+def build_formations(src, lut):
     df = src.table("tblFormation", required=True)
-    c = {
-        "well_id": col(df, "WELL_ID", "WELLID"),
-        "top": col(df, "FORMATION_TOP_DEPTH", "TOP_DEPTH", "DEPTH_FROM"),
-        "bottom": col(df, "FORMATION_END_DEPTH", "END_DEPTH", "DEPTH_TO"),
-        "mat1": col(df, "MAT1", "MATERIAL1"),
-        "mat2": col(df, "MAT2", "MATERIAL2"),
-        "mat3": col(df, "MAT3", "MATERIAL3"),
-        "color": col(df, "COLOR", "COLOUR"),
-    }
-    report_cols(df, c)
+    top, bot, uom = col(df, "FORMATION_TOP_DEPTH"), col(df, "FORMATION_END_DEPTH"), col(df, "FORMATION_END_DEPTH_UOM")
     out = pd.DataFrame({
-        "WELL_ID": df[c["well_id"]],
-        "top_depth": as_num(df[c["top"]]) if c["top"] else None,
-        "bottom_depth": as_num(df[c["bottom"]]) if c["bottom"] else None,
-        "material1": df[c["mat1"]].map(lambda x: decode(x, mat_lookup)) if c["mat1"] else None,
-        "material2": df[c["mat2"]].map(lambda x: decode(x, mat_lookup)) if c["mat2"] else None,
-        "material3": df[c["mat3"]].map(lambda x: decode(x, mat_lookup)) if c["mat3"] else None,
-        "color": df[c["color"]].map(lambda x: decode(x, color_lookup)) if c["color"] else None,
+        "WELL_ID": df[col(df, "WELL_ID")].astype(str).str.strip(),
+        "layer": num(df[col(df, "LAYER")]) if col(df, "LAYER") else None,
+        "top_depth_m": to_metres(df[top], df[uom]) if top else None,
+        "bottom_depth_m": to_metres(df[bot], df[uom]) if bot else None,
+        "material1": df[col(df, "MAT1")].map(lambda x: decode(x, lut["formation_material"])) if col(df, "MAT1") else None,
+        "material2": df[col(df, "MAT2")].map(lambda x: decode(x, lut["formation_material"])) if col(df, "MAT2") else None,
+        "material3": df[col(df, "MAT3")].map(lambda x: decode(x, lut["formation_material"])) if col(df, "MAT3") else None,
+        "colour": df[col(df, "COLOR")].map(lambda x: decode(x, lut["colour"])) if col(df, "COLOR") else None,
     })
-    out["lithology"] = out["material1"].map(_to_bucket)
+    out["lithology"] = out["material1"].map(to_bucket)
+    out["thermal_conductivity_wm"] = out["lithology"].map(CONDUCTIVITY_WM)
     return out
 
 
-def _to_bucket(material):
-    if material is None or pd.isna(material):
-        return "unknown"
-    m = str(material).strip().lower()
-    for key, bucket in LITHOLOGY_BUCKET.items():
-        if key in m:
-            return bucket
-    return "unknown"
-
-
-def build_water(src, kind_lookup):
+def build_water(src, lut):
     df = src.table("tblWater")
-    if df.empty:
-        return df
-    c = {
-        "well_id": col(df, "WELL_ID"),
-        "depth": col(df, "WATER_FOUND_DEPTH", "DEPTH"),
-        "kind": col(df, "KIND", "WATER_KIND"),
-    }
-    report_cols(df, c)
+    if df is None:
+        return None
+    d, u = col(df, "WATER_FOUND_DEPTH"), col(df, "WATER_FOUND_DEPTH_UOM")
     return pd.DataFrame({
-        "WELL_ID": df[c["well_id"]],
-        "water_found_depth": as_num(df[c["depth"]]) if c["depth"] else None,
-        "water_kind": df[c["kind"]].map(lambda x: decode(x, kind_lookup)) if c["kind"] else None,
+        "WELL_ID": df[col(df, "WELL_ID")].astype(str).str.strip(),
+        "water_found_depth_m": to_metres(df[d], df[u]) if d else None,
+        "water_kind": df[col(df, "kind", "KIND")].map(lambda x: decode(x, lut["water_kind"])) if col(df, "kind", "KIND") else None,
     })
 
 
 def build_pump_tests(src):
     df = src.table("tblPump_Test")
-    if df.empty:
-        return df
-    c = {
-        "well_id": col(df, "WELL_ID"),
-        "static": col(df, "STATIC_LEV", "STATIC_LEVEL"),
-        "final": col(df, "FINAL_LEV_AFTER_PUMPING", "FINAL_LEVEL"),
-        "pump_rate": col(df, "PUMPING_RATE", "RECOM_RATE"),
-        "flow_rate": col(df, "FLOWING_RATE"),
-        "dur_hr": col(df, "PUMPING_DURATION_HR"),
-        "dur_min": col(df, "PUMPING_DURATION_MIN"),
-    }
-    report_cols(df, c)
-    dur = (as_num(df[c["dur_hr"]]).fillna(0) * 60 if c["dur_hr"] else 0) + \
-          (as_num(df[c["dur_min"]]).fillna(0) if c["dur_min"] else 0)
+    if df is None:
+        return None
+    lu, ru = col(df, "LEVELS_UOM"), col(df, "RATE_UOM")
+    stat, fin = col(df, "Static_lev", "STATIC_LEV"), col(df, "Final_lev_after_pumping")
+    pr, fr = col(df, "Pumping_rate", "PUMPING_RATE"), col(df, "Flowing_rate", "FLOWING_RATE")
+    hr, mn = col(df, "PUMPING_DURATION_HR"), col(df, "PUMPING_DURATION_MIN")
+    dur = (num(df[hr]).fillna(0) * 60 if hr else 0) + (num(df[mn]).fillna(0) if mn else 0)
     return pd.DataFrame({
-        "WELL_ID": df[c["well_id"]],
-        "static_level": as_num(df[c["static"]]) if c["static"] else None,
-        "final_level": as_num(df[c["final"]]) if c["final"] else None,
-        "pump_rate": as_num(df[c["pump_rate"]]) if c["pump_rate"] else None,
-        "flowing_rate": as_num(df[c["flow_rate"]]) if c["flow_rate"] else None,
+        "WELL_ID": df[col(df, "WELL_ID")].astype(str).str.strip(),
+        "static_level_m": to_metres(df[stat], df[lu]) if stat else None,
+        "final_level_m": to_metres(df[fin], df[lu]) if fin else None,
+        "pump_rate_lpm": to_lpm(df[pr], df[ru]) if pr else None,
+        "flowing_rate_lpm": to_lpm(df[fr], df[ru]) if fr else None,
         "duration_min": dur if isinstance(dur, pd.Series) else None,
     })
 
 
-def build_construction(src, casing_mat_lookup):
-    """Stack casing, screen and hole intervals into one long table."""
+def build_construction(src, lut):
     parts = []
+
     casing = src.table("tblCasing")
-    if not casing.empty:
-        c = {"well_id": col(casing, "WELL_ID"),
-             "frm": col(casing, "DEPTH_FROM"), "to": col(casing, "DEPTH_TO"),
-             "dia": col(casing, "CASING_DIAMETER", "DIAMETER"),
-             "mat": col(casing, "MATERIAL")}
+    if casing is not None:
+        u = col(casing, "CASING_DEPTH_UOM")
         parts.append(pd.DataFrame({
-            "WELL_ID": casing[c["well_id"]], "element": "casing",
-            "depth_from": as_num(casing[c["frm"]]) if c["frm"] else None,
-            "depth_to": as_num(casing[c["to"]]) if c["to"] else None,
-            "diameter": as_num(casing[c["dia"]]) if c["dia"] else None,
-            "material": casing[c["mat"]].map(lambda x: decode(x, casing_mat_lookup)) if c["mat"] else None,
+            "WELL_ID": casing[col(casing, "WELL_ID")].astype(str).str.strip(),
+            "element": "casing",
+            "depth_from_m": to_metres(casing[col(casing, "DEPTH_FROM")], casing[u]) if col(casing, "DEPTH_FROM") else None,
+            "depth_to_m": to_metres(casing[col(casing, "DEPTH_TO")], casing[u]) if col(casing, "DEPTH_TO") else None,
+            "diameter": num(casing[col(casing, "CASING_DIAMETER")]) if col(casing, "CASING_DIAMETER") else None,
+            "material": casing[col(casing, "MATERIAL")].map(lambda x: decode(x, lut["casing_material"])) if col(casing, "MATERIAL") else None,
         }))
+
     screen = src.table("tblScreen")
-    if not screen.empty:
-        c = {"well_id": col(screen, "WELL_ID"),
-             "frm": col(screen, "SCRN_TOP_DEPTH"), "to": col(screen, "SCRN_END_DEPTH"),
-             "dia": col(screen, "SCRN_DIAMETER"), "mat": col(screen, "SCRN_MATERIAL")}
+    if screen is not None:
+        u = col(screen, "SCRN_DEPTH_UOM")
         parts.append(pd.DataFrame({
-            "WELL_ID": screen[c["well_id"]], "element": "screen",
-            "depth_from": as_num(screen[c["frm"]]) if c["frm"] else None,
-            "depth_to": as_num(screen[c["to"]]) if c["to"] else None,
-            "diameter": as_num(screen[c["dia"]]) if c["dia"] else None,
-            "material": screen[c["mat"]] if c["mat"] else None,
+            "WELL_ID": screen[col(screen, "WELL_ID")].astype(str).str.strip(),
+            "element": "screen",
+            "depth_from_m": to_metres(screen[col(screen, "SCRN_TOP_DEPTH")], screen[u]) if col(screen, "SCRN_TOP_DEPTH") else None,
+            "depth_to_m": to_metres(screen[col(screen, "SCRN_END_DEPTH")], screen[u]) if col(screen, "SCRN_END_DEPTH") else None,
+            "diameter": num(screen[col(screen, "SCRN_DIAMETER")]) if col(screen, "SCRN_DIAMETER") else None,
+            "material": screen[col(screen, "SCRN_MATERIAL")] if col(screen, "SCRN_MATERIAL") else None,
         }))
+
     hole = src.table("tblHole")
-    if not hole.empty:
-        c = {"well_id": col(hole, "WELL_ID"),
-             "frm": col(hole, "DEPTH_FROM"), "to": col(hole, "DEPTH_TO"),
-             "dia": col(hole, "DIAMETER")}
+    if hole is not None:
+        u = col(hole, "HOLE_DEPTH_UOM")
         parts.append(pd.DataFrame({
-            "WELL_ID": hole[c["well_id"]], "element": "hole",
-            "depth_from": as_num(hole[c["frm"]]) if c["frm"] else None,
-            "depth_to": as_num(hole[c["to"]]) if c["to"] else None,
-            "diameter": as_num(hole[c["dia"]]) if c["dia"] else None,
+            "WELL_ID": hole[col(hole, "WELL_ID")].astype(str).str.strip(),
+            "element": "hole",
+            "depth_from_m": to_metres(hole[col(hole, "Depth_from", "DEPTH_FROM")], hole[u]) if col(hole, "Depth_from", "DEPTH_FROM") else None,
+            "depth_to_m": to_metres(hole[col(hole, "Depth_to", "DEPTH_TO")], hole[u]) if col(hole, "Depth_to", "DEPTH_TO") else None,
+            "diameter": num(hole[col(hole, "Diameter", "DIAMETER")]) if col(hole, "Diameter", "DIAMETER") else None,
             "material": None,
         }))
-    if not parts:
-        return pd.DataFrame()
-    return pd.concat(parts, ignore_index=True)
+
+    return pd.concat(parts, ignore_index=True) if parts else None
 
 
-def build_wells(src, formations, water, pump_tests, use_lookup, status_lookup):
-    """One row per well, with a formation summary + derived screening fields."""
+# --------------------------------------------------------------------------
+# Wells (one row per well) with geometry + depths from the shapefile
+# --------------------------------------------------------------------------
+
+def read_shapefile(shp_path: Path) -> gpd.GeoDataFrame:
+    print(f"  [shp] reading {shp_path} (this is the full-Ontario file, ~1M rows)")
+    shp = gpd.read_file(shp_path)
+    wid = col(shp, "WELL_ID", "WELLID")
+    keep = {wid: "WELL_ID"}
+    for logical, *aliases in [("depth_m", "DEPTH"),
+                              ("bedrock_depth_m", "DP_BEDROCK"),
+                              ("static_level_m", "STATIC_LEV"),
+                              ("date_completed", "COMPLETED")]:
+        c = col(shp, *aliases)
+        if c:
+            keep[c] = logical
+    shp = shp[list(keep) + ["geometry"]].rename(columns=keep)
+    shp = shp.to_crs(4326)
+    shp["WELL_ID"] = shp["WELL_ID"].astype(str).str.strip()
+    for c in ("depth_m", "bedrock_depth_m", "static_level_m"):
+        if c in shp:
+            shp[c] = num(shp[c])
+    return shp.drop_duplicates("WELL_ID")
+
+
+def build_wells(src, lut, shp, formations, water, pump_tests):
     wwr = src.table("tblWWR", required=True)
-    c = {
-        "well_id": col(wwr, "WELL_ID"),
-        "county": col(wwr, "COUNTY"),
-        "use": col(wwr, "USE_1ST", "WELL_USE", "USE"),
-        "status": col(wwr, "FINAL_STA", "FINAL_STATUS", "STATUS"),
-    }
-    report_cols(wwr, c)
     wells = pd.DataFrame({
-        "WELL_ID": wwr[c["well_id"]],
-        "well_use": wwr[c["use"]].map(lambda x: decode(x, use_lookup)) if c["use"] else None,
-        "status": wwr[c["status"]].map(lambda x: decode(x, status_lookup)) if c["status"] else None,
+        "WELL_ID": wwr[col(wwr, "WELL_ID")].astype(str).str.strip(),
+        "county": wwr[col(wwr, "COUNTY")] if col(wwr, "COUNTY") else None,
+        "well_use": wwr[col(wwr, "USE_1ST")].map(lambda x: decode(x, lut["water_use"])) if col(wwr, "USE_1ST") else None,
+        "status": wwr[col(wwr, "FINAL_STA")].map(lambda x: decode(x, lut["final_status"])) if col(wwr, "FINAL_STA") else None,
     }).drop_duplicates("WELL_ID")
 
-    # --- aggregate formations per well: summary string + primary lithology + bedrock depth
-    f = formations.copy()
-    f["_order"] = as_num(f["top_depth"])
-    f = f.sort_values(["WELL_ID", "_order"])
+    # geometry + authoritative metric depths from the shapefile
+    wells = wells.merge(shp, on="WELL_ID", how="left")
+
+    # ---- formation-derived per-well fields
+    f = formations.dropna(subset=["WELL_ID"]).copy()
+    f["_thick"] = f["bottom_depth_m"] - f["top_depth_m"]
+    f = f.sort_values(["WELL_ID", "top_depth_m"])
 
     def summarise(g):
-        rows = []
+        bits = []
         for _, r in g.iterrows():
-            lith = r["material1"] or "?"
-            top = r["top_depth"]
-            rows.append(f"{lith} {top:g}m" if pd.notna(top) else str(lith))
-        return " / ".join(rows[:8])
+            mat = r["material1"] or "?"
+            if pd.notna(r["top_depth_m"]) and pd.notna(r["bottom_depth_m"]):
+                bits.append(f"{mat} {r['top_depth_m']:.1f}-{r['bottom_depth_m']:.1f}m")
+            else:
+                bits.append(str(mat))
+        return " / ".join(bits[:10])
 
-    summary = f.groupby("WELL_ID").apply(summarise).rename("formation_summary")
-    # primary lithology = thickest interval's bucket
-    f["_thick"] = as_num(f["bottom_depth"]) - as_num(f["top_depth"])
+    try:                                          # include_groups kwarg is pandas >=2.2
+        summary = f.groupby("WELL_ID").apply(summarise, include_groups=False)
+    except TypeError:
+        summary = f.groupby("WELL_ID").apply(summarise)
+    summary = summary.rename("formation_summary")
+
     primary = (f.sort_values("_thick", ascending=False)
                  .drop_duplicates("WELL_ID").set_index("WELL_ID")["lithology"]
                  .rename("primary_lithology"))
-    # bedrock depth ~ top of first bedrock lithology
-    bedrock_liths = {"limestone", "dolostone", "sandstone", "shale", "granite", "gneiss"}
-    fb = f[f["lithology"].isin(bedrock_liths)]
-    bedrock = (fb.groupby("WELL_ID")["top_depth"].min()
-                 .rename("bedrock_depth_m"))
+
+    fb = f[f["lithology"].isin(BEDROCK)]
+    bedrock_lith = (fb.sort_values("_thick", ascending=False)
+                      .drop_duplicates("WELL_ID").set_index("WELL_ID")["lithology"]
+                      .rename("bedrock_lithology"))
 
     wells = (wells.merge(summary, on="WELL_ID", how="left")
                   .merge(primary, on="WELL_ID", how="left")
-                  .merge(bedrock, on="WELL_ID", how="left"))
+                  .merge(bedrock_lith, on="WELL_ID", how="left"))
 
-    # --- water + pump aggregates
-    if not water.empty:
-        w = water.groupby("WELL_ID").agg(
-            water_found_depth=("water_found_depth", "min")).reset_index()
-        wells = wells.merge(w, on="WELL_ID", how="left")
-    if not pump_tests.empty:
-        p = pump_tests.groupby("WELL_ID").agg(
-            static_level_m=("static_level", "min"),
-            well_yield_lpm=("pump_rate", "max")).reset_index()
-        wells = wells.merge(p, on="WELL_ID", how="left")
+    # ---- pump-test-derived yield (max pumping rate per well)
+    if pump_tests is not None:
+        y = pump_tests.groupby("WELL_ID")["pump_rate_lpm"].max().rename("well_yield_lpm")
+        wells = wells.merge(y, on="WELL_ID", how="left")
+    else:
+        wells["well_yield_lpm"] = pd.NA
 
-    # --- derived screening fields
-    wells["estimated_conductivity_wm"] = wells["primary_lithology"].map(CONDUCTIVITY_WM)
-    wells["estimated_conductivity_class"] = wells["estimated_conductivity_wm"].map(conductivity_class)
-    wells["bedrock_indicator"] = wells.get("bedrock_depth_m").notna()
-    gw = wells.get("static_level_m")
-    wells["groundwater_indicator"] = gw.notna() if gw is not None else False
-    return wells
+    # ---- derived screening fields (summary section 6)
+    cond_source = wells["bedrock_lithology"].fillna(wells["primary_lithology"])
+    wells["estimated_conductivity_wm"] = cond_source.map(CONDUCTIVITY_WM)
+    wells["estimated_conductivity_class"] = wells["estimated_conductivity_wm"].map(
+        lambda v: "unknown" if pd.isna(v) else ("low" if v < 2.0 else ("medium" if v <= 2.8 else "high")))
+    wells["bedrock_indicator"] = wells["bedrock_lithology"].notna() | wells.get("bedrock_depth_m").notna()
+    has_water = water is not None and not water.empty
+    water_ids = set(water["WELL_ID"]) if has_water else set()
+    wells["groundwater_indicator"] = wells.get("static_level_m").notna() | wells["WELL_ID"].isin(water_ids)
 
+    # open-loop screen (kept consistent with the existing guide pipeline)
+    def open_loop(r):
+        swl = r.get("static_level_m")
+        y = r.get("well_yield_lpm")
+        if pd.notna(swl) and pd.notna(y) and y >= 15:
+            return "viable"
+        if pd.notna(swl):
+            return "possible"
+        return "unlikely"
+    wells["open_loop"] = wells.apply(open_loop, axis=1)
 
-# --------------------------------------------------------------------------
-# Geometry
-# --------------------------------------------------------------------------
-
-def attach_geometry(wells: pd.DataFrame, shp_path: Path) -> gpd.GeoDataFrame:
-    print(f"  [shp] reading {shp_path}")
-    shp = gpd.read_file(shp_path)
-    wid = col(shp, "WELL_ID", "WELLID")
-    if wid is None:
-        sys.exit(f"  shapefile has no WELL_ID column; columns = {list(shp.columns)}")
-    shp = shp[[wid, "geometry"]].rename(columns={wid: "WELL_ID"})
-    shp = shp.to_crs(4326)
-    shp["WELL_ID"] = shp["WELL_ID"].astype(str)
-    wells["WELL_ID"] = wells["WELL_ID"].astype(str)
-    merged = wells.merge(shp, on="WELL_ID", how="left")
-    gdf = gpd.GeoDataFrame(merged, geometry="geometry", crs=4326)
-    missing = gdf.geometry.isna().sum()
-    print(f"  [shp] joined geometry; {missing:,} of {len(gdf):,} wells have no match")
+    gdf = gpd.GeoDataFrame(wells, geometry="geometry", crs=4326)
+    no_geom = gdf.geometry.isna().sum()
+    print(f"  [wells] {len(gdf):,} wells; {no_geom:,} without shapefile geometry")
     return gdf
 
 
 # --------------------------------------------------------------------------
-# Main
+# Write
 # --------------------------------------------------------------------------
 
+def write_table_layer(df, out, layer):
+    """Non-spatial layer -> geometry-less GPKG layer."""
+    gdf = gpd.GeoDataFrame(df.copy(), geometry=[None] * len(df), crs=4326)
+    gdf.to_file(out, layer=layer, driver="GPKG")
+
+
 def main():
+    here = Path(__file__).resolve().parents[1]        # Geothermal/
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--access", required=True, type=Path,
-                    help=".mdb file OR folder of exported *_Ottawa CSV tables")
-    ap.add_argument("--shp", required=True, type=Path, help="wwis_out.shp")
-    ap.add_argument("--out", type=Path,
-                    default=Path(__file__).resolve().parents[1]
-                    / "Data" / "processed" / "ottawa_geothermal.gpkg")
+    ap.add_argument("--access", type=Path, default=here / "Data",
+                    help="folder of tbl*_Ottawa.csv (and optional _code_*.csv), or a .mdb")
+    ap.add_argument("--shp", type=Path, default=here / "Data" / "wwis_out.shp")
+    ap.add_argument("--out", type=Path, default=here / "Data" / "processed" / "ottawa_geothermal.gpkg")
     args = ap.parse_args()
 
     src = Source(args.access)
 
-    print("\n== Building lookup dictionaries ==")
-    mat_lookup = build_lookup(src, "_code_formation_Material")
-    kind_lookup = build_lookup(src, "_code_water_kind")
-    use_lookup = build_lookup(src, "_codeWaterUse")
-    status_lookup = build_lookup(src, "_code_final_status")
-    color_lookup = build_lookup(src, "_codeColor")
-    casing_mat_lookup = build_lookup(src, "_code_casing_material")
+    print("\n== Lookup tables ==")
+    lut = load_lookups(src)
 
-    print("\n== Building layers ==")
-    formations = build_formations(src, mat_lookup, color_lookup)
-    water = build_water(src, kind_lookup)
+    print("\n== Building relational layers ==")
+    formations = build_formations(src, lut)
+    water = build_water(src, lut)
     pump_tests = build_pump_tests(src)
-    construction = build_construction(src, casing_mat_lookup)
-    wells = build_wells(src, formations, water, pump_tests, use_lookup, status_lookup)
+    construction = build_construction(src, lut)
 
-    print("\n== Attaching geometry ==")
-    wells_gdf = attach_geometry(wells, args.shp)
+    print("\n== Wells layer (+ shapefile geometry) ==")
+    shp = read_shapefile(args.shp)
+    wells = build_wells(src, lut, shp, formations, water, pump_tests)
 
     print("\n== Writing GeoPackage ==")
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    wells_gdf.to_file(args.out, layer="wells", driver="GPKG")
+    if args.out.exists():
+        args.out.unlink()
+    wells.to_file(args.out, layer="wells", driver="GPKG")
     for name, df in [("formations", formations), ("water", water),
                      ("pump_tests", pump_tests), ("construction", construction)]:
         if df is None or df.empty:
             print(f"  skip empty layer: {name}")
             continue
-        df.to_file(args.out, layer=name, driver="GPKG") if isinstance(df, gpd.GeoDataFrame) \
-            else _write_table_layer(df, args.out, name)
+        write_table_layer(df, args.out, name)
+
     print(f"\nDone -> {args.out}")
-    print(f"  wells:        {len(wells_gdf):,}")
-    print(f"  formations:   {len(formations):,}")
-    print(f"  water:        {len(water):,}")
-    print(f"  pump_tests:   {len(pump_tests):,}")
-    print(f"  construction: {len(construction):,}")
-
-
-def _write_table_layer(df: pd.DataFrame, out: Path, layer: str):
-    """Non-spatial layers still go in the .gpkg (geometry-less)."""
-    gdf = gpd.GeoDataFrame(df.copy(), geometry=[None] * len(df), crs=4326)
-    gdf.to_file(out, layer=layer, driver="GPKG")
+    for name, df in [("wells", wells), ("formations", formations), ("water", water),
+                     ("pump_tests", pump_tests), ("construction", construction)]:
+        print(f"  {name:13} {0 if df is None else len(df):>8,}")
+    # quick geothermal readout
+    vc = wells["estimated_conductivity_class"].value_counts(dropna=False)
+    print("\n  conductivity class:", dict(vc))
+    print("  open_loop:", dict(wells["open_loop"].value_counts()))
 
 
 if __name__ == "__main__":
