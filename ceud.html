@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEUD Explorer — Canada Energy Use Explorer</title>
+<meta name="description" content="Explore NRCan's Comprehensive Energy Use Database for Canadian homes — energy, GHG emissions and intensity trends by region, energy source, end-use and building type, 2000–present.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M9 22V10l7-4 7 4v12h-5v-7h-4v7z' fill='%23E8A124'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:center;gap:14px;min-width:0}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+.sector-tabs{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
+.sector-tab{font-family:'Inter',sans-serif;font-size:12px;padding:5px 10px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;white-space:nowrap}
+.sector-tab.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.sector-tab:disabled{cursor:not-allowed;color:rgba(255,255,255,.25)}
+.sector-tab:disabled:hover{color:rgba(255,255,255,.25)}
+.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--white)}
+#region-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
+#region-sel option{color:#1C2B3A;background:#fff}
+body.mode-simple [data-mode="advanced"]{display:none!important}
+body:not(.sector-residential) [data-sector-only="residential"]{display:none!important}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:2.25rem 1.5rem 0;text-align:center}
+.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:640px;margin:0 auto 1rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:560px;margin:0 auto 1.5rem}
+
+/* ── Filters ── */
+.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:1.1rem 1.25rem;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-end;text-align:left}
+.filter-group{display:flex;flex-direction:column;gap:6px}
+.filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.seg-toggle{display:inline-flex;background:var(--surface);border-radius:20px;padding:2px;gap:2px}
+.seg-btn{font-size:12px;padding:6px 12px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s}
+.seg-btn.active{background:var(--navy);color:#fff}
+.seg-btn:disabled{opacity:.35;cursor:not-allowed}
+.seg-btn:not(.active):not(:disabled):hover{color:var(--navy)}
+.year-range-group{flex:1;min-width:260px}
+.range-dual{position:relative;height:30px;width:100%}
+.range-dual input[type=range]{position:absolute;top:11px;left:0;width:100%;height:16px;margin:0;background:transparent;pointer-events:none;-webkit-appearance:none;appearance:none}
+.range-dual input[type=range]::-webkit-slider-runnable-track{height:4px;background:transparent}
+.range-dual input[type=range]::-moz-range-track{height:4px;background:transparent}
+.range-dual input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:16px;height:16px;border-radius:50%;background:var(--navy);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;margin-top:-6px}
+.range-dual input[type=range]::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;background:var(--navy);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer}
+.range-dual .track-bg{position:absolute;top:18px;left:8px;right:8px;height:4px;background:var(--border);border-radius:2px}
+.range-dual .track-fill{position:absolute;top:18px;height:4px;background:var(--amber2);border-radius:2px}
+.range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text);margin-top:2px}
+.range-labels strong{color:var(--navy);font-weight:500}
+.single-range{display:flex;align-items:center;gap:10px;width:100%}
+.single-range input[type=range]{flex:1;accent-color:var(--amber2)}
+.single-range .yr-val{font-family:'Fraunces',Georgia,serif;font-size:1.1rem;color:var(--navy);min-width:44px;text-align:right}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
+.card-title-row .card-title{margin-bottom:0}
+.card-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none}
+.chart-legend-item.dim{opacity:.35}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.insight-banner{background:linear-gradient(135deg,var(--navy),#123a68);color:#fff;border-radius:var(--r-lg);padding:1.1rem 1.35rem;margin-bottom:1rem;box-shadow:var(--shadow);font-family:'Fraunces',Georgia,serif;font-size:1.15rem;font-weight:300;line-height:1.5}
+.insight-banner strong{font-weight:400;color:var(--amber2)}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-xl{height:340px}
+.cw-donut{height:380px}
+.cw svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-tip{display:none;position:fixed;background:rgba(11,37,69,0.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:8px 12px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap}
+.chart-tip .tip-row{display:flex;align-items:center;gap:6px}
+.chart-tip .tip-dot{width:7px;height:7px;border-radius:2px;flex:none;display:inline-block}
+.hover-line{stroke:rgba(11,37,69,.35);stroke-width:1;stroke-dasharray:3,3;pointer-events:none}
+.axis-line{stroke:var(--border);stroke-width:1}
+.axis-text{font-family:'Inter',sans-serif;font-size:10px;fill:var(--muted)}
+.donut-center-val{font-family:'Fraunces',Georgia,serif;fill:var(--navy)}
+.donut-center-lbl{font-family:'Inter',sans-serif;fill:var(--muted)}
+.donut-seg{cursor:pointer;transition:opacity .1s}
+.donut-seg:hover{opacity:.82}
+
+details.data-details{margin-top:10px}
+details.data-details summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+details.data-details summary::-webkit-details-marker{display:none}
+details.data-details summary::before{content:'▸ ';color:var(--amber)}
+details.data-details[open] summary::before{content:'▾ '}
+.data-tbl-wrap{overflow-x:auto;margin-top:8px}
+table.data-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.data-tbl th{font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.data-tbl th:first-child{text-align:left}
+table.data-tbl td{padding:5px 8px;border-bottom:1px solid var(--surface);text-align:right;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.data-tbl td:first-child{text-align:left;color:var(--muted)}
+
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1.25rem 1rem;line-height:1.8}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+
+/* ── CSV / data-table controls ── */
+.csv-btn{margin-top:8px;font-size:11px;padding:5px 11px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.csv-btn:hover{border-color:var(--navy);color:var(--navy)}
+
+/* ── Multi-chart grids ── */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1rem}
+.chart-grid .card{margin-bottom:0}
+.mini-card-title{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.cw-sm{height:190px}
+.cw-md{height:240px}
+
+/* ── Compare regions ── */
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:.5rem}
+.compare-tile{background:var(--surface);border-radius:var(--r-md);padding:.6rem .7rem .3rem}
+.compare-tile.is-selected{background:#FDF1DC;box-shadow:inset 0 0 0 1.5px var(--amber2)}
+.compare-tile-label{font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.compare-tile-val{font-size:10px;color:var(--muted)}
+.compare-tile svg{width:100%;height:60px;display:block}
+
+.section-loading{padding:1.5rem 1rem;text-align:center;color:var(--muted);font-size:13px}
+
+@media(max-width:600px){
+  header{padding:0 1rem;height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}
+  .hero{padding:1.75rem 1rem 0}
+  .filter-bar{padding-left:1rem;padding-right:1rem}
+  main{padding:1rem 1rem 2rem}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+  .sibling-link{display:none}
+}
+@media(max-width:420px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .compare-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body class="mode-simple sector-residential">
+<script>
+(function(){
+  var urlView=new URLSearchParams(location.search).get('view');
+  var mode=(urlView==='advanced'||urlView==='simple')?urlView:(localStorage.getItem('ceudViewMode')||'simple');
+  if(mode!=='advanced')mode='simple';
+  try{localStorage.setItem('ceudViewMode',mode);}catch(e){}
+  document.body.className='mode-'+mode+' sector-residential';
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">ceud<span>explorer</span></div>
+    <div class="sector-tabs" role="tablist" aria-label="Sector" id="sector-tabs">
+      <button type="button" class="sector-tab active" data-sector="residential" aria-selected="true" onclick="setSector('residential')">Residential</button>
+      <button type="button" class="sector-tab" data-sector="com" onclick="setSector('com')">Commercial</button>
+      <button type="button" class="sector-tab" data-sector="ind" onclick="setSector('ind')">Industrial</button>
+      <button type="button" class="sector-tab" data-sector="tran" onclick="setSector('tran')">Transport</button>
+      <button type="button" class="sector-tab" data-sector="agr" onclick="setSector('agr')">Agriculture</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+    </div>
+    <select id="region-sel" aria-label="Region"></select>
+  </div>
+</header>
+
+<div class="hero">
+  <p class="hero-eyebrow">NRCan Comprehensive Energy Use Database</p>
+  <h1 id="hero-h1">How Canadian homes <em>use energy</em> — and how that's changing</h1>
+  <p class="hero-sub" id="hero-sub">One slice at a time. Pick a region, a metric and a year range to see where residential energy goes and how it's shifted since 2000 — no more digging through fifty static tables.</p>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>Metric</label>
+      <div class="seg-toggle" id="metric-toggle">
+        <button type="button" class="seg-btn active" data-metric="energy">Energy (PJ)</button>
+        <button type="button" class="seg-btn" data-metric="ghg">GHG (Mt)</button>
+        <button type="button" class="seg-btn" data-metric="intensity">Intensity</button>
+      </div>
+    </div>
+    <div class="filter-group" id="intensity-unit-group" style="display:none">
+      <label>Per</label>
+      <div class="seg-toggle" id="intensity-unit-toggle">
+        <button type="button" class="seg-btn active" data-unit="household">Household</button>
+        <button type="button" class="seg-btn" data-unit="m2">m²</button>
+      </div>
+    </div>
+    <div class="filter-group year-range-group">
+      <label>Year range</label>
+      <div class="range-dual">
+        <div class="track-bg"></div>
+        <div class="track-fill" id="range-fill"></div>
+        <input type="range" id="year-min" step="1">
+        <input type="range" id="year-max" step="1">
+      </div>
+      <div class="range-labels"><span>From <strong id="year-min-lbl"></strong></span><span>To <strong id="year-max-lbl"></strong></span></div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <div id="loading-msg" class="state-msg"><strong>Loading…</strong>Fetching residential energy-use data.</div>
+
+  <div id="app-body" style="display:none">
+
+    <div class="section-head">
+      <h2>The headline</h2>
+      <p class="sec-sub" id="section1-sub">Residential energy use, emissions and household growth at a glance.</p>
+    </div>
+
+    <div class="insight-banner" id="insight-text"></div>
+
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <div class="section-head">
+      <h2>Trends over time</h2>
+      <p class="sec-sub" id="section2-sub">How residential energy has shifted since 2000, broken down by energy source or end-use.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title" id="trend-title">Energy use by source, 2000–2023</div>
+        <div class="card-controls">
+          <div class="seg-toggle" id="stackby-toggle"></div>
+          <div class="seg-toggle" id="sharemode-toggle">
+            <button type="button" class="seg-btn active" data-share="abs">Absolute</button>
+            <button type="button" class="seg-btn" data-share="share">100% share</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend-inline" id="trend-legend" style="margin-bottom:.6rem"></div>
+      <div class="cw cw-xl"><svg id="trend-svg" viewBox="0 0 900 340" preserveAspectRatio="none"></svg></div>
+      <p class="note" id="trend-note"></p>
+      <details class="data-details" data-mode="advanced">
+        <summary>View underlying data</summary>
+        <div id="trend-table"></div>
+      </details>
+    </div>
+
+    <div class="section-head">
+      <h2>Where the energy goes</h2>
+      <p class="sec-sub" id="section3-sub">A single year, broken down two ways at once: outer ring by building type, inner ring by <span id="breakdown-dim-label">energy source</span> within each.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Breakdown for <span id="breakdown-year-lbl"></span></div>
+        <div class="card-controls" style="flex:1;max-width:340px">
+          <div class="single-range">
+            <input type="range" id="sel-year" step="1">
+            <span class="yr-val" id="sel-year-val"></span>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-donut"><svg id="donut-svg" viewBox="0 0 480 380"></svg></div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">
+        <div class="chart-legend-inline" id="donut-legend-inner"></div>
+        <div class="chart-legend-inline" id="donut-legend-outer"></div>
+      </div>
+      <p class="note" id="donut-note"></p>
+      <details class="data-details" data-mode="advanced">
+        <summary>View underlying data</summary>
+        <div id="donut-table"></div>
+      </details>
+    </div>
+
+    <div class="section-head" data-mode="advanced">
+      <h2>Compare regions</h2>
+      <p class="sec-sub">How the selected metric compares across Canada, over the current year range and for the latest selected year.</p>
+    </div>
+
+    <div class="card" data-mode="advanced">
+      <div class="card-title" id="compare-lines-title">Small multiples — shared y-axis</div>
+      <div class="compare-grid" id="compare-grid"><div class="section-loading">Advanced mode loads all regions for this sector on demand.</div></div>
+      <p class="note" id="compare-lines-note"></p>
+      <details class="data-details">
+        <summary>View underlying data</summary>
+        <div id="compare-lines-table"></div>
+      </details>
+    </div>
+
+    <div class="card" data-mode="advanced">
+      <div class="card-title" id="compare-bar-title">Ranked comparison</div>
+      <div style="overflow-x:auto"><svg id="compare-bar-svg" style="min-width:560px;width:100%;display:block"></svg></div>
+      <p class="note" id="compare-bar-note"></p>
+      <details class="data-details">
+        <summary>View underlying data</summary>
+        <div id="compare-bar-table"></div>
+      </details>
+    </div>
+
+    <div class="section-head" data-mode="advanced" data-sector-only="residential">
+      <h2>Equipment &amp; stock</h2>
+      <p class="sec-sub">What's actually installed in homes — heating equipment, housing mix, floor space and appliances. Independent of the metric toggle above. Residential-only for now.</p>
+    </div>
+
+    <div class="card" data-mode="advanced" data-sector-only="residential">
+      <div class="card-title">Heating system stock — by primary equipment type</div>
+      <div class="chart-legend-inline" id="heat-stock-legend" style="margin-bottom:.6rem"></div>
+      <div class="cw cw-xl"><svg id="heat-stock-svg" viewBox="0 0 900 280" preserveAspectRatio="none"></svg></div>
+      <p class="note" id="heat-stock-note"></p>
+      <details class="data-details">
+        <summary>View underlying data</summary>
+        <div id="heat-stock-table"></div>
+      </details>
+    </div>
+
+    <div class="card" data-mode="advanced" data-sector-only="residential">
+      <div class="card-title">Appliance stock by type</div>
+      <div class="chart-legend-inline" id="appliance-stock-legend" style="margin-bottom:.6rem"></div>
+      <div class="cw cw-md"><svg id="appliance-stock-svg" viewBox="0 0 900 240" preserveAspectRatio="none"></svg></div>
+      <p class="note" id="appliance-stock-note"></p>
+      <details class="data-details">
+        <summary>View underlying data</summary>
+        <div id="appliance-stock-table"></div>
+      </details>
+    </div>
+
+    <div class="chart-grid" data-mode="advanced" data-sector-only="residential">
+      <div class="card">
+        <div class="mini-card-title">Housing type mix — share of households</div>
+        <div class="chart-legend-inline" id="housing-mix-legend" style="margin-bottom:.5rem"></div>
+        <div class="cw cw-sm"><svg id="housing-mix-svg" viewBox="0 0 440 220" preserveAspectRatio="none"></svg></div>
+        <details class="data-details">
+          <summary>View underlying data</summary>
+          <div id="housing-mix-table"></div>
+        </details>
+      </div>
+      <div class="card">
+        <div class="mini-card-title">Floor space per dwelling</div>
+        <div class="cw cw-sm"><svg id="floorspace-svg" viewBox="0 0 440 220" preserveAspectRatio="none"></svg></div>
+        <p class="note">Average floor area (m²) per household — a proxy for house-size growth.</p>
+        <details class="data-details">
+          <summary>View underlying data</summary>
+          <div id="floorspace-table"></div>
+        </details>
+      </div>
+      <div class="card">
+        <div class="mini-card-title">Appliance energy per household</div>
+        <div class="cw cw-sm"><svg id="appliance-intensity-svg" viewBox="0 0 440 220" preserveAspectRatio="none"></svg></div>
+        <p class="note">NRCan doesn't publish appliance unit-energy-consumption separately in these tables; this line — total appliance end-use energy ÷ households — is the closest available proxy for per-appliance efficiency trends.</p>
+        <details class="data-details">
+          <summary>View underlying data</summary>
+          <div id="appliance-intensity-table"></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-head" data-mode="advanced" data-sector-only="residential">
+      <h2>Intensity: activity vs. efficiency</h2>
+      <p class="sec-sub">Energy per household and per m² trends, always on an energy (PJ) basis regardless of the metric toggle above. Residential-only for now.</p>
+    </div>
+
+    <div class="chart-grid" data-mode="advanced" data-sector-only="residential">
+      <div class="card">
+        <div class="mini-card-title">Energy per household (GJ)</div>
+        <div class="cw cw-sm"><svg id="intensity-hh-svg" viewBox="0 0 440 220" preserveAspectRatio="none"></svg></div>
+      </div>
+      <div class="card">
+        <div class="mini-card-title">Energy per m² of floor space (GJ)</div>
+        <div class="cw cw-sm"><svg id="intensity-m2-svg" viewBox="0 0 440 220" preserveAspectRatio="none"></svg></div>
+      </div>
+    </div>
+
+    <div class="card" data-mode="advanced" data-sector-only="residential">
+      <div class="card-title">Activity vs. efficiency — indexed to first selected year = 100</div>
+      <div class="chart-legend-inline" id="intensity-index-legend" style="margin-bottom:.6rem"></div>
+      <div class="cw cw-xl"><svg id="intensity-index-svg" viewBox="0 0 900 260" preserveAspectRatio="none"></svg></div>
+      <p class="note" id="intensity-index-note"></p>
+      <details class="data-details">
+        <summary>View underlying data</summary>
+        <div id="intensity-hh-table"></div>
+      </details>
+    </div>
+
+  </div>
+
+  <div id="error-msg" class="state-msg" style="display:none"><strong>Couldn't load data</strong><span id="error-detail"></span></div>
+
+</main>
+
+<div class="chart-tip" id="chart-tip"></div>
+
+<footer>
+  <div id="footer-source">Source: NRCan Comprehensive Energy Use Database (Residential sector)</div>
+  <div>GHG figures exclude electricity-related emissions per NRCan's regional convention. Suppressed cells shown as gaps, never zero. <a href="https://oee.nrcan.gc.ca/corporate/statistics/neud/dpa/menus/trends/comprehensive_tables/list.cfm" target="_blank" rel="noopener">CEUD source ↗</a> · <a href="retrofits.html">Retrofit Explorer ↗</a></div>
+</footer>
+
+<script>
+'use strict';
+
+/* ── constants ── */
+/* Residential keeps its hand-picked labels/colors (dimValLabel/dimColor
+   below prefer these when state.sector==='residential') for visual
+   continuity with Phases 2-3. Every other sector's labels/colors are built
+   dynamically from meta.sectors[sector].dims at sector-load time, since
+   each sector's vocabulary differs (see buildDynamicColors()). */
+var DIM_LABELS = {
+  energy_source:{electricity:'Electricity',heating_oil:'Heating oil',natural_gas:'Natural gas',other:'Other',wood:'Wood'},
+  end_use:{appliances:'Appliances',lighting:'Lighting',space_cooling:'Space cooling',space_heating:'Space heating',water_heating:'Water heating'},
+  building_type:{apartments:'Apartments',mobile_homes:'Mobile homes',single_attached:'Single-attached',single_detached:'Single-detached'}
+};
+var DIM_COLORS = {
+  energy_source:{electricity:'#378ADD',heating_oil:'#B33A2E',natural_gas:'#E8A124',other:'#533AB7',wood:'#1A7A55'},
+  end_use:{space_heating:'#B33A2E',water_heating:'#E8A124',appliances:'#378ADD',lighting:'#533AB7',space_cooling:'#1A7A55'},
+  building_type:{single_detached:'#0B2545',single_attached:'#3D6FB4',apartments:'#7FA8D9',mobile_homes:'#C8881A'}
+};
+var COLOR_PALETTE = ['#378ADD','#B33A2E','#E8A124','#533AB7','#1A7A55','#C8881A','#8A9BB0','#0B2545','#3D6FB4','#7FA8D9','#D6336C','#0CA678'];
+var dynamicDimColors = {};
+
+function buildDynamicColors(){
+  dynamicDimColors = {};
+  var dims = sectorMeta().dims;
+  Object.keys(dims).forEach(function(dimKey){
+    var vals = Object.keys(dims[dimKey].values).sort();
+    var map = {};
+    vals.forEach(function(v,i){ map[v] = COLOR_PALETTE[i % COLOR_PALETTE.length]; });
+    dynamicDimColors[dimKey] = map;
+  });
+}
+
+/* dim3Key(): whichever "third dimension" (beyond energy_source/end_use) this
+   sector has — 'building_type' for residential, 'segment2' for com/tran/ind,
+   null for agriculture (no third dimension at all). */
+function dim3Key(){
+  var dims = sectorMeta().dims;
+  if(dims.building_type) return 'building_type';
+  if(dims.segment2) return 'segment2';
+  return null;
+}
+function stackableDims(){
+  var dims = sectorMeta().dims;
+  var keys = [];
+  if(dims.energy_source) keys.push('energy_source');
+  if(dims.end_use) keys.push('end_use');
+  var d3 = dim3Key();
+  if(d3) keys.push(d3);
+  return keys;
+}
+function dimTitle(dimKey){
+  if(state.sector==='residential'){
+    if(dimKey==='energy_source') return 'Energy source';
+    if(dimKey==='end_use') return 'End-use';
+    if(dimKey==='building_type') return 'Building type';
+  }
+  var d = sectorMeta().dims[dimKey];
+  return (d && d.label) || dimKey;
+}
+function dimValLabel(dimKey, val){
+  if(state.sector==='residential' && DIM_LABELS[dimKey] && DIM_LABELS[dimKey][val]) return DIM_LABELS[dimKey][val];
+  var d = sectorMeta().dims[dimKey];
+  return (d && d.values[val]) || val;
+}
+function dimColor(dimKey, val){
+  if(state.sector==='residential' && DIM_COLORS[dimKey] && DIM_COLORS[dimKey][val]) return DIM_COLORS[dimKey][val];
+  return (dynamicDimColors[dimKey] && dynamicDimColors[dimKey][val]) || '#8A9BB0';
+}
+
+var HEAT_GROUPS = {
+  heat_pump:'heat_pump', electric:'electric',
+  natural_gas_high_efficiency:'natural_gas', natural_gas_medium_efficiency:'natural_gas', natural_gas_normal_efficiency:'natural_gas', natural_gas_electric:'natural_gas',
+  heating_oil_high_efficiency:'heating_oil', heating_oil_normal_efficiency:'heating_oil', heating_oil_medium_efficiency:'heating_oil', heating_oil_electric:'heating_oil',
+  wood:'wood', wood_heating_oil:'wood', wood_electric:'wood',
+  other:'other'
+};
+var HEAT_GROUP_ORDER = ['other','wood','heating_oil','electric','natural_gas','heat_pump'];
+var HEAT_GROUP_LABELS = {heat_pump:'Heat pump',electric:'Electric baseboard',natural_gas:'Natural gas',heating_oil:'Heating oil',wood:'Wood',other:'Other'};
+var HEAT_GROUP_COLORS = {heat_pump:'#E8A124',electric:'#533AB7',natural_gas:'#378ADD',heating_oil:'#B33A2E',wood:'#1A7A55',other:'#8A9BB0'};
+
+var APPLIANCE_SEGMENTS = ['refrigerator','range','clothes_washer','clothes_dryer','dishwasher','freezer','other_appliances'];
+var APPLIANCE_LABELS = {refrigerator:'Refrigerators',range:'Ranges',clothes_washer:'Clothes washers',clothes_dryer:'Clothes dryers',dishwasher:'Dishwashers',freezer:'Freezers',other_appliances:'Other appliances'};
+var APPLIANCE_COLORS = {refrigerator:'#378ADD',range:'#B33A2E',clothes_washer:'#E8A124',clothes_dryer:'#C8881A',dishwasher:'#533AB7',freezer:'#1A7A55',other_appliances:'#8A9BB0'};
+
+var advancedLoading = false;
+/* Bumped on every sector/region switch; async callbacks (loadRegion,
+   ensureAdvanced) check it against the value captured when they started and
+   bail out if a newer switch has since superseded them — otherwise two
+   in-flight loads (e.g. a fast double sector-switch) can interleave and
+   leave the page showing a mix of old- and new-sector data. */
+var loadToken = 0;
+
+var state = {
+  sector:'residential', region:'ca', metric:'energy', intensityUnit:'household',
+  stackBy:'energy_source', shareMode:'abs',
+  yearStart:2000, yearEnd:2023, selYear:2023
+};
+
+var meta = null;
+var dataCache = {};
+var currentData = null;
+
+function sectorMeta(){ return meta.sectors[state.sector]; }
+
+/* ── data plumbing ── */
+function loadJSON(url){
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status+' for '+url);
+    return r.json();
+  });
+}
+
+function indexRegionData(data){
+  data._idx = {};
+  data.explanatory.forEach(function(r){
+    if(!data._idx[r.variable]) data._idx[r.variable] = {};
+    if(!data._idx[r.variable][r.segment]) data._idx[r.variable][r.segment] = {};
+    data._idx[r.variable][r.segment][r.year] = r.value;
+  });
+  data._recIdx = {};
+  data.records.forEach(function(r){
+    var parts = [];
+    if(r.energy_source) parts.push('es:'+r.energy_source);
+    if(r.end_use) parts.push('eu:'+r.end_use);
+    if(r.building_type) parts.push('d3:'+r.building_type);
+    if(r.segment2) parts.push('d3:'+r.segment2);
+    parts.sort();
+    var sig = parts.length ? parts.join('|') : 'total';
+    if(!data._recIdx[sig]) data._recIdx[sig] = {};
+    data._recIdx[sig][r.year] = r;
+  });
+  return data;
+}
+
+function getRecord(data, dims, year){
+  var parts = [];
+  if(dims.energy_source) parts.push('es:'+dims.energy_source);
+  if(dims.end_use) parts.push('eu:'+dims.end_use);
+  var d3v = dims.building_type || dims.segment2;
+  if(d3v) parts.push('d3:'+d3v);
+  parts.sort();
+  var sig = parts.length ? parts.join('|') : 'total';
+  var bySig = data._recIdx[sig];
+  return bySig ? (bySig[year] || null) : null;
+}
+
+function lookupExplan(data, variable, segment, year){
+  var v = data._idx[variable];
+  if(!v) return null;
+  var s = v[segment];
+  if(!s) return null;
+  var val = s[year];
+  return (val===undefined) ? null : val;
+}
+
+function metricValue(data, record, year, buildingType){
+  if(!record) return null;
+  if(state.metric==='energy') return record.energy_PJ;
+  if(state.metric==='ghg') return (record.ghg_Mt===undefined) ? null : record.ghg_Mt;
+  // intensity — residential-only (the only sector with a households/floor_space
+  // explanatory variable in a form this can divide by; the metric toggle is
+  // disabled for other sectors in setSector(), so this branch shouldn't run
+  // for them, but stays defensive just in case).
+  if(state.sector!=='residential') return null;
+  var variable = state.intensityUnit==='household' ? 'households' : 'floor_space';
+  var segment = buildingType || 'all';
+  var denom = lookupExplan(data, variable, segment, year);
+  if(denom==null || record.energy_PJ==null) return null;
+  return state.intensityUnit==='household' ? (record.energy_PJ*1000/denom) : (record.energy_PJ/denom);
+}
+
+function yearsRange(a,b){ var out=[]; for(var y=a;y<=b;y++) out.push(y); return out; }
+
+/* ── formatting ── */
+function fmtNum(v, d){
+  if(v==null || isNaN(v)) return '—';
+  if(d===undefined){
+    var av = Math.abs(v);
+    d = av>=100 ? 0 : (av>=10 ? 1 : 2);
+  }
+  return v.toLocaleString('en-CA',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+function unitLabel(){
+  if(state.metric==='energy') return 'PJ';
+  if(state.metric==='ghg') return 'Mt CO₂e';
+  return state.intensityUnit==='household' ? 'GJ/household' : 'GJ/m²';
+}
+function metricTitle(){
+  if(state.metric==='energy') return 'Energy use';
+  if(state.metric==='ghg') return 'GHG emissions';
+  return 'Energy intensity';
+}
+function regionName(code){ return (sectorMeta().regions[code]) || code; }
+
+/* ── init ── */
+function boot(){
+  var myToken = loadToken;
+  Promise.all([loadJSON('ceud_json/meta.json')])
+    .then(function(res){
+      meta = res[0];
+      state.yearStart = sectorMeta().year_range[0];
+      state.yearEnd = sectorMeta().year_range[1];
+      state.selYear = sectorMeta().year_range[1];
+      buildDynamicColors();
+      populateRegionSelect();
+      rebuildStackByToggle();
+      updateMetricToggleAvailability();
+      applySectorCopy();
+      wireControls();
+      return loadRegion(state.region);
+    })
+    .then(function(){
+      if(myToken!==loadToken) return;
+      document.getElementById('loading-msg').style.display='none';
+      document.getElementById('app-body').style.display='block';
+      renderAll();
+      if(document.body.className.indexOf('mode-advanced')!==-1) ensureAdvanced();
+    })
+    .catch(function(err){
+      document.getElementById('loading-msg').style.display='none';
+      document.getElementById('error-msg').style.display='block';
+      document.getElementById('error-detail').textContent = ' ' + err.message;
+      console.error(err);
+    });
+}
+
+function fetchRegionData(code){
+  var key = state.sector+'/'+code;
+  if(dataCache[key]) return Promise.resolve(dataCache[key]);
+  var url = 'ceud_json/'+sectorMeta().file_prefix+'_'+code+'.json';
+  return loadJSON(url).then(function(d){
+    indexRegionData(d);
+    dataCache[key] = d;
+    return d;
+  });
+}
+
+function loadRegion(code){
+  return fetchRegionData(code).then(function(d){ currentData = d; return d; });
+}
+
+function ensureAllRegionsLoaded(){
+  return Promise.all(Object.keys(sectorMeta().regions).map(fetchRegionData));
+}
+
+var advancedLoadedSector = null;
+
+function ensureAdvanced(){
+  if(advancedLoading) return;
+  if(advancedLoadedSector===state.sector){ renderCompareRegions(); return; }
+  advancedLoading = true;
+  var myToken = loadToken;
+  var grid = document.getElementById('compare-grid');
+  if(grid) grid.innerHTML = '<div class="section-loading">Loading all '+Object.keys(sectorMeta().regions).length+' regions…</div>';
+  ensureAllRegionsLoaded().then(function(){
+    advancedLoading = false;
+    if(myToken!==loadToken) return; // superseded by a later sector/region switch
+    advancedLoadedSector = state.sector;
+    renderCompareRegions();
+  }).catch(function(err){
+    advancedLoading = false;
+    console.error(err);
+    if(grid) grid.innerHTML = '<div class="section-loading">Couldn\'t load comparison data — '+err.message+'</div>';
+  });
+}
+
+function populateRegionSelect(){
+  var sel = document.getElementById('region-sel');
+  sel.innerHTML='';
+  var regions = sectorMeta().regions;
+  Object.keys(regions).forEach(function(code){
+    var opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = code==='ca' ? 'All of Canada' : regions[code];
+    if(code===state.region) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function currentMode(){ return document.body.className.indexOf('mode-advanced')!==-1 ? 'advanced' : 'simple'; }
+
+function applyBodyClasses(){
+  document.body.className = 'mode-'+currentMode()+' '+(state.sector==='residential'?'sector-residential':'sector-other');
+}
+
+function setViewMode(mode){
+  document.body.className = 'mode-'+mode+' '+(state.sector==='residential'?'sector-residential':'sector-other');
+  try{localStorage.setItem('ceudViewMode',mode);}catch(e){}
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.toggle('active', b.dataset.view===mode)});
+  if(mode==='advanced' && meta) ensureAdvanced();
+}
+
+function updateMetricToggleAvailability(){
+  var intensityBtn = document.querySelector('#metric-toggle .seg-btn[data-metric="intensity"]');
+  if(!intensityBtn) return;
+  var available = state.sector==='residential';
+  intensityBtn.disabled = !available;
+  intensityBtn.title = available ? '' : 'Intensity is residential-only for now (no comparable household/floor-space denominator published for this sector)';
+  if(!available && state.metric==='intensity'){
+    state.metric = 'energy';
+    document.querySelectorAll('#metric-toggle .seg-btn').forEach(function(x){x.classList.toggle('active', x.dataset.metric==='energy')});
+    document.getElementById('intensity-unit-group').style.display = 'none';
+  }
+}
+
+function setSector(sectorKey){
+  if(!meta || sectorKey===state.sector) return;
+  if(!meta.sectors[sectorKey]){ return; }
+  loadToken++;
+  state.sector = sectorKey;
+  var regions = Object.keys(sectorMeta().regions);
+  state.region = regions.indexOf('ca')!==-1 ? 'ca' : regions[0];
+  state.yearStart = sectorMeta().year_range[0];
+  state.yearEnd = sectorMeta().year_range[1];
+  state.selYear = sectorMeta().year_range[1];
+  state.hiddenTrendCats = null;
+  state.shareMode = 'abs';
+  document.querySelectorAll('#sharemode-toggle .seg-btn').forEach(function(x){x.classList.toggle('active', x.dataset.share==='abs')});
+
+  document.querySelectorAll('#sector-tabs .sector-tab').forEach(function(b){
+    b.classList.toggle('active', b.dataset.sector===sectorKey);
+    b.setAttribute('aria-selected', b.dataset.sector===sectorKey ? 'true' : 'false');
+  });
+  applyBodyClasses();
+  applySectorCopy();
+  buildDynamicColors();
+  populateRegionSelect();
+  updateMetricToggleAvailability();
+  rebuildStackByToggle();
+  advancedLoadedSector = null;
+
+  document.getElementById('loading-msg').style.display='block';
+  document.getElementById('app-body').style.display='none';
+  var myToken = loadToken;
+  loadRegion(state.region).then(function(){
+    if(myToken!==loadToken) return; // a newer sector/region switch superseded this in-flight load
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('app-body').style.display='block';
+    renderAll();
+    if(currentMode()==='advanced') ensureAdvanced();
+  });
+}
+
+function applySectorCopy(){
+  var sm = sectorMeta();
+  var label = sm.label;
+  document.getElementById('hero-h1').innerHTML = 'How Canadian '+(state.sector==='residential'?'homes':label.toLowerCase()+' activity')+' <em>use'+(state.sector==='residential'?' energy':'s energy')+'</em> — and how that\'s changing';
+  document.getElementById('hero-sub').textContent = 'One slice at a time. Pick a region, a metric and a year range to see where '+label.toLowerCase()+' energy goes and how it\'s shifted since 2000 — no more digging through fifty static tables.';
+  document.getElementById('section1-sub').textContent = label+' energy use, emissions'+(state.sector==='residential'?' and household growth':'')+' at a glance.';
+  document.getElementById('section2-sub').textContent = 'How '+label.toLowerCase()+' energy has shifted since 2000, broken down by '+stackableDims().map(dimTitle).join(', ').toLowerCase()+'.';
+  var d3 = dim3Key();
+  document.getElementById('section3-sub').textContent = d3
+    ? 'A single year, broken down two ways at once: outer ring by '+dimTitle(d3).toLowerCase()+', inner ring by the selected trend dimension within each.'
+    : 'A single year, broken down by the selected trend dimension.';
+  document.getElementById('footer-source').textContent = 'Source: NRCan Comprehensive Energy Use Database ('+label+' sector)';
+}
+
+function rebuildStackByToggle(){
+  var container = document.getElementById('stackby-toggle');
+  var keys = stackableDims();
+  if(keys.indexOf(state.stackBy)===-1) state.stackBy = keys[0];
+  container.innerHTML = keys.map(function(k){
+    return '<button type="button" class="seg-btn'+(k===state.stackBy?' active':'')+'" data-stackby="'+k+'">By '+dimTitle(k).toLowerCase()+'</button>';
+  }).join('');
+  container.querySelectorAll('.seg-btn').forEach(function(b){
+    b.onclick = function(){
+      if(b.disabled) return;
+      state.stackBy = b.dataset.stackby;
+      container.querySelectorAll('.seg-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+      renderAll();
+    };
+  });
+  updateStackBySourceDisabled();
+}
+
+function updateStackBySourceDisabled(){
+  var btn = document.querySelector('#stackby-toggle .seg-btn[data-stackby="energy_source"]');
+  if(!btn) return;
+  var disable = state.sector==='residential' && state.metric==='ghg';
+  btn.disabled = disable;
+  if(disable && state.stackBy==='energy_source'){
+    state.stackBy = 'end_use';
+    document.querySelectorAll('#stackby-toggle .seg-btn').forEach(function(x){x.classList.toggle('active', x.dataset.stackby==='end_use')});
+  }
+}
+
+function wireControls(){
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.classList.toggle('active', currentMode()===b.dataset.view);
+    b.onclick = function(){ setViewMode(b.dataset.view); };
+  });
+
+  document.getElementById('region-sel').addEventListener('change', function(e){
+    state.region = e.target.value;
+    loadToken++;
+    var myToken = loadToken;
+    document.getElementById('loading-msg').style.display='block';
+    document.getElementById('app-body').style.display='none';
+    loadRegion(state.region).then(function(){
+      if(myToken!==loadToken) return;
+      document.getElementById('loading-msg').style.display='none';
+      document.getElementById('app-body').style.display='block';
+      renderAll();
+    });
+  });
+
+  document.querySelectorAll('#metric-toggle .seg-btn').forEach(function(b){
+    b.onclick = function(){
+      if(b.disabled) return;
+      state.metric = b.dataset.metric;
+      document.querySelectorAll('#metric-toggle .seg-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+      document.getElementById('intensity-unit-group').style.display = state.metric==='intensity' ? 'flex' : 'none';
+      updateStackBySourceDisabled();
+      renderAll();
+    };
+  });
+
+  document.querySelectorAll('#intensity-unit-toggle .seg-btn').forEach(function(b){
+    b.onclick = function(){
+      state.intensityUnit = b.dataset.unit;
+      document.querySelectorAll('#intensity-unit-toggle .seg-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+      renderAll();
+    };
+  });
+
+  document.querySelectorAll('#sharemode-toggle .seg-btn').forEach(function(b){
+    b.onclick = function(){
+      state.shareMode = b.dataset.share;
+      document.querySelectorAll('#sharemode-toggle .seg-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+      renderAll();
+    };
+  });
+
+  var yMin = document.getElementById('year-min'), yMax = document.getElementById('year-max');
+  var selYear = document.getElementById('sel-year');
+  function syncRangeInputBounds(){
+    [yMin,yMax,selYear].forEach(function(el){ el.min = state.yearStart_bound; el.max = state.yearEnd_bound; });
+  }
+  yMin.addEventListener('input', function(){
+    var v = +yMin.value;
+    if(v > +yMax.value) yMax.value = v;
+    state.yearStart = +yMin.value; state.yearEnd = +yMax.value;
+    updateRangeVisual();
+    clampSelYear();
+    renderAll();
+  });
+  yMax.addEventListener('input', function(){
+    var v = +yMax.value;
+    if(v < +yMin.value) yMin.value = v;
+    state.yearStart = +yMin.value; state.yearEnd = +yMax.value;
+    updateRangeVisual();
+    clampSelYear();
+    renderAll();
+  });
+  selYear.addEventListener('input', function(){
+    state.selYear = +selYear.value;
+    document.getElementById('sel-year-val').textContent = state.selYear;
+    renderBreakdown();
+  });
+
+  window.__syncRangeInputBounds = syncRangeInputBounds;
+}
+
+function clampSelYear(){
+  if(state.selYear < state.yearStart) state.selYear = state.yearStart;
+  if(state.selYear > state.yearEnd) state.selYear = state.yearEnd;
+  var selYear = document.getElementById('sel-year');
+  selYear.value = state.selYear;
+  document.getElementById('sel-year-val').textContent = state.selYear;
+}
+
+function updateRangeVisual(){
+  var yMin = document.getElementById('year-min'), yMax = document.getElementById('year-max');
+  var lo = state.yearStart, hi = state.yearEnd, gmin = sectorMeta().year_range[0], gmax = sectorMeta().year_range[1];
+  var span = (gmax-gmin) || 1;
+  var pctLo = (lo-gmin)/span*100, pctHi = (hi-gmin)/span*100;
+  var fill = document.getElementById('range-fill');
+  fill.style.left = 'calc(8px + (100% - 16px) * ' + (pctLo/100) + ')';
+  fill.style.width = 'calc((100% - 16px) * ' + ((pctHi-pctLo)/100) + ')';
+  document.getElementById('year-min-lbl').textContent = lo;
+  document.getElementById('year-max-lbl').textContent = hi;
+}
+
+function initYearControls(){
+  var yMin = document.getElementById('year-min'), yMax = document.getElementById('year-max'), selYear = document.getElementById('sel-year');
+  [yMin,yMax,selYear].forEach(function(el){ el.min = sectorMeta().year_range[0]; el.max = sectorMeta().year_range[1]; });
+  yMin.value = state.yearStart; yMax.value = state.yearEnd; selYear.value = state.selYear;
+  document.getElementById('sel-year-val').textContent = state.selYear;
+  updateRangeVisual();
+}
+
+/* ── render orchestration ── */
+function renderAll(){
+  initYearControls();
+  renderStats();
+  renderInsight();
+  renderTrend();
+  renderBreakdown();
+  if(state.sector==='residential'){
+    renderEquipment();
+    renderIntensityView();
+  }
+  if(advancedLoadedSector===state.sector) renderCompareRegions();
+}
+
+/* ── section 1: stats + insight ── */
+function renderStats(){
+  var d = currentData;
+  var latest = state.yearEnd, base = sectorMeta().year_range[0];
+  var recLatest = getRecord(d,{},latest), recBase = getRecord(d,{},base);
+  var valLatest = metricValue(d, recLatest, latest);
+  var valBase = metricValue(d, recBase, base);
+  var pctChange = (valBase && valLatest!=null) ? (valLatest-valBase)/valBase*100 : null;
+
+  var grid = document.getElementById('stats-grid');
+  grid.innerHTML = '';
+  function tile(label, value, sub, cls){
+    var div = document.createElement('div');
+    div.className='stat-card';
+    div.innerHTML = '<div class="stat-label">'+label+'</div><div class="stat-value'+(cls?' '+cls:'')+'">'+value+'</div><div class="stat-sub">'+(sub||'')+'</div>';
+    grid.appendChild(div);
+  }
+  tile('Total '+metricTitle().toLowerCase()+' — '+latest, fmtNum(valLatest)+' <span style="font-size:1rem;color:var(--muted)">'+unitLabel()+'</span>', regionName(state.region));
+  tile('Change since '+base, pctChange==null?'—':(pctChange>0?'+':'')+fmtNum(pctChange,1)+'%', 'total '+metricTitle().toLowerCase(), pctChange==null?'':(pctChange<0?'green':'red'));
+
+  if(state.sector==='residential'){
+    var hhLatest = lookupExplan(d,'households','all',latest);
+    var hhBase = lookupExplan(d,'households','all',base);
+    var pctHH = (hhBase && hhLatest!=null) ? (hhLatest-hhBase)/hhBase*100 : null;
+    var perHHLatest = (recLatest && recLatest.energy_PJ!=null && hhLatest) ? recLatest.energy_PJ*1000/hhLatest : null;
+    var perHHBase = (recBase && recBase.energy_PJ!=null && hhBase) ? recBase.energy_PJ*1000/hhBase : null;
+    var pctPerHH = (perHHBase && perHHLatest!=null) ? (perHHLatest-perHHBase)/perHHBase*100 : null;
+    tile('Energy per household', fmtNum(perHHLatest,1)+' <span style="font-size:1rem;color:var(--muted)">GJ</span>', latest);
+    tile('vs. per-household in '+base, pctPerHH==null?'—':(pctPerHH>0?'+':'')+fmtNum(pctPerHH,1)+'%', 'per household', pctPerHH==null?'':(pctPerHH<0?'green':'red'));
+    tile('Households', fmtNum(hhLatest,0)+' <span style="font-size:1rem;color:var(--muted)">thousand</span>', pctHH==null?'':((pctHH>0?'+':'')+fmtNum(pctHH,0)+'% vs '+base));
+  }
+}
+
+function renderInsight(){
+  var d = currentData;
+  var latest = state.yearEnd, base = sectorMeta().year_range[0];
+  var recLatest = getRecord(d,{},latest), recBase = getRecord(d,{},base);
+  var el = document.getElementById('insight-text');
+  var rname = regionName(state.region);
+
+  if(state.sector==='residential'){
+    var hhLatest = lookupExplan(d,'households','all',latest), hhBase = lookupExplan(d,'households','all',base);
+    if(!recLatest || !recBase || recLatest.energy_PJ==null || recBase.energy_PJ==null || !hhLatest || !hhBase){
+      el.textContent = 'Not enough data to generate an insight for this selection.';
+      return;
+    }
+    var perHHLatest = recLatest.energy_PJ*1000/hhLatest, perHHBase = recBase.energy_PJ*1000/hhBase;
+    var pctPerHH = (perHHLatest-perHHBase)/perHHBase*100;
+    var pctHH = (hhLatest-hhBase)/hhBase*100;
+    var pctTotal = (recLatest.energy_PJ-recBase.energy_PJ)/recBase.energy_PJ*100;
+    el.innerHTML = rname+' homes used <strong>'+fmtNum(Math.abs(pctPerHH),0)+'% '+(pctPerHH<0?'less':'more')+'</strong> energy per household in '+latest+' than in '+base+
+      ', even though there are <strong>'+fmtNum(Math.abs(pctHH),0)+'% '+(pctHH<0?'fewer':'more')+'</strong> of them. Total residential energy use is '+
+      fmtNum(Math.abs(pctTotal),0)+'% '+(pctTotal<0?'lower':'higher')+' than in '+base+'.';
+    return;
+  }
+
+  if(!recLatest || !recBase || recLatest.energy_PJ==null || recBase.energy_PJ==null){
+    el.textContent = 'Not enough data to generate an insight for this selection.';
+    return;
+  }
+  var pctTotalG = (recLatest.energy_PJ-recBase.energy_PJ)/recBase.energy_PJ*100;
+  el.innerHTML = rname+' '+sectorMeta().label.toLowerCase()+' energy use was <strong>'+fmtNum(Math.abs(pctTotalG),0)+'% '+(pctTotalG<0?'lower':'higher')+'</strong> in '+latest+' than in '+base+'.';
+}
+
+/* ── section 2: trend chart ── */
+var trendHover = null;
+
+function computeTrendSeries(){
+  var d = currentData;
+  var dimKey = state.stackBy;
+  var cats = Object.keys(sectorMeta().dims[dimKey].values);
+  var years = yearsRange(state.yearStart, state.yearEnd);
+  var values = {};
+  cats.forEach(function(c){
+    values[c] = years.map(function(y){
+      var rec = getRecord(d, mkDims(dimKey,c), y);
+      return metricValue(d, rec, y);
+    });
+  });
+  if(state.shareMode==='share'){
+    years.forEach(function(y,i){
+      var sum = 0, any=false;
+      cats.forEach(function(c){ var v=values[c][i]; if(v!=null){sum+=v; any=true;} });
+      cats.forEach(function(c){
+        var v = values[c][i];
+        if(v==null || !any || sum===0){ values[c][i] = any ? 0 : null; }
+        else values[c][i] = v/sum*100;
+      });
+    });
+  }
+  return {years:years, cats:cats, values:values, dimKey:dimKey};
+}
+function mkDims(dimKey, cat){ var o={}; o[dimKey]=cat; return o; }
+
+function renderTrend(){
+  var series = computeTrendSeries();
+  var dimKey = series.dimKey, years = series.years, cats = series.cats, values = series.values;
+
+  document.getElementById('trend-title').textContent = metricTitle()+' by '+dimTitle(dimKey).toLowerCase()+', '+years[0]+'–'+years[years.length-1];
+
+  // legend
+  var legend = document.getElementById('trend-legend');
+  legend.innerHTML='';
+  cats.forEach(function(c){
+    var item = document.createElement('div');
+    item.className='chart-legend-item'+(state.hiddenTrendCats && state.hiddenTrendCats[c] ? ' dim':'');
+    item.innerHTML = '<span class="chart-legend-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c);
+    item.onclick = function(){
+      state.hiddenTrendCats = state.hiddenTrendCats || {};
+      state.hiddenTrendCats[c] = !state.hiddenTrendCats[c];
+      renderTrend();
+    };
+    legend.appendChild(item);
+  });
+
+  var W=900,H=340,ML=54,MR=16,MT=14,MB=30;
+  var plotW=W-ML-MR, plotH=H-MT-MB;
+  var svg = document.getElementById('trend-svg');
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML='';
+
+  var visibleCats = cats.filter(function(c){ return !(state.hiddenTrendCats && state.hiddenTrendCats[c]); });
+  if(!years.length || !visibleCats.length){
+    svg.innerHTML = '<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" class="axis-text">No data for this selection</text>';
+    document.getElementById('trend-note').textContent='';
+    document.getElementById('trend-table').innerHTML='';
+    return;
+  }
+
+  var maxY = 0;
+  years.forEach(function(y,i){
+    var sum=0;
+    visibleCats.forEach(function(c){ var v=values[c][i]; if(v!=null) sum+=v; });
+    if(sum>maxY) maxY=sum;
+  });
+  if(state.shareMode==='share'){ maxY = 100; }
+  else{ if(maxY<=0) maxY = 1; maxY *= 1.08; }
+
+  function xOf(year){ return ML + (years.length>1 ? (year-years[0])/(years[years.length-1]-years[0])*plotW : plotW/2); }
+  function yOf(v){ return MT + plotH - (v/maxY)*plotH; }
+
+  var svgns='http://www.w3.org/2000/svg';
+  function el(tag,attrs){ var e=document.createElementNS(svgns,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+
+  // gridlines / axis
+  var ticks = 5;
+  for(var t=0;t<=ticks;t++){
+    var val = maxY*t/ticks;
+    var y = yOf(val);
+    svg.appendChild(el('line',{x1:ML,x2:W-MR,y1:y,y2:y,class:'axis-line'}));
+    var txt = el('text',{x:ML-8,y:y+3,'text-anchor':'end',class:'axis-text'});
+    txt.textContent = state.shareMode==='share' ? Math.round(val)+'%' : fmtNum(val,0);
+    svg.appendChild(txt);
+  }
+  var xTickEvery = years.length>16 ? 4 : (years.length>8?2:1);
+  years.forEach(function(y,i){
+    if(i%xTickEvery!==0 && i!==years.length-1) return;
+    var x = xOf(y);
+    var txt = el('text',{x:x,y:H-MB+16,'text-anchor':'middle',class:'axis-text'});
+    txt.textContent = y;
+    svg.appendChild(txt);
+  });
+
+  // build runs of contiguous years with any visible data
+  var hasData = years.map(function(y,i){ return visibleCats.some(function(c){ return values[c][i]!=null; }); });
+  var runs = [];
+  var cur=null;
+  hasData.forEach(function(h,i){
+    if(h){ if(!cur){cur=[i,i];} else cur[1]=i; }
+    else { if(cur){runs.push(cur);cur=null;} }
+  });
+  if(cur) runs.push(cur);
+
+  // cumulative baseline per category (bottom-up stacking in category order)
+  var cumBottom = years.map(function(){return 0});
+  visibleCats.forEach(function(c, ci){
+    var bottoms = [], tops = [];
+    years.forEach(function(y,i){
+      var v = values[c][i];
+      var b = cumBottom[i];
+      var top = v==null ? b : b + v;
+      bottoms.push(b); tops.push(top);
+      if(v!=null) cumBottom[i] = top;
+    });
+    var dAttr = '';
+    runs.forEach(function(run){
+      var pts = [];
+      for(var i=run[0]; i<=run[1]; i++) pts.push([xOf(years[i]), yOf(tops[i])]);
+      for(var i=run[1]; i>=run[0]; i--) pts.push([xOf(years[i]), yOf(bottoms[i])]);
+      if(pts.length<3) return;
+      dAttr += 'M'+pts.map(function(p){return p[0].toFixed(2)+','+p[1].toFixed(2)}).join('L')+'Z ';
+    });
+    var path = el('path',{d:dAttr.trim(), fill:dimColor(dimKey,c), 'fill-opacity':'0.82', stroke:dimColor(dimKey,c),'stroke-width':'1'});
+    svg.appendChild(path);
+  });
+
+  // hover interaction
+  var hoverLine = el('line',{class:'hover-line',x1:0,x2:0,y1:MT,y2:MT+plotH,style:'display:none'});
+  svg.appendChild(hoverLine);
+  var hitRect = el('rect',{x:ML,y:MT,width:plotW,height:plotH,fill:'transparent'});
+  svg.appendChild(hitRect);
+  var tip = document.getElementById('chart-tip');
+
+  hitRect.addEventListener('mousemove', function(evt){
+    var rect = svg.getBoundingClientRect();
+    var scaleXpx = rect.width / W;
+    var mx = (evt.clientX - rect.left)/scaleXpx;
+    var frac = (mx-ML)/plotW;
+    var idx = Math.round(frac*(years.length-1));
+    idx = Math.max(0, Math.min(years.length-1, idx));
+    var y = years[idx];
+    hoverLine.setAttribute('x1', xOf(y)); hoverLine.setAttribute('x2', xOf(y)); hoverLine.style.display='block';
+    var rows = visibleCats.map(function(c){
+      var v = values[c][idx];
+      return '<div class="tip-row"><span class="tip-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c)+': '+(v==null?'n/a':fmtNum(v,1)+(state.shareMode==='share'?'%':' '+unitLabel()))+'</div>';
+    }).join('');
+    tip.innerHTML = '<strong>'+y+'</strong>'+rows;
+    tip.style.display='block';
+    tip.style.left = (evt.clientX+14)+'px';
+    tip.style.top = (evt.clientY+14)+'px';
+  });
+  hitRect.addEventListener('mouseleave', function(){ tip.style.display='none'; hoverLine.style.display='none'; });
+
+  document.getElementById('trend-note').innerHTML = state.shareMode==='share'
+    ? 'Each year sums to 100% across the visible categories. Click a legend item to hide/show it.'
+    : 'Stacked '+unitLabel()+' by '+dimTitle(dimKey).toLowerCase()+'. Gaps indicate suppressed or unavailable data. Click a legend item to hide/show it.';
+
+  renderTrendTable(years, visibleCats, values, dimKey);
+}
+
+function renderTrendTable(years, cats, values, dimKey){
+  var headers = ['Year'].concat(cats.map(function(c){return dimValLabel(dimKey,c);}));
+  var rows = years.map(function(y,i){
+    return [y].concat(cats.map(function(c){ var v=values[c][i]; return v==null?'—':fmtNum(v,1); }));
+  });
+  renderDataTable('trend-table', headers, rows, 'ceud_trend_'+dimKey+'_'+state.region+'_'+state.metric+'.csv');
+}
+
+/* ── section 3: nested breakdown donut ──
+   Outer ring = this sector's third dimension (building type / activity type /
+   transportation mode / industry), inner ring = the currently selected trend
+   dimension. Agriculture has no third dimension at all — renderBreakdown
+   falls back to a single-ring donut for just the inner dimension. */
+function renderBreakdown(){
+  var d = currentData;
+  var dimKey = state.stackBy;
+  var dimCats = Object.keys(sectorMeta().dims[dimKey].values);
+  var d3 = dim3Key();
+  var hasOuter = !!d3 && d3!==dimKey;
+  var btCats = hasOuter ? Object.keys(sectorMeta().dims[d3].values) : ['all'];
+  var year = state.selYear;
+  // Only residential's ETL fetched genuine per-building-type energy_source/
+  // end_use cross-tab tables. The other sectors only have single-dimension
+  // "all"-scope breakdowns (segment2 alone, energy_source alone, etc.) — no
+  // (segment2, energy_source) combination exists in that data at all — so
+  // the inner ring can't be subdivided *within* each outer segment for them;
+  // it's drawn as its own independent full ring instead.
+  var crossTabAvailable = hasOuter && state.sector==='residential';
+
+  document.getElementById('breakdown-year-lbl').textContent = year;
+
+  // outer ring: d3 totals (or a single synthetic 'all' bucket when there's no d3)
+  var outerVals = {};
+  var outerTotal = 0;
+  btCats.forEach(function(bt){
+    var dims = {}; if(hasOuter) dims[d3] = bt;
+    var rec = getRecord(d, dims, year);
+    var v = metricValue(d, rec, year, hasOuter?bt:null);
+    outerVals[bt] = v;
+    if(v!=null) outerTotal += v;
+  });
+
+  // inner ring values: nested within each outer bucket when a real cross-tab
+  // exists, otherwise dimKey's own independent totals (ignoring d3 entirely)
+  var innerVals = {};
+  if(crossTabAvailable){
+    btCats.forEach(function(bt){
+      innerVals[bt] = {};
+      dimCats.forEach(function(c){
+        var dims = {}; dims[d3]=bt; dims[dimKey]=c;
+        var rec = getRecord(d, dims, year);
+        innerVals[bt][c] = metricValue(d, rec, year, bt);
+      });
+    });
+  } else {
+    innerVals.all = {};
+    dimCats.forEach(function(c){
+      var dims = {}; dims[dimKey]=c;
+      var rec = getRecord(d, dims, year);
+      innerVals.all[c] = metricValue(d, rec, year, null);
+    });
+  }
+  var innerTotal = 0;
+  if(!crossTabAvailable) dimCats.forEach(function(c){ var v=innerVals.all[c]; if(v!=null) innerTotal+=v; });
+
+  var svg = document.getElementById('donut-svg');
+  var W=480,H=380,cx=180,cy=190;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML='';
+  var svgns='http://www.w3.org/2000/svg';
+  function el(tag,attrs){ var e=document.createElementNS(svgns,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+
+  var legOuter = document.getElementById('donut-legend-outer');
+  if(outerTotal<=0){
+    svg.innerHTML = '<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" class="axis-text">No data for '+year+'</text>';
+    document.getElementById('donut-note').textContent='';
+    document.getElementById('donut-legend-inner').innerHTML='';
+    legOuter.innerHTML='';
+    document.getElementById('donut-table').innerHTML='';
+    return;
+  }
+
+  var rOuterIn=118, rOuterOut=150;
+  var rInnerIn = hasOuter ? 70 : 90, rInnerOut = hasOuter ? 112 : 150;
+
+  function polar(cx,cy,r,angle){ return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)]; }
+  function ringPath(cx,cy,rIn,rOut,a0,a1){
+    var large = (a1-a0) > Math.PI ? 1 : 0;
+    var p1=polar(cx,cy,rOut,a0), p2=polar(cx,cy,rOut,a1), p3=polar(cx,cy,rIn,a1), p4=polar(cx,cy,rIn,a0);
+    return 'M'+p1[0].toFixed(2)+','+p1[1].toFixed(2)+
+      ' A'+rOut+','+rOut+' 0 '+large+' 1 '+p2[0].toFixed(2)+','+p2[1].toFixed(2)+
+      ' L'+p3[0].toFixed(2)+','+p3[1].toFixed(2)+
+      ' A'+rIn+','+rIn+' 0 '+large+' 0 '+p4[0].toFixed(2)+','+p4[1].toFixed(2)+' Z';
+  }
+
+  var tip = document.getElementById('chart-tip');
+  var startAngle = -Math.PI/2;
+  var a = startAngle;
+  var innerTotalCombined = {}; dimCats.forEach(function(c){innerTotalCombined[c]=0});
+
+  btCats.forEach(function(bt){
+    var ov = outerVals[bt];
+    if(ov==null || ov<=0){ return; }
+    var span = ov/outerTotal * Math.PI*2;
+    var a0=a, a1=a+span;
+    if(hasOuter){
+      var outerPath = el('path',{d:ringPath(cx,cy,rOuterIn,rOuterOut,a0,a1), fill:dimColor(d3,bt), class:'donut-seg'});
+      outerPath.addEventListener('mousemove', function(evt){
+        tip.innerHTML = '<div class="tip-row"><span class="tip-dot" style="background:'+dimColor(d3,bt)+'"></span>'+dimValLabel(d3,bt)+': '+fmtNum(ov,1)+' '+unitLabel()+' ('+fmtNum(ov/outerTotal*100,0)+'%)</div>';
+        tip.style.display='block'; tip.style.left=(evt.clientX+14)+'px'; tip.style.top=(evt.clientY+14)+'px';
+      });
+      outerPath.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+      svg.appendChild(outerPath);
+    }
+
+    if(crossTabAvailable){
+      // inner subdivisions within this outer bucket's angular span, proportional to its total
+      var btSum = 0;
+      dimCats.forEach(function(c){ var v=innerVals[bt][c]; if(v!=null) btSum += v; });
+      var ia = a0;
+      dimCats.forEach(function(c){
+        var v = innerVals[bt][c];
+        if(v==null || v<=0 || btSum<=0) return;
+        var ispan = (v/btSum) * span;
+        var ia0=ia, ia1=ia+ispan;
+        var innerPath = el('path',{d:ringPath(cx,cy,rInnerIn,rInnerOut,ia0,ia1), fill:dimColor(dimKey,c), class:'donut-seg', 'fill-opacity':'0.9'});
+        innerPath.addEventListener('mousemove', function(evt){
+          tip.innerHTML = '<div class="tip-row"><span class="tip-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c)+' — '+dimValLabel(d3,bt)+': '+fmtNum(v,1)+' '+unitLabel()+'</div>';
+          tip.style.display='block'; tip.style.left=(evt.clientX+14)+'px'; tip.style.top=(evt.clientY+14)+'px';
+        });
+        innerPath.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+        svg.appendChild(innerPath);
+        ia = ia1;
+        innerTotalCombined[c] += v;
+      });
+    }
+    a = a1;
+  });
+
+  if(!crossTabAvailable){
+    // inner ring is its own independent full circle (no real cross-tab data
+    // to nest it within the outer ring's segments — see crossTabAvailable above)
+    var ia2 = startAngle;
+    dimCats.forEach(function(c){
+      var v = innerVals.all[c];
+      if(v==null || v<=0 || innerTotal<=0) return;
+      var ispan = (v/innerTotal) * Math.PI*2;
+      var ia0=ia2, ia1=ia2+ispan;
+      var innerPath = el('path',{d:ringPath(cx,cy,rInnerIn,rInnerOut,ia0,ia1), fill:dimColor(dimKey,c), class:'donut-seg', 'fill-opacity':'0.9'});
+      innerPath.addEventListener('mousemove', function(evt){
+        tip.innerHTML = '<div class="tip-row"><span class="tip-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c)+': '+fmtNum(v,1)+' '+unitLabel()+' ('+fmtNum(v/innerTotal*100,0)+'%)</div>';
+        tip.style.display='block'; tip.style.left=(evt.clientX+14)+'px'; tip.style.top=(evt.clientY+14)+'px';
+      });
+      innerPath.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+      svg.appendChild(innerPath);
+      ia2 = ia1;
+      innerTotalCombined[c] += v;
+    });
+  }
+
+  // center label
+  var centerVal = el('text',{x:cx,y:cy-4,'text-anchor':'middle','font-size':'26','class':'donut-center-val'});
+  centerVal.textContent = fmtNum(outerTotal,0);
+  svg.appendChild(centerVal);
+  var centerUnit = el('text',{x:cx,y:cy+16,'text-anchor':'middle','font-size':'11','class':'donut-center-lbl'});
+  centerUnit.textContent = unitLabel()+' · '+year;
+  svg.appendChild(centerUnit);
+
+  // side legends
+  var legInner = document.getElementById('donut-legend-inner');
+  legInner.innerHTML = '<div style="width:100%;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--light);margin-bottom:2px">'+(hasOuter?'Inner — ':'')+dimTitle(dimKey)+'</div>';
+  var innerDenom = crossTabAvailable ? outerTotal : innerTotal;
+  dimCats.forEach(function(c){
+    var v = innerTotalCombined[c];
+    var item = document.createElement('div');
+    item.className='chart-legend-item';
+    item.innerHTML = '<span class="chart-legend-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c)+' ('+fmtNum(v/innerDenom*100,0)+'%)';
+    legInner.appendChild(item);
+  });
+  if(hasOuter){
+    legOuter.innerHTML = '<div style="width:100%;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--light);margin-bottom:2px">Outer — '+dimTitle(d3)+'</div>';
+    btCats.forEach(function(bt){
+      var v = outerVals[bt];
+      var item = document.createElement('div');
+      item.className='chart-legend-item';
+      item.innerHTML = '<span class="chart-legend-dot" style="background:'+dimColor(d3,bt)+'"></span>'+dimValLabel(d3,bt)+(v!=null?' ('+fmtNum(v/outerTotal*100,0)+'%)':' (n/a)');
+      legOuter.appendChild(item);
+    });
+  } else {
+    legOuter.innerHTML = '';
+  }
+
+  document.getElementById('donut-note').textContent = crossTabAvailable
+    ? 'Outer and inner rings are independent breakdowns of the same total for '+year+' — not literally nested shares, since '+dimTitle(d3).toLowerCase()+' and '+dimTitle(dimKey).toLowerCase()+' are cross-tabulated separately in the source tables. Scrub the slider above to see how the mix shifts year to year.'
+    : hasOuter
+      ? 'Outer ring ('+dimTitle(d3).toLowerCase()+') and inner ring ('+dimTitle(dimKey).toLowerCase()+') are each their own independent 100% breakdown of '+year+' — this sector\'s source tables don\'t cross-tabulate the two together, so the rings aren\'t nested shares of each other. Scrub the slider above to see how each mix shifts year to year.'
+      : 'Breakdown by '+dimTitle(dimKey).toLowerCase()+' for '+year+'. Scrub the slider above to see how the mix shifts year to year.';
+
+  renderBreakdownTable(dimKey, dimCats, btCats, innerVals, outerVals, year, hasOuter, d3, crossTabAvailable);
+}
+
+function renderBreakdownTable(dimKey, dimCats, btCats, innerVals, outerVals, year, hasOuter, d3, crossTabAvailable){
+  if(!hasOuter){
+    var headers1 = [dimTitle(dimKey)].concat(['Value']);
+    var rows1 = dimCats.map(function(c){ return [dimValLabel(dimKey,c), innerVals.all[c]==null?'—':fmtNum(innerVals.all[c],1)]; });
+    renderDataTable('donut-table', headers1, rows1, 'ceud_breakdown_'+dimKey+'_'+state.region+'_'+year+'.csv');
+    return;
+  }
+  if(!crossTabAvailable){
+    var headers2 = ['Dimension','Category','Value'];
+    var rows2 = dimCats.map(function(c){ return [dimTitle(dimKey), dimValLabel(dimKey,c), innerVals.all[c]==null?'—':fmtNum(innerVals.all[c],1)]; })
+      .concat(btCats.map(function(bt){ return [dimTitle(d3), dimValLabel(d3,bt), outerVals[bt]==null?'—':fmtNum(outerVals[bt],1)]; }));
+    renderDataTable('donut-table', headers2, rows2, 'ceud_breakdown_'+dimKey+'_'+d3+'_'+state.region+'_'+year+'.csv');
+    return;
+  }
+  var headers = [dimTitle(d3)].concat(dimCats.map(function(c){return dimValLabel(dimKey,c);})).concat(['Total']);
+  var rows = btCats.map(function(bt){
+    var row = [dimValLabel(d3,bt)].concat(dimCats.map(function(c){ var v=innerVals[bt][c]; return v==null?'—':fmtNum(v,1); }));
+    row.push(outerVals[bt]==null?'—':fmtNum(outerVals[bt],1));
+    return row;
+  });
+  renderDataTable('donut-table', headers, rows, 'ceud_breakdown_'+dimKey+'_'+state.region+'_'+year+'.csv');
+}
+
+/* ── CSV / data-table helper ── */
+function csvEscape(v){
+  v = (v==null) ? '' : String(v);
+  if(/[",\n]/.test(v)) v = '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function downloadCSV(filename, csv){
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function renderDataTable(containerId, headers, rows, filename){
+  var container = document.getElementById(containerId);
+  if(!container) return;
+  var html = '<div class="data-tbl-wrap"><table class="data-tbl"><thead><tr>'+headers.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>';
+  rows.forEach(function(r){ html += '<tr>'+r.map(function(v){return '<td>'+v+'</td>';}).join('')+'</tr>'; });
+  html += '</tbody></table></div><button type="button" class="csv-btn">Download CSV</button>';
+  container.innerHTML = html;
+  container.querySelector('.csv-btn').onclick = function(){
+    var csvRows = [headers].concat(rows);
+    var csv = csvRows.map(function(r){ return r.map(csvEscape).join(','); }).join('\r\n');
+    downloadCSV(filename, csv);
+  };
+}
+
+/* ── generic chart helpers, reused across Advanced-mode sections ── */
+function toShareValues(cats, valuesByCat, years){
+  var out = {}; cats.forEach(function(c){ out[c] = years.map(function(){return null;}); });
+  years.forEach(function(y,i){
+    var sum=0, any=false;
+    cats.forEach(function(c){ var v=valuesByCat[c][i]; if(v!=null){ sum+=v; any=true; } });
+    cats.forEach(function(c){
+      var v = valuesByCat[c][i];
+      out[c][i] = (v==null || !any || sum===0) ? (any?0:null) : v/sum*100;
+    });
+  });
+  return out;
+}
+
+function drawLineChart(svg, years, series, opts){
+  opts = opts || {};
+  var W = opts.W||900, H = opts.H||260;
+  var ML = opts.ML!=null?opts.ML:46, MR = opts.MR!=null?opts.MR:14, MT = opts.MT!=null?opts.MT:12, MB = opts.MB!=null?opts.MB:26;
+  var plotW=W-ML-MR, plotH=H-MT-MB;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML='';
+  var svgns='http://www.w3.org/2000/svg';
+  function el(tag,attrs){ var e=document.createElementNS(svgns,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  if(!years.length || !series.length){ svg.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" class="axis-text">No data</text>'; return; }
+
+  var allVals=[];
+  series.forEach(function(s){ s.values.forEach(function(v){ if(v!=null) allVals.push(v); }); });
+  if(!allVals.length){ svg.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" class="axis-text">No data</text>'; return; }
+  var zeroBase = opts.zeroBase!==false;
+  var minV = zeroBase ? 0 : Math.min.apply(null, allVals);
+  var maxV = Math.max.apply(null, allVals);
+  if(opts.forcedMax!=null) maxV = opts.forcedMax;
+  if(opts.forcedMin!=null) minV = opts.forcedMin;
+  if(maxV===minV) maxV = minV+1;
+  var pad = (maxV-minV)*0.08;
+  var yTop = maxV+pad, yBot = zeroBase ? minV : minV-pad;
+
+  function xOf(year){ return ML + (years.length>1 ? (year-years[0])/(years[years.length-1]-years[0])*plotW : plotW/2); }
+  function yOf(v){ return MT + plotH - (v-yBot)/(yTop-yBot)*plotH; }
+
+  if(opts.axis!==false){
+    var ticks = opts.yTicks||4;
+    for(var t=0;t<=ticks;t++){
+      var val = yBot + (yTop-yBot)*t/ticks;
+      var y=yOf(val);
+      svg.appendChild(el('line',{x1:ML,x2:W-MR,y1:y,y2:y,class:'axis-line'}));
+      var txt = el('text',{x:ML-8,y:y+3,'text-anchor':'end',class:'axis-text'});
+      txt.textContent = opts.yFormat ? opts.yFormat(val) : fmtNum(val,0);
+      svg.appendChild(txt);
+    }
+    var xTickEvery = opts.xTickEvery || (years.length>16?4:(years.length>8?2:1));
+    years.forEach(function(y,i){
+      if(i%xTickEvery!==0 && i!==years.length-1) return;
+      var txt = el('text',{x:xOf(y),y:H-MB+16,'text-anchor':'middle',class:'axis-text'});
+      txt.textContent = y;
+      svg.appendChild(txt);
+    });
+  }
+
+  series.forEach(function(s){
+    var hasData = years.map(function(y,i){ return s.values[i]!=null; });
+    var runs=[], cur=null;
+    hasData.forEach(function(h,i){ if(h){ if(!cur)cur=[i,i]; else cur[1]=i; } else { if(cur){runs.push(cur);cur=null;} } });
+    if(cur) runs.push(cur);
+    var d='';
+    runs.forEach(function(run){
+      var pts=[];
+      for(var i=run[0]; i<=run[1]; i++) pts.push(xOf(years[i]).toFixed(2)+','+yOf(s.values[i]).toFixed(2));
+      d += (d?' ':'')+'M'+pts.join('L');
+    });
+    var path = el('path',{d:d, fill:'none', stroke:s.color, 'stroke-width':opts.strokeWidth||(s.strokeWidth||2), 'stroke-linejoin':'round','stroke-linecap':'round'});
+    if(s.dashed) path.setAttribute('stroke-dasharray','4,3');
+    if(s.opacity) path.setAttribute('stroke-opacity', s.opacity);
+    svg.appendChild(path);
+  });
+
+  if(opts.hover){
+    var hoverLine = el('line',{class:'hover-line',x1:0,x2:0,y1:MT,y2:MT+plotH,style:'display:none'});
+    svg.appendChild(hoverLine);
+    var hitRect = el('rect',{x:ML,y:MT,width:plotW,height:plotH,fill:'transparent'});
+    svg.appendChild(hitRect);
+    var tip = document.getElementById('chart-tip');
+    hitRect.addEventListener('mousemove', function(evt){
+      var rect = svg.getBoundingClientRect();
+      var scaleXpx = rect.width / W;
+      var mx = (evt.clientX-rect.left)/scaleXpx;
+      var frac = (mx-ML)/plotW;
+      var idx = Math.max(0,Math.min(years.length-1, Math.round(frac*(years.length-1))));
+      var y = years[idx];
+      hoverLine.setAttribute('x1',xOf(y)); hoverLine.setAttribute('x2',xOf(y)); hoverLine.style.display='block';
+      var rows = series.map(function(s){
+        var v = s.values[idx];
+        return '<div class="tip-row"><span class="tip-dot" style="background:'+s.color+'"></span>'+s.label+': '+(v==null?'n/a':(opts.yFormat?opts.yFormat(v):fmtNum(v,1)))+'</div>';
+      }).join('');
+      tip.innerHTML = '<strong>'+y+'</strong>'+rows;
+      tip.style.display='block'; tip.style.left=(evt.clientX+14)+'px'; tip.style.top=(evt.clientY+14)+'px';
+    });
+    hitRect.addEventListener('mouseleave', function(){ tip.style.display='none'; hoverLine.style.display='none'; });
+  }
+}
+
+function drawStackedAreaChart(svg, years, cats, colorOf, labelOf, valuesByCat, opts){
+  opts = opts || {};
+  var W=opts.W||900, H=opts.H||300, ML=opts.ML!=null?opts.ML:54, MR=opts.MR!=null?opts.MR:16, MT=opts.MT!=null?opts.MT:14, MB=opts.MB!=null?opts.MB:30;
+  var plotW=W-ML-MR, plotH=H-MT-MB;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML='';
+  var svgns='http://www.w3.org/2000/svg';
+  function el(tag,attrs){ var e=document.createElementNS(svgns,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  if(!years.length || !cats.length){ svg.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" class="axis-text">No data</text>'; return; }
+
+  var maxY=0;
+  years.forEach(function(y,i){ var sum=0; cats.forEach(function(c){ var v=valuesByCat[c][i]; if(v!=null) sum+=v; }); if(sum>maxY) maxY=sum; });
+  if(opts.shareMode){ maxY=100; } else { if(maxY<=0) maxY=1; maxY*=1.08; }
+
+  function xOf(year){ return ML + (years.length>1 ? (year-years[0])/(years[years.length-1]-years[0])*plotW : plotW/2); }
+  function yOf(v){ return MT + plotH - (v/maxY)*plotH; }
+
+  var ticks=4;
+  for(var t=0;t<=ticks;t++){
+    var val=maxY*t/ticks, y=yOf(val);
+    svg.appendChild(el('line',{x1:ML,x2:W-MR,y1:y,y2:y,class:'axis-line'}));
+    var txt=el('text',{x:ML-8,y:y+3,'text-anchor':'end',class:'axis-text'});
+    txt.textContent = opts.shareMode?Math.round(val)+'%':fmtNum(val,0);
+    svg.appendChild(txt);
+  }
+  var xTickEvery = years.length>16?4:(years.length>8?2:1);
+  years.forEach(function(y,i){
+    if(i%xTickEvery!==0 && i!==years.length-1) return;
+    var txt=el('text',{x:xOf(y),y:H-MB+16,'text-anchor':'middle',class:'axis-text'});
+    txt.textContent=y; svg.appendChild(txt);
+  });
+
+  var hasData = years.map(function(y,i){ return cats.some(function(c){ return valuesByCat[c][i]!=null; }); });
+  var runs=[], cur=null;
+  hasData.forEach(function(h,i){ if(h){ if(!cur)cur=[i,i]; else cur[1]=i; } else { if(cur){runs.push(cur);cur=null;} } });
+  if(cur) runs.push(cur);
+
+  var cumBottom = years.map(function(){return 0});
+  cats.forEach(function(c){
+    var bottoms=[], tops=[];
+    years.forEach(function(y,i){
+      var v=valuesByCat[c][i]; var b=cumBottom[i]; var top=v==null?b:b+v;
+      bottoms.push(b); tops.push(top);
+      if(v!=null) cumBottom[i]=top;
+    });
+    var d='';
+    runs.forEach(function(run){
+      var pts=[];
+      for(var i=run[0]; i<=run[1]; i++) pts.push([xOf(years[i]), yOf(tops[i])]);
+      for(var i=run[1]; i>=run[0]; i--) pts.push([xOf(years[i]), yOf(bottoms[i])]);
+      if(pts.length<3) return;
+      d += 'M'+pts.map(function(p){return p[0].toFixed(2)+','+p[1].toFixed(2);}).join('L')+'Z ';
+    });
+    svg.appendChild(el('path',{d:d.trim(), fill:colorOf(c), 'fill-opacity':opts.fillOpacity||'0.82', stroke:colorOf(c), 'stroke-width':'1'}));
+  });
+
+  if(opts.hover){
+    var hoverLine = el('line',{class:'hover-line',x1:0,x2:0,y1:MT,y2:MT+plotH,style:'display:none'});
+    svg.appendChild(hoverLine);
+    var hitRect = el('rect',{x:ML,y:MT,width:plotW,height:plotH,fill:'transparent'});
+    svg.appendChild(hitRect);
+    var tip=document.getElementById('chart-tip');
+    hitRect.addEventListener('mousemove', function(evt){
+      var rect=svg.getBoundingClientRect(); var scaleXpx=rect.width/W;
+      var mx=(evt.clientX-rect.left)/scaleXpx; var frac=(mx-ML)/plotW;
+      var idx=Math.max(0,Math.min(years.length-1,Math.round(frac*(years.length-1))));
+      var y=years[idx];
+      hoverLine.setAttribute('x1',xOf(y)); hoverLine.setAttribute('x2',xOf(y)); hoverLine.style.display='block';
+      var rows=cats.map(function(c){
+        var v=valuesByCat[c][idx];
+        return '<div class="tip-row"><span class="tip-dot" style="background:'+colorOf(c)+'"></span>'+labelOf(c)+': '+(v==null?'n/a':fmtNum(v,1)+(opts.shareMode?'%':(opts.unit?' '+opts.unit:'')))+'</div>';
+      }).join('');
+      tip.innerHTML='<strong>'+y+'</strong>'+rows; tip.style.display='block'; tip.style.left=(evt.clientX+14)+'px'; tip.style.top=(evt.clientY+14)+'px';
+    });
+    hitRect.addEventListener('mouseleave', function(){ tip.style.display='none'; hoverLine.style.display='none'; });
+  }
+}
+
+function drawBarChart(svg, items, opts){
+  opts = opts||{};
+  var W=opts.W||900, rowH=opts.rowH||24, gap=opts.gap||8, labelW=opts.labelW||130, MR=opts.MR||64, MT=opts.MT||6;
+  var H = MT + items.length*(rowH+gap);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.setAttribute('height', H);
+  svg.innerHTML='';
+  var svgns='http://www.w3.org/2000/svg';
+  function el(tag,attrs){ var e=document.createElementNS(svgns,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  var barAreaW = W-labelW-MR;
+  var vals = items.map(function(it){ return it.value==null?0:it.value; });
+  var maxV = Math.max.apply(null, vals.concat([0])) || 1;
+  items.forEach(function(it,i){
+    var y = MT + i*(rowH+gap);
+    var lbl = el('text',{x:labelW-8,y:y+rowH/2+4,'text-anchor':'end',class:'axis-text','font-weight':it.highlight?'600':'400'});
+    lbl.textContent = it.label;
+    svg.appendChild(lbl);
+    var w = it.value==null ? 0 : Math.max((it.value/maxV)*barAreaW, 1);
+    var rect = el('rect',{x:labelW,y:y,width:w,height:rowH,rx:4,fill:it.color,'fill-opacity':it.highlight?1:0.75});
+    svg.appendChild(rect);
+    var valTxt = el('text',{x:labelW+w+8,y:y+rowH/2+4,class:'axis-text'});
+    valTxt.textContent = it.value==null ? 'n/a' : fmtNum(it.value,1);
+    svg.appendChild(valTxt);
+  });
+}
+
+/* ── section 4: compare regions (Advanced) ── */
+function renderCompareRegions(){
+  if(advancedLoadedSector!==state.sector || !meta) return;
+  var years = yearsRange(state.yearStart, state.yearEnd);
+  var year = state.yearEnd;
+  var regionOrder = Object.keys(sectorMeta().regions);
+
+  var regionSeries = regionOrder.map(function(code){
+    var d = dataCache[state.sector+'/'+code];
+    var values = years.map(function(y){
+      if(!d) return null;
+      var rec = getRecord(d,{},y);
+      return metricValue(d, rec, y);
+    });
+    return {code:code, name: code==='ca'?'Canada':regionName(code), values:values};
+  });
+
+  var globalMax = 0;
+  regionSeries.forEach(function(rs){ rs.values.forEach(function(v){ if(v!=null && v>globalMax) globalMax=v; }); });
+  globalMax = globalMax>0 ? globalMax*1.08 : 1;
+
+  document.getElementById('compare-lines-title').textContent = metricTitle()+' by region, '+years[0]+'–'+years[years.length-1]+' (shared y-axis)';
+
+  var grid = document.getElementById('compare-grid');
+  grid.innerHTML = '';
+  regionSeries.forEach(function(rs){
+    var tile = document.createElement('div');
+    tile.className = 'compare-tile'+(rs.code===state.region?' is-selected':'');
+    var lastVal = null;
+    for(var i=rs.values.length-1;i>=0;i--){ if(rs.values[i]!=null){ lastVal=rs.values[i]; break; } }
+    tile.innerHTML = '<div class="compare-tile-label"><span>'+rs.name+'</span><span class="compare-tile-val">'+fmtNum(lastVal,0)+'</span></div>';
+    var svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    tile.appendChild(svgEl);
+    grid.appendChild(tile);
+    drawLineChart(svgEl, years, [{label:rs.name, color: rs.code===state.region?'#E8A124':'#0B2545', values: rs.values}],
+      {W:220,H:60,ML:2,MR:2,MT:4,MB:2,forcedMin:0,forcedMax:globalMax,strokeWidth:rs.code===state.region?2.5:1.5,axis:false,hover:false});
+  });
+
+  document.getElementById('compare-lines-note').textContent = 'Each mini-chart is one region, '+years[0]+'–'+years[years.length-1]+', '+unitLabel()+', all sharing the same y-axis (0–'+fmtNum(globalMax,0)+') so heights are directly comparable. '+regionName(state.region)+' is highlighted in amber.';
+
+  renderDataTable('compare-lines-table', ['Region'].concat(years.map(String)),
+    regionSeries.map(function(rs){ return [rs.name].concat(rs.values.map(function(v){return fmtNum(v,1);})); }),
+    'ceud_compare_regions_'+state.metric+'.csv');
+
+  // ranked bar chart for the selected end year
+  var barItems = regionSeries.map(function(rs){
+    var d = dataCache[state.sector+'/'+rs.code];
+    var rec = d ? getRecord(d,{},year) : null;
+    var v = d ? metricValue(d, rec, year) : null;
+    return {label:rs.name, value:v, color: rs.code===state.region?'#E8A124':'#0B2545', highlight: rs.code===state.region};
+  }).sort(function(a,b){ return (b.value==null?-Infinity:b.value) - (a.value==null?-Infinity:a.value); });
+
+  document.getElementById('compare-bar-title').textContent = metricTitle()+' by region — '+year;
+  drawBarChart(document.getElementById('compare-bar-svg'), barItems, {W:780,labelW:175,MR:70});
+  document.getElementById('compare-bar-note').textContent = 'Ranked '+metricTitle().toLowerCase()+' ('+unitLabel()+') for '+year+'. '+regionName(state.region)+' highlighted in amber.';
+
+  renderDataTable('compare-bar-table', ['Region', unitLabel()], barItems.map(function(it){ return [it.label, fmtNum(it.value,1)]; }), 'ceud_compare_regions_ranked_'+year+'.csv');
+}
+
+/* ── section 5: equipment & stock (Advanced) ── */
+function heatingGroupSeries(d, years){
+  var out = {}; HEAT_GROUP_ORDER.forEach(function(g){ out[g] = years.map(function(){return null;}); });
+  years.forEach(function(y,i){
+    var sums = {}, any = false;
+    Object.keys(HEAT_GROUPS).forEach(function(seg){
+      var v = lookupExplan(d,'heating_system_stock_by_system_type', seg, y);
+      if(v!=null){ var g = HEAT_GROUPS[seg]; sums[g] = (sums[g]||0)+v; any = true; }
+    });
+    HEAT_GROUP_ORDER.forEach(function(g){ out[g][i] = any ? (sums[g]||0) : null; });
+  });
+  return out;
+}
+
+function renderEquipment(){
+  var d = currentData;
+  if(!d) return;
+  var years = yearsRange(state.yearStart, state.yearEnd);
+
+  // heating system stock, grouped, heat pump highlighted
+  var heatSeries = heatingGroupSeries(d, years);
+  drawStackedAreaChart(document.getElementById('heat-stock-svg'), years, HEAT_GROUP_ORDER,
+    function(c){return HEAT_GROUP_COLORS[c];}, function(c){return HEAT_GROUP_LABELS[c];}, heatSeries,
+    {W:900,H:280,hover:true,unit:'thousand homes'});
+  document.getElementById('heat-stock-legend').innerHTML = HEAT_GROUP_ORDER.map(function(c){
+    return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:'+HEAT_GROUP_COLORS[c]+'"></span>'+HEAT_GROUP_LABELS[c]+'</div>';
+  }).join('');
+  var lastIdx = years.length-1, sumAll=0;
+  HEAT_GROUP_ORDER.forEach(function(g){ var v=heatSeries[g][lastIdx]; if(v!=null) sumAll+=v; });
+  var hpVal = heatSeries.heat_pump[lastIdx];
+  var hpShare = (sumAll>0 && hpVal!=null) ? hpVal/sumAll*100 : null;
+  document.getElementById('heat-stock-note').textContent = hpShare==null
+    ? 'Heating system counts by primary equipment type, grouped from '+Object.keys(HEAT_GROUPS).length+' detailed NRCan categories.'
+    : 'Heat pumps made up '+fmtNum(hpShare,1)+'% of the primary heating equipment stock in '+years[lastIdx]+', grouped from '+Object.keys(HEAT_GROUPS).length+' detailed NRCan equipment/efficiency categories.';
+  renderDataTable('heat-stock-table', ['Year'].concat(HEAT_GROUP_ORDER.map(function(c){return HEAT_GROUP_LABELS[c];})),
+    years.map(function(y,i){ return [y].concat(HEAT_GROUP_ORDER.map(function(c){return fmtNum(heatSeries[c][i],1);})); }),
+    'ceud_heating_stock_'+state.region+'.csv');
+
+  // appliance stock by type — "other_appliances" is a much larger catch-all
+  // category (10x+ the named types) that would flatten the rest on a shared
+  // axis, so it's charted separately below and only listed in the table/CSV.
+  var applSeries = {};
+  APPLIANCE_SEGMENTS.forEach(function(seg){ applSeries[seg] = years.map(function(y){ return lookupExplan(d,'appliance_stock',seg,y); }); });
+  var chartedSegments = APPLIANCE_SEGMENTS.filter(function(seg){ return seg!=='other_appliances'; });
+  var applLines = chartedSegments.map(function(seg){ return {label:APPLIANCE_LABELS[seg], color:APPLIANCE_COLORS[seg], values:applSeries[seg]}; });
+  drawLineChart(document.getElementById('appliance-stock-svg'), years, applLines, {W:900,H:240,hover:true,yFormat:function(v){return fmtNum(v,0);}});
+  document.getElementById('appliance-stock-legend').innerHTML = chartedSegments.map(function(seg){
+    return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:'+APPLIANCE_COLORS[seg]+'"></span>'+APPLIANCE_LABELS[seg]+'</div>';
+  }).join('');
+  var otherLatest = applSeries.other_appliances[years.length-1];
+  document.getElementById('appliance-stock-note').textContent = '"Other appliances" (a broad NRCan catch-all covering everything from small electronics to secondary fridges — '+fmtNum(otherLatest,0)+' thousand units in '+years[years.length-1]+') is omitted from this chart because it dwarfs the named categories, but it is included in the data table below.';
+  renderDataTable('appliance-stock-table', ['Year'].concat(APPLIANCE_SEGMENTS.map(function(seg){return APPLIANCE_LABELS[seg];})),
+    years.map(function(y,i){ return [y].concat(APPLIANCE_SEGMENTS.map(function(seg){return fmtNum(applSeries[seg][i],0);})); }),
+    'ceud_appliance_stock_'+state.region+'.csv');
+
+  // housing type mix (share)
+  var btCats = Object.keys(DIM_LABELS.building_type);
+  var hhByBt = {};
+  btCats.forEach(function(bt){ hhByBt[bt] = years.map(function(y){ return lookupExplan(d,'households_by_building_type',bt,y); }); });
+  var hhShare = toShareValues(btCats, hhByBt, years);
+  drawStackedAreaChart(document.getElementById('housing-mix-svg'), years, btCats,
+    function(c){return DIM_COLORS.building_type[c];}, function(c){return DIM_LABELS.building_type[c];}, hhShare,
+    {W:440,H:220,hover:true,shareMode:true,ML:40,MR:10});
+  document.getElementById('housing-mix-legend').innerHTML = btCats.map(function(c){
+    return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:'+DIM_COLORS.building_type[c]+'"></span>'+DIM_LABELS.building_type[c]+'</div>';
+  }).join('');
+  renderDataTable('housing-mix-table', ['Year'].concat(btCats.map(function(c){return DIM_LABELS.building_type[c];})),
+    years.map(function(y,i){ return [y].concat(btCats.map(function(c){return fmtNum(hhByBt[c][i],0);})); }),
+    'ceud_housing_mix_'+state.region+'.csv');
+
+  // floor space per dwelling
+  var fsPerDwelling = years.map(function(y){
+    var fs = lookupExplan(d,'floor_space','all',y), hh = lookupExplan(d,'households','all',y);
+    return (fs!=null && hh) ? fs*1000/hh : null;
+  });
+  drawLineChart(document.getElementById('floorspace-svg'), years, [{label:'m²/dwelling',color:'#0B2545',values:fsPerDwelling}],
+    {W:440,H:220,hover:true,ML:40,MR:10,yFormat:function(v){return fmtNum(v,0);}});
+  renderDataTable('floorspace-table', ['Year','m² / dwelling'], years.map(function(y,i){return [y, fmtNum(fsPerDwelling[i],1)];}), 'ceud_floorspace_'+state.region+'.csv');
+
+  // appliance energy intensity (UEC proxy)
+  var applianceIntensity = years.map(function(y){
+    var rec = getRecord(d,{end_use:'appliances'}, y), hh = lookupExplan(d,'households','all',y);
+    return (rec && rec.energy_PJ!=null && hh) ? rec.energy_PJ*1000/hh : null;
+  });
+  drawLineChart(document.getElementById('appliance-intensity-svg'), years, [{label:'GJ/household',color:'#378ADD',values:applianceIntensity}],
+    {W:440,H:220,hover:true,ML:40,MR:10,yFormat:function(v){return fmtNum(v,1);}});
+  renderDataTable('appliance-intensity-table', ['Year','Appliance GJ/household'], years.map(function(y,i){return [y, fmtNum(applianceIntensity[i],2)];}), 'ceud_appliance_intensity_'+state.region+'.csv');
+}
+
+/* ── section 6: intensity view (Advanced) ── */
+function renderIntensityView(){
+  var d = currentData;
+  if(!d) return;
+  var years = yearsRange(state.yearStart, state.yearEnd);
+
+  var perHH = years.map(function(y){
+    var rec = getRecord(d,{},y), hh = lookupExplan(d,'households','all',y);
+    return (rec && rec.energy_PJ!=null && hh) ? rec.energy_PJ*1000/hh : null;
+  });
+  var perM2 = years.map(function(y){
+    var rec = getRecord(d,{},y), fs = lookupExplan(d,'floor_space','all',y);
+    return (rec && rec.energy_PJ!=null && fs) ? rec.energy_PJ/fs : null;
+  });
+  var totalE = years.map(function(y){ var rec=getRecord(d,{},y); return rec ? rec.energy_PJ : null; });
+  var hhCount = years.map(function(y){ return lookupExplan(d,'households','all',y); });
+
+  drawLineChart(document.getElementById('intensity-hh-svg'), years, [{label:'GJ/household',color:'#0B2545',values:perHH}],
+    {W:440,H:220,hover:true,ML:40,MR:10,yFormat:function(v){return fmtNum(v,0);}});
+  drawLineChart(document.getElementById('intensity-m2-svg'), years, [{label:'GJ/m²',color:'#378ADD',values:perM2}],
+    {W:440,H:220,hover:true,ML:40,MR:10,yFormat:function(v){return fmtNum(v,2);}});
+
+  function toIndex(arr){
+    var base = arr[0];
+    if(base==null || base===0) return arr.map(function(){return null;});
+    return arr.map(function(v){ return v==null ? null : v/base*100; });
+  }
+  var idxTotal = toIndex(totalE), idxHH = toIndex(hhCount), idxPerHH = toIndex(perHH);
+  var idxSeries = [
+    {label:'Total energy', color:'#B33A2E', values:idxTotal},
+    {label:'Households', color:'#378ADD', values:idxHH},
+    {label:'Energy per household', color:'#1A7A55', values:idxPerHH}
+  ];
+  drawLineChart(document.getElementById('intensity-index-svg'), years, idxSeries, {W:900,H:260,hover:true,yFormat:function(v){return fmtNum(v,0);}});
+  document.getElementById('intensity-index-legend').innerHTML = idxSeries.map(function(s){
+    return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:'+s.color+'"></span>'+s.label+'</div>';
+  }).join('');
+  document.getElementById('intensity-index-note').textContent = 'Indexed to '+years[0]+' = 100. If the red line (total energy) tracks the blue line (households), growth is mostly more homes; if red stays flatter than blue while the green line (energy per household) falls, per-home efficiency gains are offsetting household growth — the gap between blue and red is roughly the efficiency effect.';
+
+  renderDataTable('intensity-hh-table', ['Year','GJ/household','GJ/m²','Index: total energy','Index: households','Index: per household'],
+    years.map(function(y,i){ return [y, fmtNum(perHH[i],1), fmtNum(perM2[i],2), fmtNum(idxTotal[i],1), fmtNum(idxHH[i],1), fmtNum(idxPerHH[i],1)]; }),
+    'ceud_intensity_'+state.region+'.csv');
+}
+
+boot();
+</script>
+</body>
+</html>
