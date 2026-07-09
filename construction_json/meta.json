@@ -1,0 +1,122 @@
+{
+  "source": "Statistics Canada, Web Data Service (WDS)",
+  "source_url": "https://www150.statcan.gc.ca/t1/wds/rest",
+  "retrieved": "2026-07-09",
+  "note": "Stored values are normalized: dollar series (permits.value.*, invest.*) are in MILLIONS of dollars; all unit counts are integer units (starts_saar already multiplied out from StatCan's thousands). The uom/scalar fields record what StatCan publishes, not what is stored. Rows selected by COORDINATE member ids, not member names. 34-10-0151/0154 are UNADJUSTED; SAAR (starts_saar.*) comes from 34-10-0158 (provinces + Canada, total starts only). Ottawa-Gatineau combined = Ontario part + Quebec part for permits and investment; native combined member for starts. 'semi' = StatCan 'Double' in permits/investment. Permit VALUE and investment: seasonally adjusted (sa_*) and constant-dollar (*_constant) series are published only for certain cells — the aggregate building totals at work=total for permits, and select structure x work cells (e.g. new construction) for investment. Unadjusted (nsa_*) series are shipped ONLY where no seasonally adjusted sibling exists (detail building/structure types); when both existed, the nsa variant was pruned. Use sa_* for headline figures and whatever adj suffix a detail series carries for the breakdowns.",
+  "series_key_scheme": {
+    "permits": "permits.<var>.<building>.<work>.<adj>  (var=value|created|lost|demolished|count; aggregates total/residential/non_residential carry all work types, detail types carry work=total only; adj is sa_* where published, else nsa_*)",
+    "invest": "invest.<structure>.<work>.<adj>  (same aggregate/detail split and adj rule as permits)",
+    "starts_unadj": "starts_unadj.<estimate>.<unit>  (unit=total|single|semi|row|apartment)",
+    "starts_saar": "starts_saar.total",
+    "starts_market": "starts_market.total.<market>"
+  },
+  "provincial_pipeline_gap": "CMHC discontinued PROVINCIAL under-construction and completions publication after 2022 in every table (34-10-0151/0136/0139/0126 all null from 2023). starts_unadj.under_construction.* and .completions.* therefore end 2022-12 in province/Canada files but are current in CMA files (34-10-0154). Verified 2026-07-09.",
+  "tables": {
+    "34-10-0292": {
+      "role": "permits",
+      "last_month": "2026-04",
+      "series_start": "2018-01",
+      "uom": "Dollars; Number",
+      "scalar_factor": "thousands; units"
+    },
+    "34-10-0293": {
+      "role": "invest",
+      "last_month": "2026-04",
+      "series_start": "2017-01",
+      "uom": "Dollars",
+      "scalar_factor": "units"
+    },
+    "34-10-0151": {
+      "role": "starts_unadj (Canada + provinces)",
+      "last_month": "2026-05",
+      "series_start": "1990-01",
+      "uom": "Units",
+      "scalar_factor": "units"
+    },
+    "34-10-0154": {
+      "role": "starts_unadj (CMAs)",
+      "last_month": "2026-05",
+      "series_start": "1990-01",
+      "uom": "Units",
+      "scalar_factor": "units"
+    },
+    "34-10-0158": {
+      "role": "starts_saar (SAAR, total starts)",
+      "last_month": "2026-05",
+      "series_start": "1990-01",
+      "uom": "Units",
+      "scalar_factor": "thousands"
+    },
+    "34-10-0148": {
+      "role": "starts_market",
+      "last_month": "2026-05",
+      "series_start": "1990-01",
+      "uom": "Units",
+      "scalar_factor": "units"
+    }
+  },
+  "series_units": {
+    "permits.value": {
+      "unit": "dollars",
+      "scale": 1000000,
+      "stored": "millions"
+    },
+    "permits.count": {
+      "unit": "permits",
+      "scale": 1
+    },
+    "permits.created": {
+      "unit": "dwelling_units",
+      "scale": 1
+    },
+    "permits.lost": {
+      "unit": "dwelling_units",
+      "scale": 1
+    },
+    "permits.demolished": {
+      "unit": "dwelling_units",
+      "scale": 1
+    },
+    "invest": {
+      "unit": "dollars",
+      "scale": 1000000,
+      "stored": "millions"
+    },
+    "starts_unadj": {
+      "unit": "dwelling_units",
+      "scale": 1
+    },
+    "starts_saar": {
+      "unit": "dwelling_units",
+      "scale": 1
+    },
+    "starts_market": {
+      "unit": "dwelling_units",
+      "scale": 1
+    }
+  },
+  "series_units_note": "Stored values are normalized at write time. Dollar series (permits.value.*, invest.*) are stored in millions of dollars — multiply by the 'scale' (1e6) of the longest-matching prefix in series_units to get dollars. All unit-count series, including starts_saar.total, are stored as plain integer units (scale 1).",
+  "geographies": {
+    "ca": "Canada",
+    "nl": "Newfoundland and Labrador",
+    "pe": "Prince Edward Island",
+    "ns": "Nova Scotia",
+    "nb": "New Brunswick",
+    "qc": "Quebec",
+    "on": "Ontario",
+    "mb": "Manitoba",
+    "sk": "Saskatchewan",
+    "ab": "Alberta",
+    "bc": "British Columbia",
+    "ottawa": "Ottawa-Gatineau (Ontario/Quebec)",
+    "ottawa_on": "Ottawa-Gatineau, Ontario part",
+    "ottawa_qc": "Ottawa-Gatineau, Quebec part",
+    "toronto": "Toronto, Ontario",
+    "montreal": "Montreal, Quebec",
+    "vancouver": "Vancouver, British Columbia",
+    "calgary": "Calgary, Alberta",
+    "edmonton": "Edmonton, Alberta",
+    "winnipeg": "Winnipeg, Manitoba",
+    "halifax": "Halifax, Nova Scotia"
+  }
+}
