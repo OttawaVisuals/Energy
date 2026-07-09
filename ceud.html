@@ -90,6 +90,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .card-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none}
+.chart-legend-item:focus-visible{outline:2px solid var(--amber2);outline-offset:2px;border-radius:3px}
 .chart-legend-item.dim{opacity:.35}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
@@ -168,6 +169,9 @@ footer a:hover{color:var(--amber2)}
   .card{padding:1rem}
   .stat-value{font-size:1.6rem}
   .sibling-link{display:none}
+  .header-left{max-width:100%}
+  .sector-tabs{overflow-x:auto;max-width:calc(100vw - 2rem);-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .sector-tabs::-webkit-scrollbar{display:none}
 }
 @media(max-width:420px){
   .stats-grid{grid-template-columns:repeat(2,1fr)}
@@ -1041,12 +1045,21 @@ function renderTrend(){
   legend.innerHTML='';
   cats.forEach(function(c){
     var item = document.createElement('div');
-    item.className='chart-legend-item'+(state.hiddenTrendCats && state.hiddenTrendCats[c] ? ' dim':'');
+    var isHidden = !!(state.hiddenTrendCats && state.hiddenTrendCats[c]);
+    item.className='chart-legend-item'+(isHidden ? ' dim':'');
     item.innerHTML = '<span class="chart-legend-dot" style="background:'+dimColor(dimKey,c)+'"></span>'+dimValLabel(dimKey,c);
-    item.onclick = function(){
+    item.tabIndex = 0;
+    item.setAttribute('role','button');
+    item.setAttribute('aria-pressed', String(!isHidden));
+    item.setAttribute('aria-label', 'Toggle '+dimValLabel(dimKey,c)+' series');
+    var toggle = function(){
       state.hiddenTrendCats = state.hiddenTrendCats || {};
       state.hiddenTrendCats[c] = !state.hiddenTrendCats[c];
       renderTrend();
+    };
+    item.onclick = toggle;
+    item.onkeydown = function(e){
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); }
     };
     legend.appendChild(item);
   });
