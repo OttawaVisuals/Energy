@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Construction Tracker — Canadian Building Activity</title>
+<meta name="description" content="Canadian building permits, housing starts and construction investment in one dashboard — national, provincial and metro-area views from Statistics Canada, CMHC and the Bank of Canada.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M7 25V14h4v11zm7 0V7h4v18zm7 0V18h4v7z' fill='%23E8A124'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:center;gap:14px;min-width:0}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--white)}
+#geo-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;max-width:230px}
+#geo-sel option,#geo-sel optgroup{color:#1C2B3A;background:#fff}
+body.mode-simple [data-mode="advanced"]{display:none!important}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:2.25rem 1.5rem 2rem;text-align:center}
+.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:680px;margin:0 auto 1rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:600px;margin:0 auto}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:680px}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
+.card-title-row .card-title{margin-bottom:0}
+.card-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg-toggle{display:inline-flex;background:var(--surface);border-radius:20px;padding:2px;gap:2px}
+.seg-btn{font-size:12px;padding:6px 12px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s}
+.seg-btn.active{background:var(--navy);color:#fff}
+.seg-btn:not(.active):hover{color:var(--navy)}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px;display:flex;align-items:center;gap:8px}
+.yoy-badge{font-size:11px;font-weight:500;padding:1px 7px;border-radius:10px}
+.yoy-badge.up{background:rgba(26,122,85,.12);color:var(--green)}
+.yoy-badge.down{background:rgba(179,58,46,.12);color:var(--red)}
+.stat-spark{margin-top:8px;height:30px}
+.stat-spark svg{width:100%;height:100%;display:block}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-xl{height:340px}
+.cw-md{height:240px}
+.cw-sm{height:190px}
+.cw-strip{height:110px}
+.cw svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-tip{display:none;position:fixed;background:rgba(11,37,69,0.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:8px 12px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap}
+.chart-tip .tip-row{display:flex;align-items:center;gap:6px}
+.chart-tip .tip-dot{width:7px;height:7px;border-radius:2px;flex:none;display:inline-block}
+.hover-line{stroke:rgba(11,37,69,.35);stroke-width:1;stroke-dasharray:3,3;pointer-events:none}
+.axis-line{stroke:var(--border);stroke-width:1}
+.axis-text{font-family:'Inter',sans-serif;font-size:10px;fill:var(--muted)}
+.strip-label{font-family:'Inter',sans-serif;font-size:10px;fill:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+
+details.data-details{margin-top:10px}
+details.data-details summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+details.data-details summary::-webkit-details-marker{display:none}
+details.data-details summary::before{content:'▸ ';color:var(--amber)}
+details.data-details[open] summary::before{content:'▾ '}
+.data-tbl-wrap{overflow-x:auto;margin-top:8px;max-height:320px;overflow-y:auto}
+table.data-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.data-tbl th{font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--white)}
+table.data-tbl th:first-child{text-align:left}
+table.data-tbl td{padding:5px 8px;border-bottom:1px solid var(--surface);text-align:right;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.data-tbl td:first-child{text-align:left;color:var(--muted)}
+
+/* ── CMA table ── */
+table.cma-tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.cma-tbl th{font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+table.cma-tbl th:first-child{text-align:left}
+table.cma-tbl th.sorted{color:var(--navy)}
+table.cma-tbl td{padding:7px 10px;border-bottom:1px solid var(--surface);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.cma-tbl td:first-child{text-align:left;font-weight:500;color:var(--navy)}
+table.cma-tbl tr.is-selected td{background:#FDF1DC}
+.cma-tbl-wrap{overflow-x:auto}
+
+/* ── HBar ── */
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.hbar-label{width:58px;flex:none;font-size:12px;color:var(--muted);text-align:right}
+.hbar-track{flex:1;height:18px;position:relative}
+.hbar-fill{height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.hbar-row.is-selected .hbar-label{color:var(--navy);font-weight:500}
+.hbar-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;width:72px;flex:none}
+
+/* ── Multi-chart grids ── */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1rem}
+.chart-grid .card{margin-bottom:0}
+
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.section-loading{padding:1.5rem 1rem;text-align:center;color:var(--muted);font-size:13px}
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1.25rem 1rem;line-height:1.8;margin-top:2rem}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+
+@media(max-width:600px){
+  header{padding:0 1rem;height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}
+  .hero{padding:1.75rem 1rem 1.5rem}
+  main{padding:1rem 1rem 2rem}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+  .sibling-link{display:none}
+}
+@media(max-width:420px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body class="mode-simple">
+<script>
+(function(){
+  var m=localStorage.getItem('constrViewMode')||'simple';
+  if(m!=='advanced')m='simple';
+  document.body.className='mode-'+m;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">construction<span>tracker</span></div>
+  </div>
+  <div class="header-right">
+    <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
+    <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+    </div>
+    <select id="geo-sel" aria-label="Geography"></select>
+  </div>
+</header>
+
+<div class="hero">
+  <p class="hero-eyebrow">Statistics Canada · CMHC · Bank of Canada</p>
+  <h1>How much Canada is <em>building</em> — and where the pipeline is headed</h1>
+  <p class="hero-sub">Building permits, housing starts and construction investment stitched into one view. Pick a province or metro area; the whole page follows.</p>
+</div>
+
+<main>
+  <div id="loading-msg" class="state-msg"><strong>Loading…</strong> Fetching construction data.</div>
+  <div id="error-msg" class="state-msg" style="display:none"><strong>Couldn't load data.</strong><span id="error-detail"></span></div>
+
+  <div id="app-body" style="display:none">
+
+    <!-- 1 ▸ KPI band -->
+    <div class="section-head">
+      <h2>The headline</h2>
+      <p class="sec-sub" id="kpi-sub"></p>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <!-- 2 ▸ Pipeline -->
+    <div class="section-head">
+      <h2>The pipeline</h2>
+      <p class="sec-sub">Permits become starts, starts become units under construction, and eventually completions. This is the whole page in one chart.</p>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title" id="pipeline-title">Monthly flows — starts, completions &amp; permitted units</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="pipeline-legend"></div>
+          <div class="seg-toggle" id="pipeline-ma">
+            <button type="button" class="seg-btn" data-ma="raw">Monthly</button>
+            <button type="button" class="seg-btn active" data-ma="ma6">6-mo avg</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="pipeline-chart"></div>
+      <div class="cw cw-strip" id="pipeline-uc" style="margin-top:6px"></div>
+      <p class="note">Flows are unadjusted monthly counts (CMHC). The lower panel is the stock of homes under construction — the pipeline's backlog. Permitted units (new dwelling units on residential permits) are only published from 2018. <strong>Provincial caveat:</strong> CMHC stopped publishing province-level completions and under-construction after 2022 — those two series end there for provinces and Canada, while starts continue. Metro-area views carry all stages to the current month.</p>
+      <div id="pipeline-table"></div>
+    </div>
+
+    <!-- 3 ▸ What's being built -->
+    <div class="section-head">
+      <h2>What's being built</h2>
+      <p class="sec-sub">Housing starts by dwelling type — the decades-long shift from single-detached to apartments.</p>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Housing starts by dwelling type <span style="text-transform:none">(6-mo averaged)</span></div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="dwelling-legend"></div>
+          <div class="seg-toggle" id="dwelling-share">
+            <button type="button" class="seg-btn active" data-share="abs">Units</button>
+            <button type="button" class="seg-btn" data-share="share">100% share</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="dwelling-chart"></div>
+      <div id="dwelling-table"></div>
+    </div>
+
+    <!-- 4 ▸ Who it's built for -->
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Housing starts by intended market — annual</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="market-legend"></div>
+          <div class="seg-toggle" id="market-share">
+            <button type="button" class="seg-btn active" data-share="abs">Units</button>
+            <button type="button" class="seg-btn" data-share="share">100% share</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="market-chart"></div>
+      <p class="note">Homeowner = freehold, built for the owner; condo = built for individual sale; rental = purpose-built rental. Complete calendar years only. Source: CMHC via StatCan 34-10-0148 (centres 10,000+).</p>
+      <div id="market-table"></div>
+    </div>
+
+    <!-- 5 ▸ Residential vs non-residential -->
+    <div class="section-head">
+      <h2>Residential vs non-residential</h2>
+      <p class="sec-sub">Where permit dollars are going — homes, or industrial / commercial / institutional space. Permit series begin in 2018.</p>
+    </div>
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Permit value — res vs non-res</div>
+          <div class="card-controls">
+            <div class="chart-legend-inline" id="resnonres-legend"></div>
+            <div class="seg-toggle" id="resnonres-real">
+              <button type="button" class="seg-btn active" data-real="nominal">Nominal</button>
+              <button type="button" class="seg-btn" data-real="real">Real&nbsp;$</button>
+            </div>
+          </div>
+        </div>
+        <div class="cw cw-md" id="resnonres-chart"></div>
+        <p class="note" id="resnonres-note">Seasonally adjusted, current dollars.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Non-residential permit value by type</div>
+          <div class="chart-legend-inline" id="ici-legend"></div>
+        </div>
+        <div class="cw cw-md" id="ici-chart"></div>
+        <p class="note">Industrial / commercial / institutional, seasonally adjusted, current dollars.</p>
+      </div>
+    </div>
+
+    <!-- 6 ▸ New build vs renovation -->
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">Investment by type of work — trailing 12 months</div>
+        <div class="chart-legend-inline" id="worktype-legend"></div>
+      </div>
+      <div class="cw cw-md" id="worktype-chart"></div>
+      <p class="note">Investment in building construction, unadjusted current dollars summed over the trailing 12 months (work-type splits aren't seasonally adjusted, so a rolling year removes the seasonality). Renovation is the retrofit economy — compare the <a href="retrofits.html">Retrofit Explorer</a>.</p>
+      <div id="worktype-table"></div>
+    </div>
+
+    <!-- 8 ▸ Provincial comparison -->
+    <div class="section-head">
+      <h2>Across the country</h2>
+      <p class="sec-sub">Every province on the same per-capita footing, trailing 12 months.</p>
+    </div>
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title">Housing starts per 1,000 residents — trailing 12 mo</div>
+        <div id="prov-starts-bars" class="section-loading">Loading provinces…</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Building permit value per capita — trailing 12 mo</div>
+        <div id="prov-permits-bars" class="section-loading">Loading provinces…</div>
+      </div>
+    </div>
+
+    <!-- 9 ▸ CMA table -->
+    <div class="section-head">
+      <h2>Metro areas</h2>
+      <p class="sec-sub">The major CMAs side by side. Click a column to sort; click a row to switch the whole page to that metro.</p>
+    </div>
+    <div class="card">
+      <div class="cma-tbl-wrap" id="cma-table"><div class="section-loading">Loading metro areas…</div></div>
+      <p class="note">Starts and under-construction from CMHC (34-10-0154); permit value and investment are trailing-12-month sums (34-10-0292/0293, unadjusted where noted). Ottawa-Gatineau combines the Ontario and Quebec parts.</p>
+    </div>
+
+    <!-- 10 ▸ Rate cycle (advanced) -->
+    <div data-mode="advanced">
+      <div class="section-head">
+        <h2>The rate cycle</h2>
+        <p class="sec-sub">Housing starts against the cost of money. Same time axis, separate scales — hover to read both.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title" id="rates-title">Housing starts (6-mo avg)</div>
+          <div class="chart-legend-inline" id="rates-legend"></div>
+        </div>
+        <div class="cw cw-md" id="rates-starts-chart"></div>
+        <div class="cw cw-sm" id="rates-rates-chart" style="margin-top:4px"></div>
+        <p class="note">Overnight rate: Bank of Canada target (from 2009). 5-year rate: CMHC conventional mortgage lending rate. Rates are national; starts follow the selected geography.</p>
+      </div>
+    </div>
+
+    <!-- 11 ▸ Net new supply (advanced) -->
+    <div data-mode="advanced">
+      <div class="section-head">
+        <h2>Net new supply</h2>
+        <p class="sec-sub">Permits create dwelling units — but some are lost to demolition and conversion. The gap is what the housing stock actually gains.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Dwelling units on permits — created vs lost, trailing 12 mo</div>
+          <div class="chart-legend-inline" id="netsupply-legend"></div>
+        </div>
+        <div class="cw cw-md" id="netsupply-chart"></div>
+        <p class="note">All building types, unadjusted, trailing-12-month sums. "Lost" counts units removed via demolition or conversion permits. Series begin 2018.</p>
+      </div>
+    </div>
+
+    <!-- 12 ▸ Labour (advanced) -->
+    <div data-mode="advanced" id="labour-section">
+      <div class="section-head">
+        <h2>Can we build it?</h2>
+        <p class="sec-sub">Construction employment vs the under-construction backlog — when the lines diverge, each worker is carrying more homes.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Construction employment vs units under construction (index, Jan 2000 = 100)</div>
+          <div class="chart-legend-inline" id="labour-legend"></div>
+        </div>
+        <div class="cw cw-md" id="labour-chart"></div>
+        <p class="note" id="labour-note">Employment: Labour Force Survey, NAICS Construction, seasonally adjusted — all construction, not only residential.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="chart-tip" id="chart-tip"></div>
+
+<footer>
+  <div>Sources: <a href="https://www150.statcan.gc.ca/">Statistics Canada</a> (34-10-0292, 34-10-0293, 34-10-0143, 34-10-0148, 34-10-0154, 34-10-0158, 18-10-0205, 17-10-0009, 14-10-0355, 34-10-0145) · CMHC · <a href="https://www.bankofcanada.ca/valet/docs">Bank of Canada Valet</a></div>
+  <div id="footer-updated"></div>
+  <div>Built as part of <a href="ceud.html">Ottawa Visuals</a> · not affiliated with Statistics Canada or CMHC</div>
+</footer>
+
+<script>
+'use strict';
+/* =====================================================================
+   Construction Tracker — single-file app.
+   Data contract: construction_json/*.json produced by
+   Python/construction_etl.py and construction_context_etl.py.
+   Series: {start:"YYYY-MM", freq:"m"|"q", values:[...]}, nulls = gaps.
+   Dollar series are stored in MILLIONS; counts are integer units.
+   ===================================================================== */
+
+var BASE_URL = 'construction_json/';   // switch to raw.githubusercontent.com URL if hosting page apart from data
+
+var GEOS = {
+  provinces: [
+    ['ca','Canada'],['bc','British Columbia'],['ab','Alberta'],['sk','Saskatchewan'],
+    ['mb','Manitoba'],['on','Ontario'],['qc','Quebec'],['nb','New Brunswick'],
+    ['ns','Nova Scotia'],['pe','Prince Edward Island'],['nl','Newfoundland and Labrador']
+  ],
+  cmas: [
+    ['ottawa','Ottawa-Gatineau'],['toronto','Toronto'],['montreal','Montréal'],
+    ['vancouver','Vancouver'],['calgary','Calgary'],['edmonton','Edmonton'],
+    ['winnipeg','Winnipeg'],['halifax','Halifax']
+  ]
+};
+function isCMA(code){ return GEOS.cmas.some(function(g){return g[0]===code}); }
+function geoLabel(code){
+  var all = GEOS.provinces.concat(GEOS.cmas);
+  for(var i=0;i<all.length;i++) if(all[i][0]===code) return all[i][1];
+  return code;
+}
+
+/* Categorical palette for DATA MARKS, in fixed assignment order. Derived from
+   the ceud design system but navy is lightened to #245A96 for series use —
+   brand navy #0B2545 fails the data-color lightness/chroma checks (validated
+   with dataviz validate_palette.js, light mode, white surface, all pairs:
+   PASS; amber vs white is in the 3:1 relief band, mitigated by legends and
+   table views). Brand navy remains for UI chrome via CSS --navy. */
+var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',purple:'#533AB7',red:'#B33A2E',gray:'#8A9BB0'};
+
+var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs', resnonresReal:'nominal' };
+var dataCache = {}, currentData = null, contextData = null, metaData = null;
+var allLoaded = false, cmaSort = {col:'starts', dir:-1};
+
+/* ── month math ─────────────────────────────────────────────────── */
+function mi(s){ return parseInt(s.slice(0,4),10)*12 + (parseInt(s.slice(5,7),10)-1); }
+function miStr(i){ var y=Math.floor(i/12), m=i%12+1; return y+'-'+(m<10?'0':'')+m; }
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function miLabel(i){ return MONTHS[i%12]+' '+Math.floor(i/12); }
+
+/* series → [{m:monthIndex, v:value}] (nulls skipped); quarterly steps by 3 */
+function pts(s){
+  if(!s) return [];
+  var out=[], m0=mi(s.start), step=(s.freq==='q')?3:1;
+  for(var i=0;i<s.values.length;i++)
+    if(s.values[i]!=null) out.push({m:m0+i*step, v:s.values[i]});
+  return out;
+}
+function lastPt(s){ var p=pts(s); return p.length?p[p.length-1]:null; }
+function valAt(s, m){
+  if(!s) return null;
+  var m0=mi(s.start), step=(s.freq==='q')?3:1, idx=(m-m0)/step;
+  if(idx<0||idx>=s.values.length||idx%1!==0) return null;
+  return s.values[idx];
+}
+function yoy(s){
+  var last=lastPt(s); if(!last) return null;
+  var prev=valAt(s,last.m-12);
+  if(prev==null||prev===0) return null;
+  return (last.v-prev)/prev*100;
+}
+/* trailing k-month moving average of monthly pts */
+function maPts(p,k){
+  var out=[];
+  for(var i=0;i<p.length;i++){
+    var s=0,n=0;
+    for(var j=i;j>=0&&p[i].m-p[j].m<k;j--){ s+=p[j].v;n++; }
+    if(n===k) out.push({m:p[i].m, v:s/n});
+  }
+  return out;
+}
+/* trailing 12-month sum */
+function roll12(p){
+  var out=[];
+  for(var i=0;i<p.length;i++){
+    var s=0,n=0;
+    for(var j=i;j>=0&&p[i].m-p[j].m<12;j--){ s+=p[j].v;n++; }
+    if(n===12) out.push({m:p[i].m, v:s});
+  }
+  return out;
+}
+function roll12Last(s){ var r=roll12(pts(s)); return r.length?r[r.length-1].v:null; }
+/* annual sums, complete years only → [{y, v}] */
+function annualSums(s){
+  var p=pts(s), by={}, cnt={};
+  p.forEach(function(d){ var y=Math.floor(d.m/12); by[y]=(by[y]||0)+d.v; cnt[y]=(cnt[y]||0)+1; });
+  return Object.keys(by).filter(function(y){return cnt[y]===12})
+    .map(function(y){return {y:+y, v:by[y]}}).sort(function(a,b){return a.y-b.y});
+}
+function latestNonNull(s){ var p=lastPt(s); return p?p.v:null; }
+
+/* ── formatting ─────────────────────────────────────────────────── */
+function fmtInt(v){ return v==null?'—':Math.round(v).toLocaleString('en-CA'); }
+function fmtM(v){   /* v in millions of dollars */
+  if(v==null) return '—';
+  if(Math.abs(v)>=1000) return '$'+(v/1000).toLocaleString('en-CA',{maximumFractionDigits:1})+'B';
+  return '$'+v.toLocaleString('en-CA',{maximumFractionDigits:0})+'M';
+}
+function fmtPct(v){ return v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%'; }
+function fmtAxis(v, money){
+  if(money){ return Math.abs(v)>=1000 ? '$'+(v/1000)+'B' : '$'+v+'M'; }
+  return Math.abs(v)>=1000 ? (v/1000)+'k' : ''+v;
+}
+
+/* ── generic SVG helpers ────────────────────────────────────────── */
+var NS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs,parent){
+  var el=document.createElementNS(NS,tag);
+  for(var k in attrs) el.setAttribute(k,attrs[k]);
+  if(parent) parent.appendChild(el);
+  return el;
+}
+function niceTicks(max,n){
+  n=n||4;
+  if(max<=0) return [0];
+  var raw=max/n, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  var step=[1,2,2.5,5,10].map(function(x){return x*mag})
+    .filter(function(x){return x>=raw})[0]||10*mag;
+  var out=[]; for(var v=0;v<=max+1e-9;v+=step) out.push(+v.toFixed(6));
+  return out;
+}
+var tipEl=document.getElementById('chart-tip');
+function showTip(html,x,y){
+  tipEl.innerHTML=html; tipEl.style.display='block';
+  var w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  var px=x+14, py=y-h-10;
+  if(px+w>window.innerWidth-8) px=x-w-14;
+  if(py<8) py=y+16;
+  tipEl.style.left=px+'px'; tipEl.style.top=py+'px';
+}
+function hideTip(){ tipEl.style.display='none'; }
+function tipRow(color,label,val){
+  return '<div class="tip-row"><span class="tip-dot" style="background:'+color+'"></span>'+label+': <strong style="margin-left:3px">'+val+'</strong></div>';
+}
+function buildLegend(el, items){
+  el.innerHTML = items.map(function(it){
+    return '<span class="chart-legend-item"><span class="chart-legend-dot" style="background:'+it.color+'"></span>'+it.label+'</span>';
+  }).join('');
+}
+
+/* ── timeChart: multi-series line/area chart, one y-axis ─────────
+   cfg: {series:[{label,color,pts,type('line'|'area'),dash}], money, fmt,
+         yMin, linkKey, unitLabel}
+   Charts sharing a linkKey share crosshair hover. */
+var linkGroups={};
+function timeChart(mountId,cfg){
+  var mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  var W=mount.clientWidth||800, H=mount.clientHeight||240;
+  var M={t:8,r:14,b:20,l:48};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+
+  var all=[]; cfg.series.forEach(function(s){ all=all.concat(s.pts); });
+  if(!all.length){ mount.innerHTML='<div class="section-loading">No data for this geography.</div>'; return; }
+  var x0=Math.min.apply(null,all.map(function(d){return d.m}));
+  var x1=Math.max.apply(null,all.map(function(d){return d.m}));
+  if(cfg.xDomain){ x0=cfg.xDomain[0]; x1=cfg.xDomain[1]; }
+  var yMax=Math.max.apply(null,all.map(function(d){return d.v}))*1.05||1;
+  var yMin=(cfg.yMin!=null)?cfg.yMin:0;
+  var X=function(m){ return M.l+(m-x0)/(x1-x0||1)*(W-M.l-M.r); };
+  var Y=function(v){ return M.t+(1-(v-yMin)/(yMax-yMin||1))*(H-M.t-M.b); };
+
+  niceTicks(yMax).forEach(function(t){
+    if(t<yMin) return;
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg)
+      .textContent=fmtAxis(t,cfg.money);
+  });
+  if(yMin<0) svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(0),y2:Y(0),stroke:'#8A9BB0','stroke-width':1},svg);
+  var yrSpan=Math.ceil((x1-x0)/12), yrStep=yrSpan>24?5:(yrSpan>12?2:1);
+  for(var y=Math.ceil(x0/12);y*12<=x1;y++){
+    if(y%yrStep!==0) continue;
+    svgEl('text',{x:X(y*12),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+  }
+
+  cfg.series.forEach(function(s){
+    if(!s.pts.length) return;
+    var d='', prev=null;
+    s.pts.forEach(function(p){
+      if(p.m<x0||p.m>x1) return;
+      d+=(prev==null||p.m-prev>((s.pts[1]?s.pts[1].m-s.pts[0].m:1)))?
+        ' M'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1):
+        ' L'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1);
+      prev=p.m;
+    });
+    if(s.type==='area'){
+      var inPts=s.pts.filter(function(p){return p.m>=x0&&p.m<=x1});
+      if(inPts.length){
+        var ad='M'+X(inPts[0].m).toFixed(1)+' '+Y(yMin<0?0:yMin).toFixed(1);
+        inPts.forEach(function(p){ ad+=' L'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1); });
+        ad+=' L'+X(inPts[inPts.length-1].m).toFixed(1)+' '+Y(yMin<0?0:yMin).toFixed(1)+' Z';
+        svgEl('path',{d:ad,fill:s.color,opacity:.13},svg);
+      }
+    }
+    svgEl('path',{d:d.trim(),fill:'none',stroke:s.color,'stroke-width':2,
+      'stroke-dasharray':s.dash||'', 'stroke-linejoin':'round','stroke-linecap':'round'},svg);
+  });
+
+  var hover=svgEl('line',{y1:M.t,y2:H-M.b,'class':'hover-line',style:'display:none'},svg);
+  function onHover(m,cx,cy,fromLink){
+    if(m==null){ hover.style.display='none'; if(!fromLink) hideTip(); return; }
+    hover.style.display=''; hover.setAttribute('x1',X(m)); hover.setAttribute('x2',X(m));
+    if(fromLink) return;
+    var rows='<strong>'+miLabel(m)+'</strong>';
+    cfg.series.forEach(function(s){
+      var near=null;
+      for(var i=0;i<s.pts.length;i++) if(s.pts[i].m===m){near=s.pts[i];break;}
+      if(near) rows+=tipRow(s.color,s.label,(cfg.fmt||fmtInt)(near.v)+(cfg.unitLabel?' '+cfg.unitLabel:''));
+    });
+    showTip(rows,cx,cy);
+  }
+  var ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',function(e){
+    var r=svg.getBoundingClientRect();
+    var m=Math.round(x0+(e.clientX-r.left-M.l)/(W-M.l-M.r)*(x1-x0));
+    m=Math.max(x0,Math.min(x1,m));
+    onHover(m,e.clientX,e.clientY,false);
+    if(cfg.linkKey&&linkGroups[cfg.linkKey])
+      linkGroups[cfg.linkKey].forEach(function(f){ if(f!==onHover) f(m,0,0,true); });
+  });
+  ov.addEventListener('mouseleave',function(){
+    onHover(null);
+    if(cfg.linkKey&&linkGroups[cfg.linkKey])
+      linkGroups[cfg.linkKey].forEach(function(f){ f(null,0,0,true); });
+  });
+  if(cfg.linkKey){
+    linkGroups[cfg.linkKey]=linkGroups[cfg.linkKey]||[];
+    linkGroups[cfg.linkKey].push(onHover);
+  }
+}
+
+/* ── stacked area (monthly) ─────────────────────────────────────── */
+function stackedArea(mountId,layers,opts){
+  var mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  var W=mount.clientWidth||800,H=mount.clientHeight||300,M={t:8,r:14,b:20,l:48};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var share=opts.share;
+  var x0=Infinity,x1=-Infinity;
+  layers.forEach(function(l){ l.map={}; l.pts.forEach(function(p){ l.map[p.m]=p.v;
+    if(p.m<x0)x0=p.m; if(p.m>x1)x1=p.m; }); });
+  if(x0===Infinity){ mount.innerHTML='<div class="section-loading">No data.</div>'; return; }
+  var months=[]; for(var m=x0;m<=x1;m++) months.push(m);
+  var totals={}; months.forEach(function(m){
+    totals[m]=layers.reduce(function(a,l){return a+(l.map[m]||0)},0);
+  });
+  var yMax=share?100:Math.max.apply(null,months.map(function(m){return totals[m]}))*1.05;
+  var X=function(m){return M.l+(m-x0)/(x1-x0||1)*(W-M.l-M.r)};
+  var Y=function(v){return M.t+(1-v/(yMax||1))*(H-M.t-M.b)};
+  niceTicks(yMax).forEach(function(t){
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg)
+      .textContent=share?t+'%':fmtAxis(t,opts.money);
+  });
+  var yrSpan=Math.ceil((x1-x0)/12), yrStep=yrSpan>24?5:(yrSpan>12?2:1);
+  for(var y=Math.ceil(x0/12);y*12<=x1;y++){
+    if(y%yrStep!==0) continue;
+    svgEl('text',{x:X(y*12),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+  }
+  var cum={}; months.forEach(function(m){cum[m]=0});
+  layers.forEach(function(l){
+    var top='',bot='';
+    months.forEach(function(m,i){
+      var v=l.map[m]||0;
+      if(share) v=totals[m]?v/totals[m]*100:0;
+      var y1v=cum[m], y2v=cum[m]+v; cum[m]=y2v;
+      top+=(i?' L':'M')+X(m).toFixed(1)+' '+Y(y2v).toFixed(1);
+      bot=' L'+X(m).toFixed(1)+' '+Y(y1v).toFixed(1)+bot;
+    });
+    svgEl('path',{d:top+bot+' Z',fill:l.color,opacity:.85,stroke:'#fff','stroke-width':.75},svg);
+  });
+  var hover=svgEl('line',{y1:M.t,y2:H-M.b,'class':'hover-line',style:'display:none'},svg);
+  var ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',function(e){
+    var r=svg.getBoundingClientRect();
+    var m=Math.round(x0+(e.clientX-r.left-M.l)/(W-M.l-M.r)*(x1-x0));
+    m=Math.max(x0,Math.min(x1,m));
+    hover.style.display=''; hover.setAttribute('x1',X(m)); hover.setAttribute('x2',X(m));
+    var rows='<strong>'+miLabel(m)+'</strong>';
+    for(var i=layers.length-1;i>=0;i--){
+      var l=layers[i],v=l.map[m];
+      if(v!=null) rows+=tipRow(l.color,l.label,share?(totals[m]?(v/totals[m]*100).toFixed(1)+'%':'—'):(opts.fmt||fmtInt)(v));
+    }
+    if(!share) rows+=tipRow('#5C6E82','Total',(opts.fmt||fmtInt)(totals[m]));
+    showTip(rows,e.clientX,e.clientY);
+  });
+  ov.addEventListener('mouseleave',function(){hover.style.display='none';hideTip();});
+}
+
+/* ── annual stacked bars ────────────────────────────────────────── */
+function annualBars(mountId,layers,opts){
+  var mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  var W=mount.clientWidth||800,H=mount.clientHeight||300,M={t:8,r:14,b:20,l:48};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var share=opts.share;
+  var years={};
+  layers.forEach(function(l){ l.by={}; l.annual.forEach(function(d){ l.by[d.y]=d.v; years[d.y]=1; }); });
+  var ys=Object.keys(years).map(Number).sort(function(a,b){return a-b});
+  if(!ys.length){ mount.innerHTML='<div class="section-loading">No data.</div>'; return; }
+  var totals={}; ys.forEach(function(y){ totals[y]=layers.reduce(function(a,l){return a+(l.by[y]||0)},0); });
+  var yMax=share?100:Math.max.apply(null,ys.map(function(y){return totals[y]}))*1.05;
+  var slot=(W-M.l-M.r)/ys.length, bw=Math.min(slot*.72,34);
+  var Y=function(v){return M.t+(1-v/(yMax||1))*(H-M.t-M.b)};
+  niceTicks(yMax).forEach(function(t){
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg)
+      .textContent=share?t+'%':fmtAxis(t,opts.money);
+  });
+  var lblStep=ys.length>20?5:(ys.length>10?2:1);
+  ys.forEach(function(y,i){
+    var cx=M.l+slot*(i+.5);
+    if(y%lblStep===0)
+      svgEl('text',{x:cx,y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+    var cum=0;
+    layers.forEach(function(l,li){
+      var v=l.by[y]||0;
+      if(share) v=totals[y]?v/totals[y]*100:0;
+      if(v<=0) return;
+      var yTop=Y(cum+v),yBot=Y(cum);
+      var isTop=(li===layers.length-1)||layers.slice(li+1).every(function(k){return !(k.by[y]>0)});
+      svgEl('rect',{x:cx-bw/2,y:yTop,width:bw,height:Math.max(yBot-yTop-1.5,0.5),
+        fill:l.color,rx:isTop?3:0},svg);
+      cum+=v;
+    });
+    var hit=svgEl('rect',{x:cx-slot/2,y:M.t,width:slot,height:H-M.t-M.b,fill:'transparent'},svg);
+    hit.addEventListener('mousemove',function(e){
+      var rows='<strong>'+y+'</strong>';
+      for(var i2=layers.length-1;i2>=0;i2--){
+        var l=layers[i2],v=l.by[y];
+        if(v!=null) rows+=tipRow(l.color,l.label,share?(totals[y]?(v/totals[y]*100).toFixed(1)+'%':'—'):fmtInt(v));
+      }
+      if(!share) rows+=tipRow('#5C6E82','Total',fmtInt(totals[y]));
+      showTip(rows,e.clientX,e.clientY);
+    });
+    hit.addEventListener('mouseleave',hideTip);
+  });
+}
+
+/* ── horizontal bars ────────────────────────────────────────────── */
+function hBars(mountId,items,opts){
+  var mount=document.getElementById(mountId);
+  var max=Math.max.apply(null,items.map(function(d){return d.v}))||1;
+  mount.innerHTML=items.map(function(d){
+    var pct=Math.max(d.v/max*100,1);
+    return '<div class="hbar-row'+(d.selected?' is-selected':'')+'">'+
+      '<div class="hbar-label">'+d.label+'</div>'+
+      '<div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;background:'+(d.selected?PAL.amber:PAL.navy)+'"></div></div>'+
+      '<div class="hbar-val">'+(opts.fmt||fmtInt)(d.v)+'</div></div>';
+  }).join('');
+}
+
+/* ── sparkline ──────────────────────────────────────────────────── */
+function sparkSVG(vals,color,w,h){
+  w=w||120;h=h||30;
+  var v=vals.filter(function(x){return x!=null});
+  if(v.length<2) return '';
+  var min=Math.min.apply(null,v),max=Math.max.apply(null,v);
+  var d='';
+  vals.forEach(function(x,i){
+    if(x==null) return;
+    var px=i/(vals.length-1)*w, py=h-2-((x-min)/(max-min||1))*(h-4);
+    d+=(d?' L':'M')+px.toFixed(1)+' '+py.toFixed(1);
+  });
+  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.5"/></svg>';
+}
+
+/* ── data table (a11y fallback) ─────────────────────────────────── */
+function dataTable(mountId,series,opts){
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  var months={};
+  series.forEach(function(s){ s.pts.forEach(function(p){months[p.m]=1}); });
+  var ms=Object.keys(months).map(Number).sort(function(a,b){return b-a}).slice(0,24);
+  var head='<tr><th>Month</th>'+series.map(function(s){return '<th>'+s.label+'</th>'}).join('')+'</tr>';
+  var rows=ms.map(function(m){
+    return '<tr><td>'+miLabel(m)+'</td>'+series.map(function(s){
+      var v=null; s.pts.forEach(function(p){if(p.m===m)v=p.v});
+      return '<td>'+(opts&&opts.fmt?opts.fmt(v):fmtInt(v))+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+  mount.innerHTML='<details class="data-details"><summary>View as table (last 24 months)</summary>'+
+    '<div class="data-tbl-wrap"><table class="data-tbl">'+head+rows+'</table></div></details>';
+}
+
+/* ── loading ────────────────────────────────────────────────────── */
+function loadJSON(url){
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error(url+' → HTTP '+r.status);
+    return r.json();
+  });
+}
+function fetchGeo(code){
+  if(dataCache[code]) return Promise.resolve(dataCache[code]);
+  var f=(isCMA(code)?'cma_':'constr_')+code+'.json';
+  return loadJSON(BASE_URL+f).then(function(d){ dataCache[code]=d; return d; });
+}
+function S(key){ return currentData?currentData.series[key]:null; }
+function CS(key){ return contextData?contextData.series[key]:null; }
+
+/* first available key from a list (SA preferred, NSA fallback) */
+function pick(){
+  for(var i=0;i<arguments.length;i++){ var s=S(arguments[i]); if(s) return s; }
+  return null;
+}
+
+/* CMHC quirk (verified 2026-07-09): PROVINCIAL under-construction and
+   completions were discontinued after 2022 in every StatCan table — only
+   starts continue monthly at that level. CMA series are monthly and current.
+   The pipeline_q.* fallback is kept in case CMHC ever resumes publication
+   via a quarterly table. See meta.json provincial_pipeline_gap. */
+function ucSeries(){        /* stock; quarterly = end-of-quarter */
+  var q=S('pipeline_q.under_construction.total');
+  return q?{s:q,quarterly:true}:{s:S('starts_unadj.under_construction.total'),quarterly:false};
+}
+function complPts(){        /* flow; quarterly totals scaled to per-month rate */
+  var q=S('pipeline_q.completions.total');
+  if(q) return {pts:pts(q).map(function(d){return {m:d.m,v:d.v/3}}),quarterly:true};
+  return {pts:pts(S('starts_unadj.completions.total')),quarterly:false};
+}
+/* true when a series is stale relative to the starts series (>6 mo behind) */
+function isStale(s){
+  var a=lastPt(s), b=lastPt(S('starts_unadj.starts.total'));
+  return !!(a&&b&&(b.m-a.m)>6);
+}
+
+/* ── renders ────────────────────────────────────────────────────── */
+function renderKPIs(){
+  var grid=document.getElementById('stats-grid');
+  var cma=isCMA(state.geo);
+  document.getElementById('kpi-sub').textContent='Latest month for '+geoLabel(state.geo)+
+    (cma?' (metro area)':'')+' — building permits, housing starts and construction investment.';
+  var tiles=[];
+  function tile(label,valHtml,sub,yoyV,sparkVals,color){
+    var badge=(yoyV!=null)?'<span class="yoy-badge '+(yoyV>=0?'up':'down')+'">'+fmtPct(yoyV)+' y/y</span>':'';
+    tiles.push('<div class="stat-card"><div class="stat-label">'+label+'</div>'+
+      '<div class="stat-value">'+valHtml+'</div>'+
+      '<div class="stat-sub">'+sub+' '+badge+'</div>'+
+      '<div class="stat-spark">'+sparkSVG(sparkVals,color)+'</div></div>');
+  }
+  function spark(s){ return s?s.values.slice(-48):[]; }
+
+  var pv=S('permits.value.total.total.sa_current'), lp=lastPt(pv);
+  tile('Building permits', lp?fmtM(lp.v):'—', lp?miLabel(lp.m)+', SA':'', yoy(pv), spark(pv), PAL.amber);
+
+  if(!cma){
+    var sa=S('starts_saar.total'), ls=lastPt(sa);
+    tile('Housing starts', ls?fmtInt(ls.v):'—', ls?miLabel(ls.m)+', SAAR':'', yoy(sa), spark(sa), PAL.navy);
+  }else{
+    var st=S('starts_unadj.starts.total'), r=roll12(pts(st)), lr=r.length?r[r.length-1]:null;
+    tile('Housing starts', lr?fmtInt(lr.v):'—', lr?'12 mo to '+miLabel(lr.m):'',
+      (r.length>12&&r[r.length-13].v)?((lr.v-r[r.length-13].v)/r[r.length-13].v*100):null,
+      r.slice(-48).map(function(d){return d.v}), PAL.navy);
+  }
+  var ucw=ucSeries(), lu=lastPt(ucw.s), ucStale=isStale(ucw.s);
+  tile('Under construction', lu?fmtInt(lu.v):'—',
+    lu?((ucw.quarterly?'quarter ending ':'')+miLabel(lu.m)+', units'+
+        (ucStale?' — provincial series ended 2022; see metro views':'')):'',
+    ucStale?null:yoy(ucw.s), spark(ucw.s), PAL.blue);
+
+  var iv=S('invest.total.total.sa_current'), li=lastPt(iv);
+  tile('Investment', li?fmtM(li.v):'—', li?miLabel(li.m)+', SA':'', yoy(iv), spark(iv), PAL.green);
+
+  grid.innerHTML=tiles.join('');
+}
+
+function renderPipeline(){
+  var maOn=state.pipelineMA==='ma6';
+  function prep(s){ var p=pts(s); return maOn?maPts(p,6):p; }
+  var compl=complPts();
+  var series=[
+    {label:'Permitted units (res., new)',color:PAL.blue,pts:prep(S('permits.created.residential.new.nsa')),type:'line'},
+    {label:'Starts',color:PAL.amber,pts:prep(S('starts_unadj.starts.total')),type:'line'},
+    {label:compl.quarterly?'Completions (qtr avg / mo)':'Completions',color:PAL.green,
+     pts:(maOn&&!compl.quarterly)?maPts(compl.pts,6):compl.pts,type:'line'}
+  ];
+  var ucw=ucSeries(), ucp=pts(ucw.s);
+  buildLegend(document.getElementById('pipeline-legend'),
+    series.map(function(s){return{label:s.label,color:s.color}})
+    .concat([{label:'Under construction (below)',color:PAL.navy}]));
+  timeChart('pipeline-chart',{series:series,linkKey:'pipeline'});
+  var all=series[1].pts;
+  var xd=all.length?[all[0].m,all[all.length-1].m]:null;
+  timeChart('pipeline-uc',{series:[{label:ucw.quarterly?'Under construction (end of qtr)':'Under construction',
+    color:PAL.navy,pts:ucp,type:'area'}], linkKey:'pipeline', xDomain:xd});
+  dataTable('pipeline-table',series.concat([{label:'Under construction',pts:ucp}]));
+}
+
+function renderDwelling(){
+  var layers=[
+    {key:'single',label:'Single-detached',color:PAL.amber},
+    {key:'semi',label:'Semi-detached',color:PAL.green},
+    {key:'row',label:'Row',color:PAL.blue},
+    {key:'apartment',label:'Apartment',color:PAL.navy}
+  ].map(function(l){
+    return {label:l.label,color:l.color,pts:maPts(pts(S('starts_unadj.starts.'+l.key)),6)};
+  });
+  buildLegend(document.getElementById('dwelling-legend'),layers);
+  stackedArea('dwelling-chart',layers,{share:state.dwellingShare==='share'});
+  dataTable('dwelling-table',layers);
+}
+
+function renderMarket(){
+  var defs=[
+    {keys:['homeowner'],label:'Homeowner',color:PAL.navy},
+    {keys:['condo'],label:'Condo',color:PAL.blue},
+    {keys:['rental'],label:'Rental',color:PAL.amber},
+    {keys:['coop','other'],label:'Co-op & other',color:PAL.gray}
+  ];
+  var layers=defs.map(function(d){
+    var by={};
+    d.keys.forEach(function(k){
+      annualSums(S('starts_market.total.'+k)).forEach(function(a){ by[a.y]=(by[a.y]||0)+a.v; });
+    });
+    return {label:d.label,color:d.color,
+      annual:Object.keys(by).map(function(y){return{y:+y,v:by[y]}}).sort(function(a,b){return a.y-b.y})};
+  });
+  buildLegend(document.getElementById('market-legend'),layers);
+  annualBars('market-chart',layers,{share:state.marketShare==='share'});
+}
+
+function renderResNonres(){
+  var real=state.resnonresReal==='real', sfx=real?'sa_constant':'sa_current';
+  var series=[
+    {label:'Residential',color:PAL.amber,pts:pts(S('permits.value.residential.total.'+sfx)),type:'line'},
+    {label:'Non-residential',color:PAL.navy,pts:pts(S('permits.value.non_residential.total.'+sfx)),type:'line'}
+  ];
+  buildLegend(document.getElementById('resnonres-legend'),series);
+  timeChart('resnonres-chart',{series:series,money:true,fmt:fmtM});
+  document.getElementById('resnonres-note').textContent='Seasonally adjusted, '+
+    (real?'constant (inflation-adjusted) dollars.':'current dollars.');
+
+  var ici=[
+    {key:'industrial',label:'Industrial',color:PAL.purple},
+    {key:'commercial',label:'Commercial',color:PAL.blue},
+    {key:'institutional',label:'Institutional',color:PAL.green}
+  ].map(function(l){
+    return {label:l.label,color:l.color,pts:pts(S('permits.value.'+l.key+'.total.sa_current'))};
+  });
+  buildLegend(document.getElementById('ici-legend'),ici);
+  stackedArea('ici-chart',ici,{share:false,money:true,fmt:fmtM});
+}
+
+function renderWorktype(){
+  var series=[
+    {key:'new',label:'New construction',color:PAL.navy},
+    {key:'renovation',label:'Renovation',color:PAL.amber},
+    {key:'conversion',label:'Conversion',color:PAL.gray}
+  ].map(function(l){
+    return {label:l.label,color:l.color,pts:roll12(pts(S('invest.total.'+l.key+'.nsa_current'))),type:'line'};
+  });
+  buildLegend(document.getElementById('worktype-legend'),series);
+  timeChart('worktype-chart',{series:series,money:true,fmt:fmtM});
+  dataTable('worktype-table',series,{fmt:fmtM});
+}
+
+function renderRates(){
+  if(!contextData) return;
+  document.getElementById('rates-title').textContent='Housing starts (6-mo avg) — '+geoLabel(state.geo);
+  var starts={label:'Starts (6-mo avg)',color:PAL.amber,pts:maPts(pts(S('starts_unadj.starts.total')),6),type:'area'};
+  var rates=[
+    {label:'BoC overnight',color:PAL.navy,pts:pts(CS('rate.overnight')),type:'line'},
+    {label:'5-yr mortgage',color:PAL.blue,pts:pts(CS('rate.mortgage5y')),type:'line',dash:'4,3'}
+  ];
+  buildLegend(document.getElementById('rates-legend'),[starts].concat(rates));
+  var sp=starts.pts, xd=sp.length?[sp[0].m,sp[sp.length-1].m]:null;
+  timeChart('rates-starts-chart',{series:[starts],linkKey:'rates'});
+  timeChart('rates-rates-chart',{series:rates,linkKey:'rates',xDomain:xd,
+    fmt:function(v){return v==null?'—':v.toFixed(2)+'%'}});
+}
+
+function renderNetSupply(){
+  var created=roll12(pts(S('permits.created.total.total.nsa')));
+  var lost=roll12(pts(S('permits.lost.total.total.nsa')));
+  var lmap={}; lost.forEach(function(d){lmap[d.m]=d.v});
+  var net=created.filter(function(d){return lmap[d.m]!=null})
+    .map(function(d){return {m:d.m,v:d.v-lmap[d.m]}});
+  var series=[
+    {label:'Units created',color:PAL.green,pts:created,type:'line'},
+    {label:'Units lost',color:PAL.red,pts:lost,type:'line'},
+    {label:'Net',color:PAL.navy,pts:net,type:'area'}
+  ];
+  buildLegend(document.getElementById('netsupply-legend'),series);
+  timeChart('netsupply-chart',{series:series});
+}
+
+function renderLabour(){
+  var sec=document.getElementById('labour-section');
+  if(isCMA(state.geo)||!contextData){ sec.style.display='none'; return; }
+  sec.style.display='';
+  var emp=pts(CS('emp_construction.'+state.geo));
+  var ucw=ucSeries();
+  var ucp=pts(ucw.s);
+  var base=mi('2000-01');
+  function indexTo(p){
+    var b=null; p.forEach(function(d){ if(d.m===base) b=d.v; });
+    if(b==null&&p.length) b=p[0].v;
+    return b?p.map(function(d){return {m:d.m,v:d.v/b*100}}):[];
+  }
+  var series=[
+    {label:'Construction employment',color:PAL.purple,pts:indexTo(emp),type:'line'},
+    {label:'Units under construction',color:PAL.amber,
+     pts:indexTo(ucw.quarterly?ucp:maPts(ucp,6)),type:'line'}
+  ];
+  buildLegend(document.getElementById('labour-legend'),series);
+  timeChart('labour-chart',{series:series,fmt:function(v){return v==null?'—':v.toFixed(0)}});
+}
+
+/* ── comparison sections (need all geos) ────────────────────────── */
+function loadAllGeos(){
+  if(allLoaded) return Promise.resolve();
+  var codes=GEOS.provinces.map(function(g){return g[0]})
+    .concat(GEOS.cmas.map(function(g){return g[0]}));
+  return Promise.all(codes.map(fetchGeo)).then(function(){ allLoaded=true; });
+}
+
+function renderProvBars(){
+  if(!allLoaded) return;
+  var provs=GEOS.provinces.filter(function(g){return g[0]!=='ca'});
+  function popOf(code){
+    var s=contextData?contextData.series['pop.'+code]:null;
+    var l=s?lastPt(s):null; return l?l.v:null;
+  }
+  var starts=provs.map(function(g){
+    var d=dataCache[g[0]], p=popOf(g[0]);
+    var v=d?roll12Last(d.series['starts_unadj.starts.total']):null;
+    return (v!=null&&p)?{label:g[0].toUpperCase(),v:v/p*1000,selected:state.geo===g[0]}:null;
+  }).filter(Boolean).sort(function(a,b){return b.v-a.v});
+  hBars('prov-starts-bars',starts,{fmt:function(v){return v.toFixed(1)}});
+  var permits=provs.map(function(g){
+    var d=dataCache[g[0]], p=popOf(g[0]);
+    var v=d?roll12Last(d.series['permits.value.total.total.sa_current']):null;
+    return (v!=null&&p)?{label:g[0].toUpperCase(),v:v*1e6/p,selected:state.geo===g[0]}:null;
+  }).filter(Boolean).sort(function(a,b){return b.v-a.v});
+  hBars('prov-permits-bars',permits,{fmt:function(v){return '$'+Math.round(v).toLocaleString('en-CA')}});
+}
+
+function renderCMATable(){
+  if(!allLoaded) return;
+  var rows=GEOS.cmas.map(function(g){
+    var d=dataCache[g[0]]; if(!d) return null;
+    var st=d.series['starts_unadj.starts.total'];
+    var r12=roll12(pts(st));
+    return {
+      code:g[0], name:g[1],
+      starts:r12.length?r12[r12.length-1].v:null,
+      uc:latestNonNull(d.series['starts_unadj.under_construction.total']),
+      permits:roll12Last(d.series['permits.value.total.total.sa_current']),
+      invest:roll12Last(d.series['invest.total.total.sa_current']),
+      spark:r12.slice(-48).map(function(x){return x.v})
+    };
+  }).filter(Boolean);
+  rows.sort(function(a,b){
+    var va=a[cmaSort.col],vb=b[cmaSort.col];
+    return ((va==null)-(vb==null))||cmaSort.dir*((vb||0)-(va||0));
+  });
+  var cols=[['starts','Starts (12 mo)'],['uc','Under constr.'],['permits','Permits (12 mo)'],['invest','Investment (12 mo)']];
+  var html='<table class="cma-tbl"><thead><tr><th>Metro area</th>'+
+    cols.map(function(c){return '<th data-col="'+c[0]+'" class="'+(cmaSort.col===c[0]?'sorted':'')+'">'+c[1]+
+      (cmaSort.col===c[0]?(cmaSort.dir<0?' ↓':' ↑'):'')+'</th>'}).join('')+
+    '<th>Starts trend (4 yr)</th></tr></thead><tbody>'+
+    rows.map(function(r){
+      return '<tr data-code="'+r.code+'" class="'+(state.geo===r.code?'is-selected':'')+'" style="cursor:pointer">'+
+        '<td>'+r.name+'</td><td>'+fmtInt(r.starts)+'</td><td>'+fmtInt(r.uc)+'</td>'+
+        '<td>'+fmtM(r.permits)+'</td><td>'+fmtM(r.invest)+'</td>'+
+        '<td style="min-width:100px">'+sparkSVG(r.spark,PAL.amber,100,22)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+  var mount=document.getElementById('cma-table');
+  mount.innerHTML=html;
+  mount.querySelectorAll('th[data-col]').forEach(function(th){
+    th.addEventListener('click',function(){
+      var c=th.getAttribute('data-col');
+      if(cmaSort.col===c) cmaSort.dir*=-1; else cmaSort={col:c,dir:-1};
+      renderCMATable();
+    });
+  });
+  mount.querySelectorAll('tr[data-code]').forEach(function(tr){
+    tr.addEventListener('click',function(){ switchGeo(tr.getAttribute('data-code')); });
+  });
+}
+
+/* ── render orchestration ───────────────────────────────────────── */
+function renderAll(){
+  linkGroups={};
+  renderKPIs();
+  renderPipeline();
+  renderDwelling();
+  renderMarket();
+  renderResNonres();
+  renderWorktype();
+  renderRates();
+  renderNetSupply();
+  renderLabour();
+  renderProvBars();
+  renderCMATable();
+}
+
+/* ── controls ───────────────────────────────────────────────────── */
+function wireToggle(id,attr,fn){
+  document.querySelectorAll('#'+id+' .seg-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#'+id+' .seg-btn').forEach(function(x){x.classList.toggle('active',x===b)});
+      fn(b.getAttribute(attr));
+    });
+  });
+}
+function setViewMode(mode){
+  document.body.className='mode-'+mode;
+  try{localStorage.setItem('constrViewMode',mode);}catch(e){}
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.toggle('active',b.dataset.view===mode)});
+  if(mode==='advanced'){ renderRates(); renderNetSupply(); renderLabour(); }
+}
+function populateGeoSelect(){
+  var sel=document.getElementById('geo-sel');
+  sel.innerHTML='';
+  function group(label,list){
+    var og=document.createElement('optgroup'); og.label=label;
+    list.forEach(function(g){
+      var o=document.createElement('option'); o.value=g[0];
+      o.textContent=g[0]==='ca'?'All of Canada':g[1];
+      if(g[0]===state.geo) o.selected=true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+  group('Canada & provinces',GEOS.provinces);
+  group('Metro areas',GEOS.cmas);
+  sel.addEventListener('change',function(){ switchGeo(sel.value); });
+}
+function switchGeo(code){
+  if(code===state.geo) return;
+  state.geo=code;
+  document.getElementById('geo-sel').value=code;
+  fetchGeo(code).then(function(d){
+    currentData=d;
+    renderAll();
+  }).catch(function(e){ console.error(e); });
+}
+
+/* ── boot ───────────────────────────────────────────────────────── */
+function boot(){
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.classList.toggle('active',document.body.className.indexOf('mode-'+b.dataset.view)!==-1);
+  });
+  populateGeoSelect();
+  wireToggle('pipeline-ma','data-ma',function(v){state.pipelineMA=v;renderPipeline();});
+  wireToggle('dwelling-share','data-share',function(v){state.dwellingShare=v;renderDwelling();});
+  wireToggle('market-share','data-share',function(v){state.marketShare=v;renderMarket();});
+  wireToggle('resnonres-real','data-real',function(v){state.resnonresReal=v;renderResNonres();});
+
+  Promise.all([fetchGeo(state.geo), loadJSON(BASE_URL+'meta.json')])
+    .then(function(res){
+      currentData=res[0]; metaData=res[1];
+      document.getElementById('loading-msg').style.display='none';
+      document.getElementById('app-body').style.display='block';
+      var lm=metaData&&metaData.tables&&metaData.tables['34-10-0143'];
+      document.getElementById('footer-updated').textContent=
+        'Data retrieved '+(metaData?metaData.retrieved:'—')+
+        (lm?' · starts data through '+lm.last_month:'');
+      renderAll();
+      /* context + all-geo comparisons load in the background */
+      loadJSON(BASE_URL+'context.json').then(function(c){
+        contextData=c; renderRates(); renderLabour(); renderProvBars();
+      }).catch(function(e){ console.warn('context.json unavailable:',e.message); });
+      loadAllGeos().then(function(){ renderProvBars(); renderCMATable(); })
+        .catch(function(e){ console.warn('comparison load failed:',e.message); });
+    })
+    .catch(function(err){
+      document.getElementById('loading-msg').style.display='none';
+      document.getElementById('error-msg').style.display='block';
+      document.getElementById('error-detail').textContent=' '+err.message;
+      console.error(err);
+    });
+}
+var resizeTimer=null;
+window.addEventListener('resize',function(){
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(function(){ if(currentData) renderAll(); },200);
+});
+boot();
+</script>
+</body>
+</html>
