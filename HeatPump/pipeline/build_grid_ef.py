@@ -36,8 +36,12 @@
 # pip install pandas
 
 import os
+import sys
 import json
 import pandas as pd
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from grid_common import compute_ef_on, ON_GAS_EF_G_PER_KWH  # noqa: E402
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -45,7 +49,7 @@ HERE        = os.path.dirname(os.path.abspath(__file__))
 IN_CSV      = os.path.join(HERE, "..", "data", "interim", "ieso_hourly_by_fuel.csv")
 OUT_JSON    = os.path.join(HERE, "..", "data", "processed", "grid_ef_on.json")
 
-GAS_EF_G_PER_KWH = 500.0  # see calibration note above
+GAS_EF_G_PER_KWH = ON_GAS_EF_G_PER_KWH  # see calibration note above, now in grid_common.py
 
 # TAF (2024 ed.) published Annual AEF, gCO2e/kWh -- our validation targets.
 # Source: "Ontario Electricity Emissions Factors and Guidelines", TAF, June 2024,
@@ -72,13 +76,7 @@ def load_generation() -> pd.DataFrame:
 # ─── COMPUTE EF ───────────────────────────────────────────────────────────────
 
 def compute_ef(wide: pd.DataFrame) -> pd.DataFrame:
-    out = wide[["Date", "Hour", "Total_MW", "GAS"]].copy()
-    out["GasFrac"] = (out["GAS"] / out["Total_MW"]).where(out["Total_MW"] > 0, 0.0)
-    out["AvgEF_g_per_kWh"] = out["GasFrac"] * GAS_EF_G_PER_KWH
-    out["MarginalEF_g_per_kWh"] = out["AvgEF_g_per_kWh"].where(
-        out["GAS"] <= 0, GAS_EF_G_PER_KWH
-    )
-    return out
+    return compute_ef_on(wide)
 
 
 # ─── VALIDATE ─────────────────────────────────────────────────────────────────
