@@ -45,6 +45,11 @@ import sys
 import json
 import pandas as pd
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from grid_common import (  # noqa: E402
+    compute_ef_ab, AB_COAL_EF_G_PER_KWH, AB_GAS_EF_G_PER_KWH, AB_GAS_LIKE_FUELS,
+)
+
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -54,9 +59,9 @@ HERE     = os.path.dirname(os.path.abspath(__file__))
 IN_CSV   = os.path.join(HERE, "..", "data", "interim", "aeso_hourly_by_fuel.csv")
 OUT_JSON = os.path.join(HERE, "..", "data", "processed", "grid_ef_ab.json")
 
-COAL_EF_G_PER_KWH = 1050.0
-GAS_EF_G_PER_KWH  = 540.0
-GAS_LIKE_FUELS    = {"GAS", "DUAL FUEL"}
+COAL_EF_G_PER_KWH = AB_COAL_EF_G_PER_KWH  # see calibration note above, now in grid_common.py
+GAS_EF_G_PER_KWH  = AB_GAS_EF_G_PER_KWH
+GAS_LIKE_FUELS    = AB_GAS_LIKE_FUELS
 
 # Alberta.ca (NIR-sourced) published annual generation intensity, gCO2eq/kWh.
 AB_ANNUAL_INTENSITY = {2019: 630, 2020: 630, 2021: 580, 2022: 510, 2023: 470}
@@ -82,15 +87,7 @@ def load_generation() -> pd.DataFrame:
 # ─── COMPUTE EF ───────────────────────────────────────────────────────────────
 
 def compute_ef(wide: pd.DataFrame) -> pd.DataFrame:
-    out = wide[["Date", "Hour", "Total_MW", "COAL", "GasLike_MW"]].copy()
-    out["CoalFrac"]    = (out["COAL"] / out["Total_MW"]).where(out["Total_MW"] > 0, 0.0)
-    out["GasLikeFrac"] = (out["GasLike_MW"] / out["Total_MW"]).where(out["Total_MW"] > 0, 0.0)
-    out["AvgEF_g_per_kWh"] = (out["CoalFrac"] * COAL_EF_G_PER_KWH
-                               + out["GasLikeFrac"] * GAS_EF_G_PER_KWH)
-    out["MarginalEF_g_per_kWh"] = out["AvgEF_g_per_kWh"].where(
-        out["GasLike_MW"] <= 0, GAS_EF_G_PER_KWH
-    )
-    return out
+    return compute_ef_ab(wide)
 
 
 # ─── VALIDATE ─────────────────────────────────────────────────────────────────

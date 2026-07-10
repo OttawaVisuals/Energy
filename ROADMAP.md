@@ -16,7 +16,7 @@ suggested model. Companion docs: [PLAN.md](PLAN.md) (heat pump), [CEUD_PLAN.md](
 | Heat Pump tool | 🔨 Phases 1–2 of 7 done; no `heatpump.html` yet |
 | Energy prices | 🆕 new — consume MaxPr1me/canada-utility-rates |
 | Landing page | 🆕 new |
-| Live grid dashboard | 🆕 new — reuses HeatPump Phase 1 pipelines |
+| Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`, weekly workflow); `grid.html` page not started |
 | Ottawa heat demand map | 🆕 new — fuses Geothermal + GridCapacity + ERS |
 
 **Recommended order:** 1 → 2 → 3 (multi-session) → 4 → 5, with 6 and 7 as
@@ -404,24 +404,30 @@ a "what's powering the grid right now / this month" dashboard, which doubles as 
 public explainer of the heat pump tool's marginal-emissions methodology.
 
 Known quirks (from memory + METHODOLOGY.md): IESO/AESO block WebFetch — use
-`curl`; AESO's Box-hosted files are unscriptable but direct CSVs on aeso.ca work;
-ECCC endpoints need `curl -L`.
+`curl`/`requests` with a browser User-Agent. **Correction found while building
+the ETL:** there is no scriptable *recent* AESO source at all — the "direct CSVs
+on aeso.ca" lead didn't pan out (404s), and AESO's real-time API
+(`developer-apim.aeso.ca`) requires a registered API key we don't have. AB is
+therefore parse-only from whatever CSD zips the user has manually placed in
+`HeatPump/data/raw/aeso/` (currently through 2026-06) — **not** live-refreshed
+by the weekly workflow. ON (IESO) *is* fully live and refreshes every run.
 
-### Prompt — ETL (Sonnet)
+### ETL — done (`Python/grid_etl.py`)
 
-```text
-Read HeatPump/METHODOLOGY.md Phase 1 sections and ROADMAP.md item 6. Build
-Python/grid_etl.py reusing the fetch+fuel-mapping+EF logic from
-HeatPump/pipeline/fetch_ieso.py and fetch_aeso.py (import/refactor shared
-code into a module rather than copy-pasting; IESO/AESO need curl not
-WebFetch). Output grid_json/: for ON and AB (QC as flat-EF context), the
-last 12 months of hourly generation by fuel and computed average+marginal
-intensity, downsampled sensibly (hourly for last 14 days, daily min/mean/
-max beyond) to keep each file < 300 KB, plus a meta.json with EF sources
-and last-updated. Add a weekly refresh workflow following
-construction-refresh.yml's pattern. Validate monthly averages against
-IESO/AESO published figures and print the comparison.
-```
+Reuses fetch/parse/EF logic via a new shared module,
+`HeatPump/pipeline/grid_common.py` (fetch_ieso.py, fetch_aeso.py,
+build_grid_ef.py, build_grid_ef_ab.py were refactored to import from it — outputs
+verified byte-identical to the pre-refactor Phase-1 JSONs). Outputs
+`grid_json/{grid_on,grid_ab,grid_qc,meta}.json` (163 KB / 176 KB / <1 KB), each
+with hourly resolution for the last 14 days and daily min/mean/max beyond, back
+to a rolling ~12-month window. QC is a static flat-EF context card (HQ's export
+is likewise a manually-placed, non-live file). Validation prints (a) an
+ETL-correctness cross-check against the already-validated Phase-1 master JSONs
+for overlapping months, and (b) the annual figure vs TAF/Alberta.ca published
+references for any full year in scope — see the script's docstring for why no
+independent *monthly* published reference exists to check against. Weekly
+GitHub Actions workflow: `.github/workflows/grid-refresh.yml` (Mondays 13:00
+UTC); AB/QC staying stale doesn't block the ON commit.
 
 ### Prompt — page (Opus)
 

@@ -14,9 +14,12 @@
 
 import os
 import sys
-import requests
+from pathlib import Path
+
 import pandas as pd
-import xml.etree.ElementTree as ET
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from grid_common import download_ieso_year, parse_ieso_xml, HTTP_HEADERS  # noqa: E402
 
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -28,36 +31,27 @@ RAW_DIR     = os.path.join(HERE, "..", "data", "raw", "ieso")
 INTERIM_DIR = os.path.join(HERE, "..", "data", "interim")
 OUT_CSV     = os.path.join(INTERIM_DIR, "ieso_hourly_by_fuel.csv")
 
-BASE_URL = "https://reports-public.ieso.ca/public/GenOutputbyFuelHourly"
-NS       = {"ieso": "http://www.ieso.ca/schema"}
-
 YEARS = list(range(2020, 2027))  # 2020 through current year; adjust as needed
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+HEADERS = HTTP_HEADERS  # kept as a module attribute for backward compatibility
 
 # ─── FETCH ────────────────────────────────────────────────────────────────────
 
 def download_if_missing(year: int) -> str | None:
     """Download one year's XML report if not already cached. Returns local path,
     or None if the file doesn't exist yet (e.g. future year)."""
-    os.makedirs(RAW_DIR, exist_ok=True)
-    path = os.path.join(RAW_DIR, f"PUB_GenOutputbyFuelHourly_{year}.xml")
-
-    if os.path.exists(path):
+    path = Path(RAW_DIR) / f"PUB_GenOutputbyFuelHourly_{year}.xml"
+    if path.exists():
         print(f"   [skip] {year} already cached")
-        return path
+        return str(path)
 
-    url = f"{BASE_URL}/PUB_GenOutputbyFuelHourly_{year}.xml"
     print(f"   [fetch] Downloading {year} ... ", end="", flush=True)
-    r = requests.get(url, headers=HEADERS, timeout=120)
-    if r.status_code == 404:
+    result = download_ieso_year(year, path, force=False)
+    if result is None:
         print("not found (404)")
         return None
-    r.raise_for_status()
-    with open(path, "wb") as fh:
-        fh.write(r.content)
-    print(f"done ({len(r.content) / 1e6:.1f} MB)")
-    return path
+    print(f"done ({result.stat().st_size / 1e6:.1f} MB)")
+    return str(result)
 
 
 # ─── PARSE ────────────────────────────────────────────────────────────────────
@@ -65,21 +59,7 @@ def download_if_missing(year: int) -> str | None:
 def parse_xml(path: str) -> pd.DataFrame:
     """Parse one year's GenOutputbyFuelHourly XML into a tidy DataFrame:
     Date, Hour (1-24), Fuel, Output_MW."""
-    tree = ET.parse(path)
-    root = tree.getroot()
-
-    rows = []
-    for daily in root.iter("{http://www.ieso.ca/schema}DailyData"):
-        day = daily.find("ieso:Day", NS).text
-        for hourly in daily.findall("ieso:HourlyData", NS):
-            hour = int(hourly.find("ieso:Hour", NS).text)
-            for fuel_total in hourly.findall("ieso:FuelTotal", NS):
-                fuel = fuel_total.find("ieso:Fuel", NS).text
-                output_el = fuel_total.find("ieso:EnergyValue/ieso:Output", NS)
-                output = float(output_el.text) if output_el is not None and output_el.text else 0.0
-                rows.append({"Date": day, "Hour": hour, "Fuel": fuel, "Output_MW": output})
-
-    return pd.DataFrame(rows)
+    return parse_ieso_xml(path)
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
