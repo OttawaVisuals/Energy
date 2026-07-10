@@ -6,6 +6,7 @@ feasibility map for Ottawa: estimated ground thermal conductivity, open-loop
 (groundwater) system screening, electrical grid capacity, and the municipal
 siting context (zoning, sewers, the City's own geothermal potential rating).
 
+- **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
 - **Plan:** [`../ottawa-geothermal-guide.md`](../ottawa-geothermal-guide.md) (the original 8-step guide)
 - **Build log:** [`../GEOTHERMAL_STATUS.md`](../GEOTHERMAL_STATUS.md) (what ran when, session by session)
 - **Final product:** `output/index.html` — one self-contained file, open in any browser
