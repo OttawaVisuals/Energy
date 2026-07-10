@@ -30,8 +30,10 @@
 import os
 import sys
 import glob
-import zipfile
 import pandas as pd
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from grid_common import parse_aeso_zip  # noqa: E402
 
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -43,34 +45,14 @@ RAW_DIR     = os.path.join(HERE, "..", "data", "raw", "aeso")
 INTERIM_DIR = os.path.join(HERE, "..", "data", "interim")
 OUT_CSV     = os.path.join(INTERIM_DIR, "aeso_hourly_by_fuel.csv")
 
-USECOLS = ["Date (MST)", "Volume", "Maximum Capability", "Fuel Type"]
-
 # ─── PARSE ONE ZIP ────────────────────────────────────────────────────────────
 
 def parse_zip(path: str) -> pd.DataFrame:
     """Read the single CSV inside one CSD zip and aggregate to
     Date+Hour+Fuel totals (summed across assets)."""
-    with zipfile.ZipFile(path) as zf:
-        inner_names = [n for n in zf.namelist() if n.lower().endswith(".csv")]
-        if not inner_names:
-            print(f"   [warn] no CSV found in {os.path.basename(path)}")
-            return pd.DataFrame()
-        with zf.open(inner_names[0]) as fh:
-            df = pd.read_csv(fh, usecols=USECOLS, dtype={"Fuel Type": str})
-
-    df["Date (MST)"] = pd.to_datetime(df["Date (MST)"], errors="coerce")
-    df = df.dropna(subset=["Date (MST)"])
-
-    df["Date"] = df["Date (MST)"].dt.date
-    df["Hour"] = df["Date (MST)"].dt.hour + 1  # hour-ending 1-24, matches IESO convention
-    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0.0)
-    df["Maximum Capability"] = pd.to_numeric(df["Maximum Capability"], errors="coerce").fillna(0.0)
-    df["Fuel Type"] = df["Fuel Type"].str.strip().str.upper()
-
-    agg = (
-        df.groupby(["Date", "Hour", "Fuel Type"], as_index=False)
-        .agg(Output_MW=("Volume", "sum"), Capacity_MW=("Maximum Capability", "sum"))
-    )
+    agg = parse_aeso_zip(path)
+    if agg.empty:
+        print(f"   [warn] no CSV found in {os.path.basename(path)}")
     return agg
 
 
