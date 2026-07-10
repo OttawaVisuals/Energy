@@ -3,7 +3,30 @@
 Companion to [ottawa-geothermal-guide.md](ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-09.*
+*Last session: 2026-07-10.*
+
+**Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-07-10 session — committed and published
+
+All pipeline outputs and scripts committed to `main` (commit `cf1c862`), including
+the `_code_*.csv` lookup tables, the rebuilt `ottawa_geothermal.gpkg`, all six
+processed GeoJSON/TIFF layers, and `output/index.html`. Nothing needed
+gitignoring — even the largest processed file (`combined_layers.geojson`, 40 MB)
+is well under GitHub's 100 MB hard limit.
+
+Published via the same GitHub Pages setup already serving `retrofits.html` /
+`ceud.html` / `construction.html` from the repo root: GitHub Pages resolves
+extensionless URLs by trying `path`, then `path.html`, then `path/index.html`, so
+`Geothermal/output/index.html` is reachable directly at
+`.../Energy/Geothermal/output/`. (In the process, found the `retrofits.html` live
+link documented in `Readme.MD` pointed at a repo name — `Ottawa-Visuals` — that
+404s; the working one is `.../Energy/retrofits`. Fixed both links.)
+
+Verified live in a browser preview: page loads with no console or network errors,
+all six layer checkboxes toggle, zoom controls work, and a well marker's popup
+renders real data (ID, open-loop status, lithology, conductivity, yield, static
+water level, depth).
 
 ## Pipeline status
 
