@@ -4,12 +4,35 @@
 heating (gas furnace, oil furnace, electric baseboards) with an air-source or ground-source heat
 pump, for a standard year, in selected Canadian cities (ON / QC / AB).
 
-**Status:** Phase 1a done — hourly generation by fuel for ON (IESO, 2021–2025) and AB (AESO,
-2020–Jul 2025) fetched, fuel-mapped and validated against NIR Annex 7; QC flat-EF constants
-written (`heatpump/data/processed/grid_qc.json`). See `heatpump/METHODOLOGY.md`. The AESO
-retrieval-path risk is resolved: direct CSVs on aeso.ca + CSD fuel grouping + manual
-coal-conversion table. Next: `build_grid_ef.py` (hourly average + marginal EF, temp×hour×season
-surface, NIR ±15% intensity check).
+**Status:** Phases 1–5 done. Phase 1 (grid EF, ON/AB/QC hourly avg+marginal), Phase 2 (weather/TMY
++ the temp×hour×season EF surface `ef_surface_*.json`), Phase 3 (NEEP tier/model + GSHP curves
+`hp_curves.json`), and Phase 4 (city×archetype UA/Tbalance `archetypes.json`) are all built and
+validated. **Phase 5 (simulation engine) is now done**: `HeatPump/app/engine.js` — a pure
+`simulate()` consuming the normalized tier curve (× user nominal capacity) and the EF surface
+(average/marginal toggle) — with `app/engine.test.js` and the `pipeline/validate_engine.py` Python
+mirror (5 hand-computed cases, identical to 4 dp; real-data Ottawa smoke run reproduces the
+avg-vs-marginal flip). See `HeatPump/METHODOLOGY.md`. **Phase 6 (UI) is now done**: `heatpump.html`
+(repo root, sibling of retrofits/ceud/construction) — a single self-contained page that inlines the
+Phase 5 engine verbatim and fetches the processed JSON via the BASE_URL pattern (`archetypes.json`,
+`hp_curves.json`, `ef_surface_*.json`, and a new browser-loadable `tmy_temps.json`). Inputs (city,
+archetype, current heating+efficiency, tier bucket, auto-sized nominal capacity, backup, control
+strategy, avg/marginal toggle, lifecycle sliders) drive a live client-side `simulate()`; outputs are
+the GHG-by-source comparison, the load-vs-capacity-vs-temperature key chart (custom SVG), annual and
+monthly energy, and monthly emissions. Operating cost is a clearly-marked hook pending `prices_json/`
+(ROADMAP item 4). An in-page self-test reproduces all 15 Phase-5 vectors in the browser. **Phase 7
+(validation vs published benchmarks) is now done**: the tool's annual outputs for
+gas→ASHP and baseboard→ASHP in Ottawa/Toronto/Montreal/Calgary were compared
+against NRCan/CanmetENERGY (2022), the Canadian Climate Institute (2023) and
+Efficiency Canada (2023). All deltas are explained (average-vs-marginal EF, grid
+vintage, archetype floor area); no unexplained >30% deviation. One UI bug was
+found and fixed (Quebec baseboard→ASHP headline percentage divided by a
+near-zero baseline). See the new "Validation against published benchmarks
+(Phase 7)" section in `HeatPump/METHODOLOGY.md` and the "How accurate is this?"
+note in `heatpump.html`'s assumptions panel.
+
+> **Deploy note:** `heatpump.html` reads `HeatPump/data/processed/*.json` — those files plus the new
+> `tmy_temps.json` are currently untracked; they (and `heatpump.html`) must be committed and pushed
+> for the GitHub Pages copy to load (localhost reads them directly).
 
 ---
 
