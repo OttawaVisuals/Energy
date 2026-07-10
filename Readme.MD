@@ -7,7 +7,20 @@ Natural Resources Canada's **EnerGuide / Energy Rating System (ERS)** open audit
 Pick a province, then optionally drill into a postal-code area (FSA) to see how homes
 *like yours* were upgraded and what energy savings actually resulted.
 
-**Live:** https://ottawavisuals.github.io/Ottawa-Visuals/retrofits
+**Live:** https://ottawavisuals.github.io/Energy/retrofits
+
+---
+
+# Ottawa Geothermal Feasibility Map
+
+An interactive Leaflet map screening ground-source heat pump (GSHP) potential across
+Ottawa: estimated ground thermal conductivity (from WWIS water-well lithology), open-loop
+groundwater feasibility per well, Hydro Ottawa feeder capacity, industrial/employment
+zoning, trunk sewer lines, and the City's own open-loop geothermal potential rating.
+Full details: [`Geothermal/README.md`](Geothermal/README.md); build log:
+[`GEOTHERMAL_STATUS.md`](GEOTHERMAL_STATUS.md).
+
+**Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
 
 ---
 
