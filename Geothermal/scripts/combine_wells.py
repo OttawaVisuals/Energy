@@ -127,7 +127,8 @@ CODE_FILE = {
 CONDUCTIVITY_WM = {
     "limestone": 2.8, "dolostone": 3.0, "sandstone": 2.3, "shale": 1.9,
     "granite": 3.2, "gneiss": 3.0, "clay": 1.4, "silt": 1.5, "sand": 2.4,
-    "gravel": 2.0, "till": 1.8, "fill": 1.5,
+    "gravel": 2.0, "till": 1.8, "fill": 1.5, "basalt": 2.0,
+    "rock": 2.5,      # code 26 "ROCK", type unspecified: mid-range bedrock
 }
 
 # decoded material word -> lithology bucket used above.
@@ -139,11 +140,19 @@ BUCKET = {
     "clay": "clay", "silt": "silt",
     "fine sand": "sand", "medium sand": "sand", "coarse sand": "sand", "sand": "sand",
     "gravel": "gravel", "stones": "gravel", "boulders": "gravel",
-    "till": "till", "hardpan": "till",
+    "till": "till", "hardpan": "till", "overburden": "till",
     "fill": "fill", "topsoil": "fill", "muck": "fill", "peat": "fill",
+    # full _code_formation_Material table (codes 06-48) additions:
+    "quicksand": "sand", "marl": "clay",
+    "conglomerate": "sandstone", "greywacke": "sandstone",
+    "marble": "limestone", "schist": "gneiss", "quartz": "granite",
+    "basalt": "basalt", "gypsum": "shale", "chert": "granite",
+    "feldspar": "granite", "flint": "granite", "soapstone": "gneiss",
+    "rock": "rock",
 }
 
-BEDROCK = {"limestone", "dolostone", "sandstone", "shale", "granite", "gneiss"}
+BEDROCK = {"limestone", "dolostone", "sandstone", "shale", "granite", "gneiss",
+           "basalt", "rock"}
 
 # Length units -> metres; rate units -> litres/min.
 LEN_TO_M = {"ft": 0.3048, "m": 1.0, "cm": 0.01, "inch": 0.0254, "in": 0.0254}
@@ -435,7 +444,10 @@ def build_wells(src, lut, shp, formations, water, pump_tests):
         summary = f.groupby("WELL_ID").apply(summarise)
     summary = summary.rename("formation_summary")
 
-    primary = (f.sort_values("_thick", ascending=False)
+    # thickest *bucketable* layer; a well whose thickest layer has no material
+    # recorded still gets a lithology from its other layers
+    fk = f[f["lithology"] != "unknown"]
+    primary = (fk.sort_values("_thick", ascending=False)
                  .drop_duplicates("WELL_ID").set_index("WELL_ID")["lithology"]
                  .rename("primary_lithology"))
 

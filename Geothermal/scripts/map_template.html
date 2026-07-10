@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ottawa Geothermal Feasibility Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+  #map { height: 100%; }
+  .panel {
+    position: absolute; z-index: 1000; background: rgba(255,255,255,.94);
+    border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    padding: 10px 14px; font-size: 13px; line-height: 1.45;
+  }
+  #title { top: 10px; left: 54px; max-width: 400px; }
+  #title h1 { margin: 0 0 2px; font-size: 16px; }
+  #title p { margin: 0; color: #444; font-size: 12px; }
+  #legend { bottom: 24px; left: 10px; max-width: 260px; }
+  #legend h3 { margin: 6px 0 3px; font-size: 12px; text-transform: uppercase;
+               letter-spacing: .04em; color: #333; }
+  .row { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; flex: none;
+        border: 1px solid rgba(0,0,0,.25); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: none;
+         border: 1px solid rgba(0,0,0,.35); }
+  .leaflet-popup-content { font-size: 13px; }
+  .leaflet-popup-content table { border-collapse: collapse; }
+  .leaflet-popup-content td { padding: 1px 8px 1px 0; vertical-align: top; }
+  .leaflet-popup-content td:first-child { color: #555; }
+  #note { font-size: 11px; color: #666; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="title" class="panel">
+  <h1>Ottawa Geothermal Feasibility</h1>
+  <p>WWIS water-well records &middot; lithology-estimated thermal conductivity &middot;
+     Hydro Ottawa feeder capacity (OEB CCIM)</p>
+</div>
+
+<div id="legend" class="panel">
+  <h3>Thermal conductivity (est., W/m&middot;K)</h3>
+  <div class="row"><span class="sw" style="background:#d73027"></span>low &lt; 2.0</div>
+  <div class="row"><span class="sw" style="background:#fee08b"></span>medium 2.0&ndash;2.8</div>
+  <div class="row"><span class="sw" style="background:#1a9850"></span>high &gt; 2.8</div>
+  <div class="row"><span class="sw" style="background:#999;opacity:.45"></span>low confidence (&lt;5 wells nearby)</div>
+  <h3>Open-loop feasibility (wells)</h3>
+  <div class="row"><span class="dot" style="background:#1a9850"></span>viable (SWL + yield &ge; 15 L/min)</div>
+  <div class="row"><span class="dot" style="background:#fdae61"></span>possible (SWL, yield unknown)</div>
+  <div class="row"><span class="dot" style="background:#bbb"></span>unlikely</div>
+  <h3>Feeder capacity (MVA)</h3>
+  <div class="row"><span class="sw" style="background:#d73027"></span>0&ndash;1</div>
+  <div class="row"><span class="sw" style="background:#fdae61"></span>1.1&ndash;3</div>
+  <div class="row"><span class="sw" style="background:#a6d96a"></span>3.1&ndash;5</div>
+  <div class="row"><span class="sw" style="background:#1a9850"></span>&gt; 5</div>
+  <h3>City open-loop potential</h3>
+  <div class="row"><span class="sw" style="background:#08519c"></span>high</div>
+  <div class="row"><span class="sw" style="background:#6baed6"></span>average</div>
+  <div class="row"><span class="sw" style="background:#c6dbef"></span>low</div>
+  <div class="row"><span class="sw" style="background:#dddddd"></span>none</div>
+  <h3>Other layers</h3>
+  <div class="row"><span class="sw" style="background:#7b3294;opacity:.5"></span>industrial / employment zoning</div>
+  <div class="row"><span class="sw" style="background:#555;height:3px;border:none"></span>trunk sanitary sewer</div>
+  <div class="row"><span class="sw" style="background:#8c510a;height:3px;border:none"></span>combined sewer</div>
+  <div id="note">Conductivity is estimated from drillers&rsquo; lithology logs, not
+  measured. Wells layer draws ~51k points &mdash; toggle it off if zoomed-out panning
+  feels slow.</div>
+</div>
+
+<script>
+const GRID = /*__GRID__*/;
+const WELLS = /*__WELLS__*/;
+const LITH = /*__LITH__*/;
+const CAPACITY = /*__CAPACITY__*/;
+const ZONING = /*__ZONING__*/;
+const CITYPOT = /*__CITYPOT__*/;
+const SEWERS = /*__SEWERS__*/;
+
+const map = L.map('map', { preferCanvas: true }).setView([45.30, -75.75], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+function fmt(v, unit) { return v === null || v === undefined ? '&mdash;' : v + (unit || ''); }
+function popupTable(rows) {
+  return '<table>' + rows.map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('') + '</table>';
+}
+
+// ---- conductivity grid --------------------------------------------------
+function condColor(v) { return v < 2.0 ? '#d73027' : (v <= 2.8 ? '#fee08b' : '#1a9850'); }
+const gridLayer = L.layerGroup();
+{
+  const canvas = L.canvas({ padding: 0.3 });
+  for (const [w, s, e, n, cond, hi] of GRID) {
+    L.rectangle([[s, w], [n, e]], {
+      renderer: canvas, stroke: false,
+      fillColor: hi ? condColor(cond) : '#999',
+      fillOpacity: hi ? 0.45 : 0.25,
+    }).bindPopup(popupTable([
+      ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
+      ['Class', cond < 2.0 ? 'low' : (cond <= 2.8 ? 'medium' : 'high')],
+      ['Confidence', hi ? 'high' : 'low (few wells nearby)'],
+    ])).addTo(gridLayer);
+  }
+}
+
+// ---- wells ---------------------------------------------------------------
+const OL_NAME = ['unlikely', 'possible', 'viable'];
+const OL_COLOR = ['#bbbbbb', '#fdae61', '#1a9850'];
+const wellsLayer = L.layerGroup();
+{
+  const canvas = L.canvas({ padding: 0.3 });
+  for (const [lon, lat, ol, cond, yld, swl, dep, bed, li, id] of WELLS) {
+    L.circleMarker([lat, lon], {
+      renderer: canvas, radius: 3, weight: 0.5, color: '#333',
+      fillColor: OL_COLOR[ol], fillOpacity: 0.8,
+    }).bindPopup(() => popupTable([
+      ['Well ID', id],
+      ['Open loop', OL_NAME[ol]],
+      ['Lithology', LITH[li]],
+      ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
+      ['Yield', fmt(yld, ' L/min')],
+      ['Static water level', fmt(swl, ' m')],
+      ['Total depth', fmt(dep, ' m')],
+      ['Depth to bedrock', fmt(bed, ' m')],
+    ])).addTo(wellsLayer);
+  }
+}
+
+// ---- grid capacity --------------------------------------------------------
+function capColor(v) {
+  if (v === null || v === undefined) return '#888';
+  return v <= 1.0 ? '#d73027' : v <= 3.0 ? '#fdae61' : v <= 5.0 ? '#a6d96a' : '#1a9850';
+}
+const capacityLayer = L.geoJSON(CAPACITY, {
+  style: f => ({
+    weight: 0.6, color: '#555',
+    fillColor: capColor(f.properties.mva), fillOpacity: 0.5,
+  }),
+  onEachFeature: (f, l) => l.bindPopup(popupTable([
+    ['Available capacity', fmt(f.properties.mva, ' MVA')],
+    ['Range', fmt(f.properties.range)],
+    ['Feeder voltage', fmt(f.properties.kv, ' kV (3-ph)')],
+    ['Configuration', fmt(f.properties.config)],
+  ])),
+});
+
+// ---- City of Ottawa open-loop geothermal potential (Planning/122) ---------
+const POT_COLOR = { High: '#08519c', Average: '#6baed6', Low: '#c6dbef', None: '#dddddd' };
+const cityPotLayer = L.geoJSON(CITYPOT, {
+  style: f => ({
+    weight: 0.8, color: '#333',
+    fillColor: POT_COLOR[f.properties.potential] || '#dddddd', fillOpacity: 0.45,
+  }),
+  onEachFeature: (f, l) => l.bindPopup(popupTable([
+    ['City open-loop potential', fmt(f.properties.potential)],
+    ['Source', 'City of Ottawa Planning'],
+  ])),
+});
+
+// ---- industrial / employment zoning ---------------------------------------
+const zoningLayer = L.geoJSON(ZONING, {
+  style: { weight: 1, color: '#7b3294', fillColor: '#7b3294', fillOpacity: 0.35 },
+  onEachFeature: (f, l) => l.bindPopup(popupTable([
+    ['Zone', fmt(f.properties.code)],
+    ['Name', fmt(f.properties.name)],
+  ])),
+});
+
+// ---- sewers (trunk sanitary + combined) ------------------------------------
+const sewerLayer = L.layerGroup();
+{
+  const canvas = L.canvas({ padding: 0.3 });
+  for (const [kind, fn, mat, width, year, coords] of SEWERS) {
+    L.polyline(coords.map(([x, y]) => [y, x]), {
+      renderer: canvas, weight: kind === 1 ? 2.5 : 1.5,
+      color: kind === 1 ? '#8c510a' : '#555', opacity: 0.8,
+    }).bindPopup(() => popupTable([
+      ['Sewer', kind === 1 ? 'combined' : 'sanitary (trunk)'],
+      ['Function', fmt(fn)],
+      ['Material', fmt(mat)],
+      ['Width', fmt(width, ' mm')],
+      ['Installed', fmt(year)],
+    ])).addTo(sewerLayer);
+  }
+}
+
+gridLayer.addTo(map);
+capacityLayer.addTo(map);
+L.control.layers(null, {
+  'Thermal conductivity grid': gridLayer,
+  'Wells (open-loop feasibility)': wellsLayer,
+  'Hydro Ottawa feeder capacity': capacityLayer,
+  'City open-loop potential': cityPotLayer,
+  'Industrial / employment zoning': zoningLayer,
+  'Trunk & combined sewers': sewerLayer,
+}, { collapsed: false }).addTo(map);
+</script>
+</body>
+</html>
