@@ -5,60 +5,35 @@ Master plan for finishing the in-flight projects and starting the new ones, writ
 suggested model. Companion docs: [PLAN.md](PLAN.md) (heat pump), [CEUD_PLAN.md](CEUD_PLAN.md),
 [CONSTRUCTION_PLAN.md](CONSTRUCTION_PLAN.md), [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).
 
-**Status snapshot (2026-07-10):**
+**Status snapshot (2026-07-10, end-of-day review — verified against the repo,
+test suites, and the live Pages URLs):**
 
 | Project | State |
 |---|---|
 | Retrofit Explorer | ✅ done, deployed |
 | Construction Tracker | ✅ done, deployed, monthly auto-refresh |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
-| Geothermal | ⚠️ built & verified, **uncommitted + unpublished** |
-| Heat Pump tool | 🔨 Phases 1–2 of 7 done; no `heatpump.html` yet |
-| Energy prices | 🆕 new — consume MaxPr1me/canada-utility-rates |
-| Landing page | 🆕 new |
+| Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
+| Heat Pump tool | ✅ **all 7 phases done**, live: `…/Energy/heatpump` — operating-cost hook awaits item 4 |
+| Energy prices | 🆕 not started — consume MaxPr1me/canada-utility-rates |
+| Landing page | 🆕 not started (`…/Energy/` 404s) |
 | Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`, weekly workflow); `grid.html` page not started |
-| Ottawa heat demand map | 🆕 new — fuses Geothermal + GridCapacity + ERS |
+| Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
 
-**Recommended order:** 1 → 2 → 3 (multi-session) → 4 → 5, with 6 and 7 as
-independent follow-ons whenever. Item 4 should land before Heat Pump Phase 6 (UI)
-so operating costs can ship in the tool's v1.
+**Recommended order (remaining):** 2 → 4 (Phase 0 + 1) → 4-Phase-2 (wire costs
+into `heatpump.html`) → 5 → 6-page → 7. Items 5–7 are independent of 4; only
+the heat-pump cost integration depends on the rates ETL.
 
 ---
 
-## 1. Ship the Geothermal map (≈1 session, quick win)
+## 1. Ship the Geothermal map — ✅ DONE (2026-07-10)
 
-Everything works locally but nothing is committed: `git status` shows
-`GEOTHERMAL_STATUS.md`, `Geothermal/README.md`, five scripts, all processed outputs,
-and `Geothermal/output/` untracked, plus modified `combine_wells.py` and the gpkg.
-And publishing to GitHub Pages is the top "next step" in the status file.
-
-### Prompt — commit + publish (Sonnet)
-
-```text
-Read GEOTHERMAL_STATUS.md and Geothermal/README.md first. Two tasks:
-
-1. COMMIT the finished geothermal work. Review git status: stage the geothermal
-   scripts, README, status doc, GEOTHERMAL_STATUS.md, the _code_*.csv lookup
-   tables, and Geothermal/output/index.html. For the large processed outputs
-   (combined_layers.geojson 41 MB, sewer_lines.geojson 17 MB, the .tif), check
-   each against GitHub's 100 MB hard limit and decide: commit if reasonably
-   sized and useful to consumers, otherwise gitignore and note in the README
-   how to regenerate them. The modified ottawa_geothermal.gpkg should be
-   committed (it is the canonical dataset). Write a clear commit message
-   summarizing the pipeline completion.
-
-2. PUBLISH the map. The other tools (retrofits.html, ceud.html,
-   construction.html) are served via GitHub Pages — inspect how this repo /
-   the OttawaVisuals account does it (check for existing Pages config, the
-   BASE_URL pattern in retrofits.html, and the live URL in Readme.MD) and
-   follow the same pattern so Geothermal/output/index.html is reachable at a
-   stable public URL. The map is fully self-contained (6.8 MB, only the OSM
-   basemap loads from CDN) so no data-hosting changes are needed.
-
-Verify the published URL loads in a browser preview (all six layers toggle,
-popups work). Then add the live link to the top of Geothermal/README.md and
-Readme.MD, and update GEOTHERMAL_STATUS.md.
-```
+Committed in `cf1c862` (everything fit under GitHub's 100 MB limit, nothing
+gitignored) and published via the existing Pages setup — live at
+<https://ottawavisuals.github.io/Energy/Geothermal/output/> (commit `ab46158`
+added the link to `Geothermal/README.md` + `Readme.MD` and fixed a stale
+retrofits URL found in passing). Verified live: six layers toggle, popups
+render, no console errors. `GEOTHERMAL_STATUS.md` records the session.
 
 ---
 
@@ -90,18 +65,50 @@ ahri_numbers.json, consumed by retrofits.html) and which is legacy
    list_ahri_numbers.py / build_ahri_lookup.py accordingly. Re-run whatever
    is cheap to re-run to confirm nothing broke.
 3. Do NOT touch lookup/ahri_numbers.json (live site dependency).
+4. While in Readme.MD: add the Heat Pump Explorer to the tool list with its
+   live URL (https://ottawavisuals.github.io/Energy/heatpump) alongside the
+   retrofits and geothermal links — it shipped without a Readme mention.
 
 Update Readme.MD's repository-layout section if it references moved paths.
 ```
 
 ---
 
-## 3. Heat Pump tool — Phases 3–7
+## 3. Heat Pump tool — ✅ DONE, all 7 phases (2026-07-10)
 
-The flagship unfinished project. Phases 1–2 (grid EF for ON/AB/QC, weather + TMY)
-are done — see [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md). What remains:
-the deferred EF lookup surface, equipment curves (**revised approach below**),
-archetypes, the simulation engine, the UI, and validation.
+Landed in commit `2837ef9`; live at <https://ottawavisuals.github.io/Energy/heatpump>.
+Everything below (3a, 3b, EF surface, Phase 4, 5, 6, 7) is built, validated and
+documented in [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md); PLAN.md's
+status header has the narrative. **Independently re-verified 2026-07-10
+(review session):** `test_hp_curves.py` 7/7 pass; page loads with zero console
+errors and the in-page self-test reproduces all 15 Phase-5 vectors in the
+browser (important because Node is not installed on this machine, so
+`engine.test.js` had only ever run via its Python mirror); headline outputs for
+Ottawa/Montreal match the Phase-7 validation tables exactly; the Quebec
+near-zero-baseline guard works; all processed JSONs serve 200 on Pages.
+
+**Documented deviations from the original plan (all judged acceptable):**
+
+- **3b spec sheets:** most manufacturers gate extended temperature tables
+  behind contractor logins, so the curves' backbone is the four AHRI-certified
+  NEEP points per model (47/17/5 °F + LCT, max speed), with Mitsubishi's open
+  submittal as the independent cross-check (one >10 % flag, investigated:
+  indoor-pairing difference). Honest and recorded — but coarser than the
+  planned engineering-book digitization between −8 °C and +8 °C.
+- **Model approval:** 3b was meant to pause for user sign-off on the candidate
+  models; it proceeded with a data-driven selection instead (documented table
+  in METHODOLOGY §3b — swapping a model is a one-line edit in
+  `extract_neep_points.py` + re-run, if you want different ones).
+- **Tbalance:** calibrated at 8–12 °C, not the planned ~15–16 °C — investigated
+  and explained in METHODOLOGY §Phase 4.
+- **Bonus:** Edmonton shipped as a fifth city.
+
+**Remaining follow-ups:** (a) operating-cost integration once item 4's
+`prices_json/` exists — the UI already shows a clearly-marked hook card;
+(b) `Readme.MD` does not yet mention/link the Heat Pump Explorer (folded into
+the item 2 prompt below).
+
+<details><summary>Original Phase 3–7 plan and prompts (completed — kept for the record)</summary>
 
 ### 3a. Revised Phase 3 approach: NEEP buckets + spec-sheet deep-dive
 
@@ -304,6 +311,8 @@ anything > 30% off with no explanation as a bug to investigate, and
 investigate it.
 ```
 
+</details>
+
 ---
 
 ## 4. Energy prices layer — consume `MaxPr1me/canada-utility-rates`
@@ -314,7 +323,8 @@ natural-gas rates across Canadian utilities (BC Hydro, AESO, ATCO, Enbridge,
 (`pipeline/export_json.py`, `data/exports/`) and a documented schema
 (`schema/`). We consume its output rather than rebuilding scrapers.
 
-Unlocks: operating-cost estimates in the Heat Pump tool (do this first), payback
+Unlocks: operating-cost estimates in the Heat Pump tool (now shipped with a
+clearly-marked hook card waiting on `prices_json/` — see Phase 2 below), payback
 context in Retrofit Explorer, and $-per-GJ context in CEUD — the "no cost data"
 caveat finally gets an answer.
 
@@ -363,11 +373,33 @@ published bill examples (±10%). Then extend
 rates-refresh workflow (separate yml, no commit on fetch failure).
 ```
 
-### Phase 2 — integration
+### Prompt — Phase 2: wire costs into the shipped Heat Pump tool (Sonnet)
 
-Covered inside the Heat Pump Phase 6 prompt (operating-cost hook). A later small
-prompt can add "typical annual $ impact" context lines to Retrofit Explorer using
-median fuel deltas × current rates — do that only after the heat pump tool ships.
+*(Was "covered inside the Phase 6 prompt", but the tool shipped before the
+rates existed, so the integration is now its own pass.)*
+
+```text
+Read ROADMAP.md item 4 and prices_json/meta.json first. heatpump.html is live
+and complete except for its operating-cost hook: the "Annual operating cost"
+card (search for "Operating cost hook") currently shows placeholder text
+saying costs will appear once prices_json/ exists. Replace it: fetch the
+user's province's rates via the existing BASE_URL/DATA pattern, and compute
+per-scenario annual cost from the simulation's hourly energy-by-source output
+(the engine already tracks it hourly, so apply TOU electricity schedules
+exactly; gas/oil are volumetric + fixed charges — state which fixed charges
+are included and that the delta, not the absolute bill, is the headline).
+Show current-heating vs heat-pump annual cost and the delta, with
+effective_date + utility attribution in small print. Re-run the in-page
+self-test, verify in a browser preview (zero console errors, costs change
+with city/fuel/bucket inputs, Quebec + Alberta sane), and add a short
+"Operating cost" subsection to HeatPump/METHODOLOGY.md documenting the
+tariff-reduction choices. Keep the card graceful if a province's rates file
+is missing.
+```
+
+A later small prompt can add "typical annual $ impact" context lines to
+Retrofit Explorer using median fuel deltas × current rates — do that only after
+the heat pump cost integration lands.
 
 ---
 
@@ -383,9 +415,12 @@ headers/hero sections for the shared design system. Build index.html at the
 repo root: a landing page in the same navy/amber/cream + Fraunces/Inter
 language presenting the suite ("Ottawa Visuals — Canadian energy data
 tools"). One card per tool — Retrofit Explorer, CEUD Explorer, Construction
-Tracker, Ottawa Geothermal Map (use the live URL from ROADMAP.md item 1),
-plus greyed "coming soon" cards for the Heat Pump tool and anything else
-unreleased — each with a one-sentence plain-language description, the data
+Tracker, Ottawa Geothermal Map
+(https://ottawavisuals.github.io/Energy/Geothermal/output/), and the Heat
+Pump Explorer (https://ottawavisuals.github.io/Energy/heatpump — live, NOT
+coming-soon), plus a greyed "coming soon" card for the grid dashboard
+(grid.html, ROADMAP.md item 6) — each with a one-sentence plain-language
+description, the data
 source, and a small representative static graphic (inline SVG, no live data
 fetches; keep the page < 200 KB total). Add a short "about the data"
 footer. Follow the deployment pattern the other pages use so it becomes the
@@ -505,7 +540,9 @@ republish per the item-1 deployment pattern.
 
 - Each prompt is self-contained; run in a fresh session, in order within an item.
 - After each session: update the project's STATUS/METHODOLOGY file, commit.
-- Heat pump phases must land in order (3a → 3b → EF surface/4 in either order →
-  5 → 6 → 7). Item 4 Phase 1 should finish before Heat Pump Phase 6.
+- Remaining dependency: item 4 Phase 0 → Phase 1 → Phase 2 (heat pump cost
+  integration) in order. Items 2, 5, 6-page and 7 are independent of each other
+  and of item 4 — any order. Item 5's grid-dashboard card is "coming soon"
+  until 6-page ships (flip it then).
 - Opus for methodology-heavy or design-heavy work (silent-error risk); Sonnet
   for data plumbing with clear validation criteria.
