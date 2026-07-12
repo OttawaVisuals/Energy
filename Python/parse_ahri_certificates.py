@@ -19,8 +19,13 @@ differences across certificate templates/years.
 
 Requires: pip install pypdf
 
-INPUT:  a folder of .pdf files (default: ahri_certificates/)
-OUTPUT: ahri_certificates_parsed.csv
+LEGACY: this certificate-PDF workflow is superseded by build_ahri_lookup.py's
+direct AHRI Directory fetch (which writes lookup/ahri_numbers.json for
+retrofits.html). The PDFs and parsed CSV now live in Python/ahri_archive/ —
+see its README.md.
+
+INPUT:  a folder of .pdf files (default: Python/ahri_archive/ahri_certificates/)
+OUTPUT: Python/ahri_archive/ahri_certificates_parsed.csv
 """
 
 import csv
@@ -32,8 +37,9 @@ import sys
 
 from pypdf import PdfReader
 
-CERT_DIR = "ahri_certificates"
-OUT_PATH = "ahri_certificates_parsed.csv"
+ARCHIVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ahri_archive")
+CERT_DIR = os.path.join(ARCHIVE_DIR, "ahri_certificates")
+OUT_PATH = os.path.join(ARCHIVE_DIR, "ahri_certificates_parsed.csv")
 
 # The one consistently-glued line at the top of every certificate. Status
 # can be multi-word ("Production Stopped") and discontinued models insert

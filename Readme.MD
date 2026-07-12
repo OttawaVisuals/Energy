@@ -24,6 +24,19 @@ Full details: [`Geothermal/README.md`](Geothermal/README.md); build log:
 
 ---
 
+# Heat Pump Explorer
+
+An hourly simulation of switching a home's heating to a cold-climate air-source
+heat pump in Ottawa, Toronto, Montreal, Calgary or Edmonton: energy, GHG
+(average vs marginal grid emissions), backup heating needs and the
+load-vs-capacity balance point, built on NEEP performance tiers and ERS-derived
+home archetypes. Methodology: [`HeatPump/METHODOLOGY.md`](HeatPump/METHODOLOGY.md);
+plan/status: [`PLAN.md`](PLAN.md).
+
+**Live:** https://ottawavisuals.github.io/Energy/heatpump
+
+---
+
 ## Table of contents
 - [What it shows](#what-it-shows)
 - [Repository layout](#repository-layout)

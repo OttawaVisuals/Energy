@@ -21,17 +21,20 @@ For each distinct number, the total occurrence count is summed from each
 province's own (full, not top-N) ahri_counts field — excluding CA.json,
 to avoid double-counting since CA's counts are already a sum of the rest.
 
-OUTPUT: ahri_numbers_seen.json — a list of {number, total_count}, sorted by
-count descending, plus a separate "canada_top_5" field for reference.
+OUTPUT: Python/ahri_numbers_seen.json — a list of {number, total_count},
+sorted by count descending, plus a separate "canada_top_5" field for
+reference. (Its manually-derived CSV twin, Python/ahri_numbers_seen.csv, is
+the popularity-ranking input for HeatPump/pipeline/neep_buckets.py.)
 """
 
 import glob
 import json
 import os
 
-PROVINCE_JSON_DIR = "province_json"
-FSA_JSON_DIR = "fsa_json"
-OUT_PATH = "ahri_numbers_seen.json"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROVINCE_JSON_DIR = os.path.join(REPO_ROOT, "province_json")
+FSA_JSON_DIR = os.path.join(REPO_ROOT, "fsa_json")
+OUT_PATH = os.path.join(REPO_ROOT, "Python", "ahri_numbers_seen.json")
 
 
 def main():
