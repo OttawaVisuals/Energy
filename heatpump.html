@@ -130,6 +130,17 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .cost-hook{border:1px dashed var(--border);border-radius:var(--r-md);padding:1rem 1.1rem;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(11,37,69,.015) 8px,rgba(11,37,69,.015) 16px)}
 .cost-hook .ch-title{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:5px}
 .cost-hook .ch-body{font-size:12.5px;color:var(--light);line-height:1.55}
+.cost-plan-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.1rem 0 .8rem}
+.cost-plan-row label{font-size:12.5px;font-weight:600;color:var(--muted)}
+.cost-plan-row select{font:inherit;font-size:13px;padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text)}
+.cost-delta{font-size:1.5rem;font-weight:700;margin:.1rem 0 .15rem;font-variant-numeric:tabular-nums}
+.cost-delta.save{color:var(--green)} .cost-delta.more{color:var(--red)}
+.cost-delta-sub{font-size:12.5px;color:var(--muted);margin-bottom:.7rem}
+.cost-rows{display:flex;flex-direction:column;gap:7px;max-width:560px}
+.cost-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.5rem .8rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--white)}
+.cost-row .cr-name{font-size:13px;color:var(--text)}
+.cost-row .cr-name small{color:var(--light);display:block;font-size:11.5px}
+.cost-row .cr-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* ── Methodology ── */
 .methodology{max-width:1180px;margin:1rem auto 0;padding:0 1.25rem}
@@ -348,13 +359,24 @@ footer a{color:var(--muted)}
       <div class="cw cw-lg"><canvas id="monthGhgChart"></canvas></div>
     </div>
 
-    <!-- Operating cost hook -->
-    <div class="card" data-mode="advanced">
-      <div class="card-title-row"><span class="card-title">Annual operating cost</span></div>
-      <div class="cost-hook" id="cost-hook">
-        <div class="ch-title">⛽ Cost estimates not yet wired in</div>
-        <div class="ch-body">Per-scenario operating costs (using each province's current electricity, gas and oil rates) will appear here once the energy-prices dataset is available in <code>prices_json/</code>. The simulation already tracks hourly energy by source, so time-of-use electricity rates can be applied exactly. Until then this tool compares <b>energy and emissions only</b>.</div>
+    <!-- Operating cost -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-title">Annual operating cost</span>
+        <span class="card-sub" id="cost-basis"></span>
       </div>
+      <div class="cost-plan-row" id="cost-plan-row" style="display:none">
+        <label for="in-plan">Electricity price plan</label>
+        <select id="in-plan"></select>
+        <span class="ctrl-hint" id="plan-hint"></span>
+      </div>
+      <div id="cost-body">
+        <div class="cost-hook">
+          <div class="ch-title">Loading current energy prices…</div>
+          <div class="ch-body">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code>.</div>
+        </div>
+      </div>
+      <div class="note" id="cost-note" style="display:none"></div>
     </div>
 
   </div>
@@ -662,6 +684,20 @@ footer a{color:var(--muted)}
     var m_hp_elec = zeros12(),
       m_bk_elec = zeros12(),
       m_bk_fuel = zeros12();
+    // month x hour-of-day electricity (kWh), so the cost layer can price
+    // time-of-use tariffs exactly. TMY has no weekday structure, so TOU
+    // weekday/weekend rules are weighted 5/7 : 2/7 downstream.
+    var mh24 = function () {
+      var a = [];
+      for (var m = 0; m < 12; m++) {
+        var row = [];
+        for (var h = 0; h < 24; h++) row.push(0);
+        a.push(row);
+      }
+      return a;
+    };
+    var mh_base_elec = mh24(),
+      mh_proj_elec = mh24();
     // ghg (kg CO2e) -- combustion / electricity, per case, per month
     var m_base_comb = zeros12(),
       m_base_elecghg = zeros12(),
@@ -703,6 +739,7 @@ footer a{color:var(--muted)}
       if (baseFuel === "electric") {
         var baseElec = load / baseEff; // ~= load
         m_base_elec[mi] += baseElec;
+        mh_base_elec[mi][hour - 1] += baseElec;
         m_base_elecghg[mi] += efThisHour * baseElec * lineLoss * G2KG;
       } else {
         var baseFuelIn = load / baseEff;
@@ -741,6 +778,7 @@ footer a{color:var(--muted)}
         hpHeat = Math.min(load, perf.capacity_kW);
         hpElec = hpHeat / perf.cop;
         m_hp_elec[mi] += hpElec;
+        mh_proj_elec[mi][hour - 1] += hpElec;
         m_proj_elecghg[mi] += efThisHour * hpElec * lineLoss * G2KG;
         hpDelivered += hpHeat;
         hpRunHours++;
@@ -756,6 +794,7 @@ footer a{color:var(--muted)}
         if (backup.type === "electric") {
           var bkElec = bkHeat / backup.efficiency;
           m_bk_elec[mi] += bkElec;
+          mh_proj_elec[mi][hour - 1] += bkElec;
           m_proj_elecghg[mi] += efThisHour * bkElec * lineLoss * G2KG;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
@@ -811,6 +850,7 @@ footer a{color:var(--muted)}
       energy: {
         fuel_kWh: sum(m_base_fuel),
         electricity_kWh: sum(m_base_elec),
+        elec_month_hour: mh_base_elec,
       },
       ghg: {
         combustion: base_comb,
@@ -837,6 +877,7 @@ footer a{color:var(--muted)}
         backup_electricity_kWh: sum(m_bk_elec),
         backup_fuel_kWh: sum(m_bk_fuel),
         electricity_kWh: proj_elec_total,
+        elec_month_hour: mh_proj_elec,
       },
       ghg: {
         combustion: proj_comb,
@@ -940,6 +981,16 @@ const REFRIG_GWP={r410a:2088,r32:675,r454b:467,r290:3};
 // Typical factory charge ~0.25 kg per rated kW; end-of-life loss amortized.
 const CHARGE_KG_PER_KW=0.25;
 
+// ---- operating-cost constants (Phase 2; see METHODOLOGY.md §Operating cost) ----
+const CITY_KEY={Ottawa:'ottawa',Toronto:'toronto',Montreal:'montreal',Calgary:'calgary',Edmonton:'edmonton'};
+const OIL_KWH_PER_L=10.0;      // matches the engine's oil EF derivation (~10 kWh/L)
+const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
+// Non-heating household baseline, used ONLY to place added heating load on the
+// correct tier of tiered plans (marginal attribution): cost(baseline+heating)
+// − cost(baseline). Typical non-electric-heat households.
+const BASELINE_ON_KWH_MONTH=750, BASELINE_QC_KWH_DAY=25;
+const PLAN_LABEL={tou:'Time-of-use',ulo:'Ultra-low overnight',tiered:'Tiered',flat:'Flat rate'};
+
 // GHG category palette (categorical — identity, fixed order).
 const GHG_CATS=[
   {key:'combustion',  name:'On-site combustion', color:'var(--amber)'},
@@ -950,7 +1001,18 @@ const GHG_CATS=[
 
 let ARCH=null, CURVES=null, TMY=null;
 const EF_CACHE={};
+const PRICES_CACHE={};
 let charts={};
+
+// Rates are a bonus layer: a fetch failure degrades the cost card gracefully
+// instead of breaking the tool, so this resolves null rather than rejecting.
+function ensurePrices(prov){
+  if(PRICES_CACHE[prov]!==undefined) return Promise.resolve(PRICES_CACHE[prov]);
+  return fetch(`${BASE_URL}prices_json/${prov}.json`)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{PRICES_CACHE[prov]=j;return j;})
+    .catch(()=>{PRICES_CACHE[prov]=null;return null;});
+}
 
 const $=id=>document.getElementById(id);
 const fmtI=n=>Math.round(n).toLocaleString('en-CA');
@@ -967,7 +1029,7 @@ const state={
   city:'Ottawa', arch:'pre_1980_detached', fuel:'gas', eff:92,
   bucket:'tier1', nominal:12, backup:'electric', control:'load-exceeds-capacity',
   lockout:-8, efMode:'marginal', refrig:'r410a', methane:1.0, lineloss:5.0,
-  nominalTouched:false,
+  nominalTouched:false, plan:null, // null = city's default electricity plan
 };
 
 // ==========================================================================
@@ -981,7 +1043,7 @@ Promise.all([
   ARCH=a; CURVES=c; TMY=t;
   runSelfTest();
   buildInputs();
-  return ensureEF(CITY_PROV[state.city]);
+  return Promise.all([ensureEF(CITY_PROV[state.city]),ensurePrices(CITY_PROV[state.city])]);
 }).then(()=>{
   $('loading').style.display='none';
   $('results').style.display='';
@@ -1008,10 +1070,13 @@ function buildInputs(){
 
   citySel.addEventListener('change',e=>{
     state.city=e.target.value;
+    state.plan=null; // back to the new city's default electricity plan
     rebuildArchOptions();
     autoSize();
-    ensureEF(CITY_PROV[state.city]).then(recompute);
+    const p=CITY_PROV[state.city];
+    Promise.all([ensureEF(p),ensurePrices(p)]).then(recompute);
   });
+  $('in-plan').addEventListener('change',e=>{state.plan=e.target.value;recompute();});
   $('in-arch').addEventListener('change',e=>{state.arch=e.target.value;autoSize();updateArchHint();recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
   $('in-eff').addEventListener('input',e=>{state.eff=+e.target.value;$('eff-val').textContent=state.eff+' %';recompute();});
@@ -1130,6 +1195,7 @@ function recompute(){
   const opts=buildOpts();
   const res=E.simulate(opts);
   render(res,opts);
+  renderCost(res);
 }
 
 // ==========================================================================
@@ -1403,6 +1469,143 @@ function openMethod(){$('method-details').open=true;}
 // In-page engine self-test — verifies the inlined engine still reproduces the
 // Phase 5 test vectors (engine.test.js). Logs to console; never blocks the UI.
 // ==========================================================================
+// ==========================================================================
+// Operating cost (Phase 2) — prices the simulation's energy flows with
+// prices_json/ residential rates. TOU plans are applied per (month, hour)
+// from the engine's elec_month_hour matrix; TMY has no weekday structure,
+// so weekday-only TOU rules are weighted 5/7 weekday : 2/7 weekend.
+// ==========================================================================
+const fmt$=n=>'$'+Math.round(n).toLocaleString('en-CA');
+
+function planEnergyPrice(plan,m,h){ // blended energy-only $/kWh at month m (0-11), hour h (0-23)
+  if(plan.type==='flat')return plan.price_cad_per_kwh;
+  const cal=plan.calendar,prices=plan.prices_cad_per_kwh;
+  const periodFor=isWd=>{
+    for(const r of cal.rules){
+      if(r.months&&!r.months.includes(m+1))continue;
+      if(r.days==='weekday'&&!isWd)continue;
+      if(!r.hours.includes(h))continue;
+      return r.period;
+    }
+    return cal.default_period;
+  };
+  return (5/7)*prices[periodFor(true)]+(2/7)*prices[periodFor(false)];
+}
+function tierCost(kwh,limit,tiers){
+  return Math.min(kwh,limit)*tiers[0].price_cad_per_kwh+Math.max(0,kwh-limit)*tiers[1].price_cad_per_kwh;
+}
+function costElectricity(matrix,elec,planKey){
+  const plan=elec.plans[planKey];
+  let cost=0;
+  if(plan.type==='tiered'){
+    // marginal attribution: cost(baseline+heating) − cost(baseline)
+    for(let m=0;m<12;m++){
+      const heat=matrix[m].reduce((a,b)=>a+b,0);
+      if(plan.period==='daily'){
+        const days=DAYS_IN_MONTH[m],dHeat=heat/days,lim=plan.tiers[0].limit_kwh;
+        cost+=days*(tierCost(BASELINE_QC_KWH_DAY+dHeat,lim,plan.tiers)-tierCost(BASELINE_QC_KWH_DAY,lim,plan.tiers));
+      }else{
+        const s=plan.seasonal_tier1;
+        const lim=s.winter_months.includes(m+1)?s.winter_tier1_kwh:s.summer_tier1_kwh;
+        cost+=tierCost(BASELINE_ON_KWH_MONTH+heat,lim,plan.tiers)-tierCost(BASELINE_ON_KWH_MONTH,lim,plan.tiers);
+      }
+      cost+=heat*elec.volumetric_adders_cad_per_kwh;
+    }
+    return cost;
+  }
+  for(let m=0;m<12;m++)for(let h=0;h<24;h++){
+    const e=matrix[m][h];if(!e)continue;
+    cost+=e*(planEnergyPrice(plan,m,h)+elec.volumetric_adders_cad_per_kwh);
+  }
+  return cost;
+}
+function gasCost(fuel_kWh,gas){return fuel_kWh/E.GAS_KWH_PER_M3*gas.marginal_cad_per_m3;}
+function oilCost(fuel_kWh,oil){return fuel_kWh/OIL_KWH_PER_L*oil.cad_per_litre;}
+
+function syncPlanSelector(elec){
+  const row=$('cost-plan-row'),sel=$('in-plan');
+  const keys=Object.keys(elec.plans);
+  if(keys.length<2){row.style.display='none';return elec.default_plan;}
+  if(sel.dataset.city!==state.city){
+    sel.innerHTML=keys.map(k=>`<option value="${k}">${PLAN_LABEL[k]||k}${k===elec.default_plan?' (default)':''}</option>`).join('');
+    sel.dataset.city=state.city;
+  }
+  const planKey=(state.plan&&elec.plans[state.plan])?state.plan:elec.default_plan;
+  sel.value=planKey;
+  row.style.display='';
+  $('plan-hint').textContent='applies to all electricity in both scenarios';
+  return planKey;
+}
+
+function renderCost(res){
+  const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],body=$('cost-body'),note=$('cost-note');
+  $('cost-basis').textContent='current residential rates · pre-tax';
+  if(!P){
+    $('cost-plan-row').style.display='none';
+    body.innerHTML='<div class="cost-hook"><div class="ch-title">Current rates unavailable</div><div class="ch-body">The energy-prices file for this province (<code>prices_json/'+prov+'.json</code>) could not be loaded, so this run compares energy and emissions only.</div></div>';
+    note.style.display='none';
+    return;
+  }
+  const ck=CITY_KEY[state.city];
+  const elec=P.electricity[ck],gas=P.natural_gas[ck],oil=P.heating_oil[ck];
+  const planKey=syncPlanSelector(elec);
+
+  // ---- base scenario ----
+  let baseCost,baseName='Now — '+FUEL_LABEL[state.fuel],baseSub;
+  if(state.fuel==='electric'){
+    baseCost=costElectricity(res.base.energy.elec_month_hour,elec,planKey);
+    baseSub=`${fmtI(res.base.energy.electricity_kWh)} kWh on ${PLAN_LABEL[planKey].toLowerCase()}`;
+  }else if(state.fuel==='gas'){
+    const m3=res.base.energy.fuel_kWh/E.GAS_KWH_PER_M3;
+    baseCost=gasCost(res.base.energy.fuel_kWh,gas)+12*gas.fixed_monthly_cad;
+    baseSub=`${fmtI(m3)} m³ gas + $${Math.round(12*gas.fixed_monthly_cad)} fixed charge`;
+  }else{
+    const L=res.base.energy.fuel_kWh/OIL_KWH_PER_L;
+    baseCost=oilCost(res.base.energy.fuel_kWh,oil);
+    baseSub=`${fmtI(L)} L heating oil @ $${oil.cad_per_litre.toFixed(2)}/L`;
+  }
+
+  // ---- heat-pump scenario ----
+  let projCost=costElectricity(res.project.energy.elec_month_hour,elec,planKey);
+  let projSub=`${fmtI(res.project.energy.electricity_kWh)} kWh electricity`;
+  const bkFuel=res.project.energy.backup_fuel_kWh;
+  if(bkFuel>0&&state.backup==='gas'){
+    projCost+=gasCost(bkFuel,gas)+12*gas.fixed_monthly_cad;
+    projSub+=` + ${fmtI(bkFuel/E.GAS_KWH_PER_M3)} m³ backup gas`;
+  }else if(bkFuel>0&&state.backup==='oil'){
+    projCost+=oilCost(bkFuel,oil);
+    projSub+=` + ${fmtI(bkFuel/OIL_KWH_PER_L)} L backup oil`;
+  }
+
+  const delta=baseCost-projCost;
+  const saves=delta>=0;
+  const screening=[elec,state.fuel==='gas'||state.backup==='gas'?gas:null]
+    .some(s=>s&&s.confidence==='low');
+  body.innerHTML=
+    `<div class="cost-delta ${saves?'save':'more'}">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr${screening?' <span style="font-size:.55em;font-weight:600;vertical-align:middle;color:var(--muted)">(screening estimate)</span>':''}</div>`+
+    `<div class="cost-delta-sub">the cost <b>difference</b> is the number to trust — absolute bills exclude charges that are identical in both scenarios</div>`+
+    `<div class="cost-rows">`+
+    `<div class="cost-row"><span class="cr-name">${baseName}<small>${baseSub}</small></span><span class="cr-val">${fmt$(baseCost)}/yr</span></div>`+
+    `<div class="cost-row"><span class="cr-name">Heat pump${state.backup!=='none'?' + '+FUEL_LABEL[state.backup]+' backup':''}<small>${projSub}</small></span><span class="cr-val">${fmt$(projCost)}/yr</span></div>`+
+    `</div>`;
+
+  // ---- fine print ----
+  const lines=[];
+  lines.push(`<b>Electricity:</b> ${elec.utility}, ${PLAN_LABEL[planKey].toLowerCase()} plan, rates effective ${elec.effective_date} (<a href="${elec.source_url}" target="_blank" rel="noopener">source</a>). The monthly service charge (~$${elec.fixed_monthly_cad.toFixed(0)}) is identical in both scenarios and excluded.`);
+  if(state.fuel==='gas'||state.backup==='gas'){
+    lines.push(`<b>Gas:</b> ${gas.utility}, ${(100*gas.marginal_cad_per_m3).toFixed(1)}¢/m³ marginal + $${gas.fixed_monthly_cad.toFixed(0)}/mo fixed, effective ${gas.effective_date}. ${gas.notes&&gas.notes.length?gas.notes.join(' '):''}`);
+    if(state.fuel==='gas'&&state.backup!=='gas')
+      lines.push(`The heat-pump scenario assumes you <b>drop the gas connection</b> — its savings include the $${Math.round(12*gas.fixed_monthly_cad)}/yr fixed charge. Keeping gas for hot water or cooking? Subtract that amount.`);
+  }
+  if(state.fuel==='oil'||state.backup==='oil')
+    lines.push(`<b>Heating oil:</b> $${oil.cad_per_litre.toFixed(2)}/L (${oil.geo_used}, ${oil.ref_month}, StatCan 18-10-0001). No fixed charge modelled.`);
+  if(elec.notes&&elec.notes.length)lines.push(elec.notes.join(' '));
+  if(planKey==='tiered')lines.push(`Tiered plans price the <b>added</b> heating load above a typical non-heating household baseline (${prov==='qc'?BASELINE_QC_KWH_DAY+' kWh/day':BASELINE_ON_KWH_MONTH+' kWh/month'}).`);
+  lines.push(`Rates aggregated by <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a> from the utilities' published tariffs; carbon charge excluded (federal consumer fuel charge is zero since April 2025). Pre-tax; taxes and rebates apply to both scenarios alike.`);
+  note.innerHTML=lines.join(' ');
+  note.style.display='';
+}
+
 function runSelfTest(){
   const CURVE={T_C:[-30,15],cap_frac_of_rated47:[0.5,0.5],COP:[2.5,2.5]};
   const EF={meta:{thin_bin_min_hours:20,province:'TEST'},reference_level_g_per_kWh:[100,500],fine:{},coarse_ts:{},coarse_t:{},global:[1,1,1]};
