@@ -101,9 +101,10 @@ else reduces to marginal volumetric rates + fixed charges:
   calendar. Effective marginal $/kWh = energy(t) + adders.
 - **Natural gas**: everything except the monthly fixed charge is volumetric —
   `marginal_cad_per_m3` = Σ (commodity + delivery + transportation + riders),
-  excluding carbon (see caveat 1). $/GJ lines convert at **0.03843 GJ/m³**
-  (38.43 MJ/m³ HHV, the NRCan/HOT2000 convention already used by the
-  retrofits pipeline — keep one constant repo-wide).
+  excluding carbon (see caveat 1). $/GJ lines convert at **0.03798 GJ/m³**
+  (10.55 kWh/m³ HHV — the same constant heatpump.html's engine uses;
+  corrected from 0.03843 during Phase 1 to keep the ETL and its consumer in
+  lockstep).
 - **Heating oil**: $/L from the StatCan fallback (§5); the engine converts
   via 38.2 MJ/L × furnace efficiency.
 

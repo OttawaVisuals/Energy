@@ -1,0 +1,44 @@
+name: Refresh energy prices data
+
+# Monthly refresh of prices_json/ from MaxPr1me/canada-utility-rates (which
+# itself scrapes on the 1st) + StatCan 18-10-0001 heating oil. Runs on the
+# 3rd to give the upstream scrape two days of slack. rates_etl.py exits
+# non-zero on any fetch/validation failure, so a bad pull never reaches the
+# commit step.
+
+on:
+  schedule:
+    - cron: "0 14 3 * *"   # 14:00 UTC on the 3rd of every month
+  workflow_dispatch: {}      # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pandas
+
+      - name: Run rates ETL
+        working-directory: Python
+        run: python rates_etl.py --refresh
+
+      - name: Commit updated data (only if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add prices_json/
+          if git diff --cached --quiet; then
+            echo "No price changes this month."
+          else
+            git commit -m "chore: monthly energy prices refresh"
+            git push
+          fi
