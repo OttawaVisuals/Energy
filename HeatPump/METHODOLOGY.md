@@ -1356,3 +1356,52 @@ carbon") instead of an exploding percentage.
 - All figures above are **Tier-1** ASHP. Tier-2/3 and "average installed" curves
   lower the seasonal COP (≈ 1.9–2.2) and shift every reduction a few points
   worse — still inside the benchmark envelope, not separately tabulated here.
+
+## Operating cost (Phase 2 of ROADMAP item 4, 2026-07-12)
+
+heatpump.html's "Annual operating cost" card prices the simulation's energy
+flows with `prices_json/{on,qc,ab}.json`, built by `Python/rates_etl.py` from
+MaxPr1me/canada-utility-rates (residential tariffs, monthly upstream scrape)
+plus StatCan 18-10-0001 for heating oil. Source scouting and every reduction
+decision: `Python/rates_source_notes.md`; data-shape and caveats:
+`prices_json/meta.json`.
+
+**Tariff application.**
+
+- The engine now emits a **month × hour-of-day electricity matrix**
+  (`elec_month_hour`, kWh) for both scenarios, so TOU plans are priced
+  exactly per (month, hour). The TMY year has no weekday structure, so
+  weekday-only TOU rules are weighted **5/7 weekday : 2/7 weekend** per cell —
+  exact in expectation for a temperature-driven load. Holidays are treated as
+  regular weekdays (<1% effect). ON offers TOU (default), ULO and Tiered via
+  a plan selector; both scenarios always use the same plan.
+- **Tiered plans** (ON monthly tiers, QC 40 kWh/day) price the *added*
+  heating load marginally over a documented non-heating household baseline —
+  cost(baseline + heating) − cost(baseline) — with baselines of 750 kWh/month
+  (ON) and 25 kWh/day (QC). QC's daily accumulator uses the month's mean
+  heating day, which slightly understates tier-2 exposure on cold days.
+- **Fixed charges:** the electricity service charge is identical in both
+  scenarios and excluded (stated in the card). The gas fixed charge is
+  counted only in scenarios that consume gas; when a gas-heated home switches
+  to a heat pump without gas backup, the savings include the dropped fixed
+  charge and the card says so (with the subtract-it-yourself number for
+  homes keeping gas service).
+- **Unit conversions:** gas at the engine's own 10.55 kWh/m³ (HHV); oil at
+  10.0 kWh/L, matching the engine's oil-EF derivation.
+
+**Honesty notes** (all surfaced in the card's fine print): carbon components
+are excluded (federal consumer fuel charge zero since 2025-04-01); AB values
+carry documented screening supplements (transmission ≈ $0.017/kWh, default
+gas supply ≈ $2.25/GJ) and a "(screening estimate)" badge; the ON gas tariff
+is the Union-South rate zone; the Ontario Electricity Rebate is not modelled
+(scales both scenarios equally); everything is pre-tax. The headline is the
+**delta**, not the absolute bills, and the card says why.
+
+**Verification (2026-07-12, browser at localhost):** zero console errors; all
+15 Phase-5 self-test vectors still pass after the additive engine change;
+hand-checked Ottawa gas base ($917 = 2,368 m³ × 24.3¢ + $341 fixed ✓),
+baseboard→HP delta consistent with 13,009 kWh saved × 18.0¢ effective TOU ✓,
+Calgary all-in flat 20.5¢/kWh = RRO 16.84 + wires 1.92 + transmission
+estimate 1.7 ✓; plan selector appears only for ON cities; costs update on
+city/fuel/plan changes; QC/AB sane. A missing prices file degrades to the
+old "energy and emissions only" message.
