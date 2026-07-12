@@ -18,16 +18,21 @@ genuinely means the certification has been delisted/expired, not a script
 failure (confirmed: this endpoint returns a clean empty array for unlisted
 numbers, not an error).
 
-INPUT:  ahri_numbers_seen.json (see Python/list_ahri_numbers.py)
-OUTPUT: ahri_directory_check.csv — ahri_number, found, program_name,
+INPUT:  Python/ahri_numbers_seen.json (see Python/list_ahri_numbers.py)
+OUTPUT: Python/ahri_directory_check.csv — ahri_number, found, program_name,
         rating_condition, detail_url (one row per match; one "NOT FOUND"
         row for numbers with no match)
 """
 
 import csv
 import json
+import os
 import time
 import urllib.request
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SEEN_PATH = os.path.join(SCRIPT_DIR, "ahri_numbers_seen.json")
+OUT_PATH = os.path.join(SCRIPT_DIR, "ahri_directory_check.csv")
 
 API_URL = "https://beta-ahrisearch.ahridirectory.org/SearchConfiguration/GetQuickSearchByReferenceId"
 DETAIL_URL_TMPL = "https://www.ahridirectory.org/details/{program_id}/{reference_id}"
@@ -51,7 +56,7 @@ def query(reference_id):
 
 
 def main():
-    with open("ahri_numbers_seen.json", encoding="utf-8") as f:
+    with open(SEEN_PATH, encoding="utf-8") as f:
         numbers = [x["number"] for x in json.load(f)["ahri_numbers"]]
 
     rows = []
@@ -77,7 +82,7 @@ def main():
                              "rating_condition": m.get("RatingCondition", ""), "detail_url": url})
         time.sleep(DELAY_SECONDS)
 
-    with open("ahri_directory_check.csv", "w", newline="", encoding="utf-8") as f:
+    with open(OUT_PATH, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["ahri_number", "found", "program_name", "rating_condition", "detail_url"])
         w.writeheader()
         w.writerows(rows)

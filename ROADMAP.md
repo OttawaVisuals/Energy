@@ -5,19 +5,21 @@ Master plan for finishing the in-flight projects and starting the new ones, writ
 suggested model. Companion docs: [PLAN.md](PLAN.md) (heat pump), [CEUD_PLAN.md](CEUD_PLAN.md),
 [CONSTRUCTION_PLAN.md](CONSTRUCTION_PLAN.md), [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).
 
-**Status snapshot (2026-07-10, end-of-day review — verified against the repo,
-test suites, and the live Pages URLs):**
+**Status snapshot (2026-07-12 — verified against the repo, the GitHub Actions
+API, and the on-disk state):**
 
 | Project | State |
 |---|---|
 | Retrofit Explorer | ✅ done, deployed |
-| Construction Tracker | ✅ done, deployed, monthly auto-refresh |
+| Construction Tracker | ✅ done, deployed — first scheduled refresh fires 2026-07-20 (monthly, 20th 14:00 UTC); not yet observed green |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
 | Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
 | Heat Pump tool | ✅ **all 7 phases done**, live: `…/Energy/heatpump` — operating-cost hook awaits item 4 |
+| Project Atlas | ✅ `project-atlas.html` committed (`508761e`, 2026-07-11) — internal status page; keep in sync when items ship (distinct from the item-5 public landing page) |
+| AHRI housekeeping (item 2) | ✅ done 2026-07-12 — legacy files archived in `Python/ahri_archive/`, seen-files moved to `Python/`, Readme.MD heat-pump link added. Follow-up flagged: `lookup/ahri_numbers.json` is missing 7 newly-seen AHRI numbers (rerun `build_ahri_lookup.py`) |
 | Energy prices | 🆕 not started — consume MaxPr1me/canada-utility-rates |
 | Landing page | 🆕 not started (`…/Energy/` 404s) |
-| Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`, weekly workflow); `grid.html` page not started |
+| Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`); weekly workflow's first scheduled run is Mon 2026-07-13 13:00 UTC — check it went green; `grid.html` page not started |
 | Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
 
 **Recommended order (remaining):** 2 → 4 (Phase 0 + 1) → 4-Phase-2 (wire costs
@@ -37,7 +39,19 @@ render, no console errors. `GEOTHERMAL_STATUS.md` records the session.
 
 ---
 
-## 2. Repo housekeeping — AHRI legacy files (½ session)
+## 2. Repo housekeeping — AHRI legacy files — ✅ DONE (2026-07-12)
+
+Legacy certificate-PDF artifacts moved to `Python/ahri_archive/` (with README);
+`ahri_numbers_seen.{csv,json}` moved to `Python/`; all five scripts that
+read/write them updated to repo-root-anchored paths and compile-checked;
+`list_ahri_numbers.py` re-run from its new location. That re-run revealed the
+underlying site JSONs had changed since the seen-list was last generated:
+7 AHRI numbers rotated in, 7 out, counts shifted (old top 5,465 → 5,138) —
+so `lookup/ahri_numbers.json` (untouched per this item's rule 3) is now
+missing 7 numbers; flagged as a follow-up task to rerun `build_ahri_lookup.py`.
+`Python/ahri_numbers_seen.csv` is intentionally left as-is: it's the frozen
+popularity-ranking input the shipped NEEP analysis used. Readme.MD gained the
+Heat Pump Explorer section + live URL.
 
 Root-level clutter: `ahri_certificates/` (38 PDFs), `ahri_certificates_parsed.csv`,
 `ahri_directory_check.csv`, `ahri_numbers_seen.{csv,json}`. Per
