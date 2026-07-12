@@ -44,7 +44,7 @@ ROOT = Path(__file__).resolve().parents[2]           # C:\Energy
 HP = ROOT / "HeatPump"
 RAW_NEEP_DIR = HP / "data" / "raw" / "neep"
 INTERIM = HP / "data" / "interim"
-AHRI_SEEN_CSV = ROOT / "ahri_numbers_seen.csv"
+AHRI_SEEN_CSV = ROOT / "Python" / "ahri_numbers_seen.csv"
 AHRI_LOOKUP_JSON = ROOT / "lookup" / "ahri_numbers.json"
 
 OUT_CSV = INTERIM / "neep_tiers.csv"

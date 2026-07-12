@@ -40,8 +40,9 @@ QUICK_SEARCH_URL = f"{BASE}/GetQuickSearchByReferenceId"
 DETAIL_URL = f"{BASE}/GetSearchDetailResults"
 
 DELAY_SECONDS = 1.0
-NUMBERS_SEEN_PATH = Path("ahri_numbers_seen.json")
-OUT_PATH = Path("lookup") / "ahri_numbers.json"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+NUMBERS_SEEN_PATH = REPO_ROOT / "Python" / "ahri_numbers_seen.json"
+OUT_PATH = REPO_ROOT / "lookup" / "ahri_numbers.json"
 
 HEADERS = {
     "Content-Type": "application/json",
