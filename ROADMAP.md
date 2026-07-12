@@ -14,17 +14,16 @@ API, and the on-disk state):**
 | Construction Tracker | ✅ done, deployed — first scheduled refresh fires 2026-07-20 (monthly, 20th 14:00 UTC); not yet observed green |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
 | Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
-| Heat Pump tool | ✅ **all 7 phases done**, live: `…/Energy/heatpump` — operating-cost hook awaits item 4 |
+| Heat Pump tool | ✅ **all 7 phases done + operating costs (item 4 Phase 2)**, live: `…/Energy/heatpump` |
 | Project Atlas | ✅ `project-atlas.html` committed (`508761e`, 2026-07-11) — internal status page; keep in sync when items ship (distinct from the item-5 public landing page) |
 | AHRI housekeeping (item 2) | ✅ done 2026-07-12 — legacy files archived in `Python/ahri_archive/`, seen-files moved to `Python/`, Readme.MD heat-pump link added. Follow-up flagged: `lookup/ahri_numbers.json` is missing 7 newly-seen AHRI numbers (rerun `build_ahri_lookup.py`) |
-| Energy prices | 🆕 not started — consume MaxPr1me/canada-utility-rates |
+| Energy prices | ✅ done 2026-07-12, all 3 phases — `Python/rates_etl.py` → `prices_json/`, monthly workflow (first scheduled run 2026-08-03), costs live in heatpump.html |
 | Landing page | 🆕 not started (`…/Energy/` 404s) |
 | Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`); weekly workflow's first scheduled run is Mon 2026-07-13 13:00 UTC — check it went green; `grid.html` page not started |
 | Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
 
-**Recommended order (remaining):** 2 → 4 (Phase 0 + 1) → 4-Phase-2 (wire costs
-into `heatpump.html`) → 5 → 6-page → 7. Items 5–7 are independent of 4; only
-the heat-pump cost integration depends on the rates ETL.
+**Recommended order (remaining):** 5 → 6-page → 7 (items 2 and 4 completed
+2026-07-12; all three remaining items are independent of each other).
 
 ---
 
@@ -329,7 +328,25 @@ investigate it.
 
 ---
 
-## 4. Energy prices layer — consume `MaxPr1me/canada-utility-rates`
+## 4. Energy prices layer — ✅ DONE, all 3 phases (2026-07-12)
+
+Phase 0 scouting: `Python/rates_source_notes.md` (raw-URL pattern, schema,
+coverage, caveats — notably stale carbon components excluded, AB screening
+supplements for missing transmission/gas-commodity, Enbridge rate-zone note).
+Phase 1: `Python/rates_etl.py` → `prices_json/{on,qc,ab,meta}.json` (<5 KB
+each), 5/5 validation bands PASS; monthly workflow
+`.github/workflows/rates-refresh.yml` (3rd of month — first scheduled run
+2026-08-03, upstream scrapes on the 1st). Phase 2: heatpump.html's hook card
+replaced with real per-scenario costs — the engine now emits a month×hour
+electricity matrix so TOU/ULO are priced exactly (weekday rules weighted
+5/7:2/7 over the TMY year); tiered plans priced marginally over documented
+baselines; ON plan selector; gas fixed-charge policy and all caveats in the
+card's fine print. Verified in browser: zero console errors, 15/15 self-test
+vectors, hand-checked Ottawa/Calgary bills. Method: METHODOLOGY.md
+§Operating cost. The retrofit-explorer "$ impact" context lines remain a
+possible later add-on (see note at the end of this item).
+
+<details><summary>Original phase prompts (completed — kept for the record)</summary>
 
 https://github.com/MaxPr1me/canada-utility-rates already scrapes electricity and
 natural-gas rates across Canadian utilities (BC Hydro, AESO, ATCO, Enbridge,
@@ -411,9 +428,11 @@ tariff-reduction choices. Keep the card graceful if a province's rates file
 is missing.
 ```
 
+</details>
+
 A later small prompt can add "typical annual $ impact" context lines to
-Retrofit Explorer using median fuel deltas × current rates — do that only after
-the heat pump cost integration lands.
+Retrofit Explorer using median fuel deltas × current rates — the heat pump
+cost integration it depended on is now done.
 
 ---
 
