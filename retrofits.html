@@ -29,6 +29,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(
 header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
 .logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
 .logo span{color:var(--amber2);font-style:italic}
+/* Page context ("Ontario · home energy retrofits") lives up here in the bar
+   instead of as a hero eyebrow — saves a full line of vertical space. */
+.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
+.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
 .sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
 .sibling-link:hover{color:var(--amber2)}
@@ -62,26 +66,33 @@ body.mode-advanced .cap-simple{display:none}
 #province-sel option{color:#1C2B3A;background:#fff}
 
 /* ── Hero ── */
-.hero{background:var(--navy);padding:2.25rem 1.5rem 0;text-align:center}
-.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:640px;margin:0 auto 1rem}
+/* Kept deliberately shallow: the eyebrow moved into the header bar and the
+   headline runs wider instead of taller, so readers reach the filters and
+   first charts with far less scrolling. */
+.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
 .hero h1 em{font-style:italic;color:var(--amber2)}
-.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:480px;margin:0 auto 1.5rem}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:760px;margin:0 auto}
 
 /* ── Filters ── */
-.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:1rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+/* .filter-sticky wraps the filter bar OUTSIDE the hero so position:sticky
+   holds it below the header for the whole page (sticky only works while the
+   element's own parent is in view — inside .hero it would unstick as soon
+   as the hero scrolled away). */
+.filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.filter-group select{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
 .filter-group select:hover{border-color:var(--navy)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.filter-group input{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
+.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
 .filter-group input::placeholder{color:var(--light);text-transform:none}
 .filter-group input:hover{border-color:var(--navy)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.filter-reset{height:40px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
+.filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--navy);color:var(--navy)}
-.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.5rem 1.25rem .85rem}
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}
 
@@ -107,7 +118,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .map-svg-wrap{position:relative}
 #fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
 #fsa-map-svg:active{cursor:grabbing}
-.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.78}
+.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
 .fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
 .fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
 .fsa-shape.no-data{cursor:default}
@@ -117,6 +128,11 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .map-zoom-ctrl button:hover{background:var(--surface)}
 .map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
 .map-attribution a{color:#5a6b80}
+/* Continuous colour-scale legend (replaces the old 2–3 discrete chips,
+   which read as categories rather than a scale). */
+.map-grad-wrap{min-width:190px;max-width:240px}
+.map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
+.map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
 .methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -215,15 +231,27 @@ tr.detail-row.open .detail-inner{display:block}
 .tbl-footer{font-size:12px;color:var(--light);margin-top:10px;text-align:right}
 
 
+/* ── Info "?" buttons ── */
+/* One shared floating tip (#info-tip, created lazily in JS) serves every
+   button; the text lives in each button's data-info attribute. Hover shows
+   it on desktop, tap toggles it on touch. */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
+.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
+#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
+
 /* ── Misc ── */
 .state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
 .state-msg strong{display:block;font-size:1rem;color:var(--text);margin-bottom:4px}
 footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
 footer a{color:rgba(255,255,255,.6);text-decoration:none}
 footer a:hover{color:var(--amber2)}
+@media(max-width:900px){
+  .header-title{display:none}
+}
 @media(max-width:600px){
   header{padding:0 1rem}
-  .hero{padding:1.75rem 1rem 0}
+  .hero{padding:1.1rem 1rem .9rem}
+  .filter-sticky{padding-left:1rem;padding-right:1rem}
   .filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}
   main{padding:1rem 1rem 2rem}
   .measure-label{width:120px}
@@ -259,6 +287,8 @@ footer a:hover{color:var(--amber2)}
 .equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
 .equip-list .measure-label .ml-code{display:block;line-height:1.3}
 .equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
+.equip-list .measure-label .ml-sub a{color:var(--muted);text-decoration:underline}
+.equip-list .measure-label .ml-sub a:hover{color:var(--navy)}
 .equip-list .measure-label .ml-badges{display:block;margin-top:4px}
 .equip-list .measure-label .ml-badges .badge{margin-right:4px}
 .equip-list .bar-track{margin-top:6px}
@@ -283,7 +313,10 @@ footer a:hover{color:var(--amber2)}
 </script>
 
 <header>
-  <div class="logo">retrofit<span id="logo-province">Canada</span></div>
+  <div class="header-left">
+    <div class="logo">retrofit<span id="logo-province">Canada</span></div>
+    <div class="header-title" id="header-title">Home energy retrofits</div>
+  </div>
   <div style="display:flex;align-items:center;gap:12px">
     <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
     <div class="mode-toggle" role="group" aria-label="View mode">
@@ -310,14 +343,16 @@ footer a:hover{color:var(--amber2)}
 </header>
 
 <div class="hero" id="hero-section">
-  <p class="hero-eyebrow" id="hero-eyebrow">Select a province above to begin</p>
   <h1>What did <em>homes like yours</em> do — and did it work?</h1>
-  <p class="hero-sub">Real audit data from Canadian homes. Enter your postal code — or pick a province and area — to find retrofits comparable to yours and see the energy savings their audits estimate, or browse province-wide trends by house type.</p>
+  <p class="hero-sub">Real audit data from Canadian homes. Enter your postal code — or pick a province and area — to see the estimated energy savings, or browse province-wide trends by house type.</p>
+</div>
+
+<div class="filter-sticky">
   <div class="filter-bar">
     <div class="filter-group" style="flex:0 1 200px"><label for="pc-input">Your postal code</label>
       <input id="pc-input" type="text" autocomplete="postal-code" maxlength="7" placeholder="e.g. K1A 0B1" aria-describedby="pc-hint">
     </div>
-    <div class="filter-group"><label for="fsa-sel">Your area (FSA)</label>
+    <div class="filter-group"><label for="fsa-sel">Your area — first 3 of postal code</label>
       <select id="fsa-sel">
         <option value="">All areas (province-wide)</option>
       </select>
@@ -364,7 +399,7 @@ footer a:hover{color:var(--amber2)}
   <div class="map-head">
     <div>
       <div class="card-title" style="margin-bottom:0">Find your area</div>
-      <p class="note" style="margin:2px 0 0">Click an FSA to select it. Colour = <span id="map-color-meaning">audited homes</span>.</p>
+      <p class="note" style="margin:2px 0 0">Each shape is a postal area — the first 3 characters of a postal code. Click one to select it. Colour = <span id="map-color-meaning">audited homes</span>; grey = no audit data.</p>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <div class="chart-legend-inline" id="map-legend"></div>
@@ -372,12 +407,12 @@ footer a:hover{color:var(--amber2)}
     </div>
   </div>
   <div class="map-svg-wrap">
-    <svg id="fsa-map-svg" viewBox="0 0 600 600" role="img" aria-label="Map of forward sortation areas in this province"></svg>
+    <svg id="fsa-map-svg" viewBox="0 0 600 600" role="img" aria-label="Map of postal-code areas in this province"></svg>
     <div class="map-zoom-ctrl">
       <button id="map-zoom-in" type="button" aria-label="Zoom in" onclick="zoomFsaMapBy(0.7)">+</button>
       <button id="map-zoom-out" type="button" aria-label="Zoom out" onclick="zoomFsaMapBy(1/0.7)">–</button>
     </div>
-    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
     <div id="map-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
   </div>
 </div>
@@ -394,10 +429,10 @@ footer a:hover{color:var(--amber2)}
     <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
     <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
     <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
-    <div class="stat-card"><div class="stat-label">Deep retrofits</div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Heat pumps added</div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Fuel switches</div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
-    <div class="stat-card"><div class="stat-label">Solar PV added</div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="A home counts as a deep retrofit when its audits show total energy use dropped by 50% or more. (Medium = 10–50% saved, shallow = under 10%.)">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="Homes with no heat pump recorded at the first audit and one recorded at the follow-up audit.">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Homes whose main heating fuel changed between the two audits — for example oil or natural gas to electricity.">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
+    <div class="stat-card"><div class="stat-label">Solar PV added<button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit. Panels are rarely recorded at the first audit, so this can slightly overcount homes that already had them.">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
   </div>
 
   
@@ -406,7 +441,7 @@ footer a:hover{color:var(--amber2)}
   <div class="card">
     <div class="card-title">Energy saving distribution — 1% increments</div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Most homes save energy; a few use more, often after switching to a heat pump.</span><span class="cap-advanced">Negative values mean total energy use increased — often due to fuel switching where electricity rises but total emissions fall.</span></p>
+    <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits. Homes that added a heat pump almost never show an increase (0.2%; their median saving is ~29%).</span></p>
   </div>
 
   
@@ -418,7 +453,7 @@ footer a:hover{color:var(--amber2)}
 
 <!-- EUI -->
   <div class="card">
-    <div class="card-title">Energy use intensity (EUI) — kWh per m²</div>
+    <div class="card-title">Energy use intensity (EUI) — kWh per m²<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes sit at each level before the retrofit; the green curve shows the same homes after — green sitting further left means homes improved. The amber Improvement bars count only the homes that got better, showing how big their improvement was.">?</button></div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Energy use per square metre, before and after — lower is more efficient.</span><span class="cap-advanced">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</span></p>
@@ -438,7 +473,7 @@ footer a:hover{color:var(--amber2)}
 
 <!-- GHG emissions -->
   <div class="card">
-    <div class="card-title">GHG emissions — tCO2e per year</div>
+    <div class="card-title">GHG emissions — tCO2e per year<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes sit at each emissions level before the retrofit; the green curve shows the same homes after — green sitting further left means emissions fell. The amber Improvement bars count only the homes that improved, showing the size of their reduction.">?</button></div>
     <div class="eui-row" id="ghg-kpis"></div>
     <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Greenhouse gas emissions from home energy use, before and after.</span><span class="cap-advanced">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
@@ -446,9 +481,10 @@ footer a:hover{color:var(--amber2)}
 
   
 
-<!-- Design heat loss (kW — peak heating demand, NOT annual energy) -->
-  <div class="card">
-    <div class="card-title">Design heat loss — pre &amp; post (kW)</div>
+<!-- Design heat loss (kW — peak heating demand, NOT annual energy).
+     Advanced-only: too technical a concept for the Simple view. -->
+  <div class="card" data-mode="advanced">
+    <div class="card-title">Design heat loss — pre &amp; post (kW)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes need each amount of peak heating power before the retrofit; the green curve shows the same homes after — green further left means the envelope improved. The amber Improvement bars count only the homes that improved, showing the size of their reduction.">?</button></div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
     <p class="note"><span class="cap-simple">The heating power a home needs on the coldest design day — lower means a better-sealed, better-insulated home that's cheaper to keep warm.</span><span class="cap-advanced">Modelled design heat loss (kW) at the design outdoor temperature — the peak heating demand the envelope imposes, i.e. what heating equipment is sized against. A lower post value can allow a smaller furnace or heat pump at replacement time. Pre/post shown as filled areas; amber bars show the per-home reduction distribution.</span></p>
   </div>
@@ -482,7 +518,7 @@ footer a:hover{color:var(--amber2)}
   </div>
 
 <!-- Measures -->
-  <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
+  <div class="card"><div class="card-title">What measures were done<button type="button" class="info-btn" aria-label="How are measures counted?" data-info="Counted by comparing the two audits: insulation counts as upgraded when its insulation value rose by more than 10%; air sealing when air leakage dropped by more than 10%; windows and heating system when the recorded equipment changed; heat pump added when one appears only at the follow-up audit. Changes smaller than those thresholds aren't counted as real work.">?</button></div><div id="measures-list"></div></div>
 
 
 
@@ -499,7 +535,7 @@ footer a:hover{color:var(--amber2)}
 
 <!-- Insulation KPIs + distributions -->
   <div class="card">
-    <div class="card-title">Insulation &amp; air leakage — median pre → post</div>
+    <div class="card-title">Insulation &amp; air leakage — median pre → post<button type="button" class="info-btn" aria-label="How to read these charts" data-info="In the charts below, the navy curve shows how many homes sit at each level before the retrofit and the green curve after — for insulation, green further right is better; for air leakage, green further left is better. The amber Improvement bars count only the homes that improved on that measure, showing how big their improvement was.">?</button></div>
     <div class="kpi-grid" id="kpi-grid"></div>
     <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
     <div class="measure-chart-block">
@@ -594,7 +630,7 @@ footer a:hover{color:var(--amber2)}
     <div class="card">
       <div class="card-title">Common heat pump models (AHRI number)</div>
       <div id="ahri-list" class="equip-list"></div>
-      <p class="note">Top 5 most common AHRI certification numbers among heat pumps in matched homes (pre- and post-retrofit combined). Numbers outside the top 5 are not shown individually to avoid singling out near-unique installations.</p>
+      <p class="note">Top 5 most common AHRI certification numbers among heat pumps in matched homes (pre- and post-retrofit combined). Numbers outside the top 5 are not shown individually to avoid singling out near-unique installations. Where the AHRI certificate is on file, the line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency) and COP at 5°F, plus whether the unit is cold-climate certified — click the AHRI number for its directory page.</p>
     </div>
     <div class="card">
       <div class="card-title">Common window codes</div>
@@ -624,7 +660,7 @@ footer a:hover{color:var(--amber2)}
 
   <div class="section-head" id="sec-individual" data-mode="advanced">
     <h2>Individual retrofits</h2>
-    <p class="sec-sub">Every matched home in this FSA, one row each — click to expand. (FSA view only.)</p>
+    <p class="sec-sub">Every matched home in this postal area, one row each — click to expand. (Shown when a single area is selected.)</p>
   </div>
 
 <!-- Table (FSA mode only — province-wide view has no row-level data) -->
@@ -639,7 +675,7 @@ footer a:hover{color:var(--amber2)}
     <div class="tbl-scroll">
       <table>
         <thead><tr>
-          <th>FSA</th><th>Type</th><th>Built</th><th>m²</th>
+          <th>Area</th><th>Type</th><th>Built</th><th>m²</th>
           <th>EUI kWh/m²</th><th>Fuel</th><th>Saving</th><th>Depth</th>
         </tr></thead>
         <tbody id="tbl-body"></tbody>
@@ -671,7 +707,7 @@ footer a:hover{color:var(--amber2)}
       <h4>5 · Fields we calculate ourselves</h4>
       <p>From the audit values we derive the numbers you see:</p>
       <p><strong>EUI (energy use intensity)</strong> = total energy ÷ floor area, in <code>kWh/m²</code> — lets a small efficient home and a large one be compared fairly.<br>
-      <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose (common when a home switches to a heat pump — electricity goes up even as emissions fall).<br>
+      <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose. Negative cases are rare (~4% of homes) and mostly small: about three-quarters of them have no retrofit measure flagged, so they largely reflect modelling differences between the two audits rather than upgrades that backfired.<br>
       <strong>Retrofit depth</strong>, based on how much total energy fell: <em>Shallow</em> = up to 10% saved, <em>Medium</em> = 10–50% saved, <em>Deep</em> = 50% or more saved.<br>
       <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).<br>
       <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.</p>
@@ -832,8 +868,29 @@ function decodeAhri(code){
   const badges=[];
   const status=isObj?hit.model_status:null;
   if(status)badges.push({label:status,cls:/^active$/i.test(status)?'badge-deep':'badge-neg'});
-  if(isObj&&String(hit.cold_climate).toLowerCase()==='yes')badges.push({label:'Cold Climate',cls:'badge-medium'});
-  return name?{main:name,sub:`AHRI ${c}`,badges}:{main:c,sub:null,badges};
+  if(isObj){
+    const cc=String(hit.cold_climate).toLowerCase();
+    if(cc==='yes')badges.push({label:'Cold Climate',cls:'badge-medium'});
+    else if(cc==='no')badges.push({label:'Not cold climate',cls:'badge-shallow'});
+  }
+  // Spec line straight off the archived AHRI certificate: heating capacity
+  // at 47\u00b0F and 5\u00b0F outdoor, HSPF2 (seasonal heating efficiency) and COP at
+  // 5\u00b0F when present \u2014 the numbers that matter for a Canadian winter.
+  const specs=[];
+  if(isObj){
+    const btu=v=>{const n=parseFloat(v);return isNaN(n)?null:(n>=10000?Math.round(n/1000)+'k':Math.round(n).toLocaleString());};
+    const h47=btu(hit.heating_capacity_47f_btuh),h5=btu(hit.heating_capacity_5f_btuh);
+    if(h47)specs.push(`heats ${h47} BTU/h @ 47\u00b0F${h5?`, ${h5} @ 5\u00b0F`:''}`);
+    const hspf=parseFloat(hit.hspf2);
+    if(!isNaN(hspf))specs.push(`HSPF2 ${hspf}`);
+    const cop5=parseFloat(hit.heating_cop_5f);
+    if(!isNaN(cop5))specs.push(`COP ${cop5.toFixed(1)} @ 5\u00b0F`);
+  }
+  // Verified pattern (see Python/check_ahri_directory.py): program 99 is the
+  // ASHP program every number in the lookup was checked against.
+  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(c)}" target="_blank" rel="noopener">AHRI ${c} \u2197</a>`;
+  const sub=[link,...specs].join(' \u00b7 ');
+  return name?{main:name,sub,badges}:{main:c,sub:link,badges};
 }
 function decodeWindow(code){
   const c=String(code).trim();
@@ -936,6 +993,45 @@ document.addEventListener('touchstart',e=>{
   if(!(e.target instanceof SVGPathElement))$('sankey-tip').style.display='none';
 },{passive:true});
 
+// ── Info "?" buttons ──────────────────────────────────────────────
+// One shared floating tip for every .info-btn on the page; each button's
+// text lives in its data-info attribute, so buttons can sit in static HTML
+// or in re-rendered innerHTML without any per-button wiring (event
+// delegation below survives innerHTML replacement).
+let _infoTipEl=null,_infoTipFor=null;
+function showInfoTip(btn){
+  if(!_infoTipEl){_infoTipEl=document.createElement('div');_infoTipEl.id='info-tip';document.body.appendChild(_infoTipEl);}
+  _infoTipEl.textContent=btn.dataset.info||'';
+  _infoTipEl.style.display='block';
+  const r=btn.getBoundingClientRect();
+  const tw=_infoTipEl.offsetWidth,th=_infoTipEl.offsetHeight;
+  const x=Math.min(Math.max(8,r.left+r.width/2-tw/2),window.innerWidth-tw-8);
+  let y=r.bottom+8;
+  if(y+th>window.innerHeight-8)y=r.top-th-8; // flip above if no room below
+  _infoTipEl.style.left=x+'px';_infoTipEl.style.top=y+'px';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  btn.classList.add('open');_infoTipFor=btn;
+}
+function hideInfoTip(){
+  if(_infoTipEl)_infoTipEl.style.display='none';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  _infoTipFor=null;
+}
+// Click toggles (touch devices have no hover); clicking anywhere else closes.
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.info-btn');
+  if(b){(_infoTipFor===b)?hideInfoTip():showInfoTip(b);return;}
+  hideInfoTip();
+});
+document.addEventListener('mouseover',e=>{
+  const b=e.target.closest('.info-btn');
+  if(b&&_infoTipFor!==b)showInfoTip(b);
+});
+document.addEventListener('mouseout',e=>{
+  if(e.target.closest&&e.target.closest('.info-btn'))hideInfoTip();
+});
+window.addEventListener('scroll',hideInfoTip,{passive:true});
+
 // ── Load ──────────────────────────────────────────────────────────
 // NOTE: the FSA JSON now ships already-decoded (human-readable BldgType,
 // fuel, etc.), so the old ers_web_keys.json lookup table and CODED_COLS
@@ -1025,7 +1121,7 @@ function load(){
   setLoading(true);
 
   $('logo-province').textContent=prov.short;
-  $('hero-eyebrow').textContent=`${prov.name} · Home energy retrofits`;
+  $('header-title').textContent=`${prov.name} · home energy retrofits`;
   $('footer-province').textContent=`${prov.name} audits`;
   $('header-badge').textContent=`EnerGuide data · ${prov.name} · loading…`;
 
@@ -1203,7 +1299,7 @@ function render(){
   toggleSlopegraphCard(true);
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
-  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderHeatLoss();
+  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);
   renderKPI(n,fs);renderInsulDist();renderMeasures(n);
   renderHist(savings);
   renderAdvancedSections();
@@ -1224,9 +1320,11 @@ function renderAdvancedSections(){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
     renderSlopegraph();renderVintageMeasures();renderWindowChanges();renderTable();
+    renderHeatLoss();
     if(SELECTED_FSA)renderCensus(SELECTED_FSA,ALL.length);
   }else if(MODE==='province'){
     if(!_lastProvincePayload||!_lastProvinceSlice)return;
+    renderProvinceHeatLoss(_lastProvinceSlice);
     renderProvinceYearHist(_lastProvincePayload);
     renderProvinceAreaHist(_lastProvincePayload);
     renderProvinceTypeDonut(_lastProvincePayload);
@@ -2390,7 +2488,6 @@ function renderProvince(payload){
 
   renderProvinceEUI(slice);
   renderProvinceGHG(slice);
-  renderProvinceHeatLoss(slice);
   renderProvinceKPI(slice);
   renderProvinceInsulDist(slice);
   renderProvinceMeasures(slice);
@@ -2848,6 +2945,21 @@ function makeInlineSVG(r){
       <td style="padding:3px 0;color:${d===null?'var(--light)':good?'#1A7A55':'#B33A2E'}">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unit?` ${unit}`:''}`}</td>
     </tr>`;
   }
+  // Windows: decoded pre/post codes, plus an attribute-by-attribute change
+  // list when both codes decode cleanly against NRCan's standard table.
+  const wPreCode=r.Pre_WindowCode,wPostCode=r.Post_WindowCode;
+  const wPre=wPreCode?decodeWindow(wPreCode).main:null;
+  const wPost=wPostCode?decodeWindow(wPostCode).main:null;
+  let windowRows=textRow('Windows',wPre,wPost);
+  const wp=decodeWindowParts(wPreCode),wq=decodeWindowParts(wPostCode);
+  if(wp&&wq){
+    const changes=WINDOW_ATTRS.filter(({key})=>wp[key]!==wq[key])
+      .map(({key,label})=>`${label}: ${wp[key]} → ${wq[key]}`);
+    windowRows+=`<tr>
+      <td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap;vertical-align:top">Window changes</td>
+      <td colspan="3" style="padding:3px 0;color:#1C2B3A">${changes.length?changes.join('<br>'):'<span style="color:var(--light)">Same window spec before and after</span>'}</td>
+    </tr>`;
+  }
   const py=r.Pre_Year?parseInt(r.Pre_Year):null,qy=r.Post_Year?parseInt(r.Post_Year):null;
   const yearGap=(py&&qy)?qy-py:null;
   const auditYearRow=`<tr>
@@ -2866,6 +2978,7 @@ function makeInlineSVG(r){
         ${textRow('Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
         ${textRow('Heating type',r.Pre_HeatType,r.Post_HeatType)}
         ${textRow('Heat pump',r.Pre_HPType,r.Post_HPType)}
+        ${windowRows}
         ${numRow('Energy',num(r.Pre_TotalEnergy),num(r.Post_TotalEnergy),'kWh',false,0)}
         ${numRow('GHG',num(r.Pre_GHG),num(r.Post_GHG),'tCO2e/yr',false,1)}
         ${numRow('Design heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'kW',false,1)}
@@ -2985,10 +3098,15 @@ function pickSharperZoom(minLon,maxLon,minLat,maxLat,targetW,targetH,maxZoom){
   }
   return maxZoom;
 }
-const TILE_URL_SUBDOMAINS=['a','b','c'];
+// CARTO "light_all" basemap instead of standard OSM tiles: a near-greyscale
+// style with far less visual detail, so the choropleth colours stay readable
+// on top of it (the full OSM style fought the data for attention). Same
+// slippy-map tile grid, so nothing else changes. Free tier requires the
+// OSM + CARTO attribution kept below the map.
+const TILE_URL_SUBDOMAINS=['a','b','c','d'];
 function tileUrl(z,x,y){
   const sub=TILE_URL_SUBDOMAINS[(x+y)%TILE_URL_SUBDOMAINS.length];
-  return`https://${sub}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  return`https://${sub}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;
 }
 
 let MAP_STATE=null; // {prov, z, origin:[ox,oy], features:[{fsa,d,bbox}], fullViewBox, indexByFsa, tilesD}
@@ -3082,6 +3200,13 @@ function loadFsaMap(prov,fsaIndex){
 // Sequential (audit count) or diverging (median saving %, centred on 0)
 // single-pass colour scale, built fresh per province since the
 // interesting range differs province to province.
+// Continuous gradient legend bar with end (and optional middle) labels —
+// mirrors the actual lerpColor ramp used to fill the shapes.
+function setMapGradientLegend(gradientCss,leftLabel,midLabel,rightLabel){
+  $('map-legend').innerHTML=
+    `<div class="map-grad-wrap"><div class="map-grad" style="background:${gradientCss}"></div>`+
+    `<div class="map-grad-labels"><span>${leftLabel}</span>${midLabel!=null?`<span>${midLabel}</span>`:''}<span>${rightLabel}</span></div></div>`;
+}
 function buildFsaColorScale(state){
   const vals=state.features.map(f=>state.indexByFsa[f.fsa]).filter(Boolean);
   const haveSavings=vals.some(e=>e.median_saving_pct!=null);
@@ -3089,11 +3214,18 @@ function buildFsaColorScale(state){
     const savings=vals.map(e=>e.median_saving_pct).filter(v=>v!=null);
     const lo=Math.min(...savings,0),hi=Math.max(...savings,0);
     $('map-color-meaning').textContent='median energy saving';
-    setChartLegend('map-legend',[
-      {label:`${Math.round(lo*100)}% (increase)`,color:'#B33A2E'},
-      {label:'0%',color:'#E8EDF4'},
-      {label:`${Math.round(hi*100)}%+ saved`,color:'#1A7A55'},
-    ]);
+    // Position the neutral 0% stop where 0 actually falls between lo and hi,
+    // so the legend bar matches the diverging fill ramp. When no area is
+    // negative (lo === 0) drop the red end entirely — a pure light→green
+    // sequential bar, instead of a red stop squeezed to 0% width.
+    if(lo>=0){
+      setMapGradientLegend('linear-gradient(90deg,#E8EDF4,#1A7A55)','0%',null,`+${Math.round(hi*100)}%<br>saved`);
+    }else{
+      const zeroPos=(hi-lo)>0?Math.round((0-lo)/(hi-lo)*100):50;
+      setMapGradientLegend(
+        `linear-gradient(90deg,#B33A2E,#E8EDF4 ${zeroPos}%,#1A7A55)`,
+        `${Math.round(lo*100)}%<br>uses more`,'0%',`+${Math.round(hi*100)}%<br>saved`);
+    }
     return e=>{
       if(!e||e.median_saving_pct==null)return'#D3D9E2';
       const v=e.median_saving_pct;
@@ -3103,10 +3235,7 @@ function buildFsaColorScale(state){
   const counts=vals.map(e=>e.row_count||0);
   const maxCount=Math.max(...counts,1);
   $('map-color-meaning').textContent='audited homes';
-  setChartLegend('map-legend',[
-    {label:'Fewer audited homes',color:'#E6ECF5'},
-    {label:'More audited homes',color:'#0B2545'},
-  ]);
+  setMapGradientLegend('linear-gradient(90deg,#E6ECF5,#0B2545)','0 homes',null,`${maxCount.toLocaleString()} homes`);
   return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxCount)):'#D3D9E2';
 }
 function lerpColor(lo,hi,t){
