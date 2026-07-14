@@ -145,6 +145,12 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .methodology .method-body p{margin:0 0 .6rem}
 .methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+/* Column-mapping tables in the Advanced methodology section */
+.methodology .method-body .method-table-wrap{overflow-x:auto;margin:0 0 .8rem}
+.methodology .method-body table{border-collapse:collapse;font-size:12.5px;line-height:1.45;min-width:640px;width:100%}
+.methodology .method-body th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);padding:5px 10px 5px 0;white-space:nowrap}
+.methodology .method-body td{border-bottom:1px solid var(--surface);padding:5px 10px 5px 0;vertical-align:top}
+.methodology .method-body td code{white-space:nowrap}
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
@@ -730,6 +736,96 @@ footer a:hover{color:var(--amber2)}
       <h4>9 · Things to keep in mind</h4>
       <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
       <p class="caveats"><strong>The sample is self-selected.</strong> Requiring both a before and an after audit means these are overwhelmingly homes that took part in retrofit incentive programs (which required the follow-up audit) and finished their planned work. Homeowners who renovated without a program, or who started and never booked the follow-up, are not captured — so the savings shown here are likely somewhat higher than what a randomly chosen renovation achieves, and the homes themselves skew toward owners motivated enough to go through a grant process.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Advanced methodology">
+  <details id="advanced-methodology">
+    <summary>Advanced methodology — source columns, formulas &amp; pipeline</summary>
+    <div class="method-body">
+      <p>This section documents the full technical pipeline for readers familiar with the EnerGuide Rating System (ERS) dataset and HOT2000 — including the original source column names, every conversion factor and threshold, and the transformation scripts. Column names in <code>UPPERCASE</code> are the original headers of the ERS public CSVs; mixed-case names (e.g. <code>Pre_TotalEnergy</code>) are the fields this site derives from them.</p>
+
+      <h4>A · Source data &amp; record selection</h4>
+      <p>Input is NRCan's public ERS dataset as annual CSV extracts (evaluation entry years 2004–2026, all provinces and territories, using the <code>PROVINCE</code> column). Records are separated on <code>EVALTYPE</code>: <strong>D</strong> = initial (pre-retrofit) evaluation, <strong>E</strong> = follow-up (post-retrofit) evaluation. Pairs are formed on <code>HOUSEID</code>, across all file years, with these rules applied in order:</p>
+      <p><strong>Pairing.</strong> A <code>HOUSEID</code> is kept only if it has <em>exactly one</em> D record and <em>exactly one</em> E record in the whole dataset (homes with multiple Ds or Es are dropped rather than guessing which evaluation pairs with which), and the E's <code>ENTRYDATE</code> must be strictly later than the D's.</p>
+      <p><strong>Same-home integrity filters.</strong> A pair is dropped when any of these changed between D and E: <code>FLOORAREA</code> by more than ±10% (relative to D, which must be &gt; 0), or an exact string mismatch on <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, or <code>NUMDWELLINGUNITS</code>. This removes additions, rebuilds, and evaluations that were keyed to the wrong house. No other outlier filtering is applied at the record level — extreme values are only clipped at chart-display time (see section G).</p>
+      <p>Identity and descriptive fields carried through unchanged: <code>HOUSEID</code>, <code>CLIENTPCODE</code> (the forward sortation area — the public file carries only the first three postal characters), <code>PROVINCE</code>, <code>YEARBUILT</code>, <code>FLOORAREA</code>, <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, <code>FNDTYPE</code>, and <code>ENTRYDATE</code> (reduced to year for publication).</p>
+
+      <h4>B · Unit conversion to kWh</h4>
+      <p>Each fuel is reported in its own unit in the source, so all energy quantities are converted to kWh at extraction time. MJ→kWh is exact (÷3.6). The per-fuel heating values are <strong>published Government of Canada conversion factors</strong>, cited per row below. (HOT2000's internal fuel-library values are not publicly documented; the sources here were chosen to be as consistent as possible with its outputs — if a canonical HOT2000 fuel-library reference exists, we would gladly adopt it.)</p>
+      <div class="method-table-wrap"><table>
+        <thead><tr><th>Derived field (pre/post)</th><th>Source column</th><th>Source unit</th><th>Factor to kWh</th><th>Energy content &amp; source</th></tr></thead>
+        <tbody>
+          <tr><td><code>Pre/Post_TotalEnergy</code></td><td><code>EGHFCONTOTAL</code></td><td>MJ/yr</td><td>× 0.27778</td><td>1 kWh = 3.6 MJ (exact)</td></tr>
+          <tr><td><code>Pre/Post_HeatEnergy</code></td><td><code>EGHFURNACEAEC</code></td><td>MJ/yr</td><td>× 0.27778</td><td>1 kWh = 3.6 MJ (exact)</td></tr>
+          <tr><td><code>Pre/Post_Electricity</code></td><td><code>EGHFCONELEC</code></td><td>kWh/yr</td><td>as-is</td><td>—</td></tr>
+          <tr><td><code>Pre/Post_NaturalGas</code></td><td><code>EGHFCONNGAS</code></td><td>m³/yr</td><td>× 10.3611</td><td>37.30 MJ/m³ (0.0373 GJ/m³, basis 1,000 Btu/ft³) — <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER energy conversion tables</a></td></tr>
+          <tr><td><code>Pre/Post_Oil</code></td><td><code>EGHFCONOIL</code></td><td>L/yr</td><td>× 10.7778</td><td>38.80 MJ/L, light fuel oil — <a href="https://www150.statcan.gc.ca/n1/pub/57-003-x/2018001/dq-qd/dq-qd-4-eng.htm" target="_blank" rel="noopener">StatCan RESD 57-003-X</a> (the factor ECCC's National Inventory Report uses)</td></tr>
+          <tr><td><code>Pre/Post_Propane</code></td><td><code>EGHFCONPROP</code></td><td>L/yr</td><td>× 7.0917</td><td>25.53 MJ/L — <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER energy conversion tables</a></td></tr>
+          <tr><td><code>Pre/Post_Wood</code></td><td><code>EGHFCONWOODGJ</code>, else <code>EGHFCONWOOD</code></td><td>GJ/yr, else tonnes/yr</td><td>× 277.778, else × 3,888.89</td><td>GJ column used verbatim where populated (HOT2000 v11.2+); tonne fallback 14.0 GJ/t — <a href="https://natural-resources.canada.ca/sites/nrcan/files/files/NRCAN_BB_no2_e13.pdf" target="_blank" rel="noopener">NRCan Solid Biofuels Bulletin No. 2</a> (air-dry firewood 14–15 MJ/kg HHV)</td></tr>
+          <tr><td><code>Pre/Post_HeatLoss</code></td><td><code>EGHDESHTLOSS</code></td><td>W</td><td>× 0.001 (→ kW)</td><td>design heat loss, not energy</td></tr>
+          <tr><td><code>Pre/Post_GHG</code></td><td><code>ERSGHG</code></td><td>tCO₂e/yr</td><td>as-is</td><td>already includes electricity via provincial grid factor (<code>ERSELECGHG</code> is netted in at source)</td></tr>
+          <tr><td><code>Pre/Post_SolarPV</code></td><td><code>KWPV</code></td><td>kW DC</td><td>as-is</td><td>—</td></tr>
+        </tbody>
+      </table></div>
+      <p><strong>Wood.</strong> Since HOT2000 v11.2 the dataset reports wood energy directly in GJ (<code>EGHFCONWOODGJ</code>), which is used as-is — no heating-value assumption at all for those records. Older records only carry tonnes (<code>EGHFCONWOOD</code>); for those the 14.0 GJ/t fallback applies, and per-home wood energy is approximate to the extent the actual wood type (softwood, hardwood, pellets) differs from that figure.</p>
+      <p><strong>Validation.</strong> As a consistency check, for homes consuming electricity plus exactly one other fuel, the per-fuel quantities × these factors reconcile with the audit's own total (<code>EGHFCONTOTAL</code>) to within about 1% across all audit years — so the cited factors closely track whatever HOT2000 applies internally. None of this affects <code>Pre/Post_TotalEnergy</code> or any savings figure (those convert from MJ exactly); it only scales the per-fuel breakdown charts.</p>
+
+      <h4>C · Calculated fields</h4>
+      <p>All formulas operate on the kWh-converted values above; percentages are undefined (null) when the denominator is not &gt; 0.</p>
+      <div class="method-table-wrap"><table>
+        <thead><tr><th>Field</th><th>Formula</th><th>Source columns</th></tr></thead>
+        <tbody>
+          <tr><td><code>EnergySavingPct</code></td><td>(pre − post) ÷ pre, on total energy</td><td><code>EGHFCONTOTAL</code> (D, E)</td></tr>
+          <tr><td><code>HeatEnergySavingPct</code></td><td>(pre − post) ÷ pre, on space-heating energy</td><td><code>EGHFURNACEAEC</code> (D, E)</td></tr>
+          <tr><td>EUI (kWh/m²)</td><td>total energy ÷ floor area, computed at render time for pre and post separately</td><td><code>EGHFCONTOTAL</code>, <code>FLOORAREA</code></td></tr>
+          <tr><td><code>FuelSwitch</code></td><td>primary heating fuel differs between D and E</td><td><code>FURNACEFUEL</code> (D ≠ E)</td></tr>
+          <tr><td><code>Shallow_Retrofit</code></td><td>post is 90–100% of pre total energy (saved ≤ 10%)</td><td><code>EGHFCONTOTAL</code></td></tr>
+          <tr><td><code>Medium_Retrofit</code></td><td>post is 50–90% of pre (saved 10–50%)</td><td><code>EGHFCONTOTAL</code></td></tr>
+          <tr><td><code>Deep_Retrofit</code></td><td>post is ≤ 50% of pre (saved ≥ 50%)</td><td><code>EGHFCONTOTAL</code></td></tr>
+          <tr><td><code>Pre/Post_Year</code></td><td>year component only</td><td><code>ENTRYDATE</code> (D, E)</td></tr>
+        </tbody>
+      </table></div>
+
+      <h4>D · Measure (upgrade) definitions</h4>
+      <p>Each measure is a per-home boolean computed from the D vs E values of one or two source columns. The ±10% thresholds on continuous quantities are deliberate: two independent HOT2000 models of the same house rarely reproduce identical RSI or ACH values, so small deltas are treated as re-measurement noise rather than work performed.</p>
+      <div class="method-table-wrap"><table>
+        <thead><tr><th>Measure flag</th><th>Source column</th><th>Rule (D = pre, E = post)</th></tr></thead>
+        <tbody>
+          <tr><td><code>Wall_Insulation_Upgrade</code></td><td><code>MAINWALLINS</code> (RSI)</td><td>E &gt; 1.10 × D, with D &gt; 0</td></tr>
+          <tr><td><code>Roof_Insulation_Upgrade</code></td><td><code>CEILINS</code> (RSI)</td><td>E &gt; 1.10 × D, with D &gt; 0</td></tr>
+          <tr><td><code>Foundation_Insulation_Upgrade</code></td><td><code>FNDWALLINS</code> (RSI)</td><td>E &gt; 1.10 × D, with D &gt; 0</td></tr>
+          <tr><td><code>Floor_Insulation_Upgrade</code></td><td><code>EGHINEXPOSEDFLR</code> (RSI)</td><td>E &gt; 1.10 × D, with D &gt; 0</td></tr>
+          <tr><td><code>Air_Tightness_Upgrade</code></td><td><code>AIR50P</code> (ACH @ 50 Pa)</td><td>E &lt; 0.90 × D, with D &gt; 0 (lower is better)</td></tr>
+          <tr><td><code>Windows_Change</code></td><td><code>WINDOWCODE</code></td><td>both non-empty and different</td></tr>
+          <tr><td><code>Heating_Change</code></td><td><code>FURNACEFUEL</code>, <code>FURNACETYPE</code></td><td>either differs</td></tr>
+          <tr><td><code>Cooling_Change</code></td><td><code>AIRCONDTYPE</code></td><td>differs</td></tr>
+          <tr><td><code>HeatPump_Addition</code></td><td><code>HPSOURCE</code></td><td>blank or "N/A…" in D, populated in E</td></tr>
+        </tbody>
+      </table></div>
+      <p>Supporting HVAC detail columns carried for display: <code>HEATAFUE</code>, <code>EGHFURSEASEFF</code> (seasonal efficiency/COP), <code>HPSOURCE</code>, <code>COP</code>, and <code>AHRI</code> (the certified heat-pump reference number — see section F).</p>
+
+      <h4>E · Transformation pipeline (Python)</h4>
+      <p><strong>Stage 1 — annual CSVs → one Parquet per province</strong> (<code>ers_web_pipeline.py</code>). The yearly source CSVs are too large to load in memory, so they are stream-read with PyArrow in ~100k-row batches, all columns as strings (numeric coercion happens later, per column). Three passes: (1) split each year's file into D and E Parquet intermediates per province; (2) build a cross-year pairing index of <code>HOUSEID</code> → (D year, E year) applying the exactly-one-D/one-E and date-order rules; (3) join each (D-year, E-year) group, apply the integrity filters, unit conversions, measure flags, and derived fields, and append to <code>ers_web_&lt;PROV&gt;.parquet</code> (Snappy compression, ~50 columns). One data-quality repair worth noting: some source years serialize the <code>AHRI</code> identifier as <code>211644151.0</code> and others as <code>211644151</code>; without normalizing the trailing <code>.0</code>, ~20% of Ontario's "distinct" AHRI numbers were duplicates of this kind.</p>
+      <p><strong>Stage 2 — Parquet → static JSON</strong>. Three scripts read the province Parquet files and emit everything the page fetches:</p>
+      <p><code>split_fsa_json.py</code> writes one file per FSA (<code>fsa_json/&lt;PROV&gt;/&lt;FSA&gt;.json</code>) holding that area's raw matched rows, plus a per-province <code>_index.json</code> (row count and median saving per FSA, used for the search typeahead and the choropleth). Categorical values are case-normalized first — audit years disagree on casing ("single detached" vs "Single Detached"), which otherwise silently splits one category into two. Annual-kWh columns are rounded to integers and <code>EnergySavingPct</code> kept at 4 decimals to control file size. AHRI numbers are masked to each province's five most common (matching what the province view lists); all other values ship as null.</p>
+      <p><code>precompute_province_stats.py</code> writes <code>province_json/&lt;PROV&gt;.json</code>: every chart on the page, pre-aggregated in Python for the whole province and for each house-type slice — medians, measure counts, Sankey fuel-flow totals, per-fuel means for the waterfall, and all histogram bins. Bin widths and clipping rules are copied verbatim from the front-end code (EUI 20 kWh/m², GHG 1 tCO₂e, design heat loss 2 kW, savings 1%, insulation 0.25–0.5 RSI/ACH steps), so the precomputed province view and the raw-row FSA view produce identical chart shapes for the same data.</p>
+      <p><code>aggregate_canada.py</code> builds the all-Canada default view from the province JSONs without touching raw rows: counts and histogram bins are additive and summed exactly; medians are <em>not</em> additive, so national medians are re-derived as weighted medians over the summed bins (an approximation bounded by the bin width); the fuel waterfall ships per-home means, so each province's mean is weighted by its row count before combining.</p>
+      <p><strong>Why this format.</strong> The site is static — plain files served from a repository, no database or API server. Loading a full province of raw rows into the browser (hundreds of thousands of rows) is neither fast nor necessary, so the page fetches the smallest artifact that answers the current selection: one precomputed province JSON when no FSA is chosen, or one FSA's raw-row file (median ≈ 490 rows, largest ≈ 5,800) when one is. FSA files use an array-of-arrays layout (<code>{"columns": […], "rows": [[…], …]}</code>) rather than an array of objects — writing the ~50 column names once instead of once per row measured ~77% smaller for a typical FSA. Raw rows are only shipped at FSA granularity, which is also what makes the individual-retrofits table possible there and not province-wide.</p>
+
+      <h4>F · Supplementary datasets</h4>
+      <p><strong>2021 Census join.</strong> <code>extract_fsa_census.py</code> reads the Statistics Canada 2021 Census Profile at forward-sortation-area geography (catalogue 98-401-X2021013, long format: one row per FSA × characteristic) and keeps ~30 housing-stock characteristics by their <code>CHARACTERISTIC_ID</code>: population (1), total private dwellings (4), structural dwelling type (42–49), tenure (1415–1416), period of construction (1441–1448), dwelling condition (1450–1451), and owner-household costs and values (1482–1489). StatCan suppression and quality symbols (<code>x</code>, <code>F</code>, <code>E</code>, <code>r</code>, <code>rE</code>, <code>..</code>, <code>…</code>) become nulls. The result is one ~1 MB JSON keyed by FSA, fetched once and joined in the browser to the selected area via <code>CLIENTPCODE</code>. This is a context panel only — census values never enter the retrofit calculations.</p>
+      <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
+      <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
+      <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
+
+      <h4>G · Assumptions &amp; known limitations</h4>
+      <p class="caveats"><strong>Fuel energy contents are published Government of Canada conversion factors</strong> (table in section B, sources cited per fuel), applied as single constants — not utility- or year-specific heating values (real delivered natural gas varies by a few percent). They reconcile with HOT2000's own totals to within ~1% (see the validation note in section B); the largest remaining assumption is the 14.0 GJ/t wood fallback on records that predate <code>EGHFCONWOODGJ</code>. Since the headline total (<code>EGHFCONTOTAL</code>) is converted from MJ exactly, none of this affects the savings figures.</p>
+      <p class="caveats"><strong>The ±10% measure thresholds are heuristics</strong>, chosen to separate real work from model-to-model noise, not derived from a formal sensitivity analysis. Negative energy savings occur in ~4% of matched pairs; about three-quarters of those have <em>no</em> measure flagged at all, consistent with inter-audit modelling variance rather than retrofits that backfired.</p>
+      <p class="caveats"><strong>All energy values are HOT2000 modelled estimates</strong> under standard operating conditions, not metered consumption. GHG figures are as computed at audit time with the then-current provincial grid emission factors — they are not re-normalized to a common grid-intensity year, so pre and post audits taken years apart embed slightly different electricity factors.</p>
+      <p class="caveats"><strong>The sample is self-selected</strong>: requiring both a D and an E evaluation selects heavily for incentive-program participants who completed their planned work and booked the follow-up. Savings shown here are therefore likely an upper bound on what an average renovation achieves.</p>
+      <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no cost data, so no payback or dollar figures are shown anywhere.</p>
     </div>
   </details>
 </section>
