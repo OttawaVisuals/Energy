@@ -100,16 +100,34 @@ BASE_MAPPING = [
 
     # Per-fuel (electricity stays as-is kWh; others converted)
     # Keeping these so users can see fuel switching impacts
+    #
+    # Factors are published Government of Canada conversion factors, chosen
+    # per-fuel for the official source that best matches what HOT2000's
+    # internal fuel library applies (validated: per-fuel sums reconcile with
+    # EGHFCONTOTAL to within ~1%; HOT2000's exact library values are not
+    # publicly documented — gas 37.2589 = 1,000 Btu/ft3, oil 38.524, propane
+    # 25.60 per the single-fuel-home reconciliation check, 2008-2025):
+    #   natural gas 37.30 MJ/m3 — CER energy conversion tables
+    #                (0.0373 GJ/m3, "based on 1000 Btu/cf")
+    #   oil         38.80 MJ/L  — StatCan RESD 57-003-X light fuel oil
+    #                (same factor ECCC's National Inventory Report uses)
+    #   propane     25.53 MJ/L  — CER energy conversion tables
     ('Pre_Electricity', 'EGHFCONELEC',      'D', None),
     ('Post_Electricity','EGHFCONELEC',      'E', None),
-    ('Pre_NaturalGas',  'EGHFCONNGAS',      'D', 10.361194),  # m3 -> kWh
-    ('Post_NaturalGas', 'EGHFCONNGAS',      'E', 10.361194),
-    ('Pre_Oil',         'EGHFCONOIL',       'D', 10.2),       # L -> kWh
-    ('Post_Oil',        'EGHFCONOIL',       'E', 10.2),
-    ('Pre_Propane',     'EGHFCONPROP',      'D', 7.092),      # L -> kWh
-    ('Post_Propane',    'EGHFCONPROP',      'E', 7.092),
-    ('Pre_Wood',        'EGHFCONWOOD',      'D', 4166.7),     # tonne -> kWh
-    ('Post_Wood',       'EGHFCONWOOD',      'E', 4166.7),
+    ('Pre_NaturalGas',  'EGHFCONNGAS',      'D', 10.3611),    # m3 -> kWh (37.30 MJ/m3, CER)
+    ('Post_NaturalGas', 'EGHFCONNGAS',      'E', 10.3611),
+    ('Pre_Oil',         'EGHFCONOIL',       'D', 10.7778),    # L -> kWh (38.80 MJ/L, StatCan RESD)
+    ('Post_Oil',        'EGHFCONOIL',       'E', 10.7778),
+    ('Pre_Propane',     'EGHFCONPROP',      'D', 7.0917),     # L -> kWh (25.53 MJ/L, CER)
+    ('Post_Propane',    'EGHFCONPROP',      'E', 7.0917),
+    # Wood: HOT2000 v11.2+ writes EGHFCONWOODGJ (GJ/yr) directly — used when
+    # populated (see apply_mapping), so no heating-value assumption is needed
+    # for those records. The tonne factor below is the fallback for older
+    # records: 14.0 GJ/t, within NRCan Solid Biofuels Bulletin No. 2's range
+    # for stacked air-dry firewood (14-15 MJ/kg HHV) and matching the median
+    # implied by records carrying both columns (wood-type dependent, 13.4-18.0).
+    ('Pre_Wood',        'EGHFCONWOOD',      'D', 3888.89),    # tonne -> kWh (14.0 GJ/t fallback)
+    ('Post_Wood',       'EGHFCONWOOD',      'E', 3888.89),
 
     # --- Envelope ---
     ('Pre_AirLeakage',          'AIR50P',          'D', None),
@@ -173,8 +191,10 @@ DERIVED_COLS = ['EnergySavingPct', 'HeatEnergySavingPct', 'FuelSwitch']
 NEEDED_CSV_COLS = set(FILTER_COLS)
 for _, orig, _, _ in BASE_MAPPING:
     NEEDED_CSV_COLS.add(orig)
-# Also need HPSOURCE and AIRCONDTYPE for flags
-NEEDED_CSV_COLS.update(['HPSOURCE', 'AIRCONDTYPE', 'WINDOWCODE', 'EGHDESHTLOSS', 'ERSGHG', 'KWPV'])
+# Also need HPSOURCE and AIRCONDTYPE for flags, and EGHFCONWOODGJ for the
+# direct-GJ wood path in apply_mapping (absent from pre-v11.2 years — fine).
+NEEDED_CSV_COLS.update(['HPSOURCE', 'AIRCONDTYPE', 'WINDOWCODE', 'EGHDESHTLOSS', 'ERSGHG', 'KWPV',
+                        'EGHFCONWOODGJ'])
 
 D_MAPPING = [m for m in BASE_MAPPING if m[2] == 'D']
 E_MAPPING = [m for m in BASE_MAPPING if m[2] == 'E']
@@ -308,10 +328,30 @@ def clean_ahri(s):
     return s.replace({'': pd.NA, 'nan': pd.NA, 'None': pd.NA})
 
 
+GJ_TO_KWH = 277.778
+
+
+def wood_kwh(df, tonnes_col, tonne_factor):
+    """
+    Wood energy in kWh. Prefer EGHFCONWOODGJ (GJ/yr, written directly by
+    HOT2000 v11.2+) — no heating-value assumption needed. Fall back to
+    tonnes * 14.0 GJ/t for older records where the GJ column is absent/zero.
+    """
+    tonnes = coerce_numeric(df[tonnes_col]) if tonnes_col in df.columns \
+        else pd.Series(pd.NA, index=df.index, dtype=float)
+    kwh = tonnes * tonne_factor
+    if 'EGHFCONWOODGJ' in df.columns:
+        gj = coerce_numeric(df['EGHFCONWOODGJ'])
+        kwh = kwh.where(~(gj > 0), gj * GJ_TO_KWH)
+    return kwh
+
+
 def apply_mapping(df, mapping):
     data = {}
     for col_name, orig, _, conv in mapping:
-        if orig not in df.columns:
+        if col_name in ('Pre_Wood', 'Post_Wood'):
+            data[col_name] = wood_kwh(df, orig, conv)
+        elif orig not in df.columns:
             data[col_name] = pd.Series(pd.NA, index=df.index)
         elif conv is not None:
             data[col_name] = coerce_numeric(df[orig]) * conv
