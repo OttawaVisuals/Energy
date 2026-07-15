@@ -25,11 +25,42 @@
         border: 1px solid rgba(0,0,0,.25); }
   .dot { width: 11px; height: 11px; border-radius: 50%; flex: none;
          border: 1px solid rgba(0,0,0,.35); }
+  .cnt { color: #666; margin-left: auto; font-variant-numeric: tabular-nums; }
   .leaflet-popup-content { font-size: 13px; }
   .leaflet-popup-content table { border-collapse: collapse; }
   .leaflet-popup-content td { padding: 1px 8px 1px 0; vertical-align: top; }
   .leaflet-popup-content td:first-child { color: #555; }
   #note { font-size: 11px; color: #666; margin-top: 6px; }
+
+  /* Conductivity-assumptions panel (bottom-right) */
+  #assumptions { bottom: 24px; right: 10px; max-width: 320px;
+                 max-height: 74vh; display: flex; flex-direction: column; }
+  #asmHead { cursor: pointer; user-select: none; font-size: 13px;
+             display: flex; align-items: center; gap: 6px; }
+  #asmHead .tw { transition: transform .12s; }
+  #assumptions.open #asmHead .tw { transform: rotate(90deg); }
+  #asmBody { display: none; margin-top: 8px; overflow: auto; }
+  #assumptions.open #asmBody { display: block; }
+  #asmBody .hint { font-size: 11px; color: #555; margin: 0 0 8px; }
+  #asmTable { border-collapse: collapse; width: 100%; font-size: 12px; }
+  #asmTable td { padding: 2px 4px; vertical-align: middle; }
+  #asmTable td.bk { text-transform: capitalize; }
+  #asmTable td.rng { color: #888; font-size: 11px; white-space: nowrap;
+                     font-variant-numeric: tabular-nums; }
+  #asmTable input { width: 52px; font-size: 12px; padding: 1px 3px;
+                    text-align: right; font-variant-numeric: tabular-nums; }
+  #asmTable input.edited { background: #fff6d6; border-color: #E8A124; }
+  #asmTable tr .srci { color: #7a7a7a; cursor: help; margin-left: 3px; }
+  #asmReset { margin-top: 8px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
+
+  /* Suitability segment selector (top-left, under the title) */
+  #segsel { top: 96px; left: 54px; max-width: 300px; }
+  #segsel .seghdr { font-weight: 700; font-size: 12px; text-transform: uppercase;
+                    letter-spacing: .04em; color: #333; margin-bottom: 4px; }
+  #segsel label { display: flex; align-items: baseline; gap: 6px; margin: 3px 0;
+                  cursor: pointer; }
+  #segsel label span { color: #666; font-size: 11px; }
+  #segsel .seghint { font-size: 11px; color: #666; margin: 6px 0 0; }
 </style>
 </head>
 <body>
@@ -41,12 +72,33 @@
      Hydro Ottawa feeder capacity (OEB CCIM)</p>
 </div>
 
+<div id="segsel" class="panel">
+  <div class="seghdr">Suitability segment</div>
+  <label><input type="radio" name="seg" value="res" checked>
+    Residential &amp; small commercial <span>(1&ndash;10 tons)</span></label>
+  <label><input type="radio" name="seg" value="large">
+    Large buildings <span>(borefields, 50+ tons)</span></label>
+  <label><input type="radio" name="seg" value="district">
+    District energy <span>(demand + resource)</span></label>
+  <p class="seghint">Restyles the <b>Suitability</b> layer &mdash; enable it in the
+    layer list (top-right). Popups show this segment&rsquo;s factor breakdown.</p>
+</div>
+
 <div id="legend" class="panel">
   <h3>Thermal conductivity (est., W/m&middot;K)</h3>
-  <div class="row"><span class="sw" style="background:#d73027"></span>low &lt; 2.0</div>
-  <div class="row"><span class="sw" style="background:#fee08b"></span>medium 2.0&ndash;2.8</div>
-  <div class="row"><span class="sw" style="background:#1a9850"></span>high &gt; 2.8</div>
+  <div class="row"><span class="sw" style="background:#d73027"></span>low &lt; 2.0<span class="cnt" id="cnt-low"></span></div>
+  <div class="row"><span class="sw" style="background:#fee08b"></span>medium 2.0&ndash;2.8<span class="cnt" id="cnt-medium"></span></div>
+  <div class="row"><span class="sw" style="background:#1a9850"></span>high &gt; 2.8<span class="cnt" id="cnt-high"></span></div>
   <div class="row"><span class="sw" style="background:#999;opacity:.45"></span>low confidence (&lt;5 wells nearby)</div>
+  <h3 id="suit-hdr">Suitability &mdash; residential</h3>
+  <div class="row"><span class="sw" style="background:#6a51a3"></span>strong &ge; 75</div>
+  <div class="row"><span class="sw" style="background:#9e9ac8"></span>good 50&ndash;75</div>
+  <div class="row"><span class="sw" style="background:#cbc9e2"></span>fair 25&ndash;50</div>
+  <div class="row"><span class="sw" style="background:#f2f0f7"></span>poor &lt; 25</div>
+  <h3>Drilling difficulty (screening, 0&ndash;100)</h3>
+  <div class="row"><span class="sw" style="background:#ffffb2"></span>easy &lt; 25</div>
+  <div class="row"><span class="sw" style="background:#fd8d3c"></span>moderate 25&ndash;45</div>
+  <div class="row"><span class="sw" style="background:#bd0026"></span>difficult &ge; 45</div>
   <h3>Open-loop feasibility (wells)</h3>
   <div class="row"><span class="dot" style="background:#1a9850"></span>viable (SWL + yield &ge; 15 L/min)</div>
   <div class="row"><span class="dot" style="background:#fdae61"></span>possible (SWL, yield unknown)</div>
@@ -66,18 +118,42 @@
   <div class="row"><span class="sw" style="background:#555;height:3px;border:none"></span>trunk sanitary sewer</div>
   <div class="row"><span class="sw" style="background:#8c510a;height:3px;border:none"></span>combined sewer</div>
   <div id="note">Conductivity is estimated from drillers&rsquo; lithology logs, not
-  measured. Wells layer draws ~51k points &mdash; toggle it off if zoomed-out panning
+  measured. Class counts above update live when you edit the assumptions panel.
+  Wells layer draws ~51k points &mdash; toggle it off if zoomed-out panning
   feels slow.</div>
+</div>
+
+<div id="assumptions" class="panel">
+  <div id="asmHead"><span class="tw">&#9656;</span><b>Conductivity assumptions</b></div>
+  <div id="asmBody">
+    <p class="hint">Per-bucket thermal conductivity &kappa; (W/m&middot;K),
+      defaulting to VDI&nbsp;4640 (2010) literature values. Edit a value (clamped
+      to its literature min&ndash;max) and every grid cell recomputes
+      <b>exactly</b> as &kappa;<sub>cell</sub> = &Sigma; share<sub>b</sub> &times;
+      &kappa;<sub>b</sub>. Hover the &#9432; for each bucket&rsquo;s source.</p>
+    <table id="asmTable"></table>
+    <button id="asmReset" type="button">Reset all to defaults</button>
+    <p class="hint" style="margin-top:8px">Well marker <b>colours</b> encode
+      open-loop feasibility (not conductivity), so they stay fixed when you edit
+      &kappa;. Each well&rsquo;s conductivity is recomputed from its lithology
+      bucket when you open its popup.</p>
+  </div>
 </div>
 
 <script>
 const GRID = /*__GRID__*/;
+const DIFF = /*__DIFF__*/;         // [w,s,e,n,hi,score,ovb,prob,hard,artesian] per cell
+const SUIT = /*__SUIT__*/;         // [drill,openloop,yield,feeder,zone,sewer,demand] 0-100, aligned to GRID
 const WELLS = /*__WELLS__*/;
-const LITH = /*__LITH__*/;
+const BUCKETS = /*__BUCKETS__*/;   // 14 bucket names, index == bucket id
+const CONDREF = /*__CONDREF__*/;   // [{bucket,default,min,max,source,notes}] in bucket order
 const CAPACITY = /*__CAPACITY__*/;
 const ZONING = /*__ZONING__*/;
 const CITYPOT = /*__CITYPOT__*/;
 const SEWERS = /*__SEWERS__*/;
+
+// live per-bucket conductivity (edited via the assumptions panel)
+const KAPPA = CONDREF.map(r => r.default);
 
 const map = L.map('map', { preferCanvas: true }).setView([45.30, -75.75], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -89,45 +165,183 @@ function fmt(v, unit) { return v === null || v === undefined ? '&mdash;' : v + (
 function popupTable(rows) {
   return '<table>' + rows.map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('') + '</table>';
 }
+const round2 = v => Math.round(v * 100) / 100;
+function condColor(v) { return v < 2.0 ? '#d73027' : (v <= 2.8 ? '#fee08b' : '#1a9850'); }
+function condClass(v) { return v < 2.0 ? 'low' : (v <= 2.8 ? 'medium' : 'high'); }
+
+// cell conductivity from its bucket weight-shares and the current KAPPA
+function cellCond(shares) { let v = 0; for (const [i, s] of shares) v += s * KAPPA[i]; return v; }
+// force a synchronous canvas repaint (this preview environment has no rAF)
+function forceRedraw(canvas) { canvas._redrawBounds = null; canvas._redraw(); }
 
 // ---- conductivity grid --------------------------------------------------
-function condColor(v) { return v < 2.0 ? '#d73027' : (v <= 2.8 ? '#fee08b' : '#1a9850'); }
+const gridCanvas = L.canvas({ padding: 0.3 });
 const gridLayer = L.layerGroup();
+const gridCells = [];   // {rect, shares, hi}
 {
-  const canvas = L.canvas({ padding: 0.3 });
-  for (const [w, s, e, n, cond, hi] of GRID) {
-    L.rectangle([[s, w], [n, e]], {
-      renderer: canvas, stroke: false,
-      fillColor: hi ? condColor(cond) : '#999',
+  for (const [w, s, e, n, hi, shares] of GRID) {
+    const rect = L.rectangle([[s, w], [n, e]], {
+      renderer: gridCanvas, stroke: false,
+      fillColor: hi ? condColor(cellCond(shares)) : '#999',
       fillOpacity: hi ? 0.45 : 0.25,
-    }).bindPopup(popupTable([
-      ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
-      ['Class', cond < 2.0 ? 'low' : (cond <= 2.8 ? 'medium' : 'high')],
-      ['Confidence', hi ? 'high' : 'low (few wells nearby)'],
-    ])).addTo(gridLayer);
+    });
+    rect.bindPopup(() => {
+      const cond = cellCond(shares);
+      // dominant ground mix for context (top buckets by share)
+      const mix = shares.slice().sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([i, sh]) => `${BUCKETS[i]} ${Math.round(sh * 100)}%`).join(', ');
+      return popupTable([
+        ['Est. conductivity', fmt(round2(cond), ' W/m&middot;K')],
+        ['Class', condClass(cond)],
+        ['Confidence', hi ? 'high' : 'low (few wells nearby)'],
+        ['Ground mix', mix],
+      ]);
+    });
+    rect.addTo(gridLayer);
+    gridCells.push({ rect, shares, hi });
   }
+}
+
+function recomputeGrid() {
+  for (const c of gridCells) {
+    if (!c.hi) continue;                       // low-confidence cells stay grey
+    c.rect.setStyle({ fillColor: condColor(cellCond(c.shares)) });
+  }
+  forceRedraw(gridCanvas);
+}
+
+function refreshLegend() {
+  const n = { low: 0, medium: 0, high: 0 };
+  for (const c of gridCells) n[condClass(cellCond(c.shares))]++;
+  for (const k of ['low', 'medium', 'high'])
+    document.getElementById('cnt-' + k).textContent = n[k].toLocaleString();
+}
+
+// ---- drilling-difficulty grid --------------------------------------------
+// Static screening score (0-100) per cell + component breakdown; unlike the
+// conductivity grid nothing here recomputes client-side. Class + dominant
+// driver are derived from the embedded score/components.
+const DIFF_COLOR = { easy: '#ffffb2', moderate: '#fd8d3c', difficult: '#bd0026' };
+const DIFF_DRIVERS = ['overburden', 'problem layers', 'rock hardness', 'artesian'];
+function diffClass(s) { return s < 25 ? 'easy' : (s < 45 ? 'moderate' : 'difficult'); }
+function diffColor(s) { return DIFF_COLOR[diffClass(s)]; }
+function diffDriver(a) { let m = 0; for (let i = 1; i < 4; i++) if (a[i] > a[m]) m = i; return DIFF_DRIVERS[m]; }
+const diffCanvas = L.canvas({ padding: 0.3 });
+const difficultyLayer = L.layerGroup();
+{
+  for (const [w, s, e, n, hi, sc, ov, pr, hd, ar] of DIFF) {
+    L.rectangle([[s, w], [n, e]], {
+      renderer: diffCanvas, stroke: false,
+      fillColor: hi ? diffColor(sc) : '#999', fillOpacity: hi ? 0.5 : 0.25,
+    }).bindPopup(() => popupTable([
+      ['Drilling difficulty', sc + ' / 100 (' + diffClass(sc) + ')'],
+      ['Dominant driver', diffDriver([ov, pr, hd, ar])],
+      ['Overburden (casing)', ov + ' / 40 pts'],
+      ['Problem layers', pr + ' / 20 pts'],
+      ['Rock hardness', hd + ' / 25 pts'],
+      ['Artesian (area)', ar + ' / 15 pts'],
+      ['Confidence', hi ? 'high' : 'low (few wells nearby)'],
+    ])).addTo(difficultyLayer);
+  }
+}
+
+// ---- per-segment suitability ---------------------------------------------
+// Three 0-100 scores per cell = weighted sums of 0-1 factors. Seven factors are
+// static (embedded in SUIT); the eighth, conductivity, is recomputed live from
+// the cell's bucket shares (so editing kappa updates suitability too). Weight
+// table mirrors build_suitability.py's WEIGHTS.
+const SUIT_IDX = { drill: 0, openloop: 1, yield: 2, feeder: 3, zone: 4, sewer: 5, demand: 6 };
+const SEGMENTS = [
+  { id: 'res', label: 'Residential & small commercial',
+    weights: { drill: 0.55, cond: 0.30, openloop: 0.15 } },
+  { id: 'large', label: 'Large buildings (borefields)',
+    weights: { cond: 0.45, drill: 0.25, feeder: 0.20, zone: 0.10 } },
+  { id: 'district', label: 'District energy',
+    weights: { demand: 0.35, yield: 0.20, sewer: 0.20, feeder: 0.15, zone: 0.10 } },
+];
+const FACTOR_LABEL = {
+  cond: 'Conductivity', drill: 'Drilling ease', openloop: 'Open-loop nearby',
+  yield: 'Aquifer yield nearby', feeder: 'Feeder headroom', zone: 'Employment zoning',
+  sewer: 'Trunk-sewer proximity', demand: 'Heat demand (urban proxy)',
+};
+// conductivity factor transform: κ in [COND_LO, COND_HI] -> [0,1] (see build_suitability.py)
+const fCondT = k => Math.max(0, Math.min(1, (k - 1.2) / 2.0));
+function factorVal(i, f) {
+  return f === 'cond' ? fCondT(cellCond(GRID[i][5])) : SUIT[i][SUIT_IDX[f]] / 100;
+}
+function suitScore(i, seg) {
+  let v = 0; for (const f in seg.weights) v += seg.weights[f] * factorVal(i, f);
+  return v * 100;
+}
+function suitClass(v) { return v < 25 ? 'poor' : v < 50 ? 'fair' : v < 75 ? 'good' : 'strong'; }
+function suitColor(v) { return v < 25 ? '#f2f0f7' : v < 50 ? '#cbc9e2' : v < 75 ? '#9e9ac8' : '#6a51a3'; }
+
+let activeSeg = SEGMENTS[0];
+const suitCanvas = L.canvas({ padding: 0.3 });
+const suitLayer = L.layerGroup();
+const suitCells = [];
+if (SUIT.length) {
+  for (let i = 0; i < GRID.length; i++) {
+    const [w, s, e, n, hi] = GRID[i];
+    const rect = L.rectangle([[s, w], [n, e]], {
+      renderer: suitCanvas, stroke: false,
+      fillColor: hi ? suitColor(suitScore(i, activeSeg)) : '#999',
+      fillOpacity: hi ? 0.6 : 0.25,
+    });
+    const idx = i;
+    rect.bindPopup(() => {
+      const seg = activeSeg, sc = suitScore(idx, seg);
+      const rows = [['Segment', seg.label],
+        ['Suitability', Math.round(sc) + ' / 100 (' + suitClass(sc) + ')']];
+      for (const f in seg.weights) {
+        const val = factorVal(idx, f);
+        const extra = f === 'cond' ? ` (&kappa; ${round2(cellCond(GRID[idx][5]))})` : '';
+        rows.push([`${FACTOR_LABEL[f]} &times;${seg.weights[f]}`, val.toFixed(2) + extra]);
+      }
+      rows.push(['Confidence', hi ? 'high' : 'low (few wells nearby)']);
+      return popupTable(rows);
+    });
+    rect.addTo(suitLayer);
+    suitCells.push({ rect, i: idx, hi });
+  }
+}
+function restyleSuitability() {
+  for (const c of suitCells) {
+    if (!c.hi) continue;
+    c.rect.setStyle({ fillColor: suitColor(suitScore(c.i, activeSeg)) });
+  }
+  forceRedraw(suitCanvas);
 }
 
 // ---- wells ---------------------------------------------------------------
 const OL_NAME = ['unlikely', 'possible', 'viable'];
 const OL_COLOR = ['#bbbbbb', '#fdae61', '#1a9850'];
+// source-flag labels, matching build_map.py's GEOM_SRC/BEDROCK_SRC/LITH_SRC dicts
+const GS_NAME = ['shapefile', 'borehole record'];
+const BS_NAME = ['&mdash;', 'shapefile', 'formations fallback'];
+const LS_NAME = ['&mdash;', 'well log', 'GSC mapped geology'];
 const wellsLayer = L.layerGroup();
 {
   const canvas = L.canvas({ padding: 0.3 });
-  for (const [lon, lat, ol, cond, yld, swl, dep, bed, li, id] of WELLS) {
+  for (const [lon, lat, ol, yld, swl, dep, bed, bi, id, gs, bs, ls] of WELLS) {
     L.circleMarker([lat, lon], {
       renderer: canvas, radius: 3, weight: 0.5, color: '#333',
-      fillColor: OL_COLOR[ol], fillOpacity: 0.8,
-    }).bindPopup(() => popupTable([
-      ['Well ID', id],
-      ['Open loop', OL_NAME[ol]],
-      ['Lithology', LITH[li]],
-      ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
-      ['Yield', fmt(yld, ' L/min')],
-      ['Static water level', fmt(swl, ' m')],
-      ['Total depth', fmt(dep, ' m')],
-      ['Depth to bedrock', fmt(bed, ' m')],
-    ])).addTo(wellsLayer);
+      fillColor: OL_COLOR[ol], fillOpacity: 0.8,      // colour = open-loop, not conductivity
+    }).bindPopup(() => {
+      const cond = bi >= 0 ? round2(KAPPA[bi]) : null;   // recomputed from current KAPPA
+      const lithName = bi >= 0 ? BUCKETS[bi] : 'unknown';
+      return popupTable([
+        ['Well ID', id],
+        ['Open loop', OL_NAME[ol]],
+        ['Lithology', lithName + (ls ? ` (${LS_NAME[ls]})` : '')],
+        ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
+        ['Yield', fmt(yld, ' L/min')],
+        ['Static water level', fmt(swl, ' m')],
+        ['Total depth', fmt(dep, ' m')],
+        ['Depth to bedrock', fmt(bed, ' m') + (bed !== null && bs ? ` (${BS_NAME[bs]})` : '')],
+        ['Location source', GS_NAME[gs]],
+      ]);
+    }).addTo(wellsLayer);
   }
 }
 
@@ -193,12 +407,87 @@ gridLayer.addTo(map);
 capacityLayer.addTo(map);
 L.control.layers(null, {
   'Thermal conductivity grid': gridLayer,
+  'Suitability (by segment)': suitLayer,
+  'Drilling difficulty (screening)': difficultyLayer,
   'Wells (open-loop feasibility)': wellsLayer,
   'Hydro Ottawa feeder capacity': capacityLayer,
   'City open-loop potential': cityPotLayer,
   'Industrial / employment zoning': zoningLayer,
   'Trunk & combined sewers': sewerLayer,
 }, { collapsed: false }).addTo(map);
+
+// ---- conductivity-assumptions panel ---------------------------------------
+(function () {
+  const asm = document.getElementById('assumptions');
+  const table = document.getElementById('asmTable');
+  // stop map drag/zoom/scroll from firing while interacting with the panel
+  L.DomEvent.disableClickPropagation(asm);
+  L.DomEvent.disableScrollPropagation(asm);
+
+  document.getElementById('asmHead').addEventListener('click',
+    () => asm.classList.toggle('open'));
+
+  CONDREF.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const tip = (r.source || '') + (r.notes ? '\n\n' + r.notes : '');
+    tr.innerHTML =
+      `<td class="bk">${r.bucket}<span class="srci" title="${tip.replace(/"/g, '&quot;')}">&#9432;</span></td>` +
+      `<td><input type="number" step="0.1" min="${r.min}" max="${r.max}" ` +
+      `value="${r.default}" data-b="${i}"></td>` +
+      `<td class="rng">def ${r.default}<br>[${r.min}&ndash;${r.max}]</td>`;
+    table.appendChild(tr);
+  });
+
+  function onEdit(e) {
+    const inp = e.target, i = +inp.dataset.b, r = CONDREF[i];
+    let v = parseFloat(inp.value);
+    if (isNaN(v)) v = r.default;
+    v = Math.min(r.max, Math.max(r.min, v));
+    KAPPA[i] = v;
+    if (e.type === 'change') inp.value = v;             // hard-clamp on commit
+    inp.classList.toggle('edited', v !== r.default);
+    recomputeGrid();
+    refreshLegend();
+  }
+  table.addEventListener('input', onEdit);
+  table.addEventListener('change', onEdit);
+
+  document.getElementById('asmReset').addEventListener('click', () => {
+    CONDREF.forEach((r, i) => { KAPPA[i] = r.default; });
+    table.querySelectorAll('input').forEach(inp => {
+      inp.value = CONDREF[+inp.dataset.b].default;
+      inp.classList.remove('edited');
+    });
+    recomputeGrid();
+    refreshLegend();
+  });
+})();
+
+// ---- suitability segment selector -----------------------------------------
+(function () {
+  const sel = document.getElementById('segsel');
+  L.DomEvent.disableClickPropagation(sel);
+  L.DomEvent.disableScrollPropagation(sel);
+  const hdr = document.getElementById('suit-hdr');
+  sel.addEventListener('change', e => {
+    if (e.target.name !== 'seg') return;
+    activeSeg = SEGMENTS.find(s => s.id === e.target.value);
+    hdr.innerHTML = 'Suitability &mdash; ' + activeSeg.id
+      .replace('res', 'residential').replace('large', 'large buildings')
+      .replace('district', 'district energy');
+    map.closePopup();                 // avoid a stale other-segment popup
+    restyleSuitability();
+  });
+})();
+
+// keep suitability in sync when a conductivity value is edited (cond factor)
+const _origRecompute = recomputeGrid;
+recomputeGrid = function () {
+  _origRecompute();
+  if (map.hasLayer(suitLayer)) restyleSuitability();
+};
+
+refreshLegend();   // initial class counts
 </script>
 </body>
 </html>

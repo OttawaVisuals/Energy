@@ -66,12 +66,37 @@ import argparse
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 try:
     import geopandas as gpd
 except ImportError:
     sys.exit("geopandas is required: pip install geopandas pandas shapely pyproj")
+
+from conductivity import load_reference
+
+# Ottawa area only ever needs NAD83 UTM zone 17 or 18 (tblBore_Hole ZONE column
+# occasionally has a stray 16 or 43 -- location errors, dropped per §3.1).
+UTM_EPSG = {17: 26917, 18: 26918}
+
+# GSC national bedrock geology (mapped-geology fallback for wells with no
+# usable formation record). SUBRXTP is the finer rock-type field; RXTP is the
+# coarse fallback when SUBRXTP isn't one of the values seen in the Ottawa area.
+# Mapping documented in README.md §3.1 "Lithology fallback from mapped geology".
+GSC_SUBRXTP_BUCKET = {
+    "paragneiss": "gneiss",
+    "marble": "limestone",
+    "undivided granitoid rocks": "granite",
+    "syenite, monzodiorite": "granite",
+    "undivided sedimentary rocks": "limestone",  # St. Lawrence Platform Paleozoic
+}
+GSC_RXTP_BUCKET = {
+    "metamorphic rocks": "gneiss",
+    "intrusive rocks": "granite",
+    "sedimentary rocks": "limestone",
+}
+GSC_GDB = Path(__file__).resolve().parents[1] / "Data" / "Raw" / "GSC" / "gsc_bedrock_geology.gdb.zip"
 
 
 # --------------------------------------------------------------------------
@@ -122,14 +147,12 @@ CODE_FILE = {
     "construct_method": "_code_construct_method",
 }
 
-# lithology bucket -> approximate mid-range thermal conductivity (W/m.K),
-# from published GSHP design literature. ESTIMATES from lithology, not measured.
-CONDUCTIVITY_WM = {
-    "limestone": 2.8, "dolostone": 3.0, "sandstone": 2.3, "shale": 1.9,
-    "granite": 3.2, "gneiss": 3.0, "clay": 1.4, "silt": 1.5, "sand": 2.4,
-    "gravel": 2.0, "till": 1.8, "fill": 1.5, "basalt": 2.0,
-    "rock": 2.5,      # code 26 "ROCK", type unspecified: mid-range bedrock
-}
+# lithology bucket -> approximate mid-range thermal conductivity (W/m.K).
+# Literature-sourced values live in Data/conductivity_reference.csv (VDI 4640
+# Blatt 1:2010 ranges; see conductivity.py + README "Conductivity assumptions &
+# sources"); the built-in dict in conductivity.py is only a fallback.
+# ESTIMATES from lithology words, not measured.
+CONDUCTIVITY_WM, _COND_REF = load_reference()
 
 # decoded material word -> lithology bucket used above.
 BUCKET = {
@@ -235,10 +258,15 @@ def load_lookups(src: Source) -> dict:
             des_c = col(df, "DES", "DESCRIPTION", "des", "name", df.columns[1])
             n = 0
             for _, r in df.iterrows():
+                if pd.isna(r[code_c]):
+                    continue
                 desc = str(r[des_c]).strip()
-                if desc and desc.lower() != "nan":
-                    table[_norm_key(r[code_c])] = desc
-                    n += 1
+                if not desc or desc.lower() == "nan":   # e.g. final_status code 0: blank DES
+                    desc = "Not specified"
+                if desc == "Commerical":          # typo in the source _codeWaterUse table
+                    desc = "Commercial"
+                table[_norm_key(r[code_c])] = desc
+                n += 1
             print(f"    -> {key}: loaded {n} codes from {CODE_FILE[key]}")
         else:
             print(f"    -> {key}: using {len(table)} built-in codes "
@@ -411,17 +439,96 @@ def read_shapefile(shp_path: Path) -> gpd.GeoDataFrame:
     return shp.drop_duplicates("WELL_ID")
 
 
+def load_borehole_coords(src) -> pd.DataFrame | None:
+    """WELL_ID -> lon/lat recovered from tblBore_Hole's ZONE/EAST83/NORTH83
+    (NAD83 UTM) for wells the shapefile has no geometry for."""
+    df = src.table("tblBore_Hole")
+    if df is None:
+        return None
+    wid, zone, east, north = (col(df, "WELL_ID"), col(df, "ZONE"),
+                              col(df, "EAST83"), col(df, "NORTH83"))
+    if not (wid and zone and east and north):
+        return None
+    out = pd.DataFrame({
+        "WELL_ID": df[wid].astype(str).str.strip(),
+        "ZONE": num(df[zone]),
+        "EAST83": num(df[east]),
+        "NORTH83": num(df[north]),
+    }).dropna(subset=["ZONE", "EAST83", "NORTH83"])
+    out = out[out["ZONE"].astype(int).isin(UTM_EPSG)].drop_duplicates("WELL_ID")
+    return out
+
+
+def load_gsc_geology(path: Path):
+    """GSC national bedrock geology, bucketed to combine_wells.py's lithology
+    buckets and reprojected to 4326. Returns None if the file is missing."""
+    if not path.exists():
+        return None
+    gdf = gpd.read_file(path, layer="Wheeler_Bedrock")
+
+    def bucket_row(r):
+        st = str(r.get("SUBRXTP") or "").strip().lower()
+        if st in GSC_SUBRXTP_BUCKET:
+            return GSC_SUBRXTP_BUCKET[st]
+        rt = str(r.get("RXTP") or "").strip().lower()
+        return GSC_RXTP_BUCKET.get(rt)
+
+    gdf["gsc_bucket"] = gdf.apply(bucket_row, axis=1)
+    gdf = gdf[gdf["gsc_bucket"].notna()][["gsc_bucket", "geometry"]].to_crs(4326)
+    print(f"  [gsc] {path.name}: {len(gdf):,} mapped polygons bucketed "
+          f"(of the national layer)")
+    return gdf
+
+
+def gsc_lithology_lookup(gsc_gdf, wells_needing_lith: gpd.GeoDataFrame) -> dict:
+    """WELL_ID -> GSC-mapped lithology bucket, for wells with geometry but no
+    well-log-derived lithology, via point-in-polygon spatial join."""
+    if gsc_gdf is None or wells_needing_lith.empty:
+        return {}
+    joined = gpd.sjoin(wells_needing_lith[["WELL_ID", "geometry"]], gsc_gdf,
+                       how="left", predicate="within")
+    joined = joined.dropna(subset=["gsc_bucket"]).drop_duplicates("WELL_ID")
+    return dict(zip(joined["WELL_ID"], joined["gsc_bucket"]))
+
+
 def build_wells(src, lut, shp, formations, water, pump_tests):
     wwr = src.table("tblWWR", required=True)
+    use1 = (wwr[col(wwr, "USE_1ST")].map(lambda x: decode(x, lut["water_use"]))
+            if col(wwr, "USE_1ST") else pd.Series([None] * len(wwr)))
+    if col(wwr, "USE_2ND"):
+        use2 = wwr[col(wwr, "USE_2ND")].map(lambda x: decode(x, lut["water_use"]))
+        well_use = use1.fillna(use2)
+        print(f"  [wells] well_use: recovered {(use1.isna() & well_use.notna()).sum():,} "
+              f"from USE_2ND fallback")
+    else:
+        well_use = use1
     wells = pd.DataFrame({
         "WELL_ID": wwr[col(wwr, "WELL_ID")].astype(str).str.strip(),
         "county": wwr[col(wwr, "COUNTY")] if col(wwr, "COUNTY") else None,
-        "well_use": wwr[col(wwr, "USE_1ST")].map(lambda x: decode(x, lut["water_use"])) if col(wwr, "USE_1ST") else None,
+        "well_use": well_use,
         "status": wwr[col(wwr, "FINAL_STA")].map(lambda x: decode(x, lut["final_status"])) if col(wwr, "FINAL_STA") else None,
     }).drop_duplicates("WELL_ID")
 
     # geometry + authoritative metric depths from the shapefile
     wells = wells.merge(shp, on="WELL_ID", how="left")
+    wells["geometry_source"] = np.where(wells["geometry"].notna(), "shp", None)
+
+    # ---- geometry recovery from tblBore_Hole (ZONE/EAST83/NORTH83, NAD83 UTM)
+    bh = load_borehole_coords(src)
+    if bh is not None:
+        missing = wells.loc[wells["geometry"].isna(), ["WELL_ID"]]
+        cand = missing.merge(bh, on="WELL_ID", how="inner")
+        recovered = {}
+        for zone, grp in cand.groupby("ZONE"):
+            pts = gpd.GeoSeries(gpd.points_from_xy(grp["EAST83"], grp["NORTH83"]),
+                                crs=UTM_EPSG[int(zone)]).to_crs(4326)
+            recovered.update(dict(zip(grp["WELL_ID"], pts)))
+        if recovered:
+            hit = wells["WELL_ID"].isin(recovered)
+            wells.loc[hit, "geometry"] = wells.loc[hit, "WELL_ID"].map(recovered)
+            wells.loc[hit, "geometry_source"] = "borehole"
+        print(f"  [wells] geometry: recovered {len(recovered):,} of {len(missing):,} "
+              f"missing-geometry wells from tblBore_Hole")
 
     # ---- formation-derived per-well fields
     f = formations.dropna(subset=["WELL_ID"]).copy()
@@ -455,10 +562,26 @@ def build_wells(src, lut, shp, formations, water, pump_tests):
     bedrock_lith = (fb.sort_values("_thick", ascending=False)
                       .drop_duplicates("WELL_ID").set_index("WELL_ID")["lithology"]
                       .rename("bedrock_lithology"))
+    bedrock_top = fb.groupby("WELL_ID")["top_depth_m"].min().rename("bedrock_depth_formations")
 
     wells = (wells.merge(summary, on="WELL_ID", how="left")
                   .merge(primary, on="WELL_ID", how="left")
-                  .merge(bedrock_lith, on="WELL_ID", how="left"))
+                  .merge(bedrock_lith, on="WELL_ID", how="left")
+                  .merge(bedrock_top, on="WELL_ID", how="left"))
+
+    # ---- bedrock depth fallback: shapefile DP_BEDROCK is authoritative;
+    # where null, use the shallowest bedrock-bucket formation interval
+    wells["bedrock_depth_source"] = np.where(wells["bedrock_depth_m"].notna(), "shp", None)
+    both = wells[wells["bedrock_depth_m"].notna() & wells["bedrock_depth_formations"].notna()]
+    if not both.empty:
+        diff = (both["bedrock_depth_m"] - both["bedrock_depth_formations"]).abs()
+        print(f"  [wells] bedrock depth: median |shp - formations| = {diff.median():.2f} m "
+              f"(n={len(both):,} wells with both)")
+    fill = wells["bedrock_depth_m"].isna() & wells["bedrock_depth_formations"].notna()
+    wells.loc[fill, "bedrock_depth_m"] = wells.loc[fill, "bedrock_depth_formations"]
+    wells.loc[fill, "bedrock_depth_source"] = "formations"
+    print(f"  [wells] bedrock_depth_m: recovered {fill.sum():,} from formations fallback")
+    wells = wells.drop(columns=["bedrock_depth_formations"])
 
     # ---- pump-test-derived yield (max pumping rate per well)
     if pump_tests is not None:
@@ -469,7 +592,28 @@ def build_wells(src, lut, shp, formations, water, pump_tests):
 
     # ---- derived screening fields (summary section 6)
     cond_source = wells["bedrock_lithology"].fillna(wells["primary_lithology"])
-    wells["estimated_conductivity_wm"] = cond_source.map(CONDUCTIVITY_WM)
+
+    # lithology fallback: for wells with no well-log lithology but real
+    # geometry, spatial-join to the GSC mapped bedrock geology (weaker
+    # evidence than a well log -- flagged via lithology_source)
+    gsc = load_gsc_geology(GSC_GDB)
+    need = cond_source.isna() & wells["geometry"].notna()
+    gsc_map = {}
+    if need.any():
+        subset = gpd.GeoDataFrame(wells.loc[need, ["WELL_ID"]],
+                                  geometry=wells.loc[need, "geometry"], crs=4326)
+        gsc_map = gsc_lithology_lookup(gsc, subset)
+        print(f"  [wells] lithology: recovered {len(gsc_map):,} of {need.sum():,} "
+              f"unknown-lithology wells from GSC mapped geology")
+    gsc_lith = wells["WELL_ID"].map(gsc_map)
+
+    final_lithology = cond_source.fillna(gsc_lith)
+    wells["lithology_source"] = None
+    wells.loc[cond_source.notna(), "lithology_source"] = "well_log"
+    wells.loc[cond_source.isna() & gsc_lith.notna(), "lithology_source"] = "gsc_map"
+
+    wells["lithology"] = final_lithology.fillna("unknown")   # well_log, else gsc_map, else unknown
+    wells["estimated_conductivity_wm"] = final_lithology.map(CONDUCTIVITY_WM)
     wells["estimated_conductivity_class"] = wells["estimated_conductivity_wm"].map(
         lambda v: "unknown" if pd.isna(v) else ("low" if v < 2.0 else ("medium" if v <= 2.8 else "high")))
     wells["bedrock_indicator"] = wells["bedrock_lithology"].notna() | wells.get("bedrock_depth_m").notna()

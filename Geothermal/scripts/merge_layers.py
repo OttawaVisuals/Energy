@@ -5,6 +5,8 @@ Merge the processed layers into a single FeatureCollection where every feature
 carries a `layer` property naming its source dataset:
 
     conductivity_grid          Data/processed/thermal_conductivity_grid.geojson
+    difficulty_grid            Data/processed/difficulty_grid.geojson
+    suitability_grid           Data/processed/suitability_grid.geojson
     wells                      ottawa_geothermal.gpkg wells layer (points, slimmed)
     grid_capacity              ../GridCapacity/ottawa_capacity.geojson (slimmed +
                                simplified geometry)
@@ -33,6 +35,8 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parents[1]              # Geothermal/
 GRID = HERE / "Data" / "processed" / "thermal_conductivity_grid.geojson"
+DIFF = HERE / "Data" / "processed" / "difficulty_grid.geojson"
+SUIT = HERE / "Data" / "processed" / "suitability_grid.geojson"
 GPKG = HERE / "Data" / "processed" / "ottawa_geothermal.gpkg"
 CAPACITY = HERE.parent / "GridCapacity" / "ottawa_capacity.geojson"
 OUT = HERE / "Data" / "processed" / "combined_layers.geojson"
@@ -47,9 +51,13 @@ WELL_COLS = {                       # source column -> output property
     "well_yield_lpm": "well_yield_lpm",
     "bedrock_lithology": "bedrock_lithology",
     "primary_lithology": "primary_lithology",
+    "lithology": "lithology",
     "estimated_conductivity_wm": "conductivity_wm",
     "estimated_conductivity_class": "conductivity_class",
     "open_loop": "open_loop",
+    "geometry_source": "geometry_source",
+    "bedrock_depth_source": "bedrock_depth_source",
+    "lithology_source": "lithology_source",
 }
 
 CAP_COLS = {
@@ -83,6 +91,20 @@ def main():
     grid = gpd.read_file(GRID)
     features += to_features(grid, "conductivity_grid")
     print(f"conductivity_grid: {len(grid):,} cells")
+
+    if DIFF.exists():
+        diff = gpd.read_file(DIFF)
+        features += to_features(diff, "difficulty_grid")
+        print(f"difficulty_grid: {len(diff):,} cells")
+    else:
+        print(f"difficulty_grid: missing, skipped ({DIFF.name} not found)")
+
+    if SUIT.exists():
+        suit = gpd.read_file(SUIT)
+        features += to_features(suit, "suitability_grid")
+        print(f"suitability_grid: {len(suit):,} cells")
+    else:
+        print(f"suitability_grid: missing, skipped ({SUIT.name} not found)")
 
     wells = gpd.read_file(GPKG, layer="wells")
     wells = wells[wells.geometry.notna()].cx[BBOX[0]:BBOX[2], BBOX[1]:BBOX[3]]
