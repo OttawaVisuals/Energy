@@ -90,6 +90,21 @@ body.mode-advanced .cap-simple{display:none}
 .filter-group input::placeholder{color:var(--light);text-transform:none}
 .filter-group input:hover{border-color:var(--navy)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+/* Measures multi-select: a button styled like the sibling <select>s that
+   toggles a checkbox panel — native <select multiple> can't render as a
+   compact dropdown, so this is hand-rolled. */
+.multi-select{position:relative}
+.multi-select-btn{height:36px;width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;transition:border-color .15s}
+.multi-select-btn:hover{border-color:var(--navy)}
+.multi-select-btn:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.multi-select-btn .caret{font-size:9px;color:var(--muted);flex-shrink:0}
+.multi-select-btn.has-selection{border-color:var(--amber);color:var(--navy);font-weight:500}
+.multi-select-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:235px;max-width:calc(100vw - 2rem);background:var(--white);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 20px rgba(11,37,69,.18);padding:6px;z-index:120}
+.multi-select.open .multi-select-panel{display:block}
+.multi-select-note{font-size:11px;color:var(--muted);padding:4px 8px 7px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.multi-select-panel label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text);cursor:pointer;white-space:nowrap}
+.multi-select-panel label:hover{background:rgba(11,37,69,.06)}
+.multi-select-panel input[type=checkbox]{height:auto;width:15px;border:none;padding:0;margin:0;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
 .filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--navy);color:var(--navy)}
 .filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
@@ -376,6 +391,12 @@ footer a:hover{color:var(--amber2)}
         <option value="Medium_Retrofit">Medium — 10 to 50%</option>
         <option value="Shallow_Retrofit">Shallow — under 10%</option>
       </select>
+    </div>
+    <div class="filter-group" style="display:none"><label id="measures-label" for="measures-btn">Measures done</label>
+      <div class="multi-select" id="measures-dd">
+        <button type="button" class="multi-select-btn" id="measures-btn" aria-haspopup="true" aria-expanded="false"><span id="measures-btn-text">Any measures</span><span class="caret">&#9660;</span></button>
+        <div class="multi-select-panel" id="measures-panel" role="group" aria-labelledby="measures-label"></div>
+      </div>
     </div>
     <button class="filter-reset" onclick="resetFilters()">Reset</button>
   </div>
@@ -1321,6 +1342,7 @@ function showFsaFilterControls(show){
   const display=show?'':'none';
   $('fuel-sel').closest('.filter-group').style.display=display;
   $('depth-sel').closest('.filter-group').style.display=display;
+  $('measures-dd').closest('.filter-group').style.display=display;
 }
 
 function applyFilters(){
@@ -1328,14 +1350,17 @@ function applyFilters(){
   // loadProvinceView()+renderProvince() instead.
   if(MODE!=='fsa'){return;}
   const type=$('type-sel').value,
-        fuel=$('fuel-sel').value,depth=$('depth-sel').value;
+        fuel=$('fuel-sel').value,depth=$('depth-sel').value,
+        meas=selectedMeasures(); // AND semantics: home did at least all checked measures
   FILTERED=ALL.filter(r=>
     (!type||r.BldgType===type)&&
-    (!fuel||r.Pre_HeatFuel===fuel)&&(!depth||flag(r,depth)));
+    (!fuel||r.Pre_HeatFuel===fuel)&&(!depth||flag(r,depth))&&
+    meas.every(m=>flag(r,m)));
   render();
 }
 function resetFilters(){
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  clearMeasures();
   if(MODE==='fsa'){
     FILTERED=[...ALL];render();
   }else if(MODE==='province'){
@@ -3595,6 +3620,7 @@ function goToPostal(raw){
       SELECTED_TYPE='';
       $('province-sel').value=PROVINCE_CODE;
       ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+      clearMeasures();
       updateShareUrl();
       load(); // syncs the FSA dropdown + map zoom itself once the index re-resolves (cached)
     }).catch(()=>tryNext(i+1));
@@ -3610,6 +3636,7 @@ $('province-sel').addEventListener('change',function(){
   // Reset filters when province changes
   SELECTED_FSA='';SELECTED_TYPE='';
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  clearMeasures();
   $('fsa-sel').value='';
   $('pc-input').value='';showPcHint('');
   updateShareUrl();
@@ -3623,6 +3650,7 @@ $('fsa-sel').addEventListener('change',function(){
   SELECTED_FSA=this.value;
   if(!PROVINCE_CODE)return;
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  clearMeasures();
   updateShareUrl();
   // Mint a fresh token so a slow fetch from a previously-selected FSA that
   // lands after this one is discarded by the myToken!==LOAD_TOKEN guard.
@@ -3648,6 +3676,43 @@ $('type-sel').addEventListener('change',function(){
 });
 $('fuel-sel').addEventListener('change',applyFilters);
 $('depth-sel').addEventListener('change',applyFilters);
+
+// ── Measures multi-select (FSA view only, like fuel/depth) ──────────
+// Checkboxes over the MEASURES list; a home matches when it did ALL the
+// checked measures (it may have done more), so checking nothing = no filter.
+function populateMeasuresPanel(){
+  const panel=$('measures-panel');
+  panel.innerHTML='<div class="multi-select-note">Homes that did at least the checked measures</div>'+
+    MEASURES.map(m=>`<label><input type="checkbox" value="${m.key}"> ${m.label}</label>`).join('');
+  panel.querySelectorAll('input').forEach(cb=>
+    cb.addEventListener('change',()=>{updateMeasuresBtn();applyFilters();}));
+}
+function selectedMeasures(){
+  return[...document.querySelectorAll('#measures-panel input:checked')].map(cb=>cb.value);
+}
+function updateMeasuresBtn(){
+  const sel=selectedMeasures();
+  $('measures-btn-text').textContent=
+    sel.length===0?'Any measures':
+    sel.length===1?MEASURES.find(m=>m.key===sel[0]).label:
+    `${sel.length} measures`;
+  $('measures-btn').classList.toggle('has-selection',sel.length>0);
+}
+function clearMeasures(){
+  document.querySelectorAll('#measures-panel input:checked').forEach(cb=>cb.checked=false);
+  updateMeasuresBtn();
+}
+function closeMeasuresPanel(){
+  $('measures-dd').classList.remove('open');
+  $('measures-btn').setAttribute('aria-expanded','false');
+}
+$('measures-btn').addEventListener('click',function(){
+  const open=$('measures-dd').classList.toggle('open');
+  this.setAttribute('aria-expanded',open);
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#measures-dd'))closeMeasuresPanel();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMeasuresPanel();});
+populateMeasuresPanel();
 
 // ── Simple / Advanced mode ──────────────────────────────────────────
 // body.mode-simple/.mode-advanced (set as early as possible, in the inline
