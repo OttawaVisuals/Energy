@@ -21,9 +21,13 @@ API, and the on-disk state):**
 | Landing page | 🆕 not started (`…/Energy/` 404s) |
 | Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`); weekly workflow's first scheduled run is Mon 2026-07-13 13:00 UTC — check it went green; `grid.html` page not started |
 | Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
+| Geothermal v2 | ✅ done 2026-07-15 (item 8) — all 4 phases: data fixes, conductivity sensitivity, drilling difficulty, segment suitability |
 
-**Recommended order (remaining):** 5 → 6-page → 7 (items 2 and 4 completed
-2026-07-12; all three remaining items are independent of each other).
+**Recommended order (remaining):** 5 → 6-page → 7 → 8 (items 2 and 4 completed
+2026-07-12). Items 5, 6-page, 7 and 8 are independent of each other, except
+item 8 Phase D consumes item 7's `heat_demand_grid.geojson` if it exists (it
+degrades gracefully otherwise — running 7 first makes the district-energy
+score better).
 
 ---
 
@@ -565,6 +569,238 @@ under ~10 MB — drop per-cell fields the popup doesn't show). Re-run the
 full chain, verify in a browser preview (all eight layers, popups, no
 console errors), update README.md §layers and GEOTHERMAL_STATUS.md, and
 republish per the item-1 deployment pattern.
+```
+
+---
+
+## 8. Geothermal v2 — data fixes, conductivity sensitivity, drilling difficulty, segment suitability (4 sessions)
+
+**✅ DONE 2026-07-15 — all four phases (A data fixes, B conductivity sensitivity,
+C drilling difficulty, D segment suitability) built, verified and republished.**
+See GEOTHERMAL_STATUS.md session entries and Geothermal/README.md §3.1/§3.7/§3.8/§3.9.
+
+Rework of the shipped geothermal map (item 1), planned 2026-07-15 after a data
+audit of `ottawa_geothermal.gpkg` and the raw exports. Audit findings the
+phases are built on (all verified against the on-disk data):
+
+- **Categorization bugs:** `status` shows `code:0` for 464 wells — the
+  `_code_final_status.csv` code-0 row has a *blank* description, and
+  `decode()` treats blank as unresolved. `well_use` shows "Commerical"
+  (typo in the source `_codeWaterUse` table) and is NaN for 8,123 wells
+  (tblWWR has a `USE_2ND` column to fall back on).
+- **Missing geometry (5,068 wells):** only 65 are recoverable from
+  `tblBore_Hole.EAST83/NORTH83` (NAD83 UTM; ZONE=18 for all but ~12 rows) —
+  checked; the rest have no coordinates anywhere in the export. Recover the
+  65, document the rest as irreducible.
+- **Missing bedrock depth (27,428 wells):** 10,915 of them have a
+  bedrock-bucket formation interval whose `top_depth_m` can stand in for
+  `DP_BEDROCK` — checked.
+- **Unknown lithology/conductivity (9,180 wells, 7,872 with no formation
+  record at all):** the unused GSC bedrock geology gdb
+  (`Geothermal/Data/Raw/GSC/gsc_bedrock_geology.gdb.zip`) can assign a
+  mapped-geology fallback bucket by spatial join (this was already README
+  next-step #5).
+- **Sensitivity is exactly computable client-side:** IDW is *linear* in the
+  per-well conductivity values, so precomputing each grid cell's IDW weight
+  share per lithology bucket makes user-edited bucket conductivities an
+  exact recompute (cell κ = Σ shareᵦ × κᵦ) — no server, no approximation.
+- **Difficulty inputs exist:** 7,395 wells log boulders / stones / quicksand /
+  hardpan layers; 503 wells have flowing-artesian pump tests;
+  overburden thickness ≈ casing metres; drilling-method codes are decoded
+  for 50,720 wells (validation cross-check).
+
+Phases A→D are sequential — each rebuilds the chain on top of the previous.
+Commit after each phase (the map stays publishable throughout).
+
+### Prompt — Phase A: well data quality fixes (Sonnet)
+
+```text
+Read GEOTHERMAL_STATUS.md, Geothermal/README.md §3.1 and ROADMAP.md item 8
+first. Goal: fix the categorization/missing-data issues in
+Geothermal/scripts/combine_wells.py and rebuild ottawa_geothermal.gpkg.
+The audit numbers below were verified 2026-07-15 against the current gpkg.
+
+1. Code decoding: decode() returns "code:0" for 464 wells because
+   _code_final_status.csv's code-0 row has a blank DES. Treat a blank/NaN
+   description as "Not specified" instead of unresolved. Also normalize
+   the source table's "Commerical" typo to "Commercial" at decode time
+   (leave the raw CSVs untouched).
+2. well_use is NaN for 8,123 wells. tblWWR has USE_2ND — fall back to it
+   when USE_1ST is empty and report how many recover.
+3. Geometry: 5,068 wells have none. tblBore_Hole_Ottawa.csv carries
+   ZONE/EAST83/NORTH83 (NAD83 UTM; zone 18 except ~12 rows) — checked:
+   exactly 65 of the missing-geometry wells have usable coordinates there.
+   Recover those (EPSG:26918→4326, respect ZONE, drop zones not in
+   {17,18}), add a geometry_source flag (shp | borehole), and document the
+   remaining ~5,000 as irreducible in README §5.
+4. bedrock_depth_m is missing for 27,428 wells; 10,915 of them have a
+   bedrock-bucket formation interval (checked). Where the shapefile
+   DP_BEDROCK is null, use the minimum top_depth_m of the well's
+   bedrock-bucket layers; add bedrock_depth_source (shp | formations).
+   Sanity check: on wells where BOTH exist, print the median absolute
+   difference between DP_BEDROCK and the formations-derived depth —
+   investigate if it's more than a few metres.
+5. Lithology fallback from mapped geology: 9,180 wells have unknown
+   lithology (7,872 with no formation record at all). Unzip
+   Geothermal/Data/Raw/GSC/gsc_bedrock_geology.gdb.zip, inspect its
+   layers, and spatial-join unknown-lithology wells to the mapped bedrock
+   formation; map the GSC rock-type attribute onto combine_wells.py's
+   lithology buckets (document the mapping table in README). Add
+   lithology_source (well_log | gsc_map) to the wells layer and keep
+   estimated_conductivity_* consistent. GSC-derived lithology is weaker
+   evidence — the flag must survive into merge_layers.py's popup fields
+   so later phases can show it.
+6. Re-run the chain (combine_wells → interpolate_conductivity →
+   merge_layers → build_map) and report new conductivity-class counts vs
+   old (medium 37,671 / low 7,351 / high 1,701 / unknown 9,180). Update
+   Geothermal/README.md (§3.1, §4, §5) and append a session entry to
+   GEOTHERMAL_STATUS.md. Verify the rebuilt map in a browser preview
+   (well popups show the source flags, no console errors).
+```
+
+### Prompt — Phase B: sourced conductivity table + sensitivity UI (Opus)
+
+```text
+Read GEOTHERMAL_STATUS.md, Geothermal/README.md (§3.1, §3.3, §3.5) and
+ROADMAP.md item 8 (Phase B) first. Two deliverables: a literature-sourced
+conductivity reference table, and a map panel to edit per-bucket values
+with exact live recompute.
+
+1. Reference table. Create Geothermal/Data/conductivity_reference.csv:
+   one row per lithology bucket in combine_wells.py's CONDUCTIVITY_WM
+   (limestone, dolostone, sandstone, shale, granite, gneiss, clay, silt,
+   sand, gravel, till, fill, basalt, rock), columns: bucket, default_wmk,
+   min_wmk, max_wmk, notes, source. Source every range from published
+   GSHP/thermogeology literature — VDI 4640 Part 1 tables, ASHRAE
+   Handbook (Geothermal Energy chapter), Banks "An Introduction to
+   Thermogeology", IGSHPA / CSA C448 guidance; use WebSearch to confirm
+   exact values and cite precisely (document + table number). If a
+   current default sits outside the literature range, change it and
+   record the change. Note saturated-vs-dry sensitivity for soils in the
+   notes column but keep one default per bucket. combine_wells.py and
+   interpolate_conductivity.py must read this CSV (CONDUCTIVITY_WM
+   becomes the fallback only).
+2. Exact client-side sensitivity. IDW cell conductivity is linear in the
+   per-well bucket values, so per-cell bucket weight shares make edited
+   values an exact recompute. In interpolate_conductivity.py, also emit
+   each cell's IDW weight share per bucket (sums to 1; quantize to 3
+   decimals, drop shares < 0.001 and renormalize — then verify max
+   reconstruction error vs the exact surface < 0.01 W/m·K). Carry the
+   shares through merge_layers.py into build_map.py's compact grid
+   tuples (bucket indices 0–13, sparse [idx,share] pairs; keep
+   output/index.html ≲ 8 MB).
+3. Map UI (map_template.html): collapsible "Conductivity assumptions"
+   panel — one row per bucket with an editable numeric input clamped to
+   [min_wmk, max_wmk], default value and source shown, and a Reset-all
+   button. On change: recompute every grid cell (Σ shareᵦ × κᵦ), redraw
+   the canvas layer, refresh the legend, and make well popups compute
+   their conductivity from the well's bucket at open time (wells already
+   carry a lithology; embed the bucket index). State in the panel
+   whether well marker COLORS track the edits or stay at defaults
+   (pick one, document why).
+4. Re-run the chain and verify in a browser preview: editing granite
+   3.2 → 2.6 visibly shifts Shield cells' class; Reset restores; no
+   console errors; size budget respected. Remember this environment's
+   preview quirks (no rAF — force draws, verify via canvas pixel
+   sampling). Update README (§3.3, §3.5, new "Conductivity assumptions &
+   sources" section) and GEOTHERMAL_STATUS.md.
+```
+
+### Prompt — Phase C: drilling difficulty layer (Opus)
+
+```text
+Read GEOTHERMAL_STATUS.md, Geothermal/README.md and ROADMAP.md item 8
+(Phase C) first. Goal: a per-well drilling-difficulty score for vertical
+GSHP boreholes, gridded like conductivity, shipped as a new toggleable
+map layer.
+
+1. New script Geothermal/scripts/build_difficulty.py reading
+   ottawa_geothermal.gpkg. Score components (availability verified):
+   - Overburden thickness (bedrock_depth_m, incl. Phase A's formations
+     fallback): deeper overburden = more casing = cost. Document the
+     scale (e.g. 0 points at 0 m rising to max at ≥ 30 m).
+   - Problematic overburden layers from formations: boulders, stones,
+     quicksand/heaving sand, hardpan (7,395 wells log at least one) —
+     casing-advance / lost-circulation risk.
+   - Hard crystalline bedrock (granite/gneiss buckets): slower
+     penetration and bit wear — moderate penalty; limestone/dolostone
+     baseline; shale/sandstone easiest.
+   - Artesian risk: flowing wells (pump_tests flowing_rate_lpm > 0 —
+     503 wells; plus tblWater flowing kinds). Sparse, so treat as a
+     neighborhood indicator (share of flowing wells within ~1 km), not
+     a per-well binary.
+   Combine into difficulty_score 0–100 with documented weights and a
+   3-class label (easy / moderate / difficult). It's a screening
+   heuristic: write the formula and each weight's rationale in README,
+   round scores to 5 (no false precision).
+2. Validate BEFORE gridding: (a) cross-tab score class vs decoded
+   construction method — hard-rock areas should skew air-percussion/
+   rotary-air vs cable-tool; (b) correlation of score vs total depth;
+   (c) eyeball the spatial pattern (eastern clay plain should be
+   casing-heavy, Shield edge hard-rock). Print all three, investigate
+   surprises before proceeding.
+3. Grid it with the same IDW conventions as interpolate_conductivity.py
+   (500 m, k=12, power 2, 2 km cutoff) — factor the shared IDW code into
+   a small module instead of copy-pasting — emitting
+   Data/processed/difficulty_grid.geojson with score, class and the
+   dominant driver per cell (for the popup).
+4. Wire into merge_layers.py + build_map.py + map_template.html as a new
+   toggleable choropleth with a popup breakdown (overburden / problem
+   layers / rock hardness / artesian). Re-run the chain, browser-verify
+   (toggle, popups, no console errors, size budget), update README (new
+   method section, §4 results, §5 caveat: difficulty is relative
+   screening, not a quote) and GEOTHERMAL_STATUS.md.
+```
+
+### Prompt — Phase D: segment suitability (residential / large buildings / district energy) (Opus)
+
+```text
+Read GEOTHERMAL_STATUS.md, Geothermal/README.md, and ROADMAP.md items 7
+and 8 (Phase D) first. Goal: replace the map's one-size-fits-all reading
+with per-segment suitability scores — (1) residential & small commercial,
+(2) large buildings, (3) district energy — which differ in depth needs,
+land, load balancing, yield and grid draw.
+
+1. New script Geothermal/scripts/build_suitability.py producing three
+   0–100 scores per existing 500 m grid cell. First define each segment's
+   requirement profile in README, citing where citations exist (CSA C448
+   / IGSHPA sizing conventions, Canadian district-energy literature):
+   - Residential/small commercial (~1–10 tons): 1–3 boreholes at
+     ~100–200 m; drilling difficulty and thin overburden dominate cost;
+     conductivity matters moderately; open-loop bonus where neighborhood
+     wells show static level + modest yield; feeder capacity irrelevant.
+   - Large buildings (50+ tons): borefields — conductivity weighs
+     heavier (borehole metres scale roughly with 1/λ); heating-dominant
+     Ottawa loads risk long-term ground thermal depletion, worse in
+     low-conductivity clay (penalize); feeder headroom matters (join
+     GridCapacity polygons); industrial/employment zoning as a
+     land-availability bonus.
+   - District energy: needs demand density plus a big resource:
+     high-yield aquifer (neighborhood pump-test yield stats),
+     trunk-sewer proximity (heat recovery), feeder headroom, land. If
+     Data/processed/heat_demand_grid.geojson exists (ROADMAP item 7),
+     use it for demand density; else use the City potential layer +
+     zoning as a proxy and leave a clearly-marked upgrade hook.
+   Normalize each factor to 0–1 with documented transforms; publish the
+   weight table in README; emit per-cell factor values (for popup
+   breakdowns), not just composites.
+2. Map: a segment selector (radio buttons) restyling ONE "Suitability"
+   layer, popup showing the active segment's factor breakdown. The
+   Phase B conductivity panel must stay live: conductivity edits flow
+   into the suitability recompute, so ship weights + per-cell factors
+   and compute composites in JS (the conductivity factor recomputes from
+   the Phase B bucket shares).
+3. Sanity checks: print inter-segment score correlations (> 0.95
+   everywhere means redundant weights — fix); top-decile district-energy
+   cells should sit in the serviced urban area near trunk sewers; top
+   residential cells should NOT concentrate downtown. Investigate
+   surprises.
+4. Re-run the chain, browser-verify everything (layer toggles, segment
+   switching, popups, a conductivity edit updating suitability, no
+   console errors), keep output/index.html within budget (drop per-cell
+   fields popups don't show), update README + GEOTHERMAL_STATUS.md,
+   republish per item 1's deployment pattern, and flip ROADMAP item 8's
+   status row to done.
 ```
 
 ---
