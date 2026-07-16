@@ -367,6 +367,25 @@ footer a{color:var(--muted)}
       <div class="note" id="src-note"></div>
     </div>
 
+    <!-- Equipment curve: capacity + COP vs temperature (advanced only) -->
+    <div class="card" data-mode="advanced">
+      <div class="card-title-row">
+        <span class="card-title">Heat pump performance curve</span>
+        <span class="card-sub" id="eq-sub">capacity and COP vs outdoor temperature, for the selected bucket</span>
+      </div>
+      <div class="keychart-wrap">
+        <svg id="eqchart" viewBox="0 0 740 380" role="img" aria-label="Heat pump capacity and COP versus outdoor temperature"></svg>
+        <div class="kc-tip" id="eq-tip"></div>
+      </div>
+      <div class="kc-legend">
+        <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--amber)"></span>Capacity (% of rated @47°F)</span>
+        <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--blue)"></span>COP</span>
+        <span class="kc-leg"><span class="kc-swatch fill" style="background:rgba(214,158,46,.10)"></span>Defrost derate band</span>
+        <span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--muted)"></span>Lock-out</span>
+      </div>
+      <div class="note" id="eq-note"></div>
+    </div>
+
     <!-- Energy + monthly -->
     <div class="grid-2">
       <div class="card">
@@ -1329,6 +1348,7 @@ function render(res,opts){
   // ---- key chart ----
   renderKeyChart(opts);
   renderSourceChart(opts);
+  renderEqChart(opts);
 
   // ---- energy + monthly ----
   renderEnergyChart(base,proj);
@@ -1578,6 +1598,91 @@ function attachSrcHover(){
     tip.style.opacity='1';
     const restLbl=M.hasBackup?'Backup':'Unmet';
     tip.innerHTML=`<b>${fmt1(T)} °C</b><br>Load ${fmt1(sp.load)} kW<br>Heat pump ${fmt1(sp.hp)} kW${sp.rest>1e-6?`<br>${restLbl} ${fmt1(sp.rest)} kW`:''}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+
+// ---- Equipment curve: capacity + COP vs temperature, straight off the JSON ----
+// (advanced-only). Shows the raw tier/model curve itself -- not scaled to this
+// home's load -- so the equipment performance is visible independent of sizing.
+const EQ_DEFROST_BAND=[-7,4]; // matches build_hp_curves.py DEFROST_BAND
+let EQ_MODEL=null;
+function tierCurveInfo(){
+  if(state.bucket==='avg') return {label:'Average installed (maps to Tier 3 — baseline)', members:CURVES.tiers['3'].members};
+  const t=state.bucket.replace('tier','');
+  return {label:CURVES.tiers[t].label, members:CURVES.tiers[t].members};
+}
+function renderEqChart(opts){
+  const svg=$('eqchart');if(!svg)return;
+  const W=740,H=380, m={l:52,r:52,t:16,b:42};
+  const plotW=W-m.l-m.r, plotH=H-m.t-m.b;
+  const curve=opts.hp.curve, minOp=opts.hp.minOpTemp_C;
+  const T=curve.T_C, capPct=curve.cap_frac_of_rated47.map(v=>(v||0)*100), cop=curve.COP;
+  const Tmin=T[0], Tmax=T[T.length-1];
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*plotW;
+
+  const maxCapPct=Math.max(10,Math.ceil(Math.max(...capPct)*1.1/10)*10);
+  const copVals=cop.filter(v=>v!=null);
+  const maxCop=Math.max(1,Math.ceil((Math.max(...copVals)*1.15)*2)/2);
+  const yCap=v=>m.t+plotH-(v/maxCapPct)*plotH;
+  const yCop=v=>m.t+plotH-(v/maxCop)*plotH;
+
+  const navy=css('--navy'),amber=css('--amber'),blue=css('--blue'),muted=css('--muted'),light=css('--light');
+  let s='';
+  // defrost band shading
+  s+=`<rect x="${x(EQ_DEFROST_BAND[0])}" y="${m.t}" width="${x(EQ_DEFROST_BAND[1])-x(EQ_DEFROST_BAND[0])}" height="${plotH}" fill="rgba(214,158,46,.10)"/>`;
+  // grid + left axis (capacity %)
+  niceTicks(maxCapPct,5).forEach(v=>{s+=`<line x1="${m.l}" y1="${yCap(v)}" x2="${W-m.r}" y2="${yCap(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${m.l-8}" y="${yCap(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}%</text>`;});
+  s+=`<text x="14" y="${m.t+plotH/2}" transform="rotate(-90 14 ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">capacity (% of rated @47°F)</text>`;
+  // right axis (COP), labels only -- no competing gridlines
+  niceTicks(maxCop,5).forEach(v=>{s+=`<text x="${W-m.r+8}" y="${yCop(v)+4}" text-anchor="start" font-size="11" fill="${light}">${fmt1(v)}</text>`;});
+  s+=`<text x="${W-14}" y="${m.t+plotH/2}" transform="rotate(90 ${W-14} ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">COP</text>`;
+  for(let t=Tmin;t<=Tmax;t+=5){s+=`<line x1="${x(t)}" y1="${m.t}" x2="${x(t)}" y2="${m.t+plotH}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${x(t)}" y="${H-m.b+18}" text-anchor="middle" font-size="11" fill="${light}">${fmtSigned(t)}</text>`;}
+  s+=`<text x="${m.l+plotW/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${muted}">Outdoor temperature (°C)</text>`;
+
+  // capacity line (all points, including the flat-zero region below lockout)
+  s+=polyline(T.map((t,i)=>[t,capPct[i]]),x,yCap,amber,2.5);
+  // COP line: break into segments across null (locked-out) gaps
+  let seg=[];
+  for(let i=0;i<T.length;i++){
+    if(cop[i]==null){ if(seg.length>1)s+=polyline(seg,x,yCop,blue,2.5); seg=[]; }
+    else seg.push([T[i],cop[i]]);
+  }
+  if(seg.length>1)s+=polyline(seg,x,yCop,blue,2.5);
+  // lockout vertical
+  if(minOp>Tmin){s+=`<line x1="${x(minOp)}" y1="${m.t}" x2="${x(minOp)}" y2="${m.t+plotH}" stroke="${muted}" stroke-width="1.4" stroke-dasharray="4 4"/>`;
+    s+=`<text x="${x(minOp)+4}" y="${m.t+12}" font-size="10.5" fill="${muted}">lock-out ${fmtSigned(Math.round(minOp))}°</text>`;}
+  s+=`<rect id="eq-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+  svg.innerHTML=s;
+
+  EQ_MODEL={T,capPct,cop,minOp,Tmin,Tmax,m,plotW,plotH,x,yCap,yCop,W,H};
+  attachEqHover();
+
+  const info=tierCurveInfo();
+  $('eq-sub').textContent=info.label;
+  const cop47=cop[T.findIndex(t=>Math.abs(t-8.33)<0.3)];
+  const cop17=cop[T.findIndex(t=>Math.abs(t-(-8.33))<0.3)];
+  $('eq-note').innerHTML=`This is the equipment's own curve — capacity as a fraction of its rated (47 °F) size, scaled elsewhere by the nominal-size slider; COP is size-independent. Built from two real models: <b>${info.members.join(' + ')}</b>. COP ≈ ${cop47?fmt1(cop47):'–'} at 47 °F, ${cop17?fmt1(cop17):'–'} at 17 °F, dipping in the shaded −7…+4 °C defrost band, before locking out at ${fmtSigned(Math.round(minOp))} °C.`;
+}
+function attachEqHover(){
+  const svg=$('eqchart'),tip=$('eq-tip'),over=$('eq-over'),M=EQ_MODEL;if(!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect();
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    const scale=M.W/pt.width;
+    let t=M.Tmin+(cx*scale-M.m.l)/M.plotW*(M.Tmax-M.Tmin);
+    t=Math.max(M.Tmin,Math.min(M.Tmax,t));
+    const capf=E.interp(M.T,M.capPct,t);
+    const copv=t<M.minOp?null:E.interp(M.T,M.cop,t);
+    tip.style.left=cx+'px';
+    tip.style.top=(M.yCap(capf)/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${fmt1(t)} °C</b><br>Capacity ${fmt1(capf)}%${copv!=null?`<br>COP ${fmt1(copv)}`:'<br>locked out'}`;
   }
   over.addEventListener('mousemove',move);
   over.addEventListener('mouseleave',()=>tip.style.opacity='0');
