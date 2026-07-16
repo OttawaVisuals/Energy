@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Homes Explorer — how efficient are Canada's new houses?</title>
+<meta name="description" content="Explore 200,000+ newly built Canadian homes from NRCan EnerGuide as-built evaluations. See NBC energy-tier compliance, airtightness trends, how new homes are heated, and whether they perform as designed — by province and postal area.">
+<meta property="og:title" content="New Homes Explorer — how efficient are Canada's new houses?">
+<meta property="og:description" content="200,000+ as-built EnerGuide evaluations of newly constructed Canadian homes: code tiers, airtightness, heating fuel, and designed-vs-as-built performance.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M16 6 5 15h3v10h7v-6h2v6h7V15h3z' fill='%23E8A124'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
+.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
+#province-sel option{color:#1C2B3A;background:#fff}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:760px;margin:0 auto}
+
+/* ── Filters ── */
+.filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
+.filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select:hover{border-color:var(--navy)}
+.filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
+.filter-group input::placeholder{color:var(--light);text-transform:none}
+.filter-group input:hover{border-color:var(--navy)}
+.filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
+.filter-reset:hover{border-color:var(--navy);color:var(--navy)}
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.filter-count{font-size:13px;color:var(--muted)}
+.filter-count strong{color:var(--text);font-weight:500}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:620px){.grid-2{grid-template-columns:1fr}}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
+.card-title-row .card-title{margin-bottom:0}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.map-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
+.map-svg-wrap{position:relative}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
+#fsa-map-svg:active{cursor:grabbing}
+.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
+.fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
+.fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
+.fsa-shape.no-data{cursor:default}
+.map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--white);color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button:last-child{border-bottom:none}
+.map-zoom-ctrl button:hover{background:var(--surface)}
+.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
+.map-attribution a{color:#5a6b80}
+.map-grad-wrap{min-width:190px;max-width:240px}
+.map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
+.map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
+.methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
+.methodology details[open] summary::after{content:'–'}
+.methodology summary:hover{background:var(--cream)}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
+.methodology .method-body p{margin:0 0 .6rem}
+.methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-value.accent{color:var(--amber)}
+.stat-value.green{color:var(--green)}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-sm{height:180px}
+.cw-md{height:220px}
+.cw-lg{height:280px}
+.cw-xl{height:360px}
+
+/* ── Info "?" buttons ── */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
+.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
+#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
+
+/* ── Misc ── */
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.state-msg strong{display:block;font-size:1rem;color:var(--text);margin-bottom:4px}
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+@media(max-width:900px){.header-title{display:none}}
+@media(max-width:600px){
+  header{padding:0 1rem}
+  .hero{padding:1.1rem 1rem .9rem}
+  .filter-sticky{padding-left:1rem;padding-right:1rem}
+  .filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}
+  main{padding:1rem 1rem 2rem}
+  .header-badge{display:none}
+  .sibling-link{display:none}
+  #province-sel{max-width:130px;font-size:12px}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+}
+@media(max-width:420px){
+  .logo{font-size:14px}
+  #province-sel{max-width:105px;font-size:11px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ── Section headers ── */
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:680px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">newHomes<span id="logo-province">Canada</span></div>
+    <div class="header-title" id="header-title">Newly built home efficiency</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
+    <select id="province-sel">
+      <option value="CA" selected>All of Canada</option>
+      <option value="AB">Alberta</option>
+      <option value="BC">British Columbia</option>
+      <option value="MB">Manitoba</option>
+      <option value="NB">New Brunswick</option>
+      <option value="NF">Newfoundland &amp; Labrador</option>
+      <option value="NT">Northwest Territories</option>
+      <option value="NS">Nova Scotia</option>
+      <option value="NU">Nunavut</option>
+      <option value="ON">Ontario</option>
+      <option value="PE">Prince Edward Island</option>
+      <option value="QC">Quebec</option>
+      <option value="SK">Saskatchewan</option>
+      <option value="YK">Yukon</option>
+    </select>
+    <div class="header-badge" id="header-badge">EnerGuide data</div>
+  </div>
+</header>
+
+<div class="hero" id="hero-section">
+  <h1>How efficient are <em>Canada's new homes</em>?</h1>
+  <p class="hero-sub">As-built EnerGuide evaluations of newly constructed Canadian houses. Pick a province and postal area — or browse the whole country — to see energy-code tiers, airtightness, how new homes are heated, and whether they perform as designed.</p>
+</div>
+
+<div class="filter-sticky">
+  <div class="filter-bar">
+    <div class="filter-group" style="flex:0 1 200px"><label for="pc-input">Your postal code</label>
+      <input id="pc-input" type="text" autocomplete="postal-code" maxlength="7" placeholder="e.g. K1A 0B1" aria-describedby="pc-hint">
+    </div>
+    <div class="filter-group"><label for="fsa-sel">Your area — first 3 of postal code</label>
+      <select id="fsa-sel"><option value="">All areas (province-wide)</option></select>
+    </div>
+    <div class="filter-group"><label for="type-sel">House type</label>
+      <select id="type-sel"><option value="">All types</option></select>
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">Reset</button>
+  </div>
+  <div class="filter-count-bar">
+    <span class="filter-count"><strong id="result-count">—</strong> new homes in this view</span>
+    <span class="filter-count" id="small-n-warn" style="display:none;color:var(--amber)"> · Small sample — read medians and percentages as rough indications only</span>
+    <span class="filter-count" id="pc-hint" style="display:none;color:var(--red)" role="status"></span>
+  </div>
+</div>
+
+<!-- FSA map -->
+<div class="map-wrap" id="fsa-map-card" style="display:none">
+  <div class="map-head">
+    <div>
+      <div class="card-title" style="margin-bottom:0">Find your area</div>
+      <p class="note" style="margin:2px 0 0">Each shape is a postal area — the first 3 characters of a postal code. Click one to select it. Colour = <span id="map-color-meaning">new homes built</span>; grey = no new-home data.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="chart-legend-inline" id="map-legend"></div>
+      <button class="filter-reset" id="map-reset-btn" style="display:none" onclick="resetFsaMapZoom()">Reset view</button>
+    </div>
+  </div>
+  <div class="map-svg-wrap">
+    <svg id="fsa-map-svg" viewBox="0 0 600 600" role="img" aria-label="Map of postal-code areas in this province"></svg>
+    <div class="map-zoom-ctrl">
+      <button id="map-zoom-in" type="button" aria-label="Zoom in" onclick="zoomFsaMapBy(0.7)">+</button>
+      <button id="map-zoom-out" type="button" aria-label="Zoom out" onclick="zoomFsaMapBy(1/0.7)">–</button>
+    </div>
+    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
+    <div id="map-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
+  </div>
+</div>
+
+<main>
+
+  <div class="section-head">
+    <h2>How efficient are new homes here?</h2>
+    <p class="sec-sub">The typical newly built, as-built-tested home across every record in this view.</p>
+  </div>
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <div class="section-head">
+    <h2>Climbing the code tiers</h2>
+    <p class="sec-sub">Canada's National Building Code sets tiered energy-performance levels (Tier 1 = base code, Tier 5 = net-zero-ready). As the code ratchets up, new builds are being pushed higher up the ladder.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">NBC 9.36 energy-performance tier, by year built</div><div class="chart-legend-inline" id="tier-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="tier-chart"></canvas></div>
+    <p class="note">Each bar is one year of newly built homes, split by the energy tier they achieved. Tiers were only recorded on evaluations from 2024 on, so earlier years are sparse. Higher tiers (darker green) use progressively less energy than base code.</p>
+  </div>
+
+  <div class="section-head">
+    <h2>Getting tighter every year</h2>
+    <p class="sec-sub">Air leakage — measured with a blower-door test on the finished house — is one of the clearest signs of build quality. Lower is tighter.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Median airtightness of new homes (air changes per hour @ 50 Pa)</div>
+    <div class="cw cw-lg"><canvas id="ach-chart"></canvas></div>
+    <p class="note">Median across all new homes evaluated that year. A lower number means less uncontrolled air leakage — a tighter, more efficient envelope.</p>
+  </div>
+
+  <div class="section-head">
+    <h2>Do they perform as designed?</h2>
+    <p class="sec-sub">Every new home is modelled twice: once from the plans (as designed) and again after it's built and blower-door tested (as built). Comparing the two shows whether the finished house lives up to its design.</p>
+  </div>
+  <div class="stats-grid" id="gap-stats"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title-row"><div class="card-title">As-designed vs as-built energy rating (GJ/yr)</div><div class="chart-legend-inline" id="scatter-legend"></div></div>
+      <div class="cw cw-lg"><canvas id="scatter-chart"></canvas></div>
+      <p class="note">Each point is a home (or, province-wide, a cluster of homes): horizontal = its design rating, vertical = its as-built rating. On or below the dashed line means the finished home matched or beat its design. Lower = less energy.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">The design gap, per home (as-built − as-designed, GJ/yr)</div>
+      <div class="cw cw-lg"><canvas id="gap-chart"></canvas></div>
+      <p class="note">Negative (green) = the finished home tested better than its design model; positive (red) = worse. Most homes cluster at or just below zero.</p>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Energy &amp; emissions of a new home</h2>
+    <p class="sec-sub">How much energy a typical new home is modelled to use, and the greenhouse gases that come with it.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">EnerGuide rating — annual energy use (GJ/yr)</div>
+      <div class="cw cw-lg"><canvas id="ers-chart"></canvas></div>
+      <p class="note">The as-built EnerGuide rating: modelled total annual energy in gigajoules. Lower is more efficient. Only recorded on evaluations from 2019 on.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Greenhouse-gas emissions (tonnes CO₂e/yr)</div>
+      <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
+      <p class="note">Modelled annual operating emissions. The cluster near zero is electrically heated homes on low-carbon grids; the hump to the right is gas-heated homes.</p>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>What's being built, and how it's heated</h2>
+    <p class="sec-sub">The mix of house types, heating fuels, and sizes among newly built homes — and how the fuel mix is shifting over time.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title-row"><div class="card-title">House type</div><div class="chart-legend-inline" id="type-legend"></div></div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
+    <div class="card"><div class="card-title">Primary heating fuel</div><div class="cw cw-md"><canvas id="fuel-chart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">How new homes are heated, by year built</div><div class="chart-legend-inline" id="fuelyear-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="fuelyear-chart"></canvas></div>
+    <p class="note">Share of new homes each year by primary heating fuel. Gas still dominates most new construction; watch the electricity share for signs of electrification.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Floor area of new homes (m²)</div>
+    <div class="cw cw-md"><canvas id="area-chart"></canvas></div>
+  </div>
+
+</main>
+
+<section class="methodology" aria-label="Methodology">
+  <details>
+    <summary>How this works &amp; what the data is</summary>
+    <div class="method-body">
+      <h4>The source</h4>
+      <p>This tool uses Natural Resources Canada's <strong>EnerGuide Rating System</strong> open data — the same dataset behind the <a href="retrofits.html">Retrofit Explorer</a>, but a different slice of it. Every evaluation carries a type code: <code>D</code>/<code>E</code> are existing-home pre/post-retrofit audits (the Retrofit Explorer's subject), while <code>P</code> and <code>N</code> are new construction. <code>P</code> ("plan") is the home modelled from its architectural plans; <code>N</code> is the finished house, evaluated and blower-door tested after construction.</p>
+      <h4>What a "home" is here</h4>
+      <p>Each row is one <strong>as-built (N)</strong> home — a real, finished, tested house. Where the matching plan file (<code>P</code>) exists for the same home, its as-designed figures are joined on so the two can be compared ("Do they perform as designed?"). Homes with only a plan file — designed but not yet built or tested — are excluded.</p>
+      <h4>The numbers</h4>
+      <p>Energy figures are <strong>modelled</strong> estimates from the audit software (HOT2000), not metered utility bills — actual use varies with weather and occupants. The EnerGuide rating and NBC tier were only introduced in recent software versions, so those charts start in 2019 (rating) and 2024 (tiers); airtightness, fuel and floor area go back to 2004. Province-wide charts are pre-computed in Python; the postal-area view bins the raw records in your browser using the same bucket widths, so the two agree. Geography is postal-area (FSA) only — the public dataset carries just the first three characters of each postal code. The source contains no cost data, so no dollar figures are shown.</p>
+      <p class="caveats">New construction is a smaller programme than retrofits (~223,000 as-built homes vs 500,000+ retrofits), and participation is voluntary and uneven across provinces — Alberta, BC and Ontario dominate. Small postal areas can be noisy; read them as indications, not precise measurements.</p>
+    </div>
+  </details>
+</section>
+
+<footer>
+  Data: <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data</a> · new-construction (as-built) evaluations · <span id="footer-province">Canada</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── Config / data paths ─────────────────────────────────────────────
+const BASE_URL=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
+  ?'./'
+  :'https://raw.githubusercontent.com/OttawaVisuals/Energy/main/';
+const PROVINCE_JSON_BASE=`${BASE_URL}newhomes_json/`;   // newhomes_json/<PROV>.json
+const FSA_JSON_BASE=`${BASE_URL}newhomes_fsa/`;         // newhomes_fsa/<PROV>/<FSA>.json + _index.json
+const GEO_JSON_BASE=`${BASE_URL}geo_json/`;             // shared with retrofits
+
+const PROVINCES={
+  CA:{name:'All of Canada',short:'CA'},
+  AB:{name:'Alberta',short:'AB'}, BC:{name:'British Columbia',short:'BC'},
+  MB:{name:'Manitoba',short:'MB'}, NB:{name:'New Brunswick',short:'NB'},
+  NF:{name:'Newfoundland & Labrador',short:'NF'}, NT:{name:'Northwest Territories',short:'NT'},
+  NS:{name:'Nova Scotia',short:'NS'}, NU:{name:'Nunavut',short:'NU'},
+  ON:{name:'Ontario',short:'ON'}, PE:{name:'Prince Edward Island',short:'PE'},
+  QC:{name:'Quebec',short:'QC'}, SK:{name:'Saskatchewan',short:'SK'}, YK:{name:'Yukon',short:'YK'},
+};
+
+let PROVINCE_CODE='CA';
+let SELECTED_FSA='';
+let SELECTED_TYPE='';
+let MODE='none';   // 'province' | 'fsa'
+let ALL=[];        // FSA-mode raw rows
+let LOAD_TOKEN=0;
+
+// ── Bin widths (single source of truth — MUST match newhomes_precompute.py) ──
+const BINS={
+  ers:{step:10,lo:1,hi:300}, ghg:{step:1,lo:0,hi:30}, ach:{step:0.5,lo:0,hi:10},
+  area:{step:25,lo:0,hi:700}, eui:{step:10,lo:0,hi:400}, gap:{step:2,lo:-40,hi:20}, dens:5,
+};
+const CLIP={ers:300,ghg:30,ach:10,area:700,eui:400};
+
+// Tier colour ramp: 0 grey (base / below), climbing to deep green (net-zero-ready).
+const TIER_COLORS=['#9AA7B6','#BBCBA6','#8CB273','#4E9A5A','#2E7D46','#14602F'];
+const FUEL_COLORS={Gas:'#533AB7',Electricity:'#378ADD',Other:'#8A9BB0'};
+const PRE_LINE='#0B2545',POST_LINE='#1A7A55';
+
+const charts={};
+const PROVINCE_SUMMARY_CACHE=new Map();
+const FSA_INDEX_CACHE=new Map();
+const FSA_CACHE=new Map();
+
+// ── Small helpers ───────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const setLoading=on=>document.querySelector('main').classList.toggle('is-loading',!!on);
+const num=v=>{const n=parseFloat(v);return v===null||v===undefined||isNaN(n)?null:n;};
+function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+const fmt=(v,d=0)=>v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:d});
+function median(arr){const s=arr.filter(v=>v!=null).sort((a,b)=>a-b);if(!s.length)return null;const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function binObj(vals,{step,lo,hi}){
+  const out={};
+  vals.forEach(v=>{if(v==null||isNaN(v))return;if(lo!=null&&v<lo)return;if(hi!=null&&v>hi)return;
+    const k=Math.floor(v/step)*step;const key=Number.isInteger(step)?k:Math.round(k*100)/100;out[key]=(out[key]||0)+1;});
+  return out;
+}
+function countBy(arr){const o={};arr.forEach(v=>{if(v==null)return;const s=String(v).trim();if(!s)return;o[s]=(o[s]||0)+1;});return o;}
+function fuelGroup(f){if(!f)return null;const s=String(f).trim();if(s==='Natural Gas')return'Gas';if(s==='Electricity')return'Electricity';return s?'Other':null;}
+
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#5C6E82';
+Chart.defaults.animation=false;   // preview/screenshot renderers have no rAF — paint synchronously
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.maintainAspectRatio=false;
+
+// ── Fetch layer ─────────────────────────────────────────────────────
+function fetchJSON(url){return fetch(url).then(r=>{if(!r.ok)throw new Error(`fetch ${r.status}: ${url}`);return r.json();});}
+function reconstructRows(p){const c=p.columns;return p.rows.map(r=>{const o={};for(let i=0;i<c.length;i++)o[c[i]]=r[i];return o;});}
+function fetchProvinceSummary(prov){
+  if(PROVINCE_SUMMARY_CACHE.has(prov))return Promise.resolve(PROVINCE_SUMMARY_CACHE.get(prov));
+  return fetchJSON(`${PROVINCE_JSON_BASE}${prov}.json`).then(p=>{PROVINCE_SUMMARY_CACHE.set(prov,p);return p;});
+}
+function fetchFsaIndex(prov){
+  if(FSA_INDEX_CACHE.has(prov))return Promise.resolve(FSA_INDEX_CACHE.get(prov));
+  return fetchJSON(`${FSA_JSON_BASE}${prov}/_index.json`).then(i=>{FSA_INDEX_CACHE.set(prov,i);return i;});
+}
+function fetchFsaRows(prov,fsa){
+  const key=`${prov}|${fsa}`;
+  if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
+  return fetchJSON(`${FSA_JSON_BASE}${prov}/${fsa}.json`).then(p=>{const rows=reconstructRows(p);FSA_CACHE.set(key,rows);return rows;});
+}
+
+// ── Dropdown population ──────────────────────────────────────────────
+function populateFsaDropdown(prov,idx){
+  const sel=$('fsa-sel');sel.innerHTML='<option value="">All areas (province-wide)</option>';
+  idx.forEach(e=>{const o=document.createElement('option');o.value=e.fsa;o.textContent=`${e.fsa} (${e.row_count.toLocaleString()} homes)`;sel.appendChild(o);});
+}
+function populateTypeDropdown(types){
+  const sel=$('type-sel');const prev=sel.value;sel.innerHTML='<option value="">All types</option>';
+  types.forEach(t=>{if(t==='All types')return;const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
+  if([...sel.options].some(o=>o.value===prev))sel.value=prev;
+}
+
+// ── Load orchestration ──────────────────────────────────────────────
+function load(){
+  if(!PROVINCE_CODE)return;
+  const prov=PROVINCES[PROVINCE_CODE];const myToken=++LOAD_TOKEN;setLoading(true);
+  $('logo-province').textContent=prov.short;
+  $('header-title').textContent=`${prov.name} · new-home efficiency`;
+  $('footer-province').textContent=prov.name;
+  $('header-badge').textContent=`EnerGuide · ${prov.name} · loading…`;
+  if(PROVINCE_CODE==='CA'){
+    SELECTED_FSA='';
+    $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
+    $('fsa-sel').disabled=true;toggleFsaMapCard(false);
+    loadProvinceView(myToken);return;
+  }
+  $('fsa-sel').disabled=false;
+  if(!SELECTED_FSA)fetchProvinceSummary(PROVINCE_CODE).catch(()=>{});
+  fetchFsaIndex(PROVINCE_CODE).then(idx=>{
+    if(myToken!==LOAD_TOKEN)return;
+    populateFsaDropdown(PROVINCE_CODE,idx);
+    if(SELECTED_FSA&&!idx.some(e=>e.fsa===SELECTED_FSA)){SELECTED_FSA='';updateShareUrl();}
+    $('fsa-sel').value=SELECTED_FSA;
+    loadFsaMap(PROVINCE_CODE,idx);
+    if(SELECTED_FSA)loadFsaView(myToken);else loadProvinceView(myToken);
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;console.error(err);setLoading(false);
+    document.querySelector('main').innerHTML=`<div class="state-msg"><strong>Could not load data</strong>Could not fetch the area index for ${prov.name}.</div>`;
+  });
+}
+function loadProvinceView(myToken){
+  MODE='province';const prov=PROVINCES[PROVINCE_CODE];setLoading(true);$('result-count').textContent='…';
+  fetchProvinceSummary(PROVINCE_CODE).then(payload=>{
+    if(myToken!==LOAD_TOKEN)return;
+    populateTypeDropdown(Object.keys(payload.by_type));
+    const slice=payload.by_type[SELECTED_TYPE]||payload.by_type['All types'];
+    $('header-badge').textContent=`EnerGuide · ${prov.name} · ${payload.total_rows.toLocaleString()} new homes`;
+    $('result-count').textContent=(slice.row_count||0).toLocaleString();
+    $('small-n-warn').style.display=(slice.row_count<200)?'':'none';
+    renderDashboard(slice,{fsaRows:null});
+    setLoading(false);
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;console.error(err);setLoading(false);
+    document.querySelector('main').innerHTML=`<div class="state-msg"><strong>Could not load data</strong>Could not fetch the summary for ${prov.name}.</div>`;
+  });
+}
+function loadFsaView(myToken){
+  MODE='fsa';const prov=PROVINCES[PROVINCE_CODE];setLoading(true);$('result-count').textContent='…';
+  fetchFsaRows(PROVINCE_CODE,SELECTED_FSA).then(rows=>{
+    if(myToken!==LOAD_TOKEN)return;
+    ALL=rows;
+    populateTypeDropdown([...new Set(ALL.map(r=>r.BldgType).filter(Boolean))].sort());
+    $('header-badge').textContent=`EnerGuide · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} new homes`;
+    renderFsa();setLoading(false);
+  }).catch(err=>{
+    if(myToken!==LOAD_TOKEN)return;console.error(err);setLoading(false);
+    document.querySelector('main').innerHTML=`<div class="state-msg"><strong>Could not load data</strong>Could not fetch data for ${SELECTED_FSA}.</div>`;
+  });
+}
+function renderFsa(){
+  const rows=SELECTED_TYPE?ALL.filter(r=>r.BldgType===SELECTED_TYPE):ALL;
+  $('result-count').textContent=rows.length.toLocaleString();
+  $('small-n-warn').style.display=(rows.length<200)?'':'none';
+  renderDashboard(computeSlice(rows),{fsaRows:rows});
+}
+function resetFilters(){
+  $('type-sel').value='';SELECTED_TYPE='';
+  if(MODE==='fsa')renderFsa();
+  else loadProvinceView(++LOAD_TOKEN);
+}
+
+// ── Client-side slice compute (mirrors newhomes_precompute.py compute_slice) ──
+function computeSlice(rows){
+  const n=rows.length;const out={row_count:n};if(!n)return out;
+  const col=k=>rows.map(r=>num(r[k]));
+  const ers=col('ERSRating'),area=col('FloorArea'),ghg=col('GHG'),ach=col('AirLeakage'),
+        eui=col('EUI'),tier=col('Tier'),impr=col('Improvement');
+  out.median_ers=median(ers.filter(v=>v>0));
+  out.median_area=median(area);
+  out.median_ghg=median(ghg);
+  out.median_ach=median(ach);
+  out.median_eui=median(eui.filter(v=>v>0&&v<=CLIP.eui));
+  out.median_improvement=median(impr);
+  out.pct_solar=Math.round(rows.filter(r=>num(r.SolarPV)>0).length/n*1000)/10;
+  out.ers_bins=binObj(ers,BINS.ers);
+  out.ghg_bins=binObj(ghg,BINS.ghg);
+  out.ach_bins=binObj(ach,BINS.ach);
+  out.area_bins=binObj(area,BINS.area);
+  out.eui_bins=binObj(eui,BINS.eui);
+  const tc={};tier.forEach(v=>{if(v==null)return;const k=Math.round(v);tc[k]=(tc[k]||0)+1;});out.tier_counts=tc;
+  out.fuel_counts=countBy(rows.map(r=>r.HeatFuel));
+  out.type_counts=countBy(rows.map(r=>r.BldgType));
+  out.compliance_counts=countBy(rows.map(r=>r.CompliancePath));
+  // trends by year
+  const ach_by_year={},ers_by_year={},tier_by_year={},fuel_by_year={},acc={};
+  rows.forEach(r=>{const y=num(r.Year);if(y==null||y<2004||y>2030)return;const yr=Math.round(y);
+    (acc[yr]=acc[yr]||{ach:[],ers:[],tier:[],fuel:[]});
+    acc[yr].ach.push(num(r.AirLeakage));const e=num(r.ERSRating);if(e>0)acc[yr].ers.push(e);
+    if(num(r.Tier)!=null)acc[yr].tier.push(Math.round(num(r.Tier)));const g=fuelGroup(r.HeatFuel);if(g)acc[yr].fuel.push(g);});
+  Object.keys(acc).forEach(yr=>{const a=acc[yr];
+    const ma=median(a.ach);if(ma!=null)ach_by_year[yr]=Math.round(ma*100)/100;
+    const me=median(a.ers);if(me!=null)ers_by_year[yr]=Math.round(me*10)/10;
+    if(a.tier.length){const t={};a.tier.forEach(v=>t[v]=(t[v]||0)+1);tier_by_year[yr]=t;}
+    if(a.fuel.length){const f={};a.fuel.forEach(v=>f[v]=(f[v]||0)+1);fuel_by_year[yr]=f;}});
+  out.ach_by_year=ach_by_year;out.ers_by_year=ers_by_year;out.tier_by_year=tier_by_year;out.fuel_by_year=fuel_by_year;
+  // designed vs as-built
+  const pairs=[];rows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating),g=num(r.RatingGap);
+    if(d!=null&&a!=null&&g!=null&&d>0&&a>0)pairs.push({d,a,g});});
+  const gs={n:pairs.length};
+  if(pairs.length){const gaps=pairs.map(p=>p.g);
+    gs.median_gap=Math.round(median(gaps)*10)/10;
+    gs.pct_beat=Math.round(pairs.filter(p=>p.g<=0).length/pairs.length*1000)/10;
+    gs.pct_worse=Math.round(pairs.filter(p=>p.g>0).length/pairs.length*1000)/10;
+    out.gap_bins=binObj(gaps,BINS.gap);
+    const dens={};pairs.forEach(p=>{const x=Math.floor(p.d/BINS.dens)*BINS.dens,y=Math.floor(p.a/BINS.dens)*BINS.dens;
+      if(x<=CLIP.ers&&y<=CLIP.ers){const k=x+'|'+y;dens[k]=(dens[k]||0)+1;}});
+    out.gap_density=Object.keys(dens).map(k=>{const[x,y]=k.split('|').map(Number);return[x,y,dens[k]];});
+  }else{out.gap_bins={};out.gap_density=[];}
+  out.gap_stats=gs;
+  return out;
+}
+
+// ── Rendering ───────────────────────────────────────────────────────
+function legendInline(id,items){$(id).innerHTML=items.map(i=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${i.c}"></span>${i.l}</span>`).join('');}
+
+function renderDashboard(slice,meta){
+  renderStats(slice);
+  renderTier(slice);
+  renderAch(slice);
+  renderGap(slice,meta);
+  renderErs(slice);
+  renderGhg(slice);
+  renderTypes(slice);
+  renderFuel(slice);
+  renderFuelYear(slice);
+  renderArea(slice);
+}
+
+function statCard(label,value,cls,sub){
+  return`<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value ${cls||''}">${value}</div>${sub?`<div class="stat-sub">${sub}</div>`:''}</div>`;
+}
+function renderStats(s){
+  const tier=s.tier_counts||{};const tierTot=Object.values(tier).reduce((a,b)=>a+b,0);
+  const t3plus=tierTot?Math.round(((+tier[3]||0)+(+tier[4]||0)+(+tier[5]||0))/tierTot*100):null;
+  $('stats-grid').innerHTML=[
+    statCard('New homes in view',(s.row_count||0).toLocaleString(),'',''),
+    statCard('Median energy rating',s.median_ers!=null?fmt(s.median_ers,0):'—','accent','GJ/yr · lower is better'),
+    statCard('Median airtightness',s.median_ach!=null?fmt(s.median_ach,2):'—','green','ACH₅₀'),
+    statCard('Median emissions',s.median_ghg!=null?fmt(s.median_ghg,1):'—','','tonnes CO₂e/yr'),
+    statCard('Median floor area',s.median_area!=null?fmt(s.median_area,0):'—','','m²'),
+    statCard('Reach Tier 3+',t3plus!=null?t3plus+'%':'—','green','of tiered homes'),
+  ].join('');
+}
+
+function renderTier(s){
+  dc('tier');const byYear=s.tier_by_year||{};
+  const yearTot=y=>Object.values(byYear[y]||{}).reduce((a,b)=>a+(+b),0);
+  // Tiers weren't mandatory until 2024, so earlier years carry only a handful
+  // of tiered homes — drop years with too few to be representative.
+  const years=Object.keys(byYear).map(Number).filter(y=>yearTot(y)>=50).sort((a,b)=>a-b);
+  if(!years.length){$('tier-legend').innerHTML='';noData('tier-chart');return;}
+  const tiers=[0,1,2,3,4,5];
+  const datasets=tiers.map(t=>({
+    label:'Tier '+t,backgroundColor:TIER_COLORS[t],stack:'s',
+    data:years.map(y=>{const yr=byYear[y]||{};const tot=yearTot(y);return tot?(+(yr[t]||0))/tot*100:0;}),
+  }));
+  legendInline('tier-legend',tiers.map(t=>({c:TIER_COLORS[t],l:'T'+t})));
+  charts.tier=new Chart($('tier-chart'),{type:'bar',data:{labels:years,datasets},
+    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#EEF1F5'}}},
+      plugins:{tooltip:{callbacks:{title:i=>`${i[0].label} · ${yearTot(+i[0].label).toLocaleString()} tiered homes`,label:c=>c.parsed.y>=0.5?`${c.dataset.label}: ${Math.round(c.parsed.y)}%`:null}}}}});
+}
+
+function lineChart(id,map,{color,yTitle,fmtY}){
+  dc(id);const years=Object.keys(map).map(Number).sort((a,b)=>a-b);
+  if(!years.length){noData(id);return;}
+  charts[id]=new Chart($(id),{type:'line',data:{labels:years,datasets:[{
+    data:years.map(y=>map[y]),borderColor:color,backgroundColor:color,tension:.25,
+    pointRadius:2,pointHoverRadius:4,borderWidth:2,fill:false}]},
+    options:{scales:{x:{grid:{display:false}},y:{title:{display:!!yTitle,text:yTitle},grid:{color:'#EEF1F5'},beginAtZero:false}},
+      plugins:{tooltip:{callbacks:{label:c=>(fmtY?fmtY(c.parsed.y):c.parsed.y)}}}}});
+}
+function renderAch(s){lineChart('ach-chart',s.ach_by_year||{},{color:POST_LINE,yTitle:'ACH₅₀',fmtY:v=>v.toFixed(2)+' ACH₅₀'});}
+
+function barHist(id,binsObj,{color,step,xLabel,clip}){
+  dc(id);const keys=Object.keys(binsObj).map(Number).sort((a,b)=>a-b);
+  if(!keys.length){noData(id);return;}
+  const labels=keys.map(k=>k);
+  charts[id]=new Chart($(id),{type:'bar',data:{labels,datasets:[{data:keys.map(k=>binsObj[k]),backgroundColor:color,borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
+    options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}}},
+      plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
+}
+function renderErs(s){barHist('ers-chart',s.ers_bins||{},{color:PRE_LINE,step:BINS.ers.step,xLabel:'GJ/yr'});}
+function renderGhg(s){barHist('ghg-chart',s.ghg_bins||{},{color:'#7A6BC8',step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr'});}
+function renderArea(s){barHist('area-chart',s.area_bins||{},{color:'#5C6E82',step:BINS.area.step,xLabel:'m²'});}
+
+function renderGap(s,meta){
+  const gs=s.gap_stats||{n:0};
+  $('gap-stats').innerHTML=[
+    statCard('Meet or beat their design',gs.pct_beat!=null?gs.pct_beat+'%':'—','green',`of ${(gs.n||0).toLocaleString()} matched homes`),
+    statCard('Typical design gap',gs.median_gap!=null?(gs.median_gap>0?'+':'')+gs.median_gap:'—',gs.median_gap<=0?'green':'accent','GJ/yr (as-built − design)'),
+    statCard('Perform worse than design',gs.pct_worse!=null?gs.pct_worse+'%':'—','','tested above design rating'),
+  ].join('');
+  // gap histogram (diverging)
+  dc('gap');const gk=Object.keys(s.gap_bins||{}).map(Number).sort((a,b)=>a-b);
+  if(gk.length){
+    charts.gap=new Chart($('gap-chart'),{type:'bar',data:{labels:gk,datasets:[{data:gk.map(k=>s.gap_bins[k]),
+      backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?'#9AA7B6':'#B33A2E')),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
+      options:{scales:{x:{title:{display:true,text:'as-built − design (GJ/yr)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}}},
+        plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.gap.step} GJ/yr`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
+  }else noData('gap-chart');
+  // scatter: raw points (FSA) or density (province)
+  dc('scatter');
+  let pts=[],maxC=1;
+  if(meta.fsaRows){
+    meta.fsaRows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating);
+      if(d>0&&a>0&&d<=CLIP.ers&&a<=CLIP.ers)pts.push({x:d,y:a,r:2.5,c:1});});
+  }else{
+    (s.gap_density||[]).forEach(([x,y,c])=>{if(c>maxC)maxC=c;});
+    (s.gap_density||[]).forEach(([x,y,c])=>pts.push({x:x+BINS.dens/2,y:y+BINS.dens/2,r:3+Math.sqrt(c/maxC)*10,c}));
+  }
+  legendInline('scatter-legend',[{c:'#B33A2E',l:'dashed = as-built equals design'}]);
+  if(!pts.length){noData('scatter-chart');return;}
+  const lim=Math.max(...pts.map(p=>Math.max(p.x,p.y)),150);
+  const diag={type:'line',data:[{x:0,y:0},{x:lim,y:lim}],borderColor:'#B33A2E',borderDash:[6,5],borderWidth:1.5,pointRadius:0,fill:false,order:0};
+  charts.scatter=new Chart($('scatter-chart'),{data:{datasets:[
+    {type:'scatter',data:pts,pointBackgroundColor:'rgba(11,37,69,.42)',pointBorderColor:'rgba(11,37,69,.15)',pointRadius:pts.map(p=>p.r),order:1},
+    diag]},
+    options:{scales:{x:{type:'linear',min:0,max:lim,title:{display:true,text:'as-designed rating (GJ/yr)'},grid:{color:'#EEF1F5'}},
+      y:{type:'linear',min:0,max:lim,title:{display:true,text:'as-built rating (GJ/yr)'},grid:{color:'#EEF1F5'}}},
+      plugins:{tooltip:{callbacks:{label:c=>c.raw.c>1?`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} · ${c.raw.c} homes`:`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} GJ/yr`}}}}});
+}
+
+function donutChart(id,obj,legendId,palette){
+  dc(id);const entries=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){noData(id);if(legendId)$(legendId).innerHTML='';return;}
+  const top=entries.slice(0,7);const restTot=entries.slice(7).reduce((a,b)=>a+b[1],0);
+  if(restTot)top.push(['Other',restTot]);
+  const colors=top.map((e,i)=>palette[i%palette.length]);
+  if(legendId)legendInline(legendId,top.map((e,i)=>({c:colors[i],l:e[0]})));
+  charts[id]=new Chart($(id),{type:'doughnut',data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:colors,borderWidth:1,borderColor:'#fff'}]},
+    options:{cutout:'55%',plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()}`}}}}});
+}
+const TYPE_PALETTE=['#0B2545','#1A7A55','#378ADD','#C8881A','#533AB7','#B33A2E','#5C6E82','#8CB273'];
+function renderTypes(s){donutChart('type-chart',s.type_counts,'type-legend',TYPE_PALETTE);}
+function renderFuel(s){
+  dc('fuel');const entries=Object.entries(s.fuel_counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!entries.length){noData('fuel-chart');return;}
+  const colors=entries.map(e=>FUEL_COLORS[fuelGroup(e[0])]||'#8A9BB0');
+  charts.fuel=new Chart($('fuel-chart'),{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:colors,borderWidth:0}]},
+    options:{indexAxis:'y',scales:{x:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}},y:{grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.parsed.x.toLocaleString()} homes`}}}}});
+}
+function renderFuelYear(s){
+  dc('fuelyear');const byYear=s.fuel_by_year||{};const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  if(!years.length){$('fuelyear-legend').innerHTML='';noData('fuelyear-chart');return;}
+  const groups=['Gas','Electricity','Other'];
+  const datasets=groups.map(g=>({label:g,backgroundColor:FUEL_COLORS[g],stack:'s',
+    data:years.map(y=>{const yr=byYear[y]||{};const tot=groups.reduce((a,k)=>a+(+yr[k]||0),0);return tot?(+(yr[g]||0))/tot*100:0;})}));
+  legendInline('fuelyear-legend',groups.map(g=>({c:FUEL_COLORS[g],l:g})));
+  charts.fuelyear=new Chart($('fuelyear-chart'),{type:'bar',data:{labels:years,datasets},
+    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#EEF1F5'}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.parsed.y)}%`}}}}});
+}
+
+function noData(id){dc(id);const cv=$(id);const ctx=cv.getContext('2d');
+  const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#8A9BB0';ctx.font="12px Inter, sans-serif";
+  ctx.textAlign='center';ctx.fillText('Not enough data for this view',w/2,h/2);}
+
+// ── FSA map (adapted from retrofits.html; colour = new-home count) ───
+const GEO_CACHE=new Map();
+function fetchGeoJSON(prov){if(GEO_CACHE.has(prov))return Promise.resolve(GEO_CACHE.get(prov));return fetchJSON(`${GEO_JSON_BASE}${prov}.json`).then(d=>{GEO_CACHE.set(prov,d);return d;});}
+function lon2x(lon,z){return(lon+180)/360*Math.pow(2,z)*256;}
+function lat2y(lat,z){const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*256;}
+function x2lon(x,z){return x/(256*Math.pow(2,z))*360-180;}
+function y2lat(y,z){const n=Math.PI-2*Math.PI*y/(256*Math.pow(2,z));return 180/Math.PI*Math.atan((Math.exp(n)-Math.exp(-n))/2);}
+function pickTileZoom(a,b,c,d,tW,tH){for(let z=15;z>=2;z--){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(c,z)-lat2y(d,z);if(w<=tW&&h<=tH)return z;}return 2;}
+function pickSharperZoom(a,b,c,d,tW,tH,mz){for(let z=2;z<=mz;z++){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(c,z)-lat2y(d,z);if(w>=tW&&h>=tH)return z;}return mz;}
+const TILE_SUB=['a','b','c','d'];
+function tileUrl(z,x,y){return`https://${TILE_SUB[(x+y)%4]}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;}
+let MAP_STATE=null,_mapTipEl=null,_mapDragged=false;
+function toggleFsaMapCard(show){$('fsa-map-card').style.display=show?'':'none';}
+function projectRing(ring,ox,oy,z){return ring.map(([lo,la])=>[lon2x(lo,z)-ox,lat2y(la,z)-oy]);}
+function ringsToPathD(rings){return rings.map(p=>'M'+p.map(q=>q.join(',')).join('L')+'Z').join(' ');}
+function loadFsaMap(prov,fsaIndex){
+  toggleFsaMapCard(true);
+  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13">Loading map…</text>';
+  resetFsaMapZoom();
+  fetchGeoJSON(prov).then(geojson=>{
+    if(PROVINCE_CODE!==prov)return;
+    let minLon=Infinity,maxLon=-Infinity,minLat=Infinity,maxLat=-Infinity;
+    geojson.features.forEach(ft=>{const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
+      polys.forEach(rings=>rings.forEach(ring=>ring.forEach(([lo,la])=>{if(lo<minLon)minLon=lo;if(lo>maxLon)maxLon=lo;if(la<minLat)minLat=la;if(la>maxLat)maxLat=la;})));});
+    const z=pickTileZoom(minLon,maxLon,maxLat,minLat,1400,1400);
+    const ox=lon2x(minLon,z),oy=lat2y(maxLat,z),W=lon2x(maxLon,z)-ox,H=lat2y(minLat,z)-oy;
+    const indexByFsa={};(fsaIndex||[]).forEach(e=>{indexByFsa[e.fsa]=e;});
+    const features=geojson.features.map(ft=>{const polys=ft.geometry.type==='Polygon'?[ft.geometry.coordinates]:ft.geometry.coordinates;
+      const allR=[];let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+      polys.forEach(rings=>rings.forEach(ring=>{const pts=projectRing(ring,ox,oy,z);pts.forEach(([x,y])=>{if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;});allR.push(pts);}));
+      return{fsa:ft.properties.CFSAUID,d:ringsToPathD(allR),bbox:[x0,y0,x1,y1]};});
+    const tmnX=Math.floor(ox/256)-1,tmxX=Math.floor((ox+W)/256)+1,tmnY=Math.floor(oy/256)-1,tmxY=Math.floor((oy+H)/256)+1;
+    let tiles='';for(let ty=tmnY;ty<=tmxY;ty++)for(let tx=tmnX;tx<=tmxX;tx++){const x=tx*256-ox,y=ty*256-oy;tiles+=`<image href="${tileUrl(z,tx,ty)}" x="${x}" y="${y}" width="256" height="256"></image>`;}
+    MAP_STATE={prov,z,origin:[ox,oy],features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup:tiles};
+    paintFsaMap();
+  }).catch(err=>{console.error(err);$('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13">Map not available for this province</text>';MAP_STATE=null;});
+}
+function setMapGradientLegend(css,l,m,r){$('map-legend').innerHTML=`<div class="map-grad-wrap"><div class="map-grad" style="background:${css}"></div><div class="map-grad-labels"><span>${l}</span>${m!=null?`<span>${m}</span>`:''}<span>${r}</span></div></div>`;}
+function lerpColor(lo,hi,t){t=Math.max(0,Math.min(1,t));const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));return`rgb(${c.join(',')})`;}
+function buildFsaColorScale(state){
+  const vals=state.features.map(f=>state.indexByFsa[f.fsa]).filter(Boolean);
+  const counts=vals.map(e=>e.row_count||0);const maxC=Math.max(...counts,1);
+  $('map-color-meaning').textContent='new homes built';
+  setMapGradientLegend('linear-gradient(90deg,#E6ECF5,#0B2545)','0',null,`${maxC.toLocaleString()} homes`);
+  return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxC)):'#D3D9E2';
+}
+function paintFsaMap(){
+  if(!MAP_STATE)return;const svg=$('fsa-map-svg');const colorOf=buildFsaColorScale(MAP_STATE);
+  svg.setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));
+  const shapes=MAP_STATE.features.map(f=>{const e=MAP_STATE.indexByFsa[f.fsa];
+    const cls='fsa-shape'+(!e?' no-data':'')+(f.fsa===SELECTED_FSA?' is-selected':'');
+    return`<path class="${cls}" d="${f.d}" fill="${colorOf(e)}" data-fsa="${f.fsa}" vector-effect="non-scaling-stroke"></path>`;}).join('');
+  svg.innerHTML=MAP_STATE.tilesMarkup+'<g id="fsa-map-sharp-tiles"></g>'+shapes;
+  if(!svg.dataset.wired){svg.addEventListener('mousemove',onFsaMapHover);svg.addEventListener('mouseleave',hideFsaMapTip);svg.addEventListener('click',onFsaMapClick);wireFsaMapPan(svg);svg.dataset.wired='1';}
+  if(SELECTED_FSA)zoomFsaMapTo(SELECTED_FSA);
+}
+function loadSharpTiles(bbox){
+  const g=document.getElementById('fsa-map-sharp-tiles');if(!g)return;if(!MAP_STATE){g.innerHTML='';return;}
+  const{z:baseZ,prov}=MAP_STATE;const[ox,oy]=MAP_STATE.origin||[0,0];const[px0,py0,px1,py1]=bbox;
+  const minLon=x2lon(px0+ox,baseZ),maxLon=x2lon(px1+ox,baseZ),maxLat=y2lat(py0+oy,baseZ),minLat=y2lat(py1+oy,baseZ);
+  const z2=pickSharperZoom(minLon,maxLon,maxLat,minLat,900,900,17);if(z2<=baseZ){g.innerHTML='';return;}
+  const scale=Math.pow(2,baseZ-z2);const wX0=lon2x(minLon,z2),wX1=lon2x(maxLon,z2),wY0=lat2y(maxLat,z2),wY1=lat2y(minLat,z2);
+  const tmnX=Math.floor(wX0/256)-1,tmxX=Math.floor(wX1/256)+1,tmnY=Math.floor(wY0/256)-1,tmxY=Math.floor(wY1/256)+1;
+  let m='';for(let ty=tmnY;ty<=tmxY;ty++)for(let tx=tmnX;tx<=tmxX;tx++){const x=tx*256*scale-ox,y=ty*256*scale-oy,size=256*scale;m+=`<image href="${tileUrl(z2,tx,ty)}" x="${x}" y="${y}" width="${size}" height="${size}"></image>`;}
+  if(MAP_STATE&&MAP_STATE.prov===prov)g.innerHTML=m;
+}
+function onFsaMapHover(e){
+  const el=e.target.closest('.fsa-shape');if(!_mapTipEl)_mapTipEl=$('map-tip');if(!el){hideFsaMapTip();return;}
+  const fsa=el.dataset.fsa,en=MAP_STATE.indexByFsa[fsa];const lines=[`<strong>${fsa}</strong>`];
+  if(en){lines.push(`${en.row_count.toLocaleString()} new homes`);
+    if(en.median_ers!=null)lines.push(`${Math.round(en.median_ers)} GJ/yr median rating`);
+    if(en.median_ach!=null)lines.push(`${en.median_ach} ACH₅₀ median`);
+    if(en.median_tier!=null)lines.push(`Tier ${en.median_tier} median`);}
+  else lines.push('No new-home data');
+  _mapTipEl.innerHTML=lines.join('<br>');_mapTipEl.style.display='block';_mapTipEl.style.left=(e.clientX+14)+'px';_mapTipEl.style.top=(e.clientY+14)+'px';
+}
+function hideFsaMapTip(){if(_mapTipEl)_mapTipEl.style.display='none';}
+function onFsaMapClick(e){if(_mapDragged){_mapDragged=false;return;}const el=e.target.closest('.fsa-shape');if(!el||!MAP_STATE)return;const fsa=el.dataset.fsa;if(!MAP_STATE.indexByFsa[fsa])return;const sel=$('fsa-sel');sel.value=fsa;sel.dispatchEvent(new Event('change',{bubbles:true}));zoomFsaMapTo(fsa);}
+function zoomFsaMapTo(fsa){if(!MAP_STATE)return;const f=MAP_STATE.features.find(x=>x.fsa===fsa);document.querySelectorAll('#fsa-map-svg .fsa-shape').forEach(p=>p.classList.toggle('is-selected',p.dataset.fsa===fsa));if(!f)return;const[x0,y0,x1,y1]=f.bbox;const pX=(x1-x0)*0.25+4,pY=(y1-y0)*0.25+4;const box=[x0-pX,y0-pY,(x1-x0)+pX*2,(y1-y0)+pY*2];$('fsa-map-svg').setAttribute('viewBox',box.join(' '));$('map-reset-btn').style.display='';loadSharpTiles([box[0],box[1],box[0]+box[2],box[1]+box[3]]);}
+function resetFsaMapZoom(){if(MAP_STATE)$('fsa-map-svg').setAttribute('viewBox',MAP_STATE.fullViewBox.join(' '));$('map-reset-btn').style.display='none';const g=document.getElementById('fsa-map-sharp-tiles');if(g)g.innerHTML='';}
+function zoomFsaMapBy(factor){if(!MAP_STATE)return;const svg=$('fsa-map-svg');const[x0,y0,w,h]=svg.getAttribute('viewBox').split(' ').map(Number);const[,,fullW]=MAP_STATE.fullViewBox;const cx=x0+w/2,cy=y0+h/2;const nW=Math.max(fullW*0.0015,Math.min(fullW,w*factor));const sc=nW/w,nH=h*sc;svg.setAttribute('viewBox',`${cx-nW/2} ${cy-nH/2} ${nW} ${nH}`);$('map-reset-btn').style.display=(nW<fullW-0.5)?'':'none';loadSharpTiles([cx-nW/2,cy-nH/2,cx+nW/2,cy+nH/2]);}
+function clearFsaMapSelection(){document.querySelectorAll('#fsa-map-svg .fsa-shape.is-selected').forEach(p=>p.classList.remove('is-selected'));resetFsaMapZoom();}
+function wireFsaMapPan(svg){let dragging=false,moved=false,sX=0,sY=0,sBox=null;const TH=4;
+  svg.addEventListener('pointerdown',e=>{if(!MAP_STATE)return;dragging=true;moved=false;_mapDragged=false;sX=e.clientX;sY=e.clientY;sBox=svg.getAttribute('viewBox').split(' ').map(Number);});
+  svg.addEventListener('pointermove',e=>{if(!dragging||!MAP_STATE)return;const dx=e.clientX-sX,dy=e.clientY-sY;if(!moved&&Math.hypot(dx,dy)<TH)return;if(!moved)svg.setPointerCapture(e.pointerId);moved=true;_mapDragged=true;hideFsaMapTip();const rect=svg.getBoundingClientRect();const[,,w,h]=sBox;const uX=w/rect.width,uY=h/rect.height;const[fx0,fy0,fw,fh]=MAP_STATE.fullViewBox;let x0=sBox[0]-dx*uX,y0=sBox[1]-dy*uY;x0=Math.max(fx0-w*0.5,Math.min(fx0+fw-w*0.5,x0));y0=Math.max(fy0-h*0.5,Math.min(fy0+fh-h*0.5,y0));svg.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);$('map-reset-btn').style.display='';});
+  function end(e){if(!dragging)return;dragging=false;if(svg.hasPointerCapture&&svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);if(moved){const box=svg.getAttribute('viewBox').split(' ').map(Number);loadSharpTiles([box[0],box[1],box[0]+box[2],box[1]+box[3]]);}}
+  svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+}
+
+// ── Share URLs + postal code ────────────────────────────────────────
+function updateShareUrl(){
+  const p=new URLSearchParams(location.search);p.delete('prov');p.delete('fsa');
+  if(PROVINCE_CODE&&PROVINCE_CODE!=='CA')p.set('prov',PROVINCE_CODE);if(SELECTED_FSA)p.set('fsa',SELECTED_FSA);
+  const q=p.toString();history.replaceState(null,'',location.pathname+(q?'?'+q:''));
+  const prov=PROVINCES[PROVINCE_CODE];const where=SELECTED_FSA?`${SELECTED_FSA}, ${prov?prov.name:''}`:(prov&&PROVINCE_CODE!=='CA'?prov.name:'');
+  document.title=where?`New Homes Explorer — ${where}`:'New Homes Explorer — how efficient are Canada\'s new houses?';
+}
+function parseDeepLink(){const p=new URLSearchParams(location.search);const prov=(p.get('prov')||'').toUpperCase();const fsa=(p.get('fsa')||'').toUpperCase();
+  if(PROVINCES[prov]&&prov!=='CA'){PROVINCE_CODE=prov;$('province-sel').value=prov;if(/^[A-Z]\d[A-Z]$/.test(fsa))SELECTED_FSA=fsa;}}
+const POSTAL_PROV={A:['NF'],B:['NS'],C:['PE'],E:['NB'],G:['QC'],H:['QC'],J:['QC'],K:['ON'],L:['ON'],M:['ON'],N:['ON'],P:['ON'],R:['MB'],S:['SK'],T:['AB'],V:['BC'],X:['NT','NU'],Y:['YK']};
+function showPcHint(msg){const el=$('pc-hint');el.textContent=msg||'';el.style.display=msg?'':'none';}
+function goToPostal(raw){
+  const m=String(raw||'').trim().toUpperCase().replace(/\s+/g,'').match(/^([A-Z]\d[A-Z])/);
+  if(!m){showPcHint('Enter a valid Canadian postal code, e.g. K1A 0B1.');return;}
+  const fsa=m[1];const provs=POSTAL_PROV[fsa[0]];
+  if(!provs){showPcHint(`"${fsa[0]}" is not a Canadian postal district.`);return;}
+  if(!provs.length){showPcHint('No new-home data recorded for this area.');return;}
+  showPcHint('');
+  (function tryNext(i){
+    if(i>=provs.length){showPcHint(`No new-home records for ${fsa} — try the province-wide view instead.`);return;}
+    fetchFsaIndex(provs[i]).then(idx=>{if(!idx.some(e=>e.fsa===fsa)){tryNext(i+1);return;}
+      PROVINCE_CODE=provs[i];SELECTED_FSA=fsa;SELECTED_TYPE='';$('province-sel').value=PROVINCE_CODE;$('type-sel').value='';updateShareUrl();load();
+    }).catch(()=>tryNext(i+1));
+  })(0);
+}
+$('pc-input').addEventListener('keydown',e=>{if(e.key==='Enter')goToPostal(e.target.value);});
+$('pc-input').addEventListener('change',e=>{if(e.target.value.trim())goToPostal(e.target.value);});
+
+// ── Selector wiring ─────────────────────────────────────────────────
+$('province-sel').addEventListener('change',function(){
+  PROVINCE_CODE=this.value;if(!PROVINCE_CODE)return;
+  SELECTED_FSA='';SELECTED_TYPE='';$('type-sel').value='';$('fsa-sel').value='';$('pc-input').value='';showPcHint('');
+  updateShareUrl();load();
+});
+$('fsa-sel').addEventListener('change',function(){
+  SELECTED_FSA=this.value;if(!PROVINCE_CODE)return;SELECTED_TYPE='';$('type-sel').value='';updateShareUrl();
+  const myToken=++LOAD_TOKEN;
+  if(SELECTED_FSA){loadFsaView(myToken);zoomFsaMapTo(SELECTED_FSA);}else{loadProvinceView(myToken);clearFsaMapSelection();}
+});
+$('type-sel').addEventListener('change',function(){
+  SELECTED_TYPE=this.value;
+  if(MODE==='fsa')renderFsa();
+  else{const payload=PROVINCE_SUMMARY_CACHE.get(PROVINCE_CODE);if(payload){const slice=payload.by_type[SELECTED_TYPE]||payload.by_type['All types'];$('result-count').textContent=(slice.row_count||0).toLocaleString();$('small-n-warn').style.display=(slice.row_count<200)?'':'none';renderDashboard(slice,{fsaRows:null});}}
+});
+
+// ── Info tooltips ───────────────────────────────────────────────────
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.info-btn');
+  let tip=$('info-tip');
+  if(btn){e.stopPropagation();if(!tip){tip=document.createElement('div');tip.id='info-tip';document.body.appendChild(tip);}
+    tip.textContent=btn.dataset.info;tip.style.display='block';const r=btn.getBoundingClientRect();
+    tip.style.left=Math.min(r.left,window.innerWidth-300)+'px';tip.style.top=(r.bottom+6)+'px';btn.classList.add('open');}
+  else if(tip){tip.style.display='none';document.querySelectorAll('.info-btn.open').forEach(b=>b.classList.remove('open'));}
+});
+
+// ── Boot ────────────────────────────────────────────────────────────
+parseDeepLink();updateShareUrl();load();
+</script>
+</body>
+</html>
