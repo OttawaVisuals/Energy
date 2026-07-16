@@ -83,11 +83,19 @@ def test_cop_monotonic_above_minus15_outside_defrost():
 
 def test_defrost_derate_is_documented_factor():
     """Inside the core defrost band, COP must equal the base (band-edge) COP
-    scaled by DEFROST_FACTOR -- i.e. the derate is exactly 7%."""
+    scaled by DEFROST_FACTOR -- i.e. the derate is exactly 7%. Only applies to
+    models whose ratings are steady-state (defrost_inclusive False); Carrier's
+    integrated tables already bake defrost in, so no separate derate is applied
+    to them (and tier aggregates mix both, so are not checked here)."""
     d = load()
     lo, hi = DEFROST_BAND
     core_lo, core_hi = lo + DEFROST_RAMP, hi - DEFROST_RAMP
-    for name, T, cap, cop in _iter_curves(d):
+    for mid, m in d["models"].items():
+        if m.get("defrost_inclusive"):
+            continue
+        name = "model:" + mid
+        T = _arr(m["curve"]["T_C"])
+        cop = _arr(m["curve"]["COP"])
         core = (T >= core_lo) & (T <= core_hi) & ~np.isnan(cop)
         if not core.any():
             continue
@@ -151,23 +159,23 @@ def test_gshp_cop_increases_with_ewt():
         assert cop.min() > 1.5 and cop.max() < 8.0, f"{uid}: COP out of range"
 
 
-def test_curve_hits_neep_points():
-    """Sanity: each model's defrost-free curve should pass through its NEEP
-    certified COP points (they built it). Allow the defrost derate where it
-    overlaps the band by checking capacity instead of COP inside the band."""
+def test_curve_hits_datasheet_points():
+    """Sanity: each model's curve should pass through its published datasheet
+    capacity points (they built it). Checks capacity (defrost-free), which is
+    defined at every point including capacity-only ones."""
     d = load()
     for mid, m in d["models"].items():
         T = _arr(m["curve"]["T_C"])
         capf = _arr(m["curve"]["cap_frac_of_rated47"])
         rated = m["rated_cap_47_kW"]
         op = capf > EPS                      # operating side only
-        for p in m["neep_points"]:
-            # The coldest (LCT) point coincides with the lockout cliff; the
-            # 0.5 C grid straddles it, so interpolate over the operating side.
+        for p in m["datasheet_points"]:
+            # The coldest point coincides with the lockout cliff; the 0.5 C grid
+            # straddles it, so interpolate over the operating side.
             cf_curve = np.interp(p["T_C"], T[op], capf[op])
             cf_ref = p["cap_kW"] / rated
             assert abs(cf_curve - cf_ref) <= 0.03, \
-                f"{mid}: capacity off NEEP point at {p['T_C']}C " \
+                f"{mid}: capacity off datasheet point at {p['T_C']}C " \
                 f"(curve {cf_curve:.3f} vs {cf_ref:.3f})"
 
 
