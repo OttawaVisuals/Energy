@@ -1,0 +1,254 @@
+"""
+newhomes_precompute.py
+
+Turns the per-province parquet from newhomes_pipeline.py into the web-ready
+JSON the New Homes Explorer (newhomes.html) fetches:
+
+  newhomes_json/<PROV>.json     province-wide precomputed payload, per house type
+  newhomes_json/CA.json         all-Canada aggregate (computed on the concat)
+  newhomes_fsa/<PROV>/<FSA>.json raw rows (array-of-arrays) for the FSA view
+  newhomes_fsa/<PROV>/_index.json  [{fsa,row_count,median_ers,median_tier,median_ach}]
+
+BIN WIDTHS / THRESHOLDS below MUST match the BINS object in newhomes.html, so
+the precomputed province view and the raw-row FSA view show identically-shaped
+histograms for the same data. (Same contract as precompute_province_stats.py.)
+"""
+
+import os
+import glob
+import json
+from pathlib import Path
+
+import pandas as pd
+import numpy as np
+
+OUTPUT_DIR       = r"C:\ERS\web_nc"
+PROVINCE_JSON_DIR = os.path.join(OUTPUT_DIR, "province_json")
+FSA_JSON_DIR      = os.path.join(OUTPUT_DIR, "fsa_json")
+
+# --- bin widths (mirror BINS in newhomes.html) ---
+B_ERS  = 10     # ERS rating GJ/yr
+B_GHG  = 1      # tonnes CO2e/yr
+B_ACH  = 0.5    # air changes / hr @ 50 Pa
+B_AREA = 25     # m2
+B_EUI  = 10     # kWh/m2/yr
+B_GAP  = 2      # RatingGap GJ/yr (as-built - designed)
+B_DENS = 5      # designed-vs-as-built 2D scatter density cell (GJ/yr)
+
+# clip ranges (values outside stay in medians/counts, dropped from histograms)
+C_ERS, C_GHG, C_ACH, C_AREA, C_EUI = 300, 30, 10, 700, 400
+
+FUEL_GROUPS = {  # collapse the long fuel tail into 3 series for trend charts
+    'Natural Gas': 'Gas', 'Electricity': 'Electricity',
+}
+def fuel_group(f):
+    if not isinstance(f, str) or not f.strip():
+        return None
+    return FUEL_GROUPS.get(f.strip(), 'Other')
+
+
+def num(s):
+    return pd.to_numeric(s, errors='coerce')
+
+def median(a):
+    a = np.asarray(a, dtype=float); a = a[~np.isnan(a)]
+    return float(np.median(a)) if a.size else None
+
+def bins(values, step, lo=None, hi=None):
+    v = np.asarray(values, dtype=float); v = v[~np.isnan(v)]
+    if lo is not None: v = v[v >= lo]
+    if hi is not None: v = v[v <= hi]
+    if not v.size: return {}
+    starts = np.floor(v / step) * step
+    out = {}
+    is_int = float(step).is_integer()
+    for b in starts:
+        k = int(b) if is_int else round(float(b), 2)
+        out[k] = out.get(k, 0) + 1
+    return out
+
+def counts(series):
+    s = series.dropna().astype(str).str.strip()
+    s = s[s != '']
+    return s.value_counts().to_dict()
+
+
+def compute_slice(df):
+    n = len(df)
+    out = {'row_count': n}
+    if n == 0:
+        return out
+
+    ers  = num(df.get('ERSRating'))
+    area = num(df.get('FloorArea'))
+    ghg  = num(df.get('GHG'))
+    ach  = num(df.get('AirLeakage'))
+    eui  = num(df.get('EUI'))
+    tier = num(df.get('Tier'))
+    impr = num(df.get('Improvement'))
+
+    # ---- headline stats ----
+    out['median_ers']  = median(ers[ers > 0])
+    out['median_area'] = median(area)
+    out['median_ghg']  = median(ghg)
+    out['median_ach']  = median(ach)
+    out['median_eui']  = median(eui[(eui > 0) & (eui <= C_EUI)])
+    out['median_improvement'] = median(impr)
+    out['pct_solar'] = round(float((num(df.get('SolarPV')) > 0).mean()) * 100, 1) if n else 0
+
+    # ---- distributions ----
+    out['ers_bins']  = bins(ers, B_ERS, lo=1, hi=C_ERS)
+    out['ghg_bins']  = bins(ghg, B_GHG, lo=0, hi=C_GHG)
+    out['ach_bins']  = bins(ach, B_ACH, lo=0, hi=C_ACH)
+    out['area_bins'] = bins(area, B_AREA, lo=0, hi=C_AREA)
+    out['eui_bins']  = bins(eui, B_EUI, lo=0, hi=C_EUI)
+
+    # ---- as-built NBC tier mix (recent years) ----
+    out['tier_counts'] = {int(k): int(v) for k, v in
+                          tier.dropna().astype(int).value_counts().sort_index().items()}
+
+    # ---- fuel + type breakdown ----
+    out['fuel_counts'] = counts(df.get('HeatFuel', pd.Series(dtype=str)))
+    out['type_counts'] = counts(df.get('BldgType', pd.Series(dtype=str)))
+    out['compliance_counts'] = counts(df.get('CompliancePath', pd.Series(dtype=str)))
+
+    # ---- trends by evaluation year ----
+    yr = num(df.get('Year'))
+    tmp = pd.DataFrame({'yr': yr, 'ach': ach, 'ers': ers, 'tier': tier,
+                        'fuel': df.get('HeatFuel').map(fuel_group) if 'HeatFuel' in df else None})
+    tmp = tmp[tmp['yr'].notna()]
+    tmp['yr'] = tmp['yr'].astype(int)
+
+    ach_by_year, ers_by_year, tier_by_year, fuel_by_year = {}, {}, {}, {}
+    for y, g in tmp.groupby('yr'):
+        if y < 2004 or y > 2030:
+            continue
+        m_ach = median(g['ach'])
+        if m_ach is not None:
+            ach_by_year[int(y)] = round(m_ach, 2)
+        m_ers = median(g['ers'][g['ers'] > 0])
+        if m_ers is not None:
+            ers_by_year[int(y)] = round(m_ers, 1)
+        tc = g['tier'].dropna()
+        if len(tc):
+            tier_by_year[int(y)] = {int(k): int(v) for k, v in
+                                    tc.astype(int).value_counts().sort_index().items()}
+        fc = g['fuel'].dropna()
+        if len(fc):
+            fuel_by_year[int(y)] = fc.value_counts().to_dict()
+    out['ach_by_year']  = ach_by_year
+    out['ers_by_year']  = ers_by_year
+    out['tier_by_year'] = tier_by_year
+    out['fuel_by_year'] = fuel_by_year
+
+    # ---- designed vs as-built (RatingGap = asbuilt - designed; <0 beats design) ----
+    gap = num(df.get('RatingGap'))
+    dez = num(df.get('Designed_ERSRating'))
+    pair = pd.DataFrame({'d': dez, 'a': ers, 'g': gap}).dropna()
+    pair = pair[(pair['d'] > 0) & (pair['a'] > 0)]
+    npair = len(pair)
+    gap_stats = {'n': npair}
+    if npair:
+        g = pair['g']
+        gap_stats['median_gap'] = round(float(g.median()), 1)
+        gap_stats['pct_beat']  = round(float((g <= 0).mean()) * 100, 1)   # tested <= design
+        gap_stats['pct_worse'] = round(float((g > 0).mean()) * 100, 1)
+        out['gap_bins'] = bins(g.to_numpy(), B_GAP, lo=-40, hi=20)
+        # 2D density for the scatter (designed x, as-built y), cell = B_DENS GJ
+        dx = (np.floor(pair['d'] / B_DENS) * B_DENS).astype(int)
+        dy = (np.floor(pair['a'] / B_DENS) * B_DENS).astype(int)
+        dens = pd.Series(1, index=pd.MultiIndex.from_arrays([dx, dy])).groupby(level=[0, 1]).sum()
+        out['gap_density'] = [[int(x), int(y), int(c)] for (x, y), c in dens.items()
+                              if x <= C_ERS and y <= C_ERS]
+    else:
+        out['gap_bins'] = {}
+        out['gap_density'] = []
+    out['gap_stats'] = gap_stats
+
+    return out
+
+
+def build_province_json(df, province, out_dir):
+    types = sorted(t for t in df['BldgType'].dropna().unique() if t)
+    by_type = {'All types': compute_slice(df)}
+    for t in types:
+        by_type[t] = compute_slice(df[df['BldgType'] == t])
+    payload = {'province': province, 'total_rows': len(df), 'by_type': by_type}
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    p = os.path.join(out_dir, f"{province}.json")
+    with open(p, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
+    print(f"  {province}: {len(df):,} rows, {len(types)} types -> {os.path.getsize(p)/1024:.0f} KB")
+
+
+# raw-row columns shipped to the FSA view
+FSA_COLS = ['Year', 'BldgType', 'Storeys', 'FloorArea', 'ERSRating', 'EGHRating',
+            'Tier', 'InScopeNBC', 'Improvement', 'CompliancePath', 'GHG', 'GHGI',
+            'AirLeakage', 'EUI', 'HeatFuel', 'HeatType', 'SolarPV',
+            'Designed_ERSRating', 'Designed_AirLeakage', 'RatingGap']
+
+def jval(v, col):
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return None
+    try:
+        if pd.isna(v): return None
+    except (TypeError, ValueError):
+        pass
+    if isinstance(v, (np.bool_, bool)): return bool(v)
+    if isinstance(v, (np.integer,)): return int(v)
+    if isinstance(v, (np.floating, float)):
+        f = float(v)
+        return int(f) if f.is_integer() else round(f, 2)
+    return v
+
+def split_fsa(df, province, out_root):
+    cols = [c for c in FSA_COLS if c in df.columns]
+    prov_dir = os.path.join(out_root, province)
+    Path(prov_dir).mkdir(parents=True, exist_ok=True)
+    index = []
+    for fsa, g in df.groupby('FSA'):
+        if not fsa or pd.isna(fsa) or str(fsa).strip() == '' or len(str(fsa)) != 3:
+            continue
+        rows = [[jval(v, c) for c, v in zip(cols, row)]
+                for row in g[cols].itertuples(index=False, name=None)]
+        with open(os.path.join(prov_dir, f"{fsa}.json"), 'w', encoding='utf-8') as f:
+            json.dump({'columns': cols, 'rows': rows}, f, ensure_ascii=False, separators=(',', ':'))
+        ers = num(g['ERSRating']); tier = num(g['Tier']); ach = num(g['AirLeakage'])
+        index.append({
+            'fsa': fsa, 'row_count': len(rows),
+            'median_ers': round(median(ers[ers > 0]), 1) if median(ers[ers > 0]) is not None else None,
+            'median_tier': round(median(tier), 1) if median(tier) is not None else None,
+            'median_ach': round(median(ach), 2) if median(ach) is not None else None,
+        })
+    index.sort(key=lambda d: d['fsa'])
+    with open(os.path.join(prov_dir, '_index.json'), 'w', encoding='utf-8') as f:
+        json.dump(index, f, ensure_ascii=False, indent=2)
+    print(f"  {province}: {len(index)} FSA files")
+
+
+def main():
+    parquets = sorted(glob.glob(os.path.join(OUTPUT_DIR, "nc_*.parquet")))
+    if not parquets:
+        print(f"!! no parquets in {OUTPUT_DIR}"); return
+
+    print("=== province_json + fsa_json ===")
+    ca_frames = []
+    for pq in parquets:
+        province = Path(pq).stem.replace('nc_', '')
+        df = pd.read_parquet(pq)
+        build_province_json(df, province, PROVINCE_JSON_DIR)
+        split_fsa(df, province, FSA_JSON_DIR)
+        ca_frames.append(df)
+
+    print("=== CA aggregate ===")
+    ca = pd.concat(ca_frames, ignore_index=True)
+    payload = {'province': 'CA', 'total_rows': len(ca),
+               'by_type': {'All types': compute_slice(ca)}}
+    with open(os.path.join(PROVINCE_JSON_DIR, 'CA.json'), 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
+    print(f"  CA: {len(ca):,} rows -> {os.path.getsize(os.path.join(PROVINCE_JSON_DIR,'CA.json'))/1024:.0f} KB")
+    print("done.")
+
+
+if __name__ == '__main__':
+    main()
