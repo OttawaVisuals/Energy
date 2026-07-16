@@ -521,6 +521,11 @@ errors and values spot-checked against grid_json.
 
 ## 7. Ottawa heat demand map (2–3 sessions, most novel)
 
+> **Superseded 2026-07-16 by [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md)** — a
+> fuller 6-phase plan (building stock w/ height+type, current load, electrified
+> load + feeder stress, intervention score, waste-heat hook) with its own
+> paste-able prompts. The two prompts below are kept for the record.
+
 Fuses three finished projects: where is geothermal feasible (conductivity grid +
 city potential layer) *and* needed (building heat demand) *and* grid-constrained
 (feeder capacity)? Deliberately deferred inputs now become useful: building

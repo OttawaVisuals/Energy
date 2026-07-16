@@ -3,9 +3,130 @@
 Companion to [ottawa-geothermal-guide.md](ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-15.*
+*Last session: 2026-07-16.*
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-07-16 session — Heat Demand Phase 2: per-building heat load
+
+[HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phase 2. **New script**
+`Geothermal/scripts/build_building_demand.py` augments
+`Data/processed/buildings_ottawa.parquet` in place with `floor_area_m2,
+annual_kwh, design_kw, ua_w_per_k, units_est, heat_fuel, demand_method,
+demand_confidence` (+ a `heatdemand_phase2` screening warning in the parquet
+metadata). Full method in `Geothermal/README.md` §3.11 — this entry is the
+numbers and decisions.
+
+**Method (screening layer):** houses (`detached`/`row`) = Ottawa ERS archetypes
+(`HeatPump/.../archetypes.json`) scaled by floor area (gross→heated ×0.80,
+clamp 0.5–2.5); MURBs = CEUD ON apartment÷attached per-m² ratio × Ottawa row
+archetype = **59.7 kWh/m²**; non-residential = **EWRB-2024 Ottawa actual median
+Site_EUI × CEUD commercial space-heat share** (commercial ≈137, institutional
+≈125, industrial ≈63 kWh/m², industrial flagged `very_low`); design kW via the
+archetype ratio (houses) or TMY-derived EFLH at a per-class balance point
+(others); fuel = ERS per-FSA `Pre_HeatFuel` **raked (IPF) to StatCan 38-10-0286**
+(gas 59% / electric 21%) with a **rural no-gas** constraint from the serviced-
+area layer, seeded draw (seed `20260716`).
+
+**Key decisions / deviations from the brief:**
+- **EWRB cannot override per building** — Phase 0 found it has no street address
+  or floor area, so it's used only to *calibrate* the commercial intensity
+  (its intended secondary role), replacing CEUD's provincial commercial value
+  which came out **1.73× the Ottawa actual** (the known CEUD floor-space
+  undercount, confirmed against 150 Ottawa EWRB commercial rows).
+- **Apartment intensity via the CEUD ratio, not a raw CEUD figure + HDD uplift**
+  — keeps MURBs internally consistent with (more efficient than) the Ottawa row
+  archetype and avoids an external HDD guess.
+- **Semi/duplex** fold into `row`/`townhouse_row` (Phase 1's enum has no `semi`);
+  validated by the CEUD `single_attached` (=row+semi+attached) match to ~3%.
+
+**Validation (printed; investigated, not force-fit):** (a) residential space
+heat **10.07 TWh vs 7.38 TWh CEUD-scaled (+36%)** — *root-caused* to a Phase 1
+**stock-count** issue (modelled stock implies **808k dwellings vs 427k census
+households, 1.89×**; detached over-attributed per §3.10), while the **per-unit**
+detached mean **22,534 kWh matches CEUD single_detached 22,520 kWh (<1%)**;
+per-building values kept as-is (Phase 3 needs them), city-wide sums flagged as
+upper estimates. (b) gas **59.1%** / electric **21.0%** — on the StatCan targets
+by construction. (c) modelled space-heat emissions **2.84 Mt = 104%** of the
+Energy Evolution 2024 buildings inventory (2.74 Mt) — the >100% is the same
+stock inflation; stock-reconciled ≈76%, a plausible space-heat share. (d) EWRB
+Ottawa median Site_EUI commercial 0.86 / institutional 0.78 / industrial 0.57
+GJ/m². (e) per-m² ~30% below CEUD ON (ERS archetypes are larger-than-average
+homes — same fact as the per-unit match); **TaNDM Kelowna** detached
+HDD-normalised **29,462 kWh vs our 22,534 (−24%)**, expected (Kelowna gas
+includes water heating; milder-climate normalisation approximate). TaNDM xlsx
+cached at `Data/Raw/references/`.
+
+**Biggest open item:** city-wide totals run high purely from Phase 1's
+building:dwelling over-count — the highest-value fix before the Phase 4/5 map is
+trusted quantitatively is tightening Phase 1 classification, not re-tuning
+Phase 2 intensities (which match CEUD per unit).
+
+## 2026-07-16 session — Heat Demand Phase 1: canonical building stock
+
+[HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phase 1 (Phase 0 scouting memo:
+[`Geothermal/Data/heatdemand_source_notes.md`](Geothermal/Data/heatdemand_source_notes.md)).
+New pipeline, kept in `Geothermal/scripts/` because it reuses the geothermal
+grid/feeder/bbox conventions, but feeding the separate heat-demand plan, not
+the suitability map.
+
+**New script** `Geothermal/scripts/build_building_stock.py` →
+`Geothermal/Data/processed/buildings_ottawa.parquet` (+ `.gpkg`), one row per
+building: `footprint_m2, height_m, storeys, height_source, class, vintage,
+grid_cell_id, feeder_id, da_id, fsa`. Full method (backbone/backfill height
+strategy, zoning classification rule, DA-level probabilistic vintage
+assignment with the `community-energy-orchestrator` inspiration note, join
+conventions) documented in `Geothermal/README.md` §3.10 — this entry is the
+numbers.
+
+**New fetches** (cached under `Geothermal/Data/Raw/`):
+- `Geothermal/scripts/fetch_zoning_full.py` → `Data/Raw/zoning_full.geojson`
+  — full City zoning layer (14,089 features, no `ZONE_MAIN` filter this
+  time), same paginated-ArcGIS pattern as `fetch_municipal_layers.py`.
+- `Geothermal/scripts/fetch_da_census.py` → `Data/processed/da_census.json`
+  — DA-level 2021 Census Profile for Ottawa (1,392 DAs), period-of-
+  construction + dwelling-type mix. StatCan's `98-401-X2021006` bulk CSV
+  (`www12.statcan.gc.ca`, `GetFile.cfm?...&GEONO=006`) turned out to ship
+  pre-split by region with a `Geo_starting_row` line-number index — used it
+  to jump straight to Ottawa's ~3.66M-row span instead of streaming the
+  full 8.78 GB Ontario file. No WAF/Referer issue this time (contrast with
+  Phase 0's Canada Structures download) — plain `curl -L` worked.
+- DA boundary geometries: StatCan's national 2021 DA Digital Boundary File
+  (`lda_000b21a_e.zip`, 198 MB), filtered to Ottawa's CD (`DAUID LIKE
+  '3506%'`) → `Geothermal/Data/processed/da_boundaries_ottawa.geojson`
+  (1,392 polygons).
+
+**Pipeline run:** 467,379 Canada Structures features in the Ottawa bbox →
+**414,111 buildings** after `footprint_m2 > 40`. Height: 84.1% Canada
+Structures, 1.4% NRCan LiDAR backfill, 14.5% defaulted by type. Class split:
+detached 258,013 · row 99,054 · lowrise_murb 18,889 · highrise_murb 16,691 ·
+commercial 11,670 · industrial 6,628 · institutional 3,166. Vintage spread
+roughly matches Ottawa's known housing-age profile (1961–1980 the largest
+single band at 106,857, then a fairly even spread 1981–2021, plus 62,463
+pre-1960). Join coverage: grid cell 84.0%, feeder 66.0%, DA 81.2%, FSA 99.8%
+(none of those three source layers tile the full bbox — expected, documented
+in README §3.10, not a join bug).
+
+**Validation vs census** (Ottawa-area FSAs only, 52 of 1,646 in
+`fsa_census.json` — first run mistakenly summed all of Ontario, caught and
+fixed before reporting): detached buildings vs census detached dwellings
+**−4.1%** (well inside ±15%); row/semi buildings vs census semi+row
+dwellings **−16.6%** (just outside ±15% — investigated: OSM's
+`detached`/`house` tags can't geometrically distinguish a semi-detached pair
+from two nearby standalone houses without parcel data, so some real
+semi-detached stock likely counts as `detached` instead; not force-corrected,
+flagged as a known soft spot at the detached/row boundary). Apartment
+buildings (35,580) vs apartment dwellings (140,690) intentionally not held
+to the ±15% bar — building count vs unit count is a different denominator
+(~4.0 units/MURB on average, reported for context).
+
+**Deviations from the brief:** the City's LOD1 3D-building stretch goal
+(116 per-neighbourhood MultiPatch GDBs) was not attempted — height coverage
+via Canada Structures + NRCan (85.5% combined) was judged sufficient for a
+screening layer, all 14.5% shortfall covered by the documented type-based
+storeys default. The NRCan backfill only recovered 1.4 of the ~15 points of
+gap Canada Structures left (nearest-centroid join, 15 m cutoff) — a
+polygon-overlap join would likely close more of it; left as a follow-up.
 
 ## 2026-07-15 session — v2 Phase D: per-segment suitability scores
 
@@ -462,4 +583,9 @@ python Geothermal/scripts/build_suitability.py         # Phase D per-segment sui
 python Geothermal/scripts/merge_layers.py              # step 7 combined layers
 python Geothermal/scripts/build_map.py                 # step 8 output/index.html
 python GridCapacity/Hydro.py                           # refresh feeder capacity
+
+# Heat Demand Phase 1 (building stock; independent of the map chain above)
+python Geothermal/scripts/fetch_zoning_full.py         # full zoning layer -> Data/Raw/zoning_full.geojson
+python Geothermal/scripts/fetch_da_census.py           # DA-level census profile -> Data/processed/da_census.json
+python Geothermal/scripts/build_building_stock.py      # -> Data/processed/buildings_ottawa.{parquet,gpkg}
 ```
