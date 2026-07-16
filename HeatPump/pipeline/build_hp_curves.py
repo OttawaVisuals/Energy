@@ -1,38 +1,38 @@
 """
 build_hp_curves.py — Phase 3b of the Heat Pump tool.
 
-Turns the digitized spec-sheet / AHRI-certified performance points into the
-compact per-model, per-tier and GSHP performance curves the browser engine
-consumes.
+Turns the digitized manufacturer-datasheet performance points into the compact
+per-model, per-tier and GSHP performance curves the browser engine consumes.
 
 Inputs
 ------
-- HeatPump/data/interim/neep_points_selected.json
-      AHRI-certified max-speed heating points (capacity + COP at 47/17/5 F and
-      the Lowest Cataloged Temperature) for the representative models per tier
-      and the AHRI-popularity-matched "average installed" units, produced by
-      `extract_neep_points.py`. This is the *real certified backbone* of the
-      air-source curves.
-- Manufacturer extended tables, digitized inline below with citations:
-      * Mitsubishi PUZ-HA36NKA submittal — independent published cross-check.
-      * WaterFurnace 7 Series 700A11 & 5 Series 500A11 spec catalogs — GSHP
-        heating COP vs entering water temperature.
+- HeatPump/data/interim/datasheet_points.json
+      Max-output heating points (capacity + COP per outdoor temperature) for the
+      two representative models per tier, digitized from each unit's PRIMARY
+      PUBLIC MANUFACTURER DATASHEET (submittal / product data), produced by
+      `build_datasheet_points.py`. Public and license-clean; NEEP is used only as
+      a local tier-definition reference (Phase 3a) and never shipped. See the
+      "2026-07 UPDATE" in METHODOLOGY.md Phase 3b.
+- WaterFurnace 7 Series 700A11 & 5 Series 500A11 spec catalogs — GSHP heating
+      COP vs entering water temperature, digitized inline below with citations.
 
 Modelling (see METHODOLOGY.md "Heat pump performance curves (Phase 3b)"):
-- per-model capacity(T) and COP(T) piecewise-linear in SI at MAX-compressor
-  operation, through the certified points;
+- per-model capacity(T) and COP(T) piecewise-linear in SI at MAX heating output,
+  through the published datasheet points (COP may be None for a capacity-only
+  point — the COP curve is built from the COP-bearing points only);
 - below the coldest published point: capacity extrapolated linearly, COP
   floored at (coldest published COP - 0.3), output ZERO below the model's
   minimum operating temperature (compressor lockout);
 - a 7% defrost derate applied to COP across -7..+4 C (with 1 C continuity
-  ramps just inside the band) — the NEEP/submittal max-capacity points are
-  steady-state, not defrost-integrated, so the derate is appropriate;
-- each curve cross-checked against the model's NEEP 47/17/5 F points (and,
-  for Mitsubishi, the manufacturer submittal); deviations >10% flagged;
+  ramps just inside the band) for steady-state points; models whose datasheet
+  is already defrost-integrated (Carrier "Integrated" tables) skip the derate
+  (`defrost_inclusive`);
+- a self-check compares each curve to its published COP points (deviations >10%
+  flagged);
 - models aggregated within a tier into one normalized curve (capacity as a
-  fraction of rated capacity @47 F) so the UI can scale to any nominal size;
-- the "average installed" curve is the popularity-weighted blend of the
-  Phase-3a AHRI matches;
+  fraction of rated capacity @47 F), lightly smoothed across member lockout
+  transitions, so the UI can scale to any nominal size;
+- the "average installed" curve maps to the Tier-3 (baseline) curve;
 - a GSHP curve set: COP vs entering water temperature for two water-to-air
   units, with documented Ottawa-area vertical-loop EWT.
 
@@ -53,7 +53,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 HP = ROOT / "HeatPump"
-IN_POINTS = HP / "data/interim/neep_points_selected.json"
+IN_POINTS = HP / "data/interim/datasheet_points.json"
 OUT_JSON = HP / "data/processed/hp_curves.json"
 INTERIM = HP / "data/interim"
 
@@ -67,24 +67,9 @@ COP_FLOOR_DROP = 0.30          # COP floor below coldest point = coldest - 0.3
 GRID = np.round(np.arange(-30.0, 15.0 + 1e-9, 0.5), 2)   # common temp grid, C
 CROSS_CHECK_TOL = 0.10         # flag curve-vs-reference deviations > 10%
 
-# NEEP certified check temperatures (max-speed) in C: 47 / 17 / 5 F.
-CHECK_T = {"47F": 8.33, "17F": -8.33, "5F": -15.0}
-
 # --------------------------------------------------------------------------
-# Manufacturer extended / cross-check data (digitized, with citations).
+# GSHP source data (digitized, with citations).
 # --------------------------------------------------------------------------
-# Mitsubishi PUZ-HA36NKA + PVA-A36AA7 submittal, Form SB_PVA-A36AA7_PUZ-
-# HA36NKA_202401 (mitsubishitechinfo.ca), "Performance" table p.2. Max-capacity
-# heating COPs — an INDEPENDENT published cross-check of the NEEP backbone.
-MITSU_SUBMITTAL = {
-    "outdoor_model": "PUZ-HA36NKA",
-    "doc": "Mitsubishi Electric Submittal SB_PVA-A36AA7_PUZ-HA36NKA_202401, p.2",
-    # (T_C, max capacity BTU/h, max-capacity COP)
-    "points": [(8.33, 40000, None), (-8.33, 38000, 2.27),
-               (-15.0, 38000, 2.17), (-25.0, 30400, 1.50)],
-    "defrost_inclusive": False,   # steady-state max-capacity ratings
-}
-
 # WaterFurnace geothermal (water-to-air) — full-load HEATING COP vs entering
 # water temperature at EAT 70 F, highest cataloged loop flow, 0% antifreeze.
 # Source: WaterFurnace Specification Catalogs, "Performance Data" tables.
@@ -169,22 +154,31 @@ def build_model_curve(points, rated_cap_47_kW, min_op_temp_C,
                       apply_defrost=True):
     """Evaluate a model's capacity(T) [kW and fraction-of-rated@47] and COP(T)
     on GRID, with cold-end extrapolation, COP floor and lockout below min-op.
-    `points` = list of dicts {T_C, cap_kW, COP} (certified max-speed points)."""
+    `points` = list of dicts {T_C, cap_kW, COP}. COP may be None for a
+    CAPACITY-ONLY point (e.g. a published low-temperature capacity-retention
+    figure without a published max-speed COP): the capacity curve is built from
+    ALL points, the COP curve from the COP-bearing points only (with the usual
+    cold-end floor/extrapolation), so a missing cold COP is handled exactly as
+    an out-of-range extrapolation, not a gap in the capacity shape."""
     pts = sorted(points, key=lambda p: p["T_C"])
     xs = np.array([p["T_C"] for p in pts])
     cap = np.array([p["cap_kW"] for p in pts])
-    cop = np.array([p["COP"] for p in pts])
+
+    # COP points: those with a published COP (subset of the capacity points).
+    cpts = [p for p in pts if p.get("COP") is not None]
+    xcop = np.array([p["T_C"] for p in cpts])
+    cop = np.array([p["COP"] for p in cpts])
 
     # end-segment slopes for linear extrapolation
     cap_slope_lo = (cap[1] - cap[0]) / (xs[1] - xs[0])
     cap_slope_hi = (cap[-1] - cap[-2]) / (xs[-1] - xs[-2])
-    cop_slope_hi = (cop[-1] - cop[-2]) / (xs[-1] - xs[-2])
+    cop_slope_hi = (cop[-1] - cop[-2]) / (xcop[-1] - xcop[-2])
 
     cap_kw = _interp_extrap(GRID, xs, cap, cap_slope_lo, cap_slope_hi)
     # COP: interpolate; ABOVE warmest extrapolate on slope; BELOW coldest floor
-    cop_curve = _interp_extrap(GRID, xs, cop, 0.0, cop_slope_hi)
+    cop_curve = _interp_extrap(GRID, xcop, cop, 0.0, cop_slope_hi)
     cold_floor = cop[0] - COP_FLOOR_DROP
-    below = GRID < xs[0]
+    below = GRID < xcop[0]
     cop_curve[below] = np.maximum(cold_floor, cop_curve[below])
     cop_curve = np.maximum(cop_curve, cold_floor)   # never below the floor
 
@@ -203,6 +197,22 @@ def build_model_curve(points, rated_cap_47_kW, min_op_temp_C,
 def curve_value(T_C, grid_curve):
     """Sample a GRID-based curve array at an arbitrary temperature."""
     return float(np.interp(T_C, GRID, np.nan_to_num(grid_curve, nan=0.0)))
+
+
+def _smooth3(y):
+    """Light centred 3-point moving average over the non-NaN (operating) region;
+    NaN (locked-out) cells are left untouched. Removes single-cell steps left by
+    a member exiting the aggregate at its lockout, without shifting the shape."""
+    y = np.asarray(y, dtype=float)
+    out = y.copy()
+    idx = np.where(~np.isnan(y))[0]
+    if len(idx) < 3:
+        return out
+    v = y[idx]
+    sm = v.copy()
+    sm[1:-1] = (v[:-2] + v[1:-1] + v[2:]) / 3.0
+    out[idx] = sm
+    return out
 
 
 def pav_isotonic(y):
@@ -265,6 +275,14 @@ def aggregate(members, weights=None, isotonic_cap=True):
 
     cap_mean = wmean(cap)
     cop_mean = wmean(cop)
+    # A member locking out at a warmer temperature than its tier-mates leaves the
+    # mean abruptly, producing a small step in the aggregate at that boundary
+    # (e.g. a 2-stage unit locking out ~4 C above a variable-speed tier-mate).
+    # Smooth the aggregate within its operating region so the transition fades
+    # rather than steps -- the physical unit population thins gradually, not at a
+    # single temperature. A light centred 3-point pass, nan-aware.
+    cop_mean = _smooth3(cop_mean)
+    cap_mean = _smooth3(cap_mean)
     if isotonic_cap:
         cap_mean = pav_isotonic(cap_mean)
         cop_mean = pav_isotonic(cop_mean)
@@ -274,24 +292,28 @@ def aggregate(members, weights=None, isotonic_cap=True):
 # --------------------------------------------------------------------------
 # Cross-check
 # --------------------------------------------------------------------------
-def neep_cross_check(model_id, points, cop_curve_no_defrost):
-    """Compare the (defrost-free) curve COP at 47/17/5 F to the certified NEEP
-    points it was built from -- should be ~0 by construction; report anyway --
-    and, where available, to an independent manufacturer submittal."""
-    by_t = {round(p["T_C"], 1): p for p in points}
+def datasheet_check(points, cop_curve_no_defrost):
+    """Compare the (defrost-free) curve COP at each COP-bearing datasheet point
+    to the published value it was built from -- ~0 by construction; reported for
+    traceability. Capacity-only points (COP None) are skipped."""
+    # Interpolate over the OPERATING side only: the coldest point coincides with
+    # the lockout cliff, and interpolating across the NaN boundary there would
+    # spuriously pull the curve toward zero.
+    valid = ~np.isnan(cop_curve_no_defrost)
+    gx, gy = GRID[valid], cop_curve_no_defrost[valid]
     flags = []
     checks = []
-    for lbl, T in CHECK_T.items():
-        near = by_t.get(round(T, 1))
-        if near is None:
+    for p in points:
+        if p.get("COP") is None:
             continue
-        curve = curve_value(T, cop_curve_no_defrost)
-        ref = near["COP"]
+        T = p["T_C"]
+        curve = float(np.interp(T, gx, gy)) if gx.size else 0.0
+        ref = p["COP"]
         dev = (curve - ref) / ref
-        checks.append({"T": lbl, "ref_COP": round(ref, 3),
+        checks.append({"T_C": T, "ref_COP": round(ref, 3),
                        "curve_COP": round(curve, 3), "dev": round(dev, 3)})
         if abs(dev) > CROSS_CHECK_TOL:
-            flags.append(f"NEEP {lbl}: {dev:+.0%}")
+            flags.append(f"{T}C: {dev:+.0%}")
     return checks, flags
 
 
@@ -317,72 +339,45 @@ def main(make_plots=False):
         tier = int(tier_str)
         for d in mlist:
             mid = model_id(d)
+            # Carrier "Integrated" capacities are already defrost-adjusted, so the
+            # 7% derate is skipped for those models (defrost_inclusive True).
+            defrost_incl = d.get("defrost_inclusive", False)
             cap_kw, cap_frac, cop = build_model_curve(
-                d["points"], d["rated_cap_47_kW"], d["min_op_temp_C"])
-            _, _, cop_nod = build_model_curve(
                 d["points"], d["rated_cap_47_kW"], d["min_op_temp_C"],
-                apply_defrost=False)
-            checks, flags = neep_cross_check(mid, d["points"], cop_nod)
+                apply_defrost=not defrost_incl)
 
-            # Mitsubishi independent submittal cross-check
-            mfr_check = None
-            if d["outdoor_model"] == MITSU_SUBMITTAL["outdoor_model"]:
-                mfr_check = {"doc": MITSU_SUBMITTAL["doc"], "points": []}
-                for (T, capbtu, mcop) in MITSU_SUBMITTAL["points"]:
-                    if mcop is None:
-                        continue
-                    curve = curve_value(T, cop_nod)
-                    dev = (curve - mcop) / mcop
-                    entry = {"T_C": T, "submittal_COP": mcop,
-                             "curve_COP": round(curve, 3), "dev": round(dev, 3)}
-                    mfr_check["points"].append(entry)
-                    if abs(dev) > CROSS_CHECK_TOL:
-                        all_flags.append(
-                            f"{mid}: submittal {T}C COP {mcop} vs curve "
-                            f"{curve:.2f} ({dev:+.0%})")
+            # Self-check: curve COP at each published point vs the datasheet value
+            # (~0 by construction; reported for traceability).
+            checks, flags = datasheet_check(d["points"],
+                                            build_model_curve(d["points"],
+                                                              d["rated_cap_47_kW"],
+                                                              d["min_op_temp_C"],
+                                                              apply_defrost=False)[2])
             all_flags += [f"{mid}: {f}" for f in flags]
 
             rec = {
                 "tier": tier, "brand": d["brand"], "brand_owner": d["brand_owner"],
                 "outdoor_model": d["outdoor_model"], "label": d["label"],
-                "refrigerant": d["refrigerant"], "n_neep_combos": d["n_combos"],
+                "refrigerant": d["refrigerant"], "source_doc": d["doc"],
                 "rated_cap_47_kW": round(d["rated_cap_47_kW"], 3),
-                "min_op_temp_C": d["min_op_temp_C"], "has_lct": d["has_lct"],
-                "defrost_inclusive": False,
-                "neep_points": d["points"],
-                "neep_cross_check": checks,
-                "manufacturer_cross_check": mfr_check,
+                "min_op_temp_C": d["min_op_temp_C"],
+                "defrost_inclusive": defrost_incl,
+                "datasheet_points": d["points"],
+                "datasheet_check": checks,
                 # grid arrays (kept for aggregation / plotting; trimmed on output)
                 "cap_kw": cap_kw, "cap_frac": cap_frac, "COP": cop,
             }
             models[mid] = rec
             tier_members[tier].append(rec)
 
-    # ---- average installed: popularity-weighted blend of AHRI matches ----
-    avg_members, avg_weights, avg_comp = [], [], []
-    for d in data["ahri_matched"]:
-        cap_kw, cap_frac, cop = build_model_curve(
-            d["points"], d["rated_cap_47_kW"], d["min_op_temp_C"])
-        avg_members.append({"cap_frac": cap_frac, "COP": cop})
-        avg_weights.append(d["weight"])
-        avg_comp.append({"outdoor_model": d["outdoor_model"],
-                         "brand": d["brand"], "weight": d["weight"],
-                         "min_op_temp_C": d["min_op_temp_C"]})
-    avg_cap, avg_cop = aggregate(avg_members, avg_weights)
-    # representative lockout for the blend = popularity-weighted median min-op
-    mo = sorted(((c["min_op_temp_C"], c["weight"]) for c in avg_comp))
-    tot = sum(w for _, w in mo); acc = 0; avg_minop = mo[-1][0]
-    for t, w in mo:
-        acc += w
-        if acc >= tot / 2:
-            avg_minop = t; break
-
     # ---- tier aggregate curves ----
     tiers_out = {}
+    tier_curves = {}   # tier -> (cap_mean, cop_mean, minop) grid arrays
     for tier, mem in tier_members.items():
         cap_mean, cop_mean = aggregate(mem)
         minops = sorted(m["min_op_temp_C"] for m in mem)
         tier_minop = minops[len(minops) // 2]   # median member lockout
+        tier_curves[tier] = (cap_mean, cop_mean, tier_minop)
         tiers_out[str(tier)] = {
             "label": TIER_LABELS[tier],
             "members": [m["outdoor_model"] for m in mem],
@@ -391,6 +386,11 @@ def main(make_plots=False):
                       "cap_frac_of_rated47": _round_nan(cap_mean),
                       "COP": _round_nan(cop_mean)},
         }
+
+    # "Average installed" maps to the Tier-3 (baseline) curve: the typical
+    # installed unit leans baseline (ERS/NEEP Phase-3a popularity analysis found
+    # COP@5F ~ 1.87). Sourced entirely from the Tier-3 datasheet models.
+    avg_cap, avg_cop, avg_minop = tier_curves[3]
 
     # ---- GSHP curves ----
     gshp_out = {"ottawa_ewt": OTTAWA_EWT, "units": {}}
@@ -420,22 +420,24 @@ def main(make_plots=False):
             "temp_grid_C": {"min": float(GRID[0]), "max": float(GRID[-1]),
                             "step": 0.5},
             "modelling": {
-                "operation": "max compressor speed",
+                "operation": "max heating output (what a cold home at full call "
+                             "for heat draws)",
                 "capacity_units": "fraction of rated capacity @47F (per-model "
                                   "curves also give absolute kW)",
                 "defrost_derate": DEFROST_FACTOR,
                 "defrost_band_C": DEFROST_BAND,
                 "defrost_ramp_C": DEFROST_RAMP,
-                "defrost_inclusive_ratings": False,
+                "defrost_inclusive_ratings": "per-model (Carrier integrated tables "
+                                             "already defrost-adjusted; others steady-state + 7% derate)",
                 "cop_floor_drop": COP_FLOOR_DROP,
                 "cold_extrapolation": "linear capacity below coldest point; COP "
                                       "floored; zero output below min-op temp",
                 "cross_check_tolerance": CROSS_CHECK_TOL,
             },
             "sources": {
-                "ashp_backbone": "NEEP ccASHP HP Report, AHRI-certified max-speed "
-                                 "heating points 47/17/5F + LCT",
-                "mitsubishi_submittal": MITSU_SUBMITTAL["doc"],
+                "ashp_backbone": "Primary manufacturer datasheets (submittal / "
+                                 "product data) per tier representative -- see each "
+                                 "model's source_doc. Public, license-clean.",
                 "gshp": [u["doc"] for u in GSHP_UNITS.values()],
             },
             "cross_check_flags": all_flags,
@@ -443,11 +445,10 @@ def main(make_plots=False):
         "models": {mid: _trim_model(r) for mid, r in models.items()},
         "tiers": tiers_out,
         "average_installed": {
-            "description": "Popularity-weighted blend of the top-10 AHRI numbers "
-                           "in ERS retrofit data matched to NEEP (Phase 3a).",
+            "description": "Maps to the Tier-3 (baseline) curve: the typical "
+                           "installed heat pump leans baseline (ERS retrofit "
+                           "popularity analysis). Sourced from the Tier-3 datasheet models.",
             "min_op_temp_C": avg_minop,
-            "composition": avg_comp,
-            "weight_total": int(sum(avg_weights)),
             "curve": {"T_C": GRID.tolist(),
                       "cap_frac_of_rated47": _round_nan(avg_cap),
                       "COP": _round_nan(avg_cop)},
@@ -491,7 +492,7 @@ def plot_tiers(models, tier_members, tiers_out, avg_cap, avg_cop):
 
     def check_pts(rec):
         return [(p["T_C"], p["cap_kW"] / rec["rated_cap_47_kW"], p["COP"])
-                for p in rec["neep_points"]]
+                for p in rec["datasheet_points"] if p["COP"] is not None]
 
     for tier, mem in tier_members.items():
         fig, (axc, axp) = plt.subplots(1, 2, figsize=(12, 4.6))

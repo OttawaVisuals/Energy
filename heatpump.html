@@ -281,6 +281,14 @@ footer a{color:var(--muted)}
       <span class="ctrl-hint">Charge leaks slowly + at end-of-life.</span>
     </div>
     <div class="ctrl" data-mode="advanced">
+      <label for="in-leak">Refrigerant leak rate</label>
+      <div class="range-row">
+        <input type="range" id="in-leak" min="0" max="10" step="0.5" value="2">
+        <span class="range-val" id="leak-val">2.0 %/yr</span>
+      </div>
+      <span class="ctrl-hint">Annual charge leaked in service (before end-of-life).</span>
+    </div>
+    <div class="ctrl" data-mode="advanced">
       <label for="in-methane">Upstream gas methane leak</label>
       <div class="range-row">
         <input type="range" id="in-methane" min="0" max="3" step="0.1" value="1">
@@ -339,6 +347,24 @@ footer a{color:var(--muted)}
         <span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--muted)"></span>Balance point / cut-off</span>
       </div>
       <div class="note" id="kc-note"></div>
+    </div>
+
+    <!-- Heat delivered by source, across temperature -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-title">Who delivers the heat, across outdoor temperature</span>
+        <span class="card-sub" id="src-sub">how your control strategy splits each hour's load</span>
+      </div>
+      <div class="keychart-wrap">
+        <svg id="srcchart" viewBox="0 0 740 380" role="img" aria-label="Heat delivered by the heat pump versus backup across outdoor temperature"></svg>
+        <div class="kc-tip" id="src-tip"></div>
+      </div>
+      <div class="kc-legend">
+        <span class="kc-leg"><span class="kc-swatch fill" style="background:rgba(214,158,46,.85)"></span>Heat pump</span>
+        <span class="kc-leg" id="src-leg-backup"><span class="kc-swatch fill" style="background:rgba(179,58,46,.55)"></span>Backup</span>
+        <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy)"></span>Total heat needed (load)</span>
+      </div>
+      <div class="note" id="src-note"></div>
     </div>
 
     <!-- Energy + monthly -->
@@ -415,8 +441,8 @@ footer a{color:var(--muted)}
       <p>A CWEC2020 Typical Meteorological Year (8,760 hourly temperatures) for each city's airport station (ECCC engineering climate datasets).</p>
 
       <h4>Heat-pump performance</h4>
-      <p>Capacity and COP versus outdoor temperature come from AHRI-certified NEEP cold-climate ratings (max-compressor operation at 8.3 / −8.3 / −15 °C plus each unit's lowest cataloged temperature), converted to SI. Below the coldest rated point, capacity is extrapolated linearly and COP floored; output is zero below each unit's minimum operating temperature (compressor lock-out). A 7% defrost derate is applied to COP between −7 and +4 °C. The four <b>tiers</b> are the NEEP population cut into performance thirds; <b>Average installed</b> is a popularity-weighted blend of the units Canadians actually installed (top AHRI numbers in the EnerGuide retrofit data — it leans baseline).</p>
-      <div class="caveats">Only Mitsubishi and the ground-source units publish extended multi-temperature tables openly; most curves rest on four certified NEEP points, so the interpolation between 8 °C and −8 °C is an approximation. Tier curves are population aggregates, not a specific model you can buy.</div>
+      <p>Capacity and COP versus outdoor temperature are digitized from each representative unit's <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output (what a cold home calling for full heat draws), converted to SI. Each <b>tier</b> is the average of two real, publicly-documented models: <b>premium</b> = Mitsubishi MUZ-FH12NAH (H2i) + PUZ-HA36NKA (hyper-heat); <b>mid-market</b> = Carrier Infinity 25HNB9 (2-stage) + Daikin DZ20VC (variable-speed); <b>baseline</b> = Carrier 25HNB5 (single-stage) + Mitsubishi MUZ-HM12NA2. <b>Average installed</b> maps to the baseline curve. Below the coldest published point, capacity is extrapolated and COP floored; output is zero below each unit's minimum operating temperature (compressor lock-out). Carrier's tables are already defrost-integrated; the others get a 7% defrost derate to COP between −7 and +4 °C.</p>
+      <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — the premium units hold ~100% of rated capacity down to −15 °C and run to −25 °C, while baseline units shed capacity and lock out around −15 to −19 °C. Peak efficiency (COP) is similar across all modern units; the premium advantage is needing far less backup on the coldest hours. Tier curves are two-model averages, not a specific model you can buy.</div>
 
       <h4>Grid emissions — the biggest choice</h4>
       <p>Hourly grid intensity comes from a temperature × hour-of-day × season "surface" built from 2019–2026 IESO / AESO / Hydro-Québec generation, calibrated against published provincial intensities (within ±6%). It is decomposed as <code>EF = annual_level × shape</code>, so the shape (weather/time pattern) is applied on top of the most recent complete year's level (the current grid).</p>
@@ -429,7 +455,7 @@ footer a{color:var(--muted)}
       <h4>Lifecycle terms (adjustable)</h4>
       <ul>
         <li><b>Combustion:</b> natural gas 181, oil 275, propane 214 g CO₂e/kWh of fuel input (ECCC National Inventory Report).</li>
-        <li><b>Refrigerant:</b> annual leak + amortized end-of-life loss × global-warming potential of the selected refrigerant.</li>
+        <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × global-warming potential of the selected refrigerant.</li>
         <li><b>Upstream methane:</b> a slider (default 1%) for gas leaked before combustion × methane GWP 28.</li>
         <li><b>Grid line losses:</b> default 5% added to delivered electricity.</li>
       </ul>
@@ -445,13 +471,13 @@ footer a{color:var(--muted)}
 
       <h4>What this does not do</h4>
       <p>No operating-cost/$ figures yet (pending a rates dataset); no solar gains or thermostat setbacks (the balance point absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
-      <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · NEEP ccASHP product list · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors.</p>
+      <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · manufacturer datasheets (Mitsubishi, Carrier, Daikin, WaterFurnace) · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors.</p>
     </div>
   </details>
 </section>
 
 <footer>
-  Modelled energy and emission estimates for a typical year — a screening tool, not metered consumption or a professional assessment. Equipment curves derived from the NEEP ccASHP list (used with attribution; the list itself is not redistributed). Grid, weather and building data as cited in the assumptions panel. Ottawa Visuals · Canadian energy data tools.
+  Modelled energy and emission estimates for a typical year — a screening tool, not metered consumption or a professional assessment. Equipment curves are digitized from public manufacturer datasheets for representative models. Grid, weather and building data as cited in the assumptions panel. Ottawa Visuals · Canadian energy data tools.
 </footer>
 
 <div class="err-msg" id="err" style="display:none"></div>
@@ -1014,10 +1040,10 @@ const ARCH_BLURB={
   townhouse_row:'Attached row/townhouses — shared walls, lowest heat loss.',
 };
 const BUCKET_BLURB={
-  tier1:'Top-decile cold-climate units — best efficiency and capacity retention deep into the cold.',
-  tier2:'Typical mid-range cold-climate models — solid cold performance, ~70–85% capacity kept at −15 °C.',
-  tier3:'Entry-level heat pumps — lower cold efficiency and capacity, warmer lock-out.',
-  avg:'Popularity-weighted blend of what Canadians actually installed (EnerGuide records) — leans baseline.',
+  tier1:'Premium cold-climate (Mitsubishi H2i / hyper-heat) — holds ~100% of rated capacity to −15 °C and runs to −25 °C, so backup is rarely needed.',
+  tier2:'Mid-market (Carrier 2-stage / Daikin variable-speed) — capacity fades through the cold, lock-out around −20 to −23 °C.',
+  tier3:'Baseline (single-stage ducted / standard mini-split) — capacity drops off faster and locks out around −15 to −19 °C.',
+  avg:'Maps to the baseline curve — the typical installed unit leans baseline (EnerGuide retrofit records).',
 };
 const FUEL_LABEL={gas:'natural gas',oil:'oil',electric:'electricity',propane:'propane'};
 const EFF_DEFAULT={gas:92,oil:83,electric:100};
@@ -1074,7 +1100,7 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 const state={
   city:'Ottawa', arch:'pre_1980_detached', fuel:'gas', eff:92,
   bucket:'tier1', nominal:12, backup:'electric', control:'load-exceeds-capacity',
-  lockout:-8, efMode:'marginal', refrig:'r410a', methane:1.0, lineloss:5.0,
+  lockout:-8, efMode:'marginal', refrig:'r410a', leakRate:2.0, methane:1.0, lineloss:5.0,
   nominalTouched:false, plan:null, // null = city's default electricity plan
   hourlyRange:'all',
 };
@@ -1147,6 +1173,7 @@ function buildInputs(){
     recompute();
   }));
   $('in-refrig').addEventListener('change',e=>{state.refrig=e.target.value;recompute();});
+  $('in-leak').addEventListener('input',e=>{state.leakRate=+e.target.value;$('leak-val').textContent=fmt1(state.leakRate)+' %/yr';recompute();});
   $('in-methane').addEventListener('input',e=>{state.methane=+e.target.value;$('methane-val').textContent=fmt1(state.methane)+' %';recompute();});
   $('in-lineloss').addEventListener('input',e=>{state.lineloss=+e.target.value;$('lineloss-val').textContent=fmt1(state.lineloss)+' %';recompute();});
   $('in-hourly-range').addEventListener('change',e=>{state.hourlyRange=e.target.value;if(lastRes)renderHourlyChart(lastRes);});
@@ -1157,6 +1184,7 @@ function buildInputs(){
   autoSize();
   $('bucket-hint').textContent=BUCKET_BLURB[state.bucket];
   $('control-hint').textContent='Heat pump runs to its capacity every hour; backup only makes up the shortfall.';
+  $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   $('methane-val').textContent='1.0 %';
   $('lineloss-val').textContent='5.0 %';
 }
@@ -1231,7 +1259,7 @@ function buildOpts(){
       methaneLeakPct:state.methane, methaneGWP:28,
       oilUpstreamFrac:0.12,
       charge_kg:state.nominal*CHARGE_KG_PER_KW,
-      leakRate_frac:0.02, eolLossFrac:0.15, lifetimeYears:15,
+      leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
       refrigerantGWP:REFRIG_GWP[state.refrig],
     },
     ef:EF_CACHE[prov],
@@ -1300,6 +1328,7 @@ function render(res,opts){
 
   // ---- key chart ----
   renderKeyChart(opts);
+  renderSourceChart(opts);
 
   // ---- energy + monthly ----
   renderEnergyChart(base,proj);
@@ -1449,6 +1478,106 @@ function attachKeyHover(){
     tip.style.top=(M.y(Math.max(load,cap))/scale)+'px';
     tip.style.opacity='1';
     tip.innerHTML=`<b>${fmt1(T)} °C</b><br>Load ${fmt1(load)} kW<br>HP capacity ${cap>0?fmt1(cap)+' kW':'locked out'}${cop?`<br>COP ${fmt1(cop)}`:''}${load>cap?`<br>Backup ${fmt1(load-cap)} kW`:''}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+
+// ---- Heat-delivered-by-source vs temperature (custom SVG) ----
+// Same temperature axis as the key chart, but instead of the capacity envelope
+// it shows the ACTUAL dispatch given the control strategy: at each outdoor
+// temperature, how the hour's heating load is split between the heat pump and
+// the backup. In "lockout" mode the pump contributes nothing below the setpoint
+// even where it still has capacity — the split the key chart cannot show.
+let SRC_MODEL=null;
+function srcSplit(M,T){
+  const load=M.UA*Math.max(0,M.Tbal-T);
+  let cap; if(T<M.minOp)cap=0;else{const f=E.interp(M.curve.T_C,M.curve.cap_frac_of_rated47,T);cap=(f==null||f<=0)?0:M.nom*f;}
+  let hpAllowed=cap>0;
+  if(M.control==='lockout'&&T<M.lockoutTemp)hpAllowed=false;
+  const hp=hpAllowed?Math.min(load,cap):0;
+  const rest=Math.max(0,load-hp);
+  return {load,cap,hp,rest};
+}
+function renderSourceChart(opts){
+  const svg=$('srcchart');
+  const W=740,H=380, m={l:52,r:16,t:16,b:42};
+  const plotW=W-m.l-m.r, plotH=H-m.t-m.b;
+  const Tmin=-30,Tmax=15,step=0.5;
+  const UA=opts.archetype.UA_W_per_K/1000, Tbal=opts.archetype.Tbalance_C;
+  const curve=opts.hp.curve, nom=opts.hp.nominalCap_kW, minOp=opts.hp.minOpTemp_C;
+  const control=opts.control.strategy, lockoutTemp=opts.control.lockoutTemp_C;
+  const hasBackup=opts.backup.type!=='none';
+  const M={UA,Tbal,curve,nom,minOp,control,lockoutTemp};
+
+  // sample + find max load for the y-scale
+  const Ts=[]; let maxY=0;
+  for(let T=Tmin;T<=Tmax+1e-9;T+=step){Ts.push(T);const s=srcSplit(M,T);if(s.load>maxY)maxY=s.load;}
+  maxY=Math.max(1e-6,Math.ceil(maxY*1.08));
+  const x=T=>m.l+(T-Tmin)/(Tmax-Tmin)*plotW;
+  const y=v=>m.t+plotH-(v/maxY)*plotH;
+
+  const navy=css('--navy'),amber=css('--amber'),muted=css('--muted'),light=css('--light');
+  let s='';
+  // grid + axes (mirror the key chart)
+  niceTicks(maxY,5).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
+  s+=`<text x="14" y="${m.t+plotH/2}" transform="rotate(-90 14 ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW delivered</text>`;
+  for(let T=Tmin;T<=Tmax;T+=5){s+=`<line x1="${x(T)}" y1="${m.t}" x2="${x(T)}" y2="${m.t+plotH}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${x(T)}" y="${H-m.b+18}" text-anchor="middle" font-size="11" fill="${light}">${fmtSigned(T)}</text>`;}
+  s+=`<text x="${m.l+plotW/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${muted}">Outdoor temperature (°C)</text>`;
+
+  // stacked areas: heat-pump band (baseline→hp), backup/unmet band (hp→load)
+  const hpTop=[],loadTop=[],hpBot=[];
+  Ts.forEach(T=>{const sp=srcSplit(M,T);hpTop.push(`${x(T)},${y(sp.hp)}`);loadTop.push(`${x(T)},${y(sp.load)}`);hpBot.push(`${x(T)},${y(0)}`);});
+  const backFill=hasBackup?'rgba(179,58,46,.55)':'rgba(130,130,130,.28)';
+  // backup/unmet area (drawn first, underneath)
+  s+=`<polygon points="${loadTop.join(' ')} ${hpTop.slice().reverse().join(' ')}" fill="${backFill}"/>`;
+  // heat-pump area
+  s+=`<polygon points="${hpTop.join(' ')} ${hpBot.slice().reverse().join(' ')}" fill="rgba(214,158,46,.85)"/>`;
+  // load envelope line
+  s+=polyline(Ts.map(T=>[T,srcSplit(M,T).load]),x,y,navy,2.2);
+
+  // control-strategy marker
+  if(control==='lockout'&&lockoutTemp>Tmin){s+=`<line x1="${x(lockoutTemp)}" y1="${m.t}" x2="${x(lockoutTemp)}" y2="${m.t+plotH}" stroke="${amber}" stroke-width="1.4" stroke-dasharray="4 4"/>`;
+    s+=`<text x="${x(lockoutTemp)+4}" y="${m.t+12}" font-size="10.5" fill="${amber}">HP off below ${fmtSigned(Math.round(lockoutTemp))}°</text>`;}
+  else if(minOp>Tmin){s+=`<line x1="${x(minOp)}" y1="${m.t}" x2="${x(minOp)}" y2="${m.t+plotH}" stroke="${muted}" stroke-width="1.4" stroke-dasharray="4 4"/>`;
+    s+=`<text x="${x(minOp)+4}" y="${m.t+12}" font-size="10.5" fill="${muted}">HP cut-off ${fmtSigned(Math.round(minOp))}°</text>`;}
+  s+=`<rect id="src-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+  svg.innerHTML=s;
+
+  SRC_MODEL={UA,Tbal,curve,nom,minOp,control,lockoutTemp,hasBackup,Tmin,Tmax,m,plotW,plotH,x,y,W,H};
+  attachSrcHover();
+
+  // legend label + note
+  $('src-leg-backup').lastChild.textContent=hasBackup?'Backup':'Unmet (no backup)';
+  const coldT=Math.min(...TMY[state.city]);
+  const sp=srcSplit(M,coldT);
+  const who=sp.rest<=1e-6?'the heat pump carries the whole load'
+    :(hasBackup?`backup covers ${fmt1(sp.rest)} kW and the heat pump ${fmt1(sp.hp)} kW`
+              :`the heat pump delivers ${fmt1(sp.hp)} kW and the remaining ${fmt1(sp.rest)} kW goes unmet`);
+  const strat=control==='lockout'
+    ?`Below the ${fmtSigned(Math.round(lockoutTemp))} °C lock-out the pump is switched off entirely, so backup carries every colder hour.`
+    :`The pump runs to its capacity at every temperature; backup only fills the shortfall once load outruns capacity.`;
+  $('src-sub').textContent=control==='lockout'?'lock-out control: pump off below the setpoint':'load-follows-capacity control';
+  $('src-note').innerHTML=`${strat} At ${state.city}'s coldest typical hour (${fmt1(coldT)} °C), ${who}.`;
+}
+function attachSrcHover(){
+  const svg=$('srcchart'),tip=$('src-tip'),over=$('src-over'),M=SRC_MODEL;if(!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect();
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    const scale=M.W/pt.width;
+    let T=M.Tmin+(cx*scale-M.m.l)/M.plotW*(M.Tmax-M.Tmin);
+    T=Math.max(M.Tmin,Math.min(M.Tmax,T));
+    const sp=srcSplit(M,T);
+    tip.style.left=cx+'px';
+    tip.style.top=(M.y(sp.load)/scale)+'px';
+    tip.style.opacity='1';
+    const restLbl=M.hasBackup?'Backup':'Unmet';
+    tip.innerHTML=`<b>${fmt1(T)} °C</b><br>Load ${fmt1(sp.load)} kW<br>Heat pump ${fmt1(sp.hp)} kW${sp.rest>1e-6?`<br>${restLbl} ${fmt1(sp.rest)} kW`:''}`;
   }
   over.addEventListener('mousemove',move);
   over.addEventListener('mouseleave',()=>tip.style.opacity='0');

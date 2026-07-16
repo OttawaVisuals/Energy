@@ -686,11 +686,72 @@ pump in the ERS data leans baseline, not premium.
 ## Heat pump performance curves (Phase 3b)
 
 Builds the per-model, per-tier, "average installed" and GSHP performance
-curves the browser engine consumes. Pipeline: `pipeline/extract_neep_points.py`
-(pulls the certified points) → `pipeline/build_hp_curves.py` (builds curves) →
+curves the browser engine consumes. Pipeline (as of the 2026-07 re-source
+below): `pipeline/build_datasheet_points.py` (encodes the primary-datasheet
+points) → `pipeline/build_hp_curves.py` (builds curves) →
 `pipeline/test_hp_curves.py` (validates). Output:
-`data/processed/hp_curves.json` (~106 KB) plus per-tier sanity plots
+`data/processed/hp_curves.json` (~81 KB) plus per-tier sanity plots
 `data/interim/hp_curve_tier{1,2,3}.png` and `hp_curve_average_installed.png`.
+
+### 2026-07 UPDATE — re-sourced from primary manufacturer datasheets
+
+The air-source curves were **re-sourced off the NEEP ccASHP list and onto
+each representative unit's PRIMARY PUBLIC MANUFACTURER DATASHEET** (submittal /
+product data). Motivation: the NEEP list is not openly redistributable, and the
+old `hp_curves.json` embedded NEEP-derived per-model certified points
+(`neep_points`) in the shipped file. The re-sourced file contains **no NEEP
+data** — only points digitized from public manufacturer PDFs (kept locally in
+`data/raw/spec_sheets/<brand>/`, git-ignored), each with a `source_doc`
+citation. NEEP is retained only as a LOCAL tier-definition reference (Phase 3a);
+`extract_neep_points.py` is no longer in the shipping pipeline.
+
+**Representative models (two real, publicly-documented units per tier), and the
+max-output heating points digitized from each:**
+
+| Tier | Models | Key published points (cap kW @47/17°F, COP, lock-out) |
+|---|---|---|
+| 1 — premium | Mitsubishi **MUZ-FH12NAH** (H2i) + **PUZ-HA36NKA** (hyper-heat) | hold ~100% rated capacity to 5°F; COP ≈ 3.9–4.2 @47, 2.2–2.3 @17; lock-out −25°C |
+| 2 — mid | Carrier **25HNB9** (2-stage) + Daikin **DZ20VC** (variable) | capacity fades to ~0.5–0.7 by 17°F; COP ≈ 4.1–4.3 @47, 2.3–2.9 @17; lock-out −19 to −23°C |
+| 3 — baseline | Carrier **25HNB5** (single-stage) + Mitsubishi **MUZ-HM12NA2** | capacity ~0.5–0.6 by 17°F; COP ≈ 3.6–4.1 @47, 2.4–2.8 @17; lock-out −15°C |
+
+`average_installed` now **maps to the Tier-3 (baseline) curve** (the typical
+installed unit leans baseline per the Phase-3a ERS popularity analysis), rather
+than a separate popularity-weighted blend of budget-brand units that lack public
+extended tables.
+
+**Convention (unchanged in spirit — still max heating output).** Capacities are
+the deliverable max at each temperature; COP is that unit's published headline
+efficiency (Mitsubishi rated COP@47 + max-capacity COP@17/5/LCT; Carrier/Daikin
+high-stage table COP). Because these are published headline points, the tiers
+turn out to differ mainly in **cold-weather capability (capacity retention +
+lock-out temperature)** rather than peak COP — which is the honest distinction
+(all modern units have similar mild-temperature COP; cold-climate premium means
+*keeping output when it's brutally cold*, so far less backup is needed). Verified
+in-engine: for an Ottawa pre-1980 detached home the tiers rank monotonically
+(premium → baseline) on seasonal COP (2.32 → 2.13), backup share (0% → 2%),
+lock-out hours (1 → 19) and total GHG.
+
+**Per-source defrost.** Carrier "Integrated" capacities are already
+defrost-adjusted (`defrost_inclusive: true` → the 7% derate is *not* re-applied);
+Mitsubishi/Daikin points are steady-state (`false` → 7% derate in the −7…+4°C
+band, as before).
+
+**Capacity-only points.** Where a manufacturer publishes a low-temperature
+capacity retention figure without a max-speed COP (e.g. Mitsubishi's "% at 5°F/
+−13°F"), the point carries `COP: null`: `build_model_curve` builds the capacity
+curve from all points and the COP curve from the COP-bearing points only, with
+the usual cold-end floor — so a missing cold COP is a normal extrapolation, not
+a gap in the capacity shape.
+
+**Aggregate smoothing.** When two tier-mates lock out at different temperatures,
+the warmer-lock-out member leaves the mean abruptly, stepping the aggregate COP.
+A light nan-aware 3-point smoothing (`_smooth3`) fades that transition so the
+tier curve stays continuous (the physical unit population thins gradually).
+
+The subsections below describe the original NEEP-based construction; the curve
+*construction* (piecewise-linear through the points, cold extrapolation, COP
+floor, lock-out, defrost, tier aggregation, isotonic monotonicity, GSHP) is
+unchanged — only the *point source* moved from NEEP to manufacturer datasheets.
 
 ### Representative models chosen
 
