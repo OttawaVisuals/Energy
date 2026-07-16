@@ -359,6 +359,26 @@ footer a{color:var(--muted)}
       <div class="cw cw-lg"><canvas id="monthGhgChart"></canvas></div>
     </div>
 
+    <!-- Hourly chart -->
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-title">The hour-by-hour picture</span>
+        <span class="card-sub">grid emissions, heat demand and heating GHG across the full year (8,760 hours)</span>
+      </div>
+      <div class="cost-plan-row">
+        <label for="in-hourly-range">Zoom</label>
+        <select id="in-hourly-range">
+          <option value="all">Full year</option>
+          <option value="0">First week of January</option>
+          <option value="2160">First week of April</option>
+          <option value="4344">First week of July</option>
+          <option value="6552">First week of October</option>
+        </select>
+      </div>
+      <div class="cw cw-lg"><canvas id="hourlyChart"></canvas></div>
+      <div class="note" id="hourly-note">Left axis: grid carbon intensity. Right axis: heat demand and heating GHG, hour by hour. On the full-year view lines are thinned to a daily outline; zoom to a week to see individual hours.</div>
+    </div>
+
     <!-- Operating cost -->
     <div class="card">
       <div class="card-title-row">
@@ -715,6 +735,14 @@ footer a{color:var(--muted)}
       lockoutHours = 0,
       heatingHours = 0;
 
+    // hourly series (length N), for the 8760-hour chart: grid intensity is
+    // captured for every hour (not just heating hours) so its own daily/
+    // seasonal shape is visible independent of when the home actually heats.
+    var h_ef = new Array(N).fill(0),
+      h_load = new Array(N).fill(0),
+      h_base_ghg = new Array(N).fill(0),
+      h_proj_ghg = new Array(N).fill(0);
+
     var G2KG = 0.001; // grams -> kg
 
     for (var i = 0; i < N; i++) {
@@ -727,24 +755,30 @@ footer a{color:var(--muted)}
       var season = SEASON_BY_MONTH[month];
       var tbin = tempBinLeft(T);
 
+      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+      h_ef[i] = efThisHour;
+
       // ---- heating load this hour (kWh delivered) ----
       var load = UA_kW_per_K * Math.max(0, Tbal - T); // kW == kWh over 1 h
+      h_load[i] = load;
       if (load <= 0) continue; // above balance point: nothing runs
       heatingHours++;
       totalLoad += load;
-
-      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
 
       // ---- BASE case: same delivered heat from the incumbent system ----
       if (baseFuel === "electric") {
         var baseElec = load / baseEff; // ~= load
         m_base_elec[mi] += baseElec;
         mh_base_elec[mi][hour - 1] += baseElec;
-        m_base_elecghg[mi] += efThisHour * baseElec * lineLoss * G2KG;
+        var baseElecGhg = efThisHour * baseElec * lineLoss * G2KG;
+        m_base_elecghg[mi] += baseElecGhg;
+        h_base_ghg[i] += baseElecGhg;
       } else {
         var baseFuelIn = load / baseEff;
         m_base_fuel[mi] += baseFuelIn;
-        m_base_comb[mi] += baseCombEF * baseFuelIn * G2KG;
+        var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
+        m_base_comb[mi] += baseCombGhg;
+        h_base_ghg[i] += baseCombGhg;
         if (baseFuel === "oil") {
           m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
         } else if (baseFuel === "gas" || baseFuel === "propane") {
@@ -779,7 +813,9 @@ footer a{color:var(--muted)}
         hpElec = hpHeat / perf.cop;
         m_hp_elec[mi] += hpElec;
         mh_proj_elec[mi][hour - 1] += hpElec;
-        m_proj_elecghg[mi] += efThisHour * hpElec * lineLoss * G2KG;
+        var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
+        m_proj_elecghg[mi] += hpGhg;
+        h_proj_ghg[i] += hpGhg;
         hpDelivered += hpHeat;
         hpRunHours++;
       } else if (perf.locked || (control.strategy === "lockout" && T < control.lockoutTemp_C)) {
@@ -795,11 +831,15 @@ footer a{color:var(--muted)}
           var bkElec = bkHeat / backup.efficiency;
           m_bk_elec[mi] += bkElec;
           mh_proj_elec[mi][hour - 1] += bkElec;
-          m_proj_elecghg[mi] += efThisHour * bkElec * lineLoss * G2KG;
+          var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
+          m_proj_elecghg[mi] += bkGhg;
+          h_proj_ghg[i] += bkGhg;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
           m_bk_fuel[mi] += bkFuelIn;
-          m_proj_comb[mi] += backupCombEF * bkFuelIn * G2KG;
+          var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
+          m_proj_comb[mi] += bkCombGhg;
+          h_proj_ghg[i] += bkCombGhg;
           if (backup.type === "gas" || backup.type === "propane") {
             var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
             var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
@@ -910,6 +950,12 @@ footer a{color:var(--muted)}
     return {
       base: base,
       project: project,
+      hourly: {
+        ef_g_per_kWh: h_ef,
+        load_kW: h_load,
+        base_ghg_kg: h_base_ghg,
+        proj_ghg_kg: h_proj_ghg,
+      },
       meta: {
         hours: N,
         ef_mode: efMode,
@@ -1030,7 +1076,9 @@ const state={
   bucket:'tier1', nominal:12, backup:'electric', control:'load-exceeds-capacity',
   lockout:-8, efMode:'marginal', refrig:'r410a', methane:1.0, lineloss:5.0,
   nominalTouched:false, plan:null, // null = city's default electricity plan
+  hourlyRange:'all',
 };
+let lastRes=null;
 
 // ==========================================================================
 // Boot
@@ -1101,6 +1149,7 @@ function buildInputs(){
   $('in-refrig').addEventListener('change',e=>{state.refrig=e.target.value;recompute();});
   $('in-methane').addEventListener('input',e=>{state.methane=+e.target.value;$('methane-val').textContent=fmt1(state.methane)+' %';recompute();});
   $('in-lineloss').addEventListener('input',e=>{state.lineloss=+e.target.value;$('lineloss-val').textContent=fmt1(state.lineloss)+' %';recompute();});
+  $('in-hourly-range').addEventListener('change',e=>{state.hourlyRange=e.target.value;if(lastRes)renderHourlyChart(lastRes);});
 
   $('arch-info').addEventListener('click',()=>{$('arch-helper').classList.toggle('open');renderArchHelper();});
 
@@ -1194,6 +1243,7 @@ function recompute(){
   if(!EF_CACHE[CITY_PROV[state.city]])return;
   const opts=buildOpts();
   const res=E.simulate(opts);
+  lastRes=res;
   render(res,opts);
   renderCost(res);
 }
@@ -1255,6 +1305,7 @@ function render(res,opts){
   renderEnergyChart(base,proj);
   renderMonthEnergyChart(proj);
   renderMonthGhgChart(base,proj);
+  renderHourlyChart(res);
   // This preview/renderer does not reliably pump requestAnimationFrame, so
   // Chart.js's first frame can fail to paint. Force a synchronous draw.
   Object.values(charts).forEach(c=>{try{c.resize();c.draw();}catch(e){}});
@@ -1451,6 +1502,60 @@ function renderMonthGhgChart(base,proj){
     responsive:true,maintainAspectRatio:false,animation:false,
     scales:{x:{ticks:{color:css('--light')},grid:{display:false}},y:{title:{display:true,text:'kg CO₂e',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}}},
     plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.y)+' kg CO₂e'}}}
+  }});
+}
+
+// ---- Chart.js: hourly (8760 h) grid EF / heat demand / heating GHG ----
+const DAY0_MONTH=[0,31,59,90,120,151,181,212,243,273,304,334]; // cum. days, non-leap, matches TMY
+const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayLabel(dayOfYear){
+  let mi=0;
+  for(let k=0;k<12;k++){ if(dayOfYear>=DAY0_MONTH[k]) mi=k; }
+  const dom=dayOfYear-DAY0_MONTH[mi]+1;
+  return `${MONTH_NAMES[mi]} ${dom}`;
+}
+function renderHourlyChart(res){
+  destroy('hourly');
+  const h=res.hourly;
+  const N=h.ef_g_per_kWh.length;
+  const range=state.hourlyRange;
+  let labels,ef,load,baseGhg,projGhg;
+  if(range==='all'){
+    // Full year: thin to a daily mean so ~365 points stay legible and fast.
+    const days=Math.ceil(N/24);
+    labels=[];ef=[];load=[];baseGhg=[];projGhg=[];
+    for(let d=0;d<days;d++){
+      const s=d*24,e=Math.min(N,s+24),n=e-s;
+      let sEf=0,sLoad=0,sBase=0,sProj=0;
+      for(let i=s;i<e;i++){sEf+=h.ef_g_per_kWh[i];sLoad+=h.load_kW[i];sBase+=h.base_ghg_kg[i];sProj+=h.proj_ghg_kg[i];}
+      labels.push(dayLabel(d));
+      ef.push(sEf/n);load.push(sLoad/n);baseGhg.push(sBase/n);projGhg.push(sProj/n);
+    }
+  } else {
+    const start=Math.min(+range,N-1), end=Math.min(N,start+168);
+    labels=[];ef=[];load=[];baseGhg=[];projGhg=[];
+    for(let i=start;i<end;i++){
+      const d=Math.floor(i/24), hr=i%24;
+      labels.push(`${dayLabel(d)} ${String(hr).padStart(2,'0')}:00`);
+      ef.push(h.ef_g_per_kWh[i]);load.push(h.load_kW[i]);baseGhg.push(h.base_ghg_kg[i]);projGhg.push(h.proj_ghg_kg[i]);
+    }
+  }
+  const ds=[
+    {label:'Grid emissions (g CO₂/kWh)',data:ef,borderColor:css('--amber'),backgroundColor:'transparent',yAxisID:'yEf',pointRadius:0,borderWidth:1.5,tension:0.15},
+    {label:'Heat demand (kW)',data:load,borderColor:css('--blue'),backgroundColor:'transparent',yAxisID:'yOther',pointRadius:0,borderWidth:1.5,tension:0.15},
+    {label:'Furnace GHG (kg CO₂e/h)',data:baseGhg,borderColor:css('--red'),backgroundColor:'transparent',yAxisID:'yOther',pointRadius:0,borderWidth:1.5,tension:0.15},
+    {label:'Heat pump GHG (kg CO₂e/h)',data:projGhg,borderColor:css('--green'),backgroundColor:'transparent',yAxisID:'yOther',pointRadius:0,borderWidth:1.5,tension:0.15},
+  ];
+  charts.hourly=new Chart($('hourlyChart'),{type:'line',data:{labels,datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,
+    interaction:{mode:'index',intersect:false},
+    scales:{
+      x:{ticks:{color:css('--light'),maxRotation:0,autoSkip:true,maxTicksLimit:range==='all'?12:14},grid:{display:false}},
+      yEf:{position:'left',title:{display:true,text:'g CO₂/kWh',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}},
+      yOther:{position:'right',beginAtZero:true,title:{display:true,text:'kW · kg CO₂e/h',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{display:false}},
+    },
+    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt1(c.parsed.y)}}}
   }});
 }
 

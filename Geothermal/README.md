@@ -461,6 +461,413 @@ the active segment's full breakdown.
   (0.88 vs 0.74): thin-overburden, easier-drilling suburban/rural cells, as
   expected for small closed-loop systems.
 
+### 3.10 `build_building_stock.py` — canonical building stock (Heat Demand Phase 1)
+
+Companion pipeline for [HEATDEMAND_PLAN.md](../HEATDEMAND_PLAN.md) §3–4 — a
+per-building layer feeding future heat-demand/electrification work, kept
+alongside the geothermal-suitability pipeline because it reuses the same
+500 m grid, feeder polygons, and Ottawa bbox conventions. Phase 0's scouting
+memo is [`Data/heatdemand_source_notes.md`](Data/heatdemand_source_notes.md)
+— read that first for source verdicts; this section documents what Phase 1
+(`build_building_stock.py`) actually built from those verdicts.
+
+**Output:** `Data/processed/buildings_ottawa.parquet` (+ `.gpkg` for QGIS),
+one row per building, columns `bldg_id, footprint_m2, height_m, storeys,
+height_source, class, vintage, grid_cell_id, feeder_id, da_id, fsa, geometry`
+(WGS84). **414,111 rows** after the `footprint_m2 > 40` filter (from
+467,379 Canada-Structures features in the Ottawa bbox — 88.6% kept). This is
+a *screening* layer: vintage and the ambiguous-type class split are
+probabilistic per building (meaningful in aggregate, not for a single
+address — see the vintage sub-section below).
+
+**Footprint + height + type backbone.** Canada Structures' Ontario gpkg
+(`Data/Raw/CanadaStructures/on_structures_en.gpkg`) is the sole footprint
+source, exactly as Phase 0 recommended — bbox-clipped in its native Lambert
+CRS (transformed via the embedded WKT, not an EPSG lookup) rather than
+loaded whole. `Area` is used directly as `footprint_m2` (it's already in m²
+in that projected CRS; spot-checked against geometry-computed area, matches
+to a few m²). `Height` (nonzero/non-null) is the primary height value.
+Where it's null/zero, height is backfilled from the NRCan Ottawa-Gatineau
+LiDAR tile (`Data/Raw/NRCanBuildings/...`, `heightmax`) by nearest-centroid
+join (≤15 m). Because the backfill only ever fills in a value for a building
+that already exists in the Ontario-only Canada Structures backbone, this
+implicitly keeps the whole output Ontario-side — no separate Ottawa River
+boundary clip of the NRCan tile was needed (Phase 0 had flagged the river
+isn't straight; sidestepped rather than solved). Result: **84.1% height from
+Canada Structures, 1.4% from NRCan backfill, 14.5% still needed the
+type-based storeys default** (lower than Phase 0's raw 85%/100% coverage
+figures on the two sources individually — the NRCan backfill's 15 m
+match radius and centroid-only join miss some buildings Phase 0's raw
+per-file numbers implied would be recoverable; a wider match radius or
+polygon-overlap join would likely improve this, left as a documented
+opportunity, not pursued further here since 14.5% relying on the type
+default is an acceptable screening-layer error rate).
+
+**Storeys / defaults.** Where height is known, `storeys = max(1,
+round(height_m / 3.0))` (3 m per storey). Where it's still missing after
+both sources, storeys default **by class** (`STOREY_DEFAULT` in the script):
+detached/row 2, lowrise_murb 4, highrise_murb 10, commercial 1,
+institutional 2, industrial 1 — and `height_m` is back-filled from that
+default (`height_source = 'default_by_type'`) so every row has a usable
+height. The visible spike at storeys = 10 in the histogram is this default
+firing for highrise MURBs with no height evidence, not a real cluster of
+identical towers — documented so a future reader doesn't misread it.
+
+**Classification (`class`).** Priority order, per building:
+1. **Canada Structures `OSM_Type` direct map** — unambiguous tags resolve
+   immediately: `detached/house/bungalow/static_caravan/cabin → detached`;
+   `semidetached_house/semi/terrace → row`; a `commercial` set (retail,
+   office, hotel, warehouse, bank, restaurant, kiosk, storage_tank,
+   service); an `industrial` set (industrial, barn, farm(_auxiliary),
+   stable, cowshed, silo, greenhouse, riding_hall, hangar); an
+   `institutional` set (school/university/college/kindergarten, civic,
+   public, fire_station, hospital, train_station, transportation, the
+   various places of worship, embassy, military, stadium/grandstand/
+   sports_centre, toilets, bunker, portable_classroom). Accessory/unclear
+   tags (garage, shed, roof, ruins, hut, canopy, carport, boathouse,
+   parking, `residential`, or no tag at all) carry no usable signal and
+   fall through exactly like a missing `OSM_Type`.
+2. **MURB tier tiebreak** for `apartments`/`Condominiums`/`dormitory`:
+   height ≥ 15 m → `highrise_murb`; 9–15 m → `lowrise_murb`; below that (no
+   height evidence) → probabilistic draw between the two, weighted by the
+   building's DA's `apt_low_rise` vs `apt_high_rise` dwelling counts
+   (city-wide 70/30 fallback if the DA has no apartment dwellings on
+   record).
+3. **Full zoning fallback** for everything still unresolved: the City's
+   full `Zoning/MapServer/3` layer (`Data/Raw/zoning_full.geojson`,
+   `fetch_zoning_full.py`, no `ZONE_MAIN` filter this time — 14,089
+   polygons, 41 distinct `ZONE_MAIN` codes) is joined by building-centroid
+   point-in-polygon (82.8% match rate; unzoned/rural gaps fall through to
+   the residential path below). Mapping, after inspecting every code's
+   `ZNAME_EN`:
+   - **industrial**: `IL, IG, IH, IP, RG, RH` (kept identical to
+     `fetch_municipal_layers.py`'s existing industrial filter for
+     consistency with the rest of the geothermal pipeline) plus
+     `ME, MR` (mineral extraction) and `T1, T2` (transportation), the
+     latter two flagged low-confidence — real buildings on
+     transportation-zoned land are rare and usually accessory.
+   - **institutional**: `I1, I2` (Institutional Zones), `RI` (Rural
+     Institutional), `L1, L2, L3` (Community Leisure Facility — folded in
+     as public recreation buildings).
+   - **commercial**: `AM, GM, LC, MC, MD, TD, TM, VM` (the Mainstreet /
+     Mixed-Use-Commercial family) and `RC` (Rural Commercial).
+   - **residential** (routes to step 4 below): `R1–R5, RR, RU, V1–V3, RM`.
+   - **no signal** (routes to step 4 below, same as unzoned):
+     `AG` (Agricultural), `DR` (Development Reserve), `EP`
+     (Environmental), `O1` (Open Space), `*_`. Agricultural-zoned parcels
+     commonly carry a farmhouse, so treating `AG` as "no signal" rather
+     than forcing it non-residential was a deliberate choice — an
+     agricultural zoning code alone doesn't mean "no building," it means
+     "zoning doesn't tell us the building's use."
+4. **Residential probabilistic tiebreak** (zoning residential, or no
+   zoning/OSM signal at all): height ≥ 15 m / 9–15 m still short-circuit to
+   highrise/lowrise MURB directly (deterministic — real height evidence
+   beats the census-mix guess). Otherwise, a categorical draw over
+   `{detached, row, lowrise_murb, highrise_murb}` weighted by the
+   building's DA dwelling-type mix from `da_census.json`: `detached ←
+   single_detached`; `row ← semi_detached + row_house +
+   other_single_attached + movable` (semi-detached shares a party wall
+   like a row house, so it's folded in rather than kept separate — the
+   `class` enum has no `semi` bucket); `lowrise_murb ← duplex_apt +
+   apt_low_rise`; `highrise_murb ← apt_high_rise`. If the footprint is
+   large (> 250 m²) with no height evidence, the two MURB weights are
+   tripled before renormalising (a big footprint with no height data is
+   more likely a low apartment block than a mansion). DAs with no
+   dwelling-type record (or buildings whose DA join failed — 18.8% of
+   buildings; rural/edge-of-bbox areas without a DA/zoning match) fall
+   back to Ottawa-wide dwelling-type shares.
+
+**Vintage (`vintage`, 8 bands, same as `Python/extract_fsa_census.py`'s
+period-of-construction bands).** Assigned **probabilistically per building**
+by a categorical draw from its DA's period-of-construction mix
+(`da_census.json`), falling back to the Ottawa-wide mix where the DA join
+failed or the DA's record is empty/suppressed. Fixed seed `20260716`
+(`np.random.default_rng`, one draw per building, in building order) —
+rerunning the script reproduces the exact same vintage assignment.
+**Method inspiration** (conceptual only, no code copied — AGPL,
+per HEATDEMAND_PLAN.md's instruction): `canmet-energy/
+community-energy-orchestrator` assigns each of its 139 remote communities'
+required housing stock (dwelling counts by type × 3 construction eras, from
+inter-census dwelling-count deltas) to representative EnerGuide archetype
+files, duplicating archetypes at random with a fixed seed when a community
+needs more homes of a type than the archetype library has. This building
+stock's vintage draw borrows the same shape of idea — go from a census-
+derived categorical distribution to a per-unit assignment via a seeded
+random draw rather than a deterministic rule — scaled down from
+community-level dwelling requirements to per-building draws from a much
+finer (DA-level, 8-band) distribution, since Ottawa has real building
+footprints to assign vintages *to*, unlike the orchestrator's synthetic
+per-community housing lists.
+
+**Joins:**
+- **`grid_cell_id`** — point-in-polygon against the *existing*
+  `Data/processed/thermal_conductivity_grid.geojson` polygons (not a
+  rebuilt grid — the conductivity/difficulty/suitability grid is masked to
+  cells within 2 km of a well, per `idw.py`'s `MASK_DIST_M`, so it isn't a
+  complete regular lattice over the city). That file carries no native cell
+  ID, so this script assigns a stable synthetic ID (`"cell_" + row-index-
+  in-file`) rather than inventing new grid geometry — spatially consistent
+  with every other geothermal layer, just newly labelled. **84.0%** of
+  buildings fall inside a grid cell; the rest sit outside the well-coverage
+  mask (expected, not a bug — those areas have no conductivity estimate
+  either).
+- **`feeder_id`** — point-in-polygon against `GridCapacity/
+  ottawa_capacity.geojson`'s `objectid`. **66.0%** match — Hydro Ottawa's
+  3,884 feeder polygons don't tile the full bbox (same caveat the
+  suitability layer already documents: CCIM coverage is a connection-
+  screening product, not exhaustive).
+- **`da_id`** — point-in-polygon against `Data/processed/
+  da_boundaries_ottawa.geojson` (StatCan 2021 DA cartographic boundary
+  file, national `lda_000b21a_e.zip`, filtered to `DAUID LIKE '3506%'`
+  — Ottawa's census-division code — 1,392 DAs). **81.2%** match; the rest
+  are buildings near the bbox edge that fall outside Ottawa's CD (the bbox
+  is a rectangle bigger than the city, consistent with the rest of the
+  pipeline).
+- **`fsa`** — point-in-polygon against `FSA_Maps/ON.geojson`. **99.8%**
+  match.
+
+**New fetches this phase** (raw pulls cached under `Data/Raw/` /
+`Geothermal/Data/Raw/StatCanDA/` per convention):
+- `fetch_zoning_full.py` → `Data/Raw/zoning_full.geojson` (14,089 features,
+  35.9 MB) — same paginated-ArcGIS pattern as `fetch_municipal_layers.py`,
+  `where="1=1"` instead of the industrial-only filter.
+- `fetch_da_census.py` → `Data/processed/da_census.json` (1,392 Ottawa DAs,
+  493 KB) — DA-level 2021 Census Profile. No CD/CSD-scoped bulk CSV exists
+  (confirmed by testing `GK=CSD&GC=3506008` query params against the
+  download endpoint — ignored, same file returned every time); the fetched
+  zip (`98-401-X2021006_eng_CSV.zip`, 2.25 GB) turned out to already be
+  split **by StatCan region** (Ontario alone is an 8.78 GB CSV) and, more
+  usefully, ships a `..._Geo_starting_row_Ontario.CSV` index (Geo Code,
+  Geo Name, starting line number) — used to jump straight to Ottawa's 1,392
+  DA blocks (rows ~1,070,819–4,733,170) and stop reading there, instead of
+  streaming the full 8.78 GB Ontario file to the end. Same
+  `CHARACTERISTIC_ID` map as `extract_fsa_census.py` (period-of-construction
+  1441–1448, dwelling-type 42–49) — StatCan keeps characteristic IDs
+  consistent across geography levels within the 98-401-X2021 product
+  family, as HEATDEMAND_PLAN.md's brief predicted.
+- DA boundary geometries: StatCan's national 2021 DA Digital Boundary File
+  (`lda_000b21a_e.zip`, 198 MB), filtered to Ottawa's CD and reprojected —
+  no separate script, done inline in this session and cached at
+  `Data/Raw/StatCanDA/lda_000b21a_e/`.
+- No WAF/Referer quirks were hit this phase — both `www12.statcan.gc.ca`
+  bulk-download endpoints (Census Profile CSV and the DA boundary file)
+  worked with a plain `curl -L`, unlike Phase 0's `open.canada.ca` Canada
+  Structures download.
+
+**Validation** (printed by the script; see also GEOTHERMAL_STATUS.md for
+the dated entry):
+- **detached buildings vs census detached dwellings**: 258,013 vs 269,020
+  (**−4.1%**) — well within the ±15% target; detached houses are ~1:1
+  building:dwelling, so this is the cleanest check.
+- **row/semi buildings vs census semi+row dwellings**: 99,054 vs 118,770
+  (**−16.6%**) — just outside the ±15% target. Investigated: the OSM
+  `house`/`detached` tags almost certainly catch some real semi-detached
+  and duplex units that Canada Structures' `OSM_Type` doesn't distinguish
+  from a standalone house (there's no reliable geometric signal —a party
+  wall between two footprints digitised as separate polygons looks
+  identical to two nearby detached houses without parcel data), pulling
+  count from `row` into `detached` (whose own delta, −4.1%, is
+  correspondingly *less* negative than it would be otherwise). Not
+  corrected here — flagged as a known building:dwelling attribution
+  softness at the detached/row boundary rather than silently forced to fit,
+  per the brief's instruction to investigate rather than ship a bad number
+  quietly.
+- **apartment buildings vs census apartment dwellings**: 35,580 buildings
+  vs 140,690 dwellings — **not** a ±15% check (a MURB is one building with
+  many units; the plan's ±15% target only makes sense for the ~1:1
+  detached/row comparison, so this ratio — ~4.0 dwellings per MURB
+  building — is reported for context, not validated against a target).
+- **Storeys**: mean 2.29, median 2 (25th/75th percentile both 2) — the
+  overwhelming majority of Ottawa's building stock is 1–3 storeys, with a
+  visible downtown-highrise tail out to 35 storeys, matching the known
+  shape of the city's stock. The storeys = 10 spike is the highrise-MURB
+  default firing (see above), not a real cluster.
+- **Height source**: 84.1% Canada Structures, 1.4% NRCan LiDAR backfill,
+  14.5% defaulted by type.
+
+**Deviations from the brief / open risks that mattered:**
+- Phase 0's "City LOD1 3D buildings" stretch goal (per-neighbourhood
+  MultiPatch GDBs) was **not** attempted — the NRCan LiDAR + Canada
+  Structures combination already gets height coverage to 85.5%, and the
+  116-file MultiPatch linearization effort documented as a stretch goal in
+  `heatdemand_source_notes.md` §4 was judged not worth it for a screening
+  layer's remaining 14.5% (all covered by the documented type default
+  instead).
+- The NRCan backfill only recovered 1.4 percentage points of the 14.6%
+  gap Canada Structures' `Height` left open (upper bound was 100% per
+  Phase 0's scouting numbers) — the nearest-centroid join with a 15 m
+  cutoff is conservative; a polygon-overlap join would likely close more
+  of the gap, left as a follow-up rather than reworked mid-Phase-1.
+- `da_id`/`grid_cell_id`/`feeder_id` coverage sits at 81–85% (not
+  near-100%) because none of those three source layers tile the entire
+  Ottawa bbox (DA boundaries stop at the CD line; the conductivity grid is
+  well-coverage-masked; feeder polygons are a connection-screening
+  product, not universal coverage) — expected given how each layer was
+  built, not a join bug; downstream Phase 4 aggregation will need to treat
+  buildings with a null `grid_cell_id`/`feeder_id` as "off-grid for this
+  layer" rather than dropping them.
+
+### 3.11 `build_building_demand.py` — per-building heat load (Heat Demand Phase 2)
+
+Adds a **screening estimate** of annual space-heat energy, design-day heat
+loss, effective envelope UA, and heating fuel to every building in
+`buildings_ottawa.parquet` (HEATDEMAND_PLAN.md §2–4). New columns:
+`floor_area_m2, annual_kwh, design_kw, ua_w_per_k, units_est, heat_fuel,
+demand_method, demand_confidence`. This is a **screening layer, not a set of
+building audits** — it says so in the parquet metadata (`heatdemand_phase2`
+key) — because vintage and the ambiguous-type class split are probabilistic
+per building (Phase 1, §3.10), the intensities are population medians, and the
+fuel is a raked probabilistic draw. Numbers are meaningful in aggregate (the
+500 m cell / feeder rollups of Phase 4), **not for a single address**.
+
+**Floor area.** `floor_area_m2 = footprint_m2 × storeys` (gross external). For
+the archetype (house) method this is converted to ERS-comparable *heated*
+interior area with a documented factor `HEATED_FRACTION_HOUSE = 0.80` (≈ 15%
+attached-garage/wall-thickness + 5% roof-pitch storey over-count — Canada
+Structures footprints include the garage, and `storeys = round(height/3)`
+rounds steep-roofed houses up). The non-residential intensities are per *gross*
+floor area (that's how EWRB/CEUD report EUI), so they use `floor_area_m2`
+directly.
+
+**Residential houses (`detached`, `row`).** Ottawa ERS archetypes
+(`HeatPump/data/processed/archetypes.json`, vintage × type, per
+HeatPump/METHODOLOGY.md Phase 4). `annual_kwh`, `design_kw` and `ua_w_per_k`
+are the archetype's values scaled by `clip(heated_area / archetype_floor_area,
+0.5, 2.5)`. Phase 1's 8 census vintage bands map to the 3 archetype detached
+bins (`1960_or_before`/`1961_1980 → pre_1980`; `1981_1990`/`1991_2000`/
+`2001_2005 → 1980_2005`; the three post-2005 bands → `post_2005`).
+**Semi/duplex treatment:** Phase 1's `class` enum has no `semi` bucket — semi/
+duplex are folded into `row` and use the `townhouse_row` archetype. This is
+validated against CEUD ON `single_attached` (which is *exactly* row + semi +
+attached: 47.1 GJ/hh in 2021), whose per-household energy (13,083 kWh) matches
+the `townhouse_row` archetype (13,438 kWh) to ~3% — so the row archetype
+already represents the semi/duplex population without a separate rule.
+
+**Apartments / MURBs (`lowrise_murb`, `highrise_murb`).** Ottawa apartment
+space-heat intensity per m² is built by transferring the **CEUD Ontario
+apartment ÷ single-attached per-m² ratio** (0.251 / 0.318 = 0.789 in 2021)
+onto the Ottawa `townhouse_row` archetype per-m² intensity (75.6 kWh/m²) →
+**59.7 kWh/m²**. This keeps apartments internally consistent with — and more
+efficient per m² than — the Ottawa row house, and needs **no external HDD
+guess** (the row archetype is already the Ottawa-climate anchor); it is
+preferred over applying the raw CEUD provincial apartment intensity with an
+Ottawa/Ontario HDD uplift (the alternative, which would double-count climate
+against the row archetype and produce an implausible apartment > row per-m²).
+Both MURB tiers use the same intensity (CEUD doesn't split apartments by rise).
+`units_est` is a rough reported column only (`floor_area / 106.7 m² gross per
+household`, from CEUD); MURB *energy* is `floor_area × intensity`, independent
+of the unit estimate. `design_kw = annual_kwh / EFLH` (below).
+
+**Non-residential (`commercial`, `institutional`, `industrial`).** The plan
+called for CEUD ON commercial GJ/m² by activity, but this CEUD extract carries
+per-activity *total* energy with only *aggregate* floor space (no per-activity
+GJ/m²) and its provincial commercial intensity (1.49 GJ/m² total) is **~1.9×
+the EWRB Ottawa actual** (0.85 GJ/m²) — the well-known CEUD commercial
+floor-space undercount, confirmed here. So, exactly as the plan intended EWRB
+to *"calibrate the commercial intensity table"*, the base intensity is the
+**EWRB-2024 Ottawa actual median `Site_EUI` by property-type group** (GJ/m²,
+total all-end-use) and the space-heat portion is isolated with the **CEUD ON
+commercial space-heat share** (~0.574). Result: commercial ≈ 137 kWh/m²,
+institutional ≈ 125 kWh/m². `institutional` maps to the CEUD/EWRB commercial
+sector (education, health, public services live there). `industrial` is a
+**clearly-flagged low-confidence placeholder** (`demand_confidence =
+very_low`): EWRB warehouse actuals × a lower 0.40 space-heat share ≈ 63 kWh/m²,
+because this class is dominated by agricultural/small-industrial footprints
+(barns, silos) whose energy is process- or barely-space-heat.
+
+**Design kW.** Houses use the archetype `design_heat_loss_kW × scale` directly.
+Every other class uses `design_kw = annual_kwh / EFLH`, where the equivalent
+full-load heating hours are computed from the **Ottawa TMY** at a per-class
+balance point (`EFLH = Σ max(0, Tbal − T) / (21 − (−22.8))`): apartment/
+industrial Tbal 10/8 °C → 1358/1143 h, commercial/institutional Tbal 12 °C →
+1592 h. This is TMY-consistent by construction — the Tbal = 10 °C EFLH (1358 h)
+reproduces the detached archetypes' own annual/design ratio (1340–1408 h).
+`ua_w_per_k = design_kw × 1000 / 43.8` for the non-house classes (feeds Phase 3
+electrification).
+
+**Fuel (`heat_fuel`).** Per-FSA pre-retrofit `Pre_HeatFuel` shares from the ERS
+Ontario parquet (K-prefix FSAs; ≥ 30 records else an Ottawa-wide fallback) are
+**raked by iterative proportional fitting** to the StatCan 38-10-0286
+Ottawa-ON-part 2023 shares (**gas 59%, electric 21%**; the oil/propane/wood
+tail is suppressed at that geography — source notes §2.2 — so its 20% is split
+internally by the ERS relative proportions), under a **rural no-natural-gas
+constraint** (buildings whose representative point falls outside the City
+serviced-area layer `city_open_loop_potential.geojson` get gas probability 0;
+an all-gas rural FSA falls back to the city non-gas mix so it isn't silently
+drawn as gas). A seeded per-building categorical draw (seed `20260716`, as
+Phase 1) then assigns the fuel. Non-residential classes are not covered by the
+dwelling-only StatCan table, so they use a documented serviced→{gas 0.85,
+electric 0.15} / rural→{oil 0.45, propane 0.45, electric 0.10} prior instead of
+the rake. Result: residential gas 59.1% / electric 21.0% (on target).
+
+**EWRB / actuals override.** Phase 0 (`heatdemand_source_notes.md` §2.1) found
+**EWRB has no street address** (only city + FSA-prefix) and **no floor area**,
+so the plan's "geocode EWRB rows → footprint match → replace modelled with
+actuals" step is **not possible** and is not attempted; EWRB is used only as
+the FSA/property-type intensity *calibration* described above. Better Buildings
+Ottawa 2022 (452 rows, has lat/long) was identified by Phase 0 as the viable
+per-building actuals source but was not downloaded this phase — a documented
+follow-up if a per-building override is wanted later.
+
+**Validation (printed by the script; investigated, not force-fit).**
+- **(a) Residential vs CEUD-scaled:** modelled **10.07 TWh** vs CEUD ON
+  space-heat per household scaled to Ottawa's 427,113 census households × a 1.13
+  Ottawa/Ontario HDD uplift = **7.38 TWh** → **+36%**, marginally outside the
+  ±30% band. **Investigated:** this is a *stock-count* artifact, not a
+  per-building error. The modelled stock implies **808,422 residential dwellings
+  vs 427,113 census households (1.89×)** because Phase 1 over-attributes
+  detached (OSM tags fold semi/duplex into `house`, §3.10) and the MURB
+  footprints carry generous floor area. The **per-unit** intensity is sound: the
+  modelled detached mean (**22,534 kWh**) matches CEUD ON `single_detached`
+  (**22,520 kWh**) to **<1%**. Per-building values are therefore kept **as
+  modelled** (Phase 3 electrifies actual buildings and needs the correct
+  per-building load); **city-wide sums should be read as upper estimates** until
+  Phase 1 classification is refined, and Phase 4/5 should carry this caveat.
+- **(b) Gas-heated share vs StatCan:** residential gas **59.1%**, electric
+  **21.0%** — on the 38-10-0286 targets by construction of the rake.
+- **(c) Community energy inventory:** the Energy Evolution 2024 inventory
+  publishes **emissions** ("Buildings" = 2,738,852 tCO₂e), not raw GWh/PJ
+  (source notes §1.4), so the check is via emission factors (gas 0.186, ON grid
+  0.030 kg CO₂e/kWh input). Modelled space-heat emissions **2.84 Mt = 104%** of
+  the buildings inventory; since space heat should be only ~55–70% of building
+  energy, the >100% reflects the **same ~1.36× residential stock inflation as
+  (a)** — dividing it out lands at ~76% of inventory, a plausible space-heat
+  share. Modelled natural-gas *input* for space heat ≈ 9.9 TWh/yr.
+- **(d) EWRB cross-check:** EWRB Ottawa median total `Site_EUI` — commercial
+  0.86, institutional 0.78, industrial 0.57 GJ/m² — vs CEUD's 1.73× higher
+  provincial commercial intensity; confirms EWRB actuals as the commercial base.
+  No per-building override (no addresses, above).
+- **(e) Independent intensity cross-checks (HDD-normalised):** modelled
+  detached/row per-*heated*-m² (85 / 71 kWh/m²) sit ~30% below CEUD ON
+  single_detached/attached (125 / 100) **because the ERS archetypes carry
+  larger-than-provincial-average floor areas** (audit homes skew large) — the
+  same fact as the per-unit *match* in (a): same energy per home spread over
+  more m². Against **TaNDM Kelowna 2021** (github.com/canmet-energy/tandm,
+  analysis-ready xlsx cached at `Data/Raw/references/`), Kelowna single-detached
+  gas-per-gas-metered-unit → implied delivered space heat, HDD-normalised from
+  Kelowna (~3000) up to Ottawa (4407), is **29,462 kWh vs our 22,534 (−24%)**;
+  the gap is expected (Kelowna gas includes water heating, an 78% space-fraction
+  assumption, and milder-climate normalisation is approximate) and confirms the
+  order of magnitude. A full extraction of the `canmet-energy/housing-archetypes`
+  H2K library EUIs was deprioritised for this screening layer (its national
+  medians are the same EnerGuide/SHEU lineage our ERS archetypes and CEUD both
+  derive from); the two quantitative cross-checks above (CEUD ON, TaNDM) cover
+  the independent-reference requirement.
+
+**New reference cached this phase:** `Data/Raw/references/
+TaNDM_Kelowna_2021_AnalysisReady.xlsx` (126 KB, github.com/canmet-energy/tandm,
+LGPL) — for the (e) cross-check.
+
+**Known limitations / open risks.**
+- **City-wide totals run high** (validation (a)) — a Phase 1 stock-count issue,
+  documented above; the single most valuable upgrade before the map is trusted
+  quantitatively is tightening Phase 1's detached/row/MURB classification.
+- **Vintage & fuel are probabilistic per building** — fine for 500 m cells,
+  meaningless for one address (same caveat as Phase 1's vintage).
+- **Non-residential is the weakest tier** (`demand_confidence` low/very_low):
+  EWRB's disclosed buildings skew large and efficient, per-activity resolution
+  isn't available, and `industrial` is an explicit placeholder.
+
 ## 4. Results (2026-07-15 build, v2 Phase A)
 
 **GeoPackage:** 55,903 wells (50,902 with geometry, up from 50,835 — 67
