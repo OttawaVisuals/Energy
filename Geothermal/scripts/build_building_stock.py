@@ -70,9 +70,26 @@ FOOTPRINT_MIN_M2 = 40
 SEED = 20260716                                # documented reproducibility seed (today's session date)
 
 # ---------------------------------------------------------------- classes --
+# 'accessory' (added in the Phase 2.5 reconciliation, §3.10) is not a dwelling
+# class: it holds probable non-dwelling structures (garages, sheds, secondary
+# buildings) that the census DA dwelling count cannot support -- see
+# reconcile_stock().
 CLASSES = ["detached", "row", "lowrise_murb", "highrise_murb",
-           "commercial", "institutional", "industrial"]
+           "commercial", "institutional", "industrial", "accessory"]
 RESIDENTIAL_CLASSES = ["detached", "row", "lowrise_murb", "highrise_murb"]
+MURB_CLASSES = ["lowrise_murb", "highrise_murb"]
+
+# ---- Phase 2.5 stock reconciliation (see README §3.10 "reconciliation") -----
+# Gross external m2 per dwelling for the MURB dwelling-equivalent used by the
+# per-DA cap. Same value build_building_demand.py derives live from CEUD ON
+# (apt floor space / apt households ~= 106.7 m2/hh); hard-coded here so Phase 1
+# stays self-contained and reproducible.
+GROSS_M2_PER_UNIT = 106.7
+# A dissemination area's modelled implied dwellings may exceed its 2021 census
+# dwelling count by at most this fraction before the excess is reclassified to
+# 'accessory'. 0.15 absorbs the semi-detached-digitised-as-detached softness
+# (README §3.10) and MURB unit-estimate noise without deleting evidenced stock.
+DA_IMPLIED_TOLERANCE = 0.15
 
 # OSM_Type -> direct class (unambiguous)
 OSM_DIRECT = {
@@ -364,23 +381,18 @@ def assign_class_and_vintage(bld):
         return w
 
     final_class = np.empty(n, dtype=object)
-    murb_weight_cache = {}
+    # assign_path records HOW each building's class was decided (provenance for
+    # the Phase 2.5 diagnosis and for targeting the reconciliation reassignment
+    # only at unsignalled probabilistic draws -- see reconcile_stock()).
+    assign_path = np.empty(n, dtype=object)
 
-    def murb_weights_for_da(daid):
-        if daid in murb_weight_cache:
-            return murb_weight_cache[daid]
-        if daid and daid in dwell.index:
-            row = dwell.loc[daid]
-        else:
-            row = city_dwell
-        low = (row["duplex_apt"] + row["apt_low_rise"]) if row.sum() else city_dwell["duplex_apt"] + city_dwell["apt_low_rise"]
-        high = row["apt_high_rise"] if row.sum() else city_dwell["apt_high_rise"]
-        w = np.array([low, high], dtype=float)
-        if w.sum() <= 0:
-            w = np.array([0.7, 0.3])
-        w = w / w.sum()
-        murb_weight_cache[daid] = w
-        return w
+    # RULE R1 (Phase 2.5): a *highrise* MURB must be backed by real height
+    # evidence (Height >= 15 m from Canada Structures / NRCan). A building with
+    # no height at classification time can be drawn as detached/row/lowrise but
+    # NEVER highrise -- the old code let a no-height probabilistic draw land on
+    # highrise_murb and then defaulted it to 10 storeys (STOREY_DEFAULT), which
+    # multiplied its floor area (and, downstream, its unit estimate) with zero
+    # evidence. That was the dominant MURB unit-count inflation (README §3.10).
 
     for i in range(n):
         h = height[i]
@@ -390,44 +402,54 @@ def assign_class_and_vintage(bld):
         dc = direct_class[i]
         if pd.notna(dc):
             final_class[i] = dc
+            assign_path[i] = "osm_direct"
             continue
 
         if is_murb_ambiguous[i]:
             if pd.notna(h) and h >= 15:
                 final_class[i] = "highrise_murb"
+                assign_path[i] = "osm_murb_height"
             elif pd.notna(h) and h >= 9:
                 final_class[i] = "lowrise_murb"
+                assign_path[i] = "osm_murb_height"
             else:
-                w = murb_weights_for_da(daid)
-                u = rng.random()
-                final_class[i] = "lowrise_murb" if u < w[0] else "highrise_murb"
+                # R1: apartments tag but no height -> lowrise (conservative;
+                # most apartment BUILDINGS by count are low-rise walk-ups).
+                final_class[i] = "lowrise_murb"
+                assign_path[i] = "osm_murb_nohgt_lowrise"
             continue
 
         zc = zoning_cls[i]
         if zc in ("industrial", "institutional", "commercial"):
             final_class[i] = zc
+            assign_path[i] = "zoning_nonres"
             continue
 
         # residential fallback (zoning residential, or no usable zoning signal)
         if pd.notna(h) and h >= 15:
             final_class[i] = "highrise_murb"
+            assign_path[i] = "height_highrise"
             continue
         if pd.notna(h) and h >= 9:
             final_class[i] = "lowrise_murb"
+            assign_path[i] = "height_lowrise"
             continue
 
-        w = weights_for_da(daid).copy()
+        w = weights_for_da(daid).copy()   # [detached, row, lowrise, highrise]
         if fp > 250:   # large footprint with no height evidence -> bias toward MURB tiers
             w[2] *= 3.0
             w[3] *= 3.0
-            w = w / w.sum()
+        w[3] = 0.0     # R1: no highrise without height evidence
+        w = w / w.sum()
         cw = np.cumsum(w)
         u = rng.random()
         idx = int(np.searchsorted(cw, u))
         idx = min(idx, 3)
         final_class[i] = RESIDENTIAL_CLASSES[idx]
+        assign_path[i] = "residential_draw"
 
     bld["class"] = final_class
+    bld["assign_path"] = assign_path
     log("  class counts: " + str(pd.Series(final_class).value_counts().to_dict()))
 
     # ---- storeys / final height (defaults now that class is known) ----
@@ -474,46 +496,192 @@ def assign_class_and_vintage(bld):
 
 
 # --------------------------------------------------------------------------
+# Phase 2.5 stock reconciliation (README §3.10)
+# --------------------------------------------------------------------------
+def dwelling_equiv(bld):
+    """Phase-1 implied dwelling count per building: detached/row = 1,
+    lowrise/highrise MURB = round(gross floor area / GROSS_M2_PER_UNIT),
+    everything else (non-res / accessory) = 0. Mirrors build_building_demand's
+    units_est so the cap and the demand-side dwelling tally agree."""
+    fa = bld["footprint_m2"].to_numpy(float) * bld["storeys"].to_numpy(float)
+    cls = bld["class"].to_numpy(object)
+    deq = np.zeros(len(bld))
+    is_house = np.isin(cls, ["detached", "row"])
+    is_murb = np.isin(cls, MURB_CLASSES)
+    deq[is_house] = 1.0
+    deq[is_murb] = np.maximum(1.0, np.round(fa[is_murb] / GROSS_M2_PER_UNIT))
+    return deq
+
+
+def reconcile_stock(bld):
+    """Phase 2.5 defensibility fix (HEATDEMAND_PLAN.md §4 Phase 2.5).
+
+    Two documented, reproducible levers, applied after class assignment:
+
+      (1) in_ottawa_cd flag -- a building is inside the City of Ottawa census
+          division iff its centroid fell in one of the 1,392 Ottawa DAs
+          (da_id not null; the DA boundaries tile the CD exactly). The bbox is a
+          rectangle larger than the city, so ~19% of buildings sit in
+          surrounding townships; the 2021 census household count (427k) is
+          city-only, so every city-wide sum MUST be taken over in_ottawa_cd
+          only. This is the dominant correction (the raw bbox implied ~1.9x the
+          census households; almost half of that excess is simply outside the
+          city).
+
+      (2) per-DA implied-dwelling cap -> 'accessory'. Within each Ottawa DA, the
+          modelled implied dwellings (dwelling_equiv) may exceed the DA's 2021
+          census total_dwellings by at most DA_IMPLIED_TOLERANCE. Where it does,
+          the excess is reclassified to the non-dwelling 'accessory' class,
+          taking the smallest-footprint buildings first and ONLY from the
+          unsignalled 'residential_draw' path (no OSM tag, no height, no
+          non-residential zoning) -- i.e. the probable garages/sheds/secondary
+          structures. OSM-tagged and height-evidenced buildings are never
+          reclassified, so real dwellings are preserved even in over-cap DAs
+          (those stay slightly over, reported honestly).
+
+    Prints the full class x assign_path x in/out-CD decomposition first (the
+    diagnosis the plan asks for), then the before/after of the cap.
+    """
+    log("\n=== PHASE 2.5 RECONCILIATION ===")
+    bld["in_ottawa_cd"] = bld["da_id"].notna()
+    bld["_deq"] = dwelling_equiv(bld)
+
+    # ---- diagnosis: implied dwellings by class x path, in/out CD ------------
+    for scope, mask in [("BBOX (all)", np.ones(len(bld), bool)),
+                        ("INSIDE Ottawa CD", bld["in_ottawa_cd"].to_numpy()),
+                        ("OUTSIDE CD (bbox only)", ~bld["in_ottawa_cd"].to_numpy())]:
+        sub = bld[mask]
+        imp = sub["_deq"].sum()
+        log(f"\n-- {scope}: {mask.sum():,} buildings, implied dwellings {imp:,.0f} --")
+        piv = (sub.assign(deq=sub["_deq"])
+                  .groupby(["assign_path"])["deq"].sum()
+                  .sort_values(ascending=False))
+        for p, v in piv.items():
+            if v > 0:
+                log(f"     {p:24s} {v:>12,.0f}")
+
+    da_census = json.loads(DA_CENSUS_PATH.read_text(encoding="utf-8"))
+    census_tot = {k: (v.get("total_dwellings") or 0) for k, v in da_census.items()}
+
+    implied_before = bld.loc[bld["in_ottawa_cd"], "_deq"].sum()
+
+    # ---- per-DA cap ---------------------------------------------------------
+    soft = ((bld["assign_path"] == "residential_draw")
+            & bld["class"].isin(RESIDENTIAL_CLASSES)).to_numpy()
+    fp = bld["footprint_m2"].to_numpy(float)
+    deq = bld["_deq"].to_numpy(float).copy()      # mutated below
+    cls = bld["class"].to_numpy(object).copy()    # mutated below
+    path = bld["assign_path"].to_numpy(object).copy()
+    da_arr = bld["da_id"].to_numpy(object)
+
+    # group inside-CD building row-positions by DA
+    inside_pos = np.where(bld["in_ottawa_cd"].to_numpy())[0]
+    from collections import defaultdict
+    da_groups = defaultdict(list)
+    for pos in inside_pos:
+        da_groups[da_arr[pos]].append(pos)
+
+    n_reassigned = 0
+    deq_reassigned = 0.0
+    n_da_capped = 0
+    n_da_over_unfixable = 0
+    for daid, positions in da_groups.items():
+        cap = census_tot.get(daid, 0) * (1.0 + DA_IMPLIED_TOLERANCE)
+        implied = sum(deq[p] for p in positions)
+        if implied <= cap:
+            continue
+        need = implied - cap
+        # soft candidates in this DA, smallest footprint first
+        cand = [p for p in positions if soft[p]]
+        cand.sort(key=lambda p: fp[p])
+        removed = 0.0
+        did_any = False
+        for p in cand:
+            if removed >= need:
+                break
+            removed += deq[p]         # a soft MURB removes its full dwelling-equiv
+            cls[p] = "accessory"
+            path[p] = "reconcile_accessory"
+            deq[p] = 0.0
+            n_reassigned += 1
+            did_any = True
+        deq_reassigned += removed
+        if did_any:
+            n_da_capped += 1
+        if removed < need:
+            n_da_over_unfixable += 1
+
+    bld["class"] = cls
+    bld["assign_path"] = path
+    implied_after = implied_before - deq_reassigned
+
+    log(f"\n-- per-DA cap (tolerance +{DA_IMPLIED_TOLERANCE:.0%}) --")
+    log(f"   census households (Ottawa CD): {sum(census_tot.values()):,}")
+    log(f"   implied dwellings inside CD:  before {implied_before:,.0f} "
+        f"({implied_before/sum(census_tot.values()):.3f}x) -> "
+        f"after {implied_after:,.0f} "
+        f"({implied_after/sum(census_tot.values()):.3f}x)")
+    log(f"   reclassified to 'accessory': {n_reassigned:,} buildings "
+        f"across {n_da_capped:,} DAs")
+    log(f"   DAs still over cap after exhausting their soft pool "
+        f"(real OSM/height-evidenced stock, left as-is): {n_da_over_unfixable:,}")
+    log(f"   new class counts: {bld['class'].value_counts().to_dict()}")
+
+    return bld.drop(columns=["_deq"])
+
+
+# --------------------------------------------------------------------------
 # validation
 # --------------------------------------------------------------------------
 def validate(bld):
     log("\n=== VALIDATION ===")
 
-    log("\n-- class counts vs census dwelling-type totals --")
+    log("\n-- class counts (bbox / inside Ottawa CD) vs census dwelling-type totals --")
     class_counts = bld["class"].value_counts()
-    log(class_counts.to_string())
+    cd_counts = bld.loc[bld["in_ottawa_cd"], "class"].value_counts()
+    for c in CLASSES:
+        log(f"  {c:15s} bbox {class_counts.get(c,0):>8,}   inside_CD {cd_counts.get(c,0):>8,}")
+    log(f"  in_ottawa_cd: {bld['in_ottawa_cd'].sum():,}/{len(bld):,} "
+        f"({bld['in_ottawa_cd'].mean():.1%}) -- city-wide sums use this subset")
 
-    fsa_census_all = json.loads(FSA_CENSUS_PATH.read_text(encoding="utf-8"))
-    # fsa_census.json is keyed by FSA across ALL of Canada/Ontario -- restrict
-    # to the FSAs that actually intersect our building set (Ottawa-area FSAs),
-    # not the whole province, or the census totals are >30x too large.
-    ottawa_fsas = set(bld["fsa"].dropna().unique())
-    fsa_census = {k: v for k, v in fsa_census_all.items() if k in ottawa_fsas}
-    log(f"cross-checking against {len(fsa_census)} Ottawa-area FSAs "
-        f"(of {len(fsa_census_all)} in fsa_census.json)")
-    census_detached = sum((v.get("dwelling_type") or {}).get("single_detached") or 0 for v in fsa_census.values())
-    census_row = sum(((v.get("dwelling_type") or {}).get("semi_detached") or 0)
-                      + ((v.get("dwelling_type") or {}).get("row_house") or 0)
-                      for v in fsa_census.values())
-    census_apt = sum(((v.get("dwelling_type") or {}).get("duplex_apt") or 0)
-                      + ((v.get("dwelling_type") or {}).get("apt_low_rise") or 0)
-                      + ((v.get("dwelling_type") or {}).get("apt_high_rise") or 0)
-                      for v in fsa_census.values())
-    log(f"note: census dwelling COUNTS (occupied private dwellings) are not the "
-        f"same denominator as building COUNTS (a MURB is 1 building but many "
-        f"dwellings) -- detached/row are ~1:1 building:dwelling so those two are "
-        f"the meaningful ±15% checks; apartment buildings vs apartment DWELLINGS "
-        f"is expected to differ by roughly the average units/building and is "
-        f"reported for context only, not as a ±15% target.")
-    bldg_detached = class_counts.get("detached", 0)
-    bldg_row = class_counts.get("row", 0)
-    bldg_apt = class_counts.get("lowrise_murb", 0) + class_counts.get("highrise_murb", 0)
+    # Cross-check INSIDE-CD building counts against the 2021 census dwelling-type
+    # counts. Use da_census.json (the 1,392 Ottawa-CD DAs) as the denominator,
+    # NOT fsa_census.json: the Ottawa-area FSAs include rural K0* FSAs that span
+    # far beyond the city (their detached count sums to ~269k, vs the CD's actual
+    # ~170k), which would make the city-only building counts look 20%+ low for
+    # the wrong reason. da_census is the exact city boundary.
+    da_census = json.loads(DA_CENSUS_PATH.read_text(encoding="utf-8"))
+    dts = [(v.get("dwelling_type") or {}) for v in da_census.values()]
+    census_detached = sum(d.get("single_detached") or 0 for d in dts)
+    census_row = sum((d.get("semi_detached") or 0) + (d.get("row_house") or 0)
+                     + (d.get("other_single_attached") or 0) + (d.get("movable") or 0)
+                     for d in dts)
+    census_apt = sum((d.get("duplex_apt") or 0) + (d.get("apt_low_rise") or 0)
+                     + (d.get("apt_high_rise") or 0) for d in dts)
+    census_hh = sum((v.get("total_dwellings") or 0) for v in da_census.values())
+    cd = bld[bld["in_ottawa_cd"]]
+    implied_cd = dwelling_equiv(cd).sum()
+    log(f"cross-checking INSIDE-CD building counts vs 2021 census (da_census, "
+        f"{len(da_census):,} Ottawa DAs, {census_hh:,} households):")
+    log(f"note: census dwelling COUNTS are not the same denominator as building "
+        f"COUNTS (a MURB is 1 building but many dwellings; 'detached' absorbs "
+        f"semi-detached digitised as separate footprints -- README §3.10 soft "
+        f"spot). The defensibility check is IMPLIED DWELLINGS vs households: "
+        f"{implied_cd:,.0f} vs {census_hh:,} = {implied_cd/census_hh:.3f}x "
+        f"(target <=1.10x).")
+    bldg_detached = cd_counts.get("detached", 0)
+    bldg_row = cd_counts.get("row", 0)
+    bldg_apt = cd_counts.get("lowrise_murb", 0) + cd_counts.get("highrise_murb", 0)
     for label, b, c in [("detached", bldg_detached, census_detached),
-                         ("row/semi", bldg_row, census_row),
+                         ("row/semi/attached", bldg_row, census_row),
                          ("apartment (lowrise+highrise)", bldg_apt, census_apt)]:
         if c:
             pct = (b - c) / c * 100
             log(f"  {label}: buildings={b:,}  census_dwellings={c:,}  delta={pct:+.1f}%")
+    log(f"  detached+row buildings {bldg_detached+bldg_row:,} vs census "
+        f"low-rise-house dwellings {census_detached+census_row:,} "
+        f"({100*(bldg_detached+bldg_row-census_detached-census_row)/(census_detached+census_row):+.1f}% "
+        f"-- the detached/row split is soft but their SUM is the meaningful check)")
 
     log("\n-- storeys distribution --")
     log(bld["storeys"].describe().to_string())
@@ -547,8 +715,11 @@ def main():
     log(f"\nfilter footprint_m2 > {FOOTPRINT_MIN_M2}: {n0:,} -> {len(bld):,} "
         f"({len(bld)/n0:.1%} kept)")
 
+    bld = reconcile_stock(bld)
+
     bld = bld[["bldg_id", "footprint_m2", "height_m", "storeys", "height_source",
-               "class", "vintage", "grid_cell_id", "feeder_id", "da_id", "fsa",
+               "class", "assign_path", "vintage", "in_ottawa_cd",
+               "grid_cell_id", "feeder_id", "da_id", "fsa",
                "geometry"]].reset_index(drop=True)
 
     validate(bld)
