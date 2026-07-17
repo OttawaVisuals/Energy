@@ -293,11 +293,19 @@ def ers_fsa_fuel_shares(min_rows=30):
     return per_fsa, city
 
 
-def assign_fuel(bldg, serviced, per_fsa, city_share, rng):
+def assign_fuel(bldg, serviced, per_fsa, city_share, rng, city_mask):
     """Rake ERS per-FSA fuel probabilities to the StatCan gas/electric targets
     (residential classes only) under a rural no-gas constraint via IPF, then draw.
     Non-residential classes use a documented serviced/rural prior (StatCan
-    38-10-0286 is a *dwelling* table, so it does not constrain non-res)."""
+    38-10-0286 is a *dwelling* table, so it does not constrain non-res).
+
+    Phase 2.5: the StatCan 38-10-0286 target (gas 59 % / electric 21 %) is for
+    the Ottawa-Gatineau Ontario-part CMA -- i.e. the CITY, not the bbox. So the
+    IPF is fitted over the in_ottawa_cd residential subset (city_mask). Rural
+    residential buildings OUTSIDE the CD keep their per-FSA / no-gas mix and are
+    not part of the city target (they were never in the CMA the target
+    describes); including them in the rake used to hit 59/21 bbox-wide while
+    leaving the city subset too gassy."""
     n = len(bldg)
     P = np.zeros((n, len(FUELS)))
     fsa_arr = bldg["fsa"].fillna("").astype(str).str.upper().values
@@ -318,8 +326,9 @@ def assign_fuel(bldg, serviced, per_fsa, city_share, rng):
     P = P / P.sum(axis=1, keepdims=True)
 
     res_mask = bldg["class"].isin(["detached", "row", "lowrise_murb", "highrise_murb"]).values
+    rake_mask = res_mask & np.asarray(city_mask)   # city residential = the CMA the target describes
 
-    # --- IPF over the residential subset -------------------------------------
+    # --- IPF over the CITY residential subset --------------------------------
     ei = FUELS.index("electric")
     tail = ["oil", "propane", "wood"]
     # tail internal split from the city ERS mix, scaled to (1 - gas - elec)
@@ -332,7 +341,7 @@ def assign_fuel(bldg, serviced, per_fsa, city_share, rng):
     for t, s in zip(tail, tail_base):
         target[FUELS.index(t)] = tail_total * s
 
-    Pr = P[res_mask].copy()
+    Pr = P[rake_mask].copy()
     m = np.ones(len(FUELS))
     for _ in range(200):
         Q = Pr * m
@@ -345,11 +354,12 @@ def assign_fuel(bldg, serviced, per_fsa, city_share, rng):
             break
     Q = Pr * m
     Q = Q / Q.sum(axis=1, keepdims=True)
-    P[res_mask] = Q
-    print("  IPF residential expected shares: " +
+    P[rake_mask] = Q
+    # outside-CD residential keep their per-FSA / no-gas P (not re-weighted)
+    print("  IPF city-residential expected shares: " +
           ", ".join(f"{f} {Q.mean(axis=0)[i]*100:.1f}%" for i, f in enumerate(FUELS))
-          + f"  (rural-forced-nongas share of res: "
-          f"{(rural & res_mask).sum()/res_mask.sum()*100:.1f}%)")
+          + f"  (rural-forced-nongas share of city res: "
+          f"{(rural & rake_mask).sum()/rake_mask.sum()*100:.1f}%)")
 
     # --- non-residential prior -----------------------------------------------
     nonres = ~res_mask
@@ -459,6 +469,17 @@ def main():
             ua[i] = design[i] * 1000.0 / DELTA_T_DESIGN
             method[i] = "ewrb_actual_x_ceud_share"
             conf[i] = "low"
+        elif c == "accessory":
+            # Phase 2.5 reconciliation class: probable non-dwelling structures
+            # (garages/sheds/secondary buildings) reclassified because the DA's
+            # census dwelling count cannot support them (build_building_stock.py
+            # reconcile_stock, README §3.10). Treated as unheated for this
+            # screening layer -- excluded from dwelling and residential tallies.
+            annual[i] = 0.0
+            design[i] = 0.0
+            ua[i] = 0.0
+            method[i] = "accessory_nonheated"
+            conf[i] = "na"
         else:  # industrial
             annual[i] = area * intens["ind_kwh_m2"]
             design[i] = annual[i] / eflh["industrial"]
@@ -478,7 +499,9 @@ def main():
     per_fsa, city_share = ers_fsa_fuel_shares()
     print(f"  city ERS fuel mix: " +
           ", ".join(f"{f} {city_share[i]*100:.0f}%" for i, f in enumerate(FUELS)))
-    gdf["heat_fuel"] = assign_fuel(gdf, served, per_fsa, city_share, rng)
+    city_mask = (gdf["in_ottawa_cd"].to_numpy() if "in_ottawa_cd" in gdf.columns
+                 else np.ones(len(gdf), bool))
+    gdf["heat_fuel"] = assign_fuel(gdf, served, per_fsa, city_share, rng, city_mask)
 
     # ---- validation ---------------------------------------------------------
     validate(gdf, arch, intens, served)
@@ -495,6 +518,21 @@ def validate(gdf, arch, intens, served):
     print("\n" + "=" * 74)
     print("VALIDATION")
     print("=" * 74)
+    # Phase 2.5: every CITY-WIDE sum is taken over the Ottawa census division
+    # only (in_ottawa_cd) -- the bbox extends into surrounding townships but the
+    # 2021 census household count is city-only, so bbox-wide sums are an
+    # apples-to-oranges over-count (README §3.10). Fall back to all rows if the
+    # column is absent (pre-Phase-2.5 parquet).
+    if "in_ottawa_cd" in gdf.columns:
+        city = gdf[gdf["in_ottawa_cd"]]
+        print(f"City scope: {len(city):,}/{len(gdf):,} buildings inside the "
+              f"Ottawa CD (in_ottawa_cd); city-wide sums use this subset.")
+    else:
+        city = gdf
+        print("WARNING: no in_ottawa_cd column (pre-Phase-2.5 stock) -- city "
+              "sums fall back to the full bbox and will over-count.")
+    gdf_full = gdf
+    gdf = city
     res = gdf[gdf["class"].isin(["detached", "row", "lowrise_murb", "highrise_murb"])]
     res_twh = res["annual_kwh"].sum() / 1e9
     total_twh = gdf["annual_kwh"].sum() / 1e9
@@ -509,14 +547,17 @@ def validate(gdf, arch, intens, served):
     # Ottawa colder than ON average -> HDD uplift Ottawa/ON(populated).
     hdd_uplift = 4407.0 / 3900.0     # Ottawa TMY HDD18 4407; ON populated ~3900
     ceud_ott_twh = on_gj_per_hh * ott_hh * hdd_uplift * KWH_PER_GJ / 1e9  # GJ -> TWh
-    print(f"\n(a) Residential space heat: modelled {res_twh:.2f} TWh vs "
-          f"CEUD-scaled {ceud_ott_twh:.2f} TWh "
-          f"(delta {100*(res_twh-ceud_ott_twh)/ceud_ott_twh:+.0f}%, target +-30%)  "
+    print(f"\n(a) Residential space heat (Ottawa CD): modelled {res_twh:.2f} TWh "
+          f"vs CEUD-scaled {ceud_ott_twh:.2f} TWh "
+          f"(delta {100*(res_twh-ceud_ott_twh)/ceud_ott_twh:+.0f}%, target +-20%)  "
           f"[Ottawa dwellings {ott_hh:,}, CEUD ON {on_gj_per_hh:.1f} GJ/hh x "
           f"HDD uplift {hdd_uplift:.2f}]")
-    # Root-cause diagnostic: the overshoot is a STOCK-COUNT artifact, not a
-    # per-building intensity error. The modelled stock implies far more dwellings
-    # than the census records, while the per-unit intensity matches CEUD.
+    # Phase 2.5: implied dwellings are now taken over the Ottawa CD (in_ottawa_cd)
+    # and constrained per-DA to the census count (build_building_stock.py
+    # reconcile_stock, README §3.10). The former 1.89x over-count was dominated
+    # by the bbox extending beyond the city (~half the excess) plus MURB
+    # no-height unit inflation; both are corrected in the stock, not by retuning
+    # intensities -- the per-UNIT detached mean must stay ~= CEUD.
     murb = gdf[gdf["class"].isin(["lowrise_murb", "highrise_murb"])]
     implied = (gdf["class"] == "detached").sum() + (gdf["class"] == "row").sum() \
         + murb["units_est"].sum()
@@ -524,14 +565,11 @@ def validate(gdf, arch, intens, served):
     ceud_det_kwh = ceud_record(r["records"], CEUD_YEAR, "single_detached", "space_heating") \
         * 1e6 / (ceud_expl(r["explanatory"], CEUD_YEAR, "households", "single_detached") * 1e3) \
         * KWH_PER_GJ * hdd_uplift
-    print(f"    -> diagnosis: modelled stock implies {implied:,.0f} residential "
-          f"dwellings vs {ott_hh:,} census households ({implied/ott_hh:.2f}x) -- "
-          f"Phase 1 over-attributes detached/MURB (README §3.10 building:dwelling "
-          f"softness). Per-UNIT is sound: modelled detached mean "
+    print(f"    -> reconciled stock implies {implied:,.0f} residential dwellings "
+          f"vs {ott_hh:,} census households ({implied/ott_hh:.2f}x, target <=1.10x). "
+          f"Per-UNIT unchanged: modelled detached mean "
           f"{det['annual_kwh'].mean():,.0f} kWh vs CEUD single_detached "
-          f"{ceud_det_kwh:,.0f} kWh ({100*(det['annual_kwh'].mean()-ceud_det_kwh)/ceud_det_kwh:+.0f}%). "
-          f"Per-building values kept as-is for Phase 3; treat city-wide sums as "
-          f"upper estimates until Phase 1 classification is refined.")
+          f"{ceud_det_kwh:,.0f} kWh ({100*(det['annual_kwh'].mean()-ceud_det_kwh)/ceud_det_kwh:+.0f}%).")
 
     # --- (b) gas-heated share vs StatCan --------------------------------------
     res_fuel = res["heat_fuel"].value_counts(normalize=True)
@@ -551,13 +589,9 @@ def validate(gdf, arch, intens, served):
     print(f"\n(c) Community inventory cross-check (Energy Evolution 2024 "
           f"'Buildings' = {inv:,.0f} tCO2e):")
     print(f"      Modelled SPACE-HEAT emissions {emis_t:,.0f} tCO2e "
-          f"= {100*emis_t/inv:.0f}% of the buildings inventory.")
-    print(f"      Space heat should be only ~55-70% of building energy (water "
-          f"heat, appliances, lighting, cooling, commercial process excluded), so "
-          f">100% flags the same ~{res_twh/ceud_ott_twh:.2f}x residential stock "
-          f"inflation as (a). Dividing by that stock factor -> "
-          f"~{100*emis_t/inv/(res_twh/ceud_ott_twh):.0f}% of inventory, i.e. a "
-          f"plausible space-heat share once stock is reconciled.")
+          f"= {100*emis_t/inv:.0f}% of the buildings inventory (target <100%: "
+          f"space heat is only ~55-70% of building energy -- water heat, "
+          f"appliances, lighting, cooling, commercial process all excluded here).")
     print(f"      Modelled natural-gas INPUT for space heat: {gas_input_twh:.2f} "
           f"TWh/yr (space heat is documented as the dominant gas end use).")
 
@@ -647,12 +681,19 @@ def write_outputs(gdf):
                     "modelled space-heat delivered energy; vintage/type are "
                     "probabilistic per building (Phase 1); heat_fuel is a raked "
                     "probabilistic draw. Meaningful in aggregate (500 m cell / "
-                    "feeder), not for a single address."),
+                    "feeder), not for a single address. CITY-WIDE SUMS: take over "
+                    "in_ottawa_cd==True only (the bbox extends into surrounding "
+                    "townships; the census is city-only). Stock reconciled in "
+                    "Phase 2.5 (build_building_stock reconcile_stock, README "
+                    "§3.10): per-DA implied dwellings capped to census; excess "
+                    "-> 'accessory' class (unheated here)."),
         "columns": ("annual_kwh=annual space-heat delivered kWh/yr; "
                     "design_kw=design-day heat loss kW @ -22.8C; "
                     "ua_w_per_k=effective envelope UA; heat_fuel=primary fuel; "
                     "units_est=estimated dwelling units (MURB only); "
-                    "demand_method/demand_confidence=provenance flags"),
+                    "demand_method/demand_confidence=provenance flags; "
+                    "in_ottawa_cd=inside City of Ottawa census division; "
+                    "assign_path=Phase 1 class provenance"),
         "methods": ("houses: Ottawa ERS archetypes scaled by floor area; "
                     "MURB: CEUD apt/attached ratio x Ottawa row archetype; "
                     "non-res: EWRB Ottawa actual Site_EUI x CEUD commercial "

@@ -20,7 +20,7 @@ API, and the on-disk state):**
 | Energy prices | ✅ done 2026-07-12, all 3 phases — `Python/rates_etl.py` → `prices_json/`, monthly workflow (first scheduled run 2026-08-03), costs live in heatpump.html |
 | Landing page | 🆕 not started (`…/Energy/` 404s) |
 | Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`); weekly workflow's first scheduled run is Mon 2026-07-13 13:00 UTC — check it went green; `grid.html` page not started |
-| Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
+| Ottawa heat demand / case study | 🔨 in progress — [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phases 0–2 done 2026-07-16 (building stock + per-building heat load); **next: Phase 2.5 stock-count fix (defensibility blocker), then 3–6**. Reframed 2026-07-16 as the **Ottawa Case Study** (§0 of that plan): six-step narrative ending in a case-study page, with the map as expert explorer |
 | Geothermal v2 | ✅ done 2026-07-15 (item 8) — all 4 phases: data fixes, conductivity sensitivity, drilling difficulty, segment suitability |
 | Heat Pump v2 | ✅ done 2026-07-17 (item 9) — all 6 workstreams (B ECCC EF basis, A 14 cities, C weather-year lens, D sizing sweep, E lifecycle sourcing + below-lock-out toggle, F chart re-org) |
 
@@ -520,12 +520,20 @@ errors and values spot-checked against grid_json.
 
 ---
 
-## 7. Ottawa heat demand map (2–3 sessions, most novel)
+## 7. Ottawa heat demand map → Ottawa Case Study (in progress)
 
 > **Superseded 2026-07-16 by [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md)** — a
-> fuller 6-phase plan (building stock w/ height+type, current load, electrified
+> fuller plan (building stock w/ height+type, current load, electrified
 > load + feeder stress, intervention score, waste-heat hook) with its own
 > paste-able prompts. The two prompts below are kept for the record.
+>
+> **Reframed 2026-07-16 (second pass):** the end product is the **Ottawa Case
+> Study** — a six-step narrative (grid constraints → ground resource →
+> building heat loads → electrified share → electrification peak vs grid →
+> candidate areas), delivered as a case-study page with the interactive map
+> as the expert explorer. Status: Phases 0–2 built; live queue is
+> **2.5 (stock-count fix) → 3 → 4 → 5 → 6 (case-study page)** — prompts in
+> HEATDEMAND_PLAN.md §5.
 
 Fuses three finished projects: where is geothermal feasible (conductivity grid +
 city potential layer) *and* needed (building heat demand) *and* grid-constrained
