@@ -948,6 +948,188 @@ LGPL) — for the (e) cross-check.
   EWRB's disclosed buildings skew large and efficient, per-activity resolution
   isn't available, and `industrial` is an explicit placeholder.
 
+### 3.12 `build_electrified_load.py` — electrified load per building (Heat Demand Phase 3)
+
+Simulates converting every **fossil-heated** building (gas/oil/propane/wood) to
+a heat pump, hour-by-hour over the Ottawa TMY, and adds the resulting electricity
+draw to `buildings_ottawa.parquet` (HEATDEMAND_PLAN.md §4). New columns:
+`elec_kwh_now, elec_kw_peak_now, elec_kwh_electrified, elec_kw_peak_electrified,
+elec_kwh_hybrid, elec_kw_peak_hybrid, elec_kwh_gshp, elec_kw_peak_gshp,
+hybrid_fossil_kwh`, the three matching `*_kw_peak_tmy_*` columns, and
+`elec_method` / `elec_confidence`. Same screening caveat as Phase 2 — it inherits
+Phase 1's probabilistic class/vintage and Phase 2's probabilistic fuel draw, so
+it is meaningful per 500 m cell / feeder, **not per address**. Buildings that are
+**already electrically heated** are reported as-is (`*_now`) and not re-simulated:
+swapping their baseboards for heat pumps *reduces* load, a different question
+from the added-load one this phase asks.
+
+**Load model — unchanged from Phase 2.** `load_kW(h) = ua_w_per_k/1000 ×
+max(0, Tbalance − T_TMY(h))`, the same model HeatPump/METHODOLOGY.md Phase 5
+runs. Only the equipment changes. Validation (b) confirms the reconstructed
+annual load still reproduces each archetype's calibrated total (worst 0.04%).
+
+**Two design numbers that must not be mixed.** `design_kw = ua × 43.8/1000` is
+the **design heat loss** — the no-internal-gains, 21 °C-setpoint engineering
+figure equipment is *sized* to (and what heatpump.html auto-sizes to). The
+**load at −22.8 °C** = `ua × (Tbalance + 22.8)/1000` is what the balance-point
+model says the building actually *calls for* there, ~25% lower because gains are
+credited. Every **peak** in this phase is on the load basis (including
+`elec_kw_peak_now`, so current and electrified peaks are comparable); only
+**sizing** uses `design_kw`. An early cut of this script mixed the two and
+inflated the current-electric peak ~32% against the electrified peaks it is
+compared with.
+
+**The UA-linearity shortcut (exact, not an approximation).** Phase 2 gives *every*
+class `design_kw = ua × 43.8/1000` (houses via their archetype, other classes via
+`annual/EFLH` with UA back-derived at the same ΔT — asserted at run time, holding
+to 0.14%, which is just the rounding in `archetypes.json`). Sizing is therefore a
+fixed multiple of UA in every policy, so load, capacity, `min(load, capacity)`,
+HP electricity and backup **all scale linearly with UA** at a fixed balance point.
+The 8760-hour dispatch is solved **once per distinct balance point** (7 of them)
+at a reference UA and each building's answer is that group's per-UA result ×
+its own `ua_w_per_k`. This is algebra, not sampling — and it is what makes
+414k buildings × 8760 h run in seconds.
+
+**Central case.** `hp_curves.json` **`average_installed`** — the ERS-popularity-
+weighted "what people actually install" curve (METHODOLOGY Phase 3b). Note what
+it is: it **maps to Tier 3, the baseline tier, and locks out at −15 °C** — warmer
+than Ottawa's −22.8 °C design temperature. That single fact drives most of the
+results below. Sensitivities: Tier 1 and Tier 3 (Tier 3 reproduces the central
+case exactly, as its description says it should — a free consistency check).
+
+**Policy (a) — full electrification.** HP rated (@8.3 °C) at the design heat loss,
+**electric-resistance backup**. The HP runs whenever it is above min-op and takes
+`min(load, capacity)`; resistance covers the remainder *and* everything below
+lockout. Mirrors engine.js `control: 'load-exceeds-capacity'` + `backup:
+{type:'electric'}`, and matches heatpump.html's own default sizing.
+
+**Policy (b) — hybrid.** HP sized to cover the load down to a **switchover
+temperature**, the existing fossil system retained below it. Mirrors engine.js
+`control: 'lockout'` + `backup: {type: the building's fuel}`.
+`T_switchover = max(curve min-op temp, T10)`, where T10 is the temperature below
+which 10% of the annual load falls — i.e. size for the plan's **~90% load
+fraction** target, but never colder than where the equipment stops running
+anyway. Sizing to the load *at* T_sw makes the HP cover 100% of the load above it
+with the smallest possible unit (load falls and capacity rises as it warms).
+
+> **Finding — the ~90% hybrid target is unreachable with the central curve.**
+> Its −15 °C lockout is *warmer* than T10 (−17.2…−18.0 °C across balance points),
+> so the switchover pins at lockout and the achieved HP load fraction stalls at
+> **81–84%**: ~17% of Ottawa's annual heating load falls below −15 °C. This is a
+> fact about the typical installed unit, not a modelling shortfall. Tier 1
+> (−25 °C) is not bound by it and lands on the 90% target.
+
+**GSHP counterfactual.** Flat COP off the two WaterFurnace curves (mean), × the
+0.91 antifreeze derate, at METHODOLOGY's documented Ottawa loop temperatures:
+**COP 3.91** at the typical winter-mean EWT (4 °C) for annual energy, **COP 3.55**
+at the design-minimum EWT (0 °C) for the design peak. No lockout, no resistance
+backup — that is the whole point of the ground loop and the contrast the map
+draws.
+
+**Large / commercial buildings (`elec_confidence = 'low'`).** Buildings ≥ 2,000 m²
+gross or in a non-residential class (20,701 of them) take the plan's simplified
+conversion: `annual_kwh / SCOP`, peak = design-condition heat call ÷ the COP
+reached there. The SCOP is the one the central curve itself produces at that
+balance point (implied 2.15, inside the hourly range 2.05–2.17) rather than an
+invented commercial constant. **This lands on the same numbers as the hourly
+route, and that is expected, not a coincidence** — the SCOP and design COP come
+off the same curve, and Phase 2 built non-res `design_kw = annual/EFLH` by
+construction, so the two routes are the same algebra. *The simplification that
+matters here is the equipment assumption, not the arithmetic*: a residential
+unitary curve is being borrowed for what is really a central plant / VRF system
+(`hp_curves.json` has no commercial equipment curves — the documented follow-up),
+the UA is itself EFLH-derived, and Phase 2's own non-res `demand_confidence` is
+already low/very_low. Hence the flag.
+
+*Why not the plan's literal `annual_elec / EFLH` load-factor form for the peak:*
+it reduces to `design_load / SCOP` — dividing a **design** load by a **seasonal**
+COP — and understates the design-day peak roughly two-fold (the central curve is
+locked out at design, where its effective COP is 1.0, against a seasonal COP near
+2). The EFLH load factor is used as the energy consistency check it is good for.
+
+**Two peaks, both reported, and they are not interchangeable.**
+`*_kw_peak_*` is the **coincident design-condition** kW at −22.8 °C — every
+building sees the design temperature at once, so these sum to a city design-day
+MW. `*_kw_peak_tmy_*` is the max hour of the TMY, which dips to −29.5 °C (colder
+than design), so it runs higher; it is "worst hour of a typical year" and does
+**not** sum to a coincident peak.
+
+**Validation (printed by the script).**
+- **(a) Against the shipped engine — worst deviation 0.00%** (target ±10%). Each
+  of the 4 archetypes × 3 policies is re-run through
+  `HeatPump/pipeline/validate_engine.py`'s `simulate()` on identical inputs.
+  Agreement is exact-to-rounding rather than merely in-band **because the group
+  model is the engine's own dispatch factored through UA-linearity** — the check
+  is a real guard against that factoring being wrong, not a coincidence.
+  **Node is not installed here** (the same limitation METHODOLOGY Phase 5 already
+  records), so this runs against the engine's faithful Python mirror — which
+  METHODOLOGY pins to `app/engine.test.js`'s hand-computed cases to 4 decimals —
+  not against the JavaScript itself.
+- **(b) Load-model continuity:** reconstructed annual load vs each archetype's
+  calibrated total, worst −0.02%/+0.04%.
+- **(c) Simplified-large route** vs the hourly route: implied SCOP 2.15, inside
+  the hourly 2.05–2.17 band.
+
+**Results (Ottawa CD, 336,365 buildings; 253,271 converted; 9.83 TWh/yr and
+6,922 MW of design-day heat loss being converted).**
+
+| Policy | Added GWh/yr | Added MW @ design | vs ~1,300 MW system peak |
+|---|---|---|---|
+| (a) ccASHP + resistance backup | 4,613 | **5,264** | +405% |
+| (b) hybrid, fossil backup kept | 3,410 | **0** (1,834 at its own worst hour) | +0% |
+| GSHP counterfactual | 2,515 | **1,482** | +114% |
+
+Equipment sensitivity (policy a, city-wide): **Tier 1 (−25 °C lockout) adds
+2,836 MW — 0.54× the central case**, for 4,131 GWh. That one equipment choice
+moves the added design-day peak more than any other lever in this phase.
+
+> **Read the MW column as an upper bound — and here is the proof.** The buildings
+> that are **already** electrically heated sum to **1,275 MW** at the design
+> condition, **98% of Hydro Ottawa's entire ~1,300 MW-class system peak, from
+> space heat alone, before converting anything**. That cannot be literally true:
+> it is a load that already exists and the system peak is not made of it. So
+> these coincident design-condition sums overstate real coincident demand and
+> every MW above inherits that. Two causes, neither fixable in this phase:
+> - **No diversity.** The sums put every building at its full design-condition
+>   heat call in the same hour. Real stock diversifies (thermostat spread,
+>   thermal mass, setback, occupancy). **Phase 4 must apply a coincidence factor
+>   sourced from actual feeder loading (CCIM)** — this script deliberately does
+>   not invent one.
+> - **Phase 2's stock caveat.** City-wide sums are screening upper estimates on a
+>   probabilistic stock (§3.10–3.11).
+>
+> The **ratios between the policies** are far more robust than the absolute MW —
+> all three share the same load basis and the same stock — and the ratios are the
+> result.
+
+**What the numbers say.**
+- **Policy (a)'s peak is an equipment problem, not a building-stock problem.**
+  The typical installed unit locks out at −15 °C, so at −22.8 °C the resistance
+  backup carries **100% of the design load at COP 1** — policy (a)'s design-day
+  peak is simply the design heat call, whatever the curve does above lockout.
+  A unit that still runs at −22.8 °C is the highest-leverage difference available.
+- **The hybrid's 0 MW is real but definitional.** Its HP is switched off below
+  −15 °C, so at −22.8 °C it draws nothing and the fossil unit carries the house.
+  Its true grid cost lands just above the switchover (**1,834 MW**), not at the
+  design temperature. It buys 74% of policy (a)'s electrified energy while
+  retaining 1,819 GWh/yr of fossil input — that is the trade.
+- **GSHP is the contrast the map draws:** ~3.6× less design-day grid stress than
+  the same conversion with typical air-source equipment, and unlike the hybrid it
+  gets there without burning anything.
+- All of this is a **100%-conversion scenario, not a forecast**.
+
+**Known limitations / open risks.**
+- **No diversity/coincidence factor** — the single biggest caveat, quantified
+  above. Phase 4's job, from CCIM feeder loading.
+- **No commercial equipment curves** — large buildings borrow a residential
+  unitary curve (flagged `low`). Sourcing VRF/central-plant curves is the
+  clearest upgrade to the non-residential tier.
+- **Max-speed COP only, no part-load/cycling curve** (inherited from
+  METHODOLOGY Phase 3b) — conservative.
+- **GSHP loop dynamics out of scope**: a flat COP at documented EWTs, no
+  borefield sizing (screening only, as METHODOLOGY states).
+- Inherits every Phase 1/2 caveat — probabilistic class, vintage and fuel.
+
 ## 4. Results (2026-07-15 build, v2 Phase A)
 
 **GeoPackage:** 55,903 wells (50,902 with geometry, up from 50,835 — 67

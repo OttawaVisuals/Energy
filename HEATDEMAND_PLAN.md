@@ -141,7 +141,7 @@ Phase 0    scout_buildings.py-ish notes    → Data/heatdemand_source_notes.md (
 Phase 1    build_building_stock.py         → Data/processed/buildings_ottawa.parquet (+gpkg)          ✅ done
 Phase 2    build_building_demand.py        → adds annual kWh, design kW, fuel per building            ✅ done
 Phase 2.5  build_building_stock reconcile  → fixed the 1.89× dwelling over-count; re-ran Phase 2      ✅ done
-Phase 3    build_electrified_load.py       → adds electrified annual kWh + peak kW per building
+Phase 3    build_electrified_load.py       → adds electrified annual kWh + peak kW per building  ✅ done
 Phase 4    build_heat_demand.py            → heat_demand_grid.geojson (500 m) + feeder_demand.geojson
            └─ re-run build_suitability.py  → district demand factor upgrades automatically
 Phase 5    merge_layers.py + build_map.py  → new map layers (demand, electrified stress, intervention score)
@@ -184,6 +184,20 @@ Phase 6    case-study page                 → the §0 narrative: sources, proce
   geography bug the CD-scoping exposed (IPF now fitted over the CD residential
   subset the StatCan CMA target describes, not the bbox). Full method:
   README §3.10.1.
+- **Phase 3 — electrified load (✅ done 2026-07-17).** Built as specified;
+  validated against the shipped engine at **0.00%** worst deviation (target
+  ±10%). Three findings changed how the outputs must be read, all in README
+  §3.12: (1) the `average_installed` curve is the **baseline** tier and **locks
+  out at −15 °C, warmer than Ottawa's −22.8 °C design temp**, so policy (a)'s
+  design-day peak is just the design heat call at COP 1 — an *equipment*
+  problem, and Tier 1 halves it (2,836 vs 5,264 MW); (2) the **~90% hybrid
+  target is unreachable** with that curve (~17% of annual load sits below its
+  lockout) — it stalls at 81–84%; (3) the peak columns are **undiversified**, and
+  the already-electric stock alone sums to 1,275 MW ≈ 98% of the whole system
+  peak, so **Phase 4 must apply a coincidence factor from real feeder loading**.
+  City-wide: policy (a) **+4,613 GWh / +5,264 MW**, hybrid **+3,410 GWh / +0 MW**
+  at design (1,834 MW at its own worst hour), GSHP **+2,515 GWh / +1,482 MW**.
+  Original brief below.
 - **Phase 3 — electrified load.** For each fossil-heated building: convert with
   the `hp_curves.json` "average installed" ccASHP curve (sensitivity: Tier 1 and
   GSHP variants), hourly over the Ottawa TMY: annual electric kWh, and **peak
@@ -226,8 +240,9 @@ joins by cell and the intervention score gains a factor. Sewer-flow screening
 ## 5. Paste-able prompts
 
 Run from `C:\Energy`, fresh session each, in order. Commit after each phase.
-**Phases 0–2 are done (2026-07-16) and Phase 2.5 is done (2026-07-17)** — their
-prompts are kept for the record; the live queue is **3 → 4 → 5 → 6**.
+**Phases 0–2 are done (2026-07-16), Phase 2.5 and Phase 3 are done
+(2026-07-17)** — their prompts are kept for the record; the live queue is
+**4 → 5 → 6**.
 
 ### Prompt — Phase 0: building-stock scouting (Sonnet) — ✅ done
 
@@ -373,7 +388,7 @@ Fix the STOCK, don't retune intensities.
    GEOTHERMAL_STATUS.md, and the parquet metadata note. Commit.
 ```
 
-### Prompt — Phase 3: electrified load per building (Opus)
+### Prompt — Phase 3: electrified load per building (Opus) — ✅ done
 
 ```text
 Read HEATDEMAND_PLAN.md §4, HeatPump/METHODOLOGY.md (curves, engine,
@@ -416,6 +431,19 @@ heat_demand_grid.geojson exists (the upgrade hook is documented in README
 §3.9). Validate: grid-cell sums equal building-level sums; no demand in
 cells with zero buildings; print the top-10 stressed feeders and eyeball
 plausibility. Update README + GEOTHERMAL_STATUS.md.
+
+IMPORTANT, from Phase 3 (README §3.12): the per-building peak columns are
+UNDIVERSIFIED coincident design-condition loads. Phase 3 proved they are an
+upper bound — the ALREADY-electric stock alone sums to 1,275 MW, ~98% of
+Hydro Ottawa's whole system peak, which cannot be literally true. Before any
+feeder stress number is quoted you must apply a COINCIDENCE/DIVERSITY FACTOR
+derived from actual feeder loading (CCIM/GridCapacity observed winter peaks
+vs the modelled undiversified sum on the same feeders) — Phase 3 deliberately
+did not invent one. Document the derivation and the residual uncertainty; if
+it cannot be derived from real loading data, say so and label the stress
+layer as relative-only rather than absolute MVA headroom. Also carry the
+equipment tier as a dimension (Tier 1 vs the average-installed central case
+changes the added peak ~2x — the largest lever in the model).
 ```
 
 ### Prompt — Phase 5: map integration + intervention score (Opus — design-heavy)
