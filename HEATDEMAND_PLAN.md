@@ -1,19 +1,57 @@
 # Ottawa Heat Demand & Electrification Load — Plan
 
-Written 2026-07-16. Supersedes/expands ROADMAP.md item 7. Companion docs:
+Written 2026-07-16, reframed 2026-07-16 (second pass) around the **Ottawa Case
+Study** narrative below. Supersedes/expands ROADMAP.md item 7. Companion docs:
 [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md), [Geothermal/README.md](Geothermal/README.md).
+
+## 0. The Ottawa Case Study — the story every phase serves
+
+The end product is **not just a map**: it is a case study of geothermal's
+potential for the City of Ottawa and its grid constraints, told as a simple,
+defensible six-step argument. Every phase below exists to supply one step;
+anything that doesn't serve a step is out of scope. The steps:
+
+1. **Where is the grid constrained?** The Hydro Ottawa feeder capacity map
+   (OEB CCIM) identifies the potential "high-impact" areas for programs. ✅ have.
+2. **What does the ground offer?** 55k water-well records → thermal
+   conductivity per soil/rock layer, drilling difficulty, open-loop screening —
+   cross-checked against the City of Ottawa's own commissioned geothermal
+   potential study (the Planning/122 layer; **source document to be obtained
+   and cited — believed to be the J.L. Richards study**, see §6). ✅ have.
+3. **What buildings are there, and how much heat do they need?** Canada
+   Structures footprints per Hydro Ottawa feeder + CEUD/ERS/EWRB intensities →
+   a *defensible screening estimate* of consumption and design heat load.
+   ✅ built (Phases 1–2) and **stock-reconciled (Phase 2.5, 2026-07-17)** —
+   city-wide sums are now quotable **over `in_ottawa_cd`**: 6.68 TWh
+   residential space heat, implied dwellings 1.005× census.
+4. **What share is already electrified?** Fuel per building from ERS FSA mix
+   raked to StatCan 38-10-0286 (gas 59% / electric 21%). ✅ built (Phase 2).
+5. **What would electrifying everything demand?** Peak kW per building →
+   added MW per feeder vs available MVA → **areas where the grid is not
+   ready**. 🔨 Phases 3–4.
+6. **Which constrained areas are good geothermal candidates?** Cross step 5
+   with step 2 → the candidate areas where geothermal relieves the grid.
+   🔨 Phase 5 (map) + **Phase 6 (the case-study page — the narrative
+   deliverable: data sources, process, assumptions, plainly explained)**.
+
+**Simplicity rule:** the interactive map (8 layers, segment scores, editable
+conductivity) stays as the *expert explorer*. The case-study page is the front
+door — one step per section, one visual per step, a "data & assumptions" box
+per step, no interactivity required to follow the argument.
 
 ## 1. End goal
 
-A "geothermal potential study" map for Ottawa showing, together:
+A "geothermal potential study" for Ottawa — a narrative case-study page backed
+by an interactive map — showing, together:
 
 | Layer | Status |
 |---|---|
 | Constrained areas (drilling difficulty, zoning, grid capacity) | ✅ done (geothermal v2 Phases C–D) |
 | Geothermal potential (conductivity, open-loop, suitability by segment) | ✅ done (v2 Phases B–D) |
-| **Current estimated heat load** (per building → per 500 m cell & per feeder) | 🆕 this plan |
-| **Future load with electrification** (ASHP/GSHP conversion, peak kW) | 🆕 this plan |
-| **Best spots for intervention** (demand × resource × grid composite) | 🆕 this plan |
+| **Current estimated heat load** (per building → per 500 m cell & per feeder) | ✅ built (Phases 1–2, 2026-07-16) + **stock-reconciled (Phase 2.5, 2026-07-17)** — city-wide sums defensible over `in_ottawa_cd` |
+| **Future load with electrification** (ASHP/GSHP conversion, peak kW) | 🆕 Phase 3 |
+| **Best spots for intervention** (demand × resource × grid composite) | 🆕 Phases 4–5 |
+| **Case-study narrative page** (sources, process, assumptions — §0) | 🆕 Phase 6 |
 | Waste heat potential | ⏳ later (colleague's data; sewer-flow screening as fallback — README §6.4) |
 
 Key existing hook: `Geothermal/scripts/build_suitability.py` already consumes
@@ -99,13 +137,15 @@ city-wide screening).
 ## 4. Pipeline (new scripts under `Geothermal/scripts/` unless noted)
 
 ```
-Phase 0  scout_buildings.py-ish notes    → Data/heatdemand_source_notes.md (decision memo)
-Phase 1  build_building_stock.py         → Data/processed/buildings_ottawa.parquet (+gpkg)
-Phase 2  build_building_demand.py        → adds annual kWh, design kW, fuel per building
-Phase 3  build_electrified_load.py       → adds electrified annual kWh + peak kW per building
-Phase 4  build_heat_demand.py            → heat_demand_grid.geojson (500 m) + feeder_demand.geojson
-         └─ re-run build_suitability.py  → district demand factor upgrades automatically
-Phase 5  merge_layers.py + build_map.py  → new map layers (demand, electrified stress, intervention score)
+Phase 0    scout_buildings.py-ish notes    → Data/heatdemand_source_notes.md (decision memo)          ✅ done
+Phase 1    build_building_stock.py         → Data/processed/buildings_ottawa.parquet (+gpkg)          ✅ done
+Phase 2    build_building_demand.py        → adds annual kWh, design kW, fuel per building            ✅ done
+Phase 2.5  build_building_stock reconcile  → fixed the 1.89× dwelling over-count; re-ran Phase 2      ✅ done
+Phase 3    build_electrified_load.py       → adds electrified annual kWh + peak kW per building
+Phase 4    build_heat_demand.py            → heat_demand_grid.geojson (500 m) + feeder_demand.geojson
+           └─ re-run build_suitability.py  → district demand factor upgrades automatically
+Phase 5    merge_layers.py + build_map.py  → new map layers (demand, electrified stress, intervention score)
+Phase 6    case-study page                 → the §0 narrative: sources, process, assumptions, results
 ```
 
 - **Phase 1 — canonical building stock.** Pick the footprint backbone from
@@ -124,6 +164,26 @@ Phase 5  merge_layers.py + build_map.py  → new map layers (demand, electrified
   per-FSA system mix reconciled to the 38-10-0286 CMA totals (gas dominant in
   serviced urban area; electric baseboard/oil pockets rural). Everything is a
   *screening estimate* — say so in output metadata.
+- **Phase 2.5 — stock reconciliation (added 2026-07-16, ✅ done 2026-07-17).**
+  Phase 2's per-unit intensities validated cleanly (detached mean 22,534 kWh vs
+  CEUD 22,520, <1%) but the stock implied **808k dwellings vs 427k census
+  households (1.89×)**, inflating every city-wide sum ~+36%. **The diagnosis
+  overturned the assumed root cause:** accessory fall-through was minor (1.5% of
+  detached ≤50 m²); the dominant carrier was the **bbox extending beyond the
+  city** (~353k of the 808k implied dwellings — ~44% — sat outside the Ottawa CD
+  while the census is city-only), with **MURB no-height "highrise" inflation**
+  (10-storey defaults on probabilistic draws) second. Fixed in
+  `build_building_stock.py` `reconcile_stock()` with three seeded levers — an
+  **`in_ottawa_cd`** flag (all city sums take this subset), **Rule R1** (a
+  highrise MURB requires real height evidence), and a **per-DA implied-dwelling
+  cap (+15% tolerance) reassigning the excess to a new `accessory` class**
+  (smallest-footprint unsignalled draws first; evidenced buildings never
+  touched). Result: implied dwellings **1.005×** census, residential space heat
+  **6.68 TWh (−10%** vs CEUD-scaled), detached per-unit mean **22,655 kWh (+1%,
+  unmoved)**, emissions **80%** of the EE inventory. Also fixed a fuel-rake
+  geography bug the CD-scoping exposed (IPF now fitted over the CD residential
+  subset the StatCan CMA target describes, not the bbox). Full method:
+  README §3.10.1.
 - **Phase 3 — electrified load.** For each fossil-heated building: convert with
   the `hp_curves.json` "average installed" ccASHP curve (sensitivity: Tier 1 and
   GSHP variants), hourly over the Ottawa TMY: annual electric kWh, and **peak
@@ -145,6 +205,19 @@ Phase 5  merge_layers.py + build_map.py  → new map layers (demand, electrified
   value), with popup breakdowns. Keep the ≤ 8 MB single-file budget (aggregate
   layers only — per-building data stays in `Data/processed/`). Republish.
 
+- **Phase 6 — the Ottawa Case Study page.** The §0 narrative as a
+  user-facing page in the suite's shared design system (navy/amber/cream,
+  Fraunces/Inter — like heatpump.html): six sections, one per step, each with
+  **one static visual** (inline SVG / small pre-rendered map extract — no live
+  layer soup), a plain-language paragraph of what the step shows, a
+  collapsible **"Data, method & assumptions"** box (source names + links,
+  the 2–3 assumptions that matter, the honest caveat), and headline numbers.
+  Ends with the candidate-areas result (a ranked table of areas: feeder
+  stress × geothermal suitability) and a prominent link to the interactive
+  map "to explore the full data". Cites the City's commissioned geothermal
+  study (§6 open question) alongside our well-derived surface. This page —
+  not the map — is what makes the project "simple to follow and defensible".
+
 **Waste-heat hook (later):** Phase 4's grid schema reserves a
 `waste_heat_kwh` field (null for now); when the colleague's data arrives it
 joins by cell and the intervention score gains a factor. Sewer-flow screening
@@ -153,8 +226,10 @@ joins by cell and the intervention score gains a factor. Sewer-flow screening
 ## 5. Paste-able prompts
 
 Run from `C:\Energy`, fresh session each, in order. Commit after each phase.
+**Phases 0–2 are done (2026-07-16) and Phase 2.5 is done (2026-07-17)** — their
+prompts are kept for the record; the live queue is **3 → 4 → 5 → 6**.
 
-### Prompt — Phase 0: building-stock scouting (Sonnet)
+### Prompt — Phase 0: building-stock scouting (Sonnet) — ✅ done
 
 ```text
 Read HEATDEMAND_PLAN.md (§3) and GEOTHERMAL_STATUS.md first. Goal: pick the
@@ -188,7 +263,7 @@ recommendation for footprint backbone + height source + type strategy, and
 open risks. Note memory quirks: some gov sites block WebFetch — use curl -L.
 ```
 
-### Prompt — Phase 1: canonical building stock (Sonnet)
+### Prompt — Phase 1: canonical building stock (Sonnet) — ✅ done
 
 ```text
 Read HEATDEMAND_PLAN.md (§3–4) and Geothermal/Data/heatdemand_source_notes.md
@@ -215,7 +290,7 @@ height-sourced vs defaulted. Document method + assumptions in
 Geothermal/README.md (new section) and append to GEOTHERMAL_STATUS.md.
 ```
 
-### Prompt — Phase 2: current heat load per building (Opus — methodology-heavy)
+### Prompt — Phase 2: current heat load per building (Opus — methodology-heavy) — ✅ done
 
 ```text
 Read HEATDEMAND_PLAN.md (§2–4), Geothermal/README.md (building-stock
@@ -256,6 +331,46 @@ github.com/canmet-energy/housing-archetypes — tabulate deltas and explain
 outliers. Investigate failures before
 writing output. This is a screening layer, not building audits — say so in
 the parquet metadata and README. Update README + GEOTHERMAL_STATUS.md.
+```
+
+### Prompt — Phase 2.5: building-stock reconciliation (Opus — the defensibility fix) — ✅ done
+
+```text
+Read HEATDEMAND_PLAN.md (§0, §4 Phase 2.5), Geothermal/README.md §3.10–3.11
+and GEOTHERMAL_STATUS.md (both 2026-07-16 entries) first. Problem, verified
+in the Phase 2 validation: buildings_ottawa.parquet implies ~808k dwellings
+but the 2021 census counts 427k households in Ottawa (1.89×), so city-wide
+heat sums run ~+36% high even though per-unit intensities match CEUD <1%.
+Fix the STOCK, don't retune intensities.
+
+1. Diagnose before changing anything. Break the implied-dwellings total down
+   by class × how the class was assigned (OSM direct / zoning / probabilistic
+   draw / DA-join-failed fallback) and by inside/outside the Ottawa CD
+   boundary. Prime suspects to quantify: (a) accessory buildings (garages,
+   sheds, small footprints with no OSM tag) falling through to the
+   residential probabilistic draw and counting as detached houses; (b) the
+   bbox extending beyond the city (census households are city-only); (c) MURB
+   units_est inflation. Print the decomposition — the fix must target
+   whatever actually carries the excess.
+2. Fix in build_building_stock.py (or a reconcile step after it), depending
+   on the diagnosis. Likely levers, in order of defensibility: exclude or
+   reclassify probable accessory buildings (e.g. footprint < a documented
+   threshold with no OSM/zoning signal on a parcel that already has a larger
+   residential building nearby — or simpler documented rules); constrain
+   per-DA implied dwelling counts to the census DA dwelling counts already in
+   da_census.json (cap the residential draw so a DA cannot exceed its census
+   total by more than a documented tolerance; reassign the excess to
+   non_dwelling/accessory class); report city-boundary vs bbox totals
+   separately. Keep every rule documented and seeded/reproducible.
+3. Re-run build_building_demand.py unchanged and re-validate: (a) implied
+   dwellings within ±10% of census households for the city proper;
+   (b) city-wide residential space heat within ±20% of the CEUD-scaled 7.38
+   TWh figure; (c) detached per-unit mean still ~22.5 MWh (must NOT move —
+   the fix is stock, not intensity); (d) modelled space-heat emissions a
+   plausible share (<100%) of the Energy Evolution buildings inventory.
+   Investigate any check that fails before writing output.
+4. Update Geothermal/README.md §3.10 (new reconciliation subsection),
+   GEOTHERMAL_STATUS.md, and the parquet metadata note. Commit.
 ```
 
 ### Prompt — Phase 3: electrified load per building (Opus)
@@ -325,10 +440,75 @@ Re-run the full chain, browser-verify (all layers toggle, popups, segment
 switch restyles intervention, conductivity edits still flow, zero console
 errors — canvas pixel sampling per the no-rAF quirk), update README +
 GEOTHERMAL_STATUS.md + ROADMAP item 7 status, republish to GitHub Pages.
+SIMPLICITY GUARD: the map is the expert explorer, not the story — if a
+layer or control doesn't serve one of HEATDEMAND_PLAN.md §0's six steps,
+don't add it; prefer replacing/merging layers over stacking new ones
+(consider folding the three new layers under a single "Heat & grid" group
+in the layer control).
+```
+
+### Prompt — Phase 6: the Ottawa Case Study page (Opus — design- and writing-heavy)
+
+```text
+Read HEATDEMAND_PLAN.md §0 (the six-step story — this page IS that story),
+Geothermal/README.md (skim §1–5 for sources/method/caveats),
+GEOTHERMAL_STATUS.md validation numbers, and skim heatpump.html +
+retrofits.html for the shared design system (navy #0B2545 / amber #E8A124 /
+cream #F7F4EE, Fraunces + Inter, white cards, sticky header). Run /dataviz
+before building any figures.
+
+Build a narrative case-study page (root-level, sibling of heatpump.html —
+suggest geothermal.html) titled "Geothermal and Ottawa's grid: a case
+study". Audience: a smart non-specialist (city staff, utility planner,
+journalist). Structure = §0's six steps, one section each:
+  1 Where the grid is constrained (CCIM feeder capacity — headline: how
+    much of the city sits under low-headroom feeders)
+  2 What the ground offers (wells → conductivity by soil/rock layer,
+    drilling difficulty; cross-check vs the City's commissioned study)
+  3 Ottawa's buildings and their heat (stock counts by class, annual TWh,
+    design GW — post-Phase-2.5 reconciled numbers only)
+  4 Who is already electric (fuel shares, raked to StatCan)
+  5 What full electrification would demand (added GWh + design-day MW,
+    feeders pushed past available capacity, ASHP vs GSHP contrast — the
+    GSHP peak saving is the punchline)
+  6 Where the candidates are (ranked table of areas scoring high on BOTH
+    feeder stress and geothermal suitability, with the intervention-score
+    map extract)
+Per section: ONE static visual (inline SVG chart or a small pre-rendered
+PNG/SVG map extract exported from the pipeline data — no Leaflet, no layer
+toggles), 1–2 plain-language paragraphs, a collapsible "Data, method &
+assumptions" box (named sources with links, the 2–3 assumptions that
+actually move the number, the honest caveat — screening not audit, CCIM is
+connection-screening not load-flow, Ontario-side only), and the headline
+number stated in words. Close with limitations + a link card to the
+interactive map for exploration. FIRST: read the J.L. Richards geothermal
+study PDF the user placed at Geothermal/Data/Raw/references/ (the City's
+commissioned study behind maps.ottawa.ca Planning/122) — cite it properly
+(title/year/author) and compare its conclusions to our well-derived surface
+in section 2 (agreements AND disagreements, honestly). Keep the page < 1.5 MB, no
+external JS beyond what siblings use. Verify in a browser preview at mobile
++ desktop widths (zero console errors), add the page to Readme.MD +
+project-atlas.html, cross-link from the interactive map's header, commit
+and publish per the existing Pages pattern.
 ```
 
 ## 6. Risks / open questions
 
+- ~~**Stock over-count (Phase 2.5)**~~ — **resolved 2026-07-17** (README
+  §3.10.1). Implied dwellings now 1.005× census. **Standing constraint for
+  Phases 4–6: every quotable city-wide figure must sum over `in_ottawa_cd`**
+  (the bbox reaches into surrounding townships), and `accessory` is a
+  non-dwelling class. The detached/row *split* remains soft (sum +3.4%, split
+  +23%/−27%) — a labelling softness, not a count error.
+- **The City's commissioned geothermal study (J.L. Richards)** — the user
+  **has the PDF** (confirmed 2026-07-16) and will place it under
+  `Geothermal/Data/Raw/references/`. Only its presumed output, the
+  maps.ottawa.ca Planning/122 "Open Loop Geothermal Potential" layer, is in
+  the pipeline today (used for validation, §3.6 of the README). Phase 6 cites
+  the report and compares its conclusions to our well-derived surface —
+  materially strengthens step 2's defensibility.
+- **"Hydro Ottawa sectors"** — confirmed with the user 2026-07-16: the OEB
+  CCIM feeder polygon (3,884 for Hydro Ottawa) is the analysis unit.
 - **Height coverage** is the big unknown → Phase 0 exists to resolve it; the
   fallback (documented per-type storeys defaults) mostly hurts downtown
   towers, which EWRB actuals partially rescue.

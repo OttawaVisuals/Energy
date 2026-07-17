@@ -3,9 +3,101 @@
 Companion to [ottawa-geothermal-guide.md](ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-16.*
+*Last session: 2026-07-17.*
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-07-17 session — Heat Demand Phase 2.5: stock reconciliation (the defensibility fix)
+
+[HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phase 2.5 — the blocker that made every
+city-wide sum unquotable. Fixed the **stock**, not the intensities. Method +
+rules in `Geothermal/README.md` **§3.10.1**; this entry is the numbers.
+
+**Diagnosis first** (printed by `reconcile_stock()` as implied dwellings by
+class × `assign_path` × inside/outside the Ottawa CD). The headline "808k
+implied dwellings vs 427k census households (1.89×)" turned out to be **mostly
+an apples-to-oranges geography mismatch**, not a modelling error:
+- **bbox beyond the city — the dominant carrier.** The analysis bbox is a
+  rectangle bigger than the Ottawa CD and catches ~19% of buildings in
+  surrounding townships; those carried **~353k of the 808k implied dwellings**
+  (~44%), while the census households compared against are **city-only**.
+  Restricting to the CD alone already put every check in band.
+- **MURB no-height inflation — secondary.** A building with no height could be
+  *drawn* as `highrise_murb` and then given the 10-storey `STOREY_DEFAULT`,
+  inflating floor area and unit count with zero evidence (~200k bbox implied
+  units; 8,614 default-height "highrises").
+- **Accessory buildings — minor.** Only 1.5% of `detached` are ≤50 m²; the real
+  accessory clutter sits in the unsignalled `residential_draw` pool. So suspect
+  (a) was *not* the main story, (b) was.
+
+**Fix — three seeded, documented levers in `build_building_stock.py`:**
+1. **`in_ottawa_cd`** (new column) — centroid in one of the 1,392 Ottawa-CD DAs.
+   **All city-wide sums now take this subset.** Dominant correction.
+2. **Rule R1 — highrise requires real height evidence.** No-height probabilistic
+   draws can land on detached/row/**lowrise**, never highrise. `highrise_murb`
+   16,691 → **1,074** (the survivors are height-evidenced). New `assign_path`
+   column records class provenance.
+3. **Per-DA cap → `accessory`.** A DA's implied dwellings may exceed its census
+   `total_dwellings` by at most **+15%**; the excess is reclassified to the new
+   non-dwelling `accessory` class, **smallest footprint first and only from the
+   unsignalled `residential_draw` path** — OSM-tagged/height-evidenced buildings
+   are never touched. Reassigned **17,791 buildings across 247 DAs**; **121 DAs
+   left honestly over** (their excess is real OSM/height stock, not force-fit).
+
+**Validation after re-running `build_building_demand.py`** (all four gates pass;
+city sums on the CD):
+- (a) **implied dwellings 429,282 = 1.005×** census 427,113 (was 1.89×) — ±10% ✅
+- (b) **residential space heat 6.68 TWh vs CEUD-scaled 7.38 TWh (−10%)** (was
+  +36%) — ±20% ✅
+- (c) **detached per-unit mean 22,655 kWh vs CEUD 22,520 (+1%)** — did **not**
+  move (was 22,534); confirms the fix is stock, not intensity ✅
+- (d) **space-heat emissions 2.20 Mt = 80%** of the Energy Evolution 2024
+  buildings inventory (was 104%) — a plausible space-heat share ✅
+- fuel **gas 59.1% / electric 21.0%** — on the StatCan targets.
+
+**Bug found and fixed along the way:** the fuel IPF rake targeted StatCan
+38-10-0286's **Ottawa-CMA** shares but was fitted over the **whole bbox**. That
+hit 59/21 bbox-wide while leaving the *city* subset at **gas 74.2% / electric
+14.1%** — invisible until Phase 2.5 correctly scoped validation to the CD. The
+rake is now fitted over the CD residential subset (the geography the target
+describes); outside-CD rural buildings keep their per-FSA/no-gas mix.
+
+**Deviations from the brief:** the brief expected accessory fall-through (a) to
+be a prime carrier and `build_building_demand.py` to be re-run *unchanged*. The
+diagnosis showed (b) the bbox dominates instead, so the fix is weighted that
+way. `build_building_demand.py` needed two **structural** (not intensity-tuning)
+edits: an `accessory` handler (unheated, `annual_kwh = 0`) for the new stock
+class, and the fuel-rake geography fix above; the demand *model* — archetypes,
+intensities, EFLH, HEATED_FRACTION_HOUSE — is untouched, which is what the
+"don't retune intensities" instruction protects (and check (c) proves it held).
+
+**Stock now:** 414,111 buildings (336,365 inside the CD). Classes: detached
+251,639 · row 100,282 · lowrise_murb 21,861 · **accessory 17,791** · commercial
+11,670 · industrial 6,628 · institutional 3,166 · highrise_murb 1,074. The
+detached/row *split* stays soft (inside-CD detached +23% / row −27% vs census,
+**sum +3.4%**) — semis digitised as separate footprints, the known §3.10
+labelling softness; it moves neither the dwelling total nor the heat sum.
+
+**Downstream note:** Phases 4–6 must sum over `in_ottawa_cd` for any quotable
+city-wide figure, and treat `accessory` as non-dwelling.
+
+## 2026-07-16 session — plan reframe: the Ottawa Case Study (no build)
+
+Planning session after a step-back review with the user. The project's end
+product is reframed as the **Ottawa Case Study** — a simple six-step argument
+(grid constraints → ground resource → building heat loads → electrified share
+→ electrification peak vs grid → candidate areas), documented in
+[HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) §0. Decisions: (1) the interactive
+map stays as the *expert explorer*; a new narrative **case-study page**
+(Phase 6) becomes the front door — sources, process, assumptions, plainly
+explained; (2) a new **Phase 2.5** fixes the building-stock over-count (808k
+implied dwellings vs 427k census households) before any city-wide number is
+quoted — it is the single defensibility blocker; (3) open items to resolve
+with the user: locate/cite the City's commissioned geothermal study (believed
+J.L. Richards — only its presumed output, the Planning/122 layer, is in the
+pipeline today), and confirm CCIM feeders are the intended "Hydro Ottawa
+sectors" granularity. Live queue: **2.5 → 3 → 4 → 5 → 6**, prompts in
+HEATDEMAND_PLAN.md §5.
 
 ## 2026-07-16 session — Heat Demand Phase 2: per-building heat load
 
@@ -584,8 +676,14 @@ python Geothermal/scripts/merge_layers.py              # step 7 combined layers
 python Geothermal/scripts/build_map.py                 # step 8 output/index.html
 python GridCapacity/Hydro.py                           # refresh feeder capacity
 
-# Heat Demand Phase 1 (building stock; independent of the map chain above)
+# Heat Demand Phases 1-2.5 (building stock + load; independent of the map chain above)
 python Geothermal/scripts/fetch_zoning_full.py         # full zoning layer -> Data/Raw/zoning_full.geojson
 python Geothermal/scripts/fetch_da_census.py           # DA-level census profile -> Data/processed/da_census.json
 python Geothermal/scripts/build_building_stock.py      # -> Data/processed/buildings_ottawa.{parquet,gpkg}
+                                                       #    (incl. the Phase 2.5 reconcile_stock step)
+python Geothermal/scripts/build_building_demand.py     # augments the parquet with annual_kwh/design_kw/fuel
 ```
+
+**Reading the outputs:** take every city-wide sum over `in_ottawa_cd == True`
+(the bbox reaches into surrounding townships; the census is city-only), and
+treat the `accessory` class as non-dwelling/unheated. See README §3.10.1.
