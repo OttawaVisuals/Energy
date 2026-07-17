@@ -112,6 +112,30 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .stat-value.green{color:var(--green)}
 .stat-value.red{color:var(--red)}
 .stat-sub{font-size:12px;color:var(--light);margin-top:5px}
+.stat-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:5px;border-radius:50%;border:1px solid var(--light);color:var(--light);font-size:9px;font-style:italic;font-family:Georgia,serif;cursor:help;flex:none;line-height:1;text-transform:none;letter-spacing:0}
+.stat-i:hover{border-color:var(--amber);color:var(--amber)}
+
+/* ── One-line summary lede ── */
+.summary-lede{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-md);padding:.85rem 1.1rem;margin-bottom:1rem;box-shadow:var(--shadow);font-size:15px;line-height:1.55;color:var(--text)}
+.summary-lede b{color:var(--navy);font-weight:600}
+.lede-eyebrow{display:block;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:.35rem}
+
+/* ── Calculation walkthrough ── */
+.calc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.calc summary::-webkit-details-marker{display:none}
+.calc summary::before{content:'ƒ';font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:16px;color:var(--amber);line-height:1}
+.calc summary::after{content:'+';margin-left:auto;font-size:20px;color:var(--amber);font-weight:400;line-height:1}
+.calc[open] summary::after{content:'\2013'}
+.calc summary:hover{color:var(--navy)}
+.calc-intro{font-size:13px;color:var(--muted);margin:.85rem 0 .35rem;line-height:1.6}
+.calc-step{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:.95rem 0;border-top:1px solid var(--surface)}
+.calc-num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.calc-h{font-size:13.5px;font-weight:600;color:var(--navy);margin-bottom:.3rem}
+.calc-p{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:.55rem}
+.calc-p b,.calc-res b{color:var(--navy);font-weight:600}
+.calc-math{font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:12.5px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:.55rem .75rem;color:var(--muted);line-height:1.75;overflow-x:auto;white-space:pre}
+.calc-math .r{color:var(--green);font-weight:600}
+.calc-res{font-size:12.5px;color:var(--muted);margin-top:.5rem;line-height:1.55}
 
 /* ── Stacked GHG bars ── */
 .ghgbar-wrap{display:flex;flex-direction:column;gap:14px}
@@ -356,6 +380,8 @@ footer a{color:var(--muted)}
   <div class="loading-msg" id="loading">Loading equipment curves, grid data and weather…</div>
   <div id="results" style="display:none">
 
+    <div class="summary-lede" id="summary"></div>
+
     <div class="verdict" id="verdict">
       <div class="verdict-main" id="verdict-main"></div>
       <div class="verdict-pill" id="verdict-pill"></div>
@@ -378,6 +404,15 @@ footer a{color:var(--muted)}
         <div class="ghgbar-wrap" id="ghgbars"></div>
         <div class="legend" id="ghg-legend"></div>
         <div class="note" id="ghg-note"></div>
+      </div>
+
+      <!-- Calculation walkthrough -->
+      <div class="card">
+        <details class="calc" id="calc">
+          <summary>Show the calculation, step by step</summary>
+          <div class="calc-intro" id="calc-intro"></div>
+          <div id="calc-steps"></div>
+        </details>
       </div>
     </section>
 
@@ -481,6 +516,26 @@ footer a{color:var(--muted)}
       <div class="card">
         <div class="card-title-row"><span class="card-title">Monthly emissions — before vs after</span><span class="card-sub" id="month-ghg-basis"></span></div>
         <div class="cw cw-lg"><canvas id="monthGhgChart"></canvas></div>
+      </div>
+
+      <!-- Annual energy & GHG binned by outdoor temperature -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title-row">
+            <span class="card-title">Annual energy, by outdoor temperature</span>
+            <span class="card-sub">purchased energy per 2 °C band, before vs after</span>
+          </div>
+          <div class="cw cw-md"><canvas id="tempEnergyChart"></canvas></div>
+          <div class="note" id="temp-energy-note"></div>
+        </div>
+        <div class="card">
+          <div class="card-title-row">
+            <span class="card-title">Annual emissions, by outdoor temperature</span>
+            <span class="card-sub" id="temp-ghg-basis"></span>
+          </div>
+          <div class="cw cw-md"><canvas id="tempGhgChart"></canvas></div>
+          <div class="note" id="temp-ghg-note"></div>
+        </div>
       </div>
 
       <!-- Hourly chart -->
@@ -641,7 +696,7 @@ footer a{color:var(--muted)}
       <div class="caveats">The single biggest reason our numbers can look lower than a headline you've read elsewhere is the <b>marginal</b> grid basis (our default). Most published studies price heat-pump electricity at the grid <i>average</i>; we default to the <i>marginal</i> gas generator because that's what actually runs to meet new demand — an honest but more demanding test. Flip the toggle to “Average” in Advanced to compare like-for-like. Two further gaps are deliberate: our grid is calibrated to the current <b>2025</b> mix (Ontario's has roughly tripled in carbon intensity since 2020, when older studies were written), and our homes are the <b>median</b> audited house of each type (larger, and higher-emitting in absolute terms, than the single reference house those studies model — though the percentage change is barely affected). Full validation tables are in <code>HeatPump/METHODOLOGY.md</code>.</div>
 
       <h4>What this does not do</h4>
-      <p>No operating-cost/$ figures yet (pending a rates dataset); no solar gains or thermostat setbacks (the balance point absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
+      <p>No equipment or installation costs — the cost card compares annual <i>operating</i> cost only, not payback; no solar gains or thermostat setbacks (the balance point absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
       <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · manufacturer datasheets (Mitsubishi, Carrier, Daikin, WaterFurnace) · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors.</p>
     </div>
   </details>
@@ -682,6 +737,14 @@ footer a{color:var(--muted)}
  *      the toggle selects both the level index and the shape-ratio field.
  *
  * All physical constants are documented inline and in METHODOLOGY.md.
+ *
+ * NOTE: this inlined engine is the shipping copy; HeatPump/app/engine.js is a
+ * verbatim extract of it (for Node tests / reuse). If you change one, re-sync
+ * the other. Later additions beyond the original Phase 5 outputs, all additive:
+ *   - energy.elec_month_hour  (12x24 kWh matrix, for TOU pricing)
+ *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg}
+ *   - hourly.{base_energy_kWh, hp_elec_kWh, backup_energy_kWh}
+ *     (purchased-energy series, for the by-temperature charts)
  */
 
 (function (root, factory) {
@@ -984,6 +1047,13 @@ footer a{color:var(--muted)}
       h_load = new Array(N).fill(0),
       h_base_ghg = new Array(N).fill(0),
       h_proj_ghg = new Array(N).fill(0);
+    // hourly PURCHASED energy (kWh input, not heat delivered): the base system's
+    // fuel-or-electricity draw, the heat pump's electricity, and the backup's
+    // fuel-or-electricity draw -- lets the UI aggregate energy by any key
+    // (temperature bins, etc.) without re-deriving the dispatch.
+    var h_base_in = new Array(N).fill(0),
+      h_hp_elec = new Array(N).fill(0),
+      h_bk_in = new Array(N).fill(0);
 
     var G2KG = 0.001; // grams -> kg
 
@@ -1012,12 +1082,14 @@ footer a{color:var(--muted)}
         var baseElec = load / baseEff; // ~= load
         m_base_elec[mi] += baseElec;
         mh_base_elec[mi][hour - 1] += baseElec;
+        h_base_in[i] = baseElec;
         var baseElecGhg = efThisHour * baseElec * lineLoss * G2KG;
         m_base_elecghg[mi] += baseElecGhg;
         h_base_ghg[i] += baseElecGhg;
       } else {
         var baseFuelIn = load / baseEff;
         m_base_fuel[mi] += baseFuelIn;
+        h_base_in[i] = baseFuelIn;
         var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
         m_base_comb[mi] += baseCombGhg;
         h_base_ghg[i] += baseCombGhg;
@@ -1055,6 +1127,7 @@ footer a{color:var(--muted)}
         hpElec = hpHeat / perf.cop;
         m_hp_elec[mi] += hpElec;
         mh_proj_elec[mi][hour - 1] += hpElec;
+        h_hp_elec[i] = hpElec;
         var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
         m_proj_elecghg[mi] += hpGhg;
         h_proj_ghg[i] += hpGhg;
@@ -1074,12 +1147,14 @@ footer a{color:var(--muted)}
           var bkElec = bkHeat / backup.efficiency;
           m_bk_elec[mi] += bkElec;
           mh_proj_elec[mi][hour - 1] += bkElec;
+          h_bk_in[i] = bkElec;
           var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
           m_proj_elecghg[mi] += bkGhg;
           h_proj_ghg[i] += bkGhg;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
           m_bk_fuel[mi] += bkFuelIn;
+          h_bk_in[i] = bkFuelIn;
           var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
           m_proj_comb[mi] += bkCombGhg;
           h_proj_ghg[i] += bkCombGhg;
@@ -1199,6 +1274,9 @@ footer a{color:var(--muted)}
         load_kW: h_load,
         base_ghg_kg: h_base_ghg,
         proj_ghg_kg: h_proj_ghg,
+        base_energy_kWh: h_base_in,
+        hp_elec_kWh: h_hp_elec,
+        backup_energy_kWh: h_bk_in,
       },
       meta: {
         hours: N,
@@ -1253,6 +1331,13 @@ const ARCH_LABEL={
   '1980_2005_detached':'Detached, 1980–2005',
   post_2005_detached:'Detached, built after 2005',
   townhouse_row:'Townhouse / row house',
+};
+// Short inline form for the one-line summary ("in a <phrase> in <city>").
+const ARCH_PHRASE={
+  pre_1980_detached:'pre-1980 detached home',
+  '1980_2005_detached':'1980–2005 detached home',
+  post_2005_detached:'post-2005 detached home',
+  townhouse_row:'townhouse',
 };
 const ARCH_BLURB={
   pre_1980_detached:'Older detached houses — leakier envelope, higher heat loss for their size.',
@@ -1686,6 +1771,25 @@ function recompute(){
 // ==========================================================================
 // Render
 // ==========================================================================
+// Short "what does this number mean" tooltips shown on each KPI's info glyph.
+const TIP={
+  now:'Annual heating greenhouse gas from your current system — on-site fuel combustion (plus upstream methane), or grid electricity for a baseboard.',
+  after:'Annual heating GHG after switching — grid electricity for the pump and any backup (at the selected grid basis), plus amortized refrigerant leakage.',
+  change:'Change in annual heating emissions versus today. A minus sign means the heat pump emits less than your current system.',
+  energy:'Total purchased energy for heating (fuel + electricity), now versus with the heat pump. The drop is the pump’s efficiency (COP) at work.',
+  cost:'Annual running cost at current provincial residential rates, now versus with the heat pump. Equipment and installation are not included.',
+  cop:'Seasonal COP — units of heat delivered per unit of electricity, averaged over the year. Higher is better; electric resistance is 1.0.',
+  backup:'Share of the year’s heat the pump can’t cover on the coldest hours — carried by backup, or left unmet if you chose no backup.',
+};
+function statLabelHTML(label,tip){
+  return label+(tip?`<span class="stat-i" title="${tip.replace(/"/g,'&quot;')}" aria-label="${tip.replace(/"/g,'&quot;')}">i</span>`:'');
+}
+function setSummaryCost(delta){
+  const el=$('summary-cost');if(!el)return;
+  if(delta==null){el.textContent='.';return;}
+  const saves=delta>=0;
+  el.innerHTML=`, and ${saves?`saves <b>${fmt$(Math.abs(delta))}/yr</b>`:`costs <b>${fmt$(Math.abs(delta))}/yr more</b>`} to run.`;
+}
 function render(res,opts){
   const base=res.base, proj=res.project, d=proj.diagnostics;
   const baseT=base.ghg.total, projT=proj.ghg.total;
@@ -1719,16 +1823,36 @@ function render(res,opts){
 
   // ---- stats ----
   const topupStat=(state.backup==='none'&&unmet>0)
-    ? {label:'Heat left unmet',val:pctDisp(unmetPct),sub:`${d.backup_hours} h beyond the heat pump — no backup`,cls:'red'}
-    : {label:'Heat from backup',val:pctDisp(backupPct),sub:`${d.backup_hours} h need top-up`,cls:''};
+    ? {label:'Heat left unmet',val:pctDisp(unmetPct),sub:`${d.backup_hours} h beyond the heat pump — no backup`,cls:'red',tip:TIP.backup}
+    : {label:'Heat from backup',val:pctDisp(backupPct),sub:`${d.backup_hours} h need top-up`,cls:'',tip:TIP.backup};
+  const baseEnergy=base.energy.fuel_kWh+base.energy.electricity_kWh;
+  const projEnergy=proj.energy.electricity_kWh+proj.energy.backup_fuel_kWh;
+  const ePct=baseEnergy>0?(baseEnergy-projEnergy)/baseEnergy*100:0;
   const stats=[
-    {label:'Emissions now',val:fmtGHG(baseT),sub:`${FUEL_LABEL[state.fuel]} heating`,cls:'red'},
-    {label:'Emissions with heat pump',val:fmtGHG(projT),sub:`${basisAdj(state.efBasis)} grid basis`,cls:'green'},
-    {label:'Change',val:nearZeroBase?(cut>=0?'−':'+')+fmtGHG(Math.abs(cut)):(cut>=0?'−':'+')+Math.abs(Math.round(pct))+'%',sub:nearZeroBase?'grid already ~carbon-free':`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cls:cut>=0?'green':'red'},
-    {label:'Seasonal COP',val:scop,sub:`${fmtI(proj.energy.electricity_kWh)} kWh electricity/yr`,cls:'accent'},
+    {label:'Emissions now',val:fmtGHG(baseT),sub:`${FUEL_LABEL[state.fuel]} heating`,cls:'red',tip:TIP.now},
+    {label:'Emissions with heat pump',val:fmtGHG(projT),sub:`${basisAdj(state.efBasis)} grid basis`,cls:'green',tip:TIP.after},
+    {label:'Change',val:nearZeroBase?(cut>=0?'−':'+')+fmtGHG(Math.abs(cut)):(cut>=0?'−':'+')+Math.abs(Math.round(pct))+'%',sub:nearZeroBase?'grid already ~carbon-free':`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cls:cut>=0?'green':'red',tip:TIP.change},
+    {label:'Energy purchased',val:(ePct>=0?'−':'+')+Math.abs(Math.round(ePct))+'%',sub:`${fmtI(baseEnergy)} → ${fmtI(projEnergy)} kWh/yr`,cls:ePct>=0?'green':'red',tip:TIP.energy},
+    {label:'Operating cost',val:'…',sub:'loading current rates…',cls:'',id:'stat-cost',tip:TIP.cost},
+    {label:'Seasonal COP',val:scop,sub:`${fmtI(proj.energy.electricity_kWh)} kWh electricity/yr`,cls:'accent',tip:TIP.cop},
     topupStat,
   ];
-  $('stats').innerHTML=stats.map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value ${s.cls}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+  $('stats').innerHTML=stats.map(s=>`<div class="stat-card"${s.id?` id="${s.id}"`:''}><div class="stat-label">${statLabelHTML(s.label,s.tip)}</div><div class="stat-value ${s.cls}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+
+  // ---- one-line synthesis (energy + carbon + cost); cost clause filled by renderCost ----
+  const energyClause=`uses <b>${Math.abs(Math.round(ePct))}% ${ePct>=0?'less':'more'} energy</b>`;
+  let carbonClause;
+  if(nearZeroBase) carbonClause=`barely changes carbon (${state.city}'s grid is already near-zero)`;
+  else if(pct>=2) carbonClause=`cuts carbon <b>${Math.round(pct)}%</b>`;
+  else if(pct<=-2) carbonClause=`raises carbon <b>${Math.abs(Math.round(pct))}%</b> on the ${basisAdj(state.efBasis)} grid`;
+  else carbonClause=`barely changes carbon`;
+  // "but" when the energy and carbon stories diverge (energy improves, carbon
+  // doesn't), else "and". nearZeroBase is treated as carbon-not-improving.
+  const conj=(ePct>=0&&(nearZeroBase||pct<=-2))?'but':'and';
+  $('summary').innerHTML=`<span class="lede-eyebrow">The short version</span>A <b>${bucketShort()}</b> heat pump in a ${ARCH_PHRASE[state.arch]} in ${state.city} ${energyClause} ${conj} ${carbonClause}<span id="summary-cost">.</span>`;
+
+  // ---- calculation walkthrough ----
+  renderWalkthrough(res,opts);
 
   // ---- GHG bars ----
   renderGhgBars(base,proj);
@@ -1744,6 +1868,8 @@ function render(res,opts){
   renderEnergyChart(base,proj);
   renderMonthEnergyChart(proj);
   renderMonthGhgChart(base,proj);
+  renderTempEnergyChart(res);
+  renderTempGhgChart(res);
   renderHourlyChart(res);
   // This preview/renderer does not reliably pump requestAnimationFrame, so
   // Chart.js's first frame can fail to paint. Force a synchronous draw.
@@ -1756,12 +1882,126 @@ function render(res,opts){
   const yrTag=state.efBasis==='annual'&&annualAvgFor(CITY_PROV[state.city])?` ${annualAvgFor(CITY_PROV[state.city]).year}`:'';
   $('ghg-basis').textContent=`${badj} grid${yrTag} · ${prov} ≈ ${fmt1(lvl)} g CO₂e/kWh`;
   $('month-ghg-basis').textContent=`${badj} grid basis`;
+  $('temp-ghg-basis').textContent=`hourly emissions per 2 °C band · ${badj} grid basis`;
   $('ghg-note').innerHTML=`Bars are stacked by source. On-site combustion is the fuel burned in the home; electricity is grid emissions for the heat pump + any electric backup, priced at the <b>${badj}</b> intensity. Refrigerant and upstream fuel-supply terms are adjustable in Advanced.`;
   $('energy-note').innerHTML=state.fuel==='electric'
     ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
     : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`;
 }
 function bucketShort(){return state.bucket==='avg'?'typical installed':state.bucket==='tier1'?'premium':state.bucket==='tier2'?'mid-market':'baseline';}
+
+// ---- Calculation walkthrough: the whole chain, live, with numbers plugged in.
+// "Show your work" so the tool can be explained to anyone by hand. Each step's
+// arithmetic reconciles exactly with the headline results above.
+function calcStep(n,h,p,math,resLine){
+  return `<div class="calc-step"><div class="calc-num">${n}</div><div>`+
+    `<div class="calc-h">${h}</div>`+
+    (p?`<div class="calc-p">${p}</div>`:'')+
+    (math?`<div class="calc-math">${math}</div>`:'')+
+    (resLine?`<div class="calc-res">${resLine}</div>`:'')+
+    `</div></div>`;
+}
+function renderWalkthrough(res,opts){
+  const a=ARCH[state.city][state.arch], d=res.project.diagnostics;
+  const base=res.base, proj=res.project;
+  const UA=opts.archetype.UA_W_per_K, Tbal=opts.archetype.Tbalance_C;
+  const load=d.load_kWh, scop=d.seasonal_cop||0;
+  const info=tierCurveInfo();
+  const efLevel=opts.ef.reference_level_g_per_kWh[opts.efMode==='marginal'?1:0];
+  const lineloss=1+state.lineloss/100;
+  const combEF=E.COMBUSTION_EF_G_PER_KWH[state.fuel];
+  const baseFuelName=FUEL_LABEL[state.fuel];
+  const isElec=state.fuel==='electric';
+  const hasBackup=state.backup!=='none';
+  const bkFuel=proj.energy.backup_fuel_kWh, bkElec=proj.energy.backup_electricity_kWh;
+  const bkEnergy=bkFuel+bkElec;
+  const projEnergy=proj.energy.electricity_kWh+proj.energy.backup_fuel_kWh;
+  const baseEnergy=base.energy.fuel_kWh+base.energy.electricity_kWh;
+  const ePct=baseEnergy>0?(baseEnergy-projEnergy)/baseEnergy*100:0;
+  // Effective grid intensity actually applied (season-weighted over the hourly
+  // surface) -- shown so the arithmetic reconciles exactly with the totals.
+  const effEFproj=proj.energy.electricity_kWh>0
+    ? proj.ghg.electricity/(proj.energy.electricity_kWh*lineloss)*1000 : 0;
+  const effEFbase=base.energy.electricity_kWh>0
+    ? base.ghg.electricity/(base.energy.electricity_kWh*lineloss)*1000 : 0;
+  const hpPct=100*d.hp_delivered_kWh/Math.max(1e-9,load);
+  const bkPct=100*d.backup_delivered_kWh/Math.max(1e-9,load);
+  const baseT=base.ghg.total, projT=proj.ghg.total, cut=baseT-projT;
+  const M3=n=>fmtI(n/E.GAS_KWH_PER_M3);
+
+  $('calc-intro').innerHTML=`Every number above comes from an hour-by-hour run of one typical weather year. Here is the whole chain for your current choices — <b>${state.city}</b>, ${ARCH_LABEL[state.arch].toLowerCase()}, ${info.label.toLowerCase()} heat pump — with the actual figures plugged in. These are the same steps you'd walk someone through by hand.`;
+
+  const steps=[];
+
+  // 1 — heat demand
+  steps.push(calcStep(1,'How much heat your home needs',
+    `Your home is modelled as the median of <b>${fmtI(a.n_homes)}</b> audited <b>${ARCH_LABEL[state.arch].toLowerCase()}</b> homes in ${state.city}: about <b>${fmtI(a.floor_area_m2)} m²</b>, with a measured design heat loss of <b>${fmt1(a.design_heat_loss_kW)} kW</b>. From that we know how fast it loses heat — <b>${fmtI(UA)} watts per °C</b> of indoor–outdoor difference — and the outdoor temperature below which it needs heating: its <b>balance point of ${fmt1(Tbal)} °C</b> (below 21 °C because people, appliances and sunlight supply the rest).`,
+    `heat(hour) = UA × (balance − outdoor)\n           = ${fmtI(UA)} W/°C × (${fmt1(Tbal)} − outdoor) °C`,
+    `Added up over the <b>${fmtI(d.heating_hours)}</b> hours of the year below that balance point: <b class="r">${fmtI(load)} kWh</b> of heat delivered.`));
+
+  // 2 — heat pump efficiency
+  const bkLine=bkPct>0.5
+    ? `The pump carries <b>${Math.round(hpPct)}%</b> of the year's heat; on the coldest <b>${fmtI(d.backup_hours)}</b> hours the ${hasBackup?FUEL_LABEL[state.backup]+' backup':'unmet portion'} covers the other ${Math.round(bkPct)}%.`
+    : `The pump carries the entire load on its own — no backup needed in a typical year.`;
+  steps.push(calcStep(2,'How efficiently the heat pump makes that heat',
+    `You picked the <b>${info.label.toLowerCase()}</b> tier, modelled from two real units (${info.members.join(' + ')}). A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
+    `electricity = heat ÷ COP\n(each hour uses that hour's COP; ${fmt1(scop)} is the season average)`,
+    bkLine));
+
+  // 3 — energy purchased
+  let e3base,e3proj;
+  if(isElec){
+    e3base=`now (baseboard):  ${fmtI(load)} kWh heat ÷ 1.0 = ${fmtI(base.energy.electricity_kWh)} kWh electricity`;
+  }else{
+    e3base=`now (${baseFuelName}):  heat ÷ efficiency = ${fmtI(load)} ÷ ${(state.eff/100).toFixed(2)} = ${fmtI(base.energy.fuel_kWh)} kWh${state.fuel==='gas'?`  (${M3(base.energy.fuel_kWh)} m³)`:''}`;
+  }
+  e3proj=`heat pump:         ${fmtI(proj.energy.hp_electricity_kWh)} kWh electricity`+
+    (hasBackup&&bkEnergy>0?`\n                 + ${fmtI(bkEnergy)} kWh ${bkFuel>0?FUEL_LABEL[state.backup]+' backup':'backup electricity'}`:'')+
+    `\n                 = ${fmtI(projEnergy)} kWh purchased`;
+  steps.push(calcStep(3,'Energy you buy, before and after',
+    `The same heat, delivered two ways: burning fuel (at the furnace's efficiency) versus running the heat pump (at its COP).`,
+    e3base+'\n'+e3proj,
+    `That is <b class="r">${ePct>=0?'−':'+'}${Math.abs(Math.round(ePct))}%</b> energy — from ${fmtI(baseEnergy)} to ${fmtI(projEnergy)} kWh a year.`));
+
+  // 4 — emissions now
+  let m4,r4;
+  if(isElec){
+    m4=`${fmtI(base.energy.electricity_kWh)} kWh × ${Math.round(effEFbase)} g/kWh × ${lineloss.toFixed(2)} losses = ${fmtGHG(base.ghg.electricity)}`;
+    r4=`Grid electricity is the only source → <b class="r">${fmtGHG(baseT)} CO₂e/yr</b>.`;
+  }else{
+    m4=`combustion:  ${fmtI(base.energy.fuel_kWh)} kWh × ${Math.round(combEF)} g/kWh = ${fmtGHG(base.ghg.combustion)}`+
+      (base.ghg.upstream_methane>0?`\nupstream CH₄: ${fmtGHG(base.ghg.upstream_methane)}`:'')+
+      (base.ghg.upstream_oil>0?`\nupstream oil: ${fmtGHG(base.ghg.upstream_oil)}`:'');
+    r4=`Total burning ${baseFuelName} → <b class="r">${fmtGHG(baseT)} CO₂e/yr</b>.`;
+  }
+  steps.push(calcStep(4,'Emissions today',
+    `Fuel burned in the home emits directly (${Math.round(combEF)} g CO₂e per kWh for ${baseFuelName}); electricity emits at the grid's intensity.`,
+    m4,r4));
+
+  // 5 — emissions after
+  let m5=`grid elec:   ${fmtI(proj.energy.electricity_kWh)} kWh × ${Math.round(effEFproj)} g/kWh (${basisAdj(state.efBasis)}) × ${lineloss.toFixed(2)} = ${fmtGHG(proj.ghg.electricity)}`;
+  if(proj.ghg.combustion>0) m5+=`\nbackup fuel: ${fmtGHG(proj.ghg.combustion)}${proj.ghg.upstream_methane>0?`\nupstream CH₄: ${fmtGHG(proj.ghg.upstream_methane)}`:''}`;
+  m5+=`\nrefrigerant: ${fmtGHG(proj.ghg.refrigerant)}  (leak + end-of-life, amortized)`;
+  const dirPhrase=cut>=0?'a cut of':'an increase of';
+  // Same near-zero-base guard as the verdict: a % change divides by ~0 and
+  // explodes when the incumbent grid is already carbon-free (e.g. QC baseboard).
+  const r5 = baseT<1
+    ? `Total with the heat pump → <b class="r">${fmtGHG(projT)} CO₂e/yr</b>. The grid here is essentially carbon-free, so this is almost all refrigerant — the switch trades near-zero carbon for a small refrigerant footprint. The real win is energy and cost, not carbon.`
+    : `Total with the heat pump → <b class="r">${fmtGHG(projT)} CO₂e/yr</b> — ${dirPhrase} <b>${fmtGHG(Math.abs(cut))}</b> versus today (${Math.abs(Math.round(cut/baseT*100))}%).`;
+  steps.push(calcStep(5,'Emissions with the heat pump',
+    `The pump's electricity is priced at the <b>${basisAdj(state.efBasis)}</b> grid intensity (${state.efBasis==='marginal'?'the gas plant that ramps up to serve new load':state.efBasis==='annual'?"the province's published annual-inventory average":'the fleet average'}), varied hour by hour and weighted to the cold hours when you actually heat. Refrigerant leakage is added as an annual amortized term.`,
+    m5,
+    r5));
+
+  // 6 — cost (filled asynchronously by renderCost)
+  steps.push(`<div class="calc-step"><div class="calc-num">6</div><div>`+
+    `<div class="calc-h">What it costs to run</div>`+
+    `<div id="calc-cost-body"><div class="calc-res">Loading current energy rates…</div></div>`+
+    `</div></div>`);
+
+  $('calc-steps').innerHTML=steps.join('');
+}
+function setCalcCost(html){const el=$('calc-cost-body');if(el)el.innerHTML=html;}
 
 function renderGhgBars(base,proj){
   const rows=[
@@ -2354,6 +2594,63 @@ function renderMonthGhgChart(base,proj){
   }});
 }
 
+// ---- Chart.js: annual energy & GHG binned by outdoor temperature ----
+// Every hour of the TMY year is dropped into the same 2 °C bins the grid-EF
+// surface uses (E.tempBinLeft); each bar is the SUM over that bin's hours, so
+// the charts show where the year's energy and emissions actually accumulate —
+// many mild hours can outweigh a few brutal ones.
+function binByTemp(res){
+  const temps=TMY[state.city], h=res.hourly, map=new Map();
+  for(let i=0;i<temps.length;i++){
+    if(h.load_kW[i]<=0)continue; // above balance point: nothing runs
+    const b=E.tempBinLeft(temps[i]);
+    let r=map.get(b);
+    if(!r){r={load:0,baseE:0,hpE:0,bkE:0,baseG:0,projG:0};map.set(b,r);}
+    r.load+=h.load_kW[i];
+    r.baseE+=h.base_energy_kWh[i]; r.hpE+=h.hp_elec_kWh[i]; r.bkE+=h.backup_energy_kWh[i];
+    r.baseG+=h.base_ghg_kg[i]; r.projG+=h.proj_ghg_kg[i];
+  }
+  const bins=[...map.keys()].sort((a,b)=>a-b);
+  return {bins,rows:bins.map(b=>map.get(b)),labels:bins.map(b=>`${fmtSigned(b)}…${fmtSigned(b+2)}°`)};
+}
+function renderTempEnergyChart(res){
+  destroy('tempEnergy');
+  const {rows,labels}=binByTemp(res);
+  const baseIsFuel=state.fuel!=='electric';
+  const bkIsFuel=state.backup==='gas'||state.backup==='oil';
+  const ds=[
+    {label:`Now — ${FUEL_LABEL[state.fuel]}${baseIsFuel?' fuel':''}`,data:rows.map(r=>r.baseE),backgroundColor:css(baseIsFuel?'--amber':'--purple'),stack:'now'},
+    {label:'HP electricity',data:rows.map(r=>r.hpE),backgroundColor:css('--blue'),stack:'hp'},
+  ];
+  if(state.backup!=='none')
+    ds.push({label:bkIsFuel?'Backup fuel':'Backup electricity',data:rows.map(r=>r.bkE),backgroundColor:css(bkIsFuel?'--amber':'--purple'),stack:'hp'});
+  charts.tempEnergy=new Chart($('tempEnergyChart'),{type:'bar',data:{labels,datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,
+    scales:{x:{stacked:true,ticks:{color:css('--light'),maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},title:{display:true,text:'Outdoor temperature (2 °C bins)',color:css('--muted'),font:{size:11}}},
+      y:{stacked:true,title:{display:true,text:'kWh / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtI(v)},grid:{color:css('--surface')}}},
+    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.y)+' kWh'}}}
+  }});
+  const scop=res.project.diagnostics.seasonal_cop;
+  $('temp-energy-note').innerHTML=`Side-by-side bars: purchased energy for the same heat, now vs with the heat pump, summed per temperature band. The heat pump's bars are shorter everywhere it runs — that gap is the COP (seasonal ${scop?fmt1(scop):'–'}). Where backup appears, the pump alone could not carry the band.`;
+}
+function renderTempGhgChart(res){
+  destroy('tempGhg');
+  const {rows,labels}=binByTemp(res);
+  const ds=[
+    {label:'Now',data:rows.map(r=>r.baseG),backgroundColor:css('--red')},
+    {label:'Heat pump',data:rows.map(r=>r.projG),backgroundColor:css('--green')},
+  ];
+  charts.tempGhg=new Chart($('tempGhgChart'),{type:'bar',data:{labels,datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,
+    scales:{x:{ticks:{color:css('--light'),maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},title:{display:true,text:'Outdoor temperature (2 °C bins)',color:css('--muted'),font:{size:11}}},
+      y:{title:{display:true,text:'kg CO₂e / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}}},
+    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.y)+' kg CO₂e'}}}
+  }});
+  $('temp-ghg-note').innerHTML=`Hour-by-hour heating emissions (combustion + grid electricity at the <b>${basisAdj(state.efBasis)}</b> intensity) summed per temperature band. Annual one-off terms (refrigerant, upstream fuel supply) are not in these bars — see the stacked totals above.`;
+}
+
 // ---- Chart.js: hourly (8760 h) grid EF / heat demand / heating GHG ----
 const DAY0_MONTH=[0,31,59,90,120,151,181,212,243,273,304,334]; // cum. days, non-leap, matches TMY
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2509,6 +2806,10 @@ function syncPlanSelector(elec){
   return planKey;
 }
 
+function setCostStat(val,sub,cls){
+  const card=$('stat-cost');if(!card)return;
+  card.innerHTML=`<div class="stat-label">${statLabelHTML('Operating cost',TIP.cost)}</div><div class="stat-value ${cls}">${val}</div><div class="stat-sub">${sub}</div>`;
+}
 function renderCost(res){
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],body=$('cost-body'),note=$('cost-note');
   $('cost-basis').textContent='current residential rates · pre-tax';
@@ -2516,6 +2817,9 @@ function renderCost(res){
     $('cost-plan-row').style.display='none';
     body.innerHTML='<div class="cost-hook"><div class="ch-title">Current rates unavailable</div><div class="ch-body">The energy-prices file for this province (<code>prices_json/'+prov+'.json</code>) could not be loaded, so this run compares energy and emissions only.</div></div>';
     note.style.display='none';
+    setCostStat('–','rates unavailable','');
+    setSummaryCost(null);
+    setCalcCost(`<div class="calc-res">Current energy rates for this province could not be loaded, so cost is not shown for this run.</div>`);
     return;
   }
   const ck=CITY_KEY[state.city];
@@ -2559,6 +2863,13 @@ function renderCost(res){
   const saves=delta>=0;
   const screening=[elec,state.fuel==='gas'||state.backup==='gas'?gas:null]
     .some(s=>s&&s.confidence==='low');
+  setCostStat((saves?'−':'+')+fmt$(Math.abs(delta)),`${fmt$(baseCost)} → ${fmt$(projCost)} per year${screening?' · screening estimate':''}`,saves?'green':'red');
+  setSummaryCost(delta);
+  // walkthrough step 6 — the two annual bills and their difference
+  setCalcCost(
+    `<div class="calc-p">Each scenario's yearly energy is priced at ${prov.toUpperCase()}'s current residential rates. The number to trust is the <b>difference</b> — charges identical in both (like the electricity service charge) cancel out.</div>`+
+    `<div class="calc-math">now (${FUEL_LABEL[state.fuel]}):  ${fmt$(baseCost)}/yr   — ${baseSub}\nheat pump:  ${fmt$(projCost)}/yr — ${projSub}</div>`+
+    `<div class="calc-res">The heat pump <b class="r">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr</b> to run${screening?' (screening estimate)':''}. This is running cost only — it excludes what the equipment and install cost to buy.</div>`);
   body.innerHTML=
     `<div class="cost-delta ${saves?'save':'more'}">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr${screening?' <span style="font-size:.55em;font-weight:600;vertical-align:middle;color:var(--muted)">(screening estimate)</span>':''}</div>`+
     `<div class="cost-delta-sub">the cost <b>difference</b> is the number to trust — absolute bills exclude charges that are identical in both scenarios</div>`+

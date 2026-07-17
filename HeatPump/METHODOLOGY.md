@@ -1832,3 +1832,126 @@ Calgary all-in flat 20.5¢/kWh = RRO 16.84 + wires 1.92 + transmission
 estimate 1.7 ✓; plan selector appears only for ON cities; costs update on
 city/fuel/plan changes; QC/AB sane. A missing prices file degrades to the
 old "energy and emissions only" message.
+
+## Per-temperature visuals & KPI row (2026-07-16)
+
+Aligns the page with the tool's original visual brief: KPIs covering
+**energy, GHG and $** in one row, and per-temperature views of energy use
+and emissions for both scenarios. No methodology change — purely new
+aggregations of quantities the engine already computed hour-by-hour.
+
+**Engine (additive only).** `simulate()` now also emits hourly
+**purchased-energy** series alongside the existing hourly GHG series:
+`hourly.base_energy_kWh` (the incumbent system's fuel-or-electricity input),
+`hourly.hp_elec_kWh`, and `hourly.backup_energy_kWh` (fuel or electricity,
+per the backup type). All 15 self-test vectors unchanged and passing.
+`app/engine.js` had drifted behind the engine inlined in `heatpump.html`
+(it lacked `elec_month_hour` and the hourly series); it is now a verbatim
+extract of the inlined copy, with a header note saying so — edit one,
+re-sync the other.
+
+**New charts — "by outdoor temperature" pair.** Every TMY hour with a
+positive heating load is dropped into the same **2 °C bins** the grid-EF
+surface uses (`tempBinLeft`, floor to a multiple of 2); each bar is the
+**sum over that bin's hours** — so the charts show where the year's energy
+and emissions actually accumulate (many mild hours can outweigh a few
+brutal ones, which the per-hour rate charts above them cannot show).
+
+- *Annual energy by outdoor temperature*: side-by-side stacks — base-case
+  input energy vs (HP electricity + backup input). Bars sum exactly to the
+  annual energy card's totals (verified: Ottawa gas base 24,985 kWh,
+  HP 9,401 + backup 277 kWh).
+- *Annual emissions by outdoor temperature*: base vs project, from the
+  hourly GHG series (combustion + grid electricity at the selected
+  average/marginal basis). **Not** in these bars, by construction of the
+  hourly series: refrigerant (annual amortized, not hourly) and upstream
+  methane/oil terms — the chart caption says so, and the stacked
+  annual-total bars remain the complete accounting. Verified: bins sum to
+  `ghg.combustion + ghg.electricity` exactly (4,522 kg, Ottawa gas base).
+
+**KPI row.** Added two cards: **Energy purchased** (base fuel+electricity →
+HP+backup input, % change) and **Operating cost** (the $ delta from the
+cost card, `now → after` amounts in the subtitle; shows "rates unavailable"
+if the province's prices file fails to load, and carries the same
+"(screening estimate)" flag as the cost card for low-confidence AB rates).
+
+**Stale text fixed.** The assumptions panel's "What this does not do" still
+said "No operating-cost/$ figures yet" from before the rates work; it now
+says operating cost is covered but **capital cost / payback is not**.
+
+**Verification (2026-07-16, browser at localhost):** engine self-test 15/15;
+zero console errors; bin sums cross-checked against annual totals (above);
+Montreal baseboard + no-backup case exercises the guards (near-zero-base
+verdict, refrigerant-only delta, backup series dropped, unmet-heat KPI);
+canvases confirmed painted via pixel sampling (this preview renderer
+doesn't pump rAF, so screenshots are not reliable here).
+
+## "Show the calculation" walkthrough (2026-07-16)
+
+Adds an inline, collapsible **step-by-step calculation** under the KPI row
+(`heatpump.html`, `renderWalkthrough()`), so the whole model can be
+explained to anyone by hand. It is a **presentation layer only** — no
+engine or methodology change; it re-states quantities the engine already
+computes, with the current inputs plugged in, and updates on every
+recompute. Collapsed by default (`<details>`), shown in both Simple and
+Advanced modes.
+
+Six steps, each with a plain-language sentence + the actual arithmetic:
+1. **Heat demand** — archetype (n audited homes, area, design load) →
+   `UA × (Tbalance − outdoor)` → annual heat over the heating hours.
+2. **Heat-pump efficiency** — tier + representative models → seasonal COP;
+   pump-vs-backup share of the year's heat.
+3. **Energy purchased** — base `heat ÷ efficiency` (fuel, incl. m³ for gas)
+   vs HP electricity + backup; the % change.
+4. **Emissions today** — combustion `fuel × EF` (+ upstream methane/oil),
+   or grid electricity for a baseboard base.
+5. **Emissions with the heat pump** — `elec × grid-EF × line-loss` +
+   refrigerant (+ backup combustion where applicable); the change.
+6. **Operating cost** — the two annual bills and their difference
+   (filled by `renderCost`; degrades to a plain "rates unavailable" note).
+
+**Exact reconciliation.** Steps 4–5 display the *effective* grid intensity
+actually applied — `ghg.electricity / (elec_kWh × line_loss)`, the
+season-weighted average over the hourly EF surface — rather than the flat
+reference level, so the shown arithmetic ties out to the headline totals to
+the rounding shown (verified live: Ottawa gas→Tier-1 traces 22,986 kWh heat
+→ 24,985 kWh gas → 5.0 t now vs 5.3 t / +7% / −61% energy / $822 per year,
+matching the KPIs exactly).
+
+**Guards reused.** Step 5 carries the same **near-zero-base** guard as the
+verdict banner: when the incumbent grid is essentially carbon-free (QC
+baseboard), it drops the exploding percentage and states the refrigerant-vs-
+zero-carbon trade in words instead (confirmed no `\d{4,}%` renders in that
+case). Line-loss shown to 2 dp so a 5 % loss reads `1.05`, not a rounded
+`1.1`.
+
+## One-line summary + KPI tooltips (2026-07-16)
+
+Two small readability additions on top of the walkthrough, both presentation
+only.
+
+**"The short version" lede.** A single synthesis sentence at the very top of
+the results (above the carbon verdict banner), combining all three headline
+dimensions — energy, carbon, cost — in plain language, e.g. *"A premium heat
+pump in a pre-1980 detached home in Ottawa uses 61% less energy but raises
+carbon 7% on the marginal grid, and costs $822/yr more to run."* Built in
+`render()`; the cost clause is patched in by `renderCost()` (async prices),
+mirroring the cost-KPI pattern. The energy/carbon conjunction is "but" when
+the two stories diverge (energy improves, carbon doesn't — including the
+near-zero-grid case) and "and" otherwise. It reuses the same near-zero-base
+guard (no exploding percentage; "barely changes carbon (grid already
+near-zero)"). Archetype rendered via a short `ARCH_PHRASE` map ("pre-1980
+detached home", "townhouse") so it reads naturally mid-sentence, unlike the
+comma-form dropdown labels.
+
+**KPI info tooltips.** Each of the seven stat cards carries a small "i" glyph
+(`.stat-i`, native `title` + `aria-label`) with a one-line plain-English
+explanation of what the number means and how it's derived (`TIP` map). The
+Operating-cost card is rebuilt asynchronously by `setCostStat`, which now
+also emits the glyph, so the tooltip survives the price load.
+
+**Verification (2026-07-16, localhost):** self-test 15/15, zero console
+errors; summary checked across Ottawa gas/marginal (diverge → "but", costs
+more), Toronto townhouse gas (both improve → "and"), and Montreal baseboard
+(near-zero guard → "barely changes carbon", saves $1,459); all 7 glyphs
+render with tooltips.

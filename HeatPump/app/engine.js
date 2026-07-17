@@ -25,6 +25,14 @@
  *      the toggle selects both the level index and the shape-ratio field.
  *
  * All physical constants are documented inline and in METHODOLOGY.md.
+ *
+ * NOTE: this file is a verbatim extract of the engine inlined in
+ * heatpump.html (the shipping copy). If you change one, re-sync the other.
+ * Later additions beyond the original Phase 5 outputs, all additive:
+ *   - energy.elec_month_hour  (12x24 kWh matrix, for TOU pricing)
+ *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg}
+ *   - hourly.{base_energy_kWh, hp_elec_kWh, backup_energy_kWh}
+ *     (purchased-energy series, for the by-temperature charts)
  */
 
 (function (root, factory) {
@@ -289,6 +297,20 @@
     var m_hp_elec = zeros12(),
       m_bk_elec = zeros12(),
       m_bk_fuel = zeros12();
+    // month x hour-of-day electricity (kWh), so the cost layer can price
+    // time-of-use tariffs exactly. TMY has no weekday structure, so TOU
+    // weekday/weekend rules are weighted 5/7 : 2/7 downstream.
+    var mh24 = function () {
+      var a = [];
+      for (var m = 0; m < 12; m++) {
+        var row = [];
+        for (var h = 0; h < 24; h++) row.push(0);
+        a.push(row);
+      }
+      return a;
+    };
+    var mh_base_elec = mh24(),
+      mh_proj_elec = mh24();
     // ghg (kg CO2e) -- combustion / electricity, per case, per month
     var m_base_comb = zeros12(),
       m_base_elecghg = zeros12(),
@@ -307,6 +329,21 @@
       deratedHours = 0,
       heatingHours = 0;
 
+    // hourly series (length N), for the 8760-hour chart: grid intensity is
+    // captured for every hour (not just heating hours) so its own daily/
+    // seasonal shape is visible independent of when the home actually heats.
+    var h_ef = new Array(N).fill(0),
+      h_load = new Array(N).fill(0),
+      h_base_ghg = new Array(N).fill(0),
+      h_proj_ghg = new Array(N).fill(0);
+    // hourly PURCHASED energy (kWh input, not heat delivered): the base system's
+    // fuel-or-electricity draw, the heat pump's electricity, and the backup's
+    // fuel-or-electricity draw -- lets the UI aggregate energy by any key
+    // (temperature bins, etc.) without re-deriving the dispatch.
+    var h_base_in = new Array(N).fill(0),
+      h_hp_elec = new Array(N).fill(0),
+      h_bk_in = new Array(N).fill(0);
+
     var G2KG = 0.001; // grams -> kg
 
     for (var i = 0; i < N; i++) {
@@ -319,23 +356,32 @@
       var season = SEASON_BY_MONTH[month];
       var tbin = tempBinLeft(T);
 
+      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+      h_ef[i] = efThisHour;
+
       // ---- heating load this hour (kWh delivered) ----
       var load = UA_kW_per_K * Math.max(0, Tbal - T); // kW == kWh over 1 h
+      h_load[i] = load;
       if (load <= 0) continue; // above balance point: nothing runs
       heatingHours++;
       totalLoad += load;
-
-      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
 
       // ---- BASE case: same delivered heat from the incumbent system ----
       if (baseFuel === "electric") {
         var baseElec = load / baseEff; // ~= load
         m_base_elec[mi] += baseElec;
-        m_base_elecghg[mi] += efThisHour * baseElec * lineLoss * G2KG;
+        mh_base_elec[mi][hour - 1] += baseElec;
+        h_base_in[i] = baseElec;
+        var baseElecGhg = efThisHour * baseElec * lineLoss * G2KG;
+        m_base_elecghg[mi] += baseElecGhg;
+        h_base_ghg[i] += baseElecGhg;
       } else {
         var baseFuelIn = load / baseEff;
         m_base_fuel[mi] += baseFuelIn;
-        m_base_comb[mi] += baseCombEF * baseFuelIn * G2KG;
+        h_base_in[i] = baseFuelIn;
+        var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
+        m_base_comb[mi] += baseCombGhg;
+        h_base_ghg[i] += baseCombGhg;
         if (baseFuel === "oil") {
           m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
         } else if (baseFuel === "gas" || baseFuel === "propane") {
@@ -369,7 +415,11 @@
         hpHeat = Math.min(load, perf.capacity_kW);
         hpElec = hpHeat / perf.cop;
         m_hp_elec[mi] += hpElec;
-        m_proj_elecghg[mi] += efThisHour * hpElec * lineLoss * G2KG;
+        mh_proj_elec[mi][hour - 1] += hpElec;
+        h_hp_elec[i] = hpElec;
+        var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
+        m_proj_elecghg[mi] += hpGhg;
+        h_proj_ghg[i] += hpGhg;
         hpDelivered += hpHeat;
         hpRunHours++;
         if (perf.derated) deratedHours++;
@@ -385,11 +435,18 @@
         if (backup.type === "electric") {
           var bkElec = bkHeat / backup.efficiency;
           m_bk_elec[mi] += bkElec;
-          m_proj_elecghg[mi] += efThisHour * bkElec * lineLoss * G2KG;
+          mh_proj_elec[mi][hour - 1] += bkElec;
+          h_bk_in[i] = bkElec;
+          var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
+          m_proj_elecghg[mi] += bkGhg;
+          h_proj_ghg[i] += bkGhg;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
           m_bk_fuel[mi] += bkFuelIn;
-          m_proj_comb[mi] += backupCombEF * bkFuelIn * G2KG;
+          h_bk_in[i] = bkFuelIn;
+          var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
+          m_proj_comb[mi] += bkCombGhg;
+          h_proj_ghg[i] += bkCombGhg;
           if (backup.type === "gas" || backup.type === "propane") {
             var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
             var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
@@ -440,6 +497,7 @@
       energy: {
         fuel_kWh: sum(m_base_fuel),
         electricity_kWh: sum(m_base_elec),
+        elec_month_hour: mh_base_elec,
       },
       ghg: {
         combustion: base_comb,
@@ -466,6 +524,7 @@
         backup_electricity_kWh: sum(m_bk_elec),
         backup_fuel_kWh: sum(m_bk_fuel),
         electricity_kWh: proj_elec_total,
+        elec_month_hour: mh_proj_elec,
       },
       ghg: {
         combustion: proj_comb,
@@ -499,6 +558,15 @@
     return {
       base: base,
       project: project,
+      hourly: {
+        ef_g_per_kWh: h_ef,
+        load_kW: h_load,
+        base_ghg_kg: h_base_ghg,
+        proj_ghg_kg: h_proj_ghg,
+        base_energy_kWh: h_base_in,
+        hp_elec_kWh: h_hp_elec,
+        backup_energy_kWh: h_bk_in,
+      },
       meta: {
         hours: N,
         ef_mode: efMode,
@@ -523,3 +591,4 @@
     GAS_KG_PER_M3: GAS_KG_PER_M3,
   };
 });
+
