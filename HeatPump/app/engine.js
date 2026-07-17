@@ -112,6 +112,28 @@
     return y0 + t * (y1 - y0);
   }
 
+  // Cold edge of an ASHP curve: the two coldest grid points where BOTH capacity
+  // and COP are defined (curves store null below the model's lockout). Returns
+  // the coldest defined point (tEdge/capEdge/copFloor) and the slope of the
+  // coldest defined capacity segment. Used only by the optional
+  // "continue derated below the published minimum operating temperature" mode --
+  // capacity is extrapolated on capSlope, COP is held at copFloor. Behaviour
+  // below the published minimum is manufacturer-unspecified (see METHODOLOGY.md).
+  function coldEdge(curve) {
+    var T = curve.T_C,
+      cap = curve.cap_frac_of_rated47,
+      cop = curve.COP;
+    var i0 = -1;
+    for (var i = 0; i < T.length; i++) {
+      if (cap[i] != null && cop[i] != null) { i0 = i; break; }
+    }
+    if (i0 < 0) return null;
+    var i1 = i0 + 1;
+    while (i1 < T.length && (cap[i1] == null || cop[i1] == null)) i1++;
+    var slope = i1 < T.length ? (cap[i1] - cap[i0]) / (T[i1] - T[i0]) : 0;
+    return { tEdge: T[i0], capEdge: cap[i0], copFloor: cop[i0], capSlope: slope };
+  }
+
   // Grid-EF shape ratio with the surface's thin-bin fallback -- a direct port
   // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t -> global).
   // `field`: 0 = average-EF ratio, 1 = marginal-EF ratio.
@@ -160,6 +182,25 @@
     }
     // Air-source.
     if (tempC < hp.minOpTemp_C) {
+      // Default (`belowLockout` unset or 'hard'): hard stop at the published
+      // minimum operating temperature -- the current, validated behaviour.
+      // Optional 'derate': keep running below it, extrapolating capacity on the
+      // coldest defined segment's slope and holding COP at the floor. Clearly
+      // manufacturer-unspecified (see METHODOLOGY.md).
+      if (hp.belowLockout === "derate") {
+        var e = coldEdge(curve);
+        if (e) {
+          var capf = e.capEdge + e.capSlope * (tempC - e.tEdge);
+          if (capf > 0) {
+            return {
+              capacity_kW: hp.nominalCap_kW * capf,
+              cop: e.copFloor,
+              locked: false,
+              derated: true,
+            };
+          }
+        }
+      }
       return { capacity_kW: 0, cop: null, locked: true };
     }
     var cop = interp(curve.T_C, curve.COP, tempC);
@@ -184,6 +225,10 @@
   //     nominalCap_kW,           // user-selected rated capacity @47F (ASHP) or @0C (GSHP)
   //     minOpTemp_C,             // lockout temperature (ASHP)
   //     kind: 'ashp' | 'gshp',   // default 'ashp'
+  //     belowLockout?: 'hard' | 'derate', // ASHP behaviour below minOpTemp_C:
+  //         'hard' (default) = hard stop; 'derate' = keep running, capacity
+  //         extrapolated on the coldest segment slope, COP held at the floor
+  //         (manufacturer-unspecified below the published minimum)
   //     ewtSeries?, ewt?,        // GSHP entering-water temp (series or constant C)
   //     antifreezeFactor?        // GSHP COP derate for glycol (~0.91), default 1.0
   //   }
@@ -259,6 +304,7 @@
     var hpRunHours = 0,
       backupHours = 0,
       lockoutHours = 0,
+      deratedHours = 0,
       heatingHours = 0;
 
     var G2KG = 0.001; // grams -> kg
@@ -326,6 +372,7 @@
         m_proj_elecghg[mi] += efThisHour * hpElec * lineLoss * G2KG;
         hpDelivered += hpHeat;
         hpRunHours++;
+        if (perf.derated) deratedHours++;
       } else if (perf.locked || (control.strategy === "lockout" && T < control.lockoutTemp_C)) {
         lockoutHours++;
       }
@@ -445,6 +492,7 @@
         hp_run_hours: hpRunHours,
         backup_hours: backupHours,
         lockout_hours: lockoutHours,
+        derated_hours: deratedHours,
       },
     };
 

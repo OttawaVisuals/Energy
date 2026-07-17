@@ -34,6 +34,14 @@ note in `heatpump.html`'s assumptions panel.
 > `tmy_temps.json` are currently untracked; they (and `heatpump.html`) must be committed and pushed
 > for the GitHub Pages copy to load (localhost reads them directly).
 
+> **V2 (2026-07-17):** ROADMAP.md item 9. **Done:** third EF basis (ECCC/NIR annual averages via
+> `grid_ef_annual.json`, 3-way toggle); **14 cities** (added Vancouver/Winnipeg/Quebec City/Halifax/
+> Saskatoon/Regina/Hamilton/London/Windsor — BC/MB/SK/NS use ECCC-annual + flat marginal); **weather
+> lens** (CWEEDS 2020 + Datamart, 24 yrs/city `weather_<city>.json`, year selector + weather-file SVG
+> + NBC design temps + cross-year emissions band). **Remaining:** under/oversizing sweep, sourced
+> methane/GWP20 + line-loss options + derated-below-lock-out toggle, chart re-organization. See
+> ROADMAP.md item 9 (prompts 4–5).
+
 ---
 
 ## Feasibility verdict
