@@ -39,13 +39,27 @@ START_YEAR = 2019  # covers the earliest grid data (QC) onward
 # flag it instead of interpolating silently
 MISSING_THRESHOLD = 0.10
 
-# city -> (ECCC province code for the Datamart URL, 7-digit climate ID)
+# city -> (ECCC province code for the Datamart URL, 7-digit climate ID).
+# Climate IDs match the CWEC2020 TMY stations in fetch_tmy.py (same primary
+# airport per city), so TMY and historical series describe the same site.
 STATIONS = {
-    "Ottawa":   ("ON", "6106001"),
-    "Toronto":  ("ON", "6158731"),
-    "Montreal": ("QC", "7025251"),
-    "Calgary":  ("AB", "3031092"),
-    "Edmonton": ("AB", "3012216"),
+    "Ottawa":       ("ON", "6106001"),
+    "Toronto":      ("ON", "6158731"),
+    "Montreal":     ("QC", "7025251"),
+    "Calgary":      ("AB", "3031092"),
+    "Edmonton":     ("AB", "3012216"),
+    # v2 additions (ROADMAP item 9 workstream A)
+    "Vancouver":    ("BC", "1108395"),
+    "Winnipeg":     ("MB", "5023227"),
+    "Quebec City":  ("QC", "7016293"),
+    "Halifax":      ("NS", "8202251"),
+    "Saskatoon":    ("SK", "4057152"),
+    "Regina":       ("SK", "4016566"),
+    "Hamilton":     ("ON", "6153193"),
+    "London":       ("ON", "6144473"),
+    # Windsor: the live Datamart station is 6139530 (WINDSOR A, current auto);
+    # CWEC's TMY uses the older ID 6139527 for the same airport site.
+    "Windsor":      ("ON", "6139530"),
 }
 
 DATAMART_BASE = "https://dd.weather.gc.ca/today/climate/observations/hourly/csv"

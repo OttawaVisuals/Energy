@@ -425,6 +425,105 @@ Temperature_C, WindSpeed_kmh, Humidity_pct).
 - Building actual archetype load profiles against this weather data
   (Phase 4).
 
+### v2 city additions (2026-07-17, ROADMAP item 9 workstream A)
+
+Extended the tool from 5 to **14 cities**, adding 9 (Vancouver, Winnipeg,
+Quebec City, Halifax, Saskatoon, Regina, Hamilton, London, Windsor). All 9 have
+a provincial ERS parquet (`C:\ERS\web\ers_web_<PROV>.parquet`) — none were
+dropped. Cities in BC/MB/SK/NS have **no hourly grid pipeline**: they use the
+ECCC yearly-average basis + a flat marginal estimate from `grid_ef_annual.json`
+(see "Third EF basis"); the UI disables the *Hourly average* option for them.
+ON cities (Hamilton/London/Windsor) reuse the existing ON EF surface; Quebec
+City reuses the QC surface.
+
+**CWEC2020 distribution change:** the old per-province TMY URLs
+(`CWEC-FMCCE_by-par_prov.CSV/CWEC_2020_<prov>.zip`) now 404. `fetch_tmy.py` was
+rewritten to download the single combined by-province CSV archive (discovered
+from the version directory listing, since its filename carries an export
+timestamp) and extract each station's inner province zip from it.
+
+TMY station (CWEC), historical-weather station (MSC Datamart), FSA prefixes,
+and computed design temperature per new city:
+
+| City | CWEC / weather climate ID | FSA prefixes | Design temp (2.5%-ile Jan, computed) | TMY mean / min °C |
+|---|---|---|---|---|
+| Vancouver | 1108395 | V5/V6/V7 | −4.7 | 10.6 / −5.8 |
+| Winnipeg | 5023227 | R2/R3 | −31.1 | 3.9 / −35.2 |
+| Quebec City | 7016293 | G1/G2 | −24.1 | 5.4 / −25.5 |
+| Halifax | 8202251 | B3 | −15.1 | 7.4 / −20.5 |
+| Saskatoon | 4057152 | S7 | −34.2 | 3.0 / −36.3 |
+| Regina | 4016566 | S4 | −32.6 | 3.6 / −37.0 |
+| Hamilton | 6153193 | L8/L9 | −17.4 | 8.2 / −22.9 |
+| London | 6144473 | N5/N6 | −17.9 | 8.8 / −24.6 |
+| Windsor | 6139527 (TMY) / 6139530 (weather) | N8/N9 | −16.2 | 10.8 / −18.8 |
+
+**Windsor climate-ID note:** CWEC's TMY station is 6139527 (WINDSOR A, older
+ID); the live MSC Datamart station for the same airport is 6139530 (WINDSOR A,
+current auto) — 6139527 has no `today`-endpoint hourly file. Same site,
+different climate-ID vintages.
+
+All 56 archetypes (14 cities × 4) calibrated within ±10% (see
+`archetype_validation.csv`). Two low-`n` cells flagged (Regina townhouse_row
+n=17, Saskatoon townhouse_row n=43 near the 30-home threshold); two minor
+Windsor weather gaps (Aug 2023, Feb 2024) flagged not imputed, both irrelevant
+to the January design-temp percentile. `build_tmy_temps.py` (new) regenerates
+the browser-facing `tmy_temps.json` for all 14 cities from `tmy_hourly.csv`.
+
+**In-browser sanity gates (verified 2026-07-17):** Vancouver seasonal COP 3.5 >
+Ottawa 2.4 (milder climate) ✓; prairie design temps (Winnipeg −31, Saskatoon
+−34, Regina −33) in Edmonton's −32 ballpark ✓; BC/MB/SK/NS correctly show the
+*Hourly average* basis disabled with BC 26.5 / MB 2.3 / SK 750 / NS 800 g/kWh;
+no console errors across all 14 cities.
+
+**Cost note:** BC/MB/SK/NS have no `prices_json/` file → cost card degrades to
+"energy and emissions only". New ON cities reuse Toronto's rate entry and
+Quebec City reuses Montreal's, valid for the cost *delta* because the volumetric
+rates that drive it are province-uniform (OEB RPP TOU energy prices province-
+wide; Union-South gas zone for SW Ontario; Hydro-Québec Rate D uniform).
+
+### v2 weather lens: multi-decade record + design temps (2026-07-17, workstream C)
+
+Adds a **"weather year" lens** so a user can drive the simulation with the TMY
+*or* any real historical year, see the coldest/mildest extremes, and read the
+weather-sensitivity of the result. Built by `pipeline/build_weather_years.py` →
+one lazy-loaded `data/processed/weather_<city>.json` per city (727–811 KB each,
+under the ~1 MB target).
+
+**Sources.** The multi-decade base is **CWEEDS 2020** (Canadian Weather Energy
+and Engineering Data Sets), the hourly record per station, **1998–2017** (some
+stations 2000/2003 on), same CMC tree as the CWEC TMY — dry-bulb temperature is
+column 30 (0.1 °C) and station files match the CWEC climate IDs exactly. Recent
+complete years (**2019–2025**) come from the MSC Datamart record already fetched
+(`weather_hourly.csv`). **2018** falls between the two sources and is left as a
+gap (`years_missing`), not imputed. Kept to the newest 24 years per city to bound
+file size; temperatures quantized to integer tenths of a degree.
+
+**Year tagging.** Each complete year (≥ 8000 h) carries its HDD18, min and mean.
+The record is tagged **typical-like** (HDD18 closest to the TMY's), **coldest**
+(max HDD18) and **mildest** (min HDD18) for the selector.
+
+**Design temperatures.** The 2.5%-ile January temperature is now computed over
+the **full ~24-year record** (vs the old 8-year weather file used for the
+archetype UA back-out) — which sharply improved the match to **NBC 2020
+Appendix C, Table C-2**: Ottawa −24.0 (NBC −24), Toronto −18.0 (−18), Montreal
+−22.8 (−23), Winnipeg −31.2 (−31), Quebec City −25.4 (−25), Windsor −15.2 (−16);
+Calgary −27.1 vs NBC −30 is the one notable gap (chinook-variable). Each
+`weather_<city>.json` meta carries both the computed value and the published NBC
+2020 2.5%/1% figures (commonly-published Table C-2 values, cited as such). The
+**archetype UA calibration still uses the original per-city design temp**; the
+NBC/multi-decade values are shown in the UI as reference overlays, not fed back
+into UA (left for a future pass to avoid re-touching the validated archetypes).
+
+**UI.** A "weather year" dropdown (Typical (TMY) / each year, tagged); a
+weather-file card whose SVG shows the **min–max monthly-mean band across all
+years**, the selected series, and dashed design-temperature markers; and a
+**cross-year emissions band** — `simulate()` is re-run for every year (memoized
+on the inputs) and the min–max GHG-change is reported (e.g. Ottawa marginal
+basis +1 % to +15 %; Vancouver −90 % to −92 %; Halifax +46 % to +57 % on its
+800 g/kWh coal marginal — colder years worse, as expected). Verified in-browser
+across ON/BC/NS cities; all 15 engine self-test vectors still pass; no console
+errors.
+
 ---
 
 ## Grid EF surface: temperature × hour × season (Phase 2)
@@ -569,6 +668,106 @@ All pass the ±10 % tolerance. Notes:
   whenever gas > 0), so its ratio is ~1 almost everywhere in ON/AB and the
   surface's hour/season structure lives almost entirely in the average-EF
   channel.
+
+---
+
+## Third EF basis: ECCC/NIR published annual averages (v2, 2026-07-17)
+
+Adds a **third grid-EF option** to the tool (ROADMAP item 9 workstream B),
+alongside the hourly *average* and *marginal* surfaces: **"ECCC yearly"** — a
+single flat published annual-average grid intensity per province. Built by
+`pipeline/build_grid_ef_annual.py` → `data/processed/grid_ef_annual.json`.
+
+It serves two purposes:
+
+1. It is the **only** grid EF available for provinces with no hourly pipeline
+   (BC/MB/SK/NS/NB/NL/PE) — everything the tool needs to add cities outside
+   ON/QC/AB (ROADMAP item 9 workstream A).
+2. For ON/QC/AB it is an **official-inventory-average** alternative whose
+   difference from the tool's own hourly-surface average is itself informative
+   (the surface is calibrated to the latest complete year and attributes all
+   ON emissions to gas; the inventory average is a different, published scope).
+
+### Source and formula
+
+Both inputs are pulled machine-readably from the **StatCan Web Data Service**
+full-table CSV endpoint (`canada.ca` and `open.canada.ca`'s CKAN API are both
+WAF-blocked to `curl`/WebFetch in this environment — "Request Rejected"; StatCan
+WDS is not, and returns clean zips):
+
+- **GHG numerator** — StatCan **38-10-0097** *Physical flow account for GHG
+  emissions*, sector *Electric power generation, transmission and distribution
+  [BS22110]* (this is ECCC National Inventory Report data carried in StatCan's
+  environmental-economic accounts), kt CO₂e, by province, 2009–2023.
+- **Generation denominator** — StatCan **25-10-0015** *Electric power
+  generation, monthly generation by type*, class *Electricity producers,
+  electric utilities*, *Total all types*, summed to annual, by province, MWh.
+
+```
+intensity_g_per_kWh = kt_CO2e × 1e6 / utility_generation_MWh
+```
+
+**Why the utility-only denominator (not total generation):** the numerator
+(BS22110) is the *utility industry's* emissions. Large industrial
+cogeneration — e.g. Alberta oil-sands self-generation — is booked under its
+host industry (oil & gas), **not** BS22110. Dividing utility-industry emissions
+by *total* generation (which includes that industrial self-gen) deflates the
+intensity — Alberta came out at 323 g/kWh (2022) that way. Restricting the
+denominator to **utility** generation keeps numerator and denominator on the
+same scope and makes the **national** result validate almost exactly against
+ECCC's published headline.
+
+### Validation and documented deviations
+
+| Geography | Year | Computed | Published anchor | Δ | Note |
+|---|---|---|---|---|---|
+| Canada | 2022 | 101.3 | 100 (ECCC headline) | +1 % | near-exact — the scope check |
+| Ontario | 2022 | 48.0 | 51 (TAF AEF) | −6 % | see below |
+| Ontario | 2023 | 56.4 | 67 (TAF AEF) | −16 % | see below |
+| Alberta | 2019 | 566 | 630 (Alberta.ca Fig 7) | −10 % | see below |
+| Alberta | 2022 | 408 | 510 (Alberta.ca Fig 7) | −20 % | see below |
+
+The national number lands on ECCC's published headline (101 vs 100), confirming
+the scope is right. The provincial deviations are **documented scope
+differences, not errors** (and the whole point of offering this as a *distinct*
+basis from the hourly surface):
+
+- **Ontario ~10–20 % below TAF's Annual AEF.** TAF attributes *all* grid
+  emissions to gas and uses a year-specific NIR gas intensity; this basis uses
+  the inventory's *actual electric-utility emissions* over utility generation.
+  Both are defensible; they are different constructions.
+- **Alberta ~20 % below Alberta.ca Figure 7.** Alberta's published grid
+  intensity allocates industrial-cogeneration emissions to electricity; BS22110
+  does not. Flagged, not "fixed" — a user who wants the cogen-inclusive number
+  should read it off Alberta's figure, which the tool cites.
+
+### Marginal estimates for annual-only provinces
+
+Provinces without an hourly surface get a **single flat marginal estimate**
+(g/kWh) with a per-province rationale, used when the user picks the *marginal*
+basis for them (`MARGINAL_ESTIMATES` in the script):
+
+| Province | Marginal | Rationale |
+|---|---|---|
+| SK | 750 | coal/gas fleet frequently marginal for new winter load |
+| NS | 800 | coal/petcoke-heavy; thermal on the margin |
+| NB | 550 | gas/oil thermal meets incremental winter load |
+| BC, MB, NL, PE | = annual avg | hydro-dominant: domestic margin is flexible hydro (near-zero); winter **import** margin is higher but contested/unmodeled — set equal to the average with this caveat, matching the QC treatment in the hourly pipeline |
+
+These are **screening estimates**, labelled as such in the UI. ON/QC/AB are not
+in this table — they carry a real hourly marginal channel.
+
+### Engine / UI wiring
+
+The engine is unchanged. The "ECCC yearly" and annual-only-province paths feed
+`simulate()` a **degenerate flat "surface"** (`flatSurface()` in
+`heatpump.html`): `global = [1, 1]` so `lookupShape` falls straight through to
+the global cell (ratio 1), and `reference_level_g_per_kWh = [level, level]` —
+so `gridEF` returns the flat published level every hour. The EF-basis control is
+now three-way (*Marginal / Hourly average / ECCC yearly*); for provinces without
+an hourly surface the *Hourly average* button is disabled with an explanatory
+hint, and the basis auto-falls-back to *ECCC yearly*. Re-run:
+`python build_grid_ef_annual.py` (`--force` to re-download).
 
 ---
 
@@ -1213,6 +1412,24 @@ Above the balance point nothing runs (load 0). Otherwise:
   backup_eff` (or backup fuel for a gas/oil backup). HP + backup electricity are
   grossed up by **line losses** and costed at the hourly grid EF.
 
+**Below the published minimum operating temperature** (`hp.belowLockout`, v2,
+workstream E). Orthogonal to the control strategy, this governs what the ASHP
+does at outdoor temperatures below the curve's `min_op_temp_C`:
+
+- `hard` (default, and the pre-v2 behaviour): the compressor **stops** — zero
+  capacity, load falls to backup/unmet. This is the manufacturers' *published*
+  minimum (e.g. Mitsubishi H2i's guaranteed-operation floor, −25 °C for Tier 1),
+  which is a warranty/ratings boundary, **not** a hard physical stop.
+- `derate`: the pump **keeps running** below the published minimum. Capacity is
+  extrapolated on the slope of the coldest *defined* curve segment
+  (`coldEdge()` finds the two coldest grid points where both capacity and COP are
+  non-null) and **COP is held flat at the floor** (the coldest defined COP). If
+  the linear capacity extrapolation reaches zero it reverts to a hard stop.
+  Real below-LCT behaviour is **manufacturer-unspecified** — no datasheet
+  publishes it — so this mode is clearly labelled as an assumption in the UI and
+  its hours are counted separately (`diagnostics.derated_hours`). It never fires
+  in default mode, so all pre-v2 results are unchanged.
+
 Cycling below minimum capacity (PLAN.md §3) is **not** separately modelled — only
 the max-compressor curve exists (Phase 3b), so a modulating inverter is costed at
 its max-speed COP. Real part-load COP is usually *higher*, so this is
@@ -1236,9 +1453,13 @@ Lifecycle terms are user sliders (PLAN.md §6), not baked in:
 - **Refrigerant** (annual, amortized, PROJECT only):
   `charge_kg × (leakRate_frac + eolLossFrac/lifetimeYears) × GWP`.
 - **Upstream methane**: `methaneLeakPct%` of gas throughput (mass, via
-  10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP` (default 28, AR5 100-yr).
+  10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. In v2 the leak slider
+  spans **0–5 %** (was 0–3 %) with labelled presets and `methaneGWP` is a
+  **toggle**: 28 (AR5 100-yr, default) or 82.5 (AR6 fossil-methane 20-yr). Sources
+  and the full-chain arithmetic are in **§Lifecycle sourcing** below.
 - **Upstream oil**: optional adder `oilUpstreamFrac` × oil combustion.
-- **Line losses**: default 5 % on delivered electricity.
+- **Line losses**: default 5 % on delivered electricity (sourced in
+  **§Lifecycle sourcing**).
 
 Calendar (for season/hour-of-day, which key the EF surface) is derived from the
 hour index assuming the series starts Jan 1 (matching TMY); an 8784-length
@@ -1248,7 +1469,7 @@ convention.
 ### Validation
 
 `app/engine.test.js` (Node) and `pipeline/validate_engine.py` (a faithful Python
-port) run the **same five hand-computed cases** and assert **identical results to
+port) run the **same six hand-computed cases** and assert **identical results to
 4 decimals** — both pinned to one shared set of EXPECTED constants:
 
 1. **−10 °C, load > capacity, electric backup** — load 7.0 kWh, HP delivers 5.0,
@@ -1260,6 +1481,16 @@ port) run the **same five hand-computed cases** and assert **identical results t
    7.0 kWh to backup, HP run-hours 0, lockout-hours 1.
 4. **Refrigerant** — 3 kg, 5 %/yr + 80 % EOL/15 yr, GWP 2256 → 699.36 kg/yr.
 5. **Upstream methane** — 100 kWh gas, 2 % leak, GWP 28 → 3.609479 kg/yr.
+6. **Below-lock-out derate mode** (v2) — synthetic curve `T_C [−10, 0, 15]`,
+   `cap_frac [0.5, 0.7, 1.0]`, `COP [2.0, 3.0, 4.0]`, published minimum −10 °C,
+   hour at −20 °C (10 °C below it). Coldest capacity segment slope
+   `(0.7−0.5)/(0−(−10)) = 0.02 /°C`, COP floor 2.0. Derated capacity
+   `0.5 + 0.02·(−20−(−10)) = 0.3` → `10 kW × 0.3 = 3.0 kW`; HP delivers 3.0 kWh,
+   HP electricity `3.0/2.0 = 1.5 kWh`; `lockout_hours 0, derated_hours 1`. A
+   guard vector confirms the **default `hard` mode on the same curve/hour locks
+   out** (HP delivers 0). These are the **two new derated vectors** added in v2;
+   the browser self-test (`heatpump.html`) reproduces all 15 vectors including
+   these two.
 
 `validate_engine.py` also runs `node app/engine.test.js` when Node is present;
 in the build environment here Node was unavailable, so the JavaScript engine was
@@ -1293,6 +1524,141 @@ backup:
   series/constant; borefield dynamics are out of scope (screening only).
 - No unmet-load penalty beyond counting hours when `backup: none` can't cover the
   gap.
+- The optional below-lock-out **derate** mode (workstream E) extrapolates
+  capacity and holds COP at the floor — genuinely manufacturer-unspecified
+  territory. It is off by default and clearly labelled where it is on.
+- The **sizing sweep** (workstream D) re-runs the year across 40–160 % of design
+  heat loss but has **no short-cycling model**, so the oversizing penalty is
+  understated (see §Sizing sensitivity).
+
+---
+
+## Sizing sensitivity (v2, ROADMAP item 9 workstream D)
+
+`heatpump.html` runs `simulate()` **25 times per input change** — the nominal
+capacity swept from **40 % to 160 % of the archetype's design heat loss in 5 %
+steps** (the design load is the `100 %` anchor) — and charts, versus size:
+**seasonal COP, backup share, hours needing backup / unmet, annual GHG, and
+annual operating cost**. A vertical marker shows the current slider position and
+a green dot the best (lowest, or highest for COP) point across the sweep. Each
+sweep point clones the live `buildOpts()` and overrides only `nominalCap_kW`
+(and `charge_kg`, which scales with nominal for the refrigerant term), so the
+sweep uses exactly the same weather, grid basis, control strategy and lifecycle
+settings as the headline run. The operating-cost curve reuses the operating-cost
+card's own pricing (`projectCostOf()`), and is hidden for cities without a rates
+file.
+
+**Documented limitation — oversizing looks free here and is not.** The engine
+models only the **max-compressor** curve (Phase 3b); it has **no cycling / part-load
+model**. An oversized inverter in a mild hour would in reality short-cycle and run
+at a degraded part-load COP, but the sweep costs every hour at the steady
+max-speed COP. So on the chart, sizing up past the design load has almost no
+penalty (a hair more refrigerant charge), whereas in a real home it wastes money
+and wears the compressor. **Undersizing** (left of the marker) *is* modelled
+correctly: the capacity shortfall on cold hours is pushed onto the backup (or
+left unmet with `backup: none`), which the curves capture. The card states this
+caveat inline.
+
+---
+
+## Lifecycle sourcing — methane, GWP20, line losses (v2, ROADMAP item 9 workstream E)
+
+The lifecycle sliders were always adjustable defaults; v2 sources their ranges
+from the primary literature and widens two of them. Nothing here is baked into a
+headline — the defaults (1 % methane leak, GWP 28, 5 % line loss) are unchanged;
+v2 adds the **GWP-horizon toggle**, widens the **methane leak slider to 0–5 %**
+with labelled presets, and documents the line-loss figure.
+
+### Methane global-warming potential — the 100-yr / 20-yr toggle
+
+Methane is a short-lived but potent greenhouse gas, so its CO₂-equivalent
+depends strongly on the time horizon chosen:
+
+- **100-yr, GWP 28** (default). IPCC **AR5** (2013), WG1 Ch. 8, Table 8.7 —
+  CH₄ GWP-100 = 28 without climate–carbon feedbacks (34 with). This is the
+  inventory-standard horizon and the engine's original `CH4_GWP_DEFAULT`.
+- **20-yr, GWP 82.5.** IPCC **AR6** (2021), WG1 Ch. 7, Table 7.15 — **fossil**
+  methane GWP-20 = 82.5 (GWP-100 = 29.8). We use the *fossil* value because
+  pipeline gas is fossil-origin (its oxidation adds new CO₂ to the active
+  carbon cycle). The 20-yr horizon weights methane's near-term warming ≈ 3× the
+  100-yr value and is the honest lens for a decision about *near-term* climate
+  forcing. (Note the small edition mix: 28 is the AR5 100-yr figure the tool has
+  always used; 82.5 is the AR6 fossil 20-yr figure. AR5's own 20-yr value is 84 /
+  86 fossil — within rounding of 82.5, so the toggle's story is unaffected.)
+
+### How much methane actually leaks — three evidence tiers
+
+The leak slider's presets bracket the real uncertainty in the *full-chain*
+(well-to-meter, plus post-meter) leakage rate:
+
+1. **NIR-implied (~1 %)** — Canada's **National Inventory Report** (ECCC)
+   accounts upstream oil-and-gas fugitive + vented methane; the production-
+   normalized rate implied for the gas supplied to buildings is on the order of
+   ~1 %. This is the bottom-up, inventory figure.
+2. **Measurement-adjusted (~1.5× → ~1.5 %)** — top-down **atmospheric
+   measurement** studies consistently find inventories *understate* oil-and-gas
+   methane. Alvarez et al. (2018, *Science*) put the US supply chain at **2.3 %**,
+   ≈ 1.6× the EPA GHGI; "Closing the methane gap" (Nature Communications, 2021)
+   and a Canadian oil-and-gas value-chain synthesis (Environ. Sci. Technol. /
+   PMC, 2024) put Canada at **~1.5–2.0× its NIR**. Applying ~1.5× to the
+   NIR-implied ~1 % gives the ~1.5 % preset.
+3. **High / full-chain (~3 %)** — adds the **post-meter** (behind-the-meter,
+   inside-the-building) leakage the upstream inventory misses. A 2026 Canadian
+   study of natural-gas end use in residential, commercial and institutional
+   buildings (Environ. Res.: Infrastructure & Sustainability / IOPscience;
+   chamber measurements of 49 appliances, mean 913 mg/hr per appliance, 98 % of
+   it from associated piping rather than the appliances) found post-meter
+   emission factors **2.0–2.5× the NIR end-use factor**. Stacking upstream
+   measurement-adjusted (~1.5–2 %) and a post-meter contribution reaches a
+   full-chain figure around **~3 %**.
+
+### The ×1.9 arithmetic (3 % full-chain leak at GWP-20)
+
+Reproducing the user's remembered "×1.9 report" claim from the tool's own
+constants. Natural gas combustion is **181 g CO₂e/kWh** (HHV). One kWh of gas
+(HHV) is `1 / 10.55 = 0.094787 m³`; at 0.68 kg/m³ (≈ 100 % CH₄ for the leak) that
+is **0.064455 kg** of gas per kWh delivered to the meter. A **3 %** full-chain
+leak is `0.03 × 0.064455 = 0.0019337 kg CH₄` per kWh; at **GWP-20 = 82.5**:
+
+```
+0.0019337 kg CH₄ × 82.5  = 0.15953 kg CO₂e  = 159.5 g CO₂e per kWh gas
+combustion + upstream    = 181 + 159.5      = 340.5 g CO₂e per kWh gas
+ratio to combustion only = 340.5 / 181      = 1.88  ≈ ×1.9
+```
+
+So a **3 % full-chain leak priced at the 20-yr GWP nearly doubles the effective
+carbon intensity of gas heating** — the ×1.9 figure. For contrast: the same 3 %
+at GWP-100 (28) is ×1.30, and the tool's *default* (1 % at GWP 28) is ×1.10.
+The slider + toggle let a user reproduce any of these; only the combustion
+term (181) is fixed.
+
+### Grid line losses — 5 % default, and why not Portfolio Manager's 2.05
+
+The line-loss slider (default **5 %**) grosses up delivered electricity to
+generated electricity, because the grid EF is expressed per **kWh generated**.
+
+- **World Bank / IEA** electricity transmission-and-distribution losses for
+  Canada (indicator `EG.ELC.LOSS.ZS`) run **~5.1 % (2019), ~5.0 % (2020)**,
+  easing to **~4.0 % (2021–2024)** on the current IEA-sourced series. Our 5 %
+  default sits at the recent high end — mildly conservative.
+- **Utility figures** vary by system: transmission-only losses (e.g. AESO's
+  Alberta transmission grid) are ~4 % while a full transmission+distribution
+  path to a home (e.g. BC Hydro) can reach ~10 %. 5 % is a reasonable
+  province-agnostic midpoint for a residential connection.
+
+**Why ENERGY STAR Portfolio Manager's source–site ratio (2.05 for Canadian grid
+electricity) is *not* used here.** Portfolio Manager's 2.05 (Portfolio Manager
+Technical Reference, *Source Energy*, Aug 2023; NRCan's site-vs-source page)
+converts **site** electricity to **primary source energy** — it bundles the
+**thermal-generation conversion losses at the power plant** (the ~2× penalty of
+burning fuel to make electricity) *together with* the few-percent T&D losses.
+Our grid emission factor is already **grams CO₂e per kWh *generated*** — it has
+the generation mix and its conversion losses fully baked in. Multiplying
+delivered kWh by 2.05 would **double-count** the generation-side losses (once in
+the EF, once in the ratio) and roughly double every electricity emission. The
+only quantity we still need to add on top of a per-kWh-generated EF is the
+**delivery loss between the plant busbar and the meter** — i.e. T&D only — which
+is the ~5 % line-loss slider, *not* the 2.05 source–site ratio.
 
 ---
 

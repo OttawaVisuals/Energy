@@ -45,6 +45,18 @@ CITY_CONFIG = {
     "Montreal": {"province": "QC", "fsa_prefixes": ["H"]},
     "Calgary":  {"province": "AB", "fsa_prefixes": ["T2", "T3"]},
     "Edmonton": {"province": "AB", "fsa_prefixes": ["T5", "T6"]},
+    # v2 additions (ROADMAP item 9 workstream A). FSA prefixes = the city
+    # proper's Canada Post geography (metro suburbs on other prefixes excluded,
+    # matching the Ottawa/Toronto convention).
+    "Vancouver":   {"province": "BC", "fsa_prefixes": ["V5", "V6", "V7"]},
+    "Winnipeg":    {"province": "MB", "fsa_prefixes": ["R2", "R3"]},
+    "Quebec City": {"province": "QC", "fsa_prefixes": ["G1", "G2"]},
+    "Halifax":     {"province": "NS", "fsa_prefixes": ["B3"]},
+    "Saskatoon":   {"province": "SK", "fsa_prefixes": ["S7"]},
+    "Regina":      {"province": "SK", "fsa_prefixes": ["S4"]},
+    "Hamilton":    {"province": "ON", "fsa_prefixes": ["L8", "L9"]},
+    "London":      {"province": "ON", "fsa_prefixes": ["N5", "N6"]},
+    "Windsor":     {"province": "ON", "fsa_prefixes": ["N8", "N9"]},
 }
 
 DETACHED_TYPES = {"single detached"}
