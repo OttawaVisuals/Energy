@@ -154,6 +154,37 @@ var r5 = E.simulate(
 approx("base fuel_kWh", r5.base.energy.fuel_kWh, 100.0);
 approx("base ghg.upstream_methane", r5.base.ghg.upstream_methane, 3.609479);
 
+// ==========================================================================
+// Case 6: below-lock-out "derate" mode (ROADMAP item 9 workstream E).
+//   Curve   T_C [-10,0,15], cap_frac [0.5,0.7,1.0], COP [2.0,3.0,4.0], min-op -10.
+//   Coldest defined point (-10 C, cap 0.5, COP 2.0); coldest capacity segment
+//   slope = (0.7-0.5)/(0-(-10)) = 0.02/C; COP floor 2.0.
+//   Hour at -20 C (10 C below the published minimum):
+//     load       = 0.25*(18+20) = 9.5 kWh
+//     derate cap = 0.5 + 0.02*(-20+10) = 0.3 frac -> 10 kW * 0.3 = 3.0 kW
+//     HP delivers min(9.5,3.0)=3.0 ; HP elec = 3.0/2.0 = 1.5 kWh
+//     lockout_hours 0, derated_hours 1, hp_run 1 ; backup delivers 6.5.
+//   Default 'hard' mode on the SAME curve/hour: HP locked out, delivers 0.
+// ==========================================================================
+console.log("Case 6: below-lock-out derate mode");
+var CURVE_D = { T_C: [-10, 0, 15], cap_frac_of_rated47: [0.5, 0.7, 1.0], COP: [2.0, 3.0, 4.0] };
+var r6 = E.simulate(
+  baseOpts({
+    tempSeries: [-20],
+    hp: { curve: CURVE_D, nominalCap_kW: 10, minOpTemp_C: -10, kind: "ashp", belowLockout: "derate" },
+  })
+);
+approx("derate hp_delivered_kWh", r6.project.diagnostics.hp_delivered_kWh, 3.0);
+approx("derate hp_electricity_kWh", r6.project.energy.hp_electricity_kWh, 1.5);
+// guard: default hard-stop on the same curve/hour locks the compressor out.
+var r6h = E.simulate(
+  baseOpts({
+    tempSeries: [-20],
+    hp: { curve: CURVE_D, nominalCap_kW: 10, minOpTemp_C: -10, kind: "ashp" },
+  })
+);
+approx("hard hp_delivered_kWh", r6h.project.diagnostics.hp_delivered_kWh, 0.0);
+
 // ---- summary ----
 if (failures) {
   console.error("\n" + failures + " assertion(s) FAILED");

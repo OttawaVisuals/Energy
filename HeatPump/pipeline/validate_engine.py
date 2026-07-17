@@ -75,6 +75,27 @@ def interp(xs, ys, x):
     return y0 + t * (y1 - y0)
 
 
+def cold_edge(curve):
+    """Coldest defined (cap & COP) grid point and coldest-segment slope.
+
+    Mirror of engine.js coldEdge(): used only by the optional 'derate' mode
+    (continue below the published minimum operating temperature).
+    """
+    T, cap, cop = curve["T_C"], curve["cap_frac_of_rated47"], curve["COP"]
+    i0 = -1
+    for i in range(len(T)):
+        if cap[i] is not None and cop[i] is not None:
+            i0 = i
+            break
+    if i0 < 0:
+        return None
+    i1 = i0 + 1
+    while i1 < len(T) and (cap[i1] is None or cop[i1] is None):
+        i1 += 1
+    slope = (cap[i1] - cap[i0]) / (T[i1] - T[i0]) if i1 < len(T) else 0.0
+    return {"tEdge": T[i0], "capEdge": cap[i0], "copFloor": cop[i0], "capSlope": slope}
+
+
 def lookup_shape(ef, season, hour, tbin, field):
     thin = ef.get("meta", {}).get("thin_bin_min_hours", 20)
     h, tb = str(hour), str(tbin)
@@ -102,14 +123,23 @@ def hp_performance(hp, t, ewt):
         cop = interp(curve["EWT_C"], curve["COP"], ewt)
         frac = interp(curve["EWT_C"], curve["cap_frac_of_ewt0"], ewt)
         af = hp.get("antifreezeFactor", 1.0)
-        return hp["nominalCap_kW"] * frac, cop * af, False
+        return hp["nominalCap_kW"] * frac, cop * af, False, False
     if t < hp["minOpTemp_C"]:
-        return 0.0, None, True
+        # Default ('hard'): hard stop at the published minimum. Optional
+        # 'derate': keep running below it, capacity extrapolated on the coldest
+        # segment slope, COP held at the floor (manufacturer-unspecified).
+        if hp.get("belowLockout") == "derate":
+            e = cold_edge(curve)
+            if e:
+                capf = e["capEdge"] + e["capSlope"] * (t - e["tEdge"])
+                if capf > 0:
+                    return hp["nominalCap_kW"] * capf, e["copFloor"], False, True
+        return 0.0, None, True, False
     cop = interp(curve["T_C"], curve["COP"], t)
     frac = interp(curve["T_C"], curve["cap_frac_of_rated47"], t)
     if cop is None or frac is None or frac <= 0:
-        return 0.0, None, True
-    return hp["nominalCap_kW"] * frac, cop, False
+        return 0.0, None, True, False
+    return hp["nominalCap_kW"] * frac, cop, False, False
 
 
 def simulate(opts):
@@ -140,7 +170,7 @@ def simulate(opts):
     base_comb = base_elecghg = base_ch4 = base_oilup = 0.0
     proj_comb = proj_elecghg = proj_ch4 = 0.0
     total_load = hp_delivered = bk_delivered = 0.0
-    hp_run = backup_h = lockout_h = heating_h = 0
+    hp_run = backup_h = lockout_h = derated_h = heating_h = 0
 
     for i in range(n):
         t = temps[i]
@@ -174,7 +204,7 @@ def simulate(opts):
 
         # project case
         ewt = (hp.get("ewtSeries", [None] * n)[i] if hp.get("ewtSeries") else hp.get("ewt")) if hp["kind"] == "gshp" else None
-        cap, cop, locked = hp_performance(hp, t, ewt)
+        cap, cop, locked, derated = hp_performance(hp, t, ewt)
         hp_allowed = not locked
         if control["strategy"] == "lockout" and t < control["lockoutTemp_C"]:
             hp_allowed = False
@@ -186,6 +216,8 @@ def simulate(opts):
             proj_elecghg += ef_hr * he * line_loss * G2KG
             hp_delivered += hp_heat
             hp_run += 1
+            if derated:
+                derated_h += 1
         elif locked or (control["strategy"] == "lockout" and t < control["lockoutTemp_C"]):
             lockout_h += 1
 
@@ -240,6 +272,7 @@ def simulate(opts):
                 "seasonal_cop": (hp_delivered / hp_elec) if hp_elec > 0 else None,
                 "heating_hours": heating_h, "hp_run_hours": hp_run,
                 "backup_hours": backup_h, "lockout_hours": lockout_h,
+                "derated_hours": derated_h,
             },
         },
     }
@@ -328,6 +361,30 @@ def main() -> int:
     ))
     approx("base fuel_kWh", r5["base"]["energy"]["fuel_kWh"], 100.0)
     approx("base ghg.upstream_methane", r5["base"]["ghg"]["upstream_methane"], 3.609479)
+
+    # ======================================================================
+    # Case 6: below-lock-out "derate" mode (ROADMAP item 9 workstream E).
+    #   Curve   T_C [-10, 0, 15], cap_frac [0.5, 0.7, 1.0], COP [2.0, 3.0, 4.0]
+    #   min-op  -10 C  ->  hard stop below -10 C by default.
+    #   Coldest defined point: (-10 C, cap 0.5, COP 2.0). Coldest capacity
+    #   segment slope = (0.7-0.5)/(0-(-10)) = 0.02 per degC. COP floor = 2.0.
+    #   Test hour at T = -20 C (10 C below the published minimum):
+    #     load       = 0.25 * (18 - (-20)) = 9.5 kWh
+    #     derate cap = 0.5 + 0.02*(-20 - (-10)) = 0.3 frac -> 10 kW * 0.3 = 3.0 kW
+    #     HP delivers min(9.5, 3.0) = 3.0 ; HP elec = 3.0 / 2.0 = 1.5 kWh
+    #     backup delivers 6.5 ; lockout_hours 0, derated_hours 1, hp_run 1.
+    #   Default 'hard' mode on the SAME curve/hour: HP locked out, delivers 0.
+    # ======================================================================
+    print("Case 6: below-lock-out derate mode")
+    CURVE_D = {"T_C": [-10, 0, 15], "cap_frac_of_rated47": [0.5, 0.7, 1.0], "COP": [2.0, 3.0, 4.0]}
+    d_hp = {"curve": CURVE_D, "nominalCap_kW": 10, "minOpTemp_C": -10, "kind": "ashp", "belowLockout": "derate"}
+    r6 = simulate(base_opts(tempSeries=[-20], hp=d_hp))
+    approx("derate hp_delivered_kWh", r6["project"]["diagnostics"]["hp_delivered_kWh"], 3.0)
+    approx("derate hp_electricity_kWh", r6["project"]["energy"]["hp_electricity_kWh"], 1.5)
+    # guard: default hard-stop on the same curve/hour locks the compressor out.
+    h_hp = {"curve": CURVE_D, "nominalCap_kW": 10, "minOpTemp_C": -10, "kind": "ashp"}
+    r6h = simulate(base_opts(tempSeries=[-20], hp=h_hp))
+    approx("hard hp_delivered_kWh", r6h["project"]["diagnostics"]["hp_delivered_kWh"], 0.0)
 
     print()
     if fails:

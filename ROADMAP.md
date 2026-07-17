@@ -22,12 +22,13 @@ API, and the on-disk state):**
 | Live grid dashboard | 🔨 ETL done (`Python/grid_etl.py`); weekly workflow's first scheduled run is Mon 2026-07-13 13:00 UTC — check it went green; `grid.html` page not started |
 | Ottawa heat demand map | 🆕 not started — fuses Geothermal + GridCapacity + ERS |
 | Geothermal v2 | ✅ done 2026-07-15 (item 8) — all 4 phases: data fixes, conductivity sensitivity, drilling difficulty, segment suitability |
+| Heat Pump v2 | ✅ done 2026-07-17 (item 9) — all 6 workstreams (B ECCC EF basis, A 14 cities, C weather-year lens, D sizing sweep, E lifecycle sourcing + below-lock-out toggle, F chart re-org) |
 
-**Recommended order (remaining):** 5 → 6-page → 7 → 8 (items 2 and 4 completed
-2026-07-12). Items 5, 6-page, 7 and 8 are independent of each other, except
+**Recommended order (remaining):** 5 → 6-page → 7 → 9 (items 2, 4 and 8
+completed). Items 5, 6-page, 7 and 9 are independent of each other, except
 item 8 Phase D consumes item 7's `heat_demand_grid.geojson` if it exists (it
 degrades gracefully otherwise — running 7 first makes the district-energy
-score better).
+score better). Within item 9, run its prompts in order (1 → 5).
 
 ---
 
@@ -806,6 +807,327 @@ land, load balancing, yield and grid draw.
    fields popups don't show), update README + GEOTHERMAL_STATUS.md,
    republish per item 1's deployment pattern, and flip ROADMAP item 8's
    status row to done.
+```
+
+---
+
+## 9. Heat Pump v2 — more cities, weather years, EF options, sizing sensitivity, lifecycle sourcing, chart re-org (4–5 sessions)
+
+Planned 2026-07-17 from user feedback on the shipped tool. Six workstreams
+(A–F below); the paste-able prompts bundle them into 5 sessions. Read
+[PLAN.md](PLAN.md) and [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md)
+before any of them. Current state being extended: 5 cities
+(Ottawa/Toronto/Montreal/Calgary/Edmonton), hourly grid EF for ON/QC/AB
+only (avg + marginal), CWEC2020 TMY + 2019–2026 ECCC hourly history,
+tiered ASHP curves with hard lock-outs at the published minimum operating
+temperature, methane slider 0–3% @ GWP 28, line-loss slider default 5%.
+
+### A. More large cities — ✅ DONE (2026-07-17)
+
+Added 9 cities (Vancouver, Winnipeg, Quebec City, Halifax, Saskatoon, Regina,
+Hamilton, London, Windsor) → 14 total; all had ERS parquets. Extended
+fetch_tmy.py (new combined-zip CWEC source), fetch_weather.py, build_archetypes.py,
+new build_tmy_temps.py; wired CITY_PROV/CITY_KEY/CITIES + cost guard in
+heatpump.html. BC/MB/SK/NS use ECCC-annual + flat marginal (Hourly-average
+disabled). All 56 archetypes within ±10%; sanity gates pass (Vancouver COP 3.5 >
+Ottawa 2.4); no console errors. METHODOLOGY.md "v2 city additions" documents
+stations/FSA/design-temps. Original spec below.
+
+### A (original spec). More large cities (including provinces with no hourly grid data)
+
+Proposed additions (adjustable): **Vancouver, Winnipeg, Quebec City,
+Halifax, Saskatoon, Regina, Hamilton, London, Windsor** (the last three
+reuse the ON grid surface; only weather + archetypes are new work for
+them). Per new city: CWEC2020 TMY station (fetch_tmy.py already downloads
+per-province zips — add stations), ECCC hourly weather (extend
+fetch_weather.py station table), archetypes from the ERS parquet
+(`C:\ERS\web\ers_web_<PROV>.parquet` — verify BC/MB/SK/NS parquets exist
+first; if one is missing, drop that city or build the parquet), design
+temperature, FSA prefixes. Grid EF for BC/MB/SK/NS comes from workstream
+B — **no hourly pipeline for these provinces** (deliberate): they get the
+ECCC/NIR annual average + an estimated marginal only, and the UI labels
+them accordingly.
+
+### B. Third EF basis: ECCC/NIR published annual averages — ✅ DONE (2026-07-17)
+
+Built `pipeline/build_grid_ef_annual.py` → `data/processed/grid_ef_annual.json`
+(StatCan WDS 38-10-0097 electric-utility GHG ÷ 25-10-0015 utility generation;
+national validates to ECCC's 100 g/kWh @2022). heatpump.html EF control is now
+3-way (Marginal / Hourly average / ECCC yearly), with the hourly options
+disabled + auto-fallback for annual-only provinces, and flat marginal estimates
+for SK/NS/NB (hydro provinces = average). METHODOLOGY.md "Third EF basis"
+section documents sources, the utility-denominator choice, and the ON/AB scope
+deviations. All 15 self-test vectors still pass; verified in-browser (ON: 500 /
+96.9 / 56.4 g/kWh across the three bases). Original spec below.
+
+### B (original spec). Third EF basis: ECCC/NIR published annual averages
+
+Add `data/processed/grid_ef_annual.json`: one published annual-average EF
+per province per year (g CO₂e/kWh), from ECCC NIR Annex 13 electricity
+intensity tables (canada.ca fetches are flaky here — use `curl -L`, or the
+open.canada.ca mirror of the electricity-intensity tables; TAF's PDF
+already covers ON). Marginal estimates for new provinces: SK ≈ AB's gas
+fleet (~540), MB/BC ≈ hydro-dominated — document the choice (gas-fired
+margin vs import margin) rather than hand-waving it. UI: EF basis becomes
+a 3-way choice — "hourly average (this tool's surface)" / "marginal" /
+"ECCC yearly average" — with the first option greyed out for provinces
+without an hourly surface. The engine already accepts a flat level via
+`efLevel`-style override; a flat annual factor is the degenerate case of
+the surface (shape ≡ 1).
+
+### C. Historical weather years + design temperatures — ✅ DONE (2026-07-17)
+
+Built `pipeline/build_weather_years.py` → `weather_<city>.json` × 14 (CWEEDS
+2020 1998–2017 + MSC Datamart 2019–2025, 24 yrs each, ~0.8 MB, 2018 gap noted).
+Years tagged typical/coldest/mildest by HDD18; multi-decade 2.5%-ile design temp
+now matches NBC 2020 Table C-2 closely (Ottawa −24.0 vs −24). heatpump.html gains
+a weather-year selector, a weather-file SVG (min–max monthly band + design
+markers) and a memoized cross-year emissions band. Verified in-browser (Ottawa
++1..+15%, Vancouver −90..−92%, Halifax +46..+57%); self-test intact. Original
+spec below.
+
+### C (original spec). Historical weather years + design temperatures ("weather lens")
+
+- Extend the hourly record to ~20 years (2006–2026) for all cities.
+  **Trap:** `dd.weather.gc.ca/today/...` only holds recent data; older
+  years come from `climate.weather.gc.ca/climate_data/bulk_data_e.html`
+  (per-station, per-month CSV), and station IDs change over time (e.g.
+  Ottawa Intl A has different stationIDs pre/post ~2011) — use ECCC's
+  Station Inventory CSV to stitch a continuous record per city.
+  Alternative worth checking first: CWEEDS 2020 files (same
+  collaboration.cmc.ec.gc.ca tree as CWEC) ship multi-decade hourly per
+  station in one download.
+- From the record, tag **representative years** (closest to TMY HDD),
+  **extreme cold** (max HDD / coldest design-week) and **mild** years.
+- Add published **design temperatures** (NBC 2020 Appendix C January 2.5%
+  and 1% values, which CSA F280-12 references) alongside the computed
+  2.5th-percentile values already in METHODOLOGY.md — show both.
+- Ship per-city `weather_<city>.json` (quantized 0.1 °C ints, one array
+  per year) small enough to lazy-load; UI gains a weather selector
+  (TMY / named year / coldest / mildest), a weather-file plot (monthly
+  means + temperature-duration curve + design-temp markers), and the
+  headline gets a min–max band across years.
+
+### D. Sizing sensitivity (under/oversizing) — ✅ DONE (2026-07-17)
+
+Sizing-sweep card in heatpump.html: `simulate()` re-run at 40–160% of design
+heat loss in 5% steps on every input change, charting seasonal COP / backup
+share / backup-unmet hours / annual GHG / operating cost vs size, with a marker
+at the current slider and a green best-point dot; cost curve hidden for
+rates-less cities. Card + METHODOLOGY.md §"Sizing sensitivity" state the
+no-cycling-model caveat (oversizing penalty understated; refrigerant-charge
+penalty *is* captured). Verified in-browser (Ottawa: 40%→13% backup/5,919 kg,
+100%→1.2%/5,337 kg). Original spec below.
+
+### D (original spec). Sizing sensitivity (under/oversizing)
+
+Client-side sweep — `simulate()` is milliseconds, so run it at ~40–160%
+of design heat loss in steps and chart seasonal COP, backup share,
+lock-out/unmet hours, GHG and operating cost vs sizing, with a marker at
+the current slider value. Document the honest limitation: the engine has
+no cycling model, so the oversizing penalty (short-cycling, worse
+part-load COP) is understated — oversizing looks free here and isn't in
+real life; say so on the card.
+
+### E. Lifecycle sourcing — methane, GWP20, line losses, below-lock-out behaviour — ✅ DONE (2026-07-17)
+
+heatpump.html: methane GWP toggle (28 AR5 100-yr / 82.5 AR6 fossil 20-yr), leak
+slider widened to 0–5% with NIR-implied/measurement-adjusted/high presets, and an
+advanced below-lock-out toggle (hard stop vs continue-derated: capacity
+extrapolated on the coldest-segment slope, COP held at floor, labelled
+manufacturer-unspecified). Engine change mirrored across app/engine.js + the
+inlined heatpump.html copy + validate_engine.py; all 15 in-page self-test vectors
+still pass in default mode and **2 new derated vectors** (JS + Python, identical
+to 4 dp) were added (engine.test.js / validate_engine.py Case 6). METHODOLOGY.md
+§"Lifecycle sourcing" cites ECCC NIR, the ~1.5× atmospheric-measurement
+literature (Alvarez 2018; Nature Comms 2021), Canadian post-meter 2.0–2.5×
+(IOPscience 2026), reproduces the ~3%-at-GWP20 ≈ ×1.9 arithmetic, and documents
+World Bank/IEA T&D (~5%) plus why Portfolio Manager's 2.05 source–site ratio is
+not used (double-counts generation losses). Verified in-browser (GWP20 flips the
+Ottawa gas verdict from "raises" to "cuts"; derate serves +2,693 kWh at
+−35 °C Winnipeg). Original spec below.
+
+### E (original spec). Lifecycle sourcing — methane, GWP20, line losses, below-lock-out behaviour
+
+- **Methane:** add a GWP toggle (100-yr = 28–30 vs 20-yr ≈ 82.5) and widen
+  the leak slider to 0–5% with labelled presets: NIR-implied (~0.5–1%),
+  measurement-adjusted (~1.5× NIR per the atmospheric-measurement
+  literature), high estimate. Add a post-meter leakage note (Canadian
+  building-level measurements run 2.0–2.5× the NIR end-use factor).
+  Reproduce in METHODOLOGY.md the arithmetic showing ~3% full-chain
+  leakage at GWP20 ≈ ×1.9 on gas-heating GHG — the user's remembered
+  "×1.9 report" claim — and cite each input. (If the user finds the
+  actual report, add it as a named preset.)
+- **Line losses:** keep ~5% default; cite World Bank Canada T&D losses
+  (~5.1%, 2023) and utility figures (AESO ~4.4% transmission, BC Hydro
+  ~10% incl. distribution). Explicitly document why the ENERGY STAR
+  Portfolio Manager source–site ratio (2.05 for Canadian electricity) is
+  **not** usable here: it includes thermal-generation conversion losses,
+  which our g/kWh-generated EF already accounts for — using it would
+  double-count.
+- **Below-lock-out behaviour:** the Tier-1 −25 °C cut-off is the
+  manufacturers' published minimum operating temperature (Mitsubishi
+  H2i's guaranteed-operation floor), not a physical stop. Add an
+  advanced toggle: "hard stop at published minimum" (current, default)
+  vs "continue derated below minimum" (extrapolate capacity on the last
+  slope, hold the COP floor); state that below-LCT behaviour is
+  manufacturer-unspecified.
+
+### F. Chart re-organization — ✅ DONE (2026-07-17)
+
+heatpump.html's output cards are now six numbered `<section>`s with
+Fraunces headers + one-line intros: (01) Verdict & annual GHG breakdown;
+(02) How the model works — load-vs-capacity / who-delivers-heat /
+equipment curve as tabs sharing a `.seg` control (default tab is the key
+chart; "Equipment curve" tab stays advanced-only via `data-mode`); (03)
+Across the year — annual + seasonal energy grid-2, monthly emissions,
+hourly explorer; (04) Sensitivity lenses — weather-years card, sizing
+sweep, and a copy-only "Emissions basis, compared" card pointing at the
+existing EF-basis toggle (no new chart built — the toggle already drives
+every chart on the page); (05) Operating cost; (06) Assumptions &
+methodology (intro added above the existing accordion). DOM/layout/copy
+only — no chart-drawing logic touched; the SVG charts (key/source/
+equipment/weather/sweep) are viewBox-based so tab-hiding doesn't break
+them, confirmed by inspecting `renderKeyChart` etc. Verified in-browser
+via the local static-server preview (screenshots are unreliable after
+`scroll-behavior:smooth`; used `scrollTo({behavior:'instant'})` per the
+known preview quirk): zero console errors, 15/15 self-test vectors, all
+Chart.js canvases pixel-sampled non-blank, tab switching confirmed both
+directions, `#methodology` anchor + `openMethod()` still work, desktop
+(1280px) and mobile (375px) layouts both clean.
+
+<details><summary>Original spec (completed — kept for the record)</summary>
+
+Regroup the output cards into a narrative: (1) Verdict + annual GHG;
+(2) "How the model works" — load-vs-capacity, who-delivers-heat,
+equipment curve (consider tabs to reduce scroll); (3) "Across the year" —
+monthly energy, monthly emissions, hourly explorer; (4) "Sensitivity
+lenses" — weather year, sizing sweep, EF basis (new charts from C/D/B);
+(5) Operating cost. Section headers with one-line plain-language intros.
+
+</details>
+
+### Suggested order & prompts
+
+B → A → C → D+E → F (B unblocks A's new provinces; C is independent of
+A/B but shares the weather pipeline; D/E are small and independent; F
+last since it re-homes charts the earlier phases add). Sessions:
+
+### Prompt 1 — ECCC/NIR annual EF basis (Opus)
+
+```
+Read PLAN.md, ROADMAP.md item 9 workstream B, and HeatPump/METHODOLOGY.md
+(grid EF sections) first. Build HeatPump/pipeline/build_grid_ef_annual.py:
+fetch (curl -L; canada.ca is flaky — document what worked) the ECCC
+NIR electricity-intensity-by-province tables and produce
+data/processed/grid_ef_annual.json: {province: {year: g_per_kWh}} for at
+least ON/QC/AB/BC/MB/SK/NS, latest available year plus history, each
+value with its source year and NIR edition in a meta block. Cross-check
+ON/QC/AB against the tool's own computed annual averages and TAF's
+published AEFs; explain deviations in METHODOLOGY.md (NIR is
+consumption-based incl. imports? generation-based? state the scope you
+find). Add marginal estimates for BC/MB/SK/NS with a documented rationale
+per province. Then wire heatpump.html: EF basis becomes a 3-way toggle
+(hourly average / marginal / ECCC yearly average); ECCC mode uses a flat
+level with shape ≡ 1 through the existing efLevel path; label clearly
+which basis is active and add a methodology-panel paragraph. Update
+METHODOLOGY.md and this ROADMAP row. Verify in the browser (all cities ×
+all 3 bases, no console errors).
+```
+
+### Prompt 2 — new cities end-to-end (Opus)
+
+```
+Read PLAN.md, ROADMAP.md item 9 workstream A, and HeatPump/METHODOLOGY.md
+(Phases 2 and 4) first. Add these cities to the heat pump tool:
+Vancouver, Winnipeg, Quebec City, Halifax, Saskatoon, Regina, Hamilton,
+London, Windsor (drop any whose ERS parquet C:\ERS\web\ers_web_<PROV>.parquet
+is missing — check first and report). For each: (1) CWEC2020 TMY station in
+fetch_tmy.py (primary airport; record climate ID in METHODOLOGY.md);
+(2) hourly weather 2019+ in fetch_weather.py; (3) archetypes in
+build_archetypes.py (FSA prefixes documented like the existing 5);
+(4) design temperature (computed 2.5%-ile, same convention); (5) province
+wiring: ON cities use the existing ON EF surface; BC/MB/SK/NS cities use
+grid_ef_annual.json (ECCC + marginal only — the hourly-average option
+must be disabled with an explanatory hint, not silently absent).
+Rebuild tmy_temps.json/archetypes.json, update CITY_PROV/CITY_KEY and the
+city selector in heatpump.html, update METHODOLOGY.md tables, and verify
+each new city in the browser (sane design loads, sane GHG verdicts, no
+console errors). Sanity-gate: Vancouver's ASHP seasonal COP must beat
+Ottawa's; Winnipeg/Saskatoon design temps should be ≤ Edmonton's ballpark.
+```
+
+### Prompt 3 — historical weather years + design temps + weather lens (Opus)
+
+```
+Read PLAN.md, ROADMAP.md item 9 workstream C, and HeatPump/METHODOLOGY.md
+(Phase 2) first. Extend the weather record to ~2006–2026 for every city
+in archetypes.json. First evaluate CWEEDS 2020 (same CMC tree as CWEC) as
+the bulk source; fall back to climate.weather.gc.ca bulk_data_e.html
+per-station monthly CSVs, using ECCC's Station Inventory to stitch
+station-ID changes (document the stitching per city). QC gaps >10% of a
+year: flag, don't impute. Outputs: (a) per-city
+HeatPump/data/processed/weather_<city>.json — one quantized (0.1 °C int)
+8760/8784 array per year plus per-year HDD18 and min-temp summary,
+lazy-loaded; (b) NBC 2020 Appendix C January 2.5%/1% design temperatures
+added to archetypes.json meta alongside the computed percentiles (cite
+the NBC table edition). UI: a "weather year" selector (Typical (TMY) /
+each year / coldest / mildest, tagged by HDD); a weather-file card
+plotting monthly mean ± band, temperature-duration curve, and design-temp
+markers for the selected series; and a headline min–max band across all
+years (run simulate() per year — it's fast, but cache). Keep per-city
+JSON under ~1 MB (quantize + no whitespace). Update METHODOLOGY.md
+(sources, stitching, year tags) and verify in-browser across 3 cities
+including one new one.
+```
+
+### Prompt 4 — sizing sensitivity + lifecycle sourcing + below-lock-out toggle (Opus)
+
+```
+Read ROADMAP.md item 9 workstreams D and E, HeatPump/METHODOLOGY.md
+(Phases 3b/5, lifecycle constants) first. Three additions to
+heatpump.html (+ engine where needed):
+1. Sizing sweep card: run simulate() at 40–160% of design heat loss
+   (step ≤5%), chart seasonal COP, backup share, unmet/lock-out hours,
+   annual GHG and operating cost vs size, marker at the current slider.
+   State on the card that no cycling model exists so oversizing penalties
+   are understated.
+2. Lifecycle sourcing: methane GWP toggle (100-yr 28 / 20-yr 82.5, AR5 —
+   cite), leak slider 0–5% with labelled presets (NIR-implied ~0.5–1%;
+   measurement-adjusted ~1.5×; high). Research and cite in
+   METHODOLOGY.md: ECCC NIR upstream methane, the atmospheric-measurement
+   underestimation literature (~1.5×), Canadian post-meter building
+   measurements (2.0–2.5× NIR end-use factor), and reproduce the
+   arithmetic showing ~3% full-chain leakage at GWP20 ≈ ×1.9 on gas
+   heating GHG. Line losses: keep 5% default; cite World Bank Canada T&D
+   (~5.1%) and utility figures; add a METHODOLOGY.md paragraph explaining
+   why Portfolio Manager's 2.05 source-site ratio would double-count
+   generation losses and is not used.
+3. Below-lock-out toggle (advanced): default "hard stop at published
+   minimum operating temperature" (current behaviour); alternative
+   "continue derated below minimum" — capacity extrapolated on the last
+   segment slope, COP held at the floor, clearly labelled
+   manufacturer-unspecified. Engine change must keep all 15 self-test
+   vectors passing unchanged in default mode; add 2 new vectors for the
+   derated mode (JS + Python mirror, identical to 4 dp).
+Verify everything in-browser; update METHODOLOGY.md and the assumptions
+panel.
+```
+
+### Prompt 5 — chart re-organization (Sonnet)
+
+```
+Read ROADMAP.md item 9 workstream F. Reorganize heatpump.html's output
+cards into titled sections with one-line intros: (1) Verdict + annual
+GHG breakdown; (2) How the model works (load-vs-capacity, who delivers
+the heat, equipment curve — tabbed if it reduces scroll without hiding
+the key chart); (3) Across the year (monthly energy, monthly emissions,
+hourly explorer); (4) Sensitivity lenses (weather year + band, sizing
+sweep, EF basis comparison); (5) Operating cost; (6) Assumptions &
+methodology. No chart logic changes — DOM/layout/copy only. Keep
+anchors/IDs working, mobile layout intact, dark mode intact. Verify
+in-browser at desktop and mobile widths, no console errors, screenshot
+each section.
 ```
 
 ---
