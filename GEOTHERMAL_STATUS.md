@@ -7,6 +7,96 @@ pipeline plan). This file records what has actually been built and run.
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
 
+## 2026-07-17 session — Heat Demand Phase 3: electrified load per building
+
+[HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phase 3. **New script**
+`Geothermal/scripts/build_electrified_load.py` — converts every fossil-heated
+building to a heat pump hour-by-hour over the Ottawa TMY and adds 12 electricity
+columns + `elec_method`/`elec_confidence` to the parquet (plus a
+`heatdemand_phase3` note). Method in `Geothermal/README.md` **§3.12**; this entry
+is the findings.
+
+**Validation: worst deviation 0.00%** across 4 archetypes × 3 policies against
+the shipped engine (target ±10%). Node is still unavailable, so this runs against
+`HeatPump/pipeline/validate_engine.py`'s faithful Python mirror — the same
+limitation METHODOLOGY Phase 5 already records. Agreement is exact rather than
+merely in-band because the group model *is* the engine's dispatch factored
+through UA-linearity (below); the check guards that factoring.
+
+**The 8760 × 414k problem dissolved.** Phase 2 gives every class
+`design_kw = ua × 43.8/1000`, so sizing is a fixed multiple of UA and the whole
+dispatch is **exactly linear in UA** at a fixed balance point. The hourly run is
+solved **once per balance point (7 groups)** and scaled per building. Asserted at
+run time (holds to 0.14% — `archetypes.json` rounding), not assumed.
+
+**Headline (Ottawa CD; 253,271 buildings converted, 9.83 TWh/yr of heat):**
+
+| Policy | Added GWh/yr | Added MW @ design | vs ~1,300 MW peak |
+|---|---|---|---|
+| (a) ccASHP + resistance backup | 4,613 | **5,264** | +405% |
+| (b) hybrid, fossil kept | 3,410 | **0** (1,834 at its worst hour) | +0% |
+| GSHP counterfactual | 2,515 | **1,482** | +114% |
+
+**Three findings that came out of the data, not the brief:**
+1. **The "average installed" ccASHP locks out at −15 °C — warmer than Ottawa's
+   −22.8 °C design temperature.** So under policy (a) the resistance backup
+   carries **100% of the design load at COP 1**, and the design-day peak is just
+   the design heat call regardless of how good the curve is above lockout.
+   Policy (a)'s peak is an **equipment** problem, not a building-stock problem.
+   Sensitivity proves it: **Tier 1 (−25 °C) adds 2,836 MW — 0.54× the central
+   case.** (Tier 3 reproduces the central case exactly, as its own description
+   says it should — a free consistency check.)
+2. **The plan's "~90% load fraction" hybrid target is unreachable** with the
+   central curve: ~17% of Ottawa's annual load falls below its −15 °C lockout, so
+   the switchover pins at lockout and the achieved fraction stalls at **81–84%**.
+   Documented and printed rather than force-fit. Tier 1 is not bound by it.
+3. **The hybrid's 0 MW is real but definitional** — its HP is off below −15 °C, so
+   it draws nothing *at* −22.8 °C. Its true grid cost lands just above the
+   switchover (**1,834 MW**). Reported both ways so the zero can't mislead.
+
+> **The sanity check found the model's own ceiling — worth reading before quoting
+> any MW.** Buildings that are **already** electrically heated sum to **1,275 MW**
+> at design: **98% of Hydro Ottawa's entire system peak, from space heat alone,
+> before converting anything.** That can't be literally true. The cause is **no
+> diversity** — these sums put every building at full design-condition load in the
+> same hour — compounded by Phase 2's probabilistic-stock caveat. **Phase 4 must
+> apply a coincidence factor from actual CCIM feeder loading; this script
+> deliberately does not invent one.** The **ratios between policies** are the
+> robust result (shared load basis, shared stock); the absolute MW are upper
+> bounds.
+
+**Bug found and fixed along the way:** `elec_kw_peak_now` was built from
+`design_kw` (the no-gains *sizing* figure) while every electrified peak used the
+balance-point load at design (gains credited) — inflating the current-electric
+peak ~32% against the very numbers it is compared with. All peaks are now on the
+load basis; sizing alone uses `design_kw`. README §3.12 spells the two apart.
+
+**Second bug — parquet metadata clobbering.** `gdf.to_parquet()` writes a fresh
+schema, and geopandas doesn't round-trip custom metadata, so the phase-3 write
+silently destroyed Phase 2's `heatdemand_phase2` note (recovered from git HEAD).
+Phase 3 now reads prior `heatdemand_*` keys *before* rewriting and merges them
+forward. **`build_building_demand.py` still has the same latent bug** — re-running
+Phase 2 would destroy the phase-3 note; flagged as a follow-up.
+
+**Deviations from the brief:** (1) the brief called `average_installed` a
+"ccASHP" — it is the popularity-weighted curve and maps to **Tier 3, baseline**,
+with a −15 °C lockout, which is exactly why the peaks land where they do; kept as
+the central case (it is what people actually install) with the tier spread
+carried alongside. (2) The plan's literal `annual_elec / EFLH` load-factor form
+for large-building peaks was **not used**: it reduces to `design_load / SCOP`,
+dividing a design load by a *seasonal* COP, understating the design peak ~2×. The
+peak uses the design-condition COP; EFLH is used for the energy check instead.
+(3) The large-building "simplified" conversion lands on the *same numbers* as the
+hourly route — the SCOP and design COP come off the same curve and Phase 2's
+non-res `design_kw` is EFLH-derived, so it's the same algebra. It is flagged
+`elec_confidence='low'` for the **equipment** assumption (a residential unitary
+curve borrowed for a central plant — `hp_curves.json` has no commercial curves),
+not for the arithmetic. Said plainly rather than dressed up as a second method.
+
+**Downstream note:** Phase 4 inherits the coincidence-factor job (above), should
+carry the tier column (the spread is the policy-relevant finding), and must keep
+summing over `in_ottawa_cd`.
+
 ## 2026-07-17 session — Heat Demand Phase 2.5: stock reconciliation (the defensibility fix)
 
 [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) Phase 2.5 — the blocker that made every
@@ -676,12 +766,13 @@ python Geothermal/scripts/merge_layers.py              # step 7 combined layers
 python Geothermal/scripts/build_map.py                 # step 8 output/index.html
 python GridCapacity/Hydro.py                           # refresh feeder capacity
 
-# Heat Demand Phases 1-2.5 (building stock + load; independent of the map chain above)
+# Heat Demand Phases 1-3 (building stock + load; independent of the map chain above)
 python Geothermal/scripts/fetch_zoning_full.py         # full zoning layer -> Data/Raw/zoning_full.geojson
 python Geothermal/scripts/fetch_da_census.py           # DA-level census profile -> Data/processed/da_census.json
 python Geothermal/scripts/build_building_stock.py      # -> Data/processed/buildings_ottawa.{parquet,gpkg}
                                                        #    (incl. the Phase 2.5 reconcile_stock step)
 python Geothermal/scripts/build_building_demand.py     # augments the parquet with annual_kwh/design_kw/fuel
+python Geothermal/scripts/build_electrified_load.py    # Phase 3: adds elec_kwh_*/elec_kw_peak_* electrified columns
 ```
 
 **Reading the outputs:** take every city-wide sum over `in_ottawa_cd == True`
