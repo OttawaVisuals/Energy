@@ -707,6 +707,86 @@ the dated entry):
   buildings with a null `grid_cell_id`/`feeder_id` as "off-grid for this
   layer" rather than dropping them.
 
+#### 3.10.1 Stock reconciliation (Heat Demand Phase 2.5)
+
+The Phase 2 validation surfaced a **stock-count over-attribution**: the raw
+Phase 1 stock implied **808k residential dwellings vs the 427,113 census
+households** in the 2021 census (1.89×), so every city-wide heat sum ran
+~+36% high even though the per-*unit* intensities matched CEUD to <1%.
+`build_building_stock.py`'s `reconcile_stock()` fixes the **stock**, not the
+intensities. Diagnosis first (printed by the script as a class × `assign_path`
+× inside/outside-CD decomposition), then three documented, seeded levers:
+
+**Diagnosis — what carried the excess.** Implied dwellings (detached/row = 1,
+MURB = `round(gross floor area / 106.7 m²)`, non-res/accessory = 0), broken
+down:
+- **The bbox extends well beyond the city (dominant).** The Ottawa analysis
+  bbox is a rectangle larger than the City of Ottawa census division (CD); it
+  catches ~19% of buildings in surrounding townships. Those buildings carried
+  **~353k of the 808k implied dwellings** — nearly half the total — yet the
+  census households they were being compared against are **city-only**. This
+  was an apples-to-oranges geography mismatch more than a modelling error.
+- **MURB no-height unit inflation (secondary).** A building with no height at
+  classification time could be drawn probabilistically as `highrise_murb` and
+  then given the 10-storey `STOREY_DEFAULT`, multiplying its floor area and
+  (downstream) its unit estimate with zero evidence. This produced ~200k
+  bbox-wide implied units from default-height "highrises".
+- **Accessory structures (minor).** Only ~1.5% of `detached` have a footprint
+  ≤ 50 m²; the genuinely-accessory garages/sheds are a small carrier, living
+  in the unsignalled `residential_draw` pool, not the main story.
+
+**Fix — three levers (all in `reconcile_stock()`, run after class assignment):**
+1. **`in_ottawa_cd` flag.** `True` iff the building centroid fell in one of the
+   1,392 Ottawa-CD dissemination areas (`da_id` not null; the DA boundaries
+   tile the CD exactly). **Every city-wide sum is taken over `in_ottawa_cd`
+   only** — this is the dominant correction and it is just correct geography.
+2. **Rule R1 — a highrise MURB requires real height evidence.** In the
+   probabilistic residential draw and the ambiguous-`apartments` path, a
+   building with no `Height` (Canada Structures / NRCan) can be drawn as
+   detached/row/**lowrise**, never highrise. This removed the default-10-storey
+   inflation at its root (bbox `highrise_murb` fell 16,691 → 1,074; the
+   remaining highrises are height-evidenced). `assign_path` records provenance
+   (`osm_direct`, `osm_murb_height`, `osm_murb_nohgt_lowrise`, `zoning_nonres`,
+   `height_highrise/lowrise`, `residential_draw`, `reconcile_accessory`).
+3. **Per-DA implied-dwelling cap → `accessory`.** Within each Ottawa DA, the
+   modelled implied dwellings may exceed the DA's 2021 census `total_dwellings`
+   by at most `DA_IMPLIED_TOLERANCE = 0.15`. The excess is reclassified to a new
+   non-dwelling **`accessory`** class, taking the **smallest-footprint buildings
+   first and only from the unsignalled `residential_draw` path** — the probable
+   garages/sheds/secondary structures. OSM-tagged and height-evidenced buildings
+   are **never** reclassified, so real dwellings are preserved; DAs that remain
+   over cap after exhausting their soft pool (121 DAs, all real OSM/height stock)
+   are left honestly over rather than force-fit. This reassigned **17,791
+   buildings across 247 DAs**. `GROSS_M2_PER_UNIT = 106.7` and the seed match
+   Phase 2, so the whole step is reproducible.
+
+**Result (validated by re-running `build_building_demand.py`, city sums on the
+CD):**
+- **Implied dwellings 429,282 = 1.005× census** (was 1.89×) — within ±10%.
+- **Residential space heat 6.68 TWh vs CEUD-scaled 7.38 TWh (−10%)** — within
+  ±20% (was +36% bbox-wide).
+- **Detached per-unit mean 22,655 kWh vs CEUD 22,520 (+1%)** — essentially
+  unchanged, confirming the fix is stock, not intensity.
+- **Modelled space-heat emissions 80% of the Energy Evolution 2024 buildings
+  inventory** (was 104%) — a plausible space-heat share (<100%).
+- **Fuel shares gas 59.1% / electric 21.0%** — on the StatCan 38-10-0286
+  Ottawa-CMA target. (Phase 2.5 also fixed the fuel rake geography: the IPF is
+  fitted over the **CD** residential subset that the CMA target describes, not
+  the bbox — raking bbox-wide had hit 59/21 across the whole bbox while leaving
+  the city subset too gassy, ~74%.)
+
+The detached/row *split* stays soft (inside-CD detached +23% / row −27% vs
+census, but their **sum** is only +3.4%): semi-detached and duplex halves
+digitised as separate footprints are counted `detached`, the known §3.10
+building:dwelling attribution softness — a labelling issue that does not move
+the dwelling total or (materially) the heat sum, and is out of scope for the
+stock-count fix.
+
+**New/changed columns:** `in_ottawa_cd` (bool), `assign_path` (class
+provenance), and the `accessory` class (18k-ish buildings, `annual_kwh = 0` in
+Phase 2 — treated as unheated for this screening layer). Downstream Phase 4/5
+must sum over `in_ottawa_cd` for any quotable city-wide figure.
+
 ### 3.11 `build_building_demand.py` — per-building heat load (Heat Demand Phase 2)
 
 Adds a **screening estimate** of annual space-heat energy, design-day heat
