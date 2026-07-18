@@ -318,6 +318,37 @@ def coerce_numeric(s):
     return pd.to_numeric(s, errors='coerce')
 
 
+# --- Structural-invariance comparisons (the "no structural change" pair filter) ---
+# A pair is kept only if house type, storey count and dwelling-unit count are
+# unchanged between the D and E audit. The comparison must be robust to two data
+# quirks (see diagnose_pairing_drops.py): (1) a value MISSING in both audits is
+# not a demonstrated change, so both-missing counts as unchanged; (2) the same
+# number is written differently across audit years ('1.0' vs '1'), which a raw
+# string compare wrongly treats as a change. One-side-missing (a value in one
+# audit, blank in the other) IS treated as a change and dropped, as is a genuine
+# value difference.
+def _norm_cat(s):
+    """Strip a categorical structural value; empty string -> missing (NA)."""
+    s = s.astype('string').str.strip()
+    return s.mask(s.str.len() == 0, pd.NA)
+
+
+def same_categorical(a, b):
+    """True where a and b are the same category. Both-missing -> unchanged;
+    one-side-missing -> changed (dropped)."""
+    a, b = _norm_cat(a), _norm_cat(b)
+    both_na = a.isna() & b.isna()
+    return (both_na | (a == b)).fillna(False)
+
+
+def same_numeric(a, b):
+    """True where a and b are the same number, tolerating text-format differences
+    ('1.0' vs '1'). Both-missing -> unchanged; one-side-missing -> changed."""
+    an, bn = coerce_numeric(a), coerce_numeric(b)
+    both_na = an.isna() & bn.isna()
+    return (both_na | (an == bn)).fillna(False)
+
+
 # AHRI is an identifier, not a number, but some source-CSV years write it as
 # e.g. '211644151' and others as '211644151.0' for the same model — without
 # this, the same AHRI number gets counted as two different ones downstream
@@ -394,11 +425,16 @@ def _join_and_write(d_df, e_df, output_path):
     fa_e = coerce_numeric(merged['FLOORAREA_E'])
     merged = merged[(fa_d > 0) & ((fa_e - fa_d).abs() / fa_d <= 0.10)]
 
-    # Structural filters: type, storeys, dwellings unchanged
+    # Structural filters: type, storeys, dwellings unchanged. Uses the robust
+    # comparisons above so that (a) a value missing in BOTH audits is not counted
+    # as a change, and (b) NUMDWELLINGUNITS written as '1.0' vs '1' across audit
+    # years is not counted as a change. A raw astype(str) compare (the previous
+    # version) dropped ~831k otherwise-valid pairs on those two artifacts alone —
+    # see diagnose_pairing_drops.py.
     merged = merged[
-        (merged['TYPEOFHOUSE_D'].astype(str) == merged['TYPEOFHOUSE_E'].astype(str)) &
-        (merged['STOREYS_D'].astype(str)      == merged['STOREYS_E'].astype(str))    &
-        (merged['NUMDWELLINGUNITS_D'].astype(str) == merged['NUMDWELLINGUNITS_E'].astype(str))
+        same_categorical(merged['TYPEOFHOUSE_D'], merged['TYPEOFHOUSE_E']) &
+        same_categorical(merged['STOREYS_D'],      merged['STOREYS_E'])    &
+        same_numeric(merged['NUMDWELLINGUNITS_D'], merged['NUMDWELLINGUNITS_E'])
     ]
 
     if merged.empty:

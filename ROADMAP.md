@@ -10,7 +10,7 @@ API, and the on-disk state):**
 
 | Project | State |
 |---|---|
-| Retrofit Explorer | ✅ done, deployed — +4 additions 2026-07-17 (see item 10) |
+| Retrofit Explorer | ✅ done, deployed — +4 additions 2026-07-17 (item 10); audit funnel + pairing-filter fix 2026-07-18 (item 11) |
 | Construction Tracker | ✅ done, deployed — first scheduled refresh fires 2026-07-20 (monthly, 20th 14:00 UTC); not yet observed green |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
 | Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
@@ -1165,6 +1165,46 @@ HOUSEIDs, 1,692 FSA cells) and folded into `_index.json` by `split_fsa_json.py`
 (re-run from the existing parquet — the heavy `ers_web_pipeline.py` is untouched).
 Sanity: `dore_count ≥ row_count` for all 1,661 shipped FSAs, no nulls. Updated
 `_index.json` copied into the repo `fsa_json/<PROV>/`.
+
+---
+
+## 11. Retrofit Explorer — audit funnel, province/Canada audits-per-year, pairing-filter fix (✅ 2026-07-18)
+
+**11a · Audit-funnel Sankey + audits-per-year everywhere.**
+- New `renderFunnel()` card ("From every audit to your selection") on `retrofits.html`,
+  kept alongside the existing fuel-flow Sankey. A home-composition funnel: all audited
+  homes → {Both D&E, D-only, E-only, New build P/N} → Matched pairs (+ Not paired) →
+  Meets filters (+ Filtered out). Left three stages are fixed per area; only the last
+  split tracks the dropdowns. Works in FSA / province / Canada views.
+- Fixed the audits-per-year chart for province & Canada (was FSA-only, needed row-level
+  `Pre/Post_Year`): `precompute_province_stats.py` now ships per-slice `d_year_bins`/
+  `e_year_bins`, `aggregate_canada.py` rolls them up, new `renderProvinceAuditYearChart()`.
+- **Data contract change:** `build_fsa_audit_totals.py` output reshaped to
+  `{"by_fsa":{PROV:{FSA:{t,de,d,e,nc}}},"by_province":{...}}` (composition, now incl. P/N),
+  feeding both the `dore_count` KPI and the funnel. `precompute` reads `by_province` →
+  province `funnel` block; `split_fsa_json` folds `composition` into `_index.json`. See
+  the [[ers-retrofit-data-refresh]] memory for the updated run order (build_fsa_audit_totals
+  must precede BOTH precompute and split_fsa now).
+
+**11b · Pairing-drop investigation + Gate D fix.**
+The funnel exposed that only ~537,881 of ~1.63M homes-with-both-D&E become matched pairs.
+Diagnostics (`Python/diagnose_pairing_drops.py`, `Python/diagnose_gates_ab.py`) attributed
+each dropped home to its first-failing gate (pipeline order): A multiple audits 9.1%,
+B E-not-after-D 5.2%, C floor-area>10% 0.4%, **D structural 52.2%**. Gate D was almost
+entirely a `NUMDWELLINGUNITS` artifact — under pandas 3.x, `astype(str)` keeps missing as
+NaN and NaN≠NaN, so both-blank compared unequal (89%), plus `'1.0'` vs `'1'` format (8%);
+only 0.1% were genuine unit changes.
+- **Fixed** the structural filter in `ers_web_pipeline.py` (`same_categorical`/`same_numeric`
+  helpers): both-blank → unchanged (kept), `NUMDWELLINGUNITS` compared as a number
+  (`'1.0'`==`'1'`); still drops one-side-blank and genuinely-different. Full pipeline re-run;
+  matched pairs 537,881 → **1,369,305** (~2.5×; ON 222,515 → 672,857). Downstream
+  (`precompute`/`split_fsa`/`aggregate_canada`) + repo copy of `province_json` and full
+  `fsa_json` re-done (`build_fsa_audit_totals` NOT re-run — composition unchanged).
+- **Gates A & B kept as-is** (strict 1 D + 1 E; E strictly after D) pending questions to the
+  NRCan EnerGuide team, documented in a new "A′ · Open questions" methodology subsection in
+  `retrofits.html`. Gate B is a month-precision date artifact (99.4% same-month ties); Gate A
+  could relax to oldest-D + newest-E (99.6% date-valid) but risks merging separate retrofit
+  rounds. See [[ers-pairing-dwellingunits-drop]] memory.
 
 ---
 
