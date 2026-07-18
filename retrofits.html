@@ -168,7 +168,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .methodology .method-body td code{white-space:nowrap}
 
 /* ── Stats ── */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem}
 .stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
@@ -268,6 +268,7 @@ footer a{color:rgba(255,255,255,.6);text-decoration:none}
 footer a:hover{color:var(--amber2)}
 @media(max-width:900px){
   .header-title{display:none}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
 }
 @media(max-width:600px){
   header{padding:0 1rem}
@@ -476,6 +477,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
     <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
     <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's annual energy use, before and after, priced at the province's current residential rates (utility_rates_reference.json). It's the running-cost difference only — volumetric energy, no fixed monthly charges — and applies today's rates to audits spanning 2004–2025, so read it as 'what a home like this would save at current prices'.">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
+    <div class="stat-card"><div class="stat-label">Avg. measures per home<button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="The mean count of upgrade measures per matched home, out of the 8 tracked (roof, wall, foundation and floor insulation, air sealing, windows, heating system, heat pump added). A home with 0 shows no measure above the ±10% noise threshold; see 'What was upgraded' below for the breakdown by measure.">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub">measures · mean per home</div></div>
     <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="A home counts as a deep retrofit when its audits show total energy use dropped by 50% or more. (Medium = 10–50% saved, shallow = under 10%.)">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="Homes with no heat pump recorded at the first audit and one recorded at the follow-up audit.">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Homes whose main heating fuel changed between the two audits — for example oil or natural gas to electricity.">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
@@ -599,7 +601,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   </div>
 
 <!-- Measures -->
-  <div class="card"><div class="card-title">What measures were done<button type="button" class="info-btn" aria-label="How are measures counted?" data-info="Counted by comparing the two audits: insulation counts as upgraded when its insulation value rose by more than 10%; air sealing when air leakage dropped by more than 10%; windows and heating system when the recorded equipment changed; heat pump added when one appears only at the follow-up audit. Changes smaller than those thresholds aren't counted as real work.">?</button></div><div id="measures-list"></div></div>
+  <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
 
 
 
@@ -791,7 +793,8 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose. Negative cases are rare (~4% of homes) and mostly small: about three-quarters of them have no retrofit measure flagged, so they largely reflect modelling differences between the two audits rather than upgrades that backfired.<br>
       <strong>Retrofit depth</strong>, based on how much total energy fell: <em>Shallow</em> = up to 10% saved, <em>Medium</em> = 10–50% saved, <em>Deep</em> = 50% or more saved.<br>
       <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).<br>
-      <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.</p>
+      <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.<br>
+      <strong>Average measures per home</strong> = the mean, across matched homes, of how many of the 8 tracked upgrade measures (below) each home did — a home with insulation, air sealing and a heat pump added counts as 3. It is not a count of distinct upgrade "events", just how many of the 8 tracked categories cleared their threshold.</p>
 
       <h4>6 · What counts as an "upgrade"</h4>
       <p>Each measure is flagged per home using a sensible threshold, so tiny modelling wiggles don't get counted as real work:</p>
@@ -863,6 +866,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
           <tr><td><code>EnergySavingPct</code></td><td>(pre − post) ÷ pre, on total energy</td><td><code>EGHFCONTOTAL</code> (D, E)</td></tr>
           <tr><td><code>HeatEnergySavingPct</code></td><td>(pre − post) ÷ pre, on space-heating energy</td><td><code>EGHFURNACEAEC</code> (D, E)</td></tr>
           <tr><td>EUI (kWh/m²)</td><td>total energy ÷ floor area, computed at render time for pre and post separately</td><td><code>EGHFCONTOTAL</code>, <code>FLOORAREA</code></td></tr>
+          <tr><td>Average measures per home</td><td>sum of the 8 measure-flag counts (section D) ÷ matched-home count</td><td>all 8 <code>*_Upgrade</code>/<code>*_Change</code>/<code>HeatPump_Addition</code> flags</td></tr>
           <tr><td><code>FuelSwitch</code></td><td>primary heating fuel differs between D and E</td><td><code>FURNACEFUEL</code> (D ≠ E)</td></tr>
           <tr><td><code>Shallow_Retrofit</code></td><td>post is 90–100% of pre total energy (saved ≤ 10%)</td><td><code>EGHFCONTOTAL</code></td></tr>
           <tr><td><code>Medium_Retrofit</code></td><td>post is 50–90% of pre (saved 10–50%)</td><td><code>EGHFCONTOTAL</code></td></tr>
@@ -902,6 +906,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
       <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
       <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
+      <p><strong>Map colour scale.</strong> Shapes are filled on a diverging scale centred on 0% median saving (green = saved energy, red = used more), or a sequential navy scale by audited-home count when no FSA in view has a saving figure. Both use a gamma-corrected mix (<code>t^0.55</code> rather than a straight linear blend from the pale base colour) so low-magnitude areas — most of a typical province's range — separate visually instead of bunching near-white; the legend bar is sampled from the same function so it matches the fill exactly. Each shape additionally prints its own median saving % at its bounding-box centre, sized off that shape's own footprint (small FSAs below a legibility floor are left unlabelled rather than showing an unreadable smudge).</p>
 
       <h4>G · Assumptions &amp; known limitations</h4>
       <p class="caveats"><strong>Fuel energy contents are published Government of Canada conversion factors</strong> (table in section B, sources cited per fuel), applied as single constants — not utility- or year-specific heating values (real delivered natural gas varies by a few percent). They reconcile with HOT2000's own totals to within ~1% (see the validation note in section B); the largest remaining assumption is the 14.0 GJ/t wood fallback on records that predate <code>EGHFCONWOODGJ</code>. Since the headline total (<code>EGHFCONTOTAL</code>) is converted from MJ exactly, none of this affects the savings figures.</p>
@@ -954,21 +959,34 @@ let SELECTED_TYPE='';         // house-type filter, used by BOTH views (province
                                // drives the precomputed slice; FSA view filters FILTERED as before)
 let MODE='none';              // 'none' | 'province' | 'fsa'
 
+// Fixed hex per fuel so a given fuel always reads the same colour across the
+// heating-fuel Sankey, the waterfall and the fuel-breakdown chart. Electricity
+// is green — it's overwhelmingly the cleanest option on every provincial grid
+// this tool covers — and every other fuel keeps a distinct, unrelated hue so
+// switching *into* electricity always visually reads as "toward green".
 const FUEL_COLORS={
-  'Oil':'#B33A2E','Electricity':'#378ADD','Propane':'#C8881A',
+  'Oil':'#B33A2E','Electricity':'#1A7A55','Propane':'#C8881A',
   'Mixed Wood':'#6B4C2A','Mixed wood':'#6B4C2A','Hardwood':'#8B6343',
   'Natural Gas':'#533AB7','Wood Pellets':'#A07040'
 };
 
 const MEASURES=[
-  {key:'Air_Tightness_Upgrade',        label:'Air sealing',           color:'#C8881A'},
-  {key:'Roof_Insulation_Upgrade',       label:'Roof insulation',       color:'#0B2545'},
-  {key:'Foundation_Insulation_Upgrade', label:'Foundation insulation', color:'#1A7A55'},
-  {key:'Wall_Insulation_Upgrade',       label:'Wall insulation',       color:'#378ADD'},
-  {key:'HeatPump_Addition',            label:'Heat pump added',        color:'#D85A30'},
-  {key:'Heating_Change',              label:'Heating system changed',  color:'#533AB7'},
-  {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0'},
-  {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82'},
+  {key:'Air_Tightness_Upgrade',        label:'Air sealing',           color:'#C8881A',
+    tip:'Counted when air leakage dropped by more than 10% between the two audits.'},
+  {key:'Roof_Insulation_Upgrade',       label:'Roof insulation',       color:'#0B2545',
+    tip:'Counted when roof/attic insulation value rose by more than 10% between the two audits.'},
+  {key:'Foundation_Insulation_Upgrade', label:'Foundation insulation', color:'#1A7A55',
+    tip:'Counted when foundation insulation value rose by more than 10% between the two audits.'},
+  {key:'Wall_Insulation_Upgrade',       label:'Wall insulation',       color:'#378ADD',
+    tip:'Counted when wall insulation value rose by more than 10% between the two audits.'},
+  {key:'HeatPump_Addition',            label:'Heat pump added',        color:'#D85A30',
+    tip:'Counted when no heat pump was recorded at the initial audit but one appears at the follow-up audit.'},
+  {key:'Heating_Change',              label:'Heating system changed',  color:'#533AB7',
+    tip:'Counted when the recorded heating fuel or equipment type differs between the two audits.'},
+  {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0',
+    tip:'Counted when the recorded window code differs between the two audits.'},
+  {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82',
+    tip:'Counted when exposed-floor insulation value rose by more than 10% between the two audits.'},
 ];
 
 // ── Section / measure icons ───────────────────────────────────────
@@ -1616,6 +1634,9 @@ function render(){
   $('s-solar').textContent=solarPost.toLocaleString();
   $('s-solar-sub').textContent=n?`${Math.round(solarPost/n*100)}% of matched homes`:'';
 
+  const totalMeasureFlags=MEASURES.reduce((s,m)=>s+FILTERED.filter(r=>flag(r,m.key)).length,0);
+  $('s-avg-measures').textContent=n?(totalMeasureFlags/n).toFixed(1):'—';
+
   toggleSlopegraphCard(true);
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
@@ -2122,8 +2143,12 @@ function renderFunnel(cfg){
   const selected=Math.min(cfg.selected!=null?cfg.selected:matched,matched);
   const filteredout=Math.max(0,matched-selected);
 
+  // AMBER/AMBERF give column 3 (your selection) its own hue distinct from
+  // column 2's green (matched pairs) — previously both "kept" nodes shared
+  // GREEN, so the 2nd and 3rd columns were hard to tell apart at a glance.
   const NAVY='#0B2545',BLUE='#378ADD',GREEN='#1A7A55',GREY='#8A9BB0',
-        GREYL='#AEB8C6',TAN='#B79A6A',PALE='#C6D0DB',GREENF='#B9D6C8';
+        GREYL='#AEB8C6',TAN='#B79A6A',PALE='#C6D0DB',
+        AMBER='#E8A124',AMBERF='#F2D9A6';
 
   const cw=svg.parentElement.clientWidth||700;
   const W=Math.max(cw,520),H=360,PAD=18,BAR=13;
@@ -2155,8 +2180,8 @@ function renderFunnel(cfg){
   place('notpaired',X2,y,notpaired,PALE,'Not paired','right');
   // col3: selected, filteredout — stacked from the 'matched' node's top
   y=nodes.matched.y;
-  y+=place('selected',X3,y,selected,GREEN,'Meets filters','left')+GAP;
-  place('filteredout',X3,y,filteredout,GREENF,'Filtered out','left');
+  y+=place('selected',X3,y,selected,AMBER,'Meets filters','left')+GAP;
+  place('filteredout',X3,y,filteredout,AMBERF,'Filtered out','left');
 
   const NS='http://www.w3.org/2000/svg';
   const pct=c=>Math.round(c/total*100);
@@ -2200,9 +2225,10 @@ function renderFunnel(cfg){
 
   setChartLegend('funnel-legend',[
     {label:'Both D & E',color:BLUE},
-    {label:'Matched / kept',color:GREEN},
+    {label:'Matched pairs',color:GREEN},
     {label:"Can't be paired",color:GREY},
     {label:'New build (P/N)',color:TAN},
+    {label:'Meets your filters',color:AMBER},
   ]);
 }
 
@@ -2894,7 +2920,7 @@ function renderMeasures(n){
     const c=FILTERED.filter(r=>flag(r,m.key)).length,p=Math.round(c/n*100);
     return{m,p};
   }).sort((a,b)=>b.p-a.p).map(({m,p})=>
-    `<div class="measure-row"><div class="measure-label">${m.label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${m.color}"></div></div><div class="bar-pct">${p}%</div></div>`
+    `<div class="measure-row"><div class="measure-label">${m.label}<button type="button" class="info-btn" aria-label="How is ${m.label} counted?" data-info="${m.tip}">?</button></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${m.color}"></div></div><div class="bar-pct">${p}%</div></div>`
   ).join('');
 }
 
@@ -3040,6 +3066,9 @@ function renderProvince(payload){
 
   $('s-solar').textContent=(slice.solar_post_count||0).toLocaleString();
   $('s-solar-sub').textContent=n?`${slice.solar_post_pct||0}% of matched homes`:'';
+
+  const totalMeasureFlags=(slice.measures||[]).reduce((s,m)=>s+(m.count||0),0);
+  $('s-avg-measures').textContent=n?(totalMeasureFlags/n).toFixed(1):'—';
 
   renderProvinceEUI(slice);
   renderProvinceGHG(slice);
@@ -3387,9 +3416,10 @@ function renderProvinceMeasures(slice){
   const n=slice.row_count||0;
   const measures=slice.measures||[];
   if(!n){$('measures-list').innerHTML='<div class="state-msg"><strong>No matches</strong></div>';return;}
-  $('measures-list').innerHTML=[...measures].sort((a,b)=>b.pct-a.pct).map(m=>
-    `<div class="measure-row"><div class="measure-label">${m.label}</div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${MEASURES.find(x=>x.key===m.key)?.color||'#8A9BB0'}"></div></div><div class="bar-pct">${m.pct}%</div></div>`
-  ).join('');
+  $('measures-list').innerHTML=[...measures].sort((a,b)=>b.pct-a.pct).map(m=>{
+    const def=MEASURES.find(x=>x.key===m.key);
+    return `<div class="measure-row"><div class="measure-label">${m.label}<button type="button" class="info-btn" aria-label="How is ${m.label} counted?" data-info="${def?.tip||''}">?</button></div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${def?.color||'#8A9BB0'}"></div></div><div class="bar-pct">${m.pct}%</div></div>`;
+  }).join('');
 }
 
 function renderProvinceHist(slice){
@@ -3786,6 +3816,30 @@ function setMapGradientLegend(gradientCss,leftLabel,midLabel,rightLabel){
     `<div class="map-grad-wrap"><div class="map-grad" style="background:${gradientCss}"></div>`+
     `<div class="map-grad-labels"><span>${leftLabel}</span>${midLabel!=null?`<span>${midLabel}</span>`:''}<span>${rightLabel}</span></div></div>`;
 }
+function lerpColor(lo,hi,t){
+  t=Math.max(0,Math.min(1,t));
+  const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));
+  return`rgb(${c.join(',')})`;
+}
+// Gamma-corrected lerp (t^GAMMA before mixing): a plain linear mix from a
+// near-white base spends most of its range still looking pale, so common
+// low-end values (e.g. 0-20% saved) barely differ from each other — which
+// was the original complaint ("0% and 40%+ look the same"). Raising t to a
+// power < 1 pushes colour away from the base faster at low t, so the low
+// end of the range separates visually while the far end still tops out at
+// the same saturated colour.
+const MAP_COLOR_GAMMA=0.55;
+function lerpColorGamma(lo,hi,t){
+  return lerpColor(lo,hi,Math.pow(Math.max(0,Math.min(1,t)),MAP_COLOR_GAMMA));
+}
+// Picks readable text colour (near-black vs white) against a given
+// "rgb(r,g,b)" fill, by relative luminance.
+function textColorForFill(rgbStr){
+  const m=rgbStr&&rgbStr.match(/\d+/g);
+  if(!m)return'#1C2B3A';
+  const[r,g,b]=m.map(Number);
+  return(0.299*r+0.587*g+0.114*b)/255>0.58?'#1C2B3A':'#fff';
+}
 function buildFsaColorScale(state){
   const vals=state.features.map(f=>state.indexByFsa[f.fsa]).filter(Boolean);
   const haveSavings=vals.some(e=>e.median_saving_pct!=null);
@@ -3793,34 +3847,36 @@ function buildFsaColorScale(state){
     const savings=vals.map(e=>e.median_saving_pct).filter(v=>v!=null);
     const lo=Math.min(...savings,0),hi=Math.max(...savings,0);
     $('map-color-meaning').textContent='median energy saving';
-    // Position the neutral 0% stop where 0 actually falls between lo and hi,
-    // so the legend bar matches the diverging fill ramp. When no area is
-    // negative (lo === 0) drop the red end entirely — a pure light→green
-    // sequential bar, instead of a red stop squeezed to 0% width.
-    if(lo>=0){
-      setMapGradientLegend('linear-gradient(90deg,#E8EDF4,#1A7A55)','0%',null,`+${Math.round(hi*100)}%<br>saved`);
-    }else{
-      const zeroPos=(hi-lo)>0?Math.round((0-lo)/(hi-lo)*100):50;
-      setMapGradientLegend(
-        `linear-gradient(90deg,#B33A2E,#E8EDF4 ${zeroPos}%,#1A7A55)`,
-        `${Math.round(lo*100)}%<br>uses more`,'0%',`+${Math.round(hi*100)}%<br>saved`);
-    }
-    return e=>{
+    const BASE=[234,246,238],POS=[9,74,48],NEG=[122,28,22];
+    const posColor=t=>lerpColorGamma(BASE,POS,t);
+    const negColor=t=>lerpColorGamma(BASE,NEG,t);
+    const colorOf=e=>{
       if(!e||e.median_saving_pct==null)return'#D3D9E2';
       const v=e.median_saving_pct;
-      return v>=0?lerpColor([232,237,244],[26,122,85],hi>0?v/hi:0):lerpColor([232,237,244],[179,58,46],lo<0?v/lo:0);
+      return v>=0?posColor(hi>0?v/hi:0):negColor(lo<0?v/lo:0);
     };
+    // Sample the actual (gamma-corrected) ramp at several stops so the
+    // legend bar — a CSS linear-gradient, which is inherently linear — still
+    // matches the non-linear fill above, instead of a flat 2-stop gradient
+    // that would misrepresent the real per-shape contrast.
+    const steps=10,stops=[];
+    for(let i=0;i<=steps;i++){
+      const t=i/steps,v=lo+t*(hi-lo);
+      stops.push(`${v>=0?posColor(hi>0?v/hi:0):negColor(lo<0?v/lo:0)} ${Math.round(t*100)}%`);
+    }
+    const gradientCss=`linear-gradient(90deg,${stops.join(',')})`;
+    if(lo>=0){
+      setMapGradientLegend(gradientCss,'0%',null,`+${Math.round(hi*100)}%<br>saved`);
+    }else{
+      setMapGradientLegend(gradientCss,`${Math.round(lo*100)}%<br>uses more`,'0%',`+${Math.round(hi*100)}%<br>saved`);
+    }
+    return colorOf;
   }
   const counts=vals.map(e=>e.row_count||0);
   const maxCount=Math.max(...counts,1);
   $('map-color-meaning').textContent='audited homes';
   setMapGradientLegend('linear-gradient(90deg,#E6ECF5,#0B2545)','0 homes',null,`${maxCount.toLocaleString()} homes`);
   return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxCount)):'#D3D9E2';
-}
-function lerpColor(lo,hi,t){
-  t=Math.max(0,Math.min(1,t));
-  const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));
-  return`rgb(${c.join(',')})`;
 }
 
 function paintFsaMap(){
@@ -3833,11 +3889,27 @@ function paintFsaMap(){
     const cls='fsa-shape'+(!entry?' no-data':'')+(f.fsa===SELECTED_FSA?' is-selected':'');
     return`<path class="${cls}" d="${f.d}" fill="${colorOf(entry)}" data-fsa="${f.fsa}" vector-effect="non-scaling-stroke"></path>`;
   }).join('');
+  // Median-saving % printed inside each shape, sized off that shape's own
+  // (unzoomed) bbox so bigger FSAs get bigger text and small ones shrink —
+  // and are skipped below a legibility floor rather than rendering as an
+  // unreadable smudge. pointer-events:none so hover/click still hit the
+  // path underneath. Only drawn in savings mode (audited-homes-count mode
+  // has no percentage to show).
+  const labelsMarkup=MAP_STATE.features.map(f=>{
+    const entry=MAP_STATE.indexByFsa[f.fsa];
+    if(!entry||entry.median_saving_pct==null)return'';
+    const[x0,y0,x1,y1]=f.bbox,bw=x1-x0,bh=y1-y0;
+    const fs=Math.min(24,Math.sqrt(bw*bh)*0.16);
+    if(fs<6)return'';
+    const pct=Math.round(entry.median_saving_pct*100);
+    const txt=`${pct>=0?'+':''}${pct}%`;
+    return`<text x="${(x0+x1)/2}" y="${(y0+y1)/2}" text-anchor="middle" dominant-baseline="middle" font-size="${fs.toFixed(1)}" font-family="Inter,sans-serif" font-weight="600" fill="${textColorForFill(colorOf(entry))}" pointer-events="none">${txt}</text>`;
+  }).join('');
   // #fsa-map-sharp-tiles sits between the base (province-wide) tiles and the
   // FSA shapes — loadSharpTiles fills it with a higher-zoom tile set scoped
   // to whichever FSA is zoomed into, so that view isn't just the base tiles
   // stretched blurry by the viewBox zoom. Empty at full-province zoom.
-  svg.innerHTML=MAP_STATE.tilesMarkup+'<g id="fsa-map-sharp-tiles"></g>'+shapesMarkup;
+  svg.innerHTML=MAP_STATE.tilesMarkup+'<g id="fsa-map-sharp-tiles"></g>'+shapesMarkup+labelsMarkup;
   if(!svg.dataset.wired){
     svg.addEventListener('mousemove',onFsaMapHover);
     svg.addEventListener('mouseleave',hideFsaMapTip);
