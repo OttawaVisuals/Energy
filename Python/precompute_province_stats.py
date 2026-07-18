@@ -150,6 +150,109 @@ def num(s):
     return pd.to_numeric(s, errors='coerce')
 
 
+# =============================================================================
+# ENERGY-COST PRICING (mirrors retrofits.html's priceVec/homeCost — keep in sync)
+# =============================================================================
+# Prices the per-fuel annual energy (kWh) each home used before/after against
+# current residential rates, so the page can show "$ saved" beside energy and
+# GHG. Rates come from prices_json/<prov>.json (the Heat Pump page's source:
+# electricity ¢/kWh + delivery adders, gas ¢/m³, oil $/L). Propane and wood
+# aren't carried there, so the screening constants below fill them in.
+#
+# IMPORTANT: every constant and formula in this block is duplicated in
+# retrofits.html (search "priceVec" / "homeCost" / "blendedElecPrice"). Change
+# one, change the other, or the precomputed province $-charts silently stop
+# matching the raw-row FSA $-charts for the same province.
+#
+# Simplifications (footnoted on the page): volumetric energy only (no fixed
+# monthly charges — they largely cancel pre-vs-post); one blended $/kWh per
+# province (retrofit rows carry annual kWh, not an hourly shape, so no TOU);
+# today's rates applied to audits spanning 2004-2025 ("what these homes would
+# save now", not a historical bill).
+
+PRICES_JSON_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prices_json")
+
+# province -> the representative city whose rate entry we price against
+RATE_CITY = {'ON': 'ottawa', 'QC': 'montreal', 'AB': 'calgary'}
+
+# Screening prices for fuels prices_json doesn't carry (low confidence).
+PROPANE_CAD_PER_L = 1.20   # ~residential propane retail, ON/QC 2024-25
+WOOD_CAD_PER_KWH = 0.05    # ~$350/cord hardwood ÷ ~7,000 kWh delivered; very rough
+
+# Invert the exact fuel->kWh factors ers_web_pipeline.py used to build the
+# Pre_/Post_ per-fuel columns, to recover m³/L for volumetric pricing.
+KWH_PER_M3_GAS = 10.3611
+KWH_PER_L_OIL = 10.7778
+KWH_PER_L_PROP = 7.0917
+
+# OEB typical residential off/mid/on TOU energy split (same weighting
+# rates_etl.py's validation uses) — collapses a TOU plan to one screening
+# $/kWh, since retrofit rows have no hourly load shape.
+TOU_SPLIT = {'off': 0.63, 'mid': 0.18, 'on': 0.19}
+
+COST_BIN = 250        # $/yr histogram bin width (mirrors BINS.cost in retrofits.html)
+COST_CAP = 8000       # clip pre/post annual bills above this, for scale
+COST_DELTA_CAP = 6000  # clip per-home savings above this, for scale
+
+
+def blended_elec_price(elec):
+    """One screening $/kWh (energy + delivery adders) for an electricity entry."""
+    adders = elec.get('volumetric_adders_cad_per_kwh', 0) or 0
+    plan = elec['plans'][elec['default_plan']]
+    if plan['type'] == 'flat':
+        return plan['price_cad_per_kwh'] + adders
+    if plan['type'] == 'tou':
+        p = plan['prices_cad_per_kwh']
+        return sum(TOU_SPLIT[k] * p[k] for k in TOU_SPLIT) + adders
+    if plan['type'] == 'tiered':
+        return plan['tiers'][0]['price_cad_per_kwh'] + adders  # tier-1 screening rate
+    return adders
+
+
+def price_vec_for(province):
+    """{elec,gas,oil,propane,wood} $/unit for a province, or None if unpriced."""
+    city = RATE_CITY.get(province)
+    if not city:
+        return None
+    path = os.path.join(PRICES_JSON_DIR, f"{province.lower()}.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding='utf-8') as f:
+        P = json.load(f)
+    elec = P.get('electricity', {}).get(city)
+    gas = P.get('natural_gas', {}).get(city)
+    oil = P.get('heating_oil', {}).get(city)
+    if not elec:
+        return None
+    return {
+        'elec': blended_elec_price(elec),
+        'gas': gas['marginal_cad_per_m3'] if gas else 0.0,
+        'oil': oil['cad_per_litre'] if oil else 0.0,
+        'propane': PROPANE_CAD_PER_L,
+        'wood': WOOD_CAD_PER_KWH,
+    }
+
+
+def add_cost_columns(df, pv):
+    """Attach _CostPre/_CostPost: annual energy $ (volumetric only) per home."""
+    def bill(prefix):
+        e = num(df.get(f'{prefix}_Electricity')).fillna(0)
+        g = num(df.get(f'{prefix}_NaturalGas')).fillna(0)
+        o = num(df.get(f'{prefix}_Oil')).fillna(0)
+        p = num(df.get(f'{prefix}_Propane')).fillna(0)
+        w = num(df.get(f'{prefix}_Wood')).fillna(0)
+        return (e * pv['elec']
+                + g / KWH_PER_M3_GAS * pv['gas']
+                + o / KWH_PER_L_OIL * pv['oil']
+                + p / KWH_PER_L_PROP * pv['propane']
+                + w * pv['wood'])
+    df = df.copy()
+    df['_CostPre'] = bill('Pre')
+    df['_CostPost'] = bill('Post')
+    return df
+
+
 def median(arr):
     """Mirrors median(arr) in JS: None if empty, else statistical median."""
     arr = np.asarray(arr, dtype=float)
@@ -257,6 +360,25 @@ def compute_slice(df):
     ghg_deltas = (ghg_pair['pre'] - ghg_pair['post'])
     ghg_deltas = ghg_deltas[(ghg_deltas > 0) & (ghg_deltas <= 30)].to_numpy()
     out['ghg_delta_bins'] = bin_counts(ghg_deltas, step=1)
+
+    # ---- Energy cost $ (mirrors renderCost() in retrofits.html) ----
+    # Only present when this province was priced (ON/QC/AB); other provinces
+    # skip these fields and the front end hides the $-card entirely.
+    if '_CostPre' in df.columns:
+        cpre = df['_CostPre'].to_numpy(dtype=float)
+        cpost = df['_CostPost'].to_numpy(dtype=float)
+        valid = cpre > 0  # drop homes with no priced energy (all-zero fuel data)
+        cpre_v, cpost_v = cpre[valid], cpost[valid]
+        cdelta_all = cpre_v - cpost_v
+        out['cost_pre_median'] = median(cpre_v)
+        out['cost_post_median'] = median(cpost_v)
+        # median of each home's OWN pre-post change (incl. increases), matching
+        # the s-cost-saving KPI and the EUI/GHG "median saving" convention.
+        out['cost_saving_median'] = median(cdelta_all)
+        out['cost_pre_bins'] = bin_counts(cpre_v, step=COST_BIN, max_val=COST_CAP)
+        out['cost_post_bins'] = bin_counts(cpost_v, step=COST_BIN, max_val=COST_CAP)
+        cdelta = cdelta_all[(cdelta_all > 0) & (cdelta_all <= COST_DELTA_CAP)]
+        out['cost_delta_bins'] = bin_counts(cdelta, step=COST_BIN)
 
     # ---- Solar (mirrors renderSolar()) ----
     pre_solar = num(df.get('Pre_SolarPV'))
@@ -504,6 +626,15 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
     df = pd.read_parquet(parquet_path)
     df = normalize_categoricals(df)
     print(f"  loaded {len(df):,} rows")
+
+    # Price per-fuel energy against current rates when this province is covered
+    # (ON/QC/AB). Adds _CostPre/_CostPost, which compute_slice bins into the
+    # $-saved chart; unpriced provinces skip it and the card stays hidden.
+    pv = price_vec_for(province)
+    if pv:
+        df = add_cost_columns(df, pv)
+        print(f"  priced against {RATE_CITY[province]}: elec {pv['elec']:.3f} $/kWh, "
+              f"gas {pv['gas']:.3f} $/m³, oil {pv['oil']:.2f} $/L")
 
     types = sorted(t for t in df['BldgType'].dropna().unique() if t)
     print(f"  house types: {types}")

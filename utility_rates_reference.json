@@ -1,0 +1,1244 @@
+{
+ "generated": "2026-07-18",
+ "purpose": "Standalone province-level reference table for rough savings estimates. For precise per-city/per-plan bill math see prices_json/ (built by rates_etl.py).",
+ "source": {
+  "name": "MaxPr1me/canada-utility-rates",
+  "url": "https://raw.githubusercontent.com/MaxPr1me/canada-utility-rates/main/site/data/rates.json",
+  "cadence": "monthly (1st)"
+ },
+ "method": {
+  "scope": "residential tariffs only",
+  "plan_selection": "one plan per utility: time-of-use > tiered > flat/market > ultra-low-overnight",
+  "tou_blend": {
+   "off": 0.63,
+   "mid": 0.18,
+   "on": 0.19
+  },
+  "tiered_blend": "tier-1 (lowest-tier) rate only",
+  "dedupe": "latest effective_date per (utility, tariff name); ties broken by most-populated record",
+  "carbon": "excluded (federal consumer fuel charge zero since 2025-04-01)",
+  "gj_to_m3": 0.03798,
+  "fixed_day_to_month": 30.4167,
+  "alberta": "deregulated energy (RRO retailer) + wires (distribution utility) tariffs averaged within their own group, then summed as separate bills, plus screening estimates for upstream gaps (see per-province notes)."
+ },
+ "units": {
+  "electricity": "cents_per_kwh (blended energy+adders); fixed_monthly_cad",
+  "natural_gas": "dollars_per_m3 (marginal, carbon excluded); fixed_monthly_cad"
+ },
+ "provinces": {
+  "AB": {
+   "electricity": {
+    "cents_per_kwh": 20.877,
+    "fixed_monthly_cad": 28.45,
+    "n_utilities": 7,
+    "confidence": "low",
+    "notes": [
+     "Deregulated market: 3 energy retailer(s) averaged + 4 wires utility(ies) averaged, summed as separate bills.",
+     "Upstream distribution tariffs omit the transmission volumetric charge; a screening estimate of 0.017 $/kWh is added (same constant as prices_json/ab.json), confidence downgraded to low."
+    ],
+    "sources": [
+     {
+      "utility": "Direct Energy Regulated Services",
+      "tariff_name": "Residential Regulated Rate Option",
+      "rate_structure": "market",
+      "value": 0.1762,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.directenergyregulatedservices.com/",
+      "fixed_monthly_cad": 5.95
+     },
+     {
+      "utility": "ENMAX Energy Corporation",
+      "tariff_name": "Residential Regulated Rate Option",
+      "rate_structure": "market",
+      "value": 0.1684,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.enmax.com/home/rates-and-billing/understand-your-bill/regulated-rate-option",
+      "fixed_monthly_cad": 5.95
+     },
+     {
+      "utility": "EPCOR Energy Alberta",
+      "tariff_name": "Residential Regulated Rate Option",
+      "rate_structure": "market",
+      "value": 0.1738,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.epcor.com/products-services/power/rates-tariffs/Pages/regulated-rate-option.aspx",
+      "fixed_monthly_cad": 5.95
+     },
+     {
+      "utility": "ATCO Electric",
+      "tariff_name": "Residential Distribution (Rate D11)",
+      "rate_structure": "flat",
+      "value": 0.0204,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-01-01",
+      "confidence": "high",
+      "source_url": "https://www.atco.com/en-ca/for-home/electricity/understand-your-bill.html",
+      "fixed_monthly_cad": 24.9
+     },
+     {
+      "utility": "ENMAX Power",
+      "tariff_name": "Residential Distribution (Rate D110)",
+      "rate_structure": "flat",
+      "value": 0.0192,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "high",
+      "source_url": "https://www.enmax.com/home/rates-and-billing/understand-your-bill",
+      "fixed_monthly_cad": 21.55
+     },
+     {
+      "utility": "EPCOR Distribution",
+      "tariff_name": "Residential Distribution (Rate D100)",
+      "rate_structure": "flat",
+      "value": 0.0186,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "high",
+      "source_url": "https://www.epcor.com/products-services/power/rates-tariffs/Pages/default.aspx",
+      "fixed_monthly_cad": 19.64
+     },
+     {
+      "utility": "FortisAlberta",
+      "tariff_name": "Residential Distribution (Rate D10)",
+      "rate_structure": "flat",
+      "value": 0.0177,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-01-01",
+      "confidence": "high",
+      "source_url": "https://www.fortisalberta.com/customer-service/rates-and-tariffs",
+      "fixed_monthly_cad": 23.89
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.1388,
+    "fixed_monthly_cad": 34.38,
+    "n_utilities": 3,
+    "confidence": "low",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01).",
+     "Upstream tariffs omit the default gas commodity/supply charge; a screening estimate of 2.25 $/GJ is added (same constant as prices_json/ab.json), confidence downgraded."
+    ],
+    "sources": [
+     {
+      "utility": "ATCO Gas",
+      "tariff_name": "Residential Distribution — North",
+      "rate_structure": "flat",
+      "value": 0.142839,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.atco.com/en-ca/for-home/natural-gas/natural-gas-rates.html",
+      "fixed_monthly_cad": 37.0,
+      "carbon_excluded_dollars_per_m3": 0.1262,
+      "ab_commodity_estimate_added_dollars_per_gj": 2.25
+     },
+     {
+      "utility": "ATCO Gas",
+      "tariff_name": "Residential Distribution — South",
+      "rate_structure": "flat",
+      "value": 0.138243,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.atco.com/en-ca/for-home/natural-gas/natural-gas-rates.html",
+      "fixed_monthly_cad": 34.14,
+      "carbon_excluded_dollars_per_m3": 0.1262,
+      "ab_commodity_estimate_added_dollars_per_gj": 2.25
+     },
+     {
+      "utility": "EPCOR Natural Gas",
+      "tariff_name": "Residential Distribution",
+      "rate_structure": "flat",
+      "value": 0.135399,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "low",
+      "source_url": "https://www.epcor.com/products-services/natural-gas/rates-and-billing/",
+      "fixed_monthly_cad": 32.0,
+      "carbon_excluded_dollars_per_m3": 0.1262,
+      "ab_commodity_estimate_added_dollars_per_gj": 2.25
+     }
+    ]
+   }
+  },
+  "BC": {
+   "electricity": {
+    "cents_per_kwh": 10.66,
+    "fixed_monthly_cad": 6.71,
+    "n_utilities": 2,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "BC Hydro",
+      "tariff_name": "Residential Service (Rate 1101)",
+      "rate_structure": "tiered",
+      "value": 0.1187,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-04-01",
+      "confidence": "high",
+      "source_url": "https://app.bchydro.com/accounts-billing/rates-energy-use/electricity-rates/residential-rates/tiered.html",
+      "fixed_monthly_cad": 7.13
+     },
+     {
+      "utility": "FortisBC Electric",
+      "tariff_name": "Residential Service (Rate 01)",
+      "rate_structure": "tiered",
+      "value": 0.0945,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "high",
+      "source_url": "https://www.fortisbc.com/electricity/electricity-rates",
+      "fixed_monthly_cad": 6.3
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.4071,
+    "fixed_monthly_cad": 14.48,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "FortisBC Energy",
+      "tariff_name": "Residential — Rate 1",
+      "rate_structure": "flat",
+      "value": 0.407108,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "high",
+      "source_url": "https://www.fortisbc.com/gas/gas-rates",
+      "fixed_monthly_cad": 14.48,
+      "carbon_excluded_dollars_per_m3": 0.1179
+     }
+    ]
+   }
+  },
+  "MB": {
+   "electricity": {
+    "cents_per_kwh": 9.12,
+    "fixed_monthly_cad": 35.81,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Manitoba Hydro",
+      "tariff_name": "Residential Service",
+      "rate_structure": "flat",
+      "value": 0.0912,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-01-01",
+      "confidence": "high",
+      "source_url": "https://www.hydro.mb.ca/accounts_and_services/rates/residential_rates/",
+      "fixed_monthly_cad": 35.81
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.2537,
+    "fixed_monthly_cad": 14.0,
+    "n_utilities": 1,
+    "confidence": "medium",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "Centra Gas Manitoba",
+      "tariff_name": "Residential — Small General Service",
+      "rate_structure": "flat",
+      "value": 0.2537,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.hydro.mb.ca/accounts-and-billing/rates/natural-gas-rates/",
+      "fixed_monthly_cad": 14.0,
+      "carbon_excluded_dollars_per_m3": 0.0
+     }
+    ]
+   }
+  },
+  "NB": {
+   "electricity": {
+    "cents_per_kwh": 15.84,
+    "fixed_monthly_cad": 30.87,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "NB Power",
+      "tariff_name": "Residential Service (Rate D)",
+      "rate_structure": "flat",
+      "value": 0.1584,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-04-14",
+      "confidence": "high",
+      "source_url": "https://www.nbpower.com/en/products-services/residential/rates",
+      "fixed_monthly_cad": 30.87
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.5137,
+    "fixed_monthly_cad": 18.0,
+    "n_utilities": 1,
+    "confidence": "medium",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "Liberty Utilities Gas NB",
+      "tariff_name": "Residential — Small General Service",
+      "rate_structure": "flat",
+      "value": 0.51368,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "low",
+      "source_url": "https://naturalgasnb.com/en/for-home/accounts-billing/customer-rate-classes/",
+      "fixed_monthly_cad": 18.0,
+      "carbon_excluded_dollars_per_m3": 0.1262
+     }
+    ]
+   }
+  },
+  "NL": {
+   "electricity": {
+    "cents_per_kwh": 15.728,
+    "fixed_monthly_cad": 16.18,
+    "n_utilities": 3,
+    "confidence": "low",
+    "notes": [
+     "Deregulated market: 2 energy retailer(s) averaged + 1 wires utility(ies) averaged, summed as separate bills.",
+     "Upstream distribution tariffs omit the transmission volumetric charge; a screening estimate of 0.017 $/kWh is added (same constant as prices_json/ab.json), confidence downgraded to low."
+    ],
+    "sources": [
+     {
+      "utility": "NL Hydro",
+      "tariff_name": "Rural Residential Service (Domestic)",
+      "rate_structure": "flat",
+      "value": 0.14793,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-01-01",
+      "confidence": "medium",
+      "source_url": "https://nlhydro.com/electicity-rates/current-rates/",
+      "fixed_monthly_cad": 19.42
+     },
+     {
+      "utility": "Newfoundland Power",
+      "tariff_name": "Domestic Service (Rate 1.1)",
+      "rate_structure": "flat",
+      "value": 0.13263,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-07-01",
+      "confidence": "high",
+      "source_url": "https://www.newfoundlandpower.com/en/My-Account/Usage/Electricity-Rates",
+      "fixed_monthly_cad": 12.94
+     },
+     {
+      "utility": "NL Hydro",
+      "tariff_name": "Labrador Interconnected Residential Service",
+      "rate_structure": "flat",
+      "value": 0.0,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2026-01-01",
+      "confidence": "medium",
+      "source_url": "https://nlhydro.com/electicity-rates/current-rates/",
+      "fixed_monthly_cad": 0.0
+     }
+    ]
+   }
+  },
+  "NS": {
+   "electricity": {
+    "cents_per_kwh": 19.128,
+    "fixed_monthly_cad": 20.08,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Nova Scotia Power",
+      "tariff_name": "Domestic Service",
+      "rate_structure": "flat",
+      "value": 0.19128,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-01-01",
+      "confidence": "high",
+      "source_url": "https://www.nspower.ca/your-home/residential-rates/standard-residential",
+      "fixed_monthly_cad": 20.08
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.7026,
+    "fixed_monthly_cad": 20.0,
+    "n_utilities": 1,
+    "confidence": "medium",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "Heritage Gas",
+      "tariff_name": "Residential — Small General Service",
+      "rate_structure": "flat",
+      "value": 0.70263,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "low",
+      "source_url": "https://eastwardenergy.com/for-home/rates/",
+      "fixed_monthly_cad": 20.0,
+      "carbon_excluded_dollars_per_m3": 0.1262
+     }
+    ]
+   }
+  },
+  "NT": {
+   "electricity": {
+    "cents_per_kwh": 34.14,
+    "fixed_monthly_cad": 28.0,
+    "n_utilities": 2,
+    "confidence": "low",
+    "notes": [
+     "Deregulated market: 1 energy retailer(s) averaged + 1 wires utility(ies) averaged, summed as separate bills.",
+     "Upstream distribution tariffs omit the transmission volumetric charge; a screening estimate of 0.017 $/kWh is added (same constant as prices_json/ab.json), confidence downgraded to low."
+    ],
+    "sources": [
+     {
+      "utility": "Northwest Territories Power Corporation",
+      "tariff_name": "Residential Service — Yellowknife Zone",
+      "rate_structure": "tiered",
+      "value": 0.3244,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://www.ntpc.com/customer-service/residential-service/current-rates",
+      "fixed_monthly_cad": 28.0
+     },
+     {
+      "utility": "Northwest Territories Power Corporation",
+      "tariff_name": "Residential Service — Diesel Zone",
+      "rate_structure": "tiered",
+      "value": 0.0,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://www.ntpc.com/customer-service/residential-service/current-rates",
+      "fixed_monthly_cad": 0.0
+     }
+    ]
+   }
+  },
+  "NU": {
+   "electricity": {
+    "cents_per_kwh": 72.0,
+    "fixed_monthly_cad": 50.0,
+    "n_utilities": 1,
+    "confidence": "low",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Qulliq Energy Corporation",
+      "tariff_name": "Residential Service",
+      "rate_structure": "tiered",
+      "value": 0.72,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "low",
+      "source_url": "https://www.qec.nu.ca/customer-care/accounts-billing/rates",
+      "fixed_monthly_cad": 50.0
+     }
+    ]
+   }
+  },
+  "ON": {
+   "electricity": {
+    "cents_per_kwh": 17.462,
+    "fixed_monthly_cad": 7.59,
+    "n_utilities": 53,
+    "confidence": "medium",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Alectra Utilities",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17207,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.4
+     },
+     {
+      "utility": "Algoma Power Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18607,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 11.22
+     },
+     {
+      "utility": "Atikokan Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17717,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.25
+     },
+     {
+      "utility": "Bluewater Power Distribution",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17317,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.43
+     },
+     {
+      "utility": "Brantford Power Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17397,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.77
+     },
+     {
+      "utility": "Burlington Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17067,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.69
+     },
+     {
+      "utility": "Canadian Niagara Power Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17367,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 9.1
+     },
+     {
+      "utility": "Centre Wellington Hydro Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17247,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.4
+     },
+     {
+      "utility": "Chapleau Public Utilities Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18187,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.85
+     },
+     {
+      "utility": "Elexicon Energy Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17187,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.92
+     },
+     {
+      "utility": "Entegrus Powerlines Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17437,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.84
+     },
+     {
+      "utility": "Enwin Utilities Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17607,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.87
+     },
+     {
+      "utility": "Erie Thames Powerlines Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17447,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.25
+     },
+     {
+      "utility": "Espanola Regional Hydro",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17917,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.5
+     },
+     {
+      "utility": "Essex Powerlines Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17357,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.54
+     },
+     {
+      "utility": "Festival Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17197,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.57
+     },
+     {
+      "utility": "Fort Frances Power Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17747,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.4
+     },
+     {
+      "utility": "Greater Sudbury Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17317,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.9
+     },
+     {
+      "utility": "Grimsby Power Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17247,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.82
+     },
+     {
+      "utility": "Guelph Hydro Electric Systems Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17337,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.64
+     },
+     {
+      "utility": "Halton Hills Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17127,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.28
+     },
+     {
+      "utility": "Hearst Power Distribution Co. Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18217,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 9.1
+     },
+     {
+      "utility": "Hydro 2000 Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17587,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.6
+     },
+     {
+      "utility": "Hydro Hawkesbury Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17507,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.9
+     },
+     {
+      "utility": "Hydro One Networks Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17567,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 30.77
+     },
+     {
+      "utility": "Hydro Ottawa Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18317,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.53
+     },
+     {
+      "utility": "Innpower Corporation",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17367,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.15
+     },
+     {
+      "utility": "Kingston Hydro Corporation",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17007,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.44
+     },
+     {
+      "utility": "Kitchener-Wilmot Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17067,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.73
+     },
+     {
+      "utility": "Lakefront Utilities Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17377,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.8
+     },
+     {
+      "utility": "Lakeland Power Distribution Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18027,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 10.98
+     },
+     {
+      "utility": "London Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17227,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.07
+     },
+     {
+      "utility": "Midland Power Utility Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17417,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.1
+     },
+     {
+      "utility": "Milton Hydro Distribution Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17017,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.26
+     },
+     {
+      "utility": "Newmarket-Tay Power Distribution Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17097,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.85
+     },
+     {
+      "utility": "Niagara Peninsula Energy Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17057,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 9.12
+     },
+     {
+      "utility": "North Bay Hydro Distribution Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17287,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.94
+     },
+     {
+      "utility": "Northern Ontario Wires Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.18117,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 9.25
+     },
+     {
+      "utility": "Oakville Hydro Electricity Distribution Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17147,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.62
+     },
+     {
+      "utility": "Orangeville Hydro Limited",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17237,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.98
+     },
+     {
+      "utility": "Oshawa PUC Networks Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17227,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.8
+     },
+     {
+      "utility": "Ottawa River Power Corporation",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17447,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.85
+     },
+     {
+      "utility": "PUC Distribution Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17367,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.45
+     },
+     {
+      "utility": "Rideau St. Lawrence Distribution Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17667,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.15
+     },
+     {
+      "utility": "Sioux Lookout Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17867,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 8.8
+     },
+     {
+      "utility": "St. Thomas Energy Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17377,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.72
+     },
+     {
+      "utility": "Synergy North Corporation",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17457,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 7.92
+     },
+     {
+      "utility": "Tillsonburg Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17297,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.95
+     },
+     {
+      "utility": "Toronto Hydro-Electric System Ltd.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17807,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "high",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.04
+     },
+     {
+      "utility": "Wasaga Distribution Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17217,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.7
+     },
+     {
+      "utility": "Waterloo North Hydro Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17157,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 5.56
+     },
+     {
+      "utility": "Welland Hydro-Electric System Corp.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17487,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "medium",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.11
+     },
+     {
+      "utility": "Westario Power Inc.",
+      "tariff_name": "Residential -- Time-of-Use (TOU)",
+      "rate_structure": "tou",
+      "value": 0.17417,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-11-01",
+      "confidence": "unverified",
+      "source_url": "https://www.oeb.ca/consumer-information-and-protection/electricity-rates",
+      "fixed_monthly_cad": 6.5
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.2429,
+    "fixed_monthly_cad": 28.44,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "Enbridge Gas",
+      "tariff_name": "Residential — Rate 1 (Union South)",
+      "rate_structure": "flat",
+      "value": 0.2429,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "high",
+      "source_url": "https://www.enbridgegas.com/residential/gas-charges",
+      "fixed_monthly_cad": 28.44,
+      "carbon_excluded_dollars_per_m3": 0.1239
+     }
+    ]
+   }
+  },
+  "PE": {
+   "electricity": {
+    "cents_per_kwh": 17.4,
+    "fixed_monthly_cad": 30.0,
+    "n_utilities": 1,
+    "confidence": "medium",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Maritime Electric",
+      "tariff_name": "Residential Service",
+      "rate_structure": "flat",
+      "value": 0.174,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://www.maritimeelectric.com/my-account/understanding-my-bill/understanding-rates/",
+      "fixed_monthly_cad": 30.0
+     }
+    ]
+   }
+  },
+  "QC": {
+   "electricity": {
+    "cents_per_kwh": 7.065,
+    "fixed_monthly_cad": 14.04,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "Hydro-Québec",
+      "tariff_name": "Rate D — Domestic",
+      "rate_structure": "tiered",
+      "value": 0.07065,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2026-04-01",
+      "confidence": "high",
+      "source_url": "https://www.hydroquebec.com/data/documents-donnees/pdf/electricity-rates.pdf",
+      "fixed_monthly_cad": 14.04
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.194,
+    "fixed_monthly_cad": 15.29,
+    "n_utilities": 1,
+    "confidence": "medium",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "Energir",
+      "tariff_name": "Residential — Rate D1",
+      "rate_structure": "flat",
+      "value": 0.193983,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "medium",
+      "source_url": "https://www.energir.com/en/residential/billing-and-rates/rates/",
+      "fixed_monthly_cad": 15.29,
+      "carbon_excluded_dollars_per_m3": 0.1262
+     }
+    ]
+   }
+  },
+  "SK": {
+   "electricity": {
+    "cents_per_kwh": 9.28,
+    "fixed_monthly_cad": 40.24,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [],
+    "sources": [
+     {
+      "utility": "SaskPower",
+      "tariff_name": "Residential Service",
+      "rate_structure": "flat",
+      "value": 0.0928,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2025-01-01",
+      "confidence": "high",
+      "source_url": "https://www.saskpower.com/accounts/power-rates/power-supply-rates",
+      "fixed_monthly_cad": 40.24
+     }
+    ]
+   },
+   "natural_gas": {
+    "dollars_per_m3": 0.2984,
+    "fixed_monthly_cad": 23.5,
+    "n_utilities": 1,
+    "confidence": "high",
+    "notes": [
+     "Federal carbon charge excluded (consumer fuel charge set to zero 2025-04-01)."
+    ],
+    "sources": [
+     {
+      "utility": "SaskEnergy",
+      "tariff_name": "Residential",
+      "rate_structure": "flat",
+      "value": 0.2984,
+      "unit": "$/m3 (marginal, carbon excluded)",
+      "effective_date": "2024-10-01",
+      "confidence": "high",
+      "source_url": "https://www.saskenergy.com/rates",
+      "fixed_monthly_cad": 23.5,
+      "carbon_excluded_dollars_per_m3": 0.1239
+     }
+    ]
+   }
+  },
+  "YT": {
+   "electricity": {
+    "cents_per_kwh": 14.96,
+    "fixed_monthly_cad": 22.91,
+    "n_utilities": 3,
+    "confidence": "low",
+    "notes": [
+     "Deregulated market: 2 energy retailer(s) averaged + 1 wires utility(ies) averaged, summed as separate bills.",
+     "Upstream distribution tariffs omit the transmission volumetric charge; a screening estimate of 0.017 $/kWh is added (same constant as prices_json/ab.json), confidence downgraded to low."
+    ],
+    "sources": [
+     {
+      "utility": "Yukon Electrical Company",
+      "tariff_name": "Residential Service",
+      "rate_structure": "tiered",
+      "value": 0.1326,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://www.yukonelectrical.com/customer-service/rates",
+      "fixed_monthly_cad": 28.33
+     },
+     {
+      "utility": "Yukon Energy",
+      "tariff_name": "Residential Service",
+      "rate_structure": "tiered",
+      "value": 0.1326,
+      "unit": "$/kWh (energy+adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://yukonenergy.ca/energy-in-yukon/electricity-rates",
+      "fixed_monthly_cad": 17.5
+     },
+     {
+      "utility": "Yukon Energy",
+      "tariff_name": "Residential Service — Diesel Communities",
+      "rate_structure": "tiered",
+      "value": 0.0,
+      "unit": "$/kWh (wires-only adders)",
+      "effective_date": "2024-04-01",
+      "confidence": "medium",
+      "source_url": "https://yukonenergy.ca/energy-in-yukon/electricity-rates",
+      "fixed_monthly_cad": 0.0
+     }
+    ]
+   }
+  }
+ }
+}
