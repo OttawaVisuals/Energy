@@ -41,29 +41,21 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
    [data-mode="advanced"] attribute on each Advanced-only section — no JS
    branching per section. !important is needed because some of these same
    elements also get inline style.display toggled by the FSA-vs-province
-   logic (toggleSlopegraphCard etc.) — that logic clears the inline style
-   (display:'') when shown, which this rule must still be able to override
-   in Simple mode. */
+   logic (showFsaFilterControls, toggleVintageCard etc.) — that logic clears
+   the inline style (display:'') when shown, which this rule must still be
+   able to override in Simple mode. */
 body.mode-simple [data-mode="advanced"]{display:none!important}
 /* Shortened captions for Simple, full technical captions for Advanced — two
    spans in the same .note, never two copies of the chart logic. */
 body.mode-simple .cap-advanced{display:none}
 body.mode-advanced .cap-simple{display:none}
-.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
-.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
+/* The mode toggle now lives in the white filter bar (moved out of the navy
+   header), so it's styled light: surface pill, muted labels, amber active. */
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 13px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
 .mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
-.mode-btn:not(.active):hover{color:var(--white)}
-@media(max-width:600px){.mode-btn{padding:5px 9px;font-size:11px}}
-/* #province-sel styling lives here, NOT in an inline style attribute: the
-   chevron data-URI contains double quotes, and \" inside an HTML attribute
-   is not an escape — it terminated the style attr early, spilling the rest
-   of the CSS out as garbage attributes and 404ing on a mangled URL. */
-#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
-/* #province-sel sets color:white for the closed control (legible on the
-   navy header), but <option> inherits that into its own popup, which the
-   browser renders on a plain white background — white-on-white. Force
-   dark text for the options specifically. */
-#province-sel option{color:#1C2B3A;background:#fff}
+.mode-btn:not(.active):hover{color:var(--navy)}
+@media(max-width:600px){.mode-btn{padding:5px 10px;font-size:11px}}
 
 /* ── Hero ── */
 /* Kept deliberately shallow: the eyebrow moved into the header bar and the
@@ -107,9 +99,25 @@ body.mode-advanced .cap-simple{display:none}
 .multi-select-panel input[type=checkbox]{height:auto;width:15px;border:none;padding:0;margin:0;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
 .filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--navy);color:var(--navy)}
+/* "Explore the map" button — reveals the (collapsed-by-default) FSA map so
+   people can pick an area visually instead of via a dropdown. Styled as a
+   navy-outline pill so it reads as an action, not another filter. */
+.filter-explore{height:36px;padding:0 16px;border:1px solid var(--navy);border-radius:var(--r-sm);background:var(--white);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;display:inline-flex;align-items:center;gap:7px}
+.filter-explore:hover{background:var(--navy);color:var(--white)}
+.filter-explore.is-open{background:var(--navy);color:var(--white)}
+.filter-explore .exp-ic{font-size:14px;line-height:1}
+/* Pushes the mode toggle (and reset) to the right end of the filter bar. */
+.filter-spacer{flex:1 1 0;min-width:0}
+@media(max-width:600px){.filter-spacer{display:none}}
 .filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}
+/* Current-area pill in the count bar. With the FSA dropdown gone, this is how
+   you see which area is selected and get back to the province-wide view. */
+.area-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--navy);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 4px 2px 11px;margin-right:8px;vertical-align:middle}
+.area-chip strong{font-weight:600}
+.area-clear{border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;padding:2px 8px;border-radius:16px;white-space:nowrap}
+.area-clear:hover{background:var(--navy);color:var(--white)}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
@@ -156,7 +164,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .methodology details[open] summary::after{content:'–'}
 .methodology summary:hover{background:var(--cream)}
 .methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
-.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem;scroll-margin-top:64px;border-radius:4px}
 .methodology .method-body p{margin:0 0 .6rem}
 .methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
@@ -259,6 +267,14 @@ tr.detail-row.open .detail-inner{display:block}
 .info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
 .info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
 #info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
+/* "Full details in methodology →" link inside a tooltip. The tip stays open
+   while the pointer is over it (see the hide-timer logic in JS) so the link
+   is actually reachable. */
+.info-tip-link{display:block;margin-top:7px;color:var(--amber2);font-weight:500;text-decoration:none;cursor:pointer}
+.info-tip-link:hover{text-decoration:underline}
+/* Brief highlight on the methodology heading an info link jumps to. */
+@keyframes method-flash{0%{background:rgba(232,161,36,.28)}100%{background:transparent}}
+.method-flash{animation:method-flash 1.6s ease-out}
 
 /* ── Misc ── */
 .state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
@@ -279,7 +295,6 @@ footer a:hover{color:var(--amber2)}
   .measure-label{width:120px}
   .header-badge{display:none}
   .sibling-link{display:none}
-  #province-sel{max-width:130px;font-size:12px}
   .logo{font-size:16px}
   .card{padding:1rem}
   .stat-value{font-size:1.6rem}
@@ -292,7 +307,6 @@ footer a:hover{color:var(--amber2)}
 }
 @media(max-width:420px){
   .logo{font-size:14px}
-  #province-sel{max-width:105px;font-size:11px}
   .stats-grid,.kpi-grid{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -359,51 +373,50 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
-    <div class="mode-toggle" role="group" aria-label="View mode">
-      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
-      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
-    </div>
-    <select id="province-sel">
-      <option value="CA" selected>All of Canada</option>
-      <option value="AB">Alberta</option>
-      <option value="BC">British Columbia</option>
-      <option value="MB">Manitoba</option>
-      <option value="NB">New Brunswick</option>
-      <option value="NF">Newfoundland & Labrador</option>
-      <option value="NT">Northwest Territories</option>
-      <option value="NS">Nova Scotia</option>
-      <option value="NU">Nunavut</option>
-      <option value="ON">Ontario</option>
-      <option value="PE">Prince Edward Island</option>
-      <option value="QC">Quebec</option>
-      <option value="SK">Saskatchewan</option>
-    </select>
     <div class="header-badge" id="header-badge">EnerGuide data</div>
   </div>
 </header>
 
 <div class="hero" id="hero-section">
   <h1>What did <em>homes like yours</em> do — and did it work?</h1>
-  <p class="hero-sub">Real audit data from Canadian homes. Enter your postal code — or pick a province and area — to see the estimated energy savings, or browse province-wide trends by house type.</p>
+  <p class="hero-sub">Real EnerGuide audit data. Enter your postal code to see the energy and emissions savings homes near you achieved.</p>
 </div>
 
 <div class="filter-sticky">
   <div class="filter-bar">
+    <div class="filter-group" style="flex:0 1 170px"><label for="province-sel">Province</label>
+      <select id="province-sel">
+        <option value="CA" selected>All of Canada</option>
+        <option value="AB">Alberta</option>
+        <option value="BC">British Columbia</option>
+        <option value="MB">Manitoba</option>
+        <option value="NB">New Brunswick</option>
+        <option value="NF">Newfoundland & Labrador</option>
+        <option value="NT">Northwest Territories</option>
+        <option value="NS">Nova Scotia</option>
+        <option value="NU">Nunavut</option>
+        <option value="ON">Ontario</option>
+        <option value="PE">Prince Edward Island</option>
+        <option value="QC">Quebec</option>
+        <option value="SK">Saskatchewan</option>
+      </select>
+    </div>
     <div class="filter-group" style="flex:0 1 200px"><label for="pc-input">Your postal code</label>
       <input id="pc-input" type="text" autocomplete="postal-code" maxlength="7" placeholder="e.g. K1A 0B1" aria-describedby="pc-hint">
     </div>
-    <div class="filter-group"><label for="fsa-sel">Your area — first 3 of postal code</label>
-      <select id="fsa-sel">
-        <option value="">All areas (province-wide)</option>
-      </select>
-    </div>
+    <button type="button" class="filter-explore" id="explore-btn" aria-expanded="false" style="display:none" onclick="toggleExploreMap()"><span class="exp-ic">◈</span><span id="explore-btn-text">Explore the map</span></button>
+    <!-- The area (FSA) is now chosen from the map or the postal box, not a
+         visible dropdown. This hidden <select> stays as the single source of
+         truth for the current area: the map click / postal jump set its value
+         and dispatch 'change', which runs the same selection logic as before. -->
+    <select id="fsa-sel" hidden aria-hidden="true" tabindex="-1"><option value="">All areas (province-wide)</option></select>
     <div class="filter-group"><label for="type-sel">House type</label>
       <select id="type-sel"><option value="">All types</option></select>
     </div>
-    <div class="filter-group" style="display:none"><label for="fuel-sel">Heating fuel</label>
+    <div class="filter-group" data-mode="advanced" style="display:none"><label for="fuel-sel">Heating fuel</label>
       <select id="fuel-sel"><option value="">All fuels</option></select>
     </div>
-    <div class="filter-group" style="display:none"><label for="depth-sel">Retrofit depth</label>
+    <div class="filter-group" data-mode="advanced" style="display:none"><label for="depth-sel">Retrofit depth</label>
       <select id="depth-sel">
         <option value="">Any depth</option>
         <option value="Deep_Retrofit">Deep — over 50% savings</option>
@@ -411,15 +424,21 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
         <option value="Shallow_Retrofit">Shallow — under 10%</option>
       </select>
     </div>
-    <div class="filter-group" style="display:none"><label id="measures-label" for="measures-btn">Measures done</label>
+    <div class="filter-group" data-mode="advanced" style="display:none"><label id="measures-label" for="measures-btn">Measures done</label>
       <div class="multi-select" id="measures-dd">
         <button type="button" class="multi-select-btn" id="measures-btn" aria-haspopup="true" aria-expanded="false"><span id="measures-btn-text">Any measures</span><span class="caret">&#9660;</span></button>
         <div class="multi-select-panel" id="measures-panel" role="group" aria-labelledby="measures-label"></div>
       </div>
     </div>
+    <div class="filter-spacer"></div>
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+    </div>
     <button class="filter-reset" onclick="resetFilters()">Reset</button>
   </div>
   <div class="filter-count-bar">
+    <span class="area-chip" id="area-chip" style="display:none"></span>
     <span class="filter-count"><strong id="result-count">—</strong> retrofits match</span>
     <span class="filter-count" id="small-n-warn" style="display:none;color:var(--amber)"> · Small sample — medians and percentages here are noisy, read them as rough indications only</span>
     <span class="filter-count" id="pc-hint" style="display:none;color:var(--red)" role="status"></span>
@@ -472,16 +491,23 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- Top stats -->
   <div class="stats-grid">
-    <div class="stat-card" id="s-selected-card"><div class="stat-label">Retrofits selected<button type="button" class="info-btn" aria-label="What does retrofits selected mean?" data-info="How many matched before/after homes match your current filters, and what share that is of every home in this postal area that has any EnerGuide audit on file — initial (D) or follow-up (E), matched or not. The audited-population denominator comes from the full ERS dataset, so it can be much larger than the matched pairs shown here.">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
+    <div class="stat-card" id="s-selected-card"><div class="stat-label">Retrofits selected<button type="button" class="info-btn" aria-label="What does retrofits selected mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
     <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
     <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
-    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's annual energy use, before and after, priced at the province's current residential rates (utility_rates_reference.json). It's the running-cost difference only — volumetric energy, no fixed monthly charges — and applies today's rates to audits spanning 2004–2025, so read it as 'what a home like this would save at current prices'.">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
-    <div class="stat-card"><div class="stat-label">Avg. measures per home<button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="The mean count of upgrade measures per matched home, out of the 8 tracked (roof, wall, foundation and floor insulation, air sealing, windows, heating system, heat pump added). A home with 0 shows no measure above the ±10% noise threshold; see 'What was upgraded' below for the breakdown by measure.">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub">measures · mean per home</div></div>
-    <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="A home counts as a deep retrofit when its audits show total energy use dropped by 50% or more. (Medium = 10–50% saved, shallow = under 10%.)">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="Homes with no heat pump recorded at the first audit and one recorded at the follow-up audit.">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Homes whose main heating fuel changed between the two audits — for example oil or natural gas to electricity.">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
-    <div class="stat-card"><div class="stat-label">Solar PV added<button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit. Panels are rarely recorded at the first audit, so this can slightly overcount homes that already had them.">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
+    <div class="stat-card"><div class="stat-label">Avg. measures per home<button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub">measures · mean per home</div></div>
+    <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="Total energy use dropped 50% or more. Medium = 10–50% saved, shallow = under 10%." data-method="m-derived">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="No heat pump at the first audit, one at the follow-up." data-method="m-measures">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
+    <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Main heating fuel changed between the two audits — e.g. oil or gas to electricity." data-method="m-derived">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
+    <div class="stat-card"><div class="stat-label">Solar PV added<button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+  </div>
+
+<!-- Energy saving distribution 1% — the headline outcome, right under the KPIs -->
+  <div class="card">
+    <div class="card-title">Energy saving distribution — 1% increments</div>
+    <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
+    <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits. Homes that added a heat pump almost never show an increase (0.2%; their median saving is ~29%).</span></p>
   </div>
 
 <!-- Audit funnel — how the area's full audited population narrows to the
@@ -489,7 +515,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
      for the area (recomputed only when the area changes); only the final split
      tracks the filter dropdowns. Advanced-only (a data-provenance view). -->
   <div class="card" id="funnel-card" data-mode="advanced" style="display:none">
-    <div class="card-title-row"><div class="card-title">From every audit to your selection<button type="button" class="info-btn" aria-label="How to read this funnel" data-info="Starts from every home in this area with any EnerGuide evaluation on file — retrofit audits (initial D, follow-up E) and new-construction audits (plan P, as-built N). Homes with both a D and an E are candidates for a before/after pair; those that form exactly one valid, date-ordered pair with no change in floor area, house type, storeys or dwelling count become the matched pairs this page analyses. The last split shows how many of those pairs match your current filters. Everything left of that last split stays fixed as you change filters — it only changes when you switch area.">?</button></div><div class="chart-legend-inline" id="funnel-legend"></div></div>
+    <div class="card-title-row"><div class="card-title">From every audit to your selection<button type="button" class="info-btn" aria-label="How to read this funnel" data-info="How every audited home in this area narrows to the matched before/after pairs, then to your filtered selection." data-method="m-pairing">?</button></div><div class="chart-legend-inline" id="funnel-legend"></div></div>
     <div style="overflow-x:auto;position:relative">
       <svg id="funnel-svg" style="width:100%;min-width:520px" height="360"></svg>
     </div>
@@ -498,15 +524,6 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 
 
-<!-- Energy saving distribution 1% -->
-  <div class="card">
-    <div class="card-title">Energy saving distribution — 1% increments</div>
-    <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits. Homes that added a heat pump almost never show an increase (0.2%; their median saving is ~29%).</span></p>
-  </div>
-
-  
-
   <div class="section-head">
     <h2 data-icon="energy">Energy &amp; emissions — before vs after</h2>
     <p class="sec-sub">How much each home used and emitted before and after the work, and how the fuel mix shifted.</p>
@@ -514,7 +531,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- EUI -->
   <div class="card">
-    <div class="card-title">Energy use intensity (EUI) — kWh per m²<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes sit at each level before the retrofit; the green curve shows the same homes after — green sitting further left means homes improved. The amber Improvement bars count only the homes that got better, showing how big their improvement was.">?</button></div>
+    <div class="card-title">Energy use intensity (EUI) — kWh per m²<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Energy use per m², before (navy) vs after (green). Amber bars show the size of each home's improvement." data-method="m-derived">?</button></div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Energy use per square metre, before and after — lower is more efficient.</span><span class="cap-advanced">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</span></p>
@@ -522,19 +539,10 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 
 
-<!-- EUI slopegraph — individual homes, FSA mode only (no row-level data in
-     province-wide view). Hidden by toggleSlopegraphCard(). -->
-  <div class="card" id="slopegraph-card" data-mode="advanced" style="display:none">
-    <div class="card-title-row"><div class="card-title">Every home, pre → post EUI</div><div class="chart-legend-inline" id="slope-legend"></div></div>
-    <div class="cw cw-lg"><canvas id="slope-chart"></canvas></div>
-    <p class="note">Each line is one matched home: left point = pre-retrofit EUI, right point = post-retrofit EUI. Colour = number of retrofit measures done (see legend) — darker lines did more, so a darker band ending lower shows whether doing more measures tracks with bigger drops. Lines are drawn at low opacity so darker bands show where homes cluster. Outliers above 500 kWh/m² clipped for scale, same as the chart above.</p>
-  </div>
-
-
 
 <!-- GHG emissions -->
   <div class="card">
-    <div class="card-title">GHG emissions — tCO2e per year<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes sit at each emissions level before the retrofit; the green curve shows the same homes after — green sitting further left means emissions fell. The amber Improvement bars count only the homes that improved, showing the size of their reduction.">?</button></div>
+    <div class="card-title">GHG emissions — tCO2e per year<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly emissions before (navy) vs after (green). Amber bars show the size of each home's reduction." data-method="m-units">?</button></div>
     <div class="eui-row" id="ghg-kpis"></div>
     <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Greenhouse gas emissions from home energy use, before and after.</span><span class="cap-advanced">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
@@ -547,7 +555,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
      elsewhere by renderCost/renderProvinceCost + the s-cost-card gate.
      Mirrors the EUI/GHG card. -->
   <div class="card" id="cost-card" style="display:none">
-    <div class="card-title">Energy bill — $ per year at current rates<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows each home's annual energy bill before the retrofit; the green curve shows the same homes after — green sitting further left means a smaller bill. The amber Improvement bars count only the homes whose bill dropped, showing how big the yearly saving was. Each home's before/after energy is priced at the province's current residential rates.">?</button></div>
+    <div class="card-title">Energy bill — $ per year at current rates<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly energy bill at today's rates, before (navy) vs after (green). Amber bars show the size of each home's saving." data-method="m-caveats">?</button></div>
     <div class="eui-row" id="cost-kpis"></div>
     <div class="cw cw-lg"><canvas id="cost-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (<code>utility_rates_reference.json</code>): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a flat national screening ¢/kWh (one rate applied to wood heating of any kind — no per-species breakdown exists). Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2025, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane, oil, and wood rates are single-province averages, lower confidence than the utility-tariff electricity/gas figures.</span></p>
@@ -558,7 +566,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 <!-- Design heat loss (kW — peak heating demand, NOT annual energy).
      Advanced-only: too technical a concept for the Simple view. -->
   <div class="card" data-mode="advanced">
-    <div class="card-title">Design heat loss — pre &amp; post (kW)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows how many homes need each amount of peak heating power before the retrofit; the green curve shows the same homes after — green further left means the envelope improved. The amber Improvement bars count only the homes that improved, showing the size of their reduction.">?</button></div>
+    <div class="card-title">Design heat loss — pre &amp; post (kW)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Peak heating power a home needs on the coldest day, before (navy) vs after (green). Amber bars show each reduction." data-method="m-derived">?</button></div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
     <p class="note"><span class="cap-simple">The heating power a home needs on the coldest design day — lower means a better-sealed, better-insulated home that's cheaper to keep warm.</span><span class="cap-advanced">Modelled design heat loss (kW) at the design outdoor temperature — the peak heating demand the envelope imposes, i.e. what heating equipment is sized against. A lower post value can allow a smaller furnace or heat pump at replacement time. Pre/post shown as filled areas; amber bars show the per-home reduction distribution.</span></p>
   </div>
@@ -595,7 +603,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
      Canada views use precomputed per-slice d_year_bins/e_year_bins (see
      renderProvinceAuditYearChart) so the chart works in every mode. -->
   <div class="card" id="audit-year-card" data-mode="advanced">
-    <div class="card-title-row"><div class="card-title" data-icon="individual">Audits per year — initial (D) &amp; follow-up (E)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Every EnerGuide audit in this area, counted by the year it was carried out. Each year has two bars: the initial (D) audit and the follow-up (E) audit of the matched before/after pairs. Solid = homes matching your current filters; faded = homes filtered out by them. When no filter is set, every home is selected, so nothing is faded.">?</button></div><div class="chart-legend-inline" id="audit-year-legend"></div></div>
+    <div class="card-title-row"><div class="card-title" data-icon="individual">Audits per year — initial (D) &amp; follow-up (E)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Audits by year — initial (D) and follow-up (E). Solid = matches your filters, faded = the rest." data-method="m-pairing">?</button></div><div class="chart-legend-inline" id="audit-year-legend"></div></div>
     <div class="cw cw-lg"><canvas id="audit-year-chart"></canvas></div>
     <p class="note">Initial (D) and follow-up (E) audits by year. <span class="cap-advanced">Two bars per year (D then E); </span>solid segments are the homes matching your current filters, faded segments are the rest — so you can see when the selected retrofits were done against all audit activity in the area.</p>
   </div>
@@ -618,7 +626,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- Insulation KPIs + distributions -->
   <div class="card">
-    <div class="card-title">Insulation &amp; air leakage — median pre → post<button type="button" class="info-btn" aria-label="How to read these charts" data-info="In the charts below, the navy curve shows how many homes sit at each level before the retrofit and the green curve after — for insulation, green further right is better; for air leakage, green further left is better. The amber Improvement bars count only the homes that improved on that measure, showing how big their improvement was.">?</button></div>
+    <div class="card-title">Insulation &amp; air leakage — median pre → post<button type="button" class="info-btn" aria-label="How to read these charts" data-info="Before (navy) vs after (green) for each measure. Amber bars count only the homes that improved on it." data-method="m-measures">?</button></div>
     <div class="kpi-grid" id="kpi-grid"></div>
     <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
     <div class="measure-chart-block">
@@ -778,16 +786,16 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <h4>1 · Where the data comes from</h4>
       <p>Every figure starts from Natural Resources Canada's <strong>EnerGuide / Energy Rating System (ERS)</strong> open dataset — the official record of home-energy audits across Canada, covering audit years <strong>2004–2025</strong>. An audit is a trained energy advisor visiting a home and modelling, with NRCan's HOT2000 software, how much energy it uses and where that energy is lost.</p>
 
-      <h4>2 · Matching "before" and "after"</h4>
+      <h4 id="m-pairing">2 · Matching "before" and "after"</h4>
       <p>Each audit record is tagged as an evaluation type. We treat type <strong>D</strong> as the <em>initial</em> ("before") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after") evaluation. A home is identified by a stable address ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
 
       <h4>3 · Making sure it's really the same home</h4>
       <p>To avoid accidentally comparing two different homes (or a home that had a major addition), a pair is kept only if, between the two audits, the <strong>floor area changed by no more than 10%</strong> and the <strong>house type, number of storeys, and number of dwelling units stayed the same</strong>. Pairs that fail these checks are removed before anything is counted.</p>
 
-      <h4>4 · Putting everything in the same units</h4>
+      <h4 id="m-units">4 · Putting everything in the same units</h4>
       <p>The source records each fuel in its own unit, so we convert everything to a common one — <strong>kilowatt-hours (kWh)</strong> — before comparing: natural gas from cubic metres, oil and propane from litres, wood from tonnes, and the overall total from megajoules. Electricity is already in kWh. Greenhouse-gas emissions come straight from the audit (tonnes CO₂e per year) and already include emissions from electricity using each province's grid mix, so fuel-switching to electricity is accounted for fairly.</p>
 
-      <h4>5 · Fields we calculate ourselves</h4>
+      <h4 id="m-derived">5 · Fields we calculate ourselves</h4>
       <p>From the audit values we derive the numbers you see:</p>
       <p><strong>EUI (energy use intensity)</strong> = total energy ÷ floor area, in <code>kWh/m²</code> — lets a small efficient home and a large one be compared fairly.<br>
       <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose. Negative cases are rare (~4% of homes) and mostly small: about three-quarters of them have no retrofit measure flagged, so they largely reflect modelling differences between the two audits rather than upgrades that backfired.<br>
@@ -796,7 +804,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.<br>
       <strong>Average measures per home</strong> = the mean, across matched homes, of how many of the 8 tracked upgrade measures (below) each home did — a home with insulation, air sealing and a heat pump added counts as 3. It is not a count of distinct upgrade "events", just how many of the 8 tracked categories cleared their threshold.</p>
 
-      <h4>6 · What counts as an "upgrade"</h4>
+      <h4 id="m-measures">6 · What counts as an "upgrade"</h4>
       <p>Each measure is flagged per home using a sensible threshold, so tiny modelling wiggles don't get counted as real work:</p>
       <p><strong>Roof / wall / foundation / floor insulation</strong> — the insulation value went up by more than 10%.<br>
       <strong>Air sealing</strong> — air leakage dropped by more than 10%.<br>
@@ -811,7 +819,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <h4>8 · How the histograms are built</h4>
       <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, design-heat-loss buckets <code>2 kW</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
 
-      <h4>9 · Things to keep in mind</h4>
+      <h4 id="m-caveats">9 · Things to keep in mind</h4>
       <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
       <p class="caveats"><strong>The sample is self-selected.</strong> Requiring both a before and an after audit means these are overwhelmingly homes that took part in retrofit incentive programs (which required the follow-up audit) and finished their planned work. Homeowners who renovated without a program, or who started and never booked the follow-up, are not captured — so the savings shown here are likely somewhat higher than what a randomly chosen renovation achieves, and the homes themselves skew toward owners motivated enough to go through a grant process.</p>
     </div>
@@ -1295,10 +1303,33 @@ document.addEventListener('touchstart',e=>{
 // text lives in its data-info attribute, so buttons can sit in static HTML
 // or in re-rendered innerHTML without any per-button wiring (event
 // delegation below survives innerHTML replacement).
-let _infoTipEl=null,_infoTipFor=null;
+let _infoTipEl=null,_infoTipFor=null,_infoHideTimer=null;
+function cancelInfoHide(){if(_infoHideTimer){clearTimeout(_infoHideTimer);_infoHideTimer=null;}}
+// Hide is deferred a beat so the pointer can travel from the "?" onto the tip
+// (to click the methodology link) without the tip vanishing underneath it.
+function scheduleInfoHide(){cancelInfoHide();_infoHideTimer=setTimeout(hideInfoTip,160);}
 function showInfoTip(btn){
-  if(!_infoTipEl){_infoTipEl=document.createElement('div');_infoTipEl.id='info-tip';document.body.appendChild(_infoTipEl);}
-  _infoTipEl.textContent=btn.dataset.info||'';
+  cancelInfoHide();
+  if(!_infoTipEl){
+    _infoTipEl=document.createElement('div');_infoTipEl.id='info-tip';document.body.appendChild(_infoTipEl);
+    // Hovering onto the tip keeps it open; leaving it schedules the hide.
+    _infoTipEl.addEventListener('mouseenter',cancelInfoHide);
+    _infoTipEl.addEventListener('mouseleave',scheduleInfoHide);
+  }
+  // textContent (not innerHTML) for the body so a data-info string can't inject
+  // markup; the optional methodology link is appended as a real element.
+  _infoTipEl.textContent='';
+  const body=document.createElement('span');
+  body.textContent=btn.dataset.info||'';
+  _infoTipEl.appendChild(body);
+  const method=btn.dataset.method;
+  if(method){
+    const a=document.createElement('a');
+    a.className='info-tip-link';a.href='#'+method;
+    a.textContent='Full details in methodology →';
+    a.addEventListener('click',ev=>openMethodology(ev,method));
+    _infoTipEl.appendChild(a);
+  }
   _infoTipEl.style.display='block';
   const r=btn.getBoundingClientRect();
   const tw=_infoTipEl.offsetWidth,th=_infoTipEl.offsetHeight;
@@ -1310,12 +1341,29 @@ function showInfoTip(btn){
   btn.classList.add('open');_infoTipFor=btn;
 }
 function hideInfoTip(){
+  cancelInfoHide();
   if(_infoTipEl)_infoTipEl.style.display='none';
   if(_infoTipFor)_infoTipFor.classList.remove('open');
   _infoTipFor=null;
 }
+// Opens the methodology <details> containing the target heading, scrolls to
+// it and flashes it — so an info-tip link reliably lands on the right spot
+// even though the section starts collapsed.
+function openMethodology(e,id){
+  if(e)e.preventDefault();
+  hideInfoTip();
+  const el=document.getElementById(id);
+  if(!el)return;
+  const det=el.closest('details');
+  if(det&&!det.open)det.open=true;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('method-flash');
+  void el.offsetWidth; // restart the animation if it's already been flashed
+  el.classList.add('method-flash');
+}
 // Click toggles (touch devices have no hover); clicking anywhere else closes.
 document.addEventListener('click',e=>{
+  if(e.target.closest('#info-tip'))return; // let clicks inside the tip (the link) through
   const b=e.target.closest('.info-btn');
   if(b){(_infoTipFor===b)?hideInfoTip():showInfoTip(b);return;}
   hideInfoTip();
@@ -1325,7 +1373,7 @@ document.addEventListener('mouseover',e=>{
   if(b&&_infoTipFor!==b)showInfoTip(b);
 });
 document.addEventListener('mouseout',e=>{
-  if(e.target.closest&&e.target.closest('.info-btn'))hideInfoTip();
+  if(e.target.closest&&e.target.closest('.info-btn'))scheduleInfoHide();
 });
 window.addEventListener('scroll',hideInfoTip,{passive:true});
 
@@ -1458,7 +1506,7 @@ function load(){
     SELECTED_FSA='';
     $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
     $('fsa-sel').disabled=true;
-    toggleFsaMapCard(false); // no combined Canada-wide map yet
+    setMapAvailable(false); // no combined Canada-wide map yet — hide the Explore button
     loadProvinceView(myToken);
     return;
   }
@@ -1508,6 +1556,7 @@ function loadFsaView(myToken){
     const fuelEl=$('fuel-sel');fuelEl.innerHTML='<option value="">All fuels</option>';
     fuels.forEach(f=>{const o=document.createElement('option');o.value=f;o.textContent=f;fuelEl.appendChild(o);});
     showFsaFilterControls(true);
+    updateAreaChip();
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} matched homes`;
     applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows; render() -> renderAdvancedSections() covers census
   }).catch(err=>{
@@ -1529,8 +1578,8 @@ function loadProvinceView(myToken){
     const types=Object.keys(payload.by_type);
     populateTypeDropdown(types);
     showFsaFilterControls(false);
+    updateAreaChip();
     toggleCensusCard(false); // census is FSA-level only — no province/Canada rollup yet
-    toggleSlopegraphCard(false); // needs row-level pre/post pairs, province view has none
     toggleVintageCard(false); // needs row-level YearBuilt + measure flags, province view has none
     toggleWindowChangesCard(false); // needs paired per-home pre/post codes, province view has none
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} matched homes`;
@@ -1542,6 +1591,31 @@ function loadProvinceView(myToken){
     document.querySelector('main').innerHTML=
       `<div class="state-msg"><strong>Could not load data</strong>Could not fetch the province summary for ${prov.name}.</div>`;
   });
+}
+
+// Current-area pill: shows which FSA is selected and offers a one-click way
+// back to the province-wide view (the job the FSA dropdown's "All areas"
+// option used to do, now that the dropdown is gone).
+function updateAreaChip(){
+  const chip=$('area-chip');
+  if(!chip)return;
+  if(SELECTED_FSA){
+    const prov=PROVINCES[PROVINCE_CODE];
+    chip.style.display='';
+    chip.innerHTML=`Area <strong>${SELECTED_FSA}</strong><button type="button" class="area-clear" onclick="clearArea()" aria-label="Show ${prov?prov.name:'province'}-wide instead">✕ all of ${prov?prov.short:'province'}</button>`;
+  }else{
+    chip.style.display='none';
+    chip.innerHTML='';
+  }
+}
+// Clear the selected area and fall back to the province-wide view. Routes
+// through the hidden #fsa-sel so it runs the same path as any other
+// area change (province render + map de-select).
+function clearArea(){
+  const fs=$('fsa-sel');
+  fs.value='';
+  fs.dispatchEvent(new Event('change',{bubbles:true}));
+  $('pc-input').value='';showPcHint('');
 }
 
 // Fuel + depth filters are FSA-view only (see project notes): province-wide
@@ -1637,7 +1711,6 @@ function render(){
   const totalMeasureFlags=MEASURES.reduce((s,m)=>s+FILTERED.filter(r=>flag(r,m.key)).length,0);
   $('s-avg-measures').textContent=n?(totalMeasureFlags/n).toFixed(1):'—';
 
-  toggleSlopegraphCard(true);
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
   renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderCost();
@@ -1660,7 +1733,7 @@ function renderAdvancedSections(){
   if(MODE==='fsa'){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
-    renderSlopegraph();renderVintageMeasures();renderWindowChanges();renderTable();
+    renderVintageMeasures();renderWindowChanges();renderTable();
     renderHeatLoss();renderAuditYearChart();
     const comp=compositionForSelectedFsa();
     renderFunnel(comp?{total:comp.t,de:comp.de,d:comp.d,e:comp.e,nc:comp.nc,
@@ -2258,120 +2331,9 @@ function renderEUI(preEUIs,postEUIs,saveMedian){
   drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
 }
 
-// ── EUI slopegraph (FSA mode only — needs row-level pre/post pairs) ──
-// Custom canvas, not Chart.js: hundreds of low-opacity individual lines is
-// not something Chart.js's per-dataset model handles cheaply, and there's
-// no need for per-line interactivity here (same reasoning as the fuel
-// breakdown chart above).
-function toggleSlopegraphCard(show){
-  $('slopegraph-card').style.display=show?'':'none';
-}
-
-// One distinct colour per measure-count increment (0..MEASURES.length),
-// rather than a smooth gradient — stepped hue from blue (fewest measures)
-// to red (most), so each count is visually distinguishable on its own.
-function hslToRgbStr(h,s,l){
-  s/=100;l/=100;
-  const k=n=>(n+h/30)%12;
-  const a=s*Math.min(l,1-l);
-  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
-  return[f(0),f(8),f(4)].map(v=>Math.round(v*255)).join(',');
-}
-function buildSlopePalette(n){
-  const out=[];
-  for(let i=0;i<=n;i++)out.push(hslToRgbStr(210-(210/n)*i,70,45));
-  return out;
-}
-
-let _slopeArgs=null,_slopeRO=null;
-function renderSlopegraph(){
-  const maxMeasures=MEASURES.length;
-  const palette=buildSlopePalette(maxMeasures);
-  const pairs=FILTERED.map(r=>{
-    const e0=num(r.Pre_TotalEnergy),e1=num(r.Post_TotalEnergy),a=num(r.FloorArea);
-    if(e0==null||e1==null||!a||a<=0)return null;
-    const pre=e0/a,post=e1/a;
-    if(pre>500||post>500)return null; // clip outliers, same cap as the EUI chart above
-    const measureCount=MEASURES.filter(m=>flag(r,m.key)).length;
-    return[pre,post,measureCount];
-  }).filter(Boolean);
-  // Draw higher measure-counts last so the rarer, more-interesting lines
-  // aren't buried under the (usually much larger) low-count mass.
-  pairs.sort((a,b)=>a[2]-b[2]);
-  _slopeArgs=[pairs,palette];
-  setChartLegend('slope-legend',palette.map((c,i)=>(
-    {label:i===maxMeasures?`${i}+`:`${i}`,color:`rgb(${c})`}
-  )));
-  const canvas=$('slope-chart');
-  if(!_slopeRO){
-    _slopeRO=new ResizeObserver(()=>{ if(_slopeArgs)paintSlopegraph(..._slopeArgs); });
-    _slopeRO.observe(canvas.parentElement);
-  }
-  paintSlopegraph(pairs,palette);
-}
-
-function paintSlopegraph(pairs,palette){
-  const canvas=$('slope-chart');
-  const wrap=canvas.parentElement;
-  const wCss=wrap.clientWidth||300,hCss=wrap.clientHeight||280;
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=wCss*dpr;canvas.height=hCss*dpr;
-  canvas.style.width=wCss+'px';canvas.style.height=hCss+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,wCss,hCss);
-
-  if(!pairs.length){
-    ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
-    ctx.fillText('No data for this selection',wCss/2,hCss/2);
-    return;
-  }
-
-  const leftPad=68,rightPad=56,topPad=14,bottomPad=28;
-  const xLeft=leftPad,xRight=wCss-rightPad;
-  const yTop=topPad,yBot=hCss-bottomPad;
-  const maxVal=Math.max(...pairs.map(p=>Math.max(p[0],p[1])),1);
-  const y=v=>yBot-(v/maxVal)*(yBot-yTop);
-
-  // Gridlines + axis labels (4 evenly-spaced reference lines).
-  ctx.strokeStyle='#E8EDF4';ctx.lineWidth=1;ctx.font='11px Inter, sans-serif';
-  ctx.fillStyle='#8A9BB0';ctx.textAlign='right';
-  for(let i=0;i<=4;i++){
-    const v=maxVal*i/4,yy=y(v);
-    ctx.beginPath();ctx.moveTo(xLeft,yy);ctx.lineTo(xRight,yy);ctx.stroke();
-    ctx.fillText(Math.round(v).toLocaleString(),xLeft-8,yy+3);
-  }
-
-  // Column headers.
-  ctx.font='600 12px Inter, sans-serif';ctx.fillStyle='#5C6E82';
-  ctx.textAlign='left';ctx.fillText('Pre-retrofit',xLeft,yTop-2);
-  ctx.textAlign='right';ctx.fillText('Post-retrofit',xRight,yTop-2);
-
-  // Density-aware base opacity: fewer homes -> more opaque individual lines.
-  // High-measure-count homes are always the minority (most homes do 0-3
-  // measures) — without a boost their lines vanish under the much larger
-  // low-count mass at the same alpha, defeating the point of the colour
-  // encoding. Scale opacity up to 2x for the highest measure count.
-  const baseAlpha=Math.max(0.04,Math.min(0.5,40/pairs.length));
-  const maxIdx=palette.length-1;
-  ctx.lineWidth=1.1;
-  pairs.forEach(([pre,post,measureCount])=>{
-    const idx=Math.min(measureCount,maxIdx);
-    const alpha=Math.min(baseAlpha*(0.7+1.3*(idx/maxIdx)),0.9);
-    ctx.strokeStyle=`rgba(${palette[idx]},${alpha})`;
-    ctx.beginPath();
-    ctx.moveTo(xLeft,y(pre));
-    ctx.lineTo(xRight,y(post));
-    ctx.stroke();
-  });
-
-  ctx.save();
-  ctx.translate(14,(yTop+yBot)/2);
-  ctx.rotate(-Math.PI/2);
-  ctx.font='11px Inter, sans-serif';ctx.fillStyle='#8A9BB0';ctx.textAlign='center';
-  ctx.fillText('kWh/m²',0,0);
-  ctx.restore();
-}
+// ── (removed) EUI slopegraph "Every home, pre → post EUI" ──
+// The per-home slopegraph was dropped — it read as a dense band rather than a
+// clear comparison. The EUI distribution card above covers pre/post EUI.
 
 // ── GHG emissions ─────────────────────────────────────────────────
 function renderGHG(saveMedian){
@@ -3725,6 +3687,38 @@ function toggleFsaMapCard(show){
   $('fsa-map-card').style.display=show?'':'none';
 }
 
+// ── Explore-the-map toggle ──────────────────────────────────────────
+// The FSA map is collapsed by default; the "Explore the map" button in the
+// filter bar reveals it. The map is still built (hidden) whenever a province
+// loads, so opening it is instant and no data is fetched on click.
+let MAP_OPEN=false;      // is the map card currently expanded?
+let MAP_AVAILABLE=false; // does the current province have a usable map?
+function syncExploreBtn(){
+  const btn=$('explore-btn');
+  btn.classList.toggle('is-open',MAP_OPEN);
+  btn.setAttribute('aria-expanded',MAP_OPEN?'true':'false');
+  $('explore-btn-text').textContent=MAP_OPEN?'Hide the map':'Explore the map';
+}
+// Provinces with no boundary file (and "All of Canada") have no map: hide the
+// button and force the card closed.
+function setMapAvailable(avail){
+  MAP_AVAILABLE=avail;
+  $('explore-btn').style.display=avail?'':'none';
+  if(!avail)MAP_OPEN=false;
+  toggleFsaMapCard(avail&&MAP_OPEN);
+  syncExploreBtn();
+}
+function toggleExploreMap(){
+  if(!MAP_AVAILABLE)return;
+  MAP_OPEN=!MAP_OPEN;
+  toggleFsaMapCard(MAP_OPEN);
+  syncExploreBtn();
+  if(MAP_OPEN){
+    $('fsa-map-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(SELECTED_FSA)zoomFsaMapTo(SELECTED_FSA);
+  }
+}
+
 function projectRing(ring,originX,originY,z){
   return ring.map(([lon,lat])=>[lon2x(lon,z)-originX,lat2y(lat,z)-originY]);
 }
@@ -3734,7 +3728,7 @@ function ringsToPathD(rings){
 }
 
 function loadFsaMap(prov,fsaIndex){
-  toggleFsaMapCard(true);
+  setMapAvailable(true); // enables the Explore button; the card stays collapsed until the user opens it
   $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
   resetFsaMapZoom();
   // Census is only used here for the tooltip's population line, so don't
@@ -3803,6 +3797,7 @@ function loadFsaMap(prov,fsaIndex){
     console.error(err);
     $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Map not available for this province</text>';
     MAP_STATE=null;
+    setMapAvailable(false); // no boundary file for this province — drop the Explore button
   });
 }
 
