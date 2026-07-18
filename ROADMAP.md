@@ -10,7 +10,7 @@ API, and the on-disk state):**
 
 | Project | State |
 |---|---|
-| Retrofit Explorer | ✅ done, deployed — +4 additions 2026-07-17 (item 10); audit funnel + pairing-filter fix 2026-07-18 (item 11) |
+| Retrofit Explorer | ✅ done, deployed — +4 additions 2026-07-17 (item 10); audit funnel + pairing-filter fix 2026-07-18 (item 11); EnerGuide-demo visual polish 2026-07-18 (item 12) |
 | Construction Tracker | ✅ done, deployed — first scheduled refresh fires 2026-07-20 (monthly, 20th 14:00 UTC); not yet observed green |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
 | Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
@@ -1205,6 +1205,40 @@ only 0.1% were genuine unit changes.
   `retrofits.html`. Gate B is a month-precision date artifact (99.4% same-month ties); Gate A
   could relax to oldest-D + newest-E (99.6% date-valid) but risks merging separate retrofit
   rounds. See [[ers-pairing-dwellingunits-drop]] memory.
+
+---
+
+## 12. Retrofit Explorer — EnerGuide-demo visual polish (✅ 2026-07-18)
+
+Five presentation fixes to `retrofits.html` ahead of a demo to the EnerGuide team, no pipeline
+or data-contract changes — all front-end.
+
+1. **FSA map colour scale.** `buildFsaColorScale()` switched from a straight linear lerp to a
+   gamma-corrected one (`lerpColorGamma`, `t^0.55`): the old 0%→light-grey/40%→green ramp left
+   most of a province's real range (typically 0–40%) looking near-identical pale. The legend
+   gradient is now sampled from the same function (10 stops) instead of a flat 2-stop CSS
+   gradient, so it actually matches the fill. Each FSA shape also prints its own median-saving %
+   at its bbox centre (`paintFsaMap()`), sized off that shape's own footprint and skipped below
+   a legibility floor; text colour picked for contrast against its fill (`textColorForFill()`).
+2. **KPI row: 10 boxes, 2×5, reordered.** Added "Avg. measures per home" (mean of the 8 tracked
+   measure flags per matched home — computed client-side from existing data, no pipeline change)
+   to the `.stats-grid`, now fixed at `repeat(5,1fr)` (was `auto-fit`, which didn't reliably give
+   2 rows). Reordered to outcomes-first / activity-second: selected → energy → EUI → GHG → bill
+   saving, then avg. measures → deep retrofits → heat pumps → fuel switches → solar PV.
+3. **Audit funnel colours.** Columns 2 (Matched pairs) and 3 (Meets filters) both used the same
+   green, making the funnel's last two stages hard to tell apart. Column 3 ("Meets filters" /
+   "Filtered out") recoloured to amber (`#E8A124`/`#F2D9A6`), added to the funnel legend.
+4. **Heating-fuel Sankey.** `FUEL_COLORS` already assigned a fixed hex per fuel (this predates
+   the session) — only change was `Electricity` blue → green (`#1A7A55`), since electricity is
+   the cleanest option on every grid this tool covers and switching *into* it should read as
+   "toward green."
+5. **Per-measure info buttons.** The "What measures were done" card had one combined "?" covering
+   all 8 measures. Removed it; each `MEASURES` entry now carries its own `tip` string, rendered
+   as a per-row info button in both `renderMeasures()` (FSA) and `renderProvinceMeasures()`.
+
+Methodology updated in `retrofits.html`: "Fields we calculate ourselves" (avg. measures
+definition), Advanced section C (calculated-field table row), and a new "Map colour scale"
+paragraph in Advanced section F.
 
 ---
 
