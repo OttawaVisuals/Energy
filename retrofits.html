@@ -475,7 +475,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
     <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
     <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
-    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's annual energy use, before and after, priced at the province's current residential rates (the same rates the Heat Pump tool uses). It's the running-cost difference only — volumetric energy, no fixed monthly charges — and applies today's rates to audits spanning 2004–2025, so read it as 'what a home like this would save at current prices'. Only shown for Ontario, Quebec and Alberta, the provinces with rate data.">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
+    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's annual energy use, before and after, priced at the province's current residential rates (utility_rates_reference.json). It's the running-cost difference only — volumetric energy, no fixed monthly charges — and applies today's rates to audits spanning 2004–2025, so read it as 'what a home like this would save at current prices'.">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
     <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="A home counts as a deep retrofit when its audits show total energy use dropped by 50% or more. (Medium = 10–50% saved, shallow = under 10%.)">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="Homes with no heat pump recorded at the first audit and one recorded at the follow-up audit.">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Homes whose main heating fuel changed between the two audits — for example oil or natural gas to electricity.">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
@@ -541,13 +541,14 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   
 
 <!-- Energy bill $ — pre/post annual running cost at current rates.
-     ON/QC/AB only (prices_json coverage); hidden elsewhere by renderCost/
-     renderProvinceCost + the s-cost-card gate. Mirrors the EUI/GHG card. -->
+     All provinces/territories (utility_rates_reference.json coverage); hidden
+     elsewhere by renderCost/renderProvinceCost + the s-cost-card gate.
+     Mirrors the EUI/GHG card. -->
   <div class="card" id="cost-card" style="display:none">
     <div class="card-title">Energy bill — $ per year at current rates<button type="button" class="info-btn" aria-label="How to read this chart" data-info="The navy curve shows each home's annual energy bill before the retrofit; the green curve shows the same homes after — green sitting further left means a smaller bill. The amber Improvement bars count only the homes whose bill dropped, showing how big the yearly saving was. Each home's before/after energy is priced at the province's current residential rates.">?</button></div>
     <div class="eui-row" id="cost-kpis"></div>
     <div class="cw cw-lg"><canvas id="cost-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (the same <code>prices_json/</code> the Heat Pump tool uses): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a screening ¢/kWh. Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2025, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane and wood use screening price estimates. Shown only for Ontario, Quebec and Alberta.</span></p>
+    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (<code>utility_rates_reference.json</code>): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a flat national screening ¢/kWh (one rate applied to wood heating of any kind — no per-species breakdown exists). Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2025, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane, oil, and wood rates are single-province averages, lower confidence than the utility-tariff electricity/gas figures.</span></p>
   </div>
 
 
@@ -1026,60 +1027,51 @@ const BINS={
 // Prices each home's per-fuel annual energy (the Pre_/Post_ *_Electricity /
 // NaturalGas / Oil / Propane / Wood kWh columns) against current residential
 // rates, so the page can show "$ saved" beside energy and GHG. Rates come from
-// prices_json/<prov>.json — the same file the Heat Pump page uses (electricity
-// ¢/kWh + delivery adders, gas ¢/m³, oil $/L). Propane and wood aren't carried
-// there, so the screening constants below fill them in.
+// utility_rates_reference.json — one blended province-level number per fuel
+// (electricity, gas, heating oil, propane, heating wood), covering all 13
+// provinces/territories. Wood has no per-species breakdown in that dataset (a
+// single flat $/kWh, cited "no province-level wood price source found"), and
+// the retrofit rows only carry one combined Wood energy column anyway, so the
+// same rate is applied to wood heating of any kind.
 //
 // IMPORTANT: every constant/formula here is duplicated in
-// precompute_province_stats.py (search "priceVec"/"blended_elec_price"). Change
+// precompute_province_stats.py (search "priceVec"/"price_vec_for"). Change
 // one, change the other, or the raw-row FSA $-chart stops matching the
 // precomputed province $-chart for the same province.
 //
 // Simplifications (footnoted on the card): volumetric energy only (fixed
 // monthly charges largely cancel pre-vs-post and are excluded); one blended
-// $/kWh per province (rows carry annual kWh, not an hourly shape, so no TOU);
-// today's rates applied to audits spanning 2004-2025 — "what these homes would
-// save at current rates", not a historical bill.
-const COST_PRICES_BASE=`${BASE_URL}prices_json/`;   // prices_json/<prov>.json
-const COST_RATE_CITY={ON:'ottawa',QC:'montreal',AB:'calgary'}; // province -> priced city
-const PROPANE_CAD_PER_L=1.20;   // ~residential propane retail, low confidence
-const WOOD_CAD_PER_KWH=0.05;    // ~$350/cord hardwood ÷ ~7,000 kWh; very rough
+// $/kWh per province (rows carry annual kWh, not an hourly shape); today's
+// rates applied to audits spanning 2004-2025 — "what these homes would save
+// at current rates", not a historical bill.
+const COST_RATES_URL=`${BASE_URL}utility_rates_reference.json`;
+const COST_PROV_ALIAS={NF:'NL'}; // retrofit province code -> reference-dataset code
 // invert the exact fuel->kWh factors ers_web_pipeline.py used to build the
 // per-fuel columns, to recover m³/L for volumetric pricing
 const KWH_PER_M3_GAS=10.3611,KWH_PER_L_OIL=10.7778,KWH_PER_L_PROP=7.0917;
-const COST_TOU_SPLIT={off:0.63,mid:0.18,on:0.19}; // OEB typical residential split
 const COST_CAP=8000,COST_DELTA_CAP=6000;          // clip for scale (match precompute)
 const COST_PRICE_CACHE=new Map();                 // province code -> price vector | null
-
-// One blended $/kWh (energy + delivery adders) for an electricity entry.
-function blendedElecPrice(elec){
-  const adders=elec.volumetric_adders_cad_per_kwh||0;
-  const plan=elec.plans[elec.default_plan];
-  if(plan.type==='flat')return plan.price_cad_per_kwh+adders;
-  if(plan.type==='tou'){const p=plan.prices_cad_per_kwh;
-    return COST_TOU_SPLIT.off*p.off+COST_TOU_SPLIT.mid*p.mid+COST_TOU_SPLIT.on*p.on+adders;}
-  if(plan.type==='tiered')return plan.tiers[0].price_cad_per_kwh+adders; // tier-1 screening
-  return adders;
+let COST_RATES_PROMISE=null;
+function loadCostRates(){
+  if(!COST_RATES_PROMISE)COST_RATES_PROMISE=fetchJSON(COST_RATES_URL).catch(()=>null);
+  return COST_RATES_PROMISE;
 }
 // {elec,gas,oil,propane,wood} $/unit for a province, or null if not priced.
-// Cached; fetched lazily from prices_json when the province is ON/QC/AB.
+// Cached; fetched lazily from utility_rates_reference.json (single shared file).
 function fetchPriceVec(prov){
   if(COST_PRICE_CACHE.has(prov))return Promise.resolve(COST_PRICE_CACHE.get(prov));
-  const city=COST_RATE_CITY[prov];
-  if(!city){COST_PRICE_CACHE.set(prov,null);return Promise.resolve(null);}
-  return fetchJSON(`${COST_PRICES_BASE}${prov.toLowerCase()}.json`)
-    .then(P=>{
-      const elec=P.electricity&&P.electricity[city];
-      const gas=P.natural_gas&&P.natural_gas[city];
-      const oil=P.heating_oil&&P.heating_oil[city];
-      const pv=elec?{elec:blendedElecPrice(elec),
-        gas:gas?gas.marginal_cad_per_m3:0,oil:oil?oil.cad_per_litre:0,
-        propane:PROPANE_CAD_PER_L,wood:WOOD_CAD_PER_KWH,
-        elecUtility:elec.utility,effective:elec.effective_date}:null;
-      COST_PRICE_CACHE.set(prov,pv);
-      return pv;
-    })
-    .catch(()=>{COST_PRICE_CACHE.set(prov,null);return null;});
+  return loadCostRates().then(data=>{
+    const code=COST_PROV_ALIAS[prov]||prov;
+    const p=data&&data.provinces&&data.provinces[code];
+    const pv=p?{
+      elec:p.electricity.cents_per_kwh/100,
+      gas:p.natural_gas?p.natural_gas.dollars_per_m3:0,
+      oil:p.heating_oil?p.heating_oil.cad_per_litre:0,
+      propane:p.propane?p.propane.cad_per_litre:0,
+      wood:p.heating_wood?p.heating_wood.cad_per_kwh:0}:null;
+    COST_PRICE_CACHE.set(prov,pv);
+    return pv;
+  });
 }
 // Annual energy $ (volumetric only) for one home row at prefix 'Pre'|'Post'.
 function homeCost(r,prefix,pv){
@@ -1435,8 +1427,9 @@ function load(){
 
   // Set the province's energy-price vector for the $-saved card. Use the cache
   // synchronously if warm (revisits render the card right away); otherwise
-  // start null (card hidden) and fill it in when the fetch resolves. null for
-  // any province without rate data (everything but ON/QC/AB) — card stays hidden.
+  // start null (card hidden) and fill it in when the fetch resolves. All 13
+  // provinces/territories are priced now; only the synthetic "All of Canada"
+  // aggregate (PROVINCE_CODE 'CA', no matching entry) stays unpriced.
   COST_PV=COST_PRICE_CACHE.has(PROVINCE_CODE)?COST_PRICE_CACHE.get(PROVINCE_CODE):null;
   fetchPriceVec(PROVINCE_CODE).then(pv=>{if(myToken!==LOAD_TOKEN)return;COST_PV=pv;refreshCostCard();});
 

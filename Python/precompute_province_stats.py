@@ -155,30 +155,30 @@ def num(s):
 # =============================================================================
 # Prices the per-fuel annual energy (kWh) each home used before/after against
 # current residential rates, so the page can show "$ saved" beside energy and
-# GHG. Rates come from prices_json/<prov>.json (the Heat Pump page's source:
-# electricity ¢/kWh + delivery adders, gas ¢/m³, oil $/L). Propane and wood
-# aren't carried there, so the screening constants below fill them in.
+# GHG. Rates come from utility_rates_reference.json — one blended
+# province-level number per fuel (electricity, gas, heating oil, propane,
+# heating wood), covering all 13 provinces/territories. Wood has no
+# per-species breakdown in that dataset (a single flat $/kWh), and the
+# retrofit rows only carry one combined Wood energy column anyway, so the
+# same rate is applied to wood heating of any kind.
 #
 # IMPORTANT: every constant and formula in this block is duplicated in
-# retrofits.html (search "priceVec" / "homeCost" / "blendedElecPrice"). Change
+# retrofits.html (search "priceVec" / "homeCost" / "fetchPriceVec"). Change
 # one, change the other, or the precomputed province $-charts silently stop
 # matching the raw-row FSA $-charts for the same province.
 #
 # Simplifications (footnoted on the page): volumetric energy only (no fixed
 # monthly charges — they largely cancel pre-vs-post); one blended $/kWh per
-# province (retrofit rows carry annual kWh, not an hourly shape, so no TOU);
-# today's rates applied to audits spanning 2004-2025 ("what these homes would
-# save now", not a historical bill).
+# province (retrofit rows carry annual kWh, not an hourly shape); today's
+# rates applied to audits spanning 2004-2025 ("what these homes would save
+# now", not a historical bill).
 
-PRICES_JSON_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prices_json")
+UTILITY_RATES_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "utility_rates_reference.json")
 
-# province -> the representative city whose rate entry we price against
-RATE_CITY = {'ON': 'ottawa', 'QC': 'montreal', 'AB': 'calgary'}
-
-# Screening prices for fuels prices_json doesn't carry (low confidence).
-PROPANE_CAD_PER_L = 1.20   # ~residential propane retail, ON/QC 2024-25
-WOOD_CAD_PER_KWH = 0.05    # ~$350/cord hardwood ÷ ~7,000 kWh delivered; very rough
+# retrofit province code -> utility_rates_reference.json code
+PROV_ALIAS = {'NF': 'NL'}
 
 # Invert the exact fuel->kWh factors ers_web_pipeline.py used to build the
 # Pre_/Post_ per-fuel columns, to recover m³/L for volumetric pricing.
@@ -186,51 +186,37 @@ KWH_PER_M3_GAS = 10.3611
 KWH_PER_L_OIL = 10.7778
 KWH_PER_L_PROP = 7.0917
 
-# OEB typical residential off/mid/on TOU energy split (same weighting
-# rates_etl.py's validation uses) — collapses a TOU plan to one screening
-# $/kWh, since retrofit rows have no hourly load shape.
-TOU_SPLIT = {'off': 0.63, 'mid': 0.18, 'on': 0.19}
-
 COST_BIN = 250        # $/yr histogram bin width (mirrors BINS.cost in retrofits.html)
 COST_CAP = 8000       # clip pre/post annual bills above this, for scale
 COST_DELTA_CAP = 6000  # clip per-home savings above this, for scale
 
+_UTILITY_RATES = None
 
-def blended_elec_price(elec):
-    """One screening $/kWh (energy + delivery adders) for an electricity entry."""
-    adders = elec.get('volumetric_adders_cad_per_kwh', 0) or 0
-    plan = elec['plans'][elec['default_plan']]
-    if plan['type'] == 'flat':
-        return plan['price_cad_per_kwh'] + adders
-    if plan['type'] == 'tou':
-        p = plan['prices_cad_per_kwh']
-        return sum(TOU_SPLIT[k] * p[k] for k in TOU_SPLIT) + adders
-    if plan['type'] == 'tiered':
-        return plan['tiers'][0]['price_cad_per_kwh'] + adders  # tier-1 screening rate
-    return adders
+
+def _load_utility_rates():
+    global _UTILITY_RATES
+    if _UTILITY_RATES is None:
+        with open(UTILITY_RATES_PATH, encoding='utf-8') as f:
+            _UTILITY_RATES = json.load(f)
+    return _UTILITY_RATES
 
 
 def price_vec_for(province):
     """{elec,gas,oil,propane,wood} $/unit for a province, or None if unpriced."""
-    city = RATE_CITY.get(province)
-    if not city:
+    code = PROV_ALIAS.get(province, province)
+    p = _load_utility_rates()['provinces'].get(code)
+    if not p:
         return None
-    path = os.path.join(PRICES_JSON_DIR, f"{province.lower()}.json")
-    if not os.path.exists(path):
-        return None
-    with open(path, encoding='utf-8') as f:
-        P = json.load(f)
-    elec = P.get('electricity', {}).get(city)
-    gas = P.get('natural_gas', {}).get(city)
-    oil = P.get('heating_oil', {}).get(city)
-    if not elec:
-        return None
+    gas = p.get('natural_gas')
+    oil = p.get('heating_oil')
+    propane = p.get('propane')
+    wood = p.get('heating_wood')
     return {
-        'elec': blended_elec_price(elec),
-        'gas': gas['marginal_cad_per_m3'] if gas else 0.0,
+        'elec': p['electricity']['cents_per_kwh'] / 100,
+        'gas': gas['dollars_per_m3'] if gas else 0.0,
         'oil': oil['cad_per_litre'] if oil else 0.0,
-        'propane': PROPANE_CAD_PER_L,
-        'wood': WOOD_CAD_PER_KWH,
+        'propane': propane['cad_per_litre'] if propane else 0.0,
+        'wood': wood['cad_per_kwh'] if wood else 0.0,
     }
 
 
@@ -627,14 +613,16 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
     df = normalize_categoricals(df)
     print(f"  loaded {len(df):,} rows")
 
-    # Price per-fuel energy against current rates when this province is covered
-    # (ON/QC/AB). Adds _CostPre/_CostPost, which compute_slice bins into the
-    # $-saved chart; unpriced provinces skip it and the card stays hidden.
+    # Price per-fuel energy against current rates (utility_rates_reference.json
+    # covers all provinces/territories now). Adds _CostPre/_CostPost, which
+    # compute_slice bins into the $-saved chart; unpriced provinces (shouldn't
+    # happen) skip it and the card stays hidden.
     pv = price_vec_for(province)
     if pv:
         df = add_cost_columns(df, pv)
-        print(f"  priced against {RATE_CITY[province]}: elec {pv['elec']:.3f} $/kWh, "
-              f"gas {pv['gas']:.3f} $/m³, oil {pv['oil']:.2f} $/L")
+        print(f"  priced: elec {pv['elec']:.3f} $/kWh, gas {pv['gas']:.3f} $/m³, "
+              f"oil {pv['oil']:.2f} $/L, propane {pv['propane']:.2f} $/L, "
+              f"wood {pv['wood']:.3f} $/kWh")
 
     types = sorted(t for t in df['BldgType'].dropna().unique() if t)
     print(f"  house types: {types}")
