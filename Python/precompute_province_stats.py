@@ -50,6 +50,12 @@ import numpy as np
 OUTPUT_DIR = r"C:\ERS\web"                                   # same as pipeline OUTPUT_DIR
 PROVINCE_JSON_DIR = os.path.join(OUTPUT_DIR, "province_json")
 
+# Audit-composition sidecar (build_fsa_audit_totals.py). Its `by_province` block
+# supplies the fixed left-hand stages of the audit-funnel Sankey for the
+# province-wide view. Optional: if missing, the payload's `funnel` is null and
+# the front end falls back to matched-pairs-only.
+AUDIT_TOTALS_PATH = os.path.join(OUTPUT_DIR, "fsa_audit_totals.json")
+
 # Columns whose raw string values can vary in casing/whitespace across years
 # (e.g. 'Single detached' vs 'Single Detached') and must be normalized to one
 # canonical display string BEFORE any grouping/aggregation — otherwise the
@@ -458,6 +464,22 @@ def compute_slice(df):
     out['window_pre_top'] = top_n(out['window_pre_counts'], 5)
     out['window_post_top'] = top_n(out['window_post_counts'], 5)
 
+    # ---- Audit-year histograms (mirrors renderAuditYearChart()) ----
+    # Each matched pair contributes an initial (D = Pre_Date year) and a
+    # follow-up (E = Post_Date year) audit; one bin per calendar year in
+    # 1990-2035. Per-slice so the province view can render the chart with the
+    # selected house type solid and the rest faded (same as the FSA view). The
+    # parquet carries the full date strings (Pre_Date/Post_Date); the shipped
+    # FSA files keep only the year (see split_fsa_json.add_year_columns).
+    def year_counts(col):
+        if col not in df.columns:
+            return {}
+        yrs = pd.to_datetime(df[col], errors='coerce').dt.year
+        yrs = yrs[(yrs >= 1990) & (yrs <= 2035)].dropna().astype(int)
+        return {int(k): int(v) for k, v in yrs.value_counts().items()}
+    out['d_year_bins'] = year_counts('Pre_Date')
+    out['e_year_bins'] = year_counts('Post_Date')
+
     return out
 
 
@@ -465,7 +487,18 @@ def compute_slice(df):
 # Top-level: one province parquet -> one JSON with all house-type slices
 # =============================================================================
 
-def build_province_json(parquet_path, out_dir):
+def load_audit_totals():
+    """Audit-composition sidecar, or {} if not built. Shape:
+    {"by_fsa": {...}, "by_province": {PROV: {t,de,d,e,nc}}}."""
+    if not os.path.exists(AUDIT_TOTALS_PATH):
+        print(f"  -- no {os.path.basename(AUDIT_TOTALS_PATH)} found; funnel -> null"
+              f" (run build_fsa_audit_totals.py to populate it)")
+        return {}
+    with open(AUDIT_TOTALS_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def build_province_json(parquet_path, out_dir, prov_composition=None):
     province = Path(parquet_path).stem.replace('ers_web_', '')
     print(f"\n--- {province} ---")
     df = pd.read_parquet(parquet_path)
@@ -481,9 +514,20 @@ def build_province_json(parquet_path, out_dir):
         by_type[t] = compute_slice(sub)
         print(f"    {t}: {len(sub):,} rows")
 
+    # Audit-funnel fixed stages: composition of the province's audited population
+    # (all eval types, from the sidecar) plus the total matched-pair count
+    # (matched = every shipped row, i.e. len(df)). The dynamic last stage
+    # (homes meeting the current house-type filter) is derived client-side from
+    # each slice's row_count. null composition -> front end shows matched only.
+    funnel = None
+    if prov_composition:
+        funnel = dict(prov_composition)
+        funnel['matched'] = len(df)
+
     payload = {
         'province': province,
         'total_rows': len(df),
+        'funnel': funnel,
         'by_type': by_type,
     }
 
@@ -501,8 +545,10 @@ def main():
     if not parquet_files:
         print(f"!! no province parquets found in {OUTPUT_DIR}")
         return
+    by_province = load_audit_totals().get('by_province', {})
     for pf in parquet_files:
-        build_province_json(pf, PROVINCE_JSON_DIR)
+        province = Path(pf).stem.replace('ers_web_', '')
+        build_province_json(pf, PROVINCE_JSON_DIR, by_province.get(province))
     print(f"\ndone. {len(parquet_files)} province JSON files written to {PROVINCE_JSON_DIR}")
 
 

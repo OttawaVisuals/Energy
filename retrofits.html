@@ -481,7 +481,19 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="stat-card"><div class="stat-label">Solar PV added<button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit. Panels are rarely recorded at the first audit, so this can slightly overcount homes that already had them.">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
   </div>
 
-  
+<!-- Audit funnel — how the area's full audited population narrows to the
+     matched, filtered homes shown on the page. The three left stages are fixed
+     for the area (recomputed only when the area changes); only the final split
+     tracks the filter dropdowns. Advanced-only (a data-provenance view). -->
+  <div class="card" id="funnel-card" data-mode="advanced" style="display:none">
+    <div class="card-title-row"><div class="card-title">From every audit to your selection<button type="button" class="info-btn" aria-label="How to read this funnel" data-info="Starts from every home in this area with any EnerGuide evaluation on file — retrofit audits (initial D, follow-up E) and new-construction audits (plan P, as-built N). Homes with both a D and an E are candidates for a before/after pair; those that form exactly one valid, date-ordered pair with no change in floor area, house type, storeys or dwelling count become the matched pairs this page analyses. The last split shows how many of those pairs match your current filters. Everything left of that last split stays fixed as you change filters — it only changes when you switch area.">?</button></div><div class="chart-legend-inline" id="funnel-legend"></div></div>
+    <div style="overflow-x:auto;position:relative">
+      <svg id="funnel-svg" style="width:100%;min-width:520px" height="360"></svg>
+    </div>
+    <p class="note"><span class="cap-simple">How the full list of audited homes in this area narrows down to the matched before/after homes shown here, and how many match your filters.</span><span class="cap-advanced">Left to right: every audited home in the area → split by which evaluations it has → the ones that formed a valid before/after pair → the ones matching your current filters. Only the last step changes when you adjust filters. New-construction (P/N) homes and homes with only one retrofit audit can't be paired, so they end the funnel early.</span></p>
+  </div>
+
+
 
 <!-- Energy saving distribution 1% -->
   <div class="card">
@@ -563,7 +575,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <p class="sec-sub">Which measures were carried out, and how far insulation and airtightness actually moved.</p>
   </div>
 
-<!-- Audits per year & type (FSA mode only — needs row-level Pre/Post_Year) -->
+<!-- Audits per year & type. FSA view counts row-level Pre/Post_Year; province &
+     Canada views use precomputed per-slice d_year_bins/e_year_bins (see
+     renderProvinceAuditYearChart) so the chart works in every mode. -->
   <div class="card" id="audit-year-card" data-mode="advanced">
     <div class="card-title-row"><div class="card-title" data-icon="individual">Audits per year — initial (D) &amp; follow-up (E)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Every EnerGuide audit in this area, counted by the year it was carried out. Each year has two bars: the initial (D) audit and the follow-up (E) audit of the matched before/after pairs. Solid = homes matching your current filters; faded = homes filtered out by them. When no filter is set, every home is selected, so nothing is faded.">?</button></div><div class="chart-legend-inline" id="audit-year-legend"></div></div>
     <div class="cw cw-lg"><canvas id="audit-year-chart"></canvas></div>
@@ -1254,6 +1268,16 @@ function doreCountForSelectedFsa(){
   return e&&e.dore_count!=null?e.dore_count:null;
 }
 
+// Audit-type composition {t,de,d,e,nc} of the selected FSA, from its
+// _index.json entry — the fixed left-hand stages of the audit funnel. null when
+// no FSA is selected or the field is absent (data built before the funnel).
+function compositionForSelectedFsa(){
+  if(MODE!=='fsa'||!SELECTED_FSA)return null;
+  const idx=FSA_INDEX_CACHE.get(PROVINCE_CODE);
+  const e=idx&&idx.find(x=>x.fsa===SELECTED_FSA);
+  return e&&e.composition?e.composition:null;
+}
+
 function fetchFsaRows(prov,fsa){
   const key=`${prov}|${fsa}`;
   if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
@@ -1524,6 +1548,9 @@ function renderAdvancedSections(){
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
     renderSlopegraph();renderVintageMeasures();renderWindowChanges();renderTable();
     renderHeatLoss();renderAuditYearChart();
+    const comp=compositionForSelectedFsa();
+    renderFunnel(comp?{total:comp.t,de:comp.de,d:comp.d,e:comp.e,nc:comp.nc,
+      matched:ALL.length,selected:FILTERED.length}:null);
     if(SELECTED_FSA)renderCensus(SELECTED_FSA,ALL.length);
   }else if(MODE==='province'){
     if(!_lastProvincePayload||!_lastProvinceSlice)return;
@@ -1536,6 +1563,10 @@ function renderAdvancedSections(){
     renderProvinceSolar(_lastProvinceSlice);
     renderProvinceWaterfall(_lastProvinceSlice);
     renderAhriWindowProvince(_lastProvinceSlice);
+    renderProvinceAuditYearChart(_lastProvincePayload);
+    const f=_lastProvincePayload.funnel;
+    renderFunnel(f?{total:f.t,de:f.de,d:f.d,e:f.e,nc:f.nc,
+      matched:f.matched,selected:_lastProvinceSlice.row_count||0}:null);
   }
 }
 
@@ -1641,17 +1672,12 @@ function renderAreaHist(){
 // homes in the current FILTERED selection, the faded segment the ones filtered
 // out — so the reader sees when the selected retrofits happened against all
 // audit activity. Recomputes on every render(), i.e. whenever filters change.
-function renderAuditYearChart(){
+// Shared chart builder for the audits-per-year chart. `dSel/dUn/eSel/eUn` are
+// {year: count} maps: selected vs filtered-out, for initial (D) and follow-up
+// (E). Used by both the FSA view (from raw rows) and the province/Canada view
+// (from precomputed d_year_bins/e_year_bins) so the two produce identical bars.
+function drawAuditYearChart(dSel,dUn,eSel,eUn){
   dc('auditYear');
-  const sel=new Set(FILTERED);
-  const dSel={},dUn={},eSel={},eUn={};
-  const bump=(o,y)=>{o[y]=(o[y]||0)+1;};
-  ALL.forEach(r=>{
-    const inSel=sel.has(r);
-    const py=parseInt(r.Pre_Year),qy=parseInt(r.Post_Year);
-    if(py>=1990&&py<=2035)bump(inSel?dSel:dUn,py);
-    if(qy>=1990&&qy<=2035)bump(inSel?eSel:eUn,qy);
-  });
   const years=[...new Set([...Object.keys(dSel),...Object.keys(dUn),
     ...Object.keys(eSel),...Object.keys(eUn)].map(Number))].sort((a,b)=>a-b);
   const anyUnselected=years.some(y=>(dUn[y]||0)+(eUn[y]||0)>0);
@@ -1674,6 +1700,41 @@ function renderAuditYearChart(){
       scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
               y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
   });
+}
+
+function renderAuditYearChart(){
+  const sel=new Set(FILTERED);
+  const dSel={},dUn={},eSel={},eUn={};
+  const bump=(o,y)=>{o[y]=(o[y]||0)+1;};
+  ALL.forEach(r=>{
+    const inSel=sel.has(r);
+    const py=parseInt(r.Pre_Year),qy=parseInt(r.Post_Year);
+    if(py>=1990&&py<=2035)bump(inSel?dSel:dUn,py);
+    if(qy>=1990&&qy<=2035)bump(inSel?eSel:eUn,qy);
+  });
+  drawAuditYearChart(dSel,dUn,eSel,eUn);
+}
+
+// Province/Canada audits-per-year: precomputed per-slice year bins. The selected
+// house type is solid, the rest of the province faded (mirrors the FSA view's
+// selected-vs-filtered split). "All types" -> nothing faded. This is what makes
+// the chart work province-wide and for All of Canada (the FSA path needs
+// row-level Pre/Post_Year, which those views don't ship).
+function renderProvinceAuditYearChart(payload){
+  const allSlice=payload.by_type['All types']||{};
+  const selSlice=payload.by_type[SELECTED_TYPE||'All types']||allSlice;
+  const dAll=allSlice.d_year_bins||{},eAll=allSlice.e_year_bins||{};
+  const dSelB=selSlice.d_year_bins||{},eSelB=selSlice.e_year_bins||{};
+  const dSel={},dUn={},eSel={},eUn={};
+  const split=(all,selB,outSel,outUn)=>{
+    Object.keys(all).forEach(y=>{
+      const s=selB[y]||0;outSel[y]=s;
+      const u=(all[y]||0)-s;if(u>0)outUn[y]=u;
+    });
+  };
+  split(dAll,dSelB,dSel,dUn);
+  split(eAll,eSelB,eSel,eUn);
+  drawAuditYearChart(dSel,dUn,eSel,eUn);
 }
 
 // ── Donut helper ──────────────────────────────────────────────────
@@ -1939,6 +2000,117 @@ function renderSankey(){
     });
   }
   drawNodes(preNodes,true);drawNodes(postNodes,false);
+}
+
+// ── Audit funnel ───────────────────────────────────────────────────
+// A left→right funnel from an area's FULL audited population down to the
+// matched homes matching the current filters. Four stages:
+//   1  All audited homes (any D/E/P/N evaluation)
+//   2  by composition: Both D&E (continues), D only, E only, New build (P/N)
+//   3  Both D&E → Matched pairs (+ Not paired: >1 audit / E not after D / a
+//      structural change disqualified the pair)
+//   4  Matched pairs → Meets filters (+ Filtered out)
+// Stages 1-3 are FIXED for the area (recomputed only on area switch); only the
+// last split tracks the filters. `cfg` carries the raw stage counts:
+//   {total, de, d, e, nc, matched, selected}
+// derived leaks (notpaired = de-matched, filteredout = matched-selected) are
+// computed here so callers only pass what they measure directly.
+function renderFunnel(cfg){
+  const card=$('funnel-card');
+  const svg=$('funnel-svg');svg.innerHTML='';
+  if(!cfg||!(cfg.total>0)){if(card)card.style.display='none';return;}
+  if(card)card.style.display='';
+
+  const total=cfg.total;
+  const de=Math.min(cfg.de||0,total);
+  const dOnly=cfg.d||0,eOnly=cfg.e||0,nc=cfg.nc||0;
+  const matched=Math.min(cfg.matched||0,de);
+  const notpaired=Math.max(0,de-matched);
+  const selected=Math.min(cfg.selected!=null?cfg.selected:matched,matched);
+  const filteredout=Math.max(0,matched-selected);
+
+  const NAVY='#0B2545',BLUE='#378ADD',GREEN='#1A7A55',GREY='#8A9BB0',
+        GREYL='#AEB8C6',TAN='#B79A6A',PALE='#C6D0DB',GREENF='#B9D6C8';
+
+  const cw=svg.parentElement.clientWidth||700;
+  const W=Math.max(cw,520),H=360,PAD=18,BAR=13;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('height',H);
+  const usableH=H-PAD*2,GAP=7;
+  // The composition column (Both D&E / D-only / E-only / New build) stacks the
+  // most nodes, so its inter-node gaps are the binding constraint — bake that
+  // gap budget into the scale (up to 3 gaps for 4 nodes) so no column overflows
+  // the canvas. Zero-count nodes just leave a little slack.
+  const scale=(usableH-3*GAP)/total;
+
+  const X0=8,X1=Math.round(W*0.30),X2=Math.round(W*0.56),X3=W-104;
+  const nodes={};
+  const place=(key,x,y,count,color,label,side)=>{
+    const h=count>0?Math.max(2,count*scale):0;
+    nodes[key]={x,y,h,count,color,label,side};return h;
+  };
+  // col0
+  place('total',X0,PAD,total,NAVY,'All audited homes','right');
+  // col1: de, d, e, nc (trunk 'de' on top so the continuing flow hugs the top)
+  let y=PAD;
+  y+=place('de',X1,y,de,BLUE,'Both D & E','right')+GAP;
+  y+=place('d',X1,y,dOnly,GREY,'Initial (D) only','right')+GAP;
+  y+=place('e',X1,y,eOnly,GREYL,'Follow-up (E) only','right')+GAP;
+  place('nc',X1,y,nc,TAN,'New build (P/N)','right');
+  // col2: matched, notpaired — stacked from the 'de' node's top
+  y=nodes.de.y;
+  y+=place('matched',X2,y,matched,GREEN,'Matched pairs','right')+GAP;
+  place('notpaired',X2,y,notpaired,PALE,'Not paired','right');
+  // col3: selected, filteredout — stacked from the 'matched' node's top
+  y=nodes.matched.y;
+  y+=place('selected',X3,y,selected,GREEN,'Meets filters','left')+GAP;
+  place('filteredout',X3,y,filteredout,GREENF,'Filtered out','left');
+
+  const NS='http://www.w3.org/2000/svg';
+  const pct=c=>Math.round(c/total*100);
+  // Ribbons first, so node bars + labels paint on top.
+  const drawRibbons=(pk,order)=>{
+    const p=nodes[pk];let off=0;
+    order.forEach(ck=>{
+      const c=nodes[ck];if(!c||c.count<=0)return;
+      const x1=p.x+BAR,x2=c.x,y1=p.y+off,y2=c.y,h=c.h,mx=(x1+x2)/2;
+      const path=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2} L${x2},${y2+h} C${mx},${y2+h} ${mx},${y1+h} ${x1},${y1+h}Z`;
+      const el=document.createElementNS(NS,'path');
+      el.setAttribute('d',path);el.setAttribute('fill',c.color);el.setAttribute('opacity','0.5');
+      attachFlowTip(el,`${c.label} · ${c.count.toLocaleString()} homes (${pct(c.count)}% of all audited)`);
+      svg.appendChild(el);
+      off+=h;
+    });
+  };
+  drawRibbons('total',['de','d','e','nc']);
+  drawRibbons('de',['matched','notpaired']);
+  drawRibbons('matched',['selected','filteredout']);
+
+  // Node bars + haloed labels.
+  Object.values(nodes).forEach(n=>{
+    if(n.count<=0)return;
+    const rect=document.createElementNS(NS,'rect');
+    rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
+    rect.setAttribute('width',BAR);rect.setAttribute('height',n.h);
+    rect.setAttribute('fill',n.color);rect.setAttribute('rx',2);
+    attachFlowTip(rect,`${n.label} · ${n.count.toLocaleString()} homes (${pct(n.count)}% of all audited)`);
+    svg.appendChild(rect);
+    const t=document.createElementNS(NS,'text');
+    const tx=n.side==='left'?n.x-6:n.x+BAR+6;
+    t.setAttribute('x',tx);t.setAttribute('y',n.y+n.h/2+4);
+    t.setAttribute('text-anchor',n.side==='left'?'end':'start');
+    t.setAttribute('font-size','11');t.setAttribute('font-family','Inter,sans-serif');
+    t.setAttribute('fill','#1C2B3A');t.setAttribute('stroke','#fff');
+    t.setAttribute('stroke-width','3');t.setAttribute('paint-order','stroke');
+    t.textContent=`${n.label} · ${n.count.toLocaleString()}`;
+    svg.appendChild(t);
+  });
+
+  setChartLegend('funnel-legend',[
+    {label:'Both D & E',color:BLUE},
+    {label:'Matched / kept',color:GREEN},
+    {label:"Can't be paired",color:GREY},
+    {label:'New build (P/N)',color:TAN},
+  ]);
 }
 
 // ── EUI ───────────────────────────────────────────────────────────

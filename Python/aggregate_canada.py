@@ -74,12 +74,14 @@ def main():
         return
 
     slices = []
+    funnels = []
     total_rows = 0
     for path in PROVINCE_FILES:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         total_rows += data["total_rows"]
         slices.append(data["by_type"]["All types"])
+        funnels.append(data.get("funnel"))
 
     n_total = sum(s.get("row_count", 0) for s in slices)
 
@@ -94,6 +96,7 @@ def main():
         "floor_area_bins", "year_built_bins", "savings_pct_bins",
         "storey_counts", "type_counts",
         "ahri_counts", "window_pre_counts", "window_post_counts",
+        "d_year_bins", "e_year_bins",
     ]:
         out[key] = sum_bins(s.get(key, {}) for s in slices)
 
@@ -200,7 +203,17 @@ def main():
         if kw_weight else None
     )
 
-    payload = {"province": "CA", "total_rows": total_rows, "by_type": {"All types": out}}
+    # Audit-funnel: sum province composition + matched counts (all additive).
+    # Provinces with a null funnel (sidecar not built when they were generated)
+    # are skipped; if none carry one, the national funnel stays null.
+    present = [f for f in funnels if f]
+    out_funnel = (
+        {k: sum(f.get(k, 0) for f in present) for k in ('t', 'de', 'd', 'e', 'nc', 'matched')}
+        if present else None
+    )
+
+    payload = {"province": "CA", "total_rows": total_rows,
+               "funnel": out_funnel, "by_type": {"All types": out}}
     with open(CA_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
     print(f"Wrote {CA_JSON_PATH} — {total_rows:,} total rows across {len(PROVINCE_FILES)} provinces/territories")
