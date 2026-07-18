@@ -56,6 +56,12 @@ import numpy as np
 OUTPUT_DIR = r"C:\ERS\web"                          # same as pipeline OUTPUT_DIR
 FSA_JSON_DIR = os.path.join(OUTPUT_DIR, "fsa_json")
 
+# Per-FSA "audited population" totals (unique HOUSEIDs with any D or E audit),
+# written by build_fsa_audit_totals.py. Folded into each _index.json entry as
+# `dore_count` — the denominator for the Retrofit Explorer "retrofits selected"
+# KPI. Optional: if missing, dore_count is emitted as null.
+AUDIT_TOTALS_PATH = os.path.join(OUTPUT_DIR, "fsa_audit_totals.json")
+
 # Same normalization as precompute_province_stats.py — collapses casing
 # variants ('single detached' / 'Single Detached') to one canonical string
 # BEFORE writing files, so the FSA-view filters/dropdowns don't silently
@@ -245,8 +251,19 @@ def top_ahri_set(df, n=5, min_digits=4):
     return set(vals.value_counts().head(n).index)
 
 
-def split_province(parquet_path, out_root):
+def load_audit_totals():
+    """{PROVINCE: {FSA: dore_count}} sidecar, or {} if not yet built."""
+    if not os.path.exists(AUDIT_TOTALS_PATH):
+        print(f"  -- no {os.path.basename(AUDIT_TOTALS_PATH)} found; dore_count -> null"
+              f" (run build_fsa_audit_totals.py to populate it)")
+        return {}
+    with open(AUDIT_TOTALS_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def split_province(parquet_path, out_root, audit_totals=None):
     province = Path(parquet_path).stem.replace('ers_web_', '')
+    prov_totals = (audit_totals or {}).get(province, {})
     print(f"\n--- {province} ---")
     df = pd.read_parquet(parquet_path)
     df = normalize_categoricals(df)
@@ -288,7 +305,13 @@ def split_province(parquet_path, out_root):
         # convention used everywhere else on the page — for the FSA map.
         savings = pd.to_numeric(group['EnergySavingPct'], errors='coerce').dropna()
         median_saving_pct = round(float(savings.median()), 4) if len(savings) else None
-        index.append({'fsa': fsa, 'row_count': len(rows), 'median_saving_pct': median_saving_pct})
+        # Full audited population of this FSA (matched + unmatched homes with any
+        # D or E audit). Denominator for the "retrofits selected" KPI. null when
+        # the sidecar hasn't been built yet.
+        dore_count = prov_totals.get(fsa)
+        index.append({'fsa': fsa, 'row_count': len(rows),
+                      'median_saving_pct': median_saving_pct,
+                      'dore_count': dore_count})
         n_files += 1
 
     index.sort(key=lambda d: d['fsa'])
@@ -308,8 +331,9 @@ def main():
     if not parquet_files:
         print(f"!! no province parquets found in {OUTPUT_DIR}")
         return
+    audit_totals = load_audit_totals()
     for pf in parquet_files:
-        split_province(pf, FSA_JSON_DIR)
+        split_province(pf, FSA_JSON_DIR, audit_totals)
     print(f"\ndone. FSA JSON files written under {FSA_JSON_DIR}")
 
 

@@ -10,7 +10,7 @@ API, and the on-disk state):**
 
 | Project | State |
 |---|---|
-| Retrofit Explorer | ✅ done, deployed |
+| Retrofit Explorer | ✅ done, deployed — +4 additions 2026-07-17 (see item 10) |
 | Construction Tracker | ✅ done, deployed — first scheduled refresh fires 2026-07-20 (monthly, 20th 14:00 UTC); not yet observed green |
 | CEUD Explorer | ✅ done (all 5 sectors live) |
 | Geothermal | ✅ committed (`cf1c862`) & live: `…/Energy/Geothermal/output/` |
@@ -1137,6 +1137,34 @@ anchors/IDs working, mobile layout intact, dark mode intact. Verify
 in-browser at desktop and mobile widths, no console errors, screenshot
 each section.
 ```
+
+---
+
+## 10. Retrofit Explorer — post-launch additions (✅ DONE 2026-07-17)
+
+Four user-requested additions to `retrofits.html` (FSA view):
+
+1. **Audits-per-year × type chart** — new advanced card in "What was upgraded":
+   stacked bars per audit year, two stacks (initial D / follow-up E), each split
+   into the current filter selection (solid) vs filtered-out (faded). New
+   `renderAuditYearChart()`, called from `renderAdvancedSections()`; recomputes
+   with the filters.
+2. **"Retrofits selected" KPI** — new first stat-card: matched homes matching the
+   filters, and that as a % of the area's full audited population (every HOUSEID
+   with any D or E audit). Denominator = new `dore_count` field in each
+   `_index.json` entry (`doreCountForSelectedFsa()`).
+3. **Detail-panel layout fix** — pinned the envelope-measures column width in
+   `makeInlineSVG()` so the HVAC & energy subtable no longer shifts between homes.
+4. **Section/measure icons** — hand-crafted inline SVG line-icons (`ICONS` map +
+   `injectIcons()`), injected into section `<h2>`s and measure sub-chart titles
+   via `data-icon` attributes.
+
+**Data:** `dore_count` is produced by a new lightweight raw-CSV scan
+(`Python/build_fsa_audit_totals.py` → `C:\ERS\web\fsa_audit_totals.json`, ~2.15M
+HOUSEIDs, 1,692 FSA cells) and folded into `_index.json` by `split_fsa_json.py`
+(re-run from the existing parquet — the heavy `ers_web_pipeline.py` is untouched).
+Sanity: `dore_count ≥ row_count` for all 1,661 shipped FSAs, no nulls. Updated
+`_index.json` copied into the repo `fsa_json/<PROV>/`.
 
 ---
 

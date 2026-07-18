@@ -301,6 +301,17 @@ footer a:hover{color:var(--amber2)}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
 .section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px}
 
+/* ── Section / measure icons ──
+   Hand-crafted inline SVG line-icons injected by injectIcons() into any
+   element carrying a data-icon="<key>" attribute (see the ICONS map in JS).
+   Stroke uses currentColor so each icon inherits its heading's colour. Two
+   context sizes: larger + amber next to an <h2>, smaller + muted next to a
+   .measure-chart-title / .card-title. */
+.ic{display:inline-block;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.5;
+    stroke-linecap:round;stroke-linejoin:round;vertical-align:-.16em}
+h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align:-4px}
+.measure-chart-title .ic,.card-title .ic{width:14px;height:14px;margin-right:6px;color:inherit;opacity:.8}
+
 /* ── Equipment code lists (AHRI / windows): let the decoded name wrap and
    sit above a muted raw-code line, instead of the fixed-width insulation
    rows that share .measure-row/.measure-label. ── */
@@ -454,12 +465,13 @@ footer a:hover{color:var(--amber2)}
 <main>
 
   <div class="section-head">
-    <h2>Did the retrofits work?</h2>
+    <h2 data-icon="results">Did the retrofits work?</h2>
     <p class="sec-sub">The bottom-line outcome across every matched home in this view.</p>
   </div>
 
 <!-- Top stats -->
   <div class="stats-grid">
+    <div class="stat-card" id="s-selected-card"><div class="stat-label">Retrofits selected<button type="button" class="info-btn" aria-label="What does retrofits selected mean?" data-info="How many matched before/after homes match your current filters, and what share that is of every home in this postal area that has any EnerGuide audit on file — initial (D) or follow-up (E), matched or not. The audited-population denominator comes from the full ERS dataset, so it can be much larger than the matched pairs shown here.">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
     <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
     <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
@@ -481,7 +493,7 @@ footer a:hover{color:var(--amber2)}
   
 
   <div class="section-head">
-    <h2>Energy &amp; emissions — before vs after</h2>
+    <h2 data-icon="energy">Energy &amp; emissions — before vs after</h2>
     <p class="sec-sub">How much each home used and emitted before and after the work, and how the fuel mix shifted.</p>
   </div>
 
@@ -547,8 +559,15 @@ footer a:hover{color:var(--amber2)}
   
 
   <div class="section-head">
-    <h2>What was upgraded</h2>
+    <h2 data-icon="upgraded">What was upgraded</h2>
     <p class="sec-sub">Which measures were carried out, and how far insulation and airtightness actually moved.</p>
+  </div>
+
+<!-- Audits per year & type (FSA mode only — needs row-level Pre/Post_Year) -->
+  <div class="card" id="audit-year-card" data-mode="advanced">
+    <div class="card-title-row"><div class="card-title" data-icon="individual">Audits per year — initial (D) &amp; follow-up (E)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Every EnerGuide audit in this area, counted by the year it was carried out. Each year has two bars: the initial (D) audit and the follow-up (E) audit of the matched before/after pairs. Solid = homes matching your current filters; faded = homes filtered out by them. When no filter is set, every home is selected, so nothing is faded.">?</button></div><div class="chart-legend-inline" id="audit-year-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="audit-year-chart"></canvas></div>
+    <p class="note">Initial (D) and follow-up (E) audits by year. <span class="cap-advanced">Two bars per year (D then E); </span>solid segments are the homes matching your current filters, faded segments are the rest — so you can see when the selected retrofits were done against all audit activity in the area.</p>
   </div>
 
 <!-- Measures -->
@@ -574,25 +593,25 @@ footer a:hover{color:var(--amber2)}
     <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
-        <div class="measure-chart-title">Roof insulation</div>
+        <div class="measure-chart-title" data-icon="roof">Roof insulation</div>
       </div>
       <div class="cw cw-lg"><canvas id="roof-chart"></canvas></div>
     </div>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
-        <div class="measure-chart-title">Wall insulation</div>
+        <div class="measure-chart-title" data-icon="wall">Wall insulation</div>
       </div>
       <div class="cw cw-lg"><canvas id="wall-chart"></canvas></div>
     </div>
     <div class="measure-chart-block">
       <div class="measure-chart-title-row">
-        <div class="measure-chart-title">Foundation insulation</div>
+        <div class="measure-chart-title" data-icon="foundation">Foundation insulation</div>
       </div>
       <div class="cw cw-lg"><canvas id="fnd-chart"></canvas></div>
     </div>
     <div class="measure-chart-block" style="margin-bottom:0">
       <div class="measure-chart-title-row">
-        <div class="measure-chart-title">Air leakage</div>
+        <div class="measure-chart-title" data-icon="air">Air leakage</div>
       </div>
       <div class="cw cw-lg"><canvas id="air-chart"></canvas></div>
     </div>
@@ -610,7 +629,7 @@ footer a:hover{color:var(--amber2)}
   
 
   <div class="section-head" data-mode="advanced">
-    <h2>The homes in this view</h2>
+    <h2 data-icon="homes">The homes in this view</h2>
     <p class="sec-sub">Who these retrofitted homes are — vintage, size, type — and how they sit within the wider neighbourhood.</p>
   </div>
 
@@ -655,19 +674,19 @@ footer a:hover{color:var(--amber2)}
   
 
   <div class="section-head" data-mode="advanced">
-    <h2>Equipment detail</h2>
+    <h2 data-icon="equipment">Equipment detail</h2>
     <p class="sec-sub">Raw heat-pump and window references recorded for the matched homes.</p>
   </div>
 
 <!-- Heat pump AHRI numbers + window codes -->
   <div class="grid-2" data-mode="advanced">
     <div class="card">
-      <div class="card-title">Common heat pump models (AHRI number)</div>
+      <div class="card-title" data-icon="heatpump">Common heat pump models (AHRI number)</div>
       <div id="ahri-list" class="equip-list"></div>
       <p class="note">Top 5 most common AHRI certification numbers among heat pumps in matched homes (pre- and post-retrofit combined). Numbers outside the top 5 are not shown individually to avoid singling out near-unique installations. Where the AHRI certificate is on file, the line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency) and COP at 5°F, plus whether the unit is cold-climate certified — click the AHRI number for its directory page.</p>
     </div>
     <div class="card">
-      <div class="card-title">Common window codes</div>
+      <div class="card-title" data-icon="window">Common window codes</div>
       <div class="grid-2">
         <div>
           <div class="measure-chart-title" style="margin-bottom:.5rem">Pre-retrofit</div>
@@ -693,7 +712,7 @@ footer a:hover{color:var(--amber2)}
   
 
   <div class="section-head" id="sec-individual" data-mode="advanced">
-    <h2>Individual retrofits</h2>
+    <h2 data-icon="individual">Individual retrofits</h2>
     <p class="sec-sub">Every matched home in this postal area, one row each — click to expand. (Shown when a single area is selected.)</p>
   </div>
 
@@ -837,7 +856,7 @@ footer a:hover{color:var(--amber2)}
       <h4>E · Transformation pipeline (Python)</h4>
       <p><strong>Stage 1 — annual CSVs → one Parquet per province</strong> (<code>ers_web_pipeline.py</code>). The yearly source CSVs are too large to load in memory, so they are stream-read with PyArrow in ~100k-row batches, all columns as strings (numeric coercion happens later, per column). Three passes: (1) split each year's file into D and E Parquet intermediates per province; (2) build a cross-year pairing index of <code>HOUSEID</code> → (D year, E year) applying the exactly-one-D/one-E and date-order rules; (3) join each (D-year, E-year) group, apply the integrity filters, unit conversions, measure flags, and derived fields, and append to <code>ers_web_&lt;PROV&gt;.parquet</code> (Snappy compression, ~50 columns). One data-quality repair worth noting: some source years serialize the <code>AHRI</code> identifier as <code>211644151.0</code> and others as <code>211644151</code>; without normalizing the trailing <code>.0</code>, ~20% of Ontario's "distinct" AHRI numbers were duplicates of this kind.</p>
       <p><strong>Stage 2 — Parquet → static JSON</strong>. Three scripts read the province Parquet files and emit everything the page fetches:</p>
-      <p><code>split_fsa_json.py</code> writes one file per FSA (<code>fsa_json/&lt;PROV&gt;/&lt;FSA&gt;.json</code>) holding that area's raw matched rows, plus a per-province <code>_index.json</code> (row count and median saving per FSA, used for the search typeahead and the choropleth). Categorical values are case-normalized first — audit years disagree on casing ("single detached" vs "Single Detached"), which otherwise silently splits one category into two. Annual-kWh columns are rounded to integers and <code>EnergySavingPct</code> kept at 4 decimals to control file size. AHRI numbers are masked to each province's five most common (matching what the province view lists); all other values ship as null.</p>
+      <p><code>split_fsa_json.py</code> writes one file per FSA (<code>fsa_json/&lt;PROV&gt;/&lt;FSA&gt;.json</code>) holding that area's raw matched rows, plus a per-province <code>_index.json</code> (row count, median saving, and <code>dore_count</code> per FSA, used for the search typeahead, the choropleth, and the "retrofits selected" KPI denominator). <code>dore_count</code> is the area's full audited population — every <code>HOUSEID</code> with any initial (D) or follow-up (E) evaluation, matched or not — computed by a separate lightweight scan of the raw ERS CSVs (<code>build_fsa_audit_totals.py</code>), since the shipped files carry only matched pairs. A home is counted under its D record's FSA (or its E record's when it has no D). Categorical values are case-normalized first — audit years disagree on casing ("single detached" vs "Single Detached"), which otherwise silently splits one category into two. Annual-kWh columns are rounded to integers and <code>EnergySavingPct</code> kept at 4 decimals to control file size. AHRI numbers are masked to each province's five most common (matching what the province view lists); all other values ship as null.</p>
       <p><code>precompute_province_stats.py</code> writes <code>province_json/&lt;PROV&gt;.json</code>: every chart on the page, pre-aggregated in Python for the whole province and for each house-type slice — medians, measure counts, Sankey fuel-flow totals, per-fuel means for the waterfall, and all histogram bins. Bin widths and clipping rules are copied verbatim from the front-end code (EUI 20 kWh/m², GHG 1 tCO₂e, design heat loss 2 kW, savings 1%, insulation 0.25–0.5 RSI/ACH steps), so the precomputed province view and the raw-row FSA view produce identical chart shapes for the same data.</p>
       <p><code>aggregate_canada.py</code> builds the all-Canada default view from the province JSONs without touching raw rows: counts and histogram bins are additive and summed exactly; medians are <em>not</em> additive, so national medians are re-derived as weighted medians over the summed bins (an approximation bounded by the bin width); the fuel waterfall ships per-home means, so each province's mean is weighted by its row count before combining.</p>
       <p><strong>Why this format.</strong> The site is static — plain files served from a repository, no database or API server. Loading a full province of raw rows into the browser (hundreds of thousands of rows) is neither fast nor necessary, so the page fetches the smallest artifact that answers the current selection: one precomputed province JSON when no FSA is chosen, or one FSA's raw-row file (median ≈ 490 rows, largest ≈ 5,800) when one is. FSA files use an array-of-arrays layout (<code>{"columns": […], "rows": [[…], …]}</code>) rather than an array of objects — writing the ~50 column names once instead of once per row measured ~77% smaller for a typical FSA. Raw rows are only shipped at FSA granularity, which is also what makes the individual-retrofits table possible there and not province-wide.</p>
@@ -915,6 +934,42 @@ const MEASURES=[
   {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0'},
   {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82'},
 ];
+
+// ── Section / measure icons ───────────────────────────────────────
+// Hand-crafted minimal line-icons (viewBox 0 0 20 20, currentColor stroke,
+// no fill). Kept as bare inner markup; icon() wraps them in the sized <svg
+// class="ic">. injectIcons() (called on load) drops the right icon into every
+// element carrying data-icon="<key>", so the static HTML stays free of SVG.
+const ICONS={
+  // measure / envelope categories
+  roof:      '<path d="M2 10.5 10 4l8 6.5"/><path d="M5 9.7V16h10V9.7"/>',
+  wall:      '<rect x="3" y="4" width="14" height="12" rx="1"/><path d="M3 8h14M3 12h14M8 4v4M12 8v4M8 12v4"/>',
+  foundation:'<path d="M3 7h14v7H3z"/><path d="M3.5 17l1-2.2M8 17l1-2.2M12.5 17l1-2.2"/>',
+  air:       '<path d="M2 6.5h9a2 2 0 1 0-2-2"/><path d="M2 10.5h12a2 2 0 1 1-2 2"/><path d="M2 14.5h6"/>',
+  window:    '<rect x="4" y="3" width="12" height="14" rx="1"/><path d="M10 3v14M4 10h12"/>',
+  heatpump:  '<rect x="2.5" y="5" width="15" height="10" rx="1"/><circle cx="10" cy="10" r="3"/><path d="M10 10l2-1"/>',
+  heating:   '<path d="M10 2.5c.6 2.6 4 4 4 7.6a4 4 0 0 1-8 0c0-1.8 1-3 1.8-3.8.2 1 .9 1.8 1.8 2C9.4 6 9.4 4.2 10 2.5z"/>',
+  floor:     '<path d="M3 6h14M3 10h14M3 14h14"/>',
+  solar:     '<path d="M4.5 13h11l-1-6H5.5z"/><path d="M8 7v6M12 7v6M4 10h12"/><circle cx="15.5" cy="4" r="1.4"/>',
+  // section headings
+  results:   '<circle cx="10" cy="10" r="7.5"/><path d="M6.4 10.4l2.3 2.3 4.7-5.1"/>',
+  energy:    '<path d="M11 2 4 11h5l-1 7 7-9h-5z"/>',
+  upgraded:  '<path d="M15.6 4.4a3 3 0 0 1-4 4l-6.5 6.5a1.4 1.4 0 0 1-2-2L9.6 6.4a3 3 0 0 1 4-4l-2 2 1.9 1.9z"/>',
+  homes:     '<path d="M3 10l7-6 7 6"/><path d="M5 9v7h10V9"/><path d="M9 16v-4h2v4"/>',
+  equipment: '<circle cx="10" cy="10" r="2.7"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M15.3 4.7l-1.6 1.6M6.3 13.7l-1.6 1.6"/>',
+  individual:'<path d="M6 5h11M6 10h11M6 15h11"/><circle cx="3" cy="5" r=".9"/><circle cx="3" cy="10" r=".9"/><circle cx="3" cy="15" r=".9"/>',
+};
+function icon(key){
+  const inner=ICONS[key];
+  return inner?`<svg class="ic" viewBox="0 0 20 20" aria-hidden="true">${inner}</svg>`:'';
+}
+function injectIcons(){
+  document.querySelectorAll('[data-icon]').forEach(el=>{
+    if(el.dataset.iconDone)return;
+    const svg=icon(el.dataset.icon);
+    if(svg){el.insertAdjacentHTML('afterbegin',svg);el.dataset.iconDone='1';}
+  });
+}
 
 // ── Bin widths (single source of truth) ───────────────────────────
 // FSA-mode renderers bin raw rows on the fly; these widths MUST match the
@@ -1188,6 +1243,17 @@ function fetchFsaIndex(prov){
     .then(idx=>{FSA_INDEX_CACHE.set(prov,idx);return idx;});
 }
 
+// Full audited population of the currently-selected FSA — unique HOUSEIDs with
+// ANY D or E audit (matched or not), the denominator for the "retrofits
+// selected" KPI. Read from the cached _index.json entry (dore_count). null when
+// no single FSA is selected or the field is absent (older data).
+function doreCountForSelectedFsa(){
+  if(MODE!=='fsa'||!SELECTED_FSA)return null;
+  const idx=FSA_INDEX_CACHE.get(PROVINCE_CODE);
+  const e=idx&&idx.find(x=>x.fsa===SELECTED_FSA);
+  return e&&e.dore_count!=null?e.dore_count:null;
+}
+
 function fetchFsaRows(prov,fsa){
   const key=`${prov}|${fsa}`;
   if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
@@ -1384,6 +1450,14 @@ function render(){
   const n=FILTERED.length;
   $('result-count').textContent=n.toLocaleString();
   $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
+  // "Retrofits selected" KPI: matched homes matching the current filters, and
+  // what share that is of every HOUSEID in this FSA with ANY D or E audit
+  // (matched or not) — dore_count comes from the _index.json entry.
+  const dore=doreCountForSelectedFsa();
+  $('s-selected').textContent=n.toLocaleString();
+  $('s-selected-sub').textContent=dore
+    ?`${Math.round(n/dore*100)}% of ${dore.toLocaleString()} homes audited here`
+    :'matched before/after homes';
   const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
   const med=median(savings);
   $('s-median').textContent=med!==null?Math.round(med*100)+'%':'—';
@@ -1449,7 +1523,7 @@ function renderAdvancedSections(){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
     renderSlopegraph();renderVintageMeasures();renderWindowChanges();renderTable();
-    renderHeatLoss();
+    renderHeatLoss();renderAuditYearChart();
     if(SELECTED_FSA)renderCensus(SELECTED_FSA,ALL.length);
   }else if(MODE==='province'){
     if(!_lastProvincePayload||!_lastProvinceSlice)return;
@@ -1555,6 +1629,48 @@ function renderAreaHist(){
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+  });
+}
+
+// ── Audits per year & type (D / E), selected vs filtered-out ──────────
+// Every audit in the loaded FSA, counted by the year it was carried out: each
+// matched pair contributes an initial (D, Pre_Year) and a follow-up (E,
+// Post_Year) audit. Two stacked bars per year (D then E); the solid segment is
+// homes in the current FILTERED selection, the faded segment the ones filtered
+// out — so the reader sees when the selected retrofits happened against all
+// audit activity. Recomputes on every render(), i.e. whenever filters change.
+function renderAuditYearChart(){
+  dc('auditYear');
+  const sel=new Set(FILTERED);
+  const dSel={},dUn={},eSel={},eUn={};
+  const bump=(o,y)=>{o[y]=(o[y]||0)+1;};
+  ALL.forEach(r=>{
+    const inSel=sel.has(r);
+    const py=parseInt(r.Pre_Year),qy=parseInt(r.Post_Year);
+    if(py>=1990&&py<=2035)bump(inSel?dSel:dUn,py);
+    if(qy>=1990&&qy<=2035)bump(inSel?eSel:eUn,qy);
+  });
+  const years=[...new Set([...Object.keys(dSel),...Object.keys(dUn),
+    ...Object.keys(eSel),...Object.keys(eUn)].map(Number))].sort((a,b)=>a-b);
+  const anyUnselected=years.some(y=>(dUn[y]||0)+(eUn[y]||0)>0);
+  const NAVY='#0B2545',GREEN='#1A7A55',NAVY_F='#0B254530',GREEN_F='#1A7A5530';
+  setChartLegend('audit-year-legend',[
+    {label:'Initial (D)',color:NAVY},
+    {label:'Follow-up (E)',color:GREEN},
+    ...(anyUnselected?[{label:'Faded = filtered out',color:'#AEB8C6'}]:[]),
+  ]);
+  charts['auditYear']=new Chart($('audit-year-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:years,datasets:[
+      {label:'Initial (D) · selected',    data:years.map(y=>dSel[y]||0),backgroundColor:NAVY,   stack:'D',borderWidth:0,borderRadius:2},
+      {label:'Initial (D) · filtered out',data:years.map(y=>dUn[y]||0), backgroundColor:NAVY_F, stack:'D',borderWidth:0,borderRadius:2},
+      {label:'Follow-up (E) · selected',    data:years.map(y=>eSel[y]||0),backgroundColor:GREEN,  stack:'E',borderWidth:0,borderRadius:2},
+      {label:'Follow-up (E) · filtered out',data:years.map(y=>eUn[y]||0), backgroundColor:GREEN_F,stack:'E',borderWidth:0,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{filter:i=>i.raw>0,callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()}`}}},
       scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
               y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
   });
@@ -2594,6 +2710,10 @@ function renderProvince(payload){
   const n=slice.row_count||0;
   $('result-count').textContent=n.toLocaleString();
   $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
+  // No per-FSA audited-population denominator in the province rollup, so the
+  // KPI just reports the matched count here (the % is FSA-view only).
+  $('s-selected').textContent=n.toLocaleString();
+  $('s-selected-sub').textContent='matched before/after homes';
 
   const med=slice.median_saving_pct;
   $('s-median').textContent=med!=null?Math.round(med*100)+'%':'—';
@@ -3024,8 +3144,13 @@ function makeInlineSVG(r){
   ];
   const barW=160,barH=12,gap=28,startX=78;
   const svgH=KPIs.length*gap+10;
+  // Left column pinned to the envelope-SVG width (startX+barW+70 = 308) so the
+  // HVAC table's left edge and width stay put from one home to the next — the
+  // measure chips below wrap WITHIN this fixed width instead of widening the
+  // column and shoving the table sideways. max-width:100% lets it wrap under
+  // the table on narrow screens (the row is flex-wrap:wrap).
   html+=`<div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
-  <div style="min-width:0;max-width:100%">
+  <div style="flex:0 0 ${startX+barW+70}px;max-width:100%;min-width:0">
     <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Envelope measures</div>
     <svg viewBox="0 0 ${startX+barW+70} ${svgH}" style="width:${startX+barW+70}px;max-width:100%;display:block">`;
   KPIs.forEach((k,i)=>{
@@ -3744,6 +3869,7 @@ function setViewMode(mode){
 // an empty page until the user picks a province (matches province-sel's
 // pre-selected option).
 fetchLookups();
+injectIcons(); // drop the hand-crafted line-icons into every data-icon element
 document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===(isAdvancedMode()?'advanced':'simple')));
 parseDeepLink(); // ?prov=&fsa= override the CA landing default when present
 updateShareUrl(); // canonicalise the params + set the tab title to match
