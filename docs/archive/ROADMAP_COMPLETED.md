@@ -1088,3 +1088,239 @@ paragraph in Advanced section F.
 
 ---
 
+## 13. Retrofit Insights — national "big picture" page (✅ 2026-07-19)
+
+**Shipped 2026-07-19:** a new sibling page, `retrofit-insights.html`, giving the
+suite's first cross-sectional national view of the same 1.37M matched EnerGuide
+retrofit pairs `retrofits.html` serves (rather than the FSA/province drill-down
+`retrofits.html` already does well). Four phases: Phase 0 filled two data gaps
+(per-FSA income via an `extract_fsa_census.py` extension, per-FSA HDD/CDD via a
+new `Python/build_fsa_climate.py` ECCC climate-normals join); Phase 1 built the
+offline analysis precompute (`Python/build_insights.py` → `insights_json/`,
+~1.3 MB across 7 files, browser-verified against known FSAs and totals); Phase 2
+built the page itself (hero KPIs, provincial scorecard, Canada-wide FSA
+choropleth with a metric switcher + leaderboards, what-makes-a-successful-
+retrofit analysis, climate lens, income-quintile equity lens, heat-pump
+geography, missed-opportunity ranking, program-era timeline, full methodology
+accordion); Phase 3 shipped it — committed, cross-linked from `retrofits.html`'s
+header, and added to `README.md` / `project-atlas.html`. All the honesty rails
+from the original plan (modelled-not-metered savings, audit-noise-dominated
+negative savings, participation that can exceed 1.0, ecological income
+correlations, self-selected sample) are stated on-page. `build_insights.py`
+runs after `ers_web_pipeline.py` and `build_fsa_audit_totals.py`, independent of
+`split_fsa_json.py` — see `docs/RETROFITS.md` "Regenerating the data". The
+census and climate inputs are static (2021 Census / climate normals) and do not
+join the refresh cadence.
+
+Planned 2026-07-18: `retrofits.html` is deep on *one* area at a time; this adds
+the cross-sectional national view as a **separate page**,
+`retrofit-insights.html` (sibling of retrofits.html, linked both ways). Scope
+decisions made with the user: analysis is **descriptive + stratified** (no fitted
+regression models in v1); equity lens is **income quintiles only** (no $-burden
+energy-poverty modeling in v1 — extracting income is still required); all four
+optional sections are in (program-era timeline, heat-pump geography,
+missed-opportunity ranking, provincial scorecard).
+
+**Architecture** (same pattern as every other tool): offline Python precompute →
+compact committed JSON (`insights_json/`) → one self-contained page fetching via
+the BASE_URL pattern. Row-level source is the ERS parquets
+(`C:\ERS\web\ers_web_<PROV>.parquet`), NOT the shipped `fsa_json/` (which is the
+page-serving split of the same data). Two data gaps must be filled first
+(Phase 0): per-FSA **HDD/CDD** (new ECCC climate-normals join) and per-FSA
+**income** (extension of `extract_fsa_census.py` — the source CSV has ~2,631
+characteristics per FSA; income is in there, just not extracted).
+
+**Analysis inventory the page is built on** (Phase 1 computes; Phase 2 renders):
+
+1. **National KPIs + provincial scorecard** — participation, matched retrofits,
+   median saving %, HP adoption, fuel-switch rate, deep-retrofit rate per
+   province; the 30-second summary.
+2. **Leaderboards + choropleth with metric switcher** — top/bottom FSAs by:
+   participation rate (audited homes ÷ 2021 census dwellings), median saving %,
+   pre-EUI (worst stock), pre-GHG, HP adoption. Min-n threshold so tiny FSAs
+   don't dominate.
+3. **What makes a successful retrofit** — top-decile savers vs the rest:
+   measure-bundle savings (top combos of the 8 flags), savings vs number of
+   measures, savings by vintage × climate band, starting-EUI effect.
+4. **Climate linkage** — per-FSA HDD bands: pre-EUI vs HDD, savings vs HDD,
+   measure mix vs HDD, HP adoption vs HDD (and CDD for the cooling/HP angle).
+5. **Equity (income quintiles)** — participation, savings, HP adoption and
+   deep-retrofit rate by FSA income quintile; dwelling value as secondary axis.
+6. **Heat-pump geography** — HP-adoption choropleth, climate/income linkage,
+   national top models (already aggregated in `province_json/CA.json` ahri data).
+7. **Missed opportunity** — composite ranking: worst stock (high pre-EUI/GHG,
+   old vintage) × lowest participation = "where programs should look next".
+   Documented formula, screening-tool caveat.
+8. **Program-era timeline** — national audits/retrofits per year annotated with
+   program history (EnerGuide for Houses → ecoENERGY Retrofit–Homes → Greener
+   Homes), explaining the volume spikes.
+
+**Honesty rails (bake into every phase):** savings are modeled EnerGuide
+estimates, not measured bills; negative savings are dominated by audit noise
+(74% of negative-savers logged zero tracked measures — see retrofits.html
+methodology); participation mixes ~20 years of cumulative audits over a 2021
+dwelling snapshot; FSA-level income correlations are ecological, not
+household-level ("rich FSAs" ≠ "rich participants"); ERS is self-selected, not
+a random sample. Each section states its caveat on-page.
+
+### Prompt — Phase 0: data enrichment ETLs (Sonnet)
+
+```text
+Read ROADMAP.md item 13 first. Two independent data gaps to fill for the
+Retrofit Insights page; both are offline ETLs, no page work.
+
+1. Income per FSA. Extend Python/extract_fsa_census.py: from the StatCan
+   2021 Census Profile FSA CSV (Census/98-401-X2021013_English_CSV_data.csv,
+   long format, 2,631 characteristics × 1,646 FSAs — the script's docstring
+   explains the fixed-block fast read), also extract into a new
+   "income" group: median total household income, median after-tax
+   household income, prevalence of low income LIM-AT (%), and average
+   household size. Find the exact CHARACTERISTIC_IDs in
+   Census/98-401-X2021013_English_meta.txt — do not guess; print the
+   matched characteristic names for verification. Re-run → census_json/
+   fsa_census.json (existing fields must be byte-identical apart from the
+   new group; verify). Sanity: national dwelling-weighted median income
+   should land near StatCan's published 2020 Canada median (~$84k
+   before-tax) — print the comparison.
+2. HDD/CDD per FSA. New Python/build_fsa_climate.py: fetch ECCC Canadian
+   Climate Normals station data (prefer 1991–2020 where published, else
+   1981–2010 — record which per station) including heating degree-days
+   below 18 °C and cooling degree-days above 18 °C. ECCC bulk endpoints
+   need curl -L / requests with browser UA (see memory notes; WebFetch is
+   blocked for some ECCC hosts). Cache raw pulls. Compute each FSA's
+   centroid from FSA_Maps/<PROV>.geojson (note: file is NL.geojson but
+   fsa_json/province_json use NF — normalize; PE and the territories have
+   no fsa_json dir, still emit their FSAs if geometry exists) and assign
+   HDD/CDD from the nearest station(s) — inverse-distance-weight the 3
+   nearest stations within 200 km, else nearest single, and record
+   per-FSA the station(s) + distance used. Output
+   climate_json/fsa_climate.json: {FSA: {hdd, cdd, station, dist_km,
+   normals_period}} — compact, one file. Validate: Ottawa-area FSAs
+   ~4,400–4,600 HDD, Vancouver ~2,700–3,000, Winnipeg ~5,500–5,900;
+   print a 10-FSA spot-check table and the national HDD distribution.
+Document both in the scripts' docstrings; nothing else changes yet.
+```
+
+### Prompt — Phase 1: analysis precompute (Opus)
+
+```text
+Read ROADMAP.md item 13 (analysis inventory + honesty rails) first, plus
+Python/precompute_province_stats.py and Python/split_fsa_json.py for the
+established conventions (parquet reading, bin shapes, output style).
+Build Python/build_insights.py reading the ERS parquets
+(C:\ERS\web\ers_web_<PROV>.parquet — matched pairs, same rows retrofits.html
+serves), C:\ERS\web\fsa_audit_totals.json (audit composition incl.
+unmatched), census_json/fsa_census.json (incl. Phase 0 income group), and
+climate_json/fsa_climate.json. Output compact insights_json/:
+
+- fsa_metrics.json — one record per FSA (~1,650): matched count, audited
+  count (dore), participation rate (audited ÷ census total_dwellings),
+  matched-retrofit rate, median saving %, median pre/post EUI, median
+  pre/post GHG, HP-addition rate, deep-retrofit rate, fuel-switch rate,
+  measure-mix shares, hdd, cdd, income quintile (national,
+  dwelling-weighted), median income, median dwelling value, pre-1980
+  dwelling share. Null-safe; include n so the page can threshold.
+- success.json — national stratified analysis: (a) savings distribution
+  by measure bundle for the ~15 most common combos of the 8 flags, with
+  n per bundle; (b) median savings vs number of measures (0–8);
+  (c) savings by vintage band × HDD band; (d) top-decile savers vs rest:
+  measure prevalence, starting EUI, vintage, fuel-switch share.
+  Exclude zero-measure pairs from "what worked" stats (they're the audit-
+  noise population) but report their count.
+- climate.json — HDD-band (and CDD-band) aggregates: pre-EUI, saving %,
+  HP rate, measure mix per band, with n.
+- equity.json — income-quintile aggregates: participation, saving %, HP
+  rate, deep-retrofit rate, pre-EUI per quintile; same by dwelling-value
+  quintile as the secondary axis.
+- opportunity.json — missed-opportunity ranking: normalized composite of
+  high pre-EUI, high pre-GHG, high pre-1980 share, LOW participation;
+  document the formula + weights in the script and emit per-FSA factor
+  values so the page can show the breakdown. Round scores (no false
+  precision).
+- timeline.json — national + per-province audits per year (D and E) and
+  matched retrofits by E-year. Research the program eras with WebSearch
+  and cite: EnerGuide for Houses (~1998), ecoENERGY Retrofit–Homes
+  (2007–2012), provincial programs if clearly attributable, Canada
+  Greener Homes Grant (2021 launch, closed to new applicants 2024) —
+  emit an annotations list {year_start, year_end, label, source_url}.
+- meta.json — sources, build date, thresholds, formulas.
+
+Total insights_json/ budget: < 2 MB. Validation printouts: fsa_metrics
+medians for 3 known FSAs cross-checked against fsa_json/<PROV>/_index.json;
+national matched total == sum of province_json totals (1,369,305-era
+numbers); leaderboard top-10s by each metric printed for eyeballing;
+income-quintile cut points printed. ALSO write Python/insights_notes.md —
+a findings memo (what the top FSAs actually are, the strongest and
+weakest linkages, surprises, anything that looks like an artifact) so the
+Phase 2 page copy is grounded in real numbers, not placeholders. Flag any
+correlation that is likely composition-driven (e.g. climate vs fuel mix)
+rather than causal.
+```
+
+### Prompt — Phase 2: the page (Opus — design-heavy)
+
+```text
+Read ROADMAP.md item 13, Python/insights_notes.md (the findings memo — the
+page copy must reflect its real numbers), and insights_json/meta.json
+first. Skim retrofits.html for the shared design system (navy #0B2545 /
+amber #E8A124 / cream #F7F4EE, Fraunces + Inter, white cards, sticky
+header, Simple/Advanced toggle, BASE_URL localhost pattern) and reuse its
+FSA-map rendering approach (FSA_Maps/<PROV>.geojson + gamma-corrected
+color scale + min-n handling) rather than reinventing it. Run /dataviz
+before building any chart.
+
+Build retrofit-insights.html — single self-contained file, national
+scope, narrative order: (01) hero + national KPIs; (02) provincial
+scorecard; (03) the map — one Canada-wide FSA choropleth with a metric
+switcher (participation / median saving / pre-EUI / pre-GHG / HP
+adoption) + top-10/bottom-10 leaderboards beside it that update with the
+metric, min-n threshold stated; (04) what makes a successful retrofit
+(bundle chart, savings-vs-measure-count, top-decile-vs-rest profile);
+(05) climate lens (HDD-band charts); (06) who participates — income
+quintiles (ecological-fallacy caveat on the card); (07) heat-pump
+geography (adoption map metric + climate/income linkage + national top
+models); (08) missed opportunity (ranked table + map metric, formula
+breakdown in popover, screening caveat); (09) the program-era timeline
+(audits/yr with era annotations); (10) methodology accordion covering
+every formula, threshold and honesty rail from ROADMAP item 13. Each
+section: Fraunces header + one-line plain-language intro + the "so what"
+sentence pulled from insights_notes.md. Advanced toggle hides the denser
+cards (04c, CDD, dwelling-value quintiles). Cross-link retrofits.html ↔
+retrofit-insights.html in both headers.
+
+Loading discipline: fetch insights_json files lazily per section;
+Canada-wide FSA geometry is large, so load per-province geojson
+progressively and show the map skeleton first. Verify in the browser
+preview at desktop + mobile widths: zero console errors, every metric
+switch repaints map + leaderboards consistently, all numbers spot-check
+against insights_json. Remember this environment's preview quirks (no
+rAF: Chart.js needs animation:false + forced draw; verify canvases via
+pixel sampling, not screenshots; scrolling needs behavior:'instant').
+```
+
+### Prompt — Phase 3: ship & integrate (Sonnet)
+
+```text
+Read ROADMAP.md item 13 first. retrofit-insights.html and insights_json/
+exist and are browser-verified. Ship + integrate:
+1. Commit insights_json/, climate_json/, the updated census_json/,
+   retrofit-insights.html, the new Python scripts, and the retrofits.html
+   header cross-link. Push, then verify the live Pages URL loads with no
+   console errors and the JSONs serve 200.
+2. README.md: add the page to the tool list with its live URL; update the
+   repository-layout section (insights_json/, climate_json/).
+3. project-atlas.html: add/flip the Retrofit Insights row.
+4. Refresh chain: document in build_insights.py's docstring where it sits
+   in the ERS refresh order (after ers_web_pipeline + build_fsa_audit_totals,
+   independent of split_fsa_json), and add that line to the run-order notes
+   wherever the chain is documented. The census + climate inputs are
+   static (2021 Census / climate normals) — say so, they do NOT join the
+   refresh cadence.
+5. Flip ROADMAP.md item 13's status row and status-board row to done
+   with a one-paragraph summary of what shipped.
+```
+
+---
+
+---
+
