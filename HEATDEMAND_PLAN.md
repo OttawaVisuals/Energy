@@ -515,7 +515,7 @@ commissioned study behind maps.ottawa.ca Planning/122) — cite it properly
 (title/year/author) and compare its conclusions to our well-derived surface
 in section 2 (agreements AND disagreements, honestly). Keep the page < 1.5 MB, no
 external JS beyond what siblings use. Verify in a browser preview at mobile
-+ desktop widths (zero console errors), add the page to Readme.MD +
++ desktop widths (zero console errors), add the page to README.md +
 project-atlas.html, cross-link from the interactive map's header, commit
 and publish per the existing Pages pattern.
 ```

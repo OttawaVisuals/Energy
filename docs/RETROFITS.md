@@ -9,31 +9,8 @@ Pick a province, then optionally drill into a postal-code area (FSA) to see how 
 
 **Live:** https://ottawavisuals.github.io/Energy/retrofits
 
----
-
-# Ottawa Geothermal Feasibility Map
-
-An interactive Leaflet map screening ground-source heat pump (GSHP) potential across
-Ottawa: estimated ground thermal conductivity (from WWIS water-well lithology), open-loop
-groundwater feasibility per well, Hydro Ottawa feeder capacity, industrial/employment
-zoning, trunk sewer lines, and the City's own open-loop geothermal potential rating.
-Full details: [`Geothermal/README.md`](Geothermal/README.md); build log:
-[`GEOTHERMAL_STATUS.md`](GEOTHERMAL_STATUS.md).
-
-**Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
-
----
-
-# Heat Pump Explorer
-
-An hourly simulation of switching a home's heating to a cold-climate air-source
-heat pump in Ottawa, Toronto, Montreal, Calgary or Edmonton: energy, GHG
-(average vs marginal grid emissions), backup heating needs and the
-load-vs-capacity balance point, built on NEEP performance tiers and ERS-derived
-home archetypes. Methodology: [`HeatPump/METHODOLOGY.md`](HeatPump/METHODOLOGY.md);
-plan/status: [`PLAN.md`](PLAN.md).
-
-**Live:** https://ottawavisuals.github.io/Energy/heatpump
+Sibling tool: the **New Homes Explorer** ([NEWHOMES.md](NEWHOMES.md)) applies the
+same architecture to the new-construction slice of the same data.
 
 ---
 
@@ -457,55 +434,3 @@ page redeploy needed.
   solar) are resolved above using the script logic.
 
 ---
-
-# Construction Tracker
-
-`construction.html` — Canadian building permits, housing starts and construction
-investment in one dashboard, at national, provincial and metro-area (CMA) level.
-Full design/data plan: `CONSTRUCTION_PLAN.md`; build log: `CONSTRUCTION_STATUS.md`.
-
-## What it shows
-
-For Canada, any province, or eight major CMAs: headline KPIs (permit value, starts,
-under-construction stock, investment, each with y/y change), the permits → starts →
-under-construction → completions pipeline, starts by dwelling type and by intended
-market (homeowner / condo / rental), residential vs non-residential permit values
-(nominal or constant $), investment by work type (new / renovation / conversion),
-per-capita provincial comparisons, and a sortable CMA table. Advanced mode adds the
-rate cycle (starts vs BoC overnight + 5-yr mortgage), net new supply (units created
-vs lost on permits), and construction employment vs backlog.
-
-## Data pipeline
-
-```
-Python/construction_etl.py          # core: StatCan 34-10-0292 (permits),
-                                    #   34-10-0293 (investment), 34-10-0151 +
-                                    #   34-10-0154 (starts/UC/completions),
-                                    #   34-10-0158 (SAAR), 34-10-0148 (market)
-Python/construction_context_etl.py  # context: 18-10-0205 NHPI, 17-10-0009 pop,
-                                    #   14-10-0355 construction employment,
-                                    #   34-10-0145 5-yr mortgage, 18-10-0289 BCPI,
-                                    #   Bank of Canada Valet (overnight rate)
-        → construction_json/        # one compact JSON per geography + context.json
-                                    #   + meta.json (key scheme, units, dates)
-```
-
-Conventions: dollar series stored in **millions**; unit counts as **integers**;
-unadjusted variants shipped only where no seasonally adjusted sibling exists.
-Permits & investment history begins 2017–2018 (StatCan's redesigned programs);
-CMHC series run from 1990. **Known data gap:** CMHC discontinued province-level
-under-construction and completions after 2022 in every table (verified against
-34-10-0151/0136/0139/0126); those series end Dec 2022 for provinces/Canada and
-the page annotates this. Metro areas (34-10-0154) carry all pipeline stages to
-the current month.
-
-## Regenerating / refresh
-
-```bash
-cd Python
-python construction_etl.py            # cached downloads; --refresh to force
-python construction_context_etl.py
-```
-
-`.github/workflows/construction-refresh.yml` does this monthly (20th, 14:00 UTC)
-and commits `construction_json/` only when all fetches succeed and data changed.

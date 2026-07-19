@@ -175,14 +175,15 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
 <!-- ══════════════════ OVERVIEW ══════════════════ -->
 <section id="overview">
   <div class="tldr">
-    <b>TL;DR:</b> Five tools are live. One is half-built (grid dashboard). Three haven't started
-    (prices, landing page, heat-demand map). Every assumption anyone made is listed below with a
+    <b>TL;DR:</b> Six tools are live (plus the prices layer). The Ottawa Case Study is 3 of 6 phases in.
+    Three haven't started (Retrofit Insights, landing page, grid.html — its data layer is done and
+    auto-refreshing). Every assumption anyone made is listed below with a
     checkbox, the alternatives that existed, and concrete steps to verify it yourself.
     Ticks are saved on this computer.
   </div>
 
   <div class="tiles">
-    <div class="tile"><div class="n">5</div><div class="l">✅ tools live</div></div>
+    <div class="tile"><div class="n">6</div><div class="l">✅ tools live</div></div>
     <div class="tile"><div class="n">1</div><div class="l">🔨 in progress</div></div>
     <div class="tile"><div class="n">3</div><div class="l">🆕 not started</div></div>
     <div class="tile"><div class="n" id="assump-count">—</div><div class="l">⚠️ assumptions to verify</div></div>
@@ -198,10 +199,15 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🔥 Heat Pump Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">⚡ Grid Dashboard</span><div class="track"><div class="fill f-build" style="width:50%"></div></div><span class="pct">50%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">💲 Energy Prices layer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏡 New Homes Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏙️ Ottawa Case Study</span><div class="track"><div class="fill f-build" style="width:60%"></div></div><span class="pct">60%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">📈 Retrofit Insights</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="pct">0%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🚪 Landing page</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="pct">0%</span></div>
-    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🗺️ Heat-demand map</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="pct">0%</span></div>
-    <p class="small muted" style="margin-top:.6rem">Energy Prices shipped 2026-07-12 (rates ETL + monthly refresh +
-    real operating costs in the Heat Pump tool), completing the Heat Pump Explorer's last 10%.</p>
+    <p class="small muted" style="margin-top:.6rem">Status as of 2026-07-18. Ottawa Case Study = heat-demand
+    Phases 0–3 of 6 done (stock, load, electrified load; next: feeder aggregation → map → case-study page).
+    New Homes Explorer shipped 2026-07-15; Retrofit Explorer gained the audit funnel, pairing fix
+    (matched 538k → 1.37M) and bill card 2026-07-18. This page's per-project assumption sections
+    predate those additions — <code>ROADMAP.md</code> is the current tracker.</p>
   </div>
 
   <div class="card">
@@ -337,7 +343,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>Open the tool, enter your own postal code, and find a home similar to yours in the table.</li>
           <li>Compare its pre-retrofit total energy (kWh/yr) to your own annual gas + hydro bills converted to kWh (gas m³ × 10.36). Same ballpark = the modelling is sane; a big gap tells you how much to trust absolute numbers vs comparisons.</li>
         </ol></div>
-        <div class="where">Readme.MD §"Data notes &amp; caveats"; also stated on the page itself.</div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats"; also stated on the page itself.</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-selection"><div class="a-body">
         <span class="tag data">source limit</span><b>The sample is self-selected — savings likely look better than average.</b>
@@ -345,7 +351,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>Compare the tool's median saving (~13% ON) against a published program evaluation — NRCan's Greener Homes reporting or Efficiency Canada's program reviews quote similar per-participant figures, which confirms the data is program participants, not typical renovators.</li>
         </ol></div>
-        <div class="where">Readme.MD §"Data notes &amp; caveats" → "The sample is self-selected".</div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "The sample is self-selected".</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-matching"><div class="a-body">
         <span class="tag choice">judgment call</span><b>What counts as "the same home": area change ≤ 10%, same type/storeys/units.</b>
@@ -355,7 +361,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>⏱️ 2 min: in any FSA view, expand a few homes and eyeball that pre/post floor area, type and storeys genuinely match.</li>
           <li>⏱️ deeper: edit the 10% constant in <code>Python/ers_web_pipeline.py</code>, re-run one province, and compare the median saving. If it barely moves (±1–2 points), the choice doesn't matter — that's the robustness test.</li>
         </ul></div>
-        <div class="where">Readme.MD §"The data pipeline" step 1, rules 2–3.</div>
+        <div class="where">docs/RETROFITS.md §"The data pipeline" step 1, rules 2–3.</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-thresholds"><div class="a-body">
         <span class="tag choice">judgment call</span><b>What counts as an "upgrade": &gt;10% more insulation, &gt;10% tighter air, ≥50% saved = "deep retrofit".</b>
@@ -365,7 +371,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>⏱️ 2 min: expand a home flagged "roof insulation upgraded" in the FSA table and check its pre/post RSI values — is the flag intuitive?</li>
           <li>⏱️ 15 min: compare the "deep retrofit" definition against NRCan / Pembina publications ("deep retrofit" ≈ 50%+ energy reduction is the standard usage).</li>
         </ul></div>
-        <div class="where">Readme.MD §"How each measure is flagged" (full table of rules).</div>
+        <div class="where">docs/RETROFITS.md §"How each measure is flagged" (full table of rules).</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-units"><div class="a-body">
         <span class="tag std">standard factor</span><b>All fuels converted to kWh with published factors (gas 10.36 kWh/m³, oil 10.2 kWh/L, wood 4,167 kWh/t…).</b>
@@ -373,7 +379,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>Cross-check against NRCan's published conversion-factor tables (natural gas ≈ 37.3 MJ/m³ ÷ 3.6 = 10.36 kWh/m³ ✓; furnace oil ≈ 36.7 MJ/L ÷ 3.6 ≈ 10.2 ✓). Any energy-content reference will do.</li>
         </ol></div>
-        <div class="where">Readme.MD §"Unit conversions" table.</div>
+        <div class="where">docs/RETROFITS.md §"Unit conversions" table.</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-solar"><div class="a-body">
         <span class="tag data">source limit</span><b>"Solar added" may slightly overcount.</b>
@@ -381,7 +387,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>In an FSA view, look at homes with solar: the pre-audit PV column is almost always 0 even in areas where some homes certainly had panels before — that's the tell.</li>
         </ol></div>
-        <div class="where">Readme.MD §"Data notes &amp; caveats" → "Solar pre vs post".</div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Solar pre vs post".</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-clip"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Extreme outliers are clipped from charts</b> (energy intensity &gt; 500 kWh/m², emissions &gt; 30 t/yr, heat loss &gt; 150 kW).
@@ -390,7 +396,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Check that a clipped chart's total count still matches the header's "matched homes" count — clipping only hides bars, it doesn't drop homes from the stats.</li>
         </ol></div>
-        <div class="where">Readme.MD §"Data notes &amp; caveats" → "Outliers clipped".</div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Outliers clipped".</div>
       </div></li>
     </ul>
   </div>
@@ -474,7 +480,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <li><input type="checkbox" data-key="ce-nocost"><div class="a-body">
         <span class="tag data">source limit</span><b>No dollar figures anywhere — CEUD tracks energy and emissions, not cost.</b>
         <p>Cost context is a planned separate project (Energy Prices layer, below).</p>
-        <div class="where">CEUD_PLAN.md; the source database itself.</div>
+        <div class="where">docs/archive/CEUD_PLAN.md; the source database itself.</div>
       </div></li>
     </ul>
   </div>
@@ -542,7 +548,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>Open StatCan table 34-10-0151 (statcan.gc.ca → search the table number), pick any province, "Under construction".</li>
           <li>Confirm the values end at 2022-12 while "Starts" continues — exactly what the dashboard annotates.</li>
         </ol></div>
-        <div class="where">CONSTRUCTION_STATUS.md §"The provincial pipeline-gap saga"; meta.json's <code>provincial_pipeline_gap</code>.</div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md §"The provincial pipeline-gap saga"; meta.json's <code>provincial_pipeline_gap</code>.</div>
       </div></li>
       <li><input type="checkbox" data-key="co-history"><div class="a-body">
         <span class="tag data">source limit</span><b>Permit and investment history only starts 2017–2018.</b>
@@ -550,7 +556,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>On the dashboard, note where the permits line begins vs the starts line — then confirm on StatCan table 34-10-0292 that its reference period genuinely begins in 2017.</li>
         </ol></div>
-        <div class="where">CONSTRUCTION_STATUS.md milestones; Readme.MD "Construction Tracker" section.</div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md milestones; docs/CONSTRUCTION.md.</div>
       </div></li>
       <li><input type="checkbox" data-key="co-conventions"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Storage conventions: dollars in millions, unit counts as integers, seasonally-adjusted series preferred.</b>
@@ -559,7 +565,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Open <code>construction_json/meta.json</code> — every series' units and SA status are declared there. Spot-check one against the page.</li>
         </ol></div>
-        <div class="where">CONSTRUCTION_STATUS.md "Decisions log"; construction_json/meta.json.</div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md "Decisions log"; construction_json/meta.json.</div>
       </div></li>
       <li><input type="checkbox" data-key="co-boc"><div class="a-body">
         <span class="tag data">source limit</span><b>The Bank of Canada overnight-rate series only reaches back to 2009.</b>
@@ -567,7 +573,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Visit the BoC Valet API page for series V39079 — its earliest observation is 2009.</li>
         </ol></div>
-        <div class="where">CONSTRUCTION_STATUS.md Phase 4a note.</div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md Phase 4a note.</div>
       </div></li>
     </ul>
   </div>
@@ -1029,7 +1035,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
     <h3>✅ Done since (2026-07-12)</h3>
     <ul>
       <li>Real operating costs are wired in: TOU priced exactly from the engine's new month×hour electricity matrix, tiered plans priced marginally over a documented baseline, AB flagged as a screening estimate. See METHODOLOGY.md §Operating cost.</li>
-      <li>Tool linked in Readme.MD's tool list.</li>
+      <li>Tool linked in README.md's tool list.</li>
     </ul>
   </div>
 </section>
@@ -1097,11 +1103,10 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   <p class="small muted">From <code>ROADMAP.md</code> (each item there has a ready-to-paste build prompt).</p>
   <table class="remain">
     <tr><th>Order</th><th>What</th><th>Why / notes</th><th>Size</th></tr>
-    <tr><td>✅</td><td><b>Housekeeping</b> — done 2026-07-12</td><td>Legacy AHRI files archived to <code>Python/ahri_archive/</code>; heat-pump tool linked in Readme.MD</td><td>done</td></tr>
-    <tr><td>✅</td><td><b>Energy Prices layer</b> — done 2026-07-12</td><td><code>Python/rates_etl.py</code> → <code>prices_json/</code> + monthly refresh workflow; operating costs live in the heat-pump page</td><td>done</td></tr>
-    <tr><td>1</td><td><b>Landing page</b> — index.html front door</td><td><code>…/Energy/</code> currently 404s; five live tools have no hub</td><td>1 session</td></tr>
-    <tr><td>2</td><td><b>grid.html</b> — the visible grid dashboard</td><td>Data + weekly automation already running; doubles as the public explainer of the heat-pump tool's marginal-emissions choice</td><td>1 session</td></tr>
-    <tr><td>3</td><td><b>Ottawa heat-demand map</b> — the most novel one</td><td>Fuses geothermal feasibility × building heat demand (392k footprints) × grid capacity into one opportunity score</td><td>2–3 sessions</td></tr>
+    <tr><td>1</td><td><b>Ottawa Case Study Phases 4–6</b> — the flagship</td><td>Phases 0–3 done (stock, load, electrified load). Next: feeder aggregation + coincidence factor → map layers → the narrative case-study page. Prompts in <code>HEATDEMAND_PLAN.md</code> §5</td><td>3 sessions</td></tr>
+    <tr><td>2</td><td><b>Retrofit Insights</b> — national big-picture page</td><td>Leaderboards, choropleths, success analysis, HDD/income linkages, missed-opportunity ranking. ROADMAP item 13</td><td>4 sessions</td></tr>
+    <tr><td>3</td><td><b>Landing page</b> — index.html front door</td><td><code>…/Energy/</code> currently 404s; seven live tools have no hub</td><td>1 session</td></tr>
+    <tr><td>4</td><td><b>grid.html</b> — the visible grid dashboard</td><td>Data + weekly automation already running (first scheduled run green 2026-07-13); doubles as the public explainer of the heat-pump tool's marginal-emissions choice</td><td>1 session</td></tr>
   </table>
 </section>
 
@@ -1110,9 +1115,9 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   <h2>About this page</h2>
   <p class="small">Generated by Claude on <b>2026-07-10</b> (expanded same day with full methodology
   sections and per-assumption verification guides) by reading every project document in the repo
-  (<code>ROADMAP.md</code>, <code>PLAN.md</code>, <code>Readme.MD</code>, <code>HeatPump/METHODOLOGY.md</code>,
-  <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>CONSTRUCTION_PLAN/STATUS.md</code>,
-  <code>CEUD_PLAN.md</code>, source-note files, and the git history). It is a local, untracked file —
+  (<code>ROADMAP.md</code>, <code>HeatPump/PLAN.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
+  <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>docs/archive/CONSTRUCTION_PLAN/STATUS.md</code>,
+  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Status sections updated 2026-07-18 —
   regenerate it by asking Claude to re-read those documents after major changes.
   Your ✓ checkmarks are stored in this browser only (localStorage).</p>
   <button class="reset-btn" id="reset-checks">Reset all my verification checkmarks</button>

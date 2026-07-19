@@ -2,7 +2,7 @@
 construction_context_etl.py
 
 Phase-4a context ETL for the Construction Activity Dashboard (see
-CONSTRUCTION_PLAN.md section 1.2). Produces construction_json/context.json —
+docs/archive/CONSTRUCTION_PLAN.md section 1.2). Produces construction_json/context.json —
 the small shared file of driver/context series the dashboard overlays on the
 core activity data. Reuses the fetch/extract machinery of construction_etl.py.
 

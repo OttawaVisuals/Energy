@@ -2,7 +2,7 @@
 construction_etl.py
 
 Phase-1 ETL for the Construction Activity Dashboard (see
-C:\\Energy\\CONSTRUCTION_PLAN.md, sections 1.1 and 2).
+C:\\Energy\\docs\\archive\\CONSTRUCTION_PLAN.md, sections 1.1 and 2).
 
 Pulls the core monthly building-activity tables from the Statistics Canada
 Web Data Service (WDS) REST API and writes compact per-geography JSON for a
@@ -400,7 +400,7 @@ def extract_table(zip_path, ndims, allowed, geo_ids):
 
 def allowed_292():
     """permits.<var>.<building>.<work>.<adj>, whitelisted to what the plan's
-    charts read (CONSTRUCTION_PLAN.md section 3). Value: aggregates get every
+    charts read (docs/archive/CONSTRUCTION_PLAN.md section 3). Value: aggregates get every
     work x adjustment (empties drop; StatCan publishes SA/constant for
     aggregates only), detail building types get work=total only. nsa_constant
     is never requested — no chart deflates an unadjusted series. The redundant

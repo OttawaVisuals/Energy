@@ -5,7 +5,7 @@ Downloads and parses NRCan's Comprehensive Energy Use Database (CEUD),
 residential sector, for all 11 provinces/territories + Canada, into tidy
 long-format JSON for the CEUD Explorer web page.
 
-See C:\\Energy\\CEUD_PLAN.md (plan) and C:\\Energy\\Python\\ceud_source_notes.md
+See C:\\Energy\\docs\\archive\\CEUD_PLAN.md (plan) and C:\\Energy\\Python\\ceud_source_notes.md
 (Phase 0 findings) for full background — source URLs, table layout, the
 excluding-electricity GHG convention, and why table numbers aren't aligned
 between Canada and the provinces.
