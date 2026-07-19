@@ -17,6 +17,15 @@ Selected characteristics (see CHAR_MAP below for the exact CHARACTERISTIC_ID
   - Dwelling condition (minor vs major repairs needed)
   - Owner stats (% with mortgage, % spending 30%+ on shelter, % in core
     housing need, median/average shelter cost, median/average dwelling value)
+  - Income (median total household income, median after-tax household
+    income, LIM-AT low-income prevalence %, average household size) —
+    added 2026-07-18 for the Retrofit Insights equity lens (item 13 in
+    ROADMAP.md). IDs confirmed against Census/98-401-X2021013_English_
+    meta.txt: 57 "Average household size", 243 "Median total income of
+    household in 2020 ($)", 244 "Median after-tax income of household in
+    2020 ($)", 345 "Prevalence of low income based on the Low-income
+    measure, after tax (LIM-AT) (%)" (the total-population line, not the
+    age-banded sub-rows at 346-349).
 
 INPUT:  Census/98-401-X2021013_English_CSV_data.csv  (latin-1 encoded)
 OUTPUT: census_json/fsa_census.json  -> { "<FSA>": { ...fields... }, ... }
@@ -72,9 +81,13 @@ CHAR_MAP = {
     1487: ("owner_stats", "average_shelter_cost"),
     1488: ("owner_stats", "median_dwelling_value"),
     1489: ("owner_stats", "average_dwelling_value"),
+    57: ("income", "average_household_size"),
+    243: ("income", "median_total_income"),
+    244: ("income", "median_after_tax_income"),
+    345: ("income", "pct_low_income_lim_at"),
 }
 
-GROUPS = ["dwelling_type", "tenure", "period_of_construction", "condition", "owner_stats"]
+GROUPS = ["dwelling_type", "tenure", "period_of_construction", "condition", "owner_stats", "income"]
 
 
 def parse_value(s):
