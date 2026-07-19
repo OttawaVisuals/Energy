@@ -319,6 +319,15 @@ Then commit the regenerated `Energy/fsa_json/` and `Energy/province_json/` to `m
 - If you add a chart/field to `retrofits.html`, update `KEEP_COLS` in Step 2 **and**, if it
   needs a precomputed bin, add it to Step 3 with a width that matches `BINS`.
 
+**Retrofit Insights** (`retrofit-insights.html`, ROADMAP item 13) reads the same
+Step-1 parquets plus `build_fsa_audit_totals.py`'s audit sidecar, via a separate
+script — `Python/build_insights.py` → `insights_json/`. It runs after Step 1
+(parquets) and after `build_fsa_audit_totals.py`, but is **independent of**
+Step 2 (`split_fsa_json.py`) — it does not read or write `fsa_json/`. Its other
+two inputs, `census_json/fsa_census.json` (2021 Census) and
+`climate_json/fsa_climate.json` (ECCC climate normals), are **static** and do
+not need to be re-run as part of this refresh cadence.
+
 **Dependencies:** `pandas`, `numpy`, `pyarrow` (Step 1 also uses `pyarrow.csv`).
 
 ---

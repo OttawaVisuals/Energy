@@ -15,6 +15,7 @@ GitHub Pages.
 | Tool | What it is | Live page |
 |---|---|---|
 | 🏠 **Retrofit Explorer** | 1.37M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2025) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
+| 📈 **Retrofit Insights** | National big-picture view of the same 1.37M retrofits — leaderboards, choropleth, what makes a retrofit work, climate/equity linkage, missed-opportunity ranking, program-era timeline | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) |
 | 🏡 **New Homes Explorer** | How efficient new construction actually is — as-designed vs as-built EnerGuide evaluations | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) |
 | 🔥 **Heat Pump Explorer** | Hourly simulation of switching to a cold-climate heat pump in 14 cities: energy, GHG, costs, backup needs | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) |
 | 🌍 **Ottawa Geothermal Map** | Ground-source heat pump screening for Ottawa: conductivity from 55k water wells, drilling difficulty, grid capacity | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) |
@@ -23,15 +24,15 @@ GitHub Pages.
 | 🗺️ **Project Atlas** | Internal status & assumptions page for the suite | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) |
 
 **Coming:** landing-page hub (`index.html`), live grid dashboard (`grid.html` —
-data already refreshing weekly), Retrofit Insights (national big-picture page),
-and the Ottawa Case Study (heat demand → electrification → grid). See the
-[roadmap](ROADMAP.md).
+data already refreshing weekly), and the Ottawa Case Study (heat demand →
+electrification → grid). See the [roadmap](ROADMAP.md).
 
 ## 📖 Documentation per project
 
 | Project | Docs |
 |---|---|
 | Retrofit Explorer | [docs/RETROFITS.md](docs/RETROFITS.md) — data pipeline, unit conversions, flag rules, bin-width contract, changelog |
+| Retrofit Insights | [ROADMAP.md](ROADMAP.md) item 13 (archived: [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)) — analysis inventory, honesty rails, `build_insights.py` |
 | New Homes Explorer | [docs/NEWHOMES.md](docs/NEWHOMES.md) |
 | Heat Pump Explorer | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) (methodology) · [HeatPump/PLAN.md](HeatPump/PLAN.md) (original plan) |
 | Ottawa Geothermal Map | [Geothermal/README.md](Geothermal/README.md) (full methodology) · [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md) (build log) |
@@ -60,6 +61,8 @@ Energy/
 │
 │  # committed data the pages fetch (via raw.githubusercontent.com):
 ├─ province_json/  fsa_json/         # Retrofit Explorer
+├─ insights_json/                    # Retrofit Insights (national)
+├─ climate_json/                     # per-FSA HDD/CDD (ECCC normals, static)
 ├─ newhomes_json/  newhomes_fsa/     # New Homes Explorer
 ├─ ceud_json/                        # CEUD Explorer
 ├─ construction_json/                # Construction Tracker (auto-refresh monthly)
