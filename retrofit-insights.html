@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrofit Insights — the national picture of Canadian home retrofits</title>
+<meta name="description" content="The cross-sectional national view of 1.37 million real Canadian home-energy retrofits: what worked, where the worst stock sits, who participates, and where programs should look next. Built from NRCan EnerGuide before/after audits.">
+<meta property="og:title" content="Retrofit Insights — what actually works, and where">
+<meta property="og:description" content="1.37 million matched before/after EnerGuide audits, read nationally: depth beats breadth, heat-pump geography, the missed-opportunity map, and the program-era timeline.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M6 24V13l10-6 10 6v11' fill='none' stroke='%23E8A124' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cpath d='M6 24h20' stroke='%23E8A124' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
+.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+@media(max-width:640px){.header-title{display:none}}
+
+/* ── Simple / Advanced mode toggle ── */
+body.mode-simple [data-mode="advanced"]{display:none!important}
+body.mode-simple .cap-advanced{display:none}
+body.mode-advanced .cap-simple{display:none}
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 13px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--navy)}
+@media(max-width:600px){.mode-btn{padding:5px 10px;font-size:11px}}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:1.6rem 1.5rem 1.3rem;text-align:center}
+.hero .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber2);margin-bottom:.5rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:940px;margin:0 auto .55rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero p{font-size:14px;color:rgba(255,255,255,.72);max-width:660px;margin:0 auto;line-height:1.55}
+
+/* ── KPI row ── */
+.kpi-row{max-width:1180px;margin:-0.9rem auto 0;padding:0 1.5rem;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);padding:1rem 1.05rem;position:relative}
+.kpi .kv{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.kpi .kv.accent{color:var(--amber)}
+.kpi .kl{font-size:12px;color:var(--muted);margin-top:.4rem;line-height:1.4}
+@media(max-width:920px){.kpi-row{grid-template-columns:repeat(2,1fr)}.kpi:nth-child(5){grid-column:1/-1}}
+@media(max-width:480px){.kpi-row{grid-template-columns:1fr 1fr}.kpi .kv{font-size:1.6rem}}
+
+/* ── Mode bar ── */
+.modebar{max-width:1180px;margin:1.4rem auto 0;padding:0 1.5rem;display:flex;justify-content:flex-end;align-items:center;gap:12px}
+.modebar .hint{font-size:12px;color:var(--muted)}
+
+/* ── Layout / sections ── */
+main{max-width:1180px;margin:0 auto;padding:1.2rem 1.5rem 3rem}
+section{margin-top:2.4rem;scroll-margin-top:60px}
+.section-head{margin-bottom:1rem}
+.section-num{font-size:12px;letter-spacing:.12em;color:var(--amber);font-weight:600;font-variant-numeric:tabular-nums}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.15;margin-top:2px}
+.section-head .intro{font-size:14.5px;color:var(--text);max-width:760px;margin-top:.5rem}
+.sowhat{border-left:3px solid var(--amber);background:rgba(200,136,26,.06);padding:.7rem .95rem;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;color:var(--text);max-width:820px;margin-top:.75rem}
+.sowhat b{color:var(--navy)}
+
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);padding:1.15rem 1.25rem;min-width:0}
+.card+.card{margin-top:1rem}
+.card h3{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;font-weight:300;color:var(--navy);margin-bottom:.2rem}
+.card .sub{font-size:12.5px;color:var(--muted);margin-bottom:.9rem}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem}
+@media(max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.caveat{border-left:3px solid var(--light);padding-left:11px;color:var(--muted);font-size:12.5px;margin-top:.85rem;line-height:1.55}
+.caveat b{color:var(--muted)}
+.chart-wrap{position:relative;width:100%}
+.note{font-size:12px;color:var(--muted);margin-top:.6rem;line-height:1.5}
+
+/* ── Provincial scorecard table ── */
+.scorecard{width:100%;border-collapse:collapse;font-size:13.5px}
+.scorecard th,.scorecard td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scorecard th{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
+.scorecard th:hover{color:var(--navy)}
+.scorecard th.arrow-active{color:var(--navy)}
+.scorecard td:first-child,.scorecard th:first-child{text-align:left}
+.scorecard tbody tr:hover td{background:var(--cream)}
+.scorecard .prov-name{font-weight:500;color:var(--navy)}
+.bar-cell{position:relative}
+.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:60%;background:rgba(200,136,26,.18);border-radius:2px;z-index:0}
+.bar-cell span{position:relative;z-index:1}
+.scroll-x{overflow-x:auto}
+
+/* ── Map + leaderboard ── */
+.map-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:1rem;align-items:start}
+@media(max-width:900px){.map-layout{grid-template-columns:minmax(0,1fr)}}
+.metric-switch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.8rem}
+.metric-btn{font-size:12.5px;padding:6px 12px;border:1px solid var(--border);border-radius:18px;background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.metric-btn:hover{border-color:var(--navy);color:var(--navy)}
+.metric-btn.active{background:var(--navy);border-color:var(--navy);color:var(--white);font-weight:500}
+.map-frame{position:relative;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+#nat-map{display:block;width:100%;height:auto;background:#eef1f5}
+.fsa-shape{stroke:#fff;stroke-width:.4;vector-effect:non-scaling-stroke;transition:opacity .1s}
+.fsa-shape.hl{stroke:var(--navy);stroke-width:1.6}
+.map-skeleton{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--light);font-size:13px;background:repeating-linear-gradient(135deg,#eef1f5,#eef1f5 12px,#e7ebf1 12px,#e7ebf1 24px)}
+.map-legend{margin-top:.6rem}
+.map-grad-wrap{max-width:380px}
+.map-grad{height:11px;border-radius:3px;border:1px solid var(--border)}
+.map-grad-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.map-tip{position:fixed;background:rgba(11,37,69,.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap;display:none}
+.map-tip b{color:var(--amber2)}
+.map-progress{font-size:11px;color:var(--muted);margin-top:.5rem}
+
+.lb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
+.lb-title{font-size:13px;font-weight:600;color:var(--navy)}
+.lb-metric-name{font-size:11px;color:var(--muted)}
+.lb-block{margin-bottom:.85rem}
+.lb-sub{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:.25rem}
+.lb-row{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-radius:4px;font-size:13px;cursor:default;font-variant-numeric:tabular-nums}
+.lb-row:hover{background:var(--cream)}
+.lb-row .lb-fsa{font-weight:500;color:var(--navy);letter-spacing:.02em}
+.lb-row .lb-prov{color:var(--light);font-size:11px;margin-left:6px}
+.lb-row .lb-val{color:var(--text)}
+.lb-note{font-size:11px;color:var(--muted);margin-top:.35rem}
+
+/* ── info tooltip ── */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;vertical-align:middle}
+.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
+#info-tip{position:fixed;max-width:290px;background:rgba(11,37,69,.96);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;padding:9px 12px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3);display:none}
+
+/* ── deep-link buttons ── */
+.jump-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:6px 13px;border:1px solid var(--navy);border-radius:18px;background:var(--white);color:var(--navy);cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:all .15s}
+.jump-btn:hover{background:var(--navy);color:var(--white)}
+
+/* ── legend chips for charts ── */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:.7rem;font-size:12.5px;color:var(--muted)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:11px;height:11px;border-radius:3px;flex:none}
+
+/* ── opportunity table ── */
+.opp-table{width:100%;border-collapse:collapse;font-size:13px}
+.opp-table th,.opp-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.opp-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:500}
+.opp-table td:first-child,.opp-table th:first-child,.opp-table td:nth-child(2),.opp-table th:nth-child(2){text-align:left}
+.opp-table tbody tr{cursor:pointer}
+.opp-table tbody tr:hover td{background:var(--cream)}
+.opp-fsa{font-weight:600;color:var(--navy)}
+.opp-detail td{background:var(--cream);padding:0}
+.opp-detail-inner{padding:10px 14px;font-size:12.5px;color:var(--text)}
+.factor-bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;max-width:520px;margin-top:6px}
+.factor-bars .fb-label{font-size:12px;color:var(--muted)}
+.factor-bars .fb-track{height:9px;background:var(--surface);border-radius:3px;overflow:hidden}
+.factor-bars .fb-fill{height:100%;background:var(--amber);border-radius:3px}
+.factor-bars .fb-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
+
+/* ── models table ── */
+.models-table{width:100%;border-collapse:collapse;font-size:13px}
+.models-table th,.models-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.models-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:500}
+.models-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.models-table a{color:var(--navy);text-decoration:none;border-bottom:1px solid var(--border)}
+.models-table a:hover{color:var(--amber);border-color:var(--amber)}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);color:var(--muted);margin-left:6px}
+.tag.cc{background:rgba(26,122,85,.12);color:var(--green)}
+
+/* ── methodology accordion ── */
+.methodology{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.15rem;font-family:'Fraunces',Georgia,serif;font-size:1.2rem;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
+.methodology[open] summary::after{content:'–'}
+.methodology summary:hover{background:var(--cream)}
+.method-body{padding:.4rem 1.15rem 1.15rem;font-size:13.5px;color:var(--text);line-height:1.6}
+.method-body h4{font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);font-weight:600;margin:1rem 0 .35rem}
+.method-body p{margin-bottom:.5rem}
+.method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12px}
+.method-body .rail{border-left:3px solid var(--amber);padding-left:12px;margin:.5rem 0}
+.method-body ul{margin:.3rem 0 .5rem 1.1rem}
+.method-body li{margin-bottom:.3rem}
+
+footer{background:var(--navy);color:rgba(255,255,255,.45);font-size:12px;text-align:center;padding:1.3rem 1.5rem;line-height:1.7;margin-top:2.5rem}
+footer a{color:rgba(255,255,255,.65);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+
+.skl{background:linear-gradient(90deg,#eef1f5,#e3e8ef,#eef1f5);border-radius:6px;min-height:60px}
+</style>
+</head>
+<body class="mode-simple">
+
+<header>
+  <div class="header-left">
+    <div class="logo">retrofit<span>insights</span></div>
+    <div class="header-title">The national picture · Canada</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <a class="sibling-link" href="retrofits.html">↳ Explore your postal area</a>
+    <div class="header-badge">EnerGuide data</div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="eyebrow">1,369,305 matched before / after audits · 1,684 postal areas</div>
+  <h1>What actually <em>works</em> in a home retrofit — and <em>where</em></h1>
+  <p>The <a href="retrofits.html" style="color:var(--amber2)">Retrofit Explorer</a> goes deep on one postal area at a time. This is the cross-sectional view: every matched NRCan EnerGuide retrofit in the country, read together, to see what saves energy, who takes part, and where the worst-performing stock has barely been touched.</p>
+</div>
+
+<div class="kpi-row" id="kpi-row">
+  <div class="kpi"><div class="kv">1.37M</div><div class="kl">matched before / after retrofits (2004–2026)</div></div>
+  <div class="kpi"><div class="kv accent">~21%</div><div class="kl">typical energy saved <span class="info-btn" data-tip="Dwelling-weighted median of the per-neighbourhood median saving, over the 1.25M pairs that logged at least one measure. Modelled EnerGuide estimate, not a metered bill.">i</span></div></div>
+  <div class="kpi"><div class="kv">24%</div><div class="kl">added a heat pump</div></div>
+  <div class="kpi"><div class="kv">7.5%</div><div class="kl">switched heating fuel</div></div>
+  <div class="kpi"><div class="kv">8.6%</div><div class="kl">were zero-measure re-audits <span class="info-btn" data-tip="118,282 pairs logged no tracked upgrade between the two audits — audit noise, reported as a count and excluded from every 'what worked' statistic.">i</span></div></div>
+</div>
+
+<div class="modebar">
+  <span class="hint">Denser cards are hidden by default —</span>
+  <div class="mode-toggle" role="tablist" aria-label="Detail level">
+    <button class="mode-btn active" data-set-mode="simple" role="tab">Simple</button>
+    <button class="mode-btn" data-set-mode="advanced" role="tab">Advanced</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- 02 PROVINCIAL SCORECARD -->
+  <section id="sec-scorecard">
+    <div class="section-head">
+      <div class="section-num">02 — THE PROVINCES</div>
+      <h2>A provincial scorecard</h2>
+      <p class="intro">The same eight numbers for every province, so the national averages don't hide the enormous spread between them. Click a column to sort.</p>
+      <div class="sowhat"><b>So what:</b> heat-pump uptake is not a story about climate or cost — it's a story about <b>provincial programs</b>. New Brunswick, Quebec and the Atlantic provinces sit at 35–50% heat-pump adoption; Ontario, Manitoba, Alberta and Saskatchewan at 15% or below.</div>
+    </div>
+    <div class="card">
+      <div class="scroll-x">
+        <table class="scorecard" id="scorecard-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute).</div>
+    </div>
+  </section>
+
+  <!-- 03 THE MAP -->
+  <section id="sec-map">
+    <div class="section-head">
+      <div class="section-num">03 — THE MAP</div>
+      <h2>One country, five ways</h2>
+      <p class="intro">Every postal area (FSA) with at least 30 matched retrofits, coloured by the metric you pick. The leaderboards beside it re-rank live. Postal areas below the 30-retrofit threshold, and the few condo-dominated downtown cores with no house audits, are left grey.</p>
+      <div class="sowhat"><b>So what:</b> the worst starting stock clusters in the old prairie cores (Winnipeg, Regina); the highest heat-pump adoption in rural Quebec and coastal BC/NL; the lowest participation in downtown high-rise FSAs where "dwellings" are condo units that never get a house audit.</div>
+    </div>
+    <div class="card">
+      <div class="metric-switch" id="metric-switch"></div>
+      <div class="map-layout">
+        <div>
+          <div class="map-frame">
+            <svg id="nat-map" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" aria-label="National FSA choropleth"></svg>
+            <div class="map-skeleton" id="map-skeleton">Loading the map…</div>
+          </div>
+          <div class="map-legend" id="map-legend"></div>
+          <div class="map-progress" id="map-progress"></div>
+        </div>
+        <div>
+          <div class="lb-head">
+            <span class="lb-title" id="lb-title">Leaderboard</span>
+            <span class="lb-metric-name" id="lb-metric-name"></span>
+          </div>
+          <div class="lb-block">
+            <div class="lb-sub" id="lb-top-label">Top 10</div>
+            <div id="lb-top"></div>
+          </div>
+          <div class="lb-block">
+            <div class="lb-sub" id="lb-bot-label">Bottom 10</div>
+            <div id="lb-bot"></div>
+          </div>
+          <div class="lb-note">Minimum 30 matched retrofits per postal area. Hover a row to find it on the map.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 WHAT WORKS -->
+  <section id="sec-success">
+    <div class="section-head">
+      <div class="section-num">04 — WHAT WORKS</div>
+      <h2>What makes a retrofit succeed</h2>
+      <p class="intro">Built on the 1,251,023 pairs that logged at least one real measure — the zero-measure re-audits are set aside. The pattern is blunt: mechanical change beats shell tweaks, and depth compounds.</p>
+      <div class="sowhat"><b>So what:</b> depth beats breadth — a heat pump alone saves ~25%, windows alone ~6%, and each added measure lifts the median another 5–10 points. The same effort spent on a heat pump saves roughly <b>4× what windows-only saves.</b></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>The most common upgrade bundles</h3>
+        <div class="sub">Median energy saving by measure combination — bars in amber contain a heat pump. Ordered by saving.</div>
+        <div class="legend">
+          <span class="lg"><span class="sw" style="background:#C8881A"></span>includes a heat pump</span>
+          <span class="lg"><span class="sw" style="background:#0B2545"></span>no heat pump</span>
+        </div>
+        <div class="chart-wrap" style="height:420px"><canvas id="ch-bundles"></canvas></div>
+        <div class="note">Number beside each bar = pairs in that exact bundle. Modelled EnerGuide saving, not metered.</div>
+      </div>
+      <div class="card">
+        <h3>Depth pays: saving vs number of measures</h3>
+        <div class="sub">Median saving rises cleanly with how many of the eight tracked measures a home did.</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="ch-count"></canvas></div>
+        <div class="note" id="count-note"></div>
+        <div class="caveat"><b>Read with care:</b> more measures mechanically means more modelled savings, so this relationship is partly built-in. It is still the honest headline — and most homes (about 64%) did only one or two measures.</div>
+      </div>
+    </div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>04c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
+      <div class="sub">Top-decile savers (≥ 40.6% saved) versus everyone else — measure prevalence and starting conditions.</div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:#C8881A"></span>Top-decile savers</span>
+        <span class="lg"><span class="sw" style="background:#0B2545"></span>All other retrofits</span>
+      </div>
+      <div class="grid2">
+        <div class="chart-wrap" style="height:320px"><canvas id="ch-decile"></canvas></div>
+        <div id="decile-stats" style="align-self:center"></div>
+      </div>
+      <div class="caveat">The recipe is consistent: an older, worse-performing home (built ~1960, high starting EUI) that did more measures, switched fuel and added a heat pump. Starting-EUI headroom + fuel switch + heat pump.</div>
+    </div>
+  </section>
+
+  <!-- 05 CLIMATE -->
+  <section id="sec-climate">
+    <div class="section-head">
+      <div class="section-num">05 — CLIMATE</div>
+      <h2>The climate lens</h2>
+      <p class="intro">Homes grouped by their postal area's heating-degree-days (how cold the winter is). It looks like a climate effect — but read the caveat.</p>
+      <div class="sowhat"><b>So what:</b> what looks like a climate effect is mostly a <b>provincial</b> one — the mid-cold heat-pump spike is Quebec's rebate boom, not colder winters. Saving % barely moves across climate bands.</div>
+    </div>
+    <div class="card">
+      <h3>Heat-pump adoption &amp; savings by winter severity</h3>
+      <div class="sub">Grouped by heating degree-days (HDD, base 18 °C). Colder → right.</div>
+      <div class="chart-wrap" style="height:320px"><canvas id="ch-hdd"></canvas></div>
+      <div class="caveat"><b>Composition, not causation:</b> the 4,500–5,500 HDD band is dominated by Quebec (aggressive heat-pump rebates); the 5,500–6,500 band is the prairies (little uptake). The bump tracks <b>province</b>, not temperature — don't read it as "colder → more heat pumps".</div>
+    </div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>CDD · the cooling angle</h3>
+      <div class="sub">The same homes grouped by cooling degree-days (CDD, base 18 °C). Hotter summers → right.</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="ch-cdd"></canvas></div>
+      <div class="caveat">High-CDD is southern-Ontario gas country (low heat-pump uptake); the gradient again tracks provincial fuel mix, not cooling need.</div>
+    </div>
+  </section>
+
+  <!-- 06 EQUITY -->
+  <section id="sec-equity">
+    <div class="section-head">
+      <div class="section-num">06 — WHO PARTICIPATES</div>
+      <h2>Who takes part</h2>
+      <p class="intro">Postal areas sorted into five equal groups by neighbourhood median household income, lowest to highest.</p>
+      <div class="sowhat"><b>So what:</b> cheaper neighbourhoods show more heat pumps — but that's <b>Atlantic Canada and Quebec</b> in the data, not lower-income households. Participation rises weakly with income; the deeper savings sit in the lower-income (Atlantic/Quebec) quintiles.</div>
+    </div>
+    <div class="card">
+      <h3>By neighbourhood income quintile</h3>
+      <div class="sub">Q1 = lowest-income neighbourhoods, Q5 = highest. Participation, heat-pump rate and typical saving.</div>
+      <div class="chart-wrap" style="height:330px"><canvas id="ch-income"></canvas></div>
+      <div class="caveat" style="border-left-color:var(--amber)"><b>Ecological fallacy warning:</b> a neighbourhood's income quintile describes the <b>area, not the individual participants</b>. The "lower-income → more heat pumps" pattern is entirely provincial composition — the cheap-housing quintiles are Atlantic/Quebec-heavy, regions with electric/oil heat and aggressive provincial rebates. It is <b>not</b> evidence that poorer households buy more heat pumps.</div>
+    </div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>By dwelling value quintile</h3>
+      <div class="sub">The secondary axis: postal areas grouped by median dwelling value instead of income.</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="ch-value"></canvas></div>
+      <div class="caveat">Same mechanism as income — the lowest-value quintile (Q1) shows the highest heat-pump rate because it is Atlantic/Quebec-heavy, not because cheaper homes are greener.</div>
+    </div>
+  </section>
+
+  <!-- 07 HEAT-PUMP GEOGRAPHY -->
+  <section id="sec-hp">
+    <div class="section-head">
+      <div class="section-num">07 — HEAT PUMPS</div>
+      <h2>The geography of heat pumps</h2>
+      <p class="intro">Where the roughly 328,000 heat pumps in this dataset went in, and what got installed.</p>
+      <div class="sowhat"><b>So what:</b> heat-pump adoption is provincial first and everything-else second — a 15× spread from New Brunswick (~50%) to Saskatchewan (~2%). Climate and income "effects" are mostly this map in disguise.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Heat-pump adoption by province</h3>
+        <div class="sub">Share of matched retrofits that added a heat pump.</div>
+        <div class="chart-wrap" style="height:340px"><canvas id="ch-hp-prov"></canvas></div>
+        <button class="jump-btn" data-jump-metric="hp_rate" style="margin-top:.7rem">◲ See heat-pump adoption on the map</button>
+      </div>
+      <div class="card">
+        <h3>The most-installed models nationally</h3>
+        <div class="sub">Top AHRI-listed heat pumps across all matched retrofits.</div>
+        <div id="models-wrap"><div class="skl" style="height:220px"></div></div>
+        <div class="note">Counts across all matched pairs with an AHRI number. Links open the AHRI Directory listing. <span class="tag cc">CC</span> = cold-climate rated.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 MISSED OPPORTUNITY -->
+  <section id="sec-opp">
+    <div class="section-head">
+      <div class="section-num">08 — MISSED OPPORTUNITY</div>
+      <h2>Where programs should look next</h2>
+      <p class="intro">A composite score combining the worst starting stock with the lowest uptake — the postal areas with the most to gain that have barely participated.</p>
+      <div class="sowhat"><b>So what:</b> the worst-performing, least-touched stock clusters in the older cores of <b>Winnipeg, Edmonton, Saint John and Regina</b>. Click any row to see why it ranks where it does.</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:.4rem">
+        <h3 style="margin:0">Top 20 opportunity postal areas <span class="info-btn" id="opp-formula-btn" data-tip="">i</span></h3>
+        <button class="jump-btn" data-jump-metric="opportunity">◲ See the opportunity score on the map</button>
+      </div>
+      <div class="sub">Higher score = worse stock + lower participation. Minimum 30 matched retrofits.</div>
+      <div class="scroll-x">
+        <table class="opp-table" id="opp-table"><thead><tr>
+          <th>#</th><th>FSA</th><th>Prov</th><th>Score</th><th>Pre-EUI</th><th>Pre-GHG</th><th>Pre-1980</th><th>Particip.</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat"><b>Screening tool, not a verdict:</b> high pre-EUI is a modelled screening signal and low participation partly reflects the condo-denominator issue, so this is a prioritisation heuristic for <b>where to look</b>, not a judgement on any individual home.</div>
+    </div>
+  </section>
+
+  <!-- 09 TIMELINE -->
+  <section id="sec-timeline">
+    <div class="section-head">
+      <div class="section-num">09 — THE TIMELINE</div>
+      <h2>Twenty years of programs</h2>
+      <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
+      <div class="sowhat"><b>So what:</b> the 2009 peak is the ecoENERGY Retrofit era; the 2023–24 peak is the Canada Greener Homes Grant. The post-2024 fall-off — after the grant closed to new applicants — is already visible.</div>
+    </div>
+    <div class="card">
+      <h3>Matched audits per year, with program eras</h3>
+      <div class="sub">Initial audits by their year; completed retrofits by their follow-up audit year.</div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:#0B2545"></span>Initial (pre-retrofit) audits</span>
+        <span class="lg"><span class="sw" style="background:#C8881A"></span>Completed retrofits</span>
+      </div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-timeline"></canvas></div>
+      <div class="note" id="timeline-note"></div>
+    </div>
+  </section>
+
+  <!-- 10 METHODOLOGY -->
+  <section id="sec-method">
+    <div class="section-head">
+      <div class="section-num">10 — METHODOLOGY</div>
+      <h2>How this was built</h2>
+      <p class="intro">Every formula, threshold and honesty rail behind the numbers above.</p>
+    </div>
+    <details class="methodology">
+      <summary>Sources, formulas &amp; the honesty rails</summary>
+      <div class="method-body" id="method-body"></div>
+    </details>
+  </section>
+
+</main>
+
+<div class="map-tip" id="map-tip"></div>
+<div id="info-tip"></div>
+
+<footer>
+  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · 2021 Census Profile (income, dwellings) · ECCC Climate Normals (HDD/CDD) · matched before/after audits 2004–2026.<br>
+  Values are modelled EnerGuide estimates, not metered consumption. FSA-level income and value figures are neighbourhood aggregates, not participant-level.<br>
+  <a href="retrofits.html">← Retrofit Explorer</a> · Website, data pipeline and Python scripts developed with Claude AI.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* Retrofit Insights — national big-picture page.
+   Self-contained logic (inlined into retrofit-insights.html at ship time).
+   Data: insights_json/* (built by Python/build_insights.py), geo_json/<PROV>.json,
+   province_json/CA.json + lookup/ahri_numbers.json for §07.
+   Preview quirk handling: Chart.js runs animation:false + a forced .draw();
+   scrolling uses behavior:'instant'. */
+'use strict';
+
+const BASE_URL=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
+  ?'./'
+  :'https://raw.githubusercontent.com/OttawaVisuals/Energy/main/';
+const INS=`${BASE_URL}insights_json/`;
+const GEO=`${BASE_URL}geo_json/`;
+
+const $=id=>document.getElementById(id);
+const _cache=new Map();
+function loadJSON(url){
+  if(_cache.has(url))return _cache.get(url);
+  const p=fetch(url).then(r=>{if(!r.ok)throw new Error(url+' '+r.status);return r.json();});
+  _cache.set(url,p);
+  return p;
+}
+const fmtInt=n=>Math.round(n).toLocaleString('en-CA');
+const fmtPct=(v,d=0)=>`${(v*100).toFixed(d)}%`;
+const PROV_NAME={AB:'Alberta',BC:'British Columbia',MB:'Manitoba',NB:'New Brunswick',
+  NF:'Newfoundland & Labrador',NS:'Nova Scotia',ON:'Ontario',PE:'Prince Edward Island',
+  QC:'Quebec',SK:'Saskatchewan',NT:'Northwest Territories',NU:'Nunavut'};
+
+/* ── colours ────────────────────────────────────────────────────────── */
+const NAVY='#0B2545',AMBER='#C8881A',AMBER2='#E8A124',GREEN='#1A7A55',RED='#B33A2E',
+      MUTED='#8A9BB0',GRID='#E8EDF4',SURF='#E8EDF4';
+function lerp(lo,hi,t){t=Math.max(0,Math.min(1,t));return`rgb(${lo.map((v,i)=>Math.round(v+(hi[i]-v)*t)).join(',')})`;}
+const GAMMA=0.55;
+const lerpG=(lo,hi,t)=>lerp(lo,hi,Math.pow(Math.max(0,Math.min(1,t)),GAMMA));
+function textOn(rgb){const m=rgb&&rgb.match(/\d+/g);if(!m)return'#1C2B3A';const[r,g,b]=m.map(Number);
+  return(0.299*r+0.587*g+0.114*b)/255>0.6?'#1C2B3A':'#fff';}
+
+/* ── mode toggle ────────────────────────────────────────────────────── */
+document.querySelectorAll('[data-set-mode]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const m=btn.dataset.setMode;
+    document.body.classList.toggle('mode-simple',m==='simple');
+    document.body.classList.toggle('mode-advanced',m==='advanced');
+    document.querySelectorAll('[data-set-mode]').forEach(b=>b.classList.toggle('active',b===btn));
+    // advanced charts were built hidden (0px) — resize + redraw now they're visible
+    setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();c.draw();}catch(e){}}),30);
+  });
+});
+
+/* ── info tooltips ──────────────────────────────────────────────────── */
+(function(){
+  const tip=$('info-tip');let open=null;
+  function show(btn){const t=btn.dataset.tip;if(!t)return;tip.textContent=t;tip.style.display='block';
+    const r=btn.getBoundingClientRect();let l=r.left-140+r.width/2;l=Math.max(8,Math.min(l,innerWidth-tip.offsetWidth-8));
+    let top=r.bottom+8;if(top+tip.offsetHeight>innerHeight-8)top=r.top-tip.offsetHeight-8;
+    tip.style.left=l+'px';tip.style.top=top+'px';btn.classList.add('open');open=btn;}
+  function hide(){tip.style.display='none';if(open)open.classList.remove('open');open=null;}
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.info-btn');
+    if(b){e.stopPropagation();if(open===b){hide();}else{if(open)open.classList.remove('open');show(b);}return;}
+    hide();
+  });
+  document.addEventListener('mouseover',e=>{const b=e.target.closest('.info-btn');if(b&&open!==b){if(open)open.classList.remove('open');show(b);}});
+  document.addEventListener('mouseout',e=>{if(e.target.closest('.info-btn')&&!('ontouchstart'in window))hide();});
+})();
+
+/* ── Chart.js helper (animation:false + forced draw for the no-rAF preview) ── */
+const CHARTS={};
+Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color=MUTED;
+// Inline (per-chart) plugins must be passed at construction — chart.config is
+// getter-only in Chart.js 4. Stage them in _plg right before the mkChart call.
+let _plg=null;
+function mkChart(id,cfg){
+  const el=$(id);if(!el)return null;
+  cfg.options=cfg.options||{};
+  cfg.options.animation=false;cfg.options.responsive=true;cfg.options.maintainAspectRatio=false;
+  if(_plg){cfg.plugins=_plg;_plg=null;}
+  if(CHARTS[id]){CHARTS[id].destroy();}
+  const c=new Chart(el.getContext('2d'),cfg);
+  c.update('none');c.draw();
+  CHARTS[id]=c;return c;
+}
+// value-label plugin factory
+function labels(fmt,opt={}){
+  const horiz=!!opt.horizontal,col=opt.color||'#1C2B3A',off=opt.offset??4,size=opt.size||10,inside=opt.inside;
+  return{afterDatasetsDraw(chart){
+    const ctx=chart.ctx;ctx.save();ctx.font=`600 ${size}px Inter,sans-serif`;ctx.textBaseline='middle';
+    chart.data.datasets.forEach((ds,di)=>{
+      if(ds._nolabel)return;
+      const meta=chart.getDatasetMeta(di);if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const v=ds.data[i];if(v==null||(typeof v==='number'&&isNaN(v)))return;
+        const s=fmt(v,i,di);if(s==null||s==='')return;
+        ctx.fillStyle=inside?textOn(ds.backgroundColor[i]||ds.backgroundColor||'#000'):col;
+        if(horiz){ctx.textAlign=inside?'right':'left';const x=inside?el.x-off:el.x+off;ctx.fillText(s,x,el.y);}
+        else{ctx.textAlign='center';ctx.fillText(s,el.x,el.y-off);}
+      });
+    });ctx.restore();
+  }};
+}
+const AX={grid:{color:GRID,drawTicks:false},border:{display:false},ticks:{color:MUTED,padding:6}};
+const AXcat={grid:{display:false},border:{display:false},ticks:{color:MUTED}};
+
+/* ── lazy section rendering ─────────────────────────────────────────────
+   Scroll/rect based rather than IntersectionObserver: IO callbacks are tied
+   to the rendering pipeline and don't fire in the frame-less preview here,
+   whereas scroll events + an initial rect check work everywhere. Each section
+   renders once, when it comes within ~350px of the viewport. */
+const rendered=new Set();
+const _pending=new Map();
+function whenVisible(secId,fn){const el=$(secId);if(el)_pending.set(secId,fn);}
+function checkPending(){
+  if(!_pending.size)return;const vh=innerHeight||800;
+  for(const[id,fn]of[..._pending]){
+    const el=$(id);if(!el)continue;const r=el.getBoundingClientRect();
+    if(r.top<vh+350&&r.bottom>-350){_pending.delete(id);
+      if(!rendered.has(id)){rendered.add(id);Promise.resolve().then(fn).catch(err=>console.error(id,err));}}
+  }
+}
+addEventListener('scroll',checkPending,{passive:true});
+addEventListener('resize',()=>{checkPending();setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();c.draw();}catch(e){}}),40);});
+
+/* ══════════════════════════════════════════════════════════════════════
+   02 — PROVINCIAL SCORECARD
+   ══════════════════════════════════════════════════════════════════════ */
+let SCORE_ROWS=null,SCORE_SORT={key:'matched',dir:-1};
+const SCORE_COLS=[
+  {key:'prov',label:'Province',fmt:r=>`<span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span>`,num:false},
+  {key:'matched',label:'Retrofits',fmt:r=>fmtInt(r.matched),bar:'matched'},
+  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1)},
+  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%'},
+  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:'hp'},
+  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0)},
+  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1)},
+  {key:'eui',label:'Pre-EUI',fmt:r=>Math.round(r.eui)},
+];
+function buildScorecard(records){
+  const g={};
+  records.forEach(r=>{
+    if(!PROV_NAME[r.prov])return;
+    const p=g[r.prov]||(g[r.prov]={prov:r.prov,matched:0,aud:0,dw:0,sw:0,shp:0,sfuel:0,sdeep:0,seui:0,neui:0});
+    p.matched+=r.n;p.sw+=r.n*r.median_saving_pct;
+    p.shp+=r.n*(r.hp_rate||0);p.sfuel+=r.n*(r.fuel_switch_rate||0);p.sdeep+=r.n*(r.deep_rate||0);
+    if(r.participation&&r.participation>0){p.aud+=r.audited;p.dw+=r.audited/r.participation;}
+    if(r.eui_pre_median!=null){p.seui+=r.n*r.eui_pre_median;p.neui+=r.n;}
+  });
+  return Object.values(g).map(p=>({
+    prov:p.prov,matched:p.matched,
+    participation:p.dw>0?p.aud/p.dw:0,
+    saving:p.sw/p.matched,hp:p.shp/p.matched,fuel:p.sfuel/p.matched,deep:p.sdeep/p.matched,
+    eui:p.neui>0?p.seui/p.neui:0,
+  }));
+}
+function renderScorecard(){
+  const rows=SCORE_ROWS,head=$('scorecard-table').tHead,body=$('scorecard-table').tBodies[0];
+  const maxes={matched:Math.max(...rows.map(r=>r.matched)),hp:Math.max(...rows.map(r=>r.hp))};
+  head.innerHTML='<tr>'+SCORE_COLS.map(c=>`<th data-key="${c.key}" class="${SCORE_SORT.key===c.key?'arrow-active':''}">${c.label}${SCORE_SORT.key===c.key?(SCORE_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const sorted=[...rows].sort((a,b)=>{const k=SCORE_SORT.key;
+    if(k==='prov')return SCORE_SORT.dir*(PROV_NAME[a.prov]||'').localeCompare(PROV_NAME[b.prov]||'');
+    return SCORE_SORT.dir*(a[k]-b[k]);});
+  body.innerHTML=sorted.map(r=>'<tr>'+SCORE_COLS.map(c=>{
+    if(c.bar){const pct=Math.round(100*r[c.key]/maxes[c.bar]);
+      return`<td class="bar-cell"><span class="bar" style="width:${pct}%"></span><span>${c.fmt(r)}</span></td>`;}
+    return`<td>${c.fmt(r)}</td>`;
+  }).join('')+'</tr>').join('');
+  head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.key;if(SCORE_SORT.key===k)SCORE_SORT.dir*=-1;else{SCORE_SORT={key:k,dir:k==='prov'?1:-1};}
+    renderScorecard();});
+}
+function sec02(){return ensureMetrics().then(recs=>{SCORE_ROWS=buildScorecard(recs);renderScorecard();});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   03 — NATIONAL MAP + LEADERBOARDS
+   ══════════════════════════════════════════════════════════════════════ */
+let METRICS_RECS=null,FSA_INDEX=null;
+function ensureMetrics(){
+  if(METRICS_RECS)return Promise.resolve(METRICS_RECS);
+  return loadJSON(INS+'fsa_metrics.json').then(d=>{
+    METRICS_RECS=d.records;FSA_INDEX={};d.records.forEach(r=>FSA_INDEX[r.fsa]=r);return METRICS_RECS;});
+}
+const MIN_N=30;
+// metric registry ------------------------------------------------------
+const MMETRICS={
+  participation:{label:'Participation',lb:'Uptake (audited ÷ dwellings)',
+    get:r=>r.participation,ok:r=>r.n>=MIN_N&&r.participation!=null,
+    lbFilter:r=>r.participation<=2.0, // drop tiny-denominator artifacts (e.g. J5N 6.19) from the ranking
+    lbNote:'Participation can exceed 100% — it counts ~20 years of cumulative audits against a single 2021 dwelling snapshot. A handful of tiny-denominator FSAs (census undercounts the audited stock) are excluded from this ranking.',
+    fmt:v=>fmtPct(v,1),accent:[11,37,69],clip:1.0,seq:true,
+    top:'Highest uptake',bot:'Lowest uptake',
+    legLo:'0%',legHi:'100%+',
+    tip:'audited homes ÷ 2021 dwellings'},
+  saving:{label:'Median saving',lb:'Median energy saving %',
+    get:r=>r.median_saving_pct,ok:r=>r.n>=MIN_N&&r.median_saving_pct!=null,
+    fmt:v=>v.toFixed(1)+'%',diverging:true,
+    top:'Deepest savings',bot:'Shallowest savings',
+    tip:'median modelled saving over the FSA’s matched pairs'},
+  eui:{label:'Worst stock (pre-EUI)',lb:'Pre-retrofit energy use (kWh/m²)',
+    get:r=>r.eui_pre_median,ok:r=>r.n>=MIN_N&&r.eui_pre_median!=null,
+    fmt:v=>Math.round(v)+' kWh/m²',accent:[179,58,46],seq:true,
+    top:'Worst starting stock',bot:'Best starting stock',
+    tip:'median pre-retrofit energy use intensity'},
+  ghg:{label:'Worst stock (pre-GHG)',lb:'Pre-retrofit emissions (t CO₂e)',
+    get:r=>r.ghg_pre_median,ok:r=>r.n>=MIN_N&&r.ghg_pre_median!=null,
+    fmt:v=>v.toFixed(1)+' t',accent:[139,52,42],seq:true,
+    top:'Highest emissions',bot:'Lowest emissions',
+    tip:'median pre-retrofit modelled GHG'},
+  hp_rate:{label:'Heat-pump adoption',lb:'Share adding a heat pump',
+    get:r=>r.hp_rate,ok:r=>r.n>=MIN_N&&r.hp_rate!=null,
+    fmt:v=>fmtPct(v,0),accent:[200,136,26],seq:true,
+    top:'Highest adoption',bot:'Lowest adoption',
+    tip:'share of matched pairs that added a heat pump'},
+  opportunity:{label:'Opportunity score',lb:'Missed-opportunity composite (0–100)',
+    get:r=>r.opp_score,ok:r=>r.opp_score!=null,
+    fmt:v=>v.toFixed(1),accent:[176,42,30],seq:true,
+    top:'Biggest opportunity',bot:'Smallest opportunity',
+    tip:'worst stock × lowest participation composite'},
+};
+let CUR_METRIC='participation',MAP_STATE={shapes:{},built:false},OPP_LOADED=false;
+
+// projection -----------------------------------------------------------
+const NAT={minLon:-140,maxLon:-52,minLat:41.5,maxLat:62.8};
+const mercX=lon=>(lon+180)/360;
+const mercY=lat=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2;};
+const WX0=mercX(NAT.minLon),WX1=mercX(NAT.maxLon),WYT=mercY(NAT.maxLat),WYB=mercY(NAT.minLat);
+const MAP_W=1000,SC=MAP_W/(WX1-WX0),MAP_H=Math.round((WYB-WYT)*SC);
+const projX=lon=>Math.round((mercX(lon)-WX0)*SC);
+const projY=lat=>Math.round((mercY(lat)-WYT)*SC);
+function ringPath(ring){
+  let d='',px=null,py=null,pts=0;
+  for(const[lon,lat]of ring){const x=projX(lon),y=projY(lat);
+    if(x===px&&y===py)continue;d+=(pts===0?'M':'L')+x+','+y;px=x;py=y;pts++;}
+  return pts>=3?d+'Z':'';
+}
+function featurePath(ft){
+  const g=ft.geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;let d='';
+  polys.forEach(rings=>rings.forEach(r=>{d+=ringPath(r);}));
+  return d;
+}
+const MAP_PROVS=['ON','QC','BC','AB','NB','NS','MB','SK','NF','PE'];
+function buildMap(){
+  if(MAP_STATE.built)return Promise.resolve();
+  MAP_STATE.built=true;
+  const svg=$('nat-map');svg.setAttribute('viewBox',`0 0 ${MAP_W} ${MAP_H}`);
+  svg.innerHTML='<g id="map-shapes"></g>';
+  const g=svg.querySelector('#map-shapes');
+  let done=0;const prog=$('map-progress');
+  return ensureMetrics().then(()=>{
+    // load provinces progressively; append each as it arrives
+    return Promise.all(MAP_PROVS.map(prov=>
+      loadJSON(GEO+prov+'.json').then(gj=>{
+        let frag='';
+        gj.features.forEach(ft=>{const fsa=ft.properties.CFSAUID;const d=featurePath(ft);if(!d)return;
+          frag+=`<path class="fsa-shape" data-fsa="${fsa}" d="${d}" fill="#D9DEE6"></path>`;});
+        g.insertAdjacentHTML('beforeend',frag);
+        g.querySelectorAll(`path[data-fsa]`).forEach(p=>{MAP_STATE.shapes[p.dataset.fsa]=p;});
+        done++;if($('map-skeleton'))$('map-skeleton').style.display='none';
+        prog.textContent=`Loaded ${done}/${MAP_PROVS.length} provinces`;
+        paintMap();
+      }).catch(e=>{console.error('geo',prov,e);done++;})
+    )).then(()=>{prog.textContent=`${Object.keys(MAP_STATE.shapes).length.toLocaleString()} postal areas · 10 provinces`;wireMap();});
+  });
+}
+function metricDomain(m){
+  const vals=METRICS_RECS.filter(m.ok).map(m.get);
+  return{lo:Math.min(...vals),hi:Math.max(...vals),vals};
+}
+function colorFor(m,dom,v){
+  if(v==null)return'#D9DEE6';
+  if(m.diverging){const hi=Math.max(dom.hi,0),lo=Math.min(dom.lo,0),BASE=[245,242,235];
+    if(v>=0)return lerpG(BASE,[9,74,48],hi>0?v/hi:0);
+    return lerpG(BASE,[122,28,22],lo<0?v/lo:0);}
+  let t=(v-dom.lo)/((m.clip?Math.min(m.clip,dom.hi):dom.hi)-dom.lo);
+  if(m.clip&&v>m.clip)t=1;
+  return lerpG([245,242,235],m.accent,t);
+}
+let CUR_DOM=null;
+function paintMap(){
+  const m=MMETRICS[CUR_METRIC];CUR_DOM=metricDomain(m);
+  Object.entries(MAP_STATE.shapes).forEach(([fsa,p])=>{
+    const r=FSA_INDEX[fsa];p.setAttribute('fill',(r&&m.ok(r))?colorFor(m,CUR_DOM,m.get(r)):'#D9DEE6');
+  });
+  buildLegend(m,CUR_DOM);
+}
+function buildLegend(m,dom){
+  const steps=10,stops=[];
+  for(let i=0;i<=steps;i++){const t=i/steps,v=dom.lo+t*(dom.hi-dom.lo);
+    stops.push(`${colorFor(m,dom,v)} ${Math.round(t*100)}%`);}
+  let lo,hi,mid=null;
+  if(m.diverging){lo=(Math.min(dom.lo,0)).toFixed(0)+'%';hi='+'+dom.hi.toFixed(0)+'%';if(dom.lo<0)mid='0%';}
+  else{lo=m.legLo||m.fmt(dom.lo);hi=m.legHi||m.fmt(dom.hi);}
+  $('map-legend').innerHTML=`<div class="map-grad-wrap"><div class="map-grad" style="background:linear-gradient(90deg,${stops.join(',')})"></div>`+
+    `<div class="map-grad-labels"><span>${lo}</span>${mid?`<span>${mid}</span>`:''}<span>${hi}</span></div></div>`+
+    `<div class="note" style="margin-top:.35rem">${m.lb} · grey = under ${MIN_N} retrofits or no house audits</div>`;
+}
+let _tip=null;
+function wireMap(){
+  const svg=$('nat-map');_tip=$('map-tip');
+  svg.addEventListener('mousemove',e=>{
+    const el=e.target.closest('.fsa-shape');if(!el){_tip.style.display='none';return;}
+    const fsa=el.dataset.fsa,r=FSA_INDEX[fsa],m=MMETRICS[CUR_METRIC];
+    let h=`<b>${fsa}</b> · ${PROV_NAME[r?r.prov:'']||''}`;
+    if(r&&m.ok(r))h+=`<br>${m.label}: ${m.fmt(m.get(r))}<br>${fmtInt(r.n)} matched retrofits`;
+    else if(r)h+=`<br>${fmtInt(r.n)} retrofits (under ${MIN_N} — not ranked)`;
+    else h+='<br>no matched retrofits';
+    _tip.innerHTML=h;_tip.style.display='block';
+    _tip.style.left=Math.min(e.clientX+14,innerWidth-_tip.offsetWidth-8)+'px';
+    _tip.style.top=(e.clientY+14)+'px';
+  });
+  svg.addEventListener('mouseleave',()=>{_tip.style.display='none';});
+}
+function renderLeaderboard(){
+  const m=MMETRICS[CUR_METRIC];
+  const elig=METRICS_RECS.filter(r=>m.ok(r)&&(!m.lbFilter||m.lbFilter(r))).map(r=>({fsa:r.fsa,prov:r.prov,v:m.get(r),n:r.n}));
+  elig.sort((a,b)=>b.v-a.v);
+  const top=elig.slice(0,10),bot=elig.slice(-10).reverse();
+  $('lb-title').textContent=m.label;
+  $('lb-metric-name').textContent=`${elig.length} FSAs · n≥${MIN_N}`;
+  $('lb-top-label').textContent=m.top;$('lb-bot-label').textContent=m.bot;
+  const row=o=>`<div class="lb-row" data-fsa="${o.fsa}"><span><span class="lb-fsa">${o.fsa}</span><span class="lb-prov">${o.prov}</span></span><span class="lb-val">${m.fmt(o.v)}</span></div>`;
+  $('lb-top').innerHTML=top.map(row).join('');
+  $('lb-bot').innerHTML=bot.map(row).join('');
+  const noteEl=document.querySelector('#sec-map .lb-note');
+  if(noteEl)noteEl.innerHTML=`Minimum ${MIN_N} matched retrofits per postal area. Hover a row to find it on the map.`+(m.lbNote?`<br><span style="color:var(--amber)">${m.lbNote}</span>`:'');
+  document.querySelectorAll('.lb-row').forEach(rw=>{
+    rw.addEventListener('mouseenter',()=>hlShape(rw.dataset.fsa,true));
+    rw.addEventListener('mouseleave',()=>hlShape(rw.dataset.fsa,false));
+    rw.addEventListener('click',()=>{$('nat-map').scrollIntoView({behavior:'instant',block:'center'});flashShape(rw.dataset.fsa);});
+  });
+}
+function hlShape(fsa,on){const p=MAP_STATE.shapes[fsa];if(p)p.classList.toggle('hl',on);}
+function flashShape(fsa){const p=MAP_STATE.shapes[fsa];if(!p)return;p.classList.add('hl');setTimeout(()=>p.classList.remove('hl'),1400);}
+function setMetric(key){
+  CUR_METRIC=key;
+  document.querySelectorAll('.metric-btn').forEach(b=>b.classList.toggle('active',b.dataset.metric===key));
+  const go=()=>{paintMap();renderLeaderboard();};
+  if(key==='opportunity'&&!OPP_LOADED){
+    loadJSON(INS+'opportunity.json').then(d=>{d.ranking.forEach(o=>{if(FSA_INDEX[o.fsa])FSA_INDEX[o.fsa].opp_score=o.score;});OPP_LOADED=true;go();});
+  }else go();
+}
+function sec03(){
+  const sw=$('metric-switch');
+  sw.innerHTML=Object.entries(MMETRICS).filter(([k])=>k!=='opportunity').map(([k,m])=>
+    `<button class="metric-btn${k===CUR_METRIC?' active':''}" data-metric="${k}">${m.label}</button>`).join('');
+  sw.querySelectorAll('.metric-btn').forEach(b=>b.addEventListener('click',()=>setMetric(b.dataset.metric)));
+  return buildMap().then(()=>{renderLeaderboard();});
+}
+// deep-link buttons (from §07 / §08)
+document.querySelectorAll('[data-jump-metric]').forEach(btn=>btn.addEventListener('click',()=>{
+  const k=btn.dataset.jumpMetric;
+  const ensureSwitch=(k==='opportunity')?()=>{
+    if(!$('metric-switch').querySelector('[data-metric="opportunity"]')){
+      const b=document.createElement('button');b.className='metric-btn';b.dataset.metric='opportunity';
+      b.textContent=MMETRICS.opportunity.label;b.addEventListener('click',()=>setMetric('opportunity'));
+      $('metric-switch').appendChild(b);}
+  }:()=>{};
+  const run=()=>{ensureSwitch();setMetric(k);$('sec-map').scrollIntoView({behavior:'instant',block:'start'});};
+  if(!rendered.has('sec-map')){rendered.add('sec-map');sec03().then(run);}else run();
+}));
+
+/* ══════════════════════════════════════════════════════════════════════
+   04 — WHAT WORKS
+   ══════════════════════════════════════════════════════════════════════ */
+const MSHORT={'Air sealing':'Air seal','Heating system':'Heating','Heat pump':'Heat pump','Windows':'Windows','Roof':'Roof','Foundation':'Foundation','Wall':'Wall','Floor':'Floor'};
+function sec04(){
+  return loadJSON(INS+'success.json').then(s=>{
+    // bundles: top 13 by saving
+    const b=[...s.bundles].sort((a,b)=>b.median_saving_pct-a.median_saving_pct).slice(0,13);
+    const bl=b.map(x=>x.measures.map(mm=>MSHORT[mm]||mm).join(' + '));
+    const bc=b.map(x=>x.measures.includes('Heat pump')?AMBER:NAVY);
+    _plg=[labels((v,i)=>`${v.toFixed(1)}%  ·  ${fmtInt(b[i].n)}`,{horizontal:true,color:'#5C6E82',size:9.5})];
+    mkChart('ch-bundles',{type:'bar',
+      data:{labels:bl,datasets:[{data:b.map(x=>x.median_saving_pct),backgroundColor:bc,borderRadius:4,borderSkipped:false,barThickness:'flex',maxBarThickness:22}]},
+      options:{indexAxis:'y',layout:{padding:{right:60}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.raw.toFixed(1)}% saved · ${fmtInt(b[i.dataIndex].n)} homes`}}},
+        scales:{x:{...AX,title:{display:true,text:'median energy saving',color:MUTED,font:{size:11}},ticks:{...AX.ticks,callback:v=>v+'%'}},y:{...AXcat,ticks:{color:'#1C2B3A',font:{size:11}}}}}});
+
+    // saving vs count
+    const c=s.by_measure_count.filter(x=>x.n_measures<=8);
+    const cc=c.map(x=>x.audit_noise?'#C3CBd6':lerpG([245,239,225],[200,136,26],x.median_saving_pct/70));
+    _plg=[labels(v=>v.toFixed(1)+'%',{color:'#1C2B3A',size:10,offset:5})];
+    mkChart('ch-count',{type:'bar',
+      data:{labels:c.map(x=>x.n_measures),datasets:[{data:c.map(x=>x.median_saving_pct),backgroundColor:cc,borderRadius:4,borderSkipped:false}]},
+      options:{layout:{padding:{top:22}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${c[i.dataIndex].median_saving_pct}% median · ${fmtInt(c[i.dataIndex].n)} homes`}}},
+        scales:{x:{...AXcat,title:{display:true,text:'number of measures',color:MUTED,font:{size:11}}},y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},title:{display:true,text:'median saving',color:MUTED,font:{size:11}}}}}});
+    $('count-note').innerHTML=`Zero-measure re-audits (${fmtInt(s.by_measure_count[0].n)} pairs, median ${s.by_measure_count[0].median_saving_pct}%) are audit noise — shown greyed and excluded elsewhere.`;
+
+    // 04c decile profile
+    const order=['Heat pump','Heating system','Air sealing','Roof','Foundation','Windows','Wall','Floor'];
+    const td=s.top_decile.measure_prevalence,rest=s.rest.measure_prevalence;
+    mkChart('ch-decile',{type:'bar',
+      data:{labels:order.map(o=>MSHORT[o]),datasets:[
+        {label:'Top decile',data:order.map(o=>td[o]*100),backgroundColor:AMBER,borderRadius:3,borderSkipped:false},
+        {label:'Rest',data:order.map(o=>rest[o]*100),backgroundColor:NAVY,borderRadius:3,borderSkipped:false}]},
+      options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(0)}%`}}},
+        scales:{x:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},max:100},y:{...AXcat,ticks:{color:'#1C2B3A'}}}}});
+    const dstat=(a,b,f)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${f}</span><span><b style="color:var(--amber);font-variant-numeric:tabular-nums">${a}</b> <span style="color:var(--light)">vs</span> <b style="color:var(--navy);font-variant-numeric:tabular-nums">${b}</b></span></div>`;
+    $('decile-stats').innerHTML=
+      dstat(s.top_decile.median_pre_eui,s.rest.median_pre_eui,'Median pre-EUI (kWh/m²)')+
+      dstat(s.top_decile.median_year_built,s.rest.median_year_built,'Median year built')+
+      dstat(s.top_decile.mean_measure_count.toFixed(1),s.rest.mean_measure_count.toFixed(1),'Mean # measures')+
+      dstat(fmtPct(s.top_decile.fuel_switch_share),fmtPct(s.rest.fuel_switch_share),'Fuel-switch share')+
+      dstat(fmtInt(s.top_decile.n),fmtInt(s.rest.n),'Homes');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   05 — CLIMATE
+   ══════════════════════════════════════════════════════════════════════ */
+function bandChart(id,bands){
+  _plg=[labels(v=>v.toFixed(0)+'%',{color:'#5C6E82',size:9,offset:3})];
+  mkChart(id,{type:'bar',
+    data:{labels:bands.map(b=>b.band),datasets:[
+      {label:'Heat-pump adoption',data:bands.map(b=>b.hp_rate*100),backgroundColor:AMBER,borderRadius:3,borderSkipped:false},
+      {label:'Median saving',data:bands.map(b=>b.median_saving_pct),backgroundColor:NAVY,borderRadius:3,borderSkipped:false}]},
+    options:{layout:{padding:{top:20}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}% · ${fmtInt(bands[i.dataIndex].n)} homes`}}},
+      scales:{x:{...AXcat},y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},grace:'6%'}}}});
+}
+function sec05(){return loadJSON(INS+'climate.json').then(c=>{
+  bandChart('ch-hdd',c.hdd_bands.filter(b=>b.n>1000));
+  window._cdd=c.cdd_bands;
+  if(document.body.classList.contains('mode-advanced'))bandChart('ch-cdd',c.cdd_bands);
+  else _cddPending=c.cdd_bands;
+});}
+let _cddPending=null;
+
+/* ══════════════════════════════════════════════════════════════════════
+   06 — EQUITY
+   ══════════════════════════════════════════════════════════════════════ */
+function quintChart(id,rows){
+  _plg=[labels(v=>v.toFixed(1)+'%',{color:'#5C6E82',size:9,offset:3})];
+  mkChart(id,{type:'bar',
+    data:{labels:rows.map(r=>r.label.replace(/ \(.*\)/,'')),datasets:[
+      {label:'Participation',data:rows.map(r=>r.participation*100),backgroundColor:NAVY,borderRadius:3,borderSkipped:false},
+      {label:'Heat-pump rate',data:rows.map(r=>r.hp_rate*100),backgroundColor:AMBER,borderRadius:3,borderSkipped:false}]},
+    options:{layout:{padding:{top:20}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>rows[i[0].dataIndex].label,label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`,afterBody:i=>`Median saving: ${rows[i[0].dataIndex].median_saving_pct}%`}}},
+      scales:{x:{...AXcat},y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},grace:'8%'}}}});
+}
+function sec06(){return loadJSON(INS+'equity.json').then(e=>{
+  window._eq=e;
+  // legend chips
+  const lg=`<div class="legend"><span class="lg"><span class="sw" style="background:#0B2545"></span>Participation</span><span class="lg"><span class="sw" style="background:#C8881A"></span>Heat-pump rate</span></div>`;
+  $('ch-income').closest('.card').querySelector('.sub').insertAdjacentHTML('afterend',lg);
+  quintChart('ch-income',e.income_quintiles.rows);
+  if(document.body.classList.contains('mode-advanced'))quintChart('ch-value',e.dwelling_value_quintiles.rows);
+  else _valPending=e.dwelling_value_quintiles.rows;
+});}
+let _valPending=null;
+
+/* ══════════════════════════════════════════════════════════════════════
+   07 — HEAT-PUMP GEOGRAPHY
+   ══════════════════════════════════════════════════════════════════════ */
+function sec07(){
+  const pMetrics=ensureMetrics().then(recs=>{
+    const g={};recs.forEach(r=>{if(!PROV_NAME[r.prov])return;const p=g[r.prov]||(g[r.prov]={n:0,hp:0});p.n+=r.n;p.hp+=r.n*(r.hp_rate||0);});
+    const rows=Object.entries(g).map(([prov,v])=>({prov,rate:v.hp/v.n})).sort((a,b)=>b.rate-a.rate);
+    _plg=[labels(v=>v.toFixed(0)+'%',{horizontal:true,color:'#5C6E82',size:10})];
+    mkChart('ch-hp-prov',{type:'bar',
+      data:{labels:rows.map(r=>r.prov),datasets:[{data:rows.map(r=>r.rate*100),backgroundColor:rows.map(r=>lerpG([245,239,225],[200,136,26],r.rate/0.55)),borderRadius:4,borderSkipped:false}]},
+      options:{indexAxis:'y',layout:{padding:{right:44}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${PROV_NAME[rows[i.dataIndex].prov]}: ${i.raw.toFixed(1)}%`}}},
+        scales:{x:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},max:55},y:{...AXcat,ticks:{color:'#1C2B3A'}}}}});
+  });
+  const pModels=Promise.all([loadJSON(BASE_URL+'province_json/CA.json'),loadJSON(BASE_URL+'lookup/ahri_numbers.json')])
+    .then(([ca,ah])=>{
+      const top=ca.by_type['All types'].top_ahri_numbers;
+      const rows=top.map(t=>{const info=ah[t.code]||{};return{code:t.code,count:t.count,brand:info.brand||'—',model:info.model||t.code,cc:info.cold_climate==='Yes'};});
+      $('models-wrap').innerHTML=`<table class="models-table"><thead><tr><th>Brand</th><th>Model</th><th class="num">Installs</th></tr></thead><tbody>`+
+        rows.map(r=>`<tr><td>${r.brand}${r.cc?'<span class="tag cc">CC</span>':''}</td><td><a href="https://www.ahridirectory.org/details/99/${r.code}" target="_blank" rel="noopener">${r.model}</a></td><td class="num">${fmtInt(r.count)}</td></tr>`).join('')+
+        `</tbody></table>`;
+    }).catch(e=>{console.error(e);$('models-wrap').innerHTML='<div class="note">Model list unavailable.</div>';});
+  return Promise.all([pMetrics,pModels]);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   08 — MISSED OPPORTUNITY
+   ══════════════════════════════════════════════════════════════════════ */
+function sec08(){return loadJSON(INS+'opportunity.json').then(o=>{
+  $('opp-formula-btn').dataset.tip=`Score = 100 × (0.30·pctile(pre-EUI) + 0.25·pctile(pre-GHG) + 0.20·pctile(pre-1980 share) + 0.25·(1−pctile(participation))), each factor percentile-ranked across ${o.n_fsas.toLocaleString()} FSAs with n≥${o.min_n}.`;
+  const body=$('opp-table').tBodies[0];const rows=o.ranking.slice(0,20);
+  const FL=[['pre_eui','Pre-EUI',0.30],['pre_ghg','Pre-GHG',0.25],['pre_1980_share','Pre-1980 share',0.20],['low_participation','Low participation',0.25]];
+  body.innerHTML=rows.map((r,i)=>{
+    const main=`<tr data-i="${i}"><td>${i+1}</td><td class="opp-fsa">${r.fsa}</td><td>${r.prov}</td><td><b>${r.score.toFixed(1)}</b></td>`+
+      `<td>${Math.round(r.values.pre_eui)}</td><td>${r.values.pre_ghg.toFixed(1)}</td><td>${fmtPct(r.values.pre_1980_share,0)}</td><td>${fmtPct(r.values.participation,1)}</td></tr>`;
+    const bars=FL.map(([k,lab,w])=>`<span class="fb-label">${lab} <span style="color:var(--light)">×${w}</span></span><span class="fb-track"><span class="fb-fill" style="width:${Math.round(r.factors[k]*100)}%"></span></span><span class="fb-val">${(r.factors[k]*100).toFixed(0)}th pct</span>`).join('');
+    const detail=`<tr class="opp-detail" data-di="${i}" style="display:none"><td colspan="8"><div class="opp-detail-inner"><b>${r.fsa}</b> — ${PROV_NAME[r.prov]} · ${fmtInt(r.n)} matched retrofits. Factor percentiles (how it ranks nationally):<div class="factor-bars">${bars}</div></div></td></tr>`;
+    return main+detail;
+  }).join('');
+  body.querySelectorAll('tr[data-i]').forEach(tr=>tr.addEventListener('click',()=>{
+    const d=body.querySelector(`tr[data-di="${tr.dataset.i}"]`);d.style.display=d.style.display==='none'?'':'none';}));
+});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   09 — TIMELINE
+   ══════════════════════════════════════════════════════════════════════ */
+const eraBand={id:'eraBand',beforeDatasetsDraw(chart,args,opts){
+  const{ctx,chartArea:ca,scales:{x}}=chart;if(!x)return;ctx.save();
+  (opts.eras||[]).forEach(er=>{
+    const x0=x.getPixelForValue(String(Math.max(er.year_start,opts.min))),x1=x.getPixelForValue(String(Math.min(er.year_end,opts.max)));
+    if(isNaN(x0)||isNaN(x1))return;
+    ctx.fillStyle=er.fill;ctx.fillRect(Math.min(x0,x1),ca.top,Math.abs(x1-x0),ca.bottom-ca.top);
+    ctx.fillStyle='#5C6E82';ctx.font='600 10px Inter,sans-serif';ctx.textAlign='center';
+    ctx.fillText(er.short,(x0+x1)/2,ca.top+11);
+  });ctx.restore();}};
+function sec09(){return loadJSON(INS+'timeline.json').then(t=>{
+  const nat=t.national,years=[];for(let y=2005;y<=2026;y++)years.push(y);
+  const d=years.map(y=>nat.d_year[y]||0),e=years.map(y=>nat.matched_by_e_year[y]||0);
+  const eras=[
+    {year_start:2007,year_end:2012,short:'ecoENERGY',fill:'rgba(200,136,26,.10)'},
+    {year_start:2021,year_end:2024,short:'Greener Homes',fill:'rgba(26,122,85,.10)'}];
+  _plg=[eraBand];
+  mkChart('ch-timeline',{type:'line',
+    data:{labels:years.map(String),datasets:[
+      {label:'Initial audits',data:d,borderColor:NAVY,backgroundColor:'rgba(11,37,69,.06)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2},
+      {label:'Completed retrofits',data:e,borderColor:AMBER,backgroundColor:'rgba(200,136,26,.05)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2}]},
+    options:{interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},eraBand:{eras,min:2005,max:2026},
+        tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${fmtInt(i.raw)}`}}},
+      scales:{x:{...AXcat,ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{...AX,ticks:{...AX.ticks,callback:v=>v>=1000?(v/1000)+'k':v}}}}});
+  const a=t.annotations;
+  $('timeline-note').innerHTML='Program eras: '+a.map(x=>`<a href="${x.source_url}" target="_blank" rel="noopener" style="color:var(--navy)">${x.label.split(' (')[0].split(' — ')[0]}</a>`).join(' · ')+'. Matched-pair audits only.';
+});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   10 — METHODOLOGY
+   ══════════════════════════════════════════════════════════════════════ */
+function sec10(){return loadJSON(INS+'meta.json').then(m=>{
+  const def=m.definitions,th=m.thresholds;
+  const railList=m.honesty_rails.map(r=>`<li>${r}</li>`).join('');
+  $('method-body').innerHTML=`
+    <p>Built <b>${m.build_date}</b> from <b>${m.national_matched_total.toLocaleString()}</b> matched before/after EnerGuide audit pairs across <b>${m.n_fsas_matched.toLocaleString()}</b> forward sortation areas (FSAs) — the same row-level data the <a href="retrofits.html" style="color:var(--navy)">Retrofit Explorer</a> serves.</p>
+    <h4>Sources</h4>
+    <ul><li><b>Retrofits:</b> NRCan EnerGuide matched before/after audit pairs.</li>
+    <li><b>Income &amp; dwellings:</b> 2021 Census Profile (FSA) — static.</li>
+    <li><b>Climate:</b> ECCC Climate Normals, HDD/CDD base 18 °C — static.</li></ul>
+    <h4>Key definitions</h4>
+    <ul>
+    <li><b>Participation:</b> ${def.participation}</li>
+    <li><b>Median saving %:</b> ${def.median_saving_pct}</li>
+    <li><b>EUI:</b> ${def.eui}</li>
+    <li><b>Income quintile:</b> ${def.income_quintile}</li>
+    </ul>
+    <h4>Thresholds</h4>
+    <p>Leaderboards and the opportunity ranking require <code>n ≥ ${th.min_n_leaderboard_and_opportunity}</code> matched retrofits per FSA. Top-decile savers = the ${th.top_decile_percentile}th percentile of saving and above.</p>
+    <h4>Opportunity score</h4>
+    <p><code>${m.opportunity_formula}</code></p>
+    <h4>Bands</h4>
+    <p>HDD: ${m.bands.hdd.join(' · ')}. CDD: ${m.bands.cdd.join(' · ')}. Vintage: ${m.bands.vintage.join(' · ')}.</p>
+    <h4>The honesty rails</h4>
+    <div class="rail"><ul>${railList}</ul></div>
+    <p style="color:var(--muted);font-size:12px;margin-top:.8rem">Every energy, EUI and GHG figure on this page is a modelled HOT2000/EnerGuide estimate, never a metered bill.</p>`;
+});}
+
+/* also (re)build advanced charts the first time Advanced is shown, if their data is ready */
+document.querySelector('[data-set-mode="advanced"]').addEventListener('click',()=>{
+  setTimeout(()=>{
+    if(_cddPending&&!CHARTS['ch-cdd']){bandChart('ch-cdd',_cddPending);}
+    if(_valPending&&!CHARTS['ch-value']){quintChart('ch-value',_valPending);}
+  },40);
+});
+
+/* ── wire sections lazily ───────────────────────────────────────────── */
+whenVisible('sec-scorecard',sec02);
+whenVisible('sec-map',sec03);
+whenVisible('sec-success',sec04);
+whenVisible('sec-climate',sec05);
+whenVisible('sec-equity',sec06);
+whenVisible('sec-hp',sec07);
+whenVisible('sec-opp',sec08);
+whenVisible('sec-timeline',sec09);
+whenVisible('sec-method',sec10);
+// initial render pass (covers above-the-fold sections + the frame-less preview)
+checkPending();
+setTimeout(checkPending,120);
+setTimeout(checkPending,600);
+
+</script>
+</body>
+</html>
