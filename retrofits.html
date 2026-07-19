@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Retrofit Explorer — real Canadian home energy retrofits</title>
-<meta name="description" content="Explore 500,000+ real Canadian home energy retrofits from NRCan EnerGuide audits. Enter your postal code to see what homes like yours did — insulation, heat pumps, fuel switches — and the energy and GHG savings their audits estimate.">
+<meta name="description" content="Explore 1.3 million+ real Canadian home energy retrofits from NRCan EnerGuide audits. Enter your postal code to see what homes like yours did — insulation, heat pumps, fuel switches — and the energy and GHG savings their audits estimate.">
 <meta property="og:title" content="Retrofit Explorer — what did homes like yours do, and did it work?">
-<meta property="og:description" content="500,000+ matched before/after EnerGuide audits across Canada. See real retrofit measures and modelled energy savings for your postal area.">
+<meta property="og:description" content="1.3 million+ matched before/after EnerGuide audits across Canada. See real retrofit measures and modelled energy savings for your postal area.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M16 6 5 15h3v10h7v-6h2v6h7V15h3z' fill='%23E8A124'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -212,6 +212,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .kpi-delta{font-size:12px;margin-top:4px}
 .kpi-delta.good{color:var(--green)}
 .kpi-delta.bad{color:var(--red)}
+.kpi-delta.flat{color:var(--muted)}
 .measure-chart-block{margin-bottom:1.5rem}
 .measure-chart-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem}
 .measure-chart-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.75rem}
@@ -372,14 +373,14 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="header-title" id="header-title">Home energy retrofits</div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
-    <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
+    <a class="sibling-link" href="ceud.html">↳ Energy use explorer</a>
     <div class="header-badge" id="header-badge">EnerGuide data</div>
   </div>
 </header>
 
 <div class="hero" id="hero-section">
   <h1>What did <em>homes like yours</em> do — and did it work?</h1>
-  <p class="hero-sub">Real EnerGuide audit data. Enter your postal code to see the energy and emissions savings homes near you achieved.</p>
+  <p class="hero-sub">Real EnerGuide audit data. Enter your postal code — or pick a province — to see the energy and emissions savings homes near you achieved.</p>
 </div>
 
 <div class="filter-sticky">
@@ -435,7 +436,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
       <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
     </div>
-    <button class="filter-reset" onclick="resetFilters()">Reset</button>
+    <button class="filter-reset" onclick="resetFilters()">Reset filters</button>
   </div>
   <div class="filter-count-bar">
     <span class="area-chip" id="area-chip" style="display:none"></span>
@@ -486,26 +487,26 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
   <div class="section-head">
     <h2 data-icon="results">Did the retrofits work?</h2>
-    <p class="sec-sub">The bottom-line outcome across every matched home in this view.</p>
+    <p class="sec-sub">The bottom-line outcome across every home in this view.</p>
   </div>
 
 <!-- Top stats -->
   <div class="stats-grid">
-    <div class="stat-card" id="s-selected-card"><div class="stat-label">Retrofits selected<button type="button" class="info-btn" aria-label="What does retrofits selected mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Median energy saving</div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
-    <div class="stat-card"><div class="stat-label">Median EUI saving</div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · median home</div></div>
-    <div class="stat-card"><div class="stat-label">Median GHG saving</div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub">tCO2e/yr · median home</div></div>
-    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label">Median bill saving<button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · median home</div></div>
-    <div class="stat-card"><div class="stat-label">Avg. measures per home<button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub">measures · mean per home</div></div>
+    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Typical energy saving</span><span class="cap-advanced">Median energy saving</span></div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
+    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Energy saved per m²</span><span class="cap-advanced">Median EUI saving</span></div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Emissions saved</span><span class="cap-advanced">Median GHG saving</span></div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label"><span class="cap-simple">Typical bill saving</span><span class="cap-advanced">Median bill saving</span><button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Upgrades per home</span><span class="cap-advanced">Avg. measures per home</span><button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub"><span class="cap-simple">average of 8 tracked upgrades</span><span class="cap-advanced">measures · mean per home</span></div></div>
     <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="Total energy use dropped 50% or more. Medium = 10–50% saved, shallow = under 10%." data-method="m-derived">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="No heat pump at the first audit, one at the follow-up." data-method="m-measures">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
     <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Main heating fuel changed between the two audits — e.g. oil or gas to electricity." data-method="m-derived">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
-    <div class="stat-card"><div class="stat-label">Solar PV added<button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Solar panels added</span><span class="cap-advanced">Solar PV added</span><button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+    <div class="stat-card" id="s-selected-card"><div class="stat-label"><span class="cap-simple">Homes in this view</span><span class="cap-advanced">Retrofits selected</span><button type="button" class="info-btn" aria-label="What does homes in this view mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
   </div>
 
 <!-- Energy saving distribution 1% — the headline outcome, right under the KPIs -->
   <div class="card">
-    <div class="card-title">Energy saving distribution — 1% increments</div>
+    <div class="card-title-row"><div class="card-title"><span class="cap-simple">How much did homes save?</span><span class="cap-advanced">Energy saving distribution — 1% increments</span></div><div class="chart-legend-inline"><div class="chart-legend-item"><span class="chart-legend-dot" style="background:#1A7A55"></span>Saved energy</div><div class="chart-legend-item"><span class="chart-legend-dot" style="background:#B33A2E"></span>Used more</div></div></div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits. Homes that added a heat pump almost never show an increase (0.2%; their median saving is ~29%).</span></p>
   </div>
@@ -531,7 +532,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- EUI -->
   <div class="card">
-    <div class="card-title">Energy use intensity (EUI) — kWh per m²<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Energy use per m², before (navy) vs after (green). Amber bars show the size of each home's improvement." data-method="m-derived">?</button></div>
+    <div class="card-title"><span class="cap-simple">Energy use per square metre (kWh/m²)</span><span class="cap-advanced">Energy use intensity (EUI) — kWh per m²</span><button type="button" class="info-btn" aria-label="How to read this chart" data-info="Energy use per m², before (navy) vs after (green). Amber bars show the size of each home's improvement." data-method="m-derived">?</button></div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Energy use per square metre, before and after — lower is more efficient.</span><span class="cap-advanced">EUI = total energy ÷ floor area. A lower EUI means a more efficient home. Pre- and post-retrofit distributions are shown as lines; the amber bars show, for the homes that improved, how much their EUI dropped by. Outliers above 500 kWh/m² clipped for scale.</span></p>
@@ -542,7 +543,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- GHG emissions -->
   <div class="card">
-    <div class="card-title">GHG emissions — tCO2e per year<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly emissions before (navy) vs after (green). Amber bars show the size of each home's reduction." data-method="m-units">?</button></div>
+    <div class="card-title"><span class="cap-simple">Greenhouse gas emissions — tonnes of CO₂ per year</span><span class="cap-advanced">GHG emissions — tCO2e per year</span><button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly emissions before (navy) vs after (green). Amber bars show the size of each home's reduction." data-method="m-units">?</button></div>
     <div class="eui-row" id="ghg-kpis"></div>
     <div class="cw cw-lg"><canvas id="ghg-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Greenhouse gas emissions from home energy use, before and after.</span><span class="cap-advanced">Modelled annual greenhouse gas emissions from home energy use. Fuel switching to electricity can lower GHG even when total energy use rises, depending on grid mix. Pre/post shown as filled areas; amber bars show the reduction distribution.</span></p>
@@ -626,7 +627,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- Insulation KPIs + distributions -->
   <div class="card">
-    <div class="card-title">Insulation &amp; air leakage — median pre → post<button type="button" class="info-btn" aria-label="How to read these charts" data-info="Before (navy) vs after (green) for each measure. Amber bars count only the homes that improved on it." data-method="m-measures">?</button></div>
+    <div class="card-title"><span class="cap-simple">Insulation &amp; air leakage — before vs after</span><span class="cap-advanced">Insulation &amp; air leakage — median pre → post</span><button type="button" class="info-btn" aria-label="How to read these charts" data-info="Before (navy) vs after (green) for each measure. Amber bars count only the homes that improved on it." data-method="m-measures">?</button></div>
     <div class="kpi-grid" id="kpi-grid"></div>
     <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
     <div class="measure-chart-block">
@@ -929,7 +930,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 <footer>
   Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2025 · dataset last rebuilt July 2026<br>
   Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.<br>
-  Website, data pipeline and python scripts where developed using Claude AI.
+  Website, data pipeline and python scripts were developed using Claude AI.
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -1119,6 +1120,10 @@ const RSI_TO_R=5.678;
 // case). Used by every pre/post comparison histogram.
 const PRE_LINE='#0B2545', PRE_FILL=PRE_LINE;
 const POST_LINE='#1A7A55', POST_FILL=POST_LINE;
+// Shared Simple/Advanced sub-label fragments for the JS-built stat subs —
+// same cap-simple/cap-advanced CSS pattern the static markup uses.
+const OF_MATCHED='% of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span>';
+const MATCHED_PAIRS_LBL='<span class="cap-simple">homes with a before-and-after audit</span><span class="cap-advanced">matched before/after homes</span>';
 
 
 
@@ -1602,7 +1607,7 @@ function updateAreaChip(){
   if(SELECTED_FSA){
     const prov=PROVINCES[PROVINCE_CODE];
     chip.style.display='';
-    chip.innerHTML=`Area <strong>${SELECTED_FSA}</strong><button type="button" class="area-clear" onclick="clearArea()" aria-label="Show ${prov?prov.name:'province'}-wide instead">✕ all of ${prov?prov.short:'province'}</button>`;
+    chip.innerHTML=`Area <strong>${SELECTED_FSA}</strong><button type="button" class="area-clear" onclick="clearArea()" aria-label="Show ${prov?prov.name:'province'}-wide instead">✕ show all of ${prov?prov.name:'the province'}</button>`;
   }else{
     chip.style.display='none';
     chip.innerHTML='';
@@ -1664,22 +1669,22 @@ function render(){
   // (matched or not) — dore_count comes from the _index.json entry.
   const dore=doreCountForSelectedFsa();
   $('s-selected').textContent=n.toLocaleString();
-  $('s-selected-sub').textContent=dore
+  $('s-selected-sub').innerHTML=dore
     ?`${Math.round(n/dore*100)}% of ${dore.toLocaleString()} homes audited here`
-    :'matched before/after homes';
+    :MATCHED_PAIRS_LBL;
   const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
   const med=median(savings);
   $('s-median').textContent=med!==null?Math.round(med*100)+'%':'—';
-  $('s-median-sub').textContent=med!==null?(med>=0?'median energy saved':'median energy increased'):'';
+  $('s-median-sub').innerHTML=med!==null?(med>=0?'<span class="cap-simple">typical energy saved</span><span class="cap-advanced">median energy saved</span>':'<span class="cap-simple">typical energy increase</span><span class="cap-advanced">median energy increased</span>'):'';
   const deep=FILTERED.filter(r=>flag(r,'Deep_Retrofit')).length;
   const hp=FILTERED.filter(r=>flag(r,'HeatPump_Addition')).length;
   const fs=FILTERED.filter(r=>flag(r,'FuelSwitch')).length;
   $('s-deep').textContent=deep.toLocaleString();
-  $('s-deep-sub').textContent=n?`${Math.round(deep/n*100)}% of matched homes`:'';
+  $('s-deep-sub').innerHTML=n?`${Math.round(deep/n*100)}${OF_MATCHED}`:'';
   $('s-hp').textContent=hp.toLocaleString();
-  $('s-hp-sub').textContent=n?`${Math.round(hp/n*100)}% of matched homes`:'';
+  $('s-hp-sub').innerHTML=n?`${Math.round(hp/n*100)}${OF_MATCHED}`:'';
   $('s-fs').textContent=fs.toLocaleString();
-  $('s-fs-sub').textContent=n?`${Math.round(fs/n*100)}% of matched homes`:'';
+  $('s-fs-sub').innerHTML=n?`${Math.round(fs/n*100)}${OF_MATCHED}`:'';
 
   // Compute EUIs once here and pass to all consumers
   const preEUIs=FILTERED.map(r=>{const e=num(r.Pre_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
@@ -1706,7 +1711,7 @@ function render(){
 
   const solarPost=FILTERED.filter(r=>num(r.Post_SolarPV)>0).length;
   $('s-solar').textContent=solarPost.toLocaleString();
-  $('s-solar-sub').textContent=n?`${Math.round(solarPost/n*100)}% of matched homes`:'';
+  $('s-solar-sub').innerHTML=n?`${Math.round(solarPost/n*100)}${OF_MATCHED}`:'';
 
   const totalMeasureFlags=MEASURES.reduce((s,m)=>s+FILTERED.filter(r=>flag(r,m.key)).length,0);
   $('s-avg-measures').textContent=n?(totalMeasureFlags/n).toFixed(1):'—';
@@ -2311,10 +2316,10 @@ function renderEUI(preEUIs,postEUIs,saveMedian){
   const sv=saveMedian!=null?Math.round(saveMedian):null;
   const svStr=sv!=null?(sv>=0?`−${sv}`:`+${-sv}`):null; // reduction shown as −, increase as +
   $('eui-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM?Math.round(preM):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br>kWh/m²</div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
-    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM?Math.round(postM):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br>kWh/m²</div></div>
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   function euiBins(vals,step=BINS.eui){
     const b={};
     vals.forEach(v=>{if(v>500)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
@@ -2343,10 +2348,10 @@ function renderGHG(saveMedian){
   const sv=saveMedian!=null?saveMedian:null;
   const svStr=sv!=null?(sv>=0?`−${sv.toFixed(1)}`:`+${(-sv).toFixed(1)}`):null;
   $('ghg-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!==null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!==null?preM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!==null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
-    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!==null?postM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   function ghgBins(vals,step=BINS.ghg){
     const b={};
     vals.forEach(v=>{if(v>30)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
@@ -2393,10 +2398,10 @@ function renderCost(){
   $('s-cost-saving').textContent=svM!=null?fmtMoney(Math.round(svM)):'—';
   const svStr=svM!=null?(svM>=0?`−${fmtMoney(Math.round(svM))}`:`+${fmtMoney(Math.round(-svM))}`):null;
   $('cost-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?fmtMoney(Math.round(preM)):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>$/yr</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?fmtMoney(Math.round(preM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br>$/yr</div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?fmtMoney(Math.round(postM)):'—'}</div><div class="eui-lbl">Post-retrofit median<br>$/yr</div></div>
-    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?fmtMoney(Math.round(postM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br>$/yr</div></div>
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   const costBins=vals=>{const b={};vals.forEach(v=>{if(v>COST_CAP)return;const k=Math.floor(v/BINS.cost)*BINS.cost;b[k]=(b[k]||0)+1;});return b;};
   const preBins=costBins(pre),postBins=costBins(post);
   const deltaBins={};
@@ -2786,22 +2791,22 @@ function renderKPI(n,fs){
       return `<div class="kpi-item">
         <div class="kpi-name">${k.label}</div>
         <div class="kpi-values"><div class="kpi-pre">${pR.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${qR.toFixed(1)}</div></div>
-        <div class="kpi-unit">R-value <span class="kpi-rsi">(${pm.toFixed(1)} → ${qm.toFixed(1)} RSI)</span></div>
-        <div class="kpi-delta ${imp?'good':'bad'}">${dR>=0?'+':''}${dR.toFixed(1)} R ${imp?'▲ improved':'▼ declined'}</div>
+        <div class="kpi-unit">R-value <span class="kpi-rsi cap-advanced">(${pm.toFixed(1)} → ${qm.toFixed(1)} RSI)</span></div>
+        <div class="kpi-delta ${Math.abs(dR)<0.05?'flat':imp?'good':'bad'}">${Math.abs(dR)<0.05?'no change':`${dR>=0?'+':''}${dR.toFixed(1)} R ${imp?'▲ improved':'▼ declined'}`}</div>
       </div>`;
     }
     return `<div class="kpi-item">
       <div class="kpi-name">${k.label}</div>
       <div class="kpi-values"><div class="kpi-pre">${pm.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${qm.toFixed(1)}</div></div>
-      <div class="kpi-unit">${k.unit}</div>
-      <div class="kpi-delta ${imp?'good':'bad'}">${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}</div>
+      <div class="kpi-unit"><span class="cap-simple">air changes per hour (ACH50)</span><span class="cap-advanced">${k.unit}</span></div>
+      <div class="kpi-delta ${Math.abs(d)<0.05?'flat':imp?'good':'bad'}">${Math.abs(d)<0.05?'no change':`${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}`}</div>
     </div>`;
   }).join('');
   const fsPct=n?Math.round(fs/n*100):0;
   html+=`<div class="kpi-item">
     <div class="kpi-name">Fuel switching</div>
     <div class="kpi-values"><div class="kpi-pct">${fsPct}%</div></div>
-    <div class="kpi-unit">of matched homes</div>
+    <div class="kpi-unit">of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span></div>
   </div>`;
   $('kpi-grid').innerHTML=html;
 }
@@ -2822,8 +2827,8 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
     datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A99',borderColor:'#C8881A',borderWidth:1,borderRadius:2,order:1});
   }
   datasets.push(
-    {type:'line',label:'Pre-retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
-    {type:'line',label:'Post-retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:'Before retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:'After retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
   );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
@@ -3007,18 +3012,18 @@ function renderProvince(payload){
   // No per-FSA audited-population denominator in the province rollup, so the
   // KPI just reports the matched count here (the % is FSA-view only).
   $('s-selected').textContent=n.toLocaleString();
-  $('s-selected-sub').textContent='matched before/after homes';
+  $('s-selected-sub').innerHTML=MATCHED_PAIRS_LBL;
 
   const med=slice.median_saving_pct;
   $('s-median').textContent=med!=null?Math.round(med*100)+'%':'—';
-  $('s-median-sub').textContent=med!=null?(med>=0?'median energy saved':'median energy increased'):'';
+  $('s-median-sub').innerHTML=med!=null?(med>=0?'<span class="cap-simple">typical energy saved</span><span class="cap-advanced">median energy saved</span>':'<span class="cap-simple">typical energy increase</span><span class="cap-advanced">median energy increased</span>'):'';
 
   $('s-deep').textContent=(slice.deep_retrofit_count||0).toLocaleString();
-  $('s-deep-sub').textContent=n?`${Math.round((slice.deep_retrofit_count||0)/n*100)}% of matched homes`:'';
+  $('s-deep-sub').innerHTML=n?`${Math.round((slice.deep_retrofit_count||0)/n*100)}${OF_MATCHED}`:'';
   $('s-hp').textContent=(slice.heat_pump_count||0).toLocaleString();
-  $('s-hp-sub').textContent=n?`${Math.round((slice.heat_pump_count||0)/n*100)}% of matched homes`:'';
+  $('s-hp-sub').innerHTML=n?`${Math.round((slice.heat_pump_count||0)/n*100)}${OF_MATCHED}`:'';
   $('s-fs').textContent=(slice.fuel_switch_count||0).toLocaleString();
-  $('s-fs-sub').textContent=n?`${Math.round((slice.fuel_switch_count||0)/n*100)}% of matched homes`:'';
+  $('s-fs-sub').innerHTML=n?`${Math.round((slice.fuel_switch_count||0)/n*100)}${OF_MATCHED}`:'';
 
   $('s-eui-saving').textContent=slice.eui_saving!=null?slice.eui_saving:'—';
   window._euiMedianPre=Math.round(slice.eui_pre_median||0);
@@ -3027,7 +3032,7 @@ function renderProvince(payload){
   $('s-ghg-saving').textContent=slice.ghg_saving!=null?slice.ghg_saving.toFixed(1):'—';
 
   $('s-solar').textContent=(slice.solar_post_count||0).toLocaleString();
-  $('s-solar-sub').textContent=n?`${slice.solar_post_pct||0}% of matched homes`:'';
+  $('s-solar-sub').innerHTML=n?`${slice.solar_post_pct||0}${OF_MATCHED}`:'';
 
   const totalMeasureFlags=(slice.measures||[]).reduce((s,m)=>s+(m.count||0),0);
   $('s-avg-measures').textContent=n?(totalMeasureFlags/n).toFixed(1):'—';
@@ -3233,10 +3238,10 @@ function renderProvinceEUI(slice){
   const preM=slice.eui_pre_median,postM=slice.eui_post_median;
   const saving=slice.eui_saving;
   $('eui-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?Math.round(preM):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>kWh/m²</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?Math.round(preM):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br>kWh/m²</div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?Math.round(postM):'—'}</div><div class="eui-lbl">Post-retrofit median<br>kWh/m²</div></div>
-    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?Math.round(postM):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br>kWh/m²</div></div>
+    ${saving?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving}</div><div style="font-size:12px;color:var(--muted)">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   const preBins=slice.eui_pre_bins||{},postBins=slice.eui_post_bins||{};
   // eui_delta_bins ships at a 10 kWh/m² step (see precompute_province_stats.py);
   // re-bucket to the 20 kWh/m² step used here so it can share the same x-axis.
@@ -3253,10 +3258,10 @@ function renderProvinceGHG(slice){
   const preM=slice.ghg_pre_median,postM=slice.ghg_post_median;
   const saving=slice.ghg_saving;
   $('ghg-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?preM.toFixed(1):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>tCO2e/yr</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?preM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?postM.toFixed(1):'—'}</div><div class="eui-lbl">Post-retrofit median<br>tCO2e/yr</div></div>
-    ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)">tCO2e/yr · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?postM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
+    ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   const preBins=slice.ghg_pre_bins||{},postBins=slice.ghg_post_bins||{};
   // ghg_delta_bins ships from precompute_province_stats.py at the same
   // 1 tCO2e step used here; older province files without it just omit the
@@ -3275,10 +3280,10 @@ function renderProvinceCost(slice){
   $('s-cost-saving').textContent=svM!=null?fmtMoney(Math.round(svM)):'—';
   const svStr=svM!=null?(svM>=0?`−${fmtMoney(Math.round(svM))}`:`+${fmtMoney(Math.round(-svM))}`):null;
   $('cost-kpis').innerHTML=`
-    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?fmtMoney(Math.round(preM)):'—'}</div><div class="eui-lbl">Pre-retrofit median<br>$/yr</div></div>
+    <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?fmtMoney(Math.round(preM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br>$/yr</div></div>
     <div class="eui-arrow-big">→</div>
-    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?fmtMoney(Math.round(postM)):'—'}</div><div class="eui-lbl">Post-retrofit median<br>$/yr</div></div>
-    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · median home</div></div>`:''}`;
+    <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?fmtMoney(Math.round(postM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br>$/yr</div></div>
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
   drawComboChart('cost-chart','cost',slice.cost_pre_bins||{},slice.cost_post_bins||{},slice.cost_delta_bins||{},'$/yr');
 }
 
@@ -3321,15 +3326,15 @@ function renderProvinceKPI(slice){
       return `<div class="kpi-item">
         <div class="kpi-name">${k.label}</div>
         <div class="kpi-values"><div class="kpi-pre">${pR.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${qR.toFixed(1)}</div></div>
-        <div class="kpi-unit">R-value <span class="kpi-rsi">(${k.pre.toFixed(1)} → ${k.post.toFixed(1)} RSI)</span></div>
-        <div class="kpi-delta ${imp?'good':'bad'}">${dR>=0?'+':''}${dR.toFixed(1)} R ${imp?'▲ improved':'▼ declined'}</div>
+        <div class="kpi-unit">R-value <span class="kpi-rsi cap-advanced">(${k.pre.toFixed(1)} → ${k.post.toFixed(1)} RSI)</span></div>
+        <div class="kpi-delta ${Math.abs(dR)<0.05?'flat':imp?'good':'bad'}">${Math.abs(dR)<0.05?'no change':`${dR>=0?'+':''}${dR.toFixed(1)} R ${imp?'▲ improved':'▼ declined'}`}</div>
       </div>`;
     }
     return `<div class="kpi-item">
       <div class="kpi-name">${k.label}</div>
       <div class="kpi-values"><div class="kpi-pre">${k.pre.toFixed(1)}</div><div class="kpi-arrow">→</div><div class="kpi-post">${k.post.toFixed(1)}</div></div>
-      <div class="kpi-unit">${k.unit}</div>
-      <div class="kpi-delta ${imp?'good':'bad'}">${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}</div>
+      <div class="kpi-unit"><span class="cap-simple">air changes per hour (ACH50)</span><span class="cap-advanced">${k.unit}</span></div>
+      <div class="kpi-delta ${Math.abs(d)<0.05?'flat':imp?'good':'bad'}">${Math.abs(d)<0.05?'no change':`${d>=0?'+':''}${d.toFixed(1)} ${k.unit} ${imp?'▲ improved':'▼ declined'}`}</div>
     </div>`;
   }).join('');
   const n=slice.row_count||0,fs=slice.fuel_switch_count||0;
@@ -3337,7 +3342,7 @@ function renderProvinceKPI(slice){
   html+=`<div class="kpi-item">
     <div class="kpi-name">Fuel switching</div>
     <div class="kpi-values"><div class="kpi-pct">${fsPct}%</div></div>
-    <div class="kpi-unit">of matched homes</div>
+    <div class="kpi-unit">of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span></div>
   </div>`;
   $('kpi-grid').innerHTML=html;
 }
@@ -4120,17 +4125,18 @@ function parseDeepLink(){
 // FSA. X covers both territories, so try each index until one contains it.
 const POSTAL_PROV={A:['NF'],B:['NS'],C:['PE'],E:['NB'],G:['QC'],H:['QC'],J:['QC'],
   K:['ON'],L:['ON'],M:['ON'],N:['ON'],P:['ON'],R:['MB'],S:['SK'],T:['AB'],V:['BC'],X:['NT','NU'],Y:[]};
-function showPcHint(msg){
+function showPcHint(msg,ok){
   const el=$('pc-hint');
   el.textContent=msg||'';
   el.style.display=msg?'':'none';
+  el.style.color=ok?'var(--green)':'var(--red)';
 }
 function goToPostal(raw){
   const m=String(raw||'').trim().toUpperCase().replace(/\s+/g,'').match(/^([A-Z]\d[A-Z])/);
   if(!m){showPcHint('Enter a valid Canadian postal code, e.g. K1A 0B1.');return;}
   const fsa=m[1];
   const provs=POSTAL_PROV[fsa[0]];
-  if(!provs){showPcHint(`"${fsa[0]}" is not a Canadian postal district.`);return;}
+  if(!provs){showPcHint(`No Canadian postal code starts with "${fsa[0]}" — check the first letter.`);return;}
   if(!provs.length){showPcHint('Yukon has too few matched audits to appear in this dataset.');return;}
   showPcHint('');
   (function tryNext(i){
@@ -4147,6 +4153,7 @@ function goToPostal(raw){
       ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
       clearMeasures();
       updateShareUrl();
+      showPcHint(`✓ Showing postal area ${fsa}`,true);
       load(); // syncs the FSA dropdown + map zoom itself once the index re-resolves (cached)
     }).catch(()=>tryNext(i+1));
   })(0);
@@ -4173,6 +4180,9 @@ $('province-sel').addEventListener('change',function(){
 // used to be) since #fsa-sel itself is never replaced, only its <option>s.
 $('fsa-sel').addEventListener('change',function(){
   SELECTED_FSA=this.value;
+  // Any area change not initiated by the postal box (map click, ✕ chip)
+  // invalidates a lingering "✓ Showing postal area …" hint.
+  showPcHint('');
   if(!PROVINCE_CODE)return;
   ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
   clearMeasures();
