@@ -1,0 +1,89 @@
+# Energy Suite — Canadian energy data tools
+
+A collection of interactive, open-data tools about how Canada uses energy:
+home retrofits, new construction, heat pumps, geothermal potential, grid
+emissions, energy prices and construction activity. Every tool follows the same
+pattern: an offline Python pipeline turns public data into compact committed
+JSON, and a single self-contained HTML page renders it — no backend, hosted on
+GitHub Pages.
+
+> **📋 [Project Tracker & Roadmap → ROADMAP.md](ROADMAP.md)** — what's shipped,
+> what's in flight, what's next. Start here.
+
+## 🔗 Live tools
+
+| Tool | What it is | Live page |
+|---|---|---|
+| 🏠 **Retrofit Explorer** | 1.37M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2025) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
+| 🏡 **New Homes Explorer** | How efficient new construction actually is — as-designed vs as-built EnerGuide evaluations | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) |
+| 🔥 **Heat Pump Explorer** | Hourly simulation of switching to a cold-climate heat pump in 14 cities: energy, GHG, costs, backup needs | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) |
+| 🌍 **Ottawa Geothermal Map** | Ground-source heat pump screening for Ottawa: conductivity from 55k water wells, drilling difficulty, grid capacity | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) |
+| 📊 **CEUD Explorer** | NRCan's Comprehensive Energy Use Database, browsable — all 5 sectors, national + provincial | [/ceud](https://ottawavisuals.github.io/Energy/ceud) |
+| 🏗️ **Construction Tracker** | Permits, housing starts and construction investment — national / provincial / metro | [/construction](https://ottawavisuals.github.io/Energy/construction) |
+| 🗺️ **Project Atlas** | Internal status & assumptions page for the suite | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) |
+
+**Coming:** landing-page hub (`index.html`), live grid dashboard (`grid.html` —
+data already refreshing weekly), Retrofit Insights (national big-picture page),
+and the Ottawa Case Study (heat demand → electrification → grid). See the
+[roadmap](ROADMAP.md).
+
+## 📖 Documentation per project
+
+| Project | Docs |
+|---|---|
+| Retrofit Explorer | [docs/RETROFITS.md](docs/RETROFITS.md) — data pipeline, unit conversions, flag rules, bin-width contract, changelog |
+| New Homes Explorer | [docs/NEWHOMES.md](docs/NEWHOMES.md) |
+| Heat Pump Explorer | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) (methodology) · [HeatPump/PLAN.md](HeatPump/PLAN.md) (original plan) |
+| Ottawa Geothermal Map | [Geothermal/README.md](Geothermal/README.md) (full methodology) · [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md) (build log) |
+| Ottawa Case Study / heat demand | [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) (active plan) |
+| CEUD Explorer | [docs/CEUD.md](docs/CEUD.md) |
+| Construction Tracker | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) |
+| Grid dashboard (data layer) | [docs/GRID.md](docs/GRID.md) |
+| Completed plans (archive) | [docs/archive/](docs/archive/README.md) |
+
+## 🗂️ Repository layout
+
+```
+Energy/
+├─ *.html                    # one self-contained page per tool
+├─ ROADMAP.md                # ← the project tracker
+├─ README.md                 # this file
+├─ HEATDEMAND_PLAN.md        # active plan: Ottawa Case Study
+├─ GEOTHERMAL_STATUS.md      # active build log (geothermal + heat demand)
+├─ docs/                     # per-project docs + docs/archive/ (completed plans)
+├─ Python/                   # all ETL/pipeline scripts (each has a docstring)
+├─ HeatPump/                 # heat pump tool: pipeline, data, methodology
+├─ Geothermal/               # geothermal map: scripts, data, output site
+├─ GridCapacity/             # Hydro Ottawa feeder capacity fetch
+├─ FSA_Maps/                 # simplified FSA boundary GeoJSONs per province
+├─ Census/                   # StatCan 2021 census profile source (gitignored)
+│
+│  # committed data the pages fetch (via raw.githubusercontent.com):
+├─ province_json/  fsa_json/         # Retrofit Explorer
+├─ newhomes_json/  newhomes_fsa/     # New Homes Explorer
+├─ ceud_json/                        # CEUD Explorer
+├─ construction_json/                # Construction Tracker (auto-refresh monthly)
+├─ grid_json/                        # grid dashboard data (auto-refresh weekly)
+├─ prices_json/                      # energy prices (auto-refresh monthly)
+├─ census_json/  geo_json/  lookup/  # shared lookups (census, geometry, AHRI, windows)
+└─ utility_rates_reference.json      # bill-card rates (fetched by retrofits.html)
+```
+
+## ⚙️ Automated refreshes (GitHub Actions)
+
+| Workflow | Cadence | Data |
+|---|---|---|
+| `grid-refresh.yml` | weekly (Mon 13:00 UTC) | `grid_json/` |
+| `construction-refresh.yml` | monthly (20th 14:00 UTC) | `construction_json/` |
+| `rates-refresh.yml` | monthly (3rd) | `prices_json/` |
+
+Everything else (ERS retrofit/new-homes data, CEUD, census, geothermal) refreshes
+manually — run orders are documented in each project's doc above.
+
+## About the data
+
+All sources are public/open data: NRCan (EnerGuide/ERS audits, CEUD), Statistics
+Canada (census, permits, starts, investment), CMHC, IESO/AESO, ECCC, OEB/Hydro
+Ottawa, Ontario GSC water-well records, NEEP, and provincial utility tariffs.
+Figures derived from EnerGuide audits are **modelled** estimates, not metered
+bills — each page carries its own methodology section and caveats.

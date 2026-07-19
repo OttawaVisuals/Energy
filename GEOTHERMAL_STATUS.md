@@ -1,6 +1,6 @@
 # Ottawa Geothermal — Build Log & Status
 
-Companion to [ottawa-geothermal-guide.md](ottawa-geothermal-guide.md) (the 8-step
+Companion to [Geothermal/ottawa-geothermal-guide.md](Geothermal/ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
 *Last session: 2026-07-17.*
