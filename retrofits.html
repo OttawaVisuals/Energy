@@ -842,6 +842,22 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <p class="sec-sub">Raw heat-pump and window references recorded for the matched homes.</p>
   </div>
 
+<!-- Heat pump + backup pairing, and sizing vs. design heat loss -->
+  <div class="grid-2" data-mode="advanced">
+    <div class="card">
+      <div class="card-title" data-icon="heatpump">Heat pump + backup<button type="button" class="info-btn" aria-label="How is the backup identified?" data-info="For homes with a heat pump, the recorded heating-equipment fuel is the companion/backup system HOT2000 tracks separately from the heat pump itself — not the heat pump's own energy source (always electricity)." data-method="m-derived">?</button></div>
+      <div id="hp-backup-list" class="equip-list"></div>
+      <p class="note">What accompanies the heat pump in matched homes with one — the backup system that covers demand beyond the heat pump's own capacity, or when it's offline. Where shown, the sub-line is the share of those homes (with that fuel as their own recorded backup) where that fuel's heating-only consumption is actually above zero — shown for gas, oil, and propane only. Electric backup can't be separated from the heat pump's own electricity use in this data, and the wood species (mixed/hard/soft/pellets) share one combined consumption figure, so a per-species check isn't meaningful.</p>
+    </div>
+    <div class="card">
+      <div class="card-title" data-icon="heatpump">Heat pump sizing — capacity vs. design heat loss<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Heat pump heating capacity, from its AHRI certificate, divided by the home's design heat loss. 1.0 means the heat pump alone covers the full peak heating load; below 1.0 means the backup system covers the rest on the coldest days — a deliberate, common design choice, not a sizing mistake." data-method="m-derived">?</button></div>
+      <div class="cw cw-lg"><canvas id="hpsizing-chart"></canvas></div>
+      <p class="note"><span class="cap-simple">How much of a home's peak heating need the heat pump alone can cover, on a mild day (47°F) and a cold design day (5°F, about −15°C).</span><span class="cap-advanced">Ratio of AHRI-certificate-verified heat pump heating capacity to design heat loss (both kW) — not the raw auditor-entered capacity field, which runs a median 1.55× high against real certificates. Homes without a resolvable AHRI certificate reference aren't included (see Methodology) — coverage is highest for retrofits from about 2019 onward.</span></p>
+    </div>
+  </div>
+
+
+
 <!-- Heat pump AHRI numbers + window codes -->
   <div class="grid-2" data-mode="advanced">
     <div class="card">
@@ -1212,7 +1228,8 @@ const BINS={
   ghg:1,          // GHG buckets (tCO2e/yr)
   heatloss:2,     // design heat loss buckets (kW — peak demand, not GJ/yr)
   savingsPct:1,   // energy-saving histogram (whole %)
-  cost:250        // annual energy-cost buckets ($/yr)
+  cost:250,       // annual energy-cost buckets ($/yr)
+  hpSizing:0.1    // heat-pump sizing ratio buckets (capacity ÷ design heat loss)
 };
 
 // ── Energy-cost pricing (mirrors precompute_province_stats.py — keep in sync) ──
@@ -2016,7 +2033,7 @@ function renderAdvancedSections(){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
     renderVintageMeasures();renderWindowChanges();renderTable();
-    renderHeatLoss();renderAuditYearChart();
+    renderHeatLoss();renderAuditYearChart();renderHPBackupFsa();renderHPSizing();
     const comp=compositionForSelectedFsa();
     renderFunnel(comp?{total:comp.t,de:comp.de,d:comp.d,e:comp.e,nc:comp.nc,
       matched:ALL.length,selected:FILTERED.length}:null);
@@ -2032,6 +2049,7 @@ function renderAdvancedSections(){
     renderProvinceSolar(_lastProvinceSlice);
     renderProvinceWaterfall(_lastProvinceSlice);
     renderAhriWindowProvince(_lastProvinceSlice);
+    renderHPBackupProvince(_lastProvinceSlice);renderProvinceHPSizing(_lastProvinceSlice);
     renderProvinceAuditYearChart(_lastProvincePayload);
     const f=_lastProvincePayload.funnel;
     renderFunnel(f?{total:f.t,de:f.de,d:f.d,e:f.e,nc:f.nc,
@@ -2763,6 +2781,79 @@ function renderAhriWindowProvince(slice){
   $('window-post-list').innerHTML=barListHTML(toItems(slice.window_post_top,decodeWindow));
 }
 
+// ── Heat pump + backup pairing, and sizing vs. design heat loss ──────
+// Post_HeatFuel/Post_HeatType is NOT the heat pump — HOT2000 models it as a
+// separate component, so for a heat-pump home this column is the companion/
+// backup system (see join_hp_capacity.py / docs/RETROFITS.md). Sizing uses
+// AHRI-certificate-verified capacity (Post_HPCapacity47/5), not the raw
+// auditor-entered HPCAP field, which was validated against real certificates
+// and runs a median 1.55x high.
+function hasHeatPump(r){
+  const t=r.Post_HPType;
+  return !!(t&&String(t).trim()&&!String(t).toLowerCase().startsWith('n/a'));
+}
+// Natural Gas/Oil/Propane only -- Electricity can't be split from the heat
+// pump's own electricity use, and the wood species (Mixed Wood/Hardwood/
+// Wood Pellets/Softwood) all share one Post_HeatWood column, so a
+// per-species check isn't meaningful (see precompute_province_stats.py).
+const HP_BACKUP_USED_COLS={'Natural Gas':'Post_HeatNaturalGas','Oil':'Post_HeatOil',
+  'Propane':'Post_HeatPropane'};
+function renderHPBackupList(counts,used){
+  const items=Object.entries(counts||{}).sort((a,b)=>b[1]-a[1]).map(([fuel,count])=>{
+    let sub=null;
+    if(used&&used[fuel]!=null){
+      const pct=count?Math.round(used[fuel]/count*100):0;
+      sub=`${pct}% show it actually consumed for heat`;
+    }
+    return{main:fuel,count,sub};
+  });
+  $('hp-backup-list').innerHTML=barListHTML(items);
+}
+function renderHPBackupFsa(){
+  const hp=FILTERED.filter(hasHeatPump);
+  const counts={};
+  hp.forEach(r=>{const f=r.Post_HeatFuel;if(f&&String(f).trim())counts[f]=(counts[f]||0)+1;});
+  // Denominator is homes whose OWN backup fuel is this fuel, not every
+  // heat-pump home — otherwise a home with a different backup showing trace
+  // nonzero consumption in an unrelated fuel channel can push this over
+  // counts[fuel], reading as a nonsensical >100%.
+  const used={};
+  Object.entries(HP_BACKUP_USED_COLS).forEach(([fuel,col])=>{
+    used[fuel]=hp.filter(r=>r.Post_HeatFuel===fuel&&num(r[col])>0).length;
+  });
+  renderHPBackupList(counts,used);
+}
+function renderHPBackupProvince(slice){
+  renderHPBackupList(slice.backup_fuel_counts,slice.backup_used_counts);
+}
+// Bin key rounded to 2dp to match precompute_province_stats.py's
+// bin_counts() rounding for fractional steps (the bin-width contract) —
+// otherwise floating-point drift (0.30000000000000004) splits one real bin
+// into two between FSA and province views.
+function hpSizingBins(rows,capCol){
+  const b={};
+  rows.forEach(r=>{
+    const cap=num(r[capCol]),hl=num(r.Post_HeatLoss);
+    if(cap===null||hl===null||hl<=0)return;
+    const ratio=cap/hl;
+    if(ratio>3)return;
+    const k=Math.round(Math.floor(ratio/BINS.hpSizing)*BINS.hpSizing*100)/100;
+    b[k]=(b[k]||0)+1;
+  });
+  return b;
+}
+function renderHPSizing(){
+  const hp=FILTERED.filter(hasHeatPump);
+  drawComboChart('hpsizing-chart','hpsizing',
+    hpSizingBins(hp,'Post_HPCapacity47'),hpSizingBins(hp,'Post_HPCapacity5'),{},
+    'sizing ratio','At 47°F (mild day)','At 5°F (design day)');
+}
+function renderProvinceHPSizing(slice){
+  drawComboChart('hpsizing-chart','hpsizing',
+    slice.hp_sizing47_bins||{},slice.hp_sizing5_bins||{},{},
+    'sizing ratio','At 47°F (mild day)','At 5°F (design day)');
+}
+
 // ── Most common window changes (FSA mode only — needs paired per-home
 // Pre/Post window codes; province mode only ships independent pre/post
 // frequency counts, not paired, so this comparison isn't possible there) ──
@@ -3098,18 +3189,18 @@ function renderKPI(n,fs){
 // as bars — all on the same axis, so no value/reduction toggle is needed.
 // The Improvement dataset is simply omitted when deltaBins is empty (some
 // province-precomputed measures don't ship a delta histogram).
-function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
+function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLabel='Before retrofit',postLabel='After retrofit',deltaLabel='Improvement'){
   dc(chartKey);
   const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins),...Object.keys(deltaBins)])].map(Number).sort((a,b)=>a-b);
   const datasets=[];
   // Chart.js draws LOWER order values on top — bar needs order:1 (front) and
   // the lines order:2 (behind), or the area fills paint over the bars.
   if(Object.keys(deltaBins).length){
-    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:PAL.secondary,borderWidth:1,borderRadius:2,order:1});
+    datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:PAL.secondary,borderWidth:1,borderRadius:2,order:1});
   }
   datasets.push(
-    {type:'line',label:'Before retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
-    {type:'line',label:'After retrofit',data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
   );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
@@ -3790,6 +3881,23 @@ function makeInlineSVG(r){
       <td style="padding:3px 0;color:${changed?PAL.secondary:'var(--light)'}">${changed?'Changed':'—'}</td>
     </tr>`;
   }
+  // AHRI-certificate-verified heat pump capacity/efficiency (join_hp_capacity.py).
+  // Post-only, and only present when the AHRI reference resolved — most
+  // homes with a heat pump but no row here simply lack a usable AHRI number.
+  function hpCertRow(r){
+    const cap47=num(r.Post_HPCapacity47),cap5=num(r.Post_HPCapacity5),hspf=num(r.Post_HPHSPF2);
+    if(cap47===null&&cap5===null&&hspf===null)return'';
+    const parts=[];
+    if(cap47!==null)parts.push(`${cap47.toFixed(1)} kW @ 47°F`);
+    if(cap5!==null)parts.push(`${cap5.toFixed(1)} kW @ 5°F`);
+    if(hspf!==null)parts.push(`HSPF2 ${hspf.toFixed(1)}`);
+    const hl=num(r.Post_HeatLoss);
+    const sizing=(cap47!==null&&hl!==null&&hl>0)?` · sized to ${Math.round(cap47/hl*100)}% of design heat loss`:'';
+    return `<tr>
+      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">&nbsp;&nbsp;· Cert. capacity</td>
+      <td colspan="3" style="padding:3px 0;color:var(--text)">${parts.join(' · ')}${sizing}</td>
+    </tr>`;
+  }
   function numRow(lbl,pre,post,unit,higherIsBetter,decimals){
     if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="3" style="padding:3px 0;color:var(--light)">—</td></tr>`;
     const d=pre!==null&&post!==null?(higherIsBetter?post-pre:pre-post):null;
@@ -3898,9 +4006,10 @@ function makeInlineSVG(r){
       <thead><tr>${th('Measure')}${th('Pre-audit')}${th('Post-audit')}${th('Savings')}</tr></thead>
       <tbody>
         ${auditYearRow}
-        ${textRow('Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
-        ${textRow('Heating type',r.Pre_HeatType,r.Post_HeatType)}
+        ${textRow(hasHeatPump(r)?'Backup fuel':'Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
+        ${textRow(hasHeatPump(r)?'Backup type':'Heating type',r.Pre_HeatType,r.Post_HeatType)}
         ${textRow('Heat pump',r.Pre_HPType,r.Post_HPType)}
+        ${hpCertRow(r)}
         ${textRow('Ventilation',r.Pre_VentType,r.Post_VentType)}
         ${windowRows}
         ${numRow('Energy',num(r.Pre_TotalEnergy),num(r.Post_TotalEnergy),'kWh',false,0)}
@@ -4195,7 +4304,7 @@ function buildFsaColorScale(state){
     const posColor=t=>lerpColorGamma(BASE,POS,t);
     const negColor=t=>lerpColorGamma(BASE,NEG,t);
     const colorOf=e=>{
-      if(!e||e.median_saving_pct==null)returnPAL.mapNull;
+      if(!e||e.median_saving_pct==null)return PAL.mapNull;
       const v=e.median_saving_pct;
       return v>=0?posColor(hi>0?v/hi:0):negColor(lo<0?v/lo:0);
     };

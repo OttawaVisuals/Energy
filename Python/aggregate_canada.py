@@ -97,6 +97,8 @@ def main():
         "storey_counts", "type_counts",
         "ahri_counts", "window_pre_counts", "window_post_counts",
         "d_year_bins", "e_year_bins",
+        "hp_sizing47_bins", "hp_sizing5_bins",
+        "backup_fuel_counts", "backup_used_counts",
     ]:
         out[key] = sum_bins(s.get(key, {}) for s in slices)
 
@@ -111,7 +113,8 @@ def main():
     out["window_pre_top"] = top_n(out["window_pre_counts"], 5)
     out["window_post_top"] = top_n(out["window_post_counts"], 5)
 
-    for key in ["deep_retrofit_count", "fuel_switch_count", "heat_pump_count", "solar_post_count"]:
+    for key in ["deep_retrofit_count", "fuel_switch_count", "heat_pump_count", "solar_post_count",
+                "hp_home_count"]:
         out[key] = round(sum(s.get(key, 0) for s in slices))
 
     # Medians recomputed from the combined bins (see module docstring).
@@ -131,6 +134,9 @@ def main():
     )
     med_pct = weighted_median_from_bins(out["savings_pct_bins"])
     out["median_saving_pct"] = (med_pct / 100) if med_pct is not None else None
+
+    out["hp_sizing47_median"] = weighted_median_from_bins(out["hp_sizing47_bins"])
+    out["hp_sizing5_median"] = weighted_median_from_bins(out["hp_sizing5_bins"])
 
     # Insulation: histograms summed directly, KPI medians recomputed from them.
     ih = {}
