@@ -12,122 +12,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site-theme.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-/* ── Theme system ──────────────────────────────────────────────────
-   Three mutually-exclusive themes on <html data-theme>: light (default,
-   the historical look), dark, and cb (colour-blind-safe, light ground).
+/* Reset, theme variables (light/dark/cb) and body base now live in
+   assets/site-theme.css, shared with retrofit-insights.html and
+   newhomes.html — see that file for the full theme-system rationale. */
 
-   Two naming layers, deliberately separate:
-
-   1. CHROME vars (--card, --ink, --cream …) style the page. Several of
-      the original names were doing double duty and could not survive a
-      dark inversion — --white meant BOTH "card background" (must go dark)
-      and "text on the navy header" (must stay white); --navy meant BOTH
-      "chrome background" (stays navy) and "heading ink" (must go light).
-      Those splits are now --card/--on-navy and --navy/--ink. The old
-      names are kept as aliases so nothing outside this block had to move.
-
-   2. DATA vars (--d-*, --f-*) are the ONLY colours charts may use. The JS
-      reads them once per theme into the PAL object (see readPalette) —
-      hex literals in chart code are what made colour-blind mode impossible
-      before, so they should not come back. Keep every value 6-digit hex:
-      PAL builds 8-digit alpha variants by string suffix.
-
-   Colour-blind mode uses the Okabe-Ito palette, whose eight hues stay
-   mutually distinguishable under deuteranopia/protanopia. The pair that
-   actually carries meaning here is saved-energy vs used-more, which in
-   the default theme is green/red — the single worst pair for the ~8% of
-   men with red-green deficiency. It becomes green/vermillion. */
-:root,:root[data-theme="light"]{
-  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
-  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
-  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
-  --card:#fff;--on-navy:#fff;--ink:#0B2545;
-  --r-sm:6px;--r-md:10px;--r-lg:16px;
-  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05);
-  /* data layer */
-  --d-primary:#0B2545;--d-secondary:#C8881A;
-  --d-pos:#1A7A55;--d-neg:#B33A2E;--d-blue:#378ADD;--d-purple:#533AB7;
-  --d-track:#E8EDF4;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
-  --f-elec:#378ADD;--f-gas:#C8881A;--f-oil:#D85A30;--f-propane:#B79A6A;--f-wood:#6B4C2A;
-  --badge-deep-bg:#D4EFDF;--badge-deep-fg:#1A5C3A;--badge-med-bg:#D6E8F8;--badge-med-fg:#1A4A72;
-  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#FADED9;--badge-neg-fg:#7C2318;
-  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
-}
-:root[data-theme="dark"]{
-  --navy:#0A1622;--amber:#E8A124;--amber2:#F0B94E;
-  --green:#3FA97C;--red:#E2705F;--blue:#5FA6E8;--purple:#8C79D8;
-  --cream:#0E1621;--surface:#1B2735;--border:#2C3A4B;
-  --text:#DCE4EE;--muted:#94A5B8;--light:#738699;--white:#16202E;
-  --card:#16202E;--on-navy:#fff;--ink:#E4EBF4;
-  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);
-  --d-primary:#5FA6E8;--d-secondary:#E8A124;
-  --d-pos:#3FA97C;--d-neg:#E2705F;--d-blue:#5FA6E8;--d-purple:#8C79D8;
-  --d-track:#2C3A4B;--d-axis:#94A5B8;--d-tick:#738699;--d-grid:#243244;
-  --f-elec:#5FA6E8;--f-gas:#E8A124;--f-oil:#EE8055;--f-propane:#C9B48C;--f-wood:#9C7A55;
-  --badge-deep-bg:#16412F;--badge-deep-fg:#7FD6AC;--badge-med-bg:#152F47;--badge-med-fg:#8CC2F0;
-  --badge-shal-bg:#242E3A;--badge-shal-fg:#A9B6C6;--badge-neg-bg:#4A1F18;--badge-neg-fg:#F0A093;
-  --map-bg:#111C28;--map-stroke:#0E1621;--map-attr-bg:rgba(14,22,33,.72);
-}
-:root[data-theme="cb"]{
-  --navy:#10263D;--amber:#E69F00;--amber2:#F0B429;
-  --green:#009E73;--red:#D55E00;--blue:#0072B2;--purple:#CC79A7;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
-  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
-  --card:#fff;--on-navy:#fff;--ink:#10263D;
-  --d-primary:#0072B2;--d-secondary:#E69F00;
-  --d-pos:#009E73;--d-neg:#D55E00;--d-blue:#56B4E9;--d-purple:#CC79A7;
-  --d-track:#DCE2EA;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
-  --f-elec:#56B4E9;--f-gas:#E69F00;--f-oil:#D55E00;--f-propane:#CC79A7;--f-wood:#8B6343;
-  --badge-deep-bg:#CCEBE2;--badge-deep-fg:#00674B;--badge-med-bg:#CCE4F0;--badge-med-fg:#00527F;
-  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#F7DDCC;--badge-neg-fg:#8A3D00;
-  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
-}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
-
-/* ── Header ── */
-header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--on-navy);letter-spacing:-.01em}
-.logo span{color:var(--amber2);font-style:italic}
-/* Page context ("Ontario · home energy retrofits") lives up here in the bar
-   instead of as a hero eyebrow — saves a full line of vertical space. */
-.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
-.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
-.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
-.sibling-link:hover{color:var(--amber2)}
-/* ── Simple / Advanced mode toggle ──
-   Visibility is driven purely by body.mode-simple/.mode-advanced + the
-   [data-mode="advanced"] attribute on each Advanced-only section — no JS
-   branching per section. !important is needed because some of these same
-   elements also get inline style.display toggled by the FSA-vs-province
-   logic (showFsaFilterControls, toggleVintageCard etc.) — that logic clears
-   the inline style (display:'') when shown, which this rule must still be
-   able to override in Simple mode. */
-body.mode-simple [data-mode="advanced"]{display:none!important}
-/* Shortened captions for Simple, full technical captions for Advanced — two
-   spans in the same .note, never two copies of the chart logic. */
-body.mode-simple .cap-advanced{display:none}
-body.mode-advanced .cap-simple{display:none}
-/* The mode toggle now lives in the white filter bar (moved out of the navy
-   header), so it's styled light: surface pill, muted labels, amber active. */
-.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end}
-.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 13px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
-/* --navy, not --ink: this label sits on amber in every theme, so it must
-   stay dark even in dark mode (where --ink inverts to near-white). */
-.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
-.mode-btn:not(.active):hover{color:var(--ink)}
-@media(max-width:600px){.mode-btn{padding:5px 10px;font-size:11px}}
-/* Theme switch — same pill shape as .mode-toggle so the two read as one
-   control group, but icon-only to keep the filter bar on a single row. */
-.theme-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end;margin-left:8px}
-.theme-btn{display:flex;align-items:center;justify-content:center;width:30px;height:26px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
-.theme-btn.active{background:var(--amber2);color:var(--navy)}
-.theme-btn:not(.active):hover{color:var(--ink)}
-.theme-btn:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+/* Header, hero, Simple/Advanced mode toggle and theme toggle now live in
+   assets/site-theme.css. The [data-mode="advanced"]/[data-mode="simple-only"]
+   visibility rules (which some sections also toggle via inline style, see
+   showFsaFilterControls/toggleVintageCard) live there too. */
 
 /* Census card: gauge on the left, supporting KPIs filling the rest of the
    row. Collapses to stacked on narrow screens so the gauge keeps its size. */
@@ -136,15 +30,6 @@ body.mode-advanced .cap-simple{display:none}
 .census-gauge-cap{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;line-height:1.4}
 .census-gauge-kpis{flex:1 1 320px;min-width:0}
 @media(max-width:600px){.census-gauge{flex:1 1 100%;max-width:none;margin:0 auto}}
-
-/* ── Hero ── */
-/* Kept deliberately shallow: the eyebrow moved into the header bar and the
-   headline runs wider instead of taller, so readers reach the filters and
-   first charts with far less scrolling. */
-.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--on-navy);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
-.hero h1 em{font-style:italic;color:var(--amber2)}
-.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:760px;margin:0 auto}
 
 /* ── Filters ── */
 /* .filter-sticky wraps the filter bar OUTSIDE the hero so position:sticky
@@ -255,8 +140,32 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .methodology .method-body td{border-bottom:1px solid var(--surface);padding:5px 10px 5px 0;vertical-align:top}
 .methodology .method-body td code{white-space:nowrap}
 
+/* ── Simple-mode "see more" prompt ── */
+.simple-more{text-align:center;margin:.25rem 0 1.25rem}
+.simple-more button{font-family:'Inter',sans-serif;font-size:13px;color:var(--amber2);background:none;border:none;cursor:pointer;text-decoration:underline;padding:.4rem}
+.simple-more button:hover{color:var(--ink)}
+
+/* ── Can/cannot answer ── */
+.can-cannot-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:.5rem}
+.can-cannot-head{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.5rem}
+.can-cannot-yes .can-cannot-head{color:var(--green)}
+.can-cannot-no .can-cannot-head{color:var(--red)}
+.can-cannot-col ul{margin:0;padding-left:1.1rem;font-size:13px;color:var(--text);line-height:1.7}
+@media(max-width:640px){.can-cannot-grid{grid-template-columns:1fr}}
+
 /* ── Stats ── */
+.kpi-tier{margin-bottom:1.1rem}
+.kpi-tier-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem}
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem}
+.kpi-tier .stats-grid{margin-bottom:0}
+.stats-grid-outcomes{grid-template-columns:repeat(4,1fr)}
+.stats-grid-outcomes .stat-card{padding:1.05rem 1.2rem}
+.stats-grid-outcomes .stat-value{font-size:2.5rem}
+.stats-grid-activity{grid-template-columns:repeat(5,1fr)}
+.stats-grid-context{grid-template-columns:repeat(1,minmax(220px,320px))}
+.stats-grid-context .stat-card{background:transparent;box-shadow:none;padding:.4rem 0}
+.stats-grid-context .stat-value{font-size:1.4rem;color:var(--muted)}
+.stats-grid-context .stat-label{color:var(--light)}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
@@ -342,12 +251,10 @@ tr.detail-row.open .detail-inner{display:block}
 
 
 /* ── Info "?" buttons ── */
-/* One shared floating tip (#info-tip, created lazily in JS) serves every
+/* Base .info-btn/#info-tip look now lives in assets/site-theme.css. One
+   shared floating tip (#info-tip, created lazily in JS) serves every
    button; the text lives in each button's data-info attribute. Hover shows
    it on desktop, tap toggles it on touch. */
-.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
-.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--ink)}
-#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
 /* "Full details in methodology →" link inside a tooltip. The tip stays open
    while the pointer is over it (see the hide-timer logic in JS) so the link
    is actually reachable. */
@@ -370,9 +277,7 @@ tr.detail-row.open .detail-inner{display:block}
 .source-item p{font-size:12.5px;color:var(--muted);margin-top:.3rem;line-height:1.5}
 .source-item code{font-size:11.5px;background:var(--surface);padding:1px 4px;border-radius:3px}
 
-footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
-footer a{color:rgba(255,255,255,.6);text-decoration:none}
-footer a:hover{color:var(--amber2)}
+/* footer base styling now lives in assets/site-theme.css */
 @media(max-width:900px){
   .header-title{display:none}
   .stats-grid{grid-template-columns:repeat(3,1fr)}
@@ -489,8 +394,8 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 </header>
 
 <div class="hero" id="hero-section">
-  <h1>What did <em>Retrofits</em> do — and did it work?</h1>
-  <p class="hero-sub">Data from EnerGuide audit. Enter your postal code — or pick a province — to see what retrofits achieved.</p>
+  <h1>What happened after <em>Canadian home energy retrofits</em>?</h1>
+  <p class="hero-sub">Explore matched EnerGuide evaluations to see which upgrades were installed and how modelled energy use, emissions and estimated operating costs changed.</p>
 </div>
 
 <div class="filter-sticky">
@@ -611,30 +516,73 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <main>
 
+  <div class="card" id="interpretation-card"><div class="card-title">Before you interpret these results</div><p>• Results are based on EnerGuide/HOT2000 modelled energy use, not utility bills.<br>• Most matched homes participated in retrofit programs and completed a follow-up evaluation.<br>• Results describe energy, emissions and estimated operating costs only.<br>• Retrofit costs, comfort, indoor air quality and homeowner satisfaction are not available in the source data.</p><p class="note">The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment.</p></div>
+
+  <div class="card" id="can-cannot-card">
+    <div class="card-title">What this tool can — and can't — tell you</div>
+    <div class="can-cannot-grid">
+      <div class="can-cannot-col can-cannot-yes">
+        <div class="can-cannot-head">This tool CAN show</div>
+        <ul>
+          <li>What upgrades were most common</li>
+          <li>How much modelled energy use changed</li>
+          <li>How often heat pumps were installed</li>
+          <li>How modelled emissions changed</li>
+          <li>Estimated operating-cost changes at today's energy rates</li>
+        </ul>
+      </div>
+      <div class="can-cannot-col can-cannot-no">
+        <div class="can-cannot-head">This tool CANNOT show</div>
+        <ul>
+          <li>Retrofit cost or payback period</li>
+          <li>Actual utility bills</li>
+          <li>Comfort improvements</li>
+          <li>Occupant satisfaction</li>
+          <li>Indoor air quality changes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="section-head">
     <h2 data-icon="results">Did the retrofits work?</h2>
     <p class="sec-sub">The bottom-line outcome across every home in this view.</p>
   </div>
 
-<!-- Top stats -->
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Typical energy saving</span><span class="cap-advanced">Median energy saving</span></div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
-    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Energy saved per m²</span><span class="cap-advanced">Median EUI saving</span></div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
-    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Emissions saved</span><span class="cap-advanced">Median GHG saving</span></div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
-    <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label"><span class="cap-simple">Typical bill saving</span><span class="cap-advanced">Median bill saving</span><button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
-    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Upgrades per home</span><span class="cap-advanced">Avg. measures per home</span><button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub"><span class="cap-simple">average of 8 tracked upgrades</span><span class="cap-advanced">measures · mean per home</span></div></div>
-    <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="Total energy use dropped 50% or more. Medium = 10–50% saved, shallow = under 10%." data-method="m-derived">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="No heat pump at the first audit, one at the follow-up." data-method="m-measures">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
-    <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Main heating fuel changed between the two audits — e.g. oil or gas to electricity." data-method="m-derived">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
-    <div class="stat-card"><div class="stat-label"><span class="cap-simple">Solar panels added</span><span class="cap-advanced">Solar PV added</span><button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
-    <div class="stat-card" id="s-selected-card"><div class="stat-label"><span class="cap-simple">Homes in this view</span><span class="cap-advanced">Retrofits selected</span><button type="button" class="info-btn" aria-label="What does homes in this view mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
+<!-- Top stats: tiered by importance — outcomes (largest) → retrofit activity → sample context (smallest) -->
+  <div class="kpi-tier kpi-tier-outcomes">
+    <div class="kpi-tier-label">Outcomes</div>
+    <div class="stats-grid stats-grid-outcomes">
+      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Typical energy saving</span><span class="cap-advanced">Median energy saving</span></div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
+      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Emissions saved</span><span class="cap-advanced">Median GHG saving</span></div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+      <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label"><span class="cap-simple">Typical bill saving</span><span class="cap-advanced">Median bill saving</span><button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+      <div class="stat-card" data-mode="advanced"><div class="stat-label"><span class="cap-simple">Energy saved per m²</span><span class="cap-advanced">Median EUI saving</span></div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+    </div>
+  </div>
+
+  <div class="kpi-tier kpi-tier-activity">
+    <div class="kpi-tier-label">Retrofit activity</div>
+    <div class="stats-grid stats-grid-activity">
+      <div class="stat-card"><div class="stat-label">Heat pumps added<button type="button" class="info-btn" aria-label="What counts as a heat pump added?" data-info="No heat pump at the first audit, one at the follow-up." data-method="m-measures">?</button></div><div class="stat-value accent" id="s-hp">—</div><div class="stat-sub" id="s-hp-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Fuel switches<button type="button" class="info-btn" aria-label="What counts as a fuel switch?" data-info="Main heating fuel changed between the two audits — e.g. oil or gas to electricity." data-method="m-derived">?</button></div><div class="stat-value" id="s-fs">—</div><div class="stat-sub" id="s-fs-sub">changed heating fuel</div></div>
+      <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="Total energy use dropped 50% or more. Medium = 10–50% saved, shallow = under 10%." data-method="m-derived">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
+      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Solar panels added</span><span class="cap-advanced">Solar PV added</span><button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
+      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Upgrades per home</span><span class="cap-advanced">Avg. measures per home</span><button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub"><span class="cap-simple">average of 8 tracked upgrades</span><span class="cap-advanced">measures · mean per home</span></div></div>
+    </div>
+  </div>
+
+  <div class="kpi-tier kpi-tier-context">
+    <div class="kpi-tier-label">Sample context</div>
+    <div class="stats-grid stats-grid-context">
+      <div class="stat-card" id="s-selected-card"><div class="stat-label"><span class="cap-simple">Homes in this view</span><span class="cap-advanced">Retrofits selected</span><button type="button" class="info-btn" aria-label="What does homes in this view mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
+    </div>
   </div>
 
 <!-- Energy saving distribution 1% — the headline outcome, right under the KPIs -->
   <div class="card">
     <div class="card-title-row"><div class="card-title"><span class="cap-simple">How much did homes save?</span><span class="cap-advanced">Energy saving distribution — 1% increments</span></div><div class="chart-legend-inline"><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-pos)"></span>Saved energy</div><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-neg)"></span>Used more</div></div></div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits.</span></p>
+    <p class="note"><span class="cap-simple">Most homes show lower modelled energy use after retrofit. About 4% show higher modelled energy use. Many of these homes had no detected upgrade under this tool's thresholds and the increases are generally small. The data cannot determine whether these differences reflect modelling variation, untracked changes, home modifications, occupant behaviour, or a genuine increase in expected energy use.</span><span class="cap-advanced">Negative values mean modelled total energy use was higher at the follow-up evaluation than at the initial evaluation. These cases are uncommon and are typically small in magnitude. The dataset alone cannot determine the reason for the increase.</span></p>
   </div>
 
 <!-- Audit funnel — how the area's full audited population narrows to the
@@ -656,8 +604,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <p class="sec-sub">How much each home used and emitted before and after the work, and how the fuel mix shifted.</p>
   </div>
 
-<!-- EUI -->
-  <div class="card">
+<!-- EUI: Advanced-only — duplicates the plain-language "Typical energy
+     saving" (%) KPI with a more technical kWh/m² framing. -->
+  <div class="card" data-mode="advanced">
     <div class="card-title"><span class="cap-simple">Energy use per square metre (kWh/m²)</span><span class="cap-advanced">Energy use intensity (EUI) — kWh per m²</span><button type="button" class="info-btn" aria-label="How to read this chart" data-info="Energy use per m², before (navy) vs after (green). Amber bars show the size of each home's improvement." data-method="m-derived">?</button></div>
     <div class="eui-row" id="eui-kpis"></div>
     <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
@@ -685,7 +634,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="card-title">Energy bill — $ per year at current rates<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly energy bill at today's rates, before (navy) vs after (green). Amber bars show the size of each home's saving." data-method="m-caveats">?</button></div>
     <div class="eui-row" id="cost-kpis"></div>
     <div class="cw cw-lg"><canvas id="cost-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (<code>utility_rates_reference.json</code>): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a flat national screening ¢/kWh (one rate applied to wood heating of any kind — no per-species breakdown exists). Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2025, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane, oil, and wood rates are single-province averages, lower confidence than the utility-tariff electricity/gas figures.</span></p>
+    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (<code>utility_rates_reference.json</code>): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a flat national screening ¢/kWh (one rate applied to wood heating of any kind — no per-species breakdown exists). Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2026, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane, oil, and wood rates are single-province averages, lower confidence than the utility-tariff electricity/gas figures.</span></p>
   </div>
 
 
@@ -738,6 +687,10 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 <!-- Measures -->
   <div class="card"><div class="card-title">What measures were done</div><div id="measures-list"></div></div>
 
+  <div class="simple-more" data-mode="simple-only">
+    <button type="button" onclick="setViewMode('advanced')">See the detailed breakdown — equipment, fuel flow &amp; neighbourhood data ↓</button>
+  </div>
+
 
 
 <!-- Measures by vintage — FSA mode only (needs row-level YearBuilt + per-
@@ -751,8 +704,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 
 
-<!-- Insulation KPIs + distributions -->
-  <div class="card">
+<!-- Insulation KPIs + distributions.
+     Advanced-only: R-value/RSI/ACH50 language is too technical for Simple. -->
+  <div class="card" data-mode="advanced">
     <div class="card-title"><span class="cap-simple">Insulation &amp; air leakage — before vs after</span><span class="cap-advanced">Insulation &amp; air leakage — median pre → post</span><button type="button" class="info-btn" aria-label="How to read these charts" data-info="Before (navy) vs after (green) for each measure. Amber bars count only the homes that improved on it." data-method="m-measures">?</button></div>
     <div class="kpi-grid" id="kpi-grid"></div>
     <p class="note" style="margin-bottom:1rem"><span class="cap-simple">Higher R-value and lower air leakage are both better.</span><span class="cap-advanced">R-value = imperial thermal resistance (higher = better; RSI shown in brackets is the metric equivalent, R = RSI × 5.68). ACH50 = air changes per hour at 50 Pa (lower = better).</span></p>
@@ -926,7 +880,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <p>This tool visualises real home-energy audits, but the numbers go through several steps before they reach the charts. Here is the whole journey in plain terms.</p>
 
       <h4>1 · Where the data comes from</h4>
-      <p>Every figure starts from Natural Resources Canada's <strong>EnerGuide / Energy Rating System (ERS)</strong> open dataset — the official record of home-energy audits across Canada, covering audit years <strong>2004–2025</strong>. An audit is a trained energy advisor visiting a home and modelling, with NRCan's HOT2000 software, how much energy it uses and where that energy is lost.</p>
+      <p>Every figure starts from Natural Resources Canada's <strong>EnerGuide / Energy Rating System (ERS)</strong> open dataset — the official record of home-energy audits across Canada, covering audit years <strong>2004–2026</strong>. An audit is a trained energy advisor visiting a home and modelling, with NRCan's HOT2000 software, how much energy it uses and where that energy is lost.</p>
 
       <h4 id="m-pairing">2 · Matching "before" and "after"</h4>
       <p>Each audit record is tagged as an evaluation type. We treat type <strong>D</strong> as the <em>initial</em> ("before") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after") evaluation. A home is identified by a stable address ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
@@ -962,7 +916,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, design-heat-loss buckets <code>2 kW</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
 
       <h4 id="m-caveats">9 · Things to keep in mind</h4>
-      <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no cost information</strong>, so this tool cannot show payback or dollar figures.</p>
+      <p class="caveats">These are <strong>modelled</strong> energy estimates from the audit software, not metered utility bills — actual consumption varies with weather and occupant behaviour. Outliers (e.g. EUI above 500 kWh/m²) are clipped so the charts stay readable. Pre-retrofit solar is rarely recorded in the source, so "solar added" reflects systems present at the follow-up audit and may slightly overcount homes that already had panels. The source data contains <strong>no retrofit cost information and no utility bills</strong>. This tool estimates annual operating costs using current provincial energy rates applied to modelled fuel consumption. These estimates should not be interpreted as actual utility bills, historical costs, retrofit costs, or payback calculations.</p>
       <p class="caveats"><strong>The sample is self-selected.</strong> Requiring both a before and an after audit means these are overwhelmingly homes that took part in retrofit incentive programs (which required the follow-up audit) and finished their planned work. Homeowners who renovated without a program, or who started and never booked the follow-up, are not captured — so the savings shown here are likely somewhat higher than what a randomly chosen renovation achieves, and the homes themselves skew toward owners motivated enough to go through a grant process.</p>
     </div>
   </details>
@@ -1063,7 +1017,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <p class="caveats"><strong>The ±10% measure thresholds are heuristics</strong>, chosen to separate real work from model-to-model noise, not derived from a formal sensitivity analysis. Negative energy savings occur in ~4% of matched pairs; about three-quarters of those have <em>no</em> measure flagged at all, consistent with inter-audit modelling variance rather than retrofits that backfired.</p>
       <p class="caveats"><strong>All energy values are HOT2000 modelled estimates</strong> under standard operating conditions, not metered consumption. GHG figures are as computed at audit time with the then-current provincial grid emission factors — they are not re-normalized to a common grid-intensity year, so pre and post audits taken years apart embed slightly different electricity factors.</p>
       <p class="caveats"><strong>The sample is self-selected</strong>: requiring both a D and an E evaluation selects heavily for incentive-program participants who completed their planned work and booked the follow-up. Savings shown here are therefore likely an upper bound on what an average renovation achieves.</p>
-      <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no cost data, so no payback or dollar figures are shown anywhere.</p>
+      <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no retrofit cost information and no household utility bills. Dollar values shown in this tool are estimated operating costs derived from modelled energy use and current provincial energy prices. Retrofit costs and payback cannot be calculated from the available data.</p>
     </div>
   </details>
 </section>
@@ -1109,7 +1063,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 </section>
 
 <footer>
-  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2025 · dataset last rebuilt July 2026<br>
+  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2026 · dataset last rebuilt July 2026<br>
   Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.<br>
   Website, data pipeline and python scripts were developed using Claude AI.
 </footer>
@@ -1150,14 +1104,14 @@ let SELECTED_TYPE='';         // house-type filter, used by BOTH views (province
 let MODE='none';              // 'none' | 'province' | 'fsa'
 
 // Fixed hex per fuel so a given fuel always reads the same colour across the
-// heating-fuel Sankey, the waterfall and the fuel-breakdown chart. Electricity
-// is green — it's overwhelmingly the cleanest option on every provincial grid
-// this tool covers — and every other fuel keeps a distinct, unrelated hue so
-// switching *into* electricity always visually reads as "toward green".
+// heating-fuel Sankey, the waterfall and the fuel-breakdown chart. Colours are
+// neutral fuel identifiers, not outcome judgements — green/red are reserved
+// for performance metrics (saved/used more) elsewhere in the UI, so a fuel
+// switch here reads as "changed fuel", not "got better" or "got worse".
 const FUEL_COLORS={
-  'Oil':'#B33A2E','Electricity':'#1A7A55','Propane':'#C8881A',
+  'Oil':'#D85A30','Electricity':'#378ADD','Propane':'#B79A6A',
   'Mixed Wood':'#6B4C2A','Mixed wood':'#6B4C2A','Hardwood':'#8B6343',
-  'Natural Gas':'#533AB7','Wood Pellets':'#A07040'
+  'Natural Gas':'#C8881A','Wood Pellets':'#A07040'
 };
 
 const MEASURES=[
@@ -1251,7 +1205,7 @@ const BINS={
 // Simplifications (footnoted on the card): volumetric energy only (fixed
 // monthly charges largely cancel pre-vs-post and are excluded); one blended
 // $/kWh per province (rows carry annual kWh, not an hourly shape); today's
-// rates applied to audits spanning 2004-2025 — "what these homes would save
+// rates applied to audits spanning 2004-2026 — "what these homes would save
 // at current rates", not a historical bill.
 const COST_RATES_URL=`${BASE_URL}utility_rates_reference.json`;
 const COST_PROV_ALIAS={NF:'NL'}; // retrofit province code -> reference-dataset code
@@ -1370,9 +1324,9 @@ function readPalette(){
   POST_LINE=POST_FILL=PAL.pos;
   // Fuel lookup rebuilt per theme — see FUEL_COLORS note above.
   Object.assign(FUEL_COLORS,{
-    'Oil':PAL.fOil,'Electricity':PAL.pos,'Propane':PAL.fPropane,
+    'Oil':PAL.fOil,'Electricity':PAL.fElec,'Propane':PAL.fPropane,
     'Mixed Wood':PAL.fWood,'Mixed wood':PAL.fWood,'Hardwood':mix(PAL.fWood,PAL.card,.25),
-    'Natural Gas':PAL.purple,'Wood Pellets':mix(PAL.fWood,PAL.card,.4)
+    'Natural Gas':PAL.fGas,'Wood Pellets':mix(PAL.fWood,PAL.card,.4)
   });
 }
 // Blend two hex colours; t is the share of `b`. Used to derive tints that
