@@ -16,6 +16,14 @@ Changes from full pipeline:
   - Added: Pre/Post_GHG (tonnes/year, includes electricity via provincial
     grid emission factor — ERSGHG already nets in ERSELECGHG)
   - Added: Pre/Post_SolarPV (kW DC capacity) — solar PV adoption
+  - Added: Pre/Post_Heat{Electricity,NaturalGas,Oil,Propane,Wood} (kWh) —
+    heating-only consumption per fuel (EGHHEATFCONS[E,G,O,P,W]), alongside
+    the existing whole-house Pre/Post_{Electricity,NaturalGas,...}
+  - Added: Pre/Post_HeatLoss{Air,Roof,Wall,Foundation,Floor,WindowDoor} (kWh) —
+    annual heat loss by building component (EGHHL*), distinct from the
+    existing Pre/Post_HeatLoss (peak/design-day, EGHDESHTLOSS)
+  - Added: Pre/Post_VentType — central ventilation system type (HRV/none/
+    exhaust-only), from CENVENTSYSTYPE
   - Derived columns added at write time:
       EnergySavingPct  = (Pre_TotalEnergy - Post_TotalEnergy) / Pre_TotalEnergy
       HeatEnergySavingPct = same for heating energy only
@@ -128,6 +136,56 @@ BASE_MAPPING = [
     # implied by records carrying both columns (wood-type dependent, 13.4-18.0).
     ('Pre_Wood',        'EGHFCONWOOD',      'D', 3888.89),    # tonne -> kWh (14.0 GJ/t fallback)
     ('Post_Wood',       'EGHFCONWOOD',      'E', 3888.89),
+
+    # --- Heating-only energy, per fuel (MJ -> kWh) ---
+    # Unlike Pre/Post_{Electricity,NaturalGas,...} above (whole-house, all
+    # end uses, in each fuel's native volumetric/mass unit), these
+    # EGHHEATFCONS* columns are HOT2000's own split of the heating-only
+    # total (EGHFURNACEAEC) by fuel, already in MJ — confirmed by sampling:
+    # for single-fuel-heated homes the dominant EGHHEATFCONS* column tracks
+    # EGHFURNACEAEC almost exactly (e.g. gas home: EGHHEATFCONSG 90029 vs
+    # EGHFURNACEAEC 90029.3), while volumetric EGHFCONNGAS for the same row
+    # is on a completely different scale (~3092). Same 0.27778 MJ->kWh
+    # factor as EGHFURNACEAEC/EGHFCONTOTAL; no wood-tonnes fallback needed
+    # (EGHHEATFCONSW reconciles directly, unlike EGHFCONWOOD).
+    ('Pre_HeatElectricity', 'EGHHEATFCONSE', 'D', 0.27778),
+    ('Post_HeatElectricity','EGHHEATFCONSE', 'E', 0.27778),
+    ('Pre_HeatNaturalGas',  'EGHHEATFCONSG', 'D', 0.27778),
+    ('Post_HeatNaturalGas', 'EGHHEATFCONSG', 'E', 0.27778),
+    ('Pre_HeatOil',         'EGHHEATFCONSO', 'D', 0.27778),
+    ('Post_HeatOil',        'EGHHEATFCONSO', 'E', 0.27778),
+    ('Pre_HeatPropane',     'EGHHEATFCONSP', 'D', 0.27778),
+    ('Post_HeatPropane',    'EGHHEATFCONSP', 'E', 0.27778),
+    ('Pre_HeatWood',        'EGHHEATFCONSW', 'D', 0.27778),
+    ('Post_HeatWood',       'EGHHEATFCONSW', 'E', 0.27778),
+
+    # --- Annual heat loss by building component (MJ -> kWh) ---
+    # EGHHL* are HOT2000's per-component ANNUAL heat loss (not the same
+    # quantity as EGHDESHTLOSS above, which is peak/design-day loss in W —
+    # summed, the six EGHHL* components come out several times larger than
+    # EGHDESHTLOSS for the same home, consistent with annual vs. single
+    # coldest-day accounting). Unlike the per-fuel columns above, the exact
+    # unit isn't documented; MJ (same 0.27778 factor as EGHFCONTOTAL) is
+    # inferred from the value scale matching other MJ/yr columns, not
+    # independently reconciled against a known total — treat as
+    # directionally reliable for a component-share breakdown, not as an
+    # audited absolute figure.
+    ('Pre_HeatLossAir',         'EGHHLAIR',        'D', 0.27778),  # infiltration
+    ('Post_HeatLossAir',        'EGHHLAIR',        'E', 0.27778),
+    ('Pre_HeatLossRoof',        'EGHHLCEILING',    'D', 0.27778),
+    ('Post_HeatLossRoof',       'EGHHLCEILING',    'E', 0.27778),
+    ('Pre_HeatLossWall',        'EGHHLWALLS',      'D', 0.27778),
+    ('Post_HeatLossWall',       'EGHHLWALLS',      'E', 0.27778),
+    ('Pre_HeatLossFoundation',  'EGHHLFOUND',      'D', 0.27778),
+    ('Post_HeatLossFoundation', 'EGHHLFOUND',      'E', 0.27778),
+    ('Pre_HeatLossFloor',       'EGHHLEXPOSEDFLR', 'D', 0.27778),  # exposed floor (over unheated space)
+    ('Post_HeatLossFloor',      'EGHHLEXPOSEDFLR', 'E', 0.27778),
+    ('Pre_HeatLossWindowDoor',  'EGHHLWINDOOR',    'D', 0.27778),
+    ('Post_HeatLossWindowDoor', 'EGHHLWINDOOR',    'E', 0.27778),
+
+    # --- Ventilation ---
+    ('Pre_VentType',  'CENVENTSYSTYPE', 'D', None),
+    ('Post_VentType', 'CENVENTSYSTYPE', 'E', None),
 
     # --- Envelope ---
     ('Pre_AirLeakage',          'AIR50P',          'D', None),
@@ -525,6 +583,7 @@ CATEGORICAL_COLS = [
     'Pre_HeatFuel',  'Post_HeatFuel',
     'Pre_HeatType',  'Post_HeatType',
     'Pre_HPType',    'Post_HPType',
+    'Pre_VentType',  'Post_VentType',
 ]
 
 
