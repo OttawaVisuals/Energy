@@ -72,7 +72,7 @@ AUDIT_TOTALS_PATH = os.path.join(OUTPUT_DIR, "fsa_audit_totals.json")
 CATEGORICAL_COLS = [
     'FSA', 'BldgType', 'Storeys', 'FoundationType',
     'Pre_HeatFuel', 'Post_HeatFuel', 'Pre_HeatType', 'Post_HeatType',
-    'Pre_HPType', 'Post_HPType',
+    'Pre_HPType', 'Post_HPType', 'Pre_VentType', 'Post_VentType',
 ]
 
 # Only columns retrofits.html's JS actually reads (verified against every
@@ -105,6 +105,18 @@ KEEP_COLS = [
     'Pre_Oil', 'Post_Oil',
     'Pre_Propane', 'Post_Propane',
     'Pre_Wood', 'Post_Wood',
+    'Pre_HeatElectricity', 'Post_HeatElectricity',
+    'Pre_HeatNaturalGas', 'Post_HeatNaturalGas',
+    'Pre_HeatOil', 'Post_HeatOil',
+    'Pre_HeatPropane', 'Post_HeatPropane',
+    'Pre_HeatWood', 'Post_HeatWood',
+    'Pre_HeatLossAir', 'Post_HeatLossAir',
+    'Pre_HeatLossRoof', 'Post_HeatLossRoof',
+    'Pre_HeatLossWall', 'Post_HeatLossWall',
+    'Pre_HeatLossFoundation', 'Post_HeatLossFoundation',
+    'Pre_HeatLossFloor', 'Post_HeatLossFloor',
+    'Pre_HeatLossWindowDoor', 'Post_HeatLossWindowDoor',
+    'Pre_VentType', 'Post_VentType',
     'Air_Tightness_Upgrade', 'Roof_Insulation_Upgrade',
     'Foundation_Insulation_Upgrade', 'Wall_Insulation_Upgrade',
     'Floor_Insulation_Upgrade', 'Windows_Change',
