@@ -3546,9 +3546,8 @@ function makeInlineSVG(r){
       <td colspan="3" style="padding:3px 0;color:#1C2B3A">${changes.length?changes.join('<br>'):'<span style="color:var(--light)">Same window spec before and after</span>'}</td>
     </tr>`;
   }
-  // Whole-house consumption by fuel (all end uses — heating, DHW, appliances
-  // — not heating-only; the ERS extract doesn't carry a heating-only split
-  // per fuel). Only fuels the home actually used pre or post are listed.
+  // Whole-house consumption by fuel (all end uses — heating, DHW,
+  // appliances). Only fuels the home actually used pre or post are listed.
   const FUEL_FIELDS=[
     ['Electricity','Electricity'],['Natural gas','NaturalGas'],['Oil','Oil'],
     ['Propane','Propane'],['Wood','Wood']
@@ -3558,6 +3557,61 @@ function makeInlineSVG(r){
     if(!pre&&!post)return'';
     return numRow(`&nbsp;&nbsp;· ${label}`,pre,post,'kWh',false,0);
   }).join('');
+  // Heating-only consumption by fuel (subset of the above — just the
+  // portion HOT2000 attributes to space heating, not DHW/appliances).
+  const heatFuelVals=FUEL_FIELDS.map(([,key])=>({pre:num(r['Pre_Heat'+key]),post:num(r['Post_Heat'+key])}));
+  const heatPreTotal=heatFuelVals.some(v=>v.pre!=null)?heatFuelVals.reduce((s,v)=>s+(v.pre||0),0):null;
+  const heatPostTotal=heatFuelVals.some(v=>v.post!=null)?heatFuelVals.reduce((s,v)=>s+(v.post||0),0):null;
+  const heatFuelBreakdownRows=FUEL_FIELDS.map(([label],i)=>{
+    const{pre,post}=heatFuelVals[i];
+    if(!pre&&!post)return'';
+    return numRow(`&nbsp;&nbsp;· ${label}`,pre,post,'kWh',false,0);
+  }).join('');
+  // Annual heat loss by building component — a stacked horizontal bar per
+  // side (pre/post), both scaled to the same max so bar length is directly
+  // comparable. This is the ANNUAL loss (EGHHL*), not the peak/design-day
+  // "Design heat loss" row in the HVAC table below (EGHDESHTLOSS) — the two
+  // aren't the same quantity, hence the separate chart rather than a shared row.
+  const HL_COMPONENTS=[
+    {key:'HeatLossWindowDoor',label:'Windows/doors',color:'#B33A2E'},
+    {key:'HeatLossWall',label:'Walls',color:'#378ADD'},
+    {key:'HeatLossFoundation',label:'Foundation',color:'#533AB7'},
+    {key:'HeatLossRoof',label:'Roof',color:'#1A7A55'},
+    {key:'HeatLossFloor',label:'Exposed floor',color:'#8A9BB0'},
+    {key:'HeatLossAir',label:'Air leakage',color:'#C8881A'},
+  ];
+  const hlPre=HL_COMPONENTS.map(c=>num(r['Pre_'+c.key])||0);
+  const hlPost=HL_COMPONENTS.map(c=>num(r['Post_'+c.key])||0);
+  const hlPreTotal=hlPre.reduce((a,b)=>a+b,0),hlPostTotal=hlPost.reduce((a,b)=>a+b,0);
+  let heatLossBlock='';
+  if(hlPreTotal>0||hlPostTotal>0){
+    const HLW=300,HLH=16,HLGAP=22,HLMAX=Math.max(hlPreTotal,hlPostTotal,1);
+    const px=v=>v/HLMAX*HLW;
+    const stackedBar=(vals,y)=>{
+      let x=0,s='';
+      HL_COMPONENTS.forEach((c,i)=>{
+        const w=px(vals[i]);
+        if(w>0.4)s+=`<rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${HLH}" fill="${c.color}"><title>${c.label}: ${Math.round(vals[i]).toLocaleString()} kWh/yr</title></rect>`;
+        x+=w;
+      });
+      return s;
+    };
+    const y1=14,y2=y1+HLH+HLGAP;
+    heatLossBlock=`<div style="margin-top:1.25rem">
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Annual heat loss by component, kWh/yr</div>
+      <svg viewBox="0 0 ${HLW+55} ${y2+HLH+6}" style="width:100%;max-width:${HLW+55}px;display:block">
+        <text x="0" y="${y1-4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">Pre</text>
+        ${stackedBar(hlPre,y1)}
+        <text x="${HLW+8}" y="${y1+HLH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
+        <text x="0" y="${y2-4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">Post</text>
+        ${stackedBar(hlPost,y2)}
+        <text x="${HLW+8}" y="${y2+HLH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
+      </svg>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
+        ${HL_COMPONENTS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:9px;height:9px;background:${c.color};border-radius:2px"></span>${c.label}</span>`).join('')}
+      </div>
+    </div>`;
+  }
   const py=r.Pre_Year?parseInt(r.Pre_Year):null,qy=r.Post_Year?parseInt(r.Post_Year):null;
   const yearGap=(py&&qy)?qy-py:null;
   const auditYearRow=`<tr>
@@ -3576,15 +3630,19 @@ function makeInlineSVG(r){
         ${textRow('Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
         ${textRow('Heating type',r.Pre_HeatType,r.Post_HeatType)}
         ${textRow('Heat pump',r.Pre_HPType,r.Post_HPType)}
+        ${textRow('Ventilation',r.Pre_VentType,r.Post_VentType)}
         ${windowRows}
         ${numRow('Energy',num(r.Pre_TotalEnergy),num(r.Post_TotalEnergy),'kWh',false,0)}
         ${fuelBreakdownRows}
+        ${numRow('Heating energy',heatPreTotal,heatPostTotal,'kWh',false,0)}
+        ${heatFuelBreakdownRows}
         ${numRow('GHG',num(r.Pre_GHG),num(r.Post_GHG),'tCO2e/yr',false,1)}
         ${numRow('Design heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'kW',false,1)}
         ${numRow('Solar PV',num(r.Pre_SolarPV),num(r.Post_SolarPV),'kW',true,1)}
       </tbody>
     </table></div>
   </div></div>`;
+  html+=heatLossBlock;
   return html;
 }
 
