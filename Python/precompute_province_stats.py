@@ -540,6 +540,69 @@ def compute_slice(df):
         measures.append({'key': key, 'label': label, 'count': c, 'pct': pct})
     out['measures'] = measures
 
+    # ---- Heat pump sizing + backup fuel ----
+    # "Has a heat pump" = Post_HPType present. normalize_categoricals() already
+    # collapsed 'N/A {no Heat Pump}' variants (and '0') to NaN for this column,
+    # so a plain notna() check is the clean presence flag.
+    hp_mask = (df['Post_HPType'].notna() if 'Post_HPType' in df.columns
+               else pd.Series(False, index=df.index))
+    n_hp = int(hp_mask.sum())
+    out['hp_home_count'] = n_hp
+
+    if n_hp:
+        # Sizing = AHRI-certificate-verified capacity (join_hp_capacity.py) ÷
+        # design heat loss. NOT the raw auditor-entered HPCAP field -- that
+        # was validated against real certificates and runs a median 1.55x
+        # high, unreliable for a sizing claim. 47F = mild-day rated capacity;
+        # 5F (~-15C) is a Canadian design-day proxy for whether the heat
+        # pump alone can carry the full load or is deliberately undersized
+        # against backup. Both are computed independently (a home can have
+        # one without the other) -- see join_hp_capacity.py's docstring.
+        hl = num(df.get('Post_HeatLoss'))
+        valid_hl = hl > 0
+        for key, cap_col in (('47', 'Post_HPCapacity47'), ('5', 'Post_HPCapacity5')):
+            cap = num(df.get(cap_col))
+            mask = hp_mask & cap.notna() & valid_hl
+            sizing = (cap[mask] / hl[mask]).to_numpy()
+            out[f'hp_sizing{key}_bins'] = bin_counts(sizing, step=0.1, max_val=3.0)
+            out[f'hp_sizing{key}_median'] = median(sizing)
+
+        # Backup fuel among heat-pump homes. Post_HeatFuel/Post_HeatType is
+        # NOT the heat pump -- HOT2000 models it as a separate component, so
+        # for a heat-pump home this column is the companion/backup system
+        # (the "Heat Pump + backup" pairing).
+        backup_fuel = df.loc[hp_mask, 'Post_HeatFuel'].dropna()
+        backup_fuel = backup_fuel[backup_fuel != '']
+        out['backup_fuel_counts'] = backup_fuel.value_counts().to_dict()
+
+        # "Backup actually used" -- restricted to Natural Gas/Oil/Propane,
+        # the fuels with a 1:1 label-to-consumption-column mapping.
+        # Excluded: Electricity (Post_HeatElectricity can't distinguish the
+        # heat pump's own electricity from an electric-baseboard backup's --
+        # both are the same column) and the wood species (Mixed Wood/
+        # Hardwood/Wood Pellets/Softwood all share one Post_HeatWood
+        # consumption column, so a per-species check isn't meaningful). Both
+        # still appear in backup_fuel_counts above.
+        # IMPORTANT: the denominator here is homes whose OWN backup_fuel is
+        # this fuel, not every heat-pump home -- otherwise this can exceed
+        # backup_fuel_counts[fuel] (some other-fuel-backup homes show trace
+        # nonzero consumption in an unrelated fuel channel) and read as a
+        # nonsensical >100%.
+        backup_used = {}
+        for fuel, col in [('Natural Gas', 'Post_HeatNaturalGas'), ('Oil', 'Post_HeatOil'),
+                          ('Propane', 'Post_HeatPropane')]:
+            fuel_mask = hp_mask & (df.get('Post_HeatFuel') == fuel)
+            v = num(df.loc[fuel_mask, col]) if col in df.columns else pd.Series(dtype=float)
+            backup_used[fuel] = int((v > 0).sum())
+        out['backup_used_counts'] = backup_used
+    else:
+        out['hp_sizing47_bins'] = {}
+        out['hp_sizing5_bins'] = {}
+        out['hp_sizing47_median'] = None
+        out['hp_sizing5_median'] = None
+        out['backup_fuel_counts'] = {}
+        out['backup_used_counts'] = {}
+
     # ---- Heat pump AHRI numbers + window codes ----
     # Full counts are stored (not just the top N) so aggregate_canada.py can
     # sum them across provinces and re-rank for an accurate NATIONAL top N —

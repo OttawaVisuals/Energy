@@ -123,6 +123,17 @@ KEEP_COLS = [
     'Heating_Change', 'Cooling_Change', 'HeatPump_Addition',
     'Deep_Retrofit', 'Medium_Retrofit', 'Shallow_Retrofit',
     'FuelSwitch', 'EnergySavingPct',
+    # AHRI-certificate-verified heat pump capacity/efficiency (join_hp_capacity.py,
+    # keyed on Post_HPAHRI). Post-only -- see that script's docstring for why.
+    # Post_HPBrand/Post_HPModel are masked to the same top-5 AHRI numbers as
+    # Post_HPAHRI (see the masking step in split_province() below); the
+    # capacity/efficiency numbers are NOT masked -- they're physical
+    # quantities, not identifiers, and FSA mode's sizing histogram needs the
+    # same population as province mode's precomputed (unmasked) one or the
+    # two views will disagree.
+    'Post_HPCapacity47', 'Post_HPCapacity5',
+    'Post_HPHSPF2', 'Post_HPCertCOP5',
+    'Post_HPColdClimate', 'Post_HPBrand', 'Post_HPModel',
 ]
 
 
@@ -292,9 +303,20 @@ def split_province(parquet_path, out_root, audit_totals=None):
         return
 
     top_ahri = top_ahri_set(df)
+    # Save the row-level "is this AHRI number one of the top 5" mask BEFORE
+    # blanking Post_HPAHRI itself, so Post_HPBrand/Post_HPModel (identifying,
+    # like the AHRI number) get the same treatment. Post_HPCapacity47/5,
+    # Post_HPHSPF2, Post_HPCertCOP5, Post_HPColdClimate are NOT masked --
+    # see the KEEP_COLS comment above.
+    post_ahri_top5 = (df['Post_HPAHRI'].astype(str).str.strip().isin(top_ahri)
+                      if 'Post_HPAHRI' in df.columns else None)
     for col in ('Pre_HPAHRI', 'Post_HPAHRI'):
         if col in df.columns:
             df[col] = df[col].where(df[col].astype(str).str.strip().isin(top_ahri))
+    if post_ahri_top5 is not None:
+        for col in ('Post_HPBrand', 'Post_HPModel'):
+            if col in df.columns:
+                df[col] = df[col].where(post_ahri_top5)
 
     cols_present = [c for c in KEEP_COLS if c in df.columns]
     missing = [c for c in KEEP_COLS if c not in df.columns]

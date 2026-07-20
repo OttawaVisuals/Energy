@@ -20,6 +20,7 @@ same architecture to the new-construction slice of the same data.
 - [Data source](#data-source)
 - [The data pipeline](#the-data-pipeline)
   - [Step 1 — `ers_web_pipeline.py`](#step-1--ers_web_pipelinepy-raw-csvs--per-province-parquet)
+  - [Step 1b — `join_hp_capacity.py`](#step-1b--join_hp_capacitypy-parquet--parquet-ahri-certificate-join)
   - [Step 2 — `split_fsa_json.py`](#step-2--split_fsa_jsonpy-parquet--per-fsa-json)
   - [Step 3 — `precompute_province_stats.py`](#step-3--precompute_province_statspy-parquet--province-summaries)
 - [Unit conversions](#unit-conversions)
@@ -66,9 +67,14 @@ Energy/
    └─ …
 Python/
 ├─ ers_web_pipeline.py              # Step 1: raw ERS CSVs -> per-province parquet
+├─ join_hp_capacity.py              # Step 1b: joins Post_HPAHRI against lookup/ahri_numbers.json
 ├─ split_fsa_json.py                # Step 2: parquet -> per-FSA JSON
 ├─ precompute_province_stats.py     # Step 3: parquet -> province summaries
 └─ aggregate_canada.py              # Step 4: province summaries -> CA.json rollup
+lookup/
+└─ ahri_numbers.json                # AHRI certificate data (brand/model/capacity/HSPF2/…),
+                                     # keyed by AHRI reference number — build-time only,
+                                     # NOT fetched by retrofits.html (see build_ahri_lookup_full.py)
 ```
 
 The front-end fetches data from the `main` branch via `raw.githubusercontent.com`
@@ -88,11 +94,15 @@ utility consumption.
 
 ## The data pipeline
 
-Three scripts run in order. Steps 2 and 3 both read the per-province parquet that Step 1
-produces.
+Three scripts run in order, plus an optional sidecar (Step 1b) between Steps 1 and 2/3
+that enriches the same parquet in place. Steps 2 and 3 both read the per-province
+parquet that Step 1 (and, if run, Step 1b) produces.
 
 ```
 raw yearly ERS CSVs ──[1] ers_web_pipeline.py──▶ ers_web_<PROV>.parquet
+                                                   │
+                                     [1b] join_hp_capacity.py (overwrites in place)
+                                                   │
                                                    ├─[2] split_fsa_json.py            ──▶ fsa_json/<PROV>/*.json
                                                    └─[3] precompute_province_stats.py ──▶ province_json/<PROV>.json
 ```
@@ -122,6 +132,36 @@ province. What it does:
 > **not** use those — Step 2 ships already-decoded strings — so `ers_web_keys.json` is no
 > longer fetched by `retrofits.html`. Treat that part of Step 1 as legacy/optional output.
 
+### Step 1b — `join_hp_capacity.py` (parquet → parquet, AHRI certificate join)
+
+Joins each province's parquet against `lookup/ahri_numbers.json` (see
+[`build_ahri_lookup_full.py`](../Python/build_ahri_lookup_full.py)) on `Post_HPAHRI`,
+adding 7 new `Post_`-prefixed columns and **overwriting the parquet in place**:
+`HPCapacity47`, `HPCapacity5` (kW), `HPHSPF2`, `HPCertCOP5`, `HPColdClimate`,
+`HPBrand`, `HPModel`.
+
+**Why a separate script, not part of Step 1's `BASE_MAPPING`:** Step 1 is the
+expensive, rarely-rerun full-CSV streaming pass; this join is cheap and needs
+re-running whenever the AHRI lookup grows, without re-ingesting any CSVs — the same
+role `build_fsa_audit_totals.py` already plays as an independent sidecar feeding
+Steps 2/3.
+
+**Why join on the AHRI certificate, not the raw auditor-entered `HPCAP` field:**
+validated against real AHRI certificates, `HPCAP` (Watts) runs a median **1.55×**
+high, and the same AHRI number produces inconsistent (1×/2×/4×) values across
+different audit rows — unusable for a sizing claim. The certificate's own
+`heating_capacity_47f_btuh`/`heating_capacity_5f_btuh` fields are the trustworthy
+source; 5°F (≈ −15°C) is used as a Canadian design-day proxy.
+
+**Post-only:** pre-existing heat pumps are rare (~1.6% of homes), and the sizing/
+backup-pairing story this feeds is about the retrofit's end state.
+
+**Coverage:** measured on Ontario's paired parquet, **75.9%** of homes with a heat
+pump post-retrofit resolve to a usable certificate (a further ~8% resolve to a
+"Delisted" status-only entry with no specs). Coverage is highest for retrofits from
+about 2019 onward — the AHRI reference number is much less consistently recorded by
+auditors in earlier years.
+
 ### Step 2 — `split_fsa_json.py` (parquet → per-FSA JSON)
 
 Splits a province parquet into one small JSON file per FSA — what the FSA-level view
@@ -137,6 +177,17 @@ fetches when you select an area.
   chart/field reference in `retrofits.html`, add the matching column here or it ships empty.
 - **Writes** `fsa_json/<PROV>/<FSA>.json` as a compact `{columns, rows}` array-of-arrays
   (≈77% smaller than array-of-objects), plus `fsa_json/<PROV>/_index.json`.
+- **Masks identifying heat-pump fields, not physical quantities.** `Post_HPAHRI` is
+  blanked per-row unless it's one of the province's own top-5 most common AHRI
+  numbers (`top_ahri_set()`) — too granular to expose otherwise (a long tail of
+  near-unique installs). `Post_HPBrand`/`Post_HPModel` get the **same** row-level
+  mask (they're equally identifying). `Post_HPCapacity47/5`, `Post_HPHSPF2`,
+  `Post_HPCertCOP5`, `Post_HPColdClimate` are **left unmasked** — they're derived
+  physical quantities, not identifiers, and the FSA-mode sizing histogram needs to
+  see the same population as province mode's precomputed (never-masked) one, or the
+  two views will disagree. Note: capacity+HSPF2+COP together can still narrow a
+  masked row back toward its real AHRI number via the public AHRI directory — a
+  minor residual, not treated as a hard privacy boundary.
 
 ### Step 3 — `precompute_province_stats.py` (parquet → province summaries)
 
@@ -145,6 +196,22 @@ rows in the browser. For the whole province **and** for each house type it preco
 medians (saving %, EUI, GHG), counts (deep retrofits, heat pumps, fuel switches, solar),
 and ready-to-plot histogram **bins** for every chart — plus the Sankey flows, the
 energy-by-fuel "waterfall", insulation KPIs/histograms, and the measures breakdown.
+
+Also computes, for heat-pump homes only: a sizing-ratio histogram/median (AHRI-verified
+capacity ÷ design heat loss, at 47°F and 5°F — `hp_sizing47/5_bins`/`_median`), a
+backup-fuel breakdown (`backup_fuel_counts`, `Post_HeatFuel` restricted to heat-pump
+homes — the "Heat Pump + backup" pairing, since HOT2000 tracks the heat pump as a
+component separate from that column), and a "backup actually used" count
+(`backup_used_counts`) restricted to **Natural Gas, Oil, and Propane** — the fuels with
+a 1:1 label-to-consumption-column mapping. Excluded: Electricity
+(`Post_HeatElectricity` can't distinguish the heat pump's own electricity use from an
+electric-baseboard backup's) and the wood species (`Mixed Wood`/`Hardwood`/`Wood
+Pellets`/`Softwood` all share one `Post_HeatWood` consumption column, so a per-species
+check isn't meaningful). Both are still counted in `backup_fuel_counts`. The
+denominator for each fuel is homes whose *own* `backup_fuel` is that fuel, not every
+heat-pump home — otherwise the stat could exceed `backup_fuel_counts[fuel]` (a home
+with a different backup can still show trace nonzero consumption in an unrelated fuel
+channel) and read as a nonsensical >100%.
 
 **This script is a deliberate mirror of the JavaScript renderers** in `retrofits.html`:
 the same filters, the same median definition, and — critically — the **same bin widths**.
@@ -169,6 +236,7 @@ Applied in Step 1 so every fuel is comparable in **kWh** (heat loss in **kW**):
 | Design heat loss | W | × 0.001 | kW |
 | GHG (`ERSGHG`) | tCO₂e/yr | — (as-is) | tCO₂e/yr |
 | Solar PV (`KWPV`) | kW DC | — (as-is) | kW |
+| Heat pump capacity (Step 1b, AHRI cert.) | BTU/h | × 0.00029307107 | kW |
 
 GHG already includes electricity emissions via each province's grid factor, so
 fuel-switching to electricity is reflected correctly.
@@ -276,7 +344,7 @@ must agree on bucket widths or the same data will look different across the two 
 The front-end widths live in one object near the top of the `<script>`:
 
 ```js
-const BINS = { year:10, area:50, eui:20, ghg:1, heatloss:2, savingsPct:1 };
+const BINS = { year:10, area:50, eui:20, ghg:1, heatloss:2, savingsPct:1, cost:250, hpSizing:0.1 };
 ```
 
 These must match `precompute_province_stats.py`:
@@ -289,9 +357,16 @@ These must match `precompute_province_stats.py`:
 | GHG | 1 tCO₂e/yr | `ghg` | `step=1`, max 30 (pre/post **and** delta) |
 | Design heat loss | 2 kW | `heatloss` | `step=2`, 0–150 (pre/post **and** delta) |
 | Saving % | 1% | `savingsPct` | per-1% |
+| Heat pump sizing ratio | 0.1 | `hpSizing` | `step=0.1`, max 3.0 (47°F **and** 5°F) |
 | EUI improvement | 10 kWh/m² | (renderer literal) | `step=10`, 0–500 |
 | Roof / air insul. | 0.5 | (renderer arg) | `step=0.5` |
 | Wall / foundation insul. | 0.25 | (renderer arg) | `step=0.25` |
+
+The heat pump sizing ratio is a **fractional** step, unlike the other JS-side bins
+(all integer widths). `bin_counts()` rounds fractional-step bin keys to 2 decimal
+places (`round(float(b), 2)`) to avoid floating-point drift splitting one real bin
+into two (`0.30000000000000004` vs `0.3`) — the JS side (`hpSizingBins()`) replicates
+that exact rounding for the same reason.
 
 **When you change any of these, change it in both places.** This is the single most likely
 source of "the province chart and the FSA chart disagree" bugs.
@@ -306,6 +381,10 @@ Edit the `OUTPUT_DIR` / `INPUT_DIR` paths at the top of each script, then run in
 # 1) Raw ERS yearly CSVs -> one cleaned parquet per province
 python scripts/ers_web_pipeline.py
 
+# 1b) Join Post_HPAHRI against lookup/ahri_numbers.json -- overwrites the parquet in place.
+#     Safe to skip if lookup/ahri_numbers.json hasn't changed since the last run (idempotent).
+python scripts/join_hp_capacity.py
+
 # 2) Province parquet -> per-FSA JSON (+ _index.json)
 python scripts/split_fsa_json.py
 
@@ -318,6 +397,10 @@ Then commit the regenerated `Energy/fsa_json/` and `Energy/province_json/` to `m
 - To process a single province while testing, set `PROVINCE_FILTER` in Step 1.
 - If you add a chart/field to `retrofits.html`, update `KEEP_COLS` in Step 2 **and**, if it
   needs a precomputed bin, add it to Step 3 with a width that matches `BINS`.
+- To refresh the AHRI certificate lookup itself (a separate, much longer-running step —
+  hours, hits an undocumented external API at ~1.7s/number), see
+  `Python/build_ahri_lookup_full.py`. Step 1b only needs re-running after that lookup
+  changes; the CSV-ingest pipeline (Steps 1-3) doesn't depend on its refresh cadence.
 
 **Retrofit Insights** (`retrofit-insights.html`, ROADMAP item 13) reads the same
 Step-1 parquets plus `build_fsa_audit_totals.py`'s audit sidecar, via a separate
@@ -384,10 +467,41 @@ page redeploy needed.
 - **Saving-% sign is confirmed:** `EnergySavingPct = (pre − post)/pre`, so positive means
   energy was saved, negative means it rose (common with heat-pump fuel switching).
 - **No cost data** in the source — no payback or dollar figures are possible.
+- **`Post_HeatFuel`/`Post_HeatType` is the backup, not the heat pump, for heat-pump
+  homes.** HOT2000 models the heat pump as a component separate from the "primary
+  heating equipment" these columns actually describe. `retrofits.html` relabels them
+  "Backup fuel"/"Backup type" wherever `Post_HPType` indicates a heat pump is present
+  (the individual-home detail table, and the "Heat pump + backup" equipment-detail
+  card) — but the raw column names in `fsa_json`/parquet are unchanged.
+- **Heat pump sizing coverage tops out around 76% of heat-pump homes** (Step 1b), and
+  is skewed toward retrofits from ~2019 onward — see that step's description. This is
+  a real data-availability gap (older audits less consistently record an AHRI
+  reference number), not a pipeline bug; the sizing chart's home count will be
+  noticeably smaller than the "Heat pumps added" KPI's.
+- **The raw auditor-entered `HPCAP` field is unreliable for sizing claims** — validated
+  against real AHRI certificates, it runs a median 1.55× high, and the same AHRI
+  number produces inconsistent values across different audit rows. Not used anywhere
+  on the page; Step 1b's certificate join is the trustworthy source instead.
 
 ---
 
 ## Changelog
+
+### 2026-07 heat pump sizing & backup pairing
+- **New Step 1b (`join_hp_capacity.py`)** joins `Post_HPAHRI` against a newly-built
+  full AHRI certificate lookup (`lookup/ahri_numbers.json`, 15,148 entries — up from
+  ~40 previously, which only covered the site's own top-5-per-province display list)
+  to add verified heat-pump capacity/efficiency columns. See that step's description
+  above for the full rationale.
+- **"Heat pump + backup" and "Heat pump sizing" cards** added to the Equipment detail
+  section: a backup-fuel breakdown for heat-pump homes (with a non-electric
+  "actually used" sub-stat), and a capacity-vs-design-heat-loss sizing histogram
+  (47°F mild-day and 5°F design-day series).
+- **Individual-home detail table** relabels the heating-fuel/type rows "Backup
+  fuel"/"Backup type" for heat-pump homes, and adds a certificate-capacity row.
+- **`lookup/ahri_numbers.json` stays build-time-only.** It's now 4.87MB (up from a few
+  KB); `retrofits.html` never fetches it directly — all AHRI-derived fields reach the
+  browser pre-joined into `fsa_json`/`province_json` by Steps 1b/2/3.
 
 ### 2026-07 accuracy & UX pass
 - **Heat loss relabelled to its true unit.** `Pre/Post_HeatLoss` is *design heat loss*
