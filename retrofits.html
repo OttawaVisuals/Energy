@@ -14,20 +14,83 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
+/* ── Theme system ──────────────────────────────────────────────────
+   Three mutually-exclusive themes on <html data-theme>: light (default,
+   the historical look), dark, and cb (colour-blind-safe, light ground).
+
+   Two naming layers, deliberately separate:
+
+   1. CHROME vars (--card, --ink, --cream …) style the page. Several of
+      the original names were doing double duty and could not survive a
+      dark inversion — --white meant BOTH "card background" (must go dark)
+      and "text on the navy header" (must stay white); --navy meant BOTH
+      "chrome background" (stays navy) and "heading ink" (must go light).
+      Those splits are now --card/--on-navy and --navy/--ink. The old
+      names are kept as aliases so nothing outside this block had to move.
+
+   2. DATA vars (--d-*, --f-*) are the ONLY colours charts may use. The JS
+      reads them once per theme into the PAL object (see readPalette) —
+      hex literals in chart code are what made colour-blind mode impossible
+      before, so they should not come back. Keep every value 6-digit hex:
+      PAL builds 8-digit alpha variants by string suffix.
+
+   Colour-blind mode uses the Okabe-Ito palette, whose eight hues stay
+   mutually distinguishable under deuteranopia/protanopia. The pair that
+   actually carries meaning here is saved-energy vs used-more, which in
+   the default theme is green/red — the single worst pair for the ~8% of
+   men with red-green deficiency. It becomes green/vermillion. */
+:root,:root[data-theme="light"]{
   --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
   --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
   --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
   --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --card:#fff;--on-navy:#fff;--ink:#0B2545;
   --r-sm:6px;--r-md:10px;--r-lg:16px;
-  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05);
+  /* data layer */
+  --d-primary:#0B2545;--d-secondary:#C8881A;
+  --d-pos:#1A7A55;--d-neg:#B33A2E;--d-blue:#378ADD;--d-purple:#533AB7;
+  --d-track:#E8EDF4;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
+  --f-elec:#378ADD;--f-gas:#C8881A;--f-oil:#D85A30;--f-propane:#B79A6A;--f-wood:#6B4C2A;
+  --badge-deep-bg:#D4EFDF;--badge-deep-fg:#1A5C3A;--badge-med-bg:#D6E8F8;--badge-med-fg:#1A4A72;
+  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#FADED9;--badge-neg-fg:#7C2318;
+  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
+}
+:root[data-theme="dark"]{
+  --navy:#0A1622;--amber:#E8A124;--amber2:#F0B94E;
+  --green:#3FA97C;--red:#E2705F;--blue:#5FA6E8;--purple:#8C79D8;
+  --cream:#0E1621;--surface:#1B2735;--border:#2C3A4B;
+  --text:#DCE4EE;--muted:#94A5B8;--light:#738699;--white:#16202E;
+  --card:#16202E;--on-navy:#fff;--ink:#E4EBF4;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);
+  --d-primary:#5FA6E8;--d-secondary:#E8A124;
+  --d-pos:#3FA97C;--d-neg:#E2705F;--d-blue:#5FA6E8;--d-purple:#8C79D8;
+  --d-track:#2C3A4B;--d-axis:#94A5B8;--d-tick:#738699;--d-grid:#243244;
+  --f-elec:#5FA6E8;--f-gas:#E8A124;--f-oil:#EE8055;--f-propane:#C9B48C;--f-wood:#9C7A55;
+  --badge-deep-bg:#16412F;--badge-deep-fg:#7FD6AC;--badge-med-bg:#152F47;--badge-med-fg:#8CC2F0;
+  --badge-shal-bg:#242E3A;--badge-shal-fg:#A9B6C6;--badge-neg-bg:#4A1F18;--badge-neg-fg:#F0A093;
+  --map-bg:#111C28;--map-stroke:#0E1621;--map-attr-bg:rgba(14,22,33,.72);
+}
+:root[data-theme="cb"]{
+  --navy:#10263D;--amber:#E69F00;--amber2:#F0B429;
+  --green:#009E73;--red:#D55E00;--blue:#0072B2;--purple:#CC79A7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --card:#fff;--on-navy:#fff;--ink:#10263D;
+  --d-primary:#0072B2;--d-secondary:#E69F00;
+  --d-pos:#009E73;--d-neg:#D55E00;--d-blue:#56B4E9;--d-purple:#CC79A7;
+  --d-track:#DCE2EA;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
+  --f-elec:#56B4E9;--f-gas:#E69F00;--f-oil:#D55E00;--f-propane:#CC79A7;--f-wood:#8B6343;
+  --badge-deep-bg:#CCEBE2;--badge-deep-fg:#00674B;--badge-med-bg:#CCE4F0;--badge-med-fg:#00527F;
+  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#F7DDCC;--badge-neg-fg:#8A3D00;
+  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
 
 /* ── Header ── */
 header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--on-navy);letter-spacing:-.01em}
 .logo span{color:var(--amber2);font-style:italic}
 /* Page context ("Ontario · home energy retrofits") lives up here in the bar
    instead of as a hero eyebrow — saves a full line of vertical space. */
@@ -53,16 +116,25 @@ body.mode-advanced .cap-simple{display:none}
    header), so it's styled light: surface pill, muted labels, amber active. */
 .mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end}
 .mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 13px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+/* --navy, not --ink: this label sits on amber in every theme, so it must
+   stay dark even in dark mode (where --ink inverts to near-white). */
 .mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
-.mode-btn:not(.active):hover{color:var(--navy)}
+.mode-btn:not(.active):hover{color:var(--ink)}
 @media(max-width:600px){.mode-btn{padding:5px 10px;font-size:11px}}
+/* Theme switch — same pill shape as .mode-toggle so the two read as one
+   control group, but icon-only to keep the filter bar on a single row. */
+.theme-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end;margin-left:8px}
+.theme-btn{display:flex;align-items:center;justify-content:center;width:30px;height:26px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.theme-btn.active{background:var(--amber2);color:var(--navy)}
+.theme-btn:not(.active):hover{color:var(--ink)}
+.theme-btn:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
 
 /* ── Hero ── */
 /* Kept deliberately shallow: the eyebrow moved into the header bar and the
    headline runs wider instead of taller, so readers reach the filters and
    first charts with far less scrolling. */
 .hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--on-navy);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
 .hero h1 em{font-style:italic;color:var(--amber2)}
 .hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:760px;margin:0 auto}
 
@@ -72,52 +144,52 @@ body.mode-advanced .cap-simple{display:none}
    element's own parent is in view — inside .hero it would unstick as soon
    as the hero scrolled away). */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
-.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
+.filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.filter-group select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
-.filter-group select:hover{border-color:var(--navy)}
+.filter-group select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select:hover{border-color:var(--ink)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.filter-group input{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
+.filter-group input{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);text-transform:uppercase;transition:border-color .15s}
 .filter-group input::placeholder{color:var(--light);text-transform:none}
-.filter-group input:hover{border-color:var(--navy)}
+.filter-group input:hover{border-color:var(--ink)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 /* Measures multi-select: a button styled like the sibling <select>s that
    toggles a checkbox panel — native <select multiple> can't render as a
    compact dropdown, so this is hand-rolled. */
 .multi-select{position:relative}
-.multi-select-btn{height:34px;width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;transition:border-color .15s}
-.multi-select-btn:hover{border-color:var(--navy)}
+.multi-select-btn{height:34px;width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;transition:border-color .15s}
+.multi-select-btn:hover{border-color:var(--ink)}
 .multi-select-btn:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .multi-select-btn .caret{font-size:9px;color:var(--muted);flex-shrink:0}
-.multi-select-btn.has-selection{border-color:var(--amber);color:var(--navy);font-weight:500}
-.multi-select-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:235px;max-width:calc(100vw - 2rem);background:var(--white);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 20px rgba(11,37,69,.18);padding:6px;z-index:120}
+.multi-select-btn.has-selection{border-color:var(--amber);color:var(--ink);font-weight:500}
+.multi-select-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:235px;max-width:calc(100vw - 2rem);background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 20px rgba(11,37,69,.18);padding:6px;z-index:120}
 .multi-select.open .multi-select-panel{display:block}
 .multi-select-note{font-size:11px;color:var(--muted);padding:4px 8px 7px;border-bottom:1px solid var(--border);margin-bottom:4px}
 .multi-select-panel label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text);cursor:pointer;white-space:nowrap}
 .multi-select-panel label:hover{background:rgba(11,37,69,.06)}
 .multi-select-panel input[type=checkbox]{height:auto;width:15px;border:none;padding:0;margin:0;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
 .filter-reset{height:34px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
-.filter-reset:hover{border-color:var(--navy);color:var(--navy)}
+.filter-reset:hover{border-color:var(--ink);color:var(--ink)}
 /* "Explore the map" button — reveals the (collapsed-by-default) FSA map so
    people can pick an area visually instead of via a dropdown. Styled as a
    navy-outline pill so it reads as an action, not another filter. */
-.filter-explore{height:34px;padding:0 16px;border:1px solid var(--navy);border-radius:var(--r-sm);background:var(--white);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;display:inline-flex;align-items:center;gap:7px}
-.filter-explore:hover{background:var(--navy);color:var(--white)}
-.filter-explore.is-open{background:var(--navy);color:var(--white)}
+.filter-explore{height:34px;padding:0 16px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--card);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;display:inline-flex;align-items:center;gap:7px}
+.filter-explore:hover{background:var(--navy);color:var(--on-navy)}
+.filter-explore.is-open{background:var(--navy);color:var(--on-navy)}
 .filter-explore .exp-ic{font-size:14px;line-height:1}
 /* Pushes the mode toggle (and reset) to the right end of the filter bar. */
 .filter-spacer{flex:1 1 0;min-width:0}
 @media(max-width:600px){.filter-spacer{display:none}}
-.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}
 /* Current-area pill in the count bar. With the FSA dropdown gone, this is how
    you see which area is selected and get back to the province-wide view. */
-.area-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--navy);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 4px 2px 11px;margin-right:8px;vertical-align:middle}
+.area-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 4px 2px 11px;margin-right:8px;vertical-align:middle}
 .area-chip strong{font-weight:600}
 .area-clear{border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;padding:2px 8px;border-radius:16px;white-space:nowrap}
-.area-clear:hover{background:var(--navy);color:var(--white)}
+.area-clear:hover{background:var(--navy);color:var(--on-navy)}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
@@ -128,7 +200,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 @media(max-width:620px){.grid-2{grid-template-columns:1fr}}
 
 /* ── Cards ── */
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
 .card-title-row .card-title{margin-bottom:0}
@@ -136,29 +208,29 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
-.map-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
-#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:var(--map-bg);border-radius:var(--r-md);cursor:grab;touch-action:none}
 #fsa-map-svg:active{cursor:grabbing}
-.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
-.fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
-.fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
+.fsa-shape{cursor:pointer;stroke:var(--map-stroke);stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
+.fsa-shape:hover{stroke:var(--ink);stroke-width:1.6}
+.fsa-shape.is-selected{stroke:var(--ink);stroke-width:2.2}
 .fsa-shape.no-data{cursor:default}
 .map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
-.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--white);color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--card);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
 .map-zoom-ctrl button:last-child{border-bottom:none}
 .map-zoom-ctrl button:hover{background:var(--surface)}
-.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
-.map-attribution a{color:#5a6b80}
+.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:var(--muted);background:var(--map-attr-bg);padding:1px 6px;border-radius:4px;line-height:1.4}
+.map-attribution a{color:var(--muted)}
 /* Continuous colour-scale legend (replaces the old 2–3 discrete chips,
    which read as categories rather than a scale). */
 .map-grad-wrap{min-width:190px;max-width:240px}
 .map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
 .map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
-.methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
-.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
 .methodology details[open] summary::after{content:'–'}
@@ -177,9 +249,9 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem}
-.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
-.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
 .stat-value.accent{color:var(--amber)}
 .stat-value.green{color:var(--green)}
 .stat-sub{font-size:12px;color:var(--light);margin-top:4px}
@@ -206,7 +278,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
 .kpi-arrow{color:var(--light);font-size:14px}
 .kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
-.kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy)}
+.kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink)}
 .kpi-unit{font-size:11px;color:var(--light);margin-top:2px}
 .kpi-rsi{color:var(--light)}
 .kpi-delta{font-size:12px;margin-top:4px}
@@ -232,8 +304,8 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .sort-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
 .sort-label{font-size:12px;color:var(--muted);margin-right:2px}
 .sort-btn{font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
-.sort-btn:hover{border-color:var(--navy);color:var(--navy)}
-.sort-btn.active{background:var(--navy);border-color:var(--navy);color:var(--white)}
+.sort-btn:hover{border-color:var(--ink);color:var(--ink)}
+.sort-btn.active{background:var(--navy);border-color:var(--ink);color:var(--on-navy)}
 .tbl-scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -248,10 +320,10 @@ tr.detail-row td{padding:0;border-bottom:1px solid var(--border);background:var(
 .detail-inner{padding:1rem 1rem 1.25rem;display:none}
 tr.detail-row.open .detail-inner{display:block}
 .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
-.badge-deep{background:#D4EFDF;color:#1A5C3A}
-.badge-medium{background:#D6E8F8;color:#1A4A72}
-.badge-shallow{background:#EEF0F2;color:#4A5568}
-.badge-neg{background:#FADED9;color:#7C2318}
+.badge-deep{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
+.badge-medium{background:var(--badge-med-bg);color:var(--badge-med-fg)}
+.badge-shallow{background:var(--badge-shal-bg);color:var(--badge-shal-fg)}
+.badge-neg{background:var(--badge-neg-bg);color:var(--badge-neg-fg)}
 .saving-pos{color:var(--green);font-weight:500;font-variant-numeric:tabular-nums}
 .saving-neg{color:var(--red);font-weight:500;font-variant-numeric:tabular-nums}
 .fuel-chip{display:inline-block;font-size:11px;padding:2px 6px;background:var(--surface);color:var(--muted);border-radius:4px}
@@ -266,7 +338,7 @@ tr.detail-row.open .detail-inner{display:block}
    button; the text lives in each button's data-info attribute. Hover shows
    it on desktop, tap toggles it on touch. */
 .info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
-.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
+.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--ink)}
 #info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
 /* "Full details in methodology →" link inside a tooltip. The tip stays open
    while the pointer is over it (see the hide-timer logic in JS) so the link
@@ -323,7 +395,7 @@ footer a:hover{color:var(--amber2)}
 /* ── Section headers (group the dashboard into themed sections) ── */
 .section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
 .section-head:first-child{margin-top:.25rem}
-.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
 .section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px}
 
 /* ── Section / measure icons ──
@@ -345,7 +417,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 .equip-list .measure-label .ml-code{display:block;line-height:1.3}
 .equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
 .equip-list .measure-label .ml-sub a{color:var(--muted);text-decoration:underline}
-.equip-list .measure-label .ml-sub a:hover{color:var(--navy)}
+.equip-list .measure-label .ml-sub a:hover{color:var(--ink)}
 .equip-list .measure-label .ml-badges{display:block;margin-top:4px}
 .equip-list .measure-label .ml-badges .badge{margin-right:4px}
 .equip-list .bar-track{margin-top:6px}
@@ -373,6 +445,16 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   if(mode!=='advanced')mode='simple';
   try{localStorage.setItem('viewMode',mode);}catch(e){}
   document.body.className='mode-'+mode;
+
+  // Theme resolved here for the same reason as the view mode: set on <html>
+  // before any markup paints, so a dark-mode reader never sees a cream flash.
+  // Unset falls through to the OS preference; an explicit choice always wins.
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
 })();
 </script>
 
@@ -446,6 +528,20 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
       <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
     </div>
+    <!-- Theme switch. Labelled by title + aria-label rather than visible text
+         so it stays a compact three-icon pill next to the wider Simple/
+         Advanced toggle; aria-pressed carries the state for screen readers. -->
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
     <button class="filter-reset" onclick="resetFilters()">Reset filters</button>
   </div>
   <div class="filter-count-bar">
@@ -460,9 +556,11 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
   <defs>
     <linearGradient id="eui-grad" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0%" stop-color="#1A7A55"/>
-      <stop offset="40%" stop-color="#C8881A"/>
-      <stop offset="100%" stop-color="#B33A2E"/>
+      <!-- style= not stop-color=, so the theme vars apply: stop-color is a
+           valid CSS property but a presentation ATTRIBUTE cannot take var(). -->
+      <stop offset="0%" style="stop-color:var(--d-pos)"/>
+      <stop offset="40%" style="stop-color:var(--d-secondary)"/>
+      <stop offset="100%" style="stop-color:var(--d-neg)"/>
     </linearGradient>
   </defs>
 </svg>
@@ -516,7 +614,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <!-- Energy saving distribution 1% — the headline outcome, right under the KPIs -->
   <div class="card">
-    <div class="card-title-row"><div class="card-title"><span class="cap-simple">How much did homes save?</span><span class="cap-advanced">Energy saving distribution — 1% increments</span></div><div class="chart-legend-inline"><div class="chart-legend-item"><span class="chart-legend-dot" style="background:#1A7A55"></span>Saved energy</div><div class="chart-legend-item"><span class="chart-legend-dot" style="background:#B33A2E"></span>Used more</div></div></div>
+    <div class="card-title-row"><div class="card-title"><span class="cap-simple">How much did homes save?</span><span class="cap-advanced">Energy saving distribution — 1% increments</span></div><div class="chart-legend-inline"><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-pos)"></span>Saved energy</div><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-neg)"></span>Used more</div></div></div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
     <p class="note"><span class="cap-simple">Most homes save energy. The few that used more (red bars) mostly did little or no upgrade work between their two audits — the increases are small and look like audit-to-audit noise, not retrofits that backfired.</span><span class="cap-advanced">Negative values mean modelled total energy rose between the two audits. Across Canada only ~4% of homes are negative, the increases are small (median −2%), and about three-quarters of them have no retrofit measure flagged at all — consistent with re-audit modelling variation rather than failed retrofits.</span></p>
   </div>
@@ -990,21 +1088,21 @@ const FUEL_COLORS={
 };
 
 const MEASURES=[
-  {key:'Air_Tightness_Upgrade',        label:'Air sealing',           color:'#C8881A',
+  {key:'Air_Tightness_Upgrade',        label:'Air sealing',           color:'#C8881A', ck:'secondary',
     tip:'Counted when air leakage dropped by more than 10% between the two audits.'},
-  {key:'Roof_Insulation_Upgrade',       label:'Roof insulation',       color:'#0B2545',
+  {key:'Roof_Insulation_Upgrade',       label:'Roof insulation',       color:'#0B2545', ck:'primary',
     tip:'Counted when roof/attic insulation value rose by more than 10% between the two audits.'},
-  {key:'Foundation_Insulation_Upgrade', label:'Foundation insulation', color:'#1A7A55',
+  {key:'Foundation_Insulation_Upgrade', label:'Foundation insulation', color:'#1A7A55', ck:'pos',
     tip:'Counted when foundation insulation value rose by more than 10% between the two audits.'},
-  {key:'Wall_Insulation_Upgrade',       label:'Wall insulation',       color:'#378ADD',
+  {key:'Wall_Insulation_Upgrade',       label:'Wall insulation',       color:'#378ADD', ck:'blue',
     tip:'Counted when wall insulation value rose by more than 10% between the two audits.'},
-  {key:'HeatPump_Addition',            label:'Heat pump added',        color:'#D85A30',
+  {key:'HeatPump_Addition',            label:'Heat pump added',        color:'#D85A30', ck:'fOil',
     tip:'Counted when no heat pump was recorded at the initial audit but one appears at the follow-up audit.'},
-  {key:'Heating_Change',              label:'Heating system changed',  color:'#533AB7',
+  {key:'Heating_Change',              label:'Heating system changed',  color:'#533AB7', ck:'purple',
     tip:'Counted when the recorded heating fuel or equipment type differs between the two audits.'},
-  {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0',
+  {key:'Windows_Change',              label:'Windows changed',         color:'#8A9BB0', ck:'tick',
     tip:'Counted when the recorded window code differs between the two audits.'},
-  {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82',
+  {key:'Floor_Insulation_Upgrade',     label:'Floor insulation',       color:'#5C6E82', ck:'axis',
     tip:'Counted when exposed-floor insulation value rose by more than 10% between the two audits.'},
 ];
 
@@ -1128,14 +1226,126 @@ const RSI_TO_R=5.678;
 // Pre/post bar palette. Pre = navy, Post = green — a colour-blind-safe pair
 // (the old pre=red / post=green pairing is the classic red–green confusion
 // case). Used by every pre/post comparison histogram.
-const PRE_LINE='#0B2545', PRE_FILL=PRE_LINE;
-const POST_LINE='#1A7A55', POST_FILL=POST_LINE;
+// `let`, not `const`, and assigned by readPalette() rather than here: these
+// are read at chart-build time, so rebinding them on a theme change is what
+// carries the new palette into every pre/post histogram. Declaring them
+// const at module scope would freeze the light-mode values (and, being above
+// the PAL block, would read PAL in its temporal dead zone).
+let PRE_LINE, PRE_FILL, POST_LINE, POST_FILL;
 // Shared Simple/Advanced sub-label fragments for the JS-built stat subs —
 // same cap-simple/cap-advanced CSS pattern the static markup uses.
 const OF_MATCHED='% of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span>';
 const MATCHED_PAIRS_LBL='<span class="cap-simple">homes with a before-and-after audit</span><span class="cap-advanced">matched before/after homes</span>';
 
 
+
+// ── Theme palette ─────────────────────────────────────────────────
+// Single source of truth for every colour drawn into a canvas or SVG.
+// Chart code must read PAL.* and never a hex literal, otherwise the
+// colour-blind theme silently fails to reach the data (the page chrome
+// recolours, the charts stay put) — that was the state before this.
+//
+// PAL is repopulated from the CSS custom properties on every theme
+// change, so the themes stay defined in exactly one place: the :root
+// blocks at the top of this file.
+const PAL={};
+// Alpha variants. Theme values are all 6-digit hex, so appending a
+// 2-digit alpha is safe; the guard just means a malformed var degrades
+// to an opaque colour rather than painting garbage.
+function al(hex,aa){return(typeof hex==='string'&&hex[0]==='#'&&hex.length===7)?hex+aa:hex;}
+// Choropleth ramps interpolate in RGB space and need triplets, not hex.
+function hexToRgb(hex){
+  const h=(hex||'').replace('#','');
+  return h.length>=6?[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]:[128,128,128];
+}
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  Object.assign(PAL,{
+    primary:g('--d-primary'),secondary:g('--d-secondary'),
+    pos:g('--d-pos'),neg:g('--d-neg'),blue:g('--d-blue'),purple:g('--d-purple'),
+    track:g('--d-track'),axis:g('--d-axis'),tick:g('--d-tick'),grid:g('--d-grid'),
+    text:g('--text'),muted:g('--muted'),light:g('--light'),
+    card:g('--card'),border:g('--border'),surface:g('--surface'),
+    amber2:g('--amber2'),
+    fElec:g('--f-elec'),fGas:g('--f-gas'),fOil:g('--f-oil'),
+    fPropane:g('--f-propane'),fWood:g('--f-wood')
+  });
+  // Derived shades used by the Sankey and the map ramps.
+  PAL.greyL=mix(PAL.tick,PAL.card,.45);
+  PAL.pale=mix(PAL.track,PAL.card,.35);
+  PAL.amberFaint=mix(PAL.secondary,PAL.card,.72);
+  PAL.mapBase=mix(PAL.primary,PAL.card,.90);   // near-empty end of the count ramp
+  PAL.mapNull=mix(PAL.tick,PAL.card,.55);      // "no data" shapes
+  // Diverging saving-rate ramp: one neutral midpoint both directions fade
+  // from, so "saves nothing" looks identical whether it is read as the top
+  // of the negative ramp or the bottom of the positive one.
+  PAL.rampBase=hexToRgb(mix(PAL.card,PAL.track,.35));
+  PAL.rampPos=hexToRgb(PAL.pos);
+  PAL.rampNeg=hexToRgb(PAL.neg);
+  PAL.rampCountLo=hexToRgb(PAL.mapBase);
+  PAL.rampCountHi=hexToRgb(PAL.primary);
+  // MEASURES and FUEL_COLORS are module-level consts built before any theme
+  // is resolved, so their literal hex values are light-mode defaults only.
+  // Both are re-pointed at the live palette here, via the explicit `ck` key
+  // rather than array position, so `m.color` keeps working at every existing
+  // call site without those sites knowing a theme exists.
+  MEASURES.forEach(m=>{if(m.ck&&PAL[m.ck])m.color=PAL[m.ck];});
+  // Pre/post bar pair — see the declaration note above.
+  PRE_LINE=PRE_FILL=PAL.primary;
+  POST_LINE=POST_FILL=PAL.pos;
+  // Fuel lookup rebuilt per theme — see FUEL_COLORS note above.
+  Object.assign(FUEL_COLORS,{
+    'Oil':PAL.fOil,'Electricity':PAL.pos,'Propane':PAL.fPropane,
+    'Mixed Wood':PAL.fWood,'Mixed wood':PAL.fWood,'Hardwood':mix(PAL.fWood,PAL.card,.25),
+    'Natural Gas':PAL.purple,'Wood Pellets':mix(PAL.fWood,PAL.card,.4)
+  });
+}
+// Blend two hex colours; t is the share of `b`. Used to derive tints that
+// track the theme instead of being frozen light-mode greys.
+function mix(a,b,t){
+  const A=hexToRgb(a),B=hexToRgb(b);
+  return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+
+const THEMES=['light','dark','cb'];
+function initTheme(){
+  let t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(!THEMES.includes(t)){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+  readPalette();
+  syncThemeButtons(t);
+}
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  readPalette();
+  syncThemeButtons(t);
+  redrawAllCharts();
+}
+// Charts bake their colours in at construction time, so a theme change has
+// to rebuild them from whatever data is already cached — never re-fetch.
+function redrawAllCharts(){
+  try{
+    if(MODE==='province'&&typeof _lastProvincePayload!=='undefined'&&_lastProvincePayload){
+      renderProvince(_lastProvincePayload);
+    }else if(MODE==='fsa'&&ALL.length){
+      render();
+    }
+    if(typeof paintFsaMap==='function'&&document.getElementById('fsa-map-svg'))paintFsaMap();
+  }catch(e){console.error('theme redraw',e);}
+}
 
 let ALL=[],FILTERED=[],SORT='saving';
 const charts={};
@@ -1812,18 +2022,18 @@ function renderYearHist(){
 
   const draw=censusPct=>{
     setChartLegend('year-legend',censusPct
-      ?[{label:'Audited homes',color:'#0B2545CC'},{label:'All FSA dwellings (census)',color:'#C8881A'}]
-      :[{label:'Audited homes',color:'#0B2545CC'}]);
-    const datasets=[{type:'bar',label:'Audited homes',data:auditedPct,backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2,order:2}];
-    if(censusPct)datasets.push({type:'line',label:'All FSA dwellings (census)',data:censusPct,borderColor:'#C8881A',backgroundColor:'#C8881A',pointRadius:3,borderWidth:2,tension:0.2,fill:false,order:1});
+      ?[{label:'Audited homes',color:al(PAL.primary,'CC')},{label:'All FSA dwellings (census)',color:PAL.secondary}]
+      :[{label:'Audited homes',color:al(PAL.primary,'CC')}]);
+    const datasets=[{type:'bar',label:'Audited homes',data:auditedPct,backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2,order:2}];
+    if(censusPct)datasets.push({type:'line',label:'All FSA dwellings (census)',data:censusPct,borderColor:PAL.secondary,backgroundColor:PAL.secondary,pointRadius:3,borderWidth:2,tension:0.2,fill:false,order:1});
     dc('year');
     charts['year']=new Chart($('year-chart').getContext('2d'),{
       type:'bar',
       data:{labels,datasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw}%`}}},
-        scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-                y:{ticks:{font:{size:10},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'}}}}
+        scales:{x:{ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+                y:{ticks:{font:{size:10},color:PAL.tick,callback:v=>v+'%'},grid:{color:PAL.track}}}}
     });
   };
 
@@ -1853,17 +2063,17 @@ function renderAreaHist(){
     bins[b]=(bins[b]||0)+1;
   });
   const labels=[...new Set([...Object.keys(sdBins),...Object.keys(atBins)])].map(Number).sort((a,b)=>a-b);
-  setChartLegend('area-legend',[{label:'Single detached',color:'#0B2545CC'},{label:'Attached',color:'#378ADDCC'}]);
+  setChartLegend('area-legend',[{label:'Single detached',color:al(PAL.primary,'CC')},{label:'Attached',color:al(PAL.blue,'CC')}]);
   charts['area']=new Chart($('area-chart').getContext('2d'),{
     type:'bar',
     data:{labels,datasets:[
-      {label:'Single detached',data:labels.map(k=>sdBins[k]||0),backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
-      {label:'Attached',data:labels.map(k=>atBins[k]||0),backgroundColor:'#378ADDCC',borderWidth:0,borderRadius:2},
+      {label:'Single detached',data:labels.map(k=>sdBins[k]||0),backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2},
+      {label:'Attached',data:labels.map(k=>atBins[k]||0),backgroundColor:al(PAL.blue,'CC'),borderWidth:0,borderRadius:2},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -1883,11 +2093,11 @@ function drawAuditYearChart(dSel,dUn,eSel,eUn){
   const years=[...new Set([...Object.keys(dSel),...Object.keys(dUn),
     ...Object.keys(eSel),...Object.keys(eUn)].map(Number))].sort((a,b)=>a-b);
   const anyUnselected=years.some(y=>(dUn[y]||0)+(eUn[y]||0)>0);
-  const NAVY='#0B2545',GREEN='#1A7A55',NAVY_F='#0B254530',GREEN_F='#1A7A5530';
+  const NAVY=PAL.primary,GREEN=PAL.pos,NAVY_F=al(PAL.primary,'30'),GREEN_F=al(PAL.pos,'30');
   setChartLegend('audit-year-legend',[
     {label:'Initial (D)',color:NAVY},
     {label:'Follow-up (E)',color:GREEN},
-    ...(anyUnselected?[{label:'Faded = filtered out',color:'#AEB8C6'}]:[]),
+    ...(anyUnselected?[{label:'Faded = filtered out',color:PAL.greyL}]:[]),
   ]);
   charts['auditYear']=new Chart($('audit-year-chart').getContext('2d'),{
     type:'bar',
@@ -1899,8 +2109,8 @@ function drawAuditYearChart(dSel,dUn,eSel,eUn){
     ]},
     options:{responsive:true,maintainAspectRatio:false,animation:false,
       plugins:{legend:{display:false},tooltip:{filter:i=>i.raw>0,callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()}`}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -1989,13 +2199,13 @@ const donutLeaderLines={
     pts.forEach(p=>{
       const elbowX=cx+p.side*(p.outerRadius+(narrow?5:10));
       const labelX=cx+p.side*(p.outerRadius+(narrow?16:32));
-      ctx.strokeStyle='#B8C4D4';
+      ctx.strokeStyle=PAL.pale;
       ctx.beginPath();
       ctx.moveTo(p.ex,p.ey);
       ctx.lineTo(elbowX,p.labelY);
       ctx.lineTo(labelX-p.side*4,p.labelY);
       ctx.stroke();
-      ctx.fillStyle='#1C2B3A';
+      ctx.fillStyle=PAL.text;
       ctx.textAlign=p.side>=0?'left':'right';
       ctx.textBaseline='middle';
       ctx.fillText(`${p.label} – ${p.pct}%`,labelX,p.labelY);
@@ -2009,7 +2219,7 @@ function donut(canvasId,countMap,chartKey,n){
   const top=entries.slice(0,5);
   const other=entries.slice(5).reduce((s,[,v])=>s+v,0);
   if(other>0)top.push(['Other',other]);
-  const COLS=['#0B2545','#1A7A55','#C8881A','#378ADD','#D85A30','#8A9BB0'];
+  const COLS=[PAL.primary,PAL.pos,PAL.secondary,PAL.blue,PAL.fOil,PAL.tick];
   // Leader-line labels need side padding to sit in; on a narrow phone
   // screen 95px each side would swallow the whole canvas, so shrink it
   // (and the plugin's own offsets) when the viewport is small.
@@ -2070,22 +2280,22 @@ function renderTypeDonut(){
     // distributions' shapes than two concentric rings of similar hue.
     dc('type');
     setChartLegend('type-legend',[
-      {label:'Audited homes',color:'#0B2545CC'},
-      {label:'All FSA dwellings (census)',color:'#C8881A'},
+      {label:'Audited homes',color:al(PAL.primary,'CC')},
+      {label:'All FSA dwellings (census)',color:PAL.secondary},
     ]);
     keys.sort((a,b)=>(census[b]||0)/censusTotal-(census[a]||0)/censusTotal);
     charts['type']=new Chart($('type-chart').getContext('2d'),{
       type:'bar',
       data:{labels:keys.map(k=>DWELLING_TYPE_LABELS[k]),datasets:[
         {label:'Audited homes',data:keys.map(k=>Math.round((auditedByCensusType[k]||0)/auditedTotal*1000)/10),
-          backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
+          backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2},
         {label:'All FSA dwellings',data:keys.map(k=>Math.round((census[k]||0)/censusTotal*1000)/10),
-          backgroundColor:'#C8881A',borderWidth:0,borderRadius:2},
+          backgroundColor:PAL.secondary,borderWidth:0,borderRadius:2},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw}%`}}},
-        scales:{x:{ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-                y:{ticks:{font:{size:10},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'}}}}
+        scales:{x:{ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+                y:{ticks:{font:{size:10},color:PAL.tick,callback:v=>v+'%'},grid:{color:PAL.track}}}}
     });
   }).catch(()=>{
     setChartLegend('type-legend',[]);
@@ -2171,7 +2381,7 @@ function renderSankey(){
     const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
     preUsed[a]+=fhPre;postUsed[b]+=fhPost;
     const same=a===b;
-    const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
+    const col=same?PAL.pale:(FUEL_COLORS[a]||PAL.tick);
     const mx=(LX+BAR+RX)/2;
     const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fhPost} C${mx},${qy+fhPost} ${mx},${py+fhPre} ${LX+BAR},${py+fhPre}Z`;
     const el=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -2188,13 +2398,13 @@ function renderSankey(){
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
       rect.setAttribute('width',BAR);rect.setAttribute('height',Math.max(3,n.h));
-      rect.setAttribute('fill',FUEL_COLORS[n.f]||'#8A9BB0');rect.setAttribute('rx',2);
+      rect.setAttribute('fill',FUEL_COLORS[n.f]||PAL.tick);rect.setAttribute('rx',2);
       svg.appendChild(rect);
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       const tx=isLeft?n.x-6:n.x+BAR+6;
       t.setAttribute('x',tx);t.setAttribute('y',n.y+Math.max(3,n.h)/2+4);
       t.setAttribute('text-anchor',isLeft?'end':'start');
-      t.setAttribute('font-size','11');t.setAttribute('fill','#1C2B3A');
+      t.setAttribute('font-size','11');t.setAttribute('fill',PAL.text);
       t.setAttribute('font-family','Inter,sans-serif');
       const ghw=isLeft?(preMap[n.f]||0):(postMap[n.f]||0);
       t.textContent=`${n.f} (${(ghw/1e6).toFixed(1)} GWh)`;
@@ -2234,9 +2444,9 @@ function renderFunnel(cfg){
   // AMBER/AMBERF give column 3 (your selection) its own hue distinct from
   // column 2's green (matched pairs) — previously both "kept" nodes shared
   // GREEN, so the 2nd and 3rd columns were hard to tell apart at a glance.
-  const NAVY='#0B2545',BLUE='#378ADD',GREEN='#1A7A55',GREY='#8A9BB0',
-        GREYL='#AEB8C6',TAN='#B79A6A',PALE='#C6D0DB',
-        AMBER='#E8A124',AMBERF='#F2D9A6';
+  const NAVY=PAL.primary,BLUE=PAL.blue,GREEN=PAL.pos,GREY=PAL.tick,
+        GREYL=PAL.greyL,TAN=PAL.fPropane,PALE=PAL.pale,
+        AMBER=PAL.amber2,AMBERF=PAL.amberFaint;
 
   const cw=svg.parentElement.clientWidth||700;
   const W=Math.max(cw,520),H=360,PAD=18,BAR=13;
@@ -2305,7 +2515,7 @@ function renderFunnel(cfg){
     t.setAttribute('x',tx);t.setAttribute('y',n.y+n.h/2+4);
     t.setAttribute('text-anchor',n.side==='left'?'end':'start');
     t.setAttribute('font-size','11');t.setAttribute('font-family','Inter,sans-serif');
-    t.setAttribute('fill','#1C2B3A');t.setAttribute('stroke','#fff');
+    t.setAttribute('fill',PAL.text);t.setAttribute('stroke','#fff');
     t.setAttribute('stroke-width','3');t.setAttribute('paint-order','stroke');
     t.textContent=`${n.label} · ${n.count.toLocaleString()}`;
     svg.appendChild(t);
@@ -2559,11 +2769,11 @@ const gaugeCenterText={
     const cy=chartArea.bottom;
     ctx.save();
     ctx.textAlign='center';
-    ctx.fillStyle='#1C2B3A';
+    ctx.fillStyle=PAL.text;
     ctx.font='600 22px Inter, sans-serif';
     ctx.fillText(opts.text,cx,cy-6);
     if(opts.sub){
-      ctx.font='11px Inter, sans-serif';ctx.fillStyle='#8A9BB0';
+      ctx.font='11px Inter, sans-serif';ctx.fillStyle=PAL.tick;
       ctx.fillText(opts.sub,cx,cy+12);
     }
     ctx.restore();
@@ -2574,7 +2784,7 @@ function drawGauge(canvasId,chartKey,pct,color,centerText,sub){
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'doughnut',
     plugins:[gaugeCenterText],
-    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,'#E8EDF4'],borderWidth:0}]},
+    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,PAL.track],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,
       rotation:-90,circumference:180,cutout:'72%',
       plugins:{legend:{display:false},tooltip:{enabled:false},gaugeCenterText:{text:centerText,sub}}}
@@ -2602,8 +2812,8 @@ function renderCensus(fsa,auditedCount){
     const tenTotal=(ten.owner||0)+(ten.renter||0);
     const ownerPct=tenTotal?Math.round(ten.owner/tenTotal*100):null;
     if(ownerPct!=null){
-      drawGauge('census-tenure-gauge','censusTenure',ownerPct,'#0B2545',ownerPct+'%','owner-occupied');
-      setChartLegend('census-tenure-legend',[{label:`Owner ${ownerPct}%`,color:'#0B2545'},{label:`Renter ${100-ownerPct}%`,color:'#E8EDF4'}]);
+      drawGauge('census-tenure-gauge','censusTenure',ownerPct,PAL.primary,ownerPct+'%','owner-occupied');
+      setChartLegend('census-tenure-legend',[{label:`Owner ${ownerPct}%`,color:PAL.primary},{label:`Renter ${100-ownerPct}%`,color:PAL.track}]);
     }else{
       dc('censusTenure');
       setChartLegend('census-tenure-legend',[]);
@@ -2613,8 +2823,8 @@ function renderCensus(fsa,auditedCount){
     const condTotal=(cond.minor_repairs||0)+(cond.major_repairs||0);
     const majorPct=condTotal?Math.round(cond.major_repairs/condTotal*100):null;
     if(majorPct!=null){
-      drawGauge('census-condition-gauge','censusCondition',majorPct,'#B33A2E',majorPct+'%','need major repairs');
-      setChartLegend('census-condition-legend',[{label:`Major repairs ${majorPct}%`,color:'#B33A2E'},{label:`Minor/none ${100-majorPct}%`,color:'#E8EDF4'}]);
+      drawGauge('census-condition-gauge','censusCondition',majorPct,PAL.neg,majorPct+'%','need major repairs');
+      setChartLegend('census-condition-legend',[{label:`Major repairs ${majorPct}%`,color:PAL.neg},{label:`Minor/none ${100-majorPct}%`,color:PAL.track}]);
     }else{
       dc('censusCondition');
       setChartLegend('census-condition-legend',[]);
@@ -2656,7 +2866,7 @@ let _fuelBreakdownArgs=null,_fuelBreakdownRO=null,_fuelTooltipEl=null,_fuelBoxes
 function drawFuelBreakdown(fuelLabels,preVals,postVals){
   _fuelBreakdownArgs=[fuelLabels,preVals,postVals];
   const canvas=$('waterfall-chart');
-  setChartLegend('waterfall-legend',fuelLabels.map(lbl=>({label:lbl,color:FUEL_COLORS[lbl]||'#8A9BB0'})));
+  setChartLegend('waterfall-legend',fuelLabels.map(lbl=>({label:lbl,color:FUEL_COLORS[lbl]||PAL.tick})));
   if(!_fuelBreakdownRO){
     _fuelBreakdownRO=new ResizeObserver(()=>{ if(_fuelBreakdownArgs)paintFuelBreakdown(..._fuelBreakdownArgs); });
     _fuelBreakdownRO.observe(canvas.parentElement);
@@ -2690,25 +2900,25 @@ function paintFuelBreakdown(fuelLabels,preVals,postVals){
   _fuelBoxes=[];
 
   if(!fuelLabels.length){
-    ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
+    ctx.fillStyle=PAL.tick;ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
     ctx.fillText('No fuel data for this selection',wCss/2,hCss/2);
     return;
   }
 
   const leftLabelW=96,rightPad=12,topPad=8,rowGap=20,rowH=54,gapPx=4;
   const drawW=wCss-leftLabelW-rightPad;
-  const colors=fuelLabels.map(l=>FUEL_COLORS[l]||'#8A9BB0');
+  const colors=fuelLabels.map(l=>FUEL_COLORS[l]||PAL.tick);
 
   function drawValueLabel(x,bw,yTop,text,light){
     ctx.font='600 11px Inter, sans-serif';ctx.textAlign='center';
     if(ctx.measureText(text).width>bw-6)return; // skip if it would overflow the box
-    ctx.fillStyle=light?'#fff':'#1C2B3A';
+    ctx.fillStyle=light?'#fff':PAL.text;
     ctx.fillText(text,x+bw/2,yTop+rowH/2+4);
   }
   // Compact form (5.9B / 21M / 1.2k) for boxes too narrow for the full number.
   const fmt=v=>Math.abs(v)>=1000?new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(v):Math.round(v).toLocaleString();
   function drawRowLabel(text,yTop){
-    ctx.font='600 11px Inter, sans-serif';ctx.fillStyle='#5C6E82';ctx.textAlign='right';
+    ctx.font='600 11px Inter, sans-serif';ctx.fillStyle=PAL.axis;ctx.textAlign='right';
     ctx.fillText(text,leftLabelW-10,yTop+rowH/2+4);
   }
 
@@ -2751,19 +2961,19 @@ function paintFuelBreakdown(fuelLabels,preVals,postVals){
   const sx=usableW/totalMax;
   const savedBw=Math.max(Math.abs(totalSaved)*sx,2);
   drawRowLabel('Savings',row3Y);
-  ctx.fillStyle=totalSaved>=0?'#1A7A55':'#B33A2E';
+  ctx.fillStyle=totalSaved>=0?PAL.pos:PAL.neg;
   roundRectPath(ctx,leftLabelW,row3Y,savedBw,rowH,4);ctx.fill();
   drawValueLabel(leftLabelW,savedBw,row3Y,`${totalSaved>=0?'−':'+'}${fmt(Math.abs(totalSaved))}`,true);
   _fuelBoxes.push({x:leftLabelW,y:row3Y,w:savedBw,h:rowH,fuel:'Total',rowLabel:'Savings',value:totalSaved});
 
-  ctx.font='600 11px Inter, sans-serif';ctx.textAlign='left';ctx.fillStyle='#1C2B3A';
+  ctx.font='600 11px Inter, sans-serif';ctx.textAlign='left';ctx.fillStyle=PAL.text;
   ctx.fillText(`${totalSaved>=0?'Total saved':'Total increased'}: ${Math.abs(Math.round(totalSaved)).toLocaleString()} kWh`,leftLabelW,row3Y+rowH+18);
 }
 
 function ensureFuelTooltip(){
   if(_fuelTooltipEl)return _fuelTooltipEl;
   const el=document.createElement('div');
-  el.style.cssText='position:fixed;pointer-events:none;background:#0B2545;color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;box-shadow:0 4px 12px rgba(11,37,69,.25);z-index:1000;display:none;font-family:Inter,sans-serif;line-height:1.4';
+  el.style.cssText='position:fixed;pointer-events:none;background:var(--navy);color:var(--on-navy);font-size:12px;padding:6px 9px;border-radius:6px;box-shadow:0 4px 12px rgba(11,37,69,.25);z-index:1000;display:none;font-family:Inter,sans-serif;line-height:1.4';
   document.body.appendChild(el);
   return (_fuelTooltipEl=el);
 }
@@ -2834,7 +3044,7 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
   // Chart.js draws LOWER order values on top — bar needs order:1 (front) and
   // the lines order:2 (behind), or the area fills paint over the bars.
   if(Object.keys(deltaBins).length){
-    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:'#C8881A99',borderColor:'#C8881A',borderWidth:1,borderRadius:2,order:1});
+    datasets.push({type:'bar',label:'Improvement',data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:PAL.secondary,borderWidth:1,borderRadius:2,order:1});
   }
   datasets.push(
     {type:'line',label:'Before retrofit',data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
@@ -2846,8 +3056,8 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit){
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
         tooltip:{callbacks:{title:i=>`${i[0].label} ${unit}`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{title:{display:true,text:unit,font:{size:11},color:'#5C6E82'},ticks:{font:{size:10},color:'#8A9BB0',maxTicksLimit:20},grid:{display:false}},
-              y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+      scales:{x:{title:{display:true,text:unit,font:{size:11},color:PAL.axis},ticks:{font:{size:10},color:PAL.tick,maxTicksLimit:20},grid:{display:false}},
+              y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -2938,8 +3148,8 @@ function renderVintageMeasures(){
           title:i=>`Built ${i[0].label}`,
           label:i=>`${i.dataset.label}: ${i.raw}% (n=${buckets[labels[i.dataIndex]].total})`,
         }}},
-      scales:{x:{ticks:{font:{size:11},color:'#5C6E82'},grid:{display:false}},
-              y:{ticks:{font:{size:11},color:'#8A9BB0',callback:v=>v+'%'},grid:{color:'#E8EDF4'},max:100}}}
+      scales:{x:{ticks:{font:{size:11},color:PAL.axis},grid:{display:false}},
+              y:{ticks:{font:{size:11},color:PAL.tick,callback:v=>v+'%'},grid:{color:PAL.track},max:100}}}
   });
 }
 
@@ -2954,7 +3164,7 @@ function drawEmptyCanvasMsg(canvasId,msg){
   const ctx=canvas.getContext('2d');
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,wCss,hCss);
-  ctx.fillStyle='#8A9BB0';ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
+  ctx.fillStyle=PAL.tick;ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
   ctx.fillText(msg,wCss/2,hCss/2);
 }
 
@@ -2980,18 +3190,18 @@ function renderHist(savings){
     type:'bar',
     data:{labels:labels.map(k=>`${k}%`),datasets:[{
       data:labels.map(k=>bins[k]),
-      backgroundColor:labels.map(k=>k<0?'rgba(179,58,46,0.7)':'rgba(26,122,85,0.7)'),
-      borderColor:labels.map(k=>k<0?'#B33A2E':'#1A7A55'),
+      backgroundColor:labels.map(k=>k<0?al(PAL.neg,'B3'):al(PAL.pos,'B3')),
+      borderColor:labels.map(k=>k<0?PAL.neg:PAL.pos),
       borderWidth:0.5,borderRadius:0,barPercentage:1.0,categoryPercentage:1.0
     }]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
       scales:{
-        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:'#5C6E82'},
-          ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:30,
+        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:PAL.axis},
+          ticks:{font:{size:9},color:PAL.tick,maxTicksLimit:30,
             callback:function(v,i){const l=labels[i];return l%10===0?`${l}%`:''}},
           grid:{display:false}},
-        y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+        y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}
       }
     }
   });
@@ -3093,24 +3303,24 @@ function renderProvinceYearHist(payload){
   if(split){
     labels=[...new Set([...Object.keys(split.sdBins),...Object.keys(split.atBins)])].map(Number).sort((a,b)=>a-b);
     datasets=[
-      {label:'Single detached',data:labels.map(k=>split.sdBins[k]||0),backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
-      {label:'Attached',data:labels.map(k=>split.atBins[k]||0),backgroundColor:'#378ADDCC',borderWidth:0,borderRadius:2},
+      {label:'Single detached',data:labels.map(k=>split.sdBins[k]||0),backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2},
+      {label:'Attached',data:labels.map(k=>split.atBins[k]||0),backgroundColor:al(PAL.blue,'CC'),borderWidth:0,borderRadius:2},
     ];
   }else{
     const [keys,data]=sortedBinArrays(slice.year_built_bins||{});
     labels=keys;
-    datasets=[{label:SELECTED_TYPE||'All types',data,backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2}];
+    datasets=[{label:SELECTED_TYPE||'All types',data,backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2}];
   }
   setChartLegend('year-legend',split?
-    [{label:'Single detached',color:'#0B2545CC'},{label:'Attached',color:'#378ADDCC'}]:
-    [{label:SELECTED_TYPE||'All types',color:'#0B2545CC'}]);
+    [{label:'Single detached',color:al(PAL.primary,'CC')},{label:'Attached',color:al(PAL.blue,'CC')}]:
+    [{label:SELECTED_TYPE||'All types',color:al(PAL.primary,'CC')}]);
   charts['year']=new Chart($('year-chart').getContext('2d'),{
     type:'bar',
     data:{labels,datasets},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}s`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -3122,24 +3332,24 @@ function renderProvinceAreaHist(payload){
   if(split){
     labels=[...new Set([...Object.keys(split.sdBins),...Object.keys(split.atBins)])].map(Number).sort((a,b)=>a-b);
     datasets=[
-      {label:'Single detached',data:labels.map(k=>split.sdBins[k]||0),backgroundColor:'#0B2545CC',borderWidth:0,borderRadius:2},
-      {label:'Attached',data:labels.map(k=>split.atBins[k]||0),backgroundColor:'#378ADDCC',borderWidth:0,borderRadius:2},
+      {label:'Single detached',data:labels.map(k=>split.sdBins[k]||0),backgroundColor:al(PAL.primary,'CC'),borderWidth:0,borderRadius:2},
+      {label:'Attached',data:labels.map(k=>split.atBins[k]||0),backgroundColor:al(PAL.blue,'CC'),borderWidth:0,borderRadius:2},
     ];
   }else{
     const [keys,data]=sortedBinArrays(slice.floor_area_bins||{});
     labels=keys;
-    datasets=[{label:SELECTED_TYPE||'All types',data,backgroundColor:'#1A7A55CC',borderWidth:0,borderRadius:2}];
+    datasets=[{label:SELECTED_TYPE||'All types',data,backgroundColor:al(PAL.pos,'CC'),borderWidth:0,borderRadius:2}];
   }
   setChartLegend('area-legend',split?
-    [{label:'Single detached',color:'#0B2545CC'},{label:'Attached',color:'#378ADDCC'}]:
-    [{label:SELECTED_TYPE||'All types',color:'#1A7A55CC'}]);
+    [{label:'Single detached',color:al(PAL.primary,'CC')},{label:'Attached',color:al(PAL.blue,'CC')}]:
+    [{label:SELECTED_TYPE||'All types',color:al(PAL.pos,'CC')}]);
   charts['area']=new Chart($('area-chart').getContext('2d'),{
     type:'bar',
     data:{labels,datasets},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0',maxRotation:45},grid:{display:false}},
-              y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -3211,7 +3421,7 @@ function renderProvinceSankey(slice){
     const py=pn.y+preUsed[a],qy=qn.y+postUsed[b];
     preUsed[a]+=fhPre;postUsed[b]+=fhPost;
     const same=a===b;
-    const col=same?'#C8D0DB':(FUEL_COLORS[a]||'#8A9BB0');
+    const col=same?PAL.pale:(FUEL_COLORS[a]||PAL.tick);
     const mx=(LX+BAR+RX)/2;
     const path=`M${LX+BAR},${py} C${mx},${py} ${mx},${qy} ${RX},${qy} L${RX},${qy+fhPost} C${mx},${qy+fhPost} ${mx},${py+fhPre} ${LX+BAR},${py+fhPre}Z`;
     const el=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -3228,13 +3438,13 @@ function renderProvinceSankey(slice){
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x',n.x);rect.setAttribute('y',n.y);
       rect.setAttribute('width',BAR);rect.setAttribute('height',Math.max(3,n.h));
-      rect.setAttribute('fill',FUEL_COLORS[n.f]||'#8A9BB0');rect.setAttribute('rx',2);
+      rect.setAttribute('fill',FUEL_COLORS[n.f]||PAL.tick);rect.setAttribute('rx',2);
       svg.appendChild(rect);
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       const tx=isLeft?n.x-6:n.x+BAR+6;
       t.setAttribute('x',tx);t.setAttribute('y',n.y+Math.max(3,n.h)/2+4);
       t.setAttribute('text-anchor',isLeft?'end':'start');
-      t.setAttribute('font-size','11');t.setAttribute('fill','#1C2B3A');
+      t.setAttribute('font-size','11');t.setAttribute('fill',PAL.text);
       t.setAttribute('font-family','Inter,sans-serif');
       const ghw=isLeft?(preMap[n.f]||0):(postMap[n.f]||0);
       t.textContent=`${n.f} (${(ghw/1e6).toFixed(1)} GWh)`;
@@ -3395,7 +3605,7 @@ function renderProvinceMeasures(slice){
   if(!n){$('measures-list').innerHTML='<div class="state-msg"><strong>No matches</strong></div>';return;}
   $('measures-list').innerHTML=[...measures].sort((a,b)=>b.pct-a.pct).map(m=>{
     const def=MEASURES.find(x=>x.key===m.key);
-    return `<div class="measure-row"><div class="measure-label">${m.label}<button type="button" class="info-btn" aria-label="How is ${m.label} counted?" data-info="${def?.tip||''}">?</button></div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${def?.color||'#8A9BB0'}"></div></div><div class="bar-pct">${m.pct}%</div></div>`;
+    return `<div class="measure-row"><div class="measure-label">${m.label}<button type="button" class="info-btn" aria-label="How is ${m.label} counted?" data-info="${def?.tip||''}">?</button></div><div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${def?.color||PAL.tick}"></div></div><div class="bar-pct">${m.pct}%</div></div>`;
   }).join('');
 }
 
@@ -3408,18 +3618,18 @@ function renderProvinceHist(slice){
     type:'bar',
     data:{labels:keys.map(k=>`${k}%`),datasets:[{
       data:keys.map(k=>bins[k]),
-      backgroundColor:keys.map(k=>k<0?'rgba(179,58,46,0.7)':'rgba(26,122,85,0.7)'),
-      borderColor:keys.map(k=>k<0?'#B33A2E':'#1A7A55'),
+      backgroundColor:keys.map(k=>k<0?al(PAL.neg,'B3'):al(PAL.pos,'B3')),
+      borderColor:keys.map(k=>k<0?PAL.neg:PAL.pos),
       borderWidth:0.5,borderRadius:0,barPercentage:1.0,categoryPercentage:1.0
     }]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
       scales:{
-        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:'#5C6E82'},
-          ticks:{font:{size:9},color:'#8A9BB0',maxTicksLimit:30,
+        x:{title:{display:true,text:'Energy saving %',font:{size:11},color:PAL.axis},
+          ticks:{font:{size:9},color:PAL.tick,maxTicksLimit:30,
             callback:function(v,i){const l=keys[i];return l%10===0?`${l}%`:''}},
           grid:{display:false}},
-        y:{title:{display:true,text:'Homes',font:{size:11},color:'#5C6E82'},ticks:{font:{size:11},color:'#8A9BB0'},grid:{color:'#E8EDF4'}}
+        y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}
       }
     }
   });
@@ -3440,12 +3650,12 @@ function makeEUIBar(preEUI,postEUI,medPre,medPost){
   // Use shared #eui-grad defined once in static HTML — no random IDs needed
   let s=`<svg viewBox="0 0 ${W} ${H+14}" width="${W}" height="${H+14}" style="display:block;overflow:visible">
     <rect x="0" y="4" width="${W}" height="${MH}" fill="url(#eui-grad)" rx="3" opacity="0.25"/>`;
-  if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke="#0B2545" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
-  if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke="#1A7A55" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
-  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="4" fill="#0B2545" stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
-  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="4" fill="#1A7A55" stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
-  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill="#0B2545" font-family="Inter,sans-serif">${preEUI}</text>`;
-  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill="#1A7A55" font-family="Inter,sans-serif">${postEUI}</text>`;
+  if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke=PAL.primary stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke=PAL.pos stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="4" fill=PAL.primary stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
+  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="4" fill=PAL.pos stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
+  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill=PAL.primary font-family="Inter,sans-serif">${preEUI}</text>`;
+  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill=PAL.pos font-family="Inter,sans-serif">${postEUI}</text>`;
   s+=`</svg>`;
   return s;
 }
@@ -3487,23 +3697,23 @@ function makeInlineSVG(r){
     <svg viewBox="0 0 ${startX+barW+70} ${svgH}" style="width:${startX+barW+70}px;max-width:100%;display:block">`;
   KPIs.forEach((k,i)=>{
     const y=i*gap+8;
-    html+=`<text x="${startX-6}" y="${y+barH/2+4}" text-anchor="end" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${k.label}${k.noR?'':' R'}</text>`;
+    html+=`<text x="${startX-6}" y="${y+barH/2+4}" text-anchor="end" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${k.label}${k.noR?'':' R'}</text>`;
     const preW=k.pre?Math.max(2,Math.min(barW,k.pre/k.max*barW)):0;
     const postW=k.post?Math.max(2,Math.min(barW,k.post/k.max*barW)):0;
-    html+=`<rect x="${startX}" y="${y}" width="${barW}" height="${barH}" fill="#E8EDF4" rx="3"/>`;
-    html+=`<rect x="${startX}" y="${y}" width="${preW}" height="${barH/2}" fill="#0B254599" rx="2"/>`;
-    html+=`<rect x="${startX}" y="${y+barH/2}" width="${postW}" height="${barH/2}" fill="#1A7A5599" rx="2"/>`;
+    html+=`<rect x="${startX}" y="${y}" width="${barW}" height="${barH}" fill=PAL.track rx="3"/>`;
+    html+=`<rect x="${startX}" y="${y}" width="${preW}" height="${barH/2}" fill=al(PAL.primary,'99') rx="2"/>`;
+    html+=`<rect x="${startX}" y="${y+barH/2}" width="${postW}" height="${barH/2}" fill=al(PAL.pos,'99') rx="2"/>`;
     const pStr=k.pre?(k.noR?k.pre.toFixed(1):(k.pre*RSI_TO_R).toFixed(0)):'—';
     const qStr=k.post?(k.noR?k.post.toFixed(1):(k.post*RSI_TO_R).toFixed(0)):'—';
     const imp=k.hi?(k.post||0)>(k.pre||0):(k.post||0)<(k.pre||0);
-    html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?'#1A7A55':'#B33A2E'}">${qStr}</tspan></text>`;
+    html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?PAL.pos:PAL.neg}">${qStr}</tspan></text>`;
   });
   const pills=MEASURES.filter(m=>flag(r,m.key))
     .map(m=>`<span class="measure-chip" style="background:${m.color}">${m.label}</span>`).join('');
   html+=`</svg>
     <div style="display:flex;gap:12px;margin-top:4px">
-      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:16px;height:4px;background:#0B254599;border-radius:2px"></span>Pre</span>
-      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:16px;height:4px;background:#1A7A5599;border-radius:2px"></span>Post</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#0B254599;border-radius:2px"></span>Pre</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#1A7A5599;border-radius:2px"></span>Post</span>
     </div>
     <div class="measure-chips" style="margin-top:.6rem">${pills||'<span style="font-size:11px;color:var(--light)">No measures flagged</span>'}</div>
   </div>`;
@@ -3513,22 +3723,22 @@ function makeInlineSVG(r){
   function textRow(lbl,pre,post){
     const changed=pre&&post&&pre!==post;
     return `<tr>
-      <td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:#1C2B3A">${pre||'—'}</td>
-      <td style="padding:3px 10px;color:#1C2B3A">${post||'—'}</td>
-      <td style="padding:3px 0;color:${changed?'#C8881A':'var(--light)'}">${changed?'Changed':'—'}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
+      <td style="padding:3px 10px;color:var(--text)">${pre||'—'}</td>
+      <td style="padding:3px 10px;color:var(--text)">${post||'—'}</td>
+      <td style="padding:3px 0;color:${changed?PAL.secondary:'var(--light)'}">${changed?'Changed':'—'}</td>
     </tr>`;
   }
   function numRow(lbl,pre,post,unit,higherIsBetter,decimals){
-    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap">${lbl}</td><td colspan="3" style="padding:3px 0;color:var(--light)">—</td></tr>`;
+    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="3" style="padding:3px 0;color:var(--light)">—</td></tr>`;
     const d=pre!==null&&post!==null?(higherIsBetter?post-pre:pre-post):null;
     const good=d!==null&&d>=0;
     const fmt=v=>v===null?'—':(decimals?v.toFixed(decimals):Math.round(v).toLocaleString());
     return `<tr>
-      <td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:#1C2B3A">${fmt(pre)}${unit?` ${unit}`:''}</td>
-      <td style="padding:3px 10px;color:#1C2B3A">${fmt(post)}${unit?` ${unit}`:''}</td>
-      <td style="padding:3px 0;color:${d===null?'var(--light)':good?'#1A7A55':'#B33A2E'}">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unit?` ${unit}`:''}`}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
+      <td style="padding:3px 10px;color:var(--text)">${fmt(pre)}${unit?` ${unit}`:''}</td>
+      <td style="padding:3px 10px;color:var(--text)">${fmt(post)}${unit?` ${unit}`:''}</td>
+      <td style="padding:3px 0;color:${d===null?'var(--light)':good?PAL.pos:PAL.neg}">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unit?` ${unit}`:''}`}</td>
     </tr>`;
   }
   // Windows: decoded pre/post codes, plus an attribute-by-attribute change
@@ -3542,8 +3752,8 @@ function makeInlineSVG(r){
     const changes=WINDOW_ATTRS.filter(({key})=>wp[key]!==wq[key])
       .map(({key,label})=>`${label}: ${wp[key]} → ${wq[key]}`);
     windowRows+=`<tr>
-      <td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap;vertical-align:top">Window changes</td>
-      <td colspan="3" style="padding:3px 0;color:#1C2B3A">${changes.length?changes.join('<br>'):'<span style="color:var(--light)">Same window spec before and after</span>'}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap;vertical-align:top">Window changes</td>
+      <td colspan="3" style="padding:3px 0;color:var(--text)">${changes.length?changes.join('<br>'):'<span style="color:var(--light)">Same window spec before and after</span>'}</td>
     </tr>`;
   }
   // Whole-house consumption by fuel (all end uses — heating, DHW,
@@ -3573,12 +3783,12 @@ function makeInlineSVG(r){
   // "Design heat loss" row in the HVAC table below (EGHDESHTLOSS) — the two
   // aren't the same quantity, hence the separate chart rather than a shared row.
   const HL_COMPONENTS=[
-    {key:'HeatLossWindowDoor',label:'Windows/doors',color:'#B33A2E'},
-    {key:'HeatLossWall',label:'Walls',color:'#378ADD'},
-    {key:'HeatLossFoundation',label:'Foundation',color:'#533AB7'},
-    {key:'HeatLossRoof',label:'Roof',color:'#1A7A55'},
-    {key:'HeatLossFloor',label:'Exposed floor',color:'#8A9BB0'},
-    {key:'HeatLossAir',label:'Air leakage',color:'#C8881A'},
+    {key:'HeatLossWindowDoor',label:'Windows/doors',color:PAL.neg},
+    {key:'HeatLossWall',label:'Walls',color:PAL.blue},
+    {key:'HeatLossFoundation',label:'Foundation',color:PAL.purple},
+    {key:'HeatLossRoof',label:'Roof',color:PAL.pos},
+    {key:'HeatLossFloor',label:'Exposed floor',color:PAL.tick},
+    {key:'HeatLossAir',label:'Air leakage',color:PAL.secondary},
   ];
   const hlPre=HL_COMPONENTS.map(c=>num(r['Pre_'+c.key])||0);
   const hlPost=HL_COMPONENTS.map(c=>num(r['Post_'+c.key])||0);
@@ -3600,24 +3810,24 @@ function makeInlineSVG(r){
     heatLossBlock=`<div style="margin-top:1.25rem">
       <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Annual heat loss by component, kWh/yr</div>
       <svg viewBox="0 0 ${HLW+55} ${y2+HLH+6}" style="width:100%;max-width:${HLW+55}px;display:block">
-        <text x="0" y="${y1-4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">Pre</text>
+        <text x="0" y="${y1-4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">Pre</text>
         ${stackedBar(hlPre,y1)}
-        <text x="${HLW+8}" y="${y1+HLH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
-        <text x="0" y="${y2-4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">Post</text>
+        <text x="${HLW+8}" y="${y1+HLH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
+        <text x="0" y="${y2-4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">Post</text>
         ${stackedBar(hlPost,y2)}
-        <text x="${HLW+8}" y="${y2+HLH/2+4}" font-size="10" fill="#5C6E82" font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
+        <text x="${HLW+8}" y="${y2+HLH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
       </svg>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
-        ${HL_COMPONENTS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5C6E82"><span style="display:inline-block;width:9px;height:9px;background:${c.color};border-radius:2px"></span>${c.label}</span>`).join('')}
+        ${HL_COMPONENTS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:9px;height:9px;background:${c.color};border-radius:2px"></span>${c.label}</span>`).join('')}
       </div>
     </div>`;
   }
   const py=r.Pre_Year?parseInt(r.Pre_Year):null,qy=r.Post_Year?parseInt(r.Post_Year):null;
   const yearGap=(py&&qy)?qy-py:null;
   const auditYearRow=`<tr>
-    <td style="padding:3px 10px 3px 0;color:#5C6E82;white-space:nowrap">Audit year</td>
-    <td style="padding:3px 10px;color:#1C2B3A">${r.Pre_Year||'—'}</td>
-    <td style="padding:3px 10px;color:#1C2B3A">${r.Post_Year||'—'}</td>
+    <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">Audit year</td>
+    <td style="padding:3px 10px;color:var(--text)">${r.Pre_Year||'—'}</td>
+    <td style="padding:3px 10px;color:var(--text)">${r.Post_Year||'—'}</td>
     <td style="padding:3px 0;color:var(--light)">${yearGap!==null?`${yearGap} yr apart`:'—'}</td>
   </tr>`;
 
@@ -3815,7 +4025,7 @@ function ringsToPathD(rings){
 
 function loadFsaMap(prov,fsaIndex){
   setMapAvailable(true); // enables the Explore button; the card stays collapsed until the user opens it
-  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
+  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill=PAL.tick font-size="13" font-family="Inter, sans-serif">Loading map…</text>';
   resetFsaMapZoom();
   // Census is only used here for the tooltip's population line, so don't
   // block painting 500+ polygons on that ~1.2MB fetch — paint now, then
@@ -3881,7 +4091,7 @@ function loadFsaMap(prov,fsaIndex){
     }).catch(()=>{});
   }).catch(err=>{
     console.error(err);
-    $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13" font-family="Inter, sans-serif">Map not available for this province</text>';
+    $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill=PAL.tick font-size="13" font-family="Inter, sans-serif">Map not available for this province</text>';
     MAP_STATE=null;
     setMapAvailable(false); // no boundary file for this province — drop the Explore button
   });
@@ -3920,11 +4130,11 @@ function buildFsaColorScale(state){
     const savings=vals.map(e=>e.median_saving_pct).filter(v=>v!=null);
     const lo=Math.min(...savings,0),hi=Math.max(...savings,0);
     $('map-color-meaning').textContent='median energy saving';
-    const BASE=[234,246,238],POS=[9,74,48],NEG=[122,28,22];
+    const BASE=PAL.rampBase,POS=PAL.rampPos,NEG=PAL.rampNeg;
     const posColor=t=>lerpColorGamma(BASE,POS,t);
     const negColor=t=>lerpColorGamma(BASE,NEG,t);
     const colorOf=e=>{
-      if(!e||e.median_saving_pct==null)return'#D3D9E2';
+      if(!e||e.median_saving_pct==null)returnPAL.mapNull;
       const v=e.median_saving_pct;
       return v>=0?posColor(hi>0?v/hi:0):negColor(lo<0?v/lo:0);
     };
@@ -3948,8 +4158,8 @@ function buildFsaColorScale(state){
   const counts=vals.map(e=>e.row_count||0);
   const maxCount=Math.max(...counts,1);
   $('map-color-meaning').textContent='audited homes';
-  setMapGradientLegend('linear-gradient(90deg,#E6ECF5,#0B2545)','0 homes',null,`${maxCount.toLocaleString()} homes`);
-  return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxCount)):'#D3D9E2';
+  setMapGradientLegend(`linear-gradient(90deg,${PAL.mapBase},${PAL.primary})`,'0 homes',null,`${maxCount.toLocaleString()} homes`);
+  return e=>e?lerpColor(PAL.rampCountLo,PAL.rampCountHi,Math.sqrt((e.row_count||0)/maxCount)):PAL.mapNull;
 }
 
 function paintFsaMap(){
@@ -4329,6 +4539,10 @@ function setViewMode(mode){
 // Landing default: load "All of Canada" immediately instead of waiting on
 // an empty page until the user picks a province (matches province-sel's
 // pre-selected option).
+// Must run before anything draws: the <head> bootstrap already set
+// data-theme to avoid a flash, but PAL is still empty until readPalette()
+// reads those vars back out, and every chart colour comes from PAL.
+initTheme();
 fetchLookups();
 injectIcons(); // drop the hand-crafted line-icons into every data-icon element
 document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===(isAdvancedMode()?'advanced':'simple')));
