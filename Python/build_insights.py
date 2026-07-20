@@ -41,7 +41,9 @@ HONESTY RAILS baked into the numbers (each also stated on-page, ROADMAP item
 13): savings are MODELLED EnerGuide estimates, not measured bills; negative
 savings are dominated by audit noise (zero-measure pairs — reported but
 excluded from "what worked"); participation mixes ~20 years of cumulative
-audits over a single 2021 dwelling snapshot and can exceed 1.0; FSA income
+audits over a single 2021 dwelling snapshot, so it is suppressed entirely
+where the denominator can't carry the ratio (MIN_DWELLINGS_FOR_PARTICIPATION)
+and is relative, not absolute, everywhere else; FSA income
 correlations are ECOLOGICAL (rich FSA != rich participant); ERS is
 self-selected, not a random sample.
 
@@ -85,6 +87,23 @@ BUILD_DATE = datetime.date.today().isoformat()
 # ranking, so tiny-n FSAs don't dominate. fsa_metrics.json keeps ALL FSAs
 # (with n) so the page can threshold differently if it wants.
 MIN_N = 30
+
+# Minimum 2021 census dwellings before participation is reported at all.
+#
+# Participation divides ~20 years of cumulative audits (numerator, carrying the
+# FSA code in force at audit time) by a single 2021 dwelling snapshot
+# (denominator). Where Canada Post redrew or largely retired an FSA, two decades
+# of audits accumulate under a code whose 2021 remnant is tiny, and the ratio
+# becomes meaningless rather than merely noisy — L0N ON reported 94.5% (845
+# audits / 894 dwellings) and L4V ON 1400% (14 / 1). StatCan's numbers are
+# correct in both cases; the two sides just describe different geographies.
+#
+# 1,000 is chosen to cut that structurally-broken tail (80 FSAs, ~5.8k pairs,
+# 0.4% of matched retrofits) without suppressing the genuinely high uptake in
+# Nova Scotia and New Brunswick, where long-running provincial programs put
+# real participation in the 40-47% band. Suppressed FSAs get participation=None,
+# which also drops them from the opportunity ranking (see build_opportunity).
+MIN_DWELLINGS_FOR_PARTICIPATION = 1000
 
 # The 8 measure flags (same set + order as precompute_province_stats.MEASURES).
 # key -> short label used in bundle strings and the success payload.
@@ -294,6 +313,27 @@ def load_province_frame(parquet_path):
 # per-FSA metrics
 # =============================================================================
 
+def participation_or_none(audited, dwellings):
+    """
+    Participation (audited homes / 2021 census dwellings), or None when the
+    denominator can't carry the ratio. See MIN_DWELLINGS_FOR_PARTICIPATION.
+
+    Returns (value, suppressed_reason). suppressed_reason is None when the value
+    is reported, otherwise a short code the frontend can show instead of a rate:
+      "no_census"    FSA code absent from the 2021 census (retired/changed code)
+      "tiny_area"    fewer than MIN_DWELLINGS_FOR_PARTICIPATION dwellings
+      "impossible"   ratio > 1.0; defensive, tiny_area should catch these first
+    """
+    if not audited or not dwellings:
+        return None, "no_census"
+    if dwellings < MIN_DWELLINGS_FOR_PARTICIPATION:
+        return None, "tiny_area"
+    value = audited / dwellings
+    if value > 1.0:
+        return None, "impossible"
+    return value, None
+
+
 def build_fsa_metrics(nat, by_fsa_audit, cdrv, climate, income_q, dv_q):
     """One record per FSA present in the matched data."""
     records = {}
@@ -308,7 +348,7 @@ def build_fsa_metrics(nat, by_fsa_audit, cdrv, climate, income_q, dv_q):
             audited = cell["de"] + cell["d"] + cell["e"]
         cd = cdrv.get(fsa, {})
         dwellings = cd.get("total_dwellings")
-        participation = (audited / dwellings) if (audited and dwellings) else None
+        participation, part_suppressed = participation_or_none(audited, dwellings)
         matched_retrofit_rate = (n / audited) if audited else None
 
         shares = {MEASURE_LABEL[k]: r3(float(grp[k].mean())) for k in MEASURE_KEYS}
@@ -320,6 +360,7 @@ def build_fsa_metrics(nat, by_fsa_audit, cdrv, climate, income_q, dv_q):
             "n": n,
             "audited": audited,
             "participation": r3(participation),
+            "participation_suppressed": part_suppressed,
             "matched_retrofit_rate": r3(matched_retrofit_rate),
             "median_saving_pct": r1(med(grp["saving_pct"])),
             "eui_pre_median": r0(med(grp["pre_eui"])),
@@ -769,12 +810,19 @@ def main():
     metrics = build_fsa_metrics(nat, by_fsa_audit, cdrv, climate, income_q, dv_q)
     print(f"  {len(metrics):,} FSAs")
 
-    # FSA-level (audited, dwellings, quintile) for participation-by-quintile
+    # FSA-level (audited, dwellings, quintile) for participation-by-quintile.
+    # FSAs whose participation was suppressed are left out entirely: a denominator
+    # we won't divide by per-FSA is also one we shouldn't add into a quintile sum
+    # (a tiny-remnant FSA contributes a full 20 years of audits against a 2021
+    # remnant, inflating its quintile's numerator).
     income_fad = {}
     dv_fad = {}
     for fsa, m in metrics.items():
-        income_fad[fsa] = (m["audited"], cdrv.get(fsa, {}).get("total_dwellings"), income_q.get(fsa))
-        dv_fad[fsa] = (m["audited"], cdrv.get(fsa, {}).get("total_dwellings"), dv_q.get(fsa))
+        if m["participation_suppressed"]:
+            continue
+        dwellings = cdrv.get(fsa, {}).get("total_dwellings")
+        income_fad[fsa] = (m["audited"], dwellings, income_q.get(fsa))
+        dv_fad[fsa] = (m["audited"], dwellings, dv_q.get(fsa))
 
     # ---- build the rest ----
     print("Building success / climate / equity / opportunity / timeline...")
@@ -784,10 +832,20 @@ def main():
     opportunity = build_opportunity(metrics)
     timeline = build_timeline(nat)
 
+    # so the methodology section can state the suppression counts without
+    # re-deriving them in the browser
+    part_sup = Counter(m["participation_suppressed"] for m in metrics.values())
+
     meta = {
         "build_date": BUILD_DATE,
         "national_matched_total": int(len(nat)),
         "n_fsas_matched": len(metrics),
+        "participation_coverage": {
+            "reported": part_sup.get(None, 0),
+            "suppressed_tiny_area": part_sup.get("tiny_area", 0),
+            "suppressed_no_census": part_sup.get("no_census", 0),
+            "suppressed_impossible": part_sup.get("impossible", 0),
+        },
         "sources": {
             "ers_parquets": "C:/ERS/web/ers_web_<PROV>.parquet (matched before/after audit pairs; same rows retrofits.html serves)",
             "audit_totals": "C:/ERS/web/fsa_audit_totals.json (audit composition incl. unmatched; build_fsa_audit_totals.py)",
@@ -796,12 +854,19 @@ def main():
         },
         "thresholds": {
             "min_n_leaderboard_and_opportunity": MIN_N,
+            "min_dwellings_for_participation": MIN_DWELLINGS_FOR_PARTICIPATION,
             "top_decile_percentile": 90,
         },
         "definitions": {
             "matched_count": "rows in the matched-pair parquet for the FSA (a completed before/after retrofit pair)",
             "audited_count": "dore = de+d+e from fsa_audit_totals (homes with any initial-D or follow-up-E audit, matched or not)",
-            "participation": "audited / 2021-census total_dwellings; cumulative ~20yr audits over a single dwelling snapshot -> CAN exceed 1.0 (honesty rail)",
+            "participation": (
+                "audited / 2021-census total_dwellings. The numerator is ~20yr of cumulative audits "
+                "carrying the FSA code in force at audit time; the denominator is a single 2021 snapshot. "
+                f"Suppressed (null) where the FSA is absent from the 2021 census, has fewer than "
+                f"{MIN_DWELLINGS_FOR_PARTICIPATION} dwellings, or the ratio exceeds 1.0 — see "
+                "participation_suppressed for which. Read the reported values as RELATIVE, not absolute (honesty rail)"),
+            "participation_suppressed": "null when participation is reported, else no_census | tiny_area | impossible",
             "matched_retrofit_rate": "matched_count / audited_count (share of an FSA's audited homes that became a completed matched pair)",
             "median_saving_pct": "median of EnergySavingPct*100 over the FSA's matched pairs (MODELLED EnerGuide estimate, not a measured bill)",
             "eui": "Pre/Post_TotalEnergy / FloorArea, kWh/m2/yr, area>0 only",
@@ -822,7 +887,8 @@ def main():
         "honesty_rails": [
             "Savings are modelled EnerGuide estimates, not measured utility bills.",
             "Negative / zero savings are dominated by audit noise; zero-measure pairs are reported but excluded from 'what worked' stats.",
-            "Participation mixes ~20 years of cumulative audits over a single 2021 dwelling snapshot and can exceed 1.0.",
+            "Participation mixes ~20 years of cumulative audits over a single 2021 dwelling snapshot, so it is "
+            "reported as a relative measure and suppressed entirely where the dwelling count is too small to divide by.",
             "FSA-level income/value correlations are ecological, not household-level (a 'rich FSA' is not a 'rich participant').",
             "ERS is a self-selected sample of homes that sought an audit, not a random sample of Canadian housing.",
         ],
