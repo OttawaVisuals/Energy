@@ -25,11 +25,11 @@
 
 /* Census card: gauge on the left, supporting KPIs filling the rest of the
    row. Collapses to stacked on narrow screens so the gauge keeps its size. */
-.census-gauge-row{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap}
-.census-gauge{flex:0 0 190px;max-width:190px}
-.census-gauge-cap{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;line-height:1.4}
-.census-gauge-kpis{flex:1 1 320px;min-width:0}
-@media(max-width:600px){.census-gauge{flex:1 1 100%;max-width:none;margin:0 auto}}
+/* Coverage tile: same box as .kpi-item, marked out by an accent ring and a
+   fill bar so it still reads as the card's headline number. */
+.kpi-item.kpi-coverage{box-shadow:inset 0 0 0 1.5px var(--primary)}
+.kpi-bar{height:5px;background:var(--track,#e6e2da);border-radius:3px;overflow:hidden;margin-top:8px}
+.kpi-bar span{display:block;height:100%;border-radius:3px}
 
 /* ── Filters ── */
 /* .filter-sticky wraps the filter bar OUTSIDE the hero so position:sticky
@@ -236,6 +236,11 @@ tr.data-row:focus-visible td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
 tr.detail-row td{padding:0;border-bottom:1px solid var(--border);background:var(--cream)}
 .detail-inner{padding:1rem 1rem 1.25rem;display:none}
 tr.detail-row.open .detail-inner{display:block}
+.detail-h{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem}
+.detail-measures{margin-bottom:1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--border)}
+/* auto-fit so the three charts drop to two columns, then one, instead of
+   compressing all three past legibility on a narrow viewport */
+.detail-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem 2rem;align-items:start;margin-bottom:1.5rem}
 .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .badge-deep{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
 .badge-medium{background:var(--badge-med-bg);color:var(--badge-med-fg)}
@@ -319,7 +324,7 @@ tr.detail-row.open .detail-inner{display:block}
 .section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
 .section-head:first-child{margin-top:.25rem}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
-.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:110ch}
 
 /* ── Section / measure icons ──
    Hand-crafted inline SVG line-icons injected by injectIcons() into any
@@ -634,7 +639,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="card-title">Energy bill — $ per year at current rates<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Yearly energy bill at today's rates, before (navy) vs after (green). Amber bars show the size of each home's saving." data-method="m-caveats">?</button></div>
     <div class="eui-row" id="cost-kpis"></div>
     <div class="cw cw-lg"><canvas id="cost-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at the province's current residential rates (<code>utility_rates_reference.json</code>): electricity at one blended ¢/kWh, gas at ¢/m³, oil/propane per litre, wood at a flat national screening ¢/kWh (one rate applied to wood heating of any kind — no per-species breakdown exists). Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2026, so read this as "what a home like this would save at current prices," not a historical bill. Homes that switch fuel to electricity can see a bill rise even when energy or emissions fall, depending on the rate gap. Bills above $8,000/yr clipped for scale. Propane, oil, and wood rates are single-province averages, lower confidence than the utility-tariff electricity/gas figures.</span></p>
+    <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at its province's current residential rates. Volumetric energy only — fixed monthly service charges are excluded because they largely cancel between the two scenarios. Today's rates are applied to audits from 2004–2026, so read this as “what a home like this would save at current prices,” not a historical bill. A home that switches to electricity can see its bill rise even when energy and emissions fall. Bills above $8,000/yr are clipped for scale. <a href="#m-prices" onclick="openMethodology(event,'m-prices')">Where the prices come from, and their limits →</a></span></p>
   </div>
 
 
@@ -654,6 +659,15 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="card-title-row"><div class="card-title">Energy by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-legend"></div></div>
     <div class="cw cw-lg"><canvas id="waterfall-chart"></canvas></div>
     <p class="note">Each fuel gets a box sized to its larger of pre/post use; the fill level shows the actual pre or post value as a share of that box, so a half-filled box means usage dropped by half. The bottom row shows the resulting saving (green) or increase (red) per fuel. This chart uses <strong>total</strong> energy summed across all matched homes (not the median used elsewhere on this page), so each fuel's share adds up to the true total — and a fuel used by a minority of homes still shows up instead of medianing to zero. Hover any box for exact values.</p>
+  </div>
+
+<!-- Same chart, space-heating energy only. FSA mode only — the province
+       precompute has no heating-only per-fuel figures (see
+       renderWaterfallHeating). Hidden by toggleHeatWaterfallCard(). -->
+  <div class="card" id="waterfall-heat-card" data-mode="advanced" style="display:none">
+    <div class="card-title-row"><div class="card-title">Space heating by fuel — pre vs post · total kWh across all matched homes</div><div class="chart-legend-inline" id="waterfall-heat-legend"></div></div>
+    <div class="cw cw-lg"><canvas id="waterfall-heat-chart"></canvas></div>
+    <p class="note">Read exactly like the chart above, but counting only the energy HOT2000 attributes to <strong>space heating</strong> — domestic hot water, appliances, and lighting are excluded. This is where a heating retrofit actually shows up: whole-house totals dilute a furnace or heat-pump change with the loads it never touched, so the same upgrade looks smaller there than it does here. Available for a single postal area only. <strong>Wood and propane totals here should be read with caution</strong>: for most homes that heat with either, the heating-only figure comes out slightly <em>above</em> that home's whole-house figure for the same fuel, which cannot be physically true. For propane it is a constant 0.27%, traceable to the litres-to-kWh heating value used here sitting slightly below HOT2000's own. Wood is more variable and not yet explained. Gas, oil, and electricity are unaffected. See the open questions in the methodology.</p>
   </div>
 
   
@@ -768,25 +782,20 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 
 
-<!-- Neighbourhood housing stock — 2021 Census, FSA-level only (no Canada/
-       province-wide rollup yet — see retrofits.html notes). Hidden outside
-       FSA mode by toggleCensusCard(). -->
+<!-- Housing stock — 2021 Census. FSA view reads census_json/fsa_census.json
+       directly; province and Canada views read the rollup of the same file
+       (Python/rollup_census.py). The note text swaps with the scope, so it
+       lives in JS (CENSUS_NOTE_*) rather than here. -->
   <div class="card" id="census-card" data-mode="advanced" style="display:none">
-    <div class="card-title">Neighbourhood housing stock — 2021 Census</div>
-    <!-- One gauge, and it answers the question the rest of the card exists to
-         frame: how much of this neighbourhood's housing the audit sample
-         actually covers. Tenure and condition used to be gauges too, which
-         gave three equally-weighted dials and no focal point — they are
-         single percentages, so they read better as plain KPIs below. -->
-    <div class="census-gauge-row">
-      <div class="census-gauge">
-        <div style="position:relative;height:150px"><canvas id="census-coverage-gauge"></canvas></div>
-        <div class="census-gauge-cap" id="census-coverage-cap"></div>
-      </div>
-      <div class="kpi-grid census-gauge-kpis" id="census-coverage-kpis"></div>
-    </div>
+    <div class="card-title" id="census-title">Neighbourhood housing stock — 2021 Census</div>
+    <!-- Coverage — how much of this area's housing the audit sample actually
+         covers — leads the card. It was a half-doughnut gauge, which stood a
+         head taller than the KPI tiles beside it and broke the row; it is now
+         the first tile in the same grid, keeping the emphasis (own accent,
+         a fill bar the others don't have) without the height. -->
+    <div class="kpi-grid" id="census-coverage-kpis"></div>
     <div class="kpi-grid" id="census-owner-kpis" style="margin-top:1rem"></div>
-    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. The gauge compares the two; see also the Building type and Year built charts above, which overlay this same census data for direct comparison. Tenure and dwelling condition are census counts for the whole FSA, so they describe the neighbourhood, not the audited homes. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
+    <p class="note" id="census-note"></p>
   </div>
 
   
@@ -801,7 +810,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     <div class="card">
       <div class="card-title" data-icon="heatpump">Heat pump + backup<button type="button" class="info-btn" aria-label="How is the backup identified?" data-info="For homes with a heat pump, the recorded heating-equipment fuel is the companion/backup system HOT2000 tracks separately from the heat pump itself — not the heat pump's own energy source (always electricity)." data-method="m-derived">?</button></div>
       <div id="hp-backup-list" class="equip-list"></div>
-      <p class="note">What accompanies the heat pump in matched homes with one — the backup system that covers demand beyond the heat pump's own capacity, or when it's offline. Where shown, the sub-line is the share of those homes (with that fuel as their own recorded backup) where that fuel's heating-only consumption is actually above zero — shown for gas, oil, and propane only. Electric backup can't be separated from the heat pump's own electricity use in this data, and the wood species (mixed/hard/soft/pellets) share one combined consumption figure, so a per-species check isn't meaningful.</p>
+      <p class="note">What accompanies the heat pump in matched homes with one — the backup system that covers demand beyond the heat pump's own capacity, or when it's offline. The count is homes; the sub-line underneath counts how many of <em>those same</em> homes still show heating consumption from that fuel after the retrofit. A high share is expected rather than surprising: these are hybrid systems, and the backup is meant to run on the coldest days, so "still burned gas" means the system worked as designed, not that the heat pump failed. The check runs for <strong>gas, oil, and propane only</strong> — electric backup cannot be separated from the heat pump's own electricity draw (the heat pump runs on electricity, so the figure would be 100% by construction and tell you nothing), and the wood species (mixed/hard/soft/pellets) share one combined consumption figure, so a per-species check isn't meaningful.</p>
     </div>
     <div class="card">
       <div class="card-title" data-icon="heatpump">Heat pump sizing — capacity vs. design heat loss<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Heat pump heating capacity, from its AHRI certificate, divided by the home's design heat loss. 1.0 means the heat pump alone covers the full peak heating load; below 1.0 means the backup system covers the rest on the coldest days — a deliberate, common design choice, not a sizing mistake." data-method="m-derived">?</button></div>
@@ -877,24 +886,24 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   <details>
     <summary>How this data was built — methodology</summary>
     <div class="method-body">
-      <p>This tool visualises real home-energy audits, but the numbers go through several steps before they reach the charts. Here is the whole journey in plain terms.</p>
+      <p>This tool visualises real home-energy audits. Here is where the data comes from, how it is transformed and analysed.</p>
 
       <h4>1 · Where the data comes from</h4>
-      <p>Every figure starts from Natural Resources Canada's <strong>EnerGuide / Energy Rating System (ERS)</strong> open dataset — the official record of home-energy audits across Canada, covering audit years <strong>2004–2026</strong>. An audit is a trained energy advisor visiting a home and modelling, with NRCan's HOT2000 software, how much energy it uses and where that energy is lost.</p>
+      <p>Audit data comes from Natural Resources Canada's <strong><a href="https://natural-resources.canada.ca/energy-efficiency/product-energy-ratings/energuide" target="_blank" rel="noopener">EnerGuide</a> Rating System (ERS)</strong> <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">open dataset</a> — the official record of home-energy audits across Canada, covering audit years <strong>2004–2026</strong>. NRCan introduced the rating system in 1998 as an unbiased, credible way to estimate how energy is used in a home, and it has since rated over a million of them. An audit is a registered energy advisor visiting a home and modelling it in <a href="https://natural-resources.canada.ca/energy-efficiency/home-energy-efficiency/tools-industry-professionals" target="_blank" rel="noopener">HOT2000</a> — NRCan's residential energy analysis and rating software, described by NRCan as "the Canadian standard for evaluating the energy performance of houses and multi-unit residential buildings" — to work out how much energy the home uses and where that energy is lost.</p>
 
-      <h4 id="m-pairing">2 · Matching "before" and "after"</h4>
-      <p>Each audit record is tagged as an evaluation type. We treat type <strong>D</strong> as the <em>initial</em> ("before") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after") evaluation. A home is identified by a stable address ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
+      <h4 id="m-pairing">2 · Matching "before retrofit" and "after retrofit"</h4>
+      <p>Each audit record has an evaluation type tag. We treat type <strong>D</strong> as the <em>initial</em> ("before retrofit") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after retrofit") evaluation. A home is identified by a stable house ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
 
       <h4>3 · Making sure it's really the same home</h4>
       <p>To avoid accidentally comparing two different homes (or a home that had a major addition), a pair is kept only if, between the two audits, the <strong>floor area changed by no more than 10%</strong> and the <strong>house type, number of storeys, and number of dwelling units stayed the same</strong>. Pairs that fail these checks are removed before anything is counted.</p>
 
-      <h4 id="m-units">4 · Putting everything in the same units</h4>
+      <h4 id="m-units">4 · Converting everything to the same units</h4>
       <p>The source records each fuel in its own unit, so we convert everything to a common one — <strong>kilowatt-hours (kWh)</strong> — before comparing: natural gas from cubic metres, oil and propane from litres, wood from tonnes, and the overall total from megajoules. Electricity is already in kWh. Greenhouse-gas emissions come straight from the audit (tonnes CO₂e per year) and already include emissions from electricity using each province's grid mix, so fuel-switching to electricity is accounted for fairly.</p>
 
       <h4 id="m-derived">5 · Fields we calculate ourselves</h4>
       <p>From the audit values we derive the numbers you see:</p>
       <p><strong>EUI (energy use intensity)</strong> = total energy ÷ floor area, in <code>kWh/m²</code> — lets a small efficient home and a large one be compared fairly.<br>
-      <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose. Negative cases are rare (~4% of homes) and mostly small: about three-quarters of them have no retrofit measure flagged, so they largely reflect modelling differences between the two audits rather than upgrades that backfired.<br>
+      <strong>Energy saving %</strong> = (before − after) ÷ before. Positive means energy use dropped; negative means it rose. Negative cases are rare (~4% of homes) and mostly small: about three-quarters of them have no retrofit measure flagged. It is not clear why those homes have higher energy usage — see the open questions at the end of this section.<br>
       <strong>Retrofit depth</strong>, based on how much total energy fell: <em>Shallow</em> = up to 10% saved, <em>Medium</em> = 10–50% saved, <em>Deep</em> = 50% or more saved.<br>
       <strong>Fuel switch</strong> = the main heating fuel changed (e.g. gas → electricity).<br>
       <strong>Design heat loss</strong> comes straight from the audit, converted to <code>kW</code>: the peak heating power the home needs on the coldest design day. It is a measure of the building envelope (and what heating equipment must be sized to), not annual energy use — a lower value after the retrofit can allow a smaller furnace or heat pump at replacement time.<br>
@@ -908,9 +917,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <strong>Heating system changed</strong> — the heating fuel or equipment type is different.<br>
       <strong>Heat pump added</strong> — no heat pump recorded before, one recorded after.</p>
 
-      <h4>7 · Two views, two ways of counting</h4>
-      <p>When you pick a single <strong>FSA</strong> (the first three characters of a postal code), the tool loads the actual individual audit records for that area and calculates everything live in your browser — that is why you also get the sortable table of individual homes.</p>
-      <p>When you look at a whole <strong>province</strong>, doing that over hundreds of thousands of records would be slow, so the medians and chart shapes are <strong>pre-calculated once</strong> with a Python script and shipped as a compact summary, broken down by house type. Both paths use the <em>same</em> bucket widths and definitions, so the two views agree.</p>
+      <h4>7 · Two views: postal code or province</h4>
+      <p><strong>Postal code.</strong> When you pick a single <strong>FSA</strong> (the first three characters of a postal code), the tool loads the actual individual audit records for that area and calculates everything live in your browser — that is why you also get the sortable table of individual homes.</p>
+      <p><strong>Province.</strong> When you look at a whole <strong>province</strong>, doing that over hundreds of thousands of records would be slow, so the medians and chart shapes are <strong>pre-calculated once</strong>. Both paths use the <em>same</em> bucket widths and definitions, so the two views agree.</p>
 
       <h4>8 · How the histograms are built</h4>
       <p>Charts that show a distribution group values into fixed-width "buckets" and count how many homes fall in each — for example energy-use buckets are <code>20 kWh/m²</code> wide, design-heat-loss buckets <code>2 kW</code>, and the saving-% chart uses <code>1%</code> steps. The "improvement" charts only count homes that actually got better on that measure, so homes that stayed flat don't dilute the picture.</p>
@@ -931,19 +940,16 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <h4>A · Source data &amp; record selection</h4>
       <p>Input is NRCan's public ERS dataset as annual CSV extracts (evaluation entry years 2004–2026, all provinces and territories, using the <code>PROVINCE</code> column). Records are separated on <code>EVALTYPE</code>: <strong>D</strong> = initial (pre-retrofit) evaluation, <strong>E</strong> = follow-up (post-retrofit) evaluation. Pairs are formed on <code>HOUSEID</code>, across all file years, with these rules applied in order:</p>
       <p><strong>Pairing.</strong> A <code>HOUSEID</code> is kept only if it has <em>exactly one</em> D record and <em>exactly one</em> E record in the whole dataset (homes with multiple Ds or Es are dropped rather than guessing which evaluation pairs with which), and the E's <code>ENTRYDATE</code> must be strictly later than the D's.</p>
-      <p><strong>Same-home integrity filters.</strong> A pair is dropped when the home appears to have physically changed between D and E: <code>FLOORAREA</code> by more than ±10% (relative to D, which must be &gt; 0), or a change in <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, or <code>NUMDWELLINGUNITS</code>. These three are compared <em>robustly</em>, not as raw strings: <code>NUMDWELLINGUNITS</code> is compared as a number, so <code>1.0</code> and <code>1</code> (the same count written differently in different audit years) count as equal, and a field left blank in <strong>both</strong> audits is treated as unchanged — a pair is dropped only when a field genuinely differs, or is present in one audit but blank in the other. This removes additions, rebuilds, and evaluations keyed to the wrong house, without discarding pairs over cosmetic formatting or jointly-missing values. (An earlier exact-string comparison dropped roughly 831,000 otherwise-valid pairs on those two artifacts alone — almost all on <code>NUMDWELLINGUNITS</code>; see the open-questions note below.) No other outlier filtering is applied at the record level — extreme values are only clipped at chart-display time (see section G).</p>
+      <p><strong>Same-home integrity filters.</strong> A pair is dropped when the home appears to have physically changed between D and E:</p>
+      <ul>
+        <li><code>FLOORAREA</code> changed by more than ±10% (relative to D, which must be &gt; 0)</li>
+        <li>a change in <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, or <code>NUMDWELLINGUNITS</code></li>
+      </ul>
+      <p>These three are compared <em>robustly</em>, not as raw strings: <code>NUMDWELLINGUNITS</code> is compared as a number, so <code>1.0</code> and <code>1</code> (the same count written differently in different audit years) count as equal, and a field left blank in <strong>both</strong> audits is treated as unchanged — a pair is dropped only when a field genuinely differs, or is present in one audit but blank in the other. This removes additions, rebuilds, and evaluations keyed to the wrong house, without discarding pairs over cosmetic formatting or jointly-missing values. (An earlier exact-string comparison dropped roughly 831,000 otherwise-valid pairs on those two artifacts alone — almost all on <code>NUMDWELLINGUNITS</code>; see the open-questions note below.) No other outlier filtering is applied at the record level — extreme values are only clipped at chart-display time (see section G).</p>
       <p>Identity and descriptive fields carried through unchanged: <code>HOUSEID</code>, <code>CLIENTPCODE</code> (the forward sortation area — the public file carries only the first three postal characters), <code>PROVINCE</code>, <code>YEARBUILT</code>, <code>FLOORAREA</code>, <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, <code>FNDTYPE</code>, and <code>ENTRYDATE</code> (reduced to year for publication).</p>
 
-      <h4>A′ · Open questions — to be investigated with the EnerGuide team</h4>
-      <p>Two pairing rules are deliberately kept conservative pending confirmation from NRCan's EnerGuide team. Both currently exclude homes that may in fact be legitimate before/after pairs, so the matched-pair count shown on this site is a <strong>lower bound</strong> — resolving these could roughly double it.</p>
-      <ul>
-        <li><strong>Homes with more than one D or E audit (~149,000 nationally, ~9% of D&amp;E homes).</strong> When a <code>HOUSEID</code> has several initial and/or several follow-up audits — a re-audit, or a home that went through an incentive program more than once — it is currently dropped rather than guessing which evaluations pair (about 55% of these have two Ds and two Es). One alternative is to pair the <em>earliest</em> D with the <em>latest</em> E; 99.6% of these homes would then satisfy date order. The open question is whether that faithfully represents one retrofit or wrongly merges two separate projects into a single before/after span.</li>
-        <li><strong>Same-month audit dates (~84,000 nationally, ~5% of D&amp;E homes).</strong> <code>ENTRYDATE</code> in the public file is recorded at month precision (values are the first of a month), so a D and E carried out in the same month tie, and the "follow-up dated after initial" rule drops them. The open question is whether same-month pairs should be admitted, and how to order a D and E that share a month. (Only ~0.6% of these are genuine reversals where the E predates the D; those should stay excluded.)</li>
-      </ul>
-      <p class="caveats">These are surfaced in the "From every audit to your selection" funnel above: the <em>Not paired</em> flow is where these homes currently drop out.</p>
-
       <h4>B · Unit conversion to kWh</h4>
-      <p>Each fuel is reported in its own unit in the source, so all energy quantities are converted to kWh at extraction time. MJ→kWh is exact (÷3.6). The per-fuel heating values are <strong>published Government of Canada conversion factors</strong>, cited per row below. (HOT2000's internal fuel-library values are not publicly documented; the sources here were chosen to be as consistent as possible with its outputs — if a canonical HOT2000 fuel-library reference exists, we would gladly adopt it.)</p>
+      <p>Each fuel is reported in its own unit in the source, so all energy quantities are converted to kWh at extraction time. MJ→kWh is exact (÷3.6). The per-fuel heating values are <strong>published Government of Canada conversion factors</strong>, cited per row below.</p>
       <div class="method-table-wrap"><table>
         <thead><tr><th>Derived field (pre/post)</th><th>Source column</th><th>Source unit</th><th>Factor to kWh</th><th>Energy content &amp; source</th></tr></thead>
         <tbody>
@@ -980,7 +986,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       </table></div>
 
       <h4>D · Measure (upgrade) definitions</h4>
-      <p>Each measure is a per-home boolean computed from the D vs E values of one or two source columns. The ±10% thresholds on continuous quantities are deliberate: two independent HOT2000 models of the same house rarely reproduce identical RSI or ACH values, so small deltas are treated as re-measurement noise rather than work performed.</p>
+      <p>Each measure is a per-home boolean computed from the D vs E values of one or two source columns. The ±10% thresholds are meant to avoid counting a slight modelling difference as a retrofit measure — <code>AIR50P</code> of 5.8 in one audit against 5.83 in the other, for example, is re-measurement noise, not work performed.</p>
       <div class="method-table-wrap"><table>
         <thead><tr><th>Measure flag</th><th>Source column</th><th>Rule (D = pre, E = post)</th></tr></thead>
         <tbody>
@@ -1007,17 +1013,32 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
       <h4>F · Supplementary datasets</h4>
       <p><strong>2021 Census join.</strong> <code>extract_fsa_census.py</code> reads the Statistics Canada 2021 Census Profile at forward-sortation-area geography (catalogue 98-401-X2021013, long format: one row per FSA × characteristic) and keeps ~30 housing-stock characteristics by their <code>CHARACTERISTIC_ID</code>: population (1), total private dwellings (4), structural dwelling type (42–49), tenure (1415–1416), period of construction (1441–1448), dwelling condition (1450–1451), and owner-household costs and values (1482–1489). StatCan suppression and quality symbols (<code>x</code>, <code>F</code>, <code>E</code>, <code>r</code>, <code>rE</code>, <code>..</code>, <code>…</code>) become nulls. The result is one ~1 MB JSON keyed by FSA, fetched once and joined in the browser to the selected area via <code>CLIENTPCODE</code>. This is a context panel only — census values never enter the retrofit calculations.</p>
-      <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
+      <p><strong>Heat pump backup identification.</strong> For a home with a heat pump, the heating-equipment fuel and type columns (<code>FURNACEFUEL</code>, <code>FURNACETYPE</code>) describe the <em>companion</em> system HOT2000 models alongside the heat pump — the furnace or boiler that covers load beyond the heat pump's capacity or when it is offline — not the heat pump's own energy source, which is always electricity. That is what the "Heat pump + backup" card counts. The "still burned this fuel" sub-line is the share of homes with that recorded backup fuel whose post-retrofit <em>heating-only</em> consumption in that same fuel is above zero (<code>Post_HeatNaturalGas</code>, <code>Post_HeatOil</code>, <code>Post_HeatPropane</code>). It is computed for combustion fuels only: electric backup shares a meter with the heat pump's own draw, so the figure would be 100% by construction, and the wood species share a single combined consumption field.</p>
+      <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. <em>Appendix M</em> and <em>Appendix M1</em> are the two versions of the US Department of Energy's test procedure for rating heat pumps and air conditioners (10 CFR Part 430, Subpart B). M1 took effect for equipment manufactured from 2023 and tests at external static pressures closer to real installed ductwork, so it generally reports lower capacities and efficiencies than M did for the same unit — which is also why its efficiency metrics are renamed (HSPF2, SEER2, EER2). The two are not interchangeable, so where a certificate carries both the M1 figures are used and the M values only fill gaps. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
+      <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Electricity and natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p>
+      <p>Reduction rules, applied by <code>rates_etl.py</code> (per-city detail for ON/QC/AB) and <code>utility_rates_reference.py</code> (one blended number per province, all provinces): residential tariffs only; the latest <code>effective_date</code> per (utility, tariff) wins; carbon components are excluded because the federal consumer fuel charge went to zero on 2025-04-01; $/GJ converts to $/m³ at 0.03798 GJ/m³ and $/day fixed charges to monthly at ×365/12; a utility offering several residential plans contributes one, time-of-use blended to a single ¢/kWh on the OEB-typical 63/18/19 off/mid/on split. <strong>Alberta is the weak spot</strong>: it is deregulated, so energy and wires are separate bills that must be summed rather than averaged, and the upstream export omits the electricity transmission volumetric charge and the default gas commodity charge outright — screening-grade constants are substituted for both, flagged low confidence, because omitting them would bias AB electricity ~15% low and make AB gas look nearly free. Propane, oil and wood rates are single-province averages throughout and are lower confidence than the electricity and gas tariff figures; the wood rate is one flat national screening ¢/kWh, since no per-species price breakdown exists.</p>
       <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
       <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
       <p><strong>Map colour scale.</strong> Shapes are filled on a diverging scale centred on 0% median saving (green = saved energy, red = used more), or a sequential navy scale by audited-home count when no FSA in view has a saving figure. Both use a gamma-corrected mix (<code>t^0.55</code> rather than a straight linear blend from the pale base colour) so low-magnitude areas — most of a typical province's range — separate visually instead of bunching near-white; the legend bar is sampled from the same function so it matches the fill exactly. Each shape additionally prints its own median saving % at its bounding-box centre, sized off that shape's own footprint (small FSAs below a legibility floor are left unlabelled rather than showing an unreadable smudge).</p>
 
       <h4>G · Assumptions &amp; known limitations</h4>
       <p class="caveats"><strong>Fuel energy contents are published Government of Canada conversion factors</strong> (table in section B, sources cited per fuel), applied as single constants — not utility- or year-specific heating values (real delivered natural gas varies by a few percent). They reconcile with HOT2000's own totals to within ~1% (see the validation note in section B); the largest remaining assumption is the 14.0 GJ/t wood fallback on records that predate <code>EGHFCONWOODGJ</code>. Since the headline total (<code>EGHFCONTOTAL</code>) is converted from MJ exactly, none of this affects the savings figures.</p>
-      <p class="caveats"><strong>The ±10% measure thresholds are heuristics</strong>, chosen to separate real work from model-to-model noise, not derived from a formal sensitivity analysis. Negative energy savings occur in ~4% of matched pairs; about three-quarters of those have <em>no</em> measure flagged at all, consistent with inter-audit modelling variance rather than retrofits that backfired.</p>
+      <p class="caveats"><strong>The ±10% measure thresholds are heuristics</strong>, chosen to separate real work from model-to-model noise, not derived from a formal sensitivity analysis. Negative energy savings occur in ~4% of matched pairs; about three-quarters of those have <em>no</em> measure flagged at all, which could be inter-audit modelling variance rather than retrofits that backfired — but this has not been confirmed (see the open questions at the end of this section).</p>
       <p class="caveats"><strong>All energy values are HOT2000 modelled estimates</strong> under standard operating conditions, not metered consumption. GHG figures are as computed at audit time with the then-current provincial grid emission factors — they are not re-normalized to a common grid-intensity year, so pre and post audits taken years apart embed slightly different electricity factors.</p>
       <p class="caveats"><strong>The sample is self-selected</strong>: requiring both a D and an E evaluation selects heavily for incentive-program participants who completed their planned work and booked the follow-up. Savings shown here are therefore likely an upper bound on what an average renovation achieves.</p>
       <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no retrofit cost information and no household utility bills. Dollar values shown in this tool are estimated operating costs derived from modelled energy use and current provincial energy prices. Retrofit costs and payback cannot be calculated from the available data.</p>
+
+      <h4 id="m-openq">H · Open questions — to be investigated with the EnerGuide team</h4>
+      <p>Open items we would like to confirm with NRCan's EnerGuide team. The first two are pairing rules deliberately kept conservative: both currently exclude homes that may in fact be legitimate before/after pairs, so the matched-pair count shown on this site is a <strong>lower bound</strong> — resolving them could roughly double it.</p>
+      <ul>
+        <li><strong>Homes with more than one D or E audit (~149,000 nationally, ~9% of D&amp;E homes).</strong> When a <code>HOUSEID</code> has several initial and/or several follow-up audits — a re-audit, or a home that went through an incentive program more than once — it is currently dropped rather than guessing which evaluations pair (about 55% of these have two Ds and two Es). One alternative is to pair the <em>earliest</em> D with the <em>latest</em> E; 99.6% of these homes would then satisfy date order. The open question is whether that faithfully represents one retrofit or wrongly merges two separate projects into a single before/after span.</li>
+        <li><strong>Same-month audit dates (~84,000 nationally, ~5% of D&amp;E homes).</strong> <code>ENTRYDATE</code> in the public file is recorded at month precision (values are the first of a month), so a D and E carried out in the same month tie, and the "follow-up dated after initial" rule drops them. The open question is whether same-month pairs should be admitted, and how to order a D and E that share a month. (Only ~0.6% of these are genuine reversals where the E predates the D; those should stay excluded.)</li>
+        <li><strong>Negative energy savings with no measures (~4% of matched pairs).</strong> Some homes use more energy after the retrofit than before, and about three-quarters of those have no retrofit measure flagged at all. The working assumption is inter-audit modelling variance, but that has not been confirmed — what else could explain it?</li>
+        <li><strong>Conversion factors.</strong> The kWh conversions in section B use published Government of Canada heating values. Are there factors better aligned with HOT2000’s own fuel library and the ERS, which we could adopt instead?</li>
+        <li><strong>Heating-only propane exceeds whole-house propane by a constant 0.27%.</strong> Space-heating consumption (<code>EGHHEATFCONSP</code>) should by definition be a subset of the home's total propane use, yet it exceeds it in about 80% of propane-heated homes. The ratio is not scattered — it sits at <strong>1.0027</strong> across the interquartile range, which is the signature of a units constant rather than a data fault. It matches: the heating field is HOT2000's own MJ output, while whole-house propane is a <em>volumetric</em> column converted here at <strong>25.53 MJ/L</strong> (CER, section B), and 25.60 ÷ 25.53 = 1.0027. In other words HOT2000 appears to use ~25.60 MJ/L internally and our published figure is 0.27% low. This is cosmetic at chart scale but it is the cleanest available evidence of a HOT2000 fuel-library value, so it is worth confirming and adopting.</li>
+        <li><strong>Heating-only wood exceeds whole-house wood, and not by a constant.</strong> The same comparison for wood (<code>EGHHEATFCONSW</code>) exceeds whole-house use in about 55% of wood-heated homes, but unlike propane the ratio is genuinely dispersed — median 1.00, but spread from roughly 0.75 to 1.35, with a tail of about 60 homes above 1.5× and a worst case of 267×. No single heating value explains that. Wood is the fuel whose reporting changed at HOT2000 v11.2 (tonnes, then GJ directly — section B) and the only one where species (softwood, hardwood, pellets) genuinely varies the energy content, so a vintage or species mismatch between the two fields is the suspect. Natural gas, oil, and electricity show no such problem (under 0.1% of homes). Which of the two fields should be treated as authoritative?</li>
+      </ul>
+      <p class="caveats">The two pairing items are surfaced in the "From every audit to your selection" funnel above: the <em>Not paired</em> flow is where these homes currently drop out.</p>
     </div>
   </details>
 </section>
@@ -1388,6 +1409,16 @@ let _lastProvincePayload=null; // full province payload, for re-running Advanced
 // Python/extract_fsa_census.py) — small enough to fetch once and keep
 // entirely in memory, no per-FSA splitting needed like fsa_json/ has.
 const CENSUS_JSON_URL=`${BASE_URL}census_json/fsa_census.json`;
+// Province/Canada rollup of the same characteristics — see the header of
+// Python/rollup_census.py for how each field is aggregated. Kept as its own
+// (12 KB) file so the province view never pulls the 1.4 MB per-FSA payload.
+const REGION_CENSUS_URL=`${BASE_URL}census_json/region_census.json`;
+let REGION_CENSUS_DATA=null, REGION_CENSUS_FETCH=null;
+function fetchRegionCensus(){
+  if(REGION_CENSUS_DATA)return Promise.resolve(REGION_CENSUS_DATA);
+  if(!REGION_CENSUS_FETCH)REGION_CENSUS_FETCH=fetchJSON(REGION_CENSUS_URL).then(d=>{REGION_CENSUS_DATA=d;return d;});
+  return REGION_CENSUS_FETCH;
+}
 let CENSUS_DATA=null, CENSUS_FETCH=null;
 function fetchCensusData(){
   if(CENSUS_DATA)return Promise.resolve(CENSUS_DATA);
@@ -1832,7 +1863,8 @@ function loadProvinceView(myToken){
     populateTypeDropdown(types);
     showFsaFilterControls(false);
     updateAreaChip();
-    toggleCensusCard(false); // census is FSA-level only — no province/Canada rollup yet
+    renderCensusRegion(PROVINCE_CODE,payload.total_rows);
+    toggleHeatWaterfallCard(false); // no heating-only per-fuel figures in the province precompute
     toggleVintageCard(false); // needs row-level YearBuilt + measure flags, province view has none
     toggleWindowChangesCard(false); // needs paired per-home pre/post codes, province view has none
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} matched homes`;
@@ -1985,7 +2017,7 @@ function renderAdvancedSections(){
   if(!isAdvancedMode())return;
   if(MODE==='fsa'){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
-    renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderAhriWindowFsa();
+    renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderWaterfallHeating();renderAhriWindowFsa();
     renderVintageMeasures();renderWindowChanges();renderTable();
     renderHeatLoss();renderAuditYearChart();renderHPBackupFsa();renderHPSizing();
     const comp=compositionForSelectedFsa();
@@ -2750,6 +2782,11 @@ function hasHeatPump(r){
 // pump's own electricity use, and the wood species (Mixed Wood/Hardwood/
 // Wood Pellets/Softwood) all share one Post_HeatWood column, so a
 // per-species check isn't meaningful (see precompute_province_stats.py).
+// Only combustion fuels get a "did it actually burn?" check. Electricity is
+// deliberately absent: a heat pump runs on electricity itself, so post-retrofit
+// electric heating consumption is above zero in essentially every heat-pump
+// home whether or not the electric backup ever engaged. The figure would read
+// 100% and mean nothing, so the list says so instead of printing it.
 const HP_BACKUP_USED_COLS={'Natural Gas':'Post_HeatNaturalGas','Oil':'Post_HeatOil',
   'Propane':'Post_HeatPropane'};
 function renderHPBackupList(counts,used){
@@ -2757,7 +2794,9 @@ function renderHPBackupList(counts,used){
     let sub=null;
     if(used&&used[fuel]!=null){
       const pct=count?Math.round(used[fuel]/count*100):0;
-      sub=`${pct}% show it actually consumed for heat`;
+      sub=`${used[fuel].toLocaleString()} of ${count.toLocaleString()} (${pct}%) still burned this fuel for heat after the retrofit`;
+    }else if(/electric/i.test(fuel)){
+      sub='not measurable separately — the heat pump itself runs on electricity';
     }
     return{main:fuel,count,sub};
   });
@@ -2859,67 +2898,56 @@ function toggleCensusCard(show){
   $('census-card').style.display=show?'':'none';
 }
 
-// Half-doughnut "gauge": one value as a % of a two-category whole, drawn as
-// a semicircle with the value's share filled in. Chart.js has no native
-// gauge type — this is the standard half-doughnut trick (rotation/circumference
-// restricted to 180°) plus a center-text plugin for the big number.
-const gaugeCenterText={
-  id:'gaugeCenterText',
-  afterDraw(chart,args,opts){
-    const{ctx,chartArea}=chart;
-    const cx=(chartArea.left+chartArea.right)/2;
-    const cy=chartArea.bottom;
-    ctx.save();
-    ctx.textAlign='center';
-    ctx.fillStyle=PAL.text;
-    ctx.font='600 22px Inter, sans-serif';
-    ctx.fillText(opts.text,cx,cy-6);
-    if(opts.sub){
-      ctx.font='11px Inter, sans-serif';ctx.fillStyle=PAL.tick;
-      ctx.fillText(opts.sub,cx,cy+12);
-    }
-    ctx.restore();
-  }
-};
-function drawGauge(canvasId,chartKey,pct,color,centerText,sub){
-  dc(chartKey);
-  charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
-    type:'doughnut',
-    plugins:[gaugeCenterText],
-    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,PAL.track],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      rotation:-90,circumference:180,cutout:'72%',
-      plugins:{legend:{display:false},tooltip:{enabled:false},gaugeCenterText:{text:centerText,sub}}}
-  });
-}
+const CENSUS_NOTE_FSA='Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. The gauge compares the two; see also the Building type and Year built charts above, which overlay this same census data for direct comparison. Tenure and dwelling condition are census counts for the whole FSA, so they describe the neighbourhood, not the audited homes. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.';
+const CENSUS_NOTE_REGION=scope=>`Statistics Canada 2021 Census Profile, aggregated from FSA level to ${scope} — describes <strong>all</strong> private dwellings, not just the homes that got an EnerGuide audit. Counts (dwellings, tenure, condition, building type, period of construction) are exact sums: FSAs tile the country, so they add up to the published totals. Rates and averages are weighted means over the FSAs that reported them. <strong>Medians cannot be aggregated</strong> from FSA medians, so dwelling value is shown here as an owner-household-weighted <em>average</em>, which is not comparable to the median shown in the single-FSA view.`;
 
+// FSA view and province/Canada view share one painter; they differ only in
+// which census block they hand it and what the scope is called. The rollup
+// block (census_json/region_census.json, built by Python/rollup_census.py)
+// carries the same field names as an FSA block, except every median is null
+// — a median of FSA medians is not a median — so paintCensus() shows the
+// corresponding *average* instead when isRollup is set.
 function renderCensus(fsa,auditedCount){
+  censusLoading();
+  fetchCensusData().then(data=>{
+    paintCensus(data[fsa],auditedCount,{scope:'this FSA',noun:'FSA'});
+  }).catch(censusFailed);
+}
+function renderCensusRegion(provCode,auditedCount){
+  censusLoading();
+  fetchRegionCensus().then(data=>{
+    const label=provCode==='CA'?'Canada':(PROVINCES[provCode]||{}).name||provCode;
+    paintCensus(data[provCode],auditedCount,{scope:label,noun:'region',isRollup:true});
+  }).catch(censusFailed);
+}
+function censusLoading(){
   toggleCensusCard(true);
   $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Loading…</div></div>';
-  fetchCensusData().then(data=>{
-    const c=data[fsa];
+}
+function censusFailed(err){
+  console.error(err);
+  $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Could not load census data</div></div>';
+}
+function paintCensus(c,auditedCount,opts){
     if(!c){
-      $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">No census data for this FSA</div></div>';
-      ['census-owner-kpis','census-coverage-cap'].forEach(id=>$(id).innerHTML='');
-      dc('censusCoverage');
+      $('census-coverage-kpis').innerHTML=`<div class="kpi-item"><div class="kpi-name">No census data for this ${opts.noun}</div></div>`;
+      $('census-owner-kpis').innerHTML='';
       return;
     }
     const coverage=c.total_dwellings?Math.round(auditedCount/c.total_dwellings*100):null;
     // Coverage can legitimately exceed 100%: this is ~20 years of cumulative
     // audits measured against a single 2021 dwelling snapshot, and a home can
-    // be audited more than once. So the ARC clamps to 100 (a doughnut cannot
-    // show more) while the printed number stays truthful, and the caption
-    // says why rather than letting ">100%" read as a bug.
-    if(coverage!=null){
-      drawGauge('census-coverage-gauge','censusCoverage',Math.min(coverage,100),
-        coverage>=100?PAL.pos:PAL.primary,coverage+'%','of dwellings audited');
-      $('census-coverage-cap').textContent=coverage>100
-        ?'Over 100%: audits accumulate over ~20 years, against a single 2021 dwelling count.'
-        :'EnerGuide-audited homes as a share of all private dwellings here.';
-    }else{
-      dc('censusCoverage');
-      $('census-coverage-cap').textContent='';
-    }
+    // be audited more than once. The bar clamps to 100 (it cannot show more)
+    // while the printed number stays truthful, and the unit line says why
+    // rather than letting ">100%" read as a bug.
+    const covTile=coverage==null
+      ?`<div class="kpi-item kpi-coverage"><div class="kpi-name">Audit coverage</div><div class="kpi-values"><div class="kpi-pct">—</div></div><div class="kpi-unit">no dwelling count</div></div>`
+      :`<div class="kpi-item kpi-coverage">
+          <div class="kpi-name">Audit coverage</div>
+          <div class="kpi-values"><div class="kpi-pct">${coverage}%</div></div>
+          <div class="kpi-bar"><span style="width:${Math.min(coverage,100)}%;background:${coverage>=100?PAL.pos:PAL.primary}"></span></div>
+          <div class="kpi-unit">${coverage>100?'over 100%: ~20 yrs of audits vs a 2021 count':'of all private dwellings'}</div>
+        </div>`;
 
     const ten=c.tenure||{};
     const tenTotal=(ten.owner||0)+(ten.renter||0);
@@ -2929,23 +2957,27 @@ function renderCensus(fsa,auditedCount){
     const majorPct=condTotal?Math.round(cond.major_repairs/condTotal*100):null;
 
     $('census-coverage-kpis').innerHTML=`
+      ${covTile}
       <div class="kpi-item"><div class="kpi-name">Total private dwellings</div><div class="kpi-values"><div class="kpi-pct">${c.total_dwellings!=null?c.total_dwellings.toLocaleString():'—'}</div></div><div class="kpi-unit">2021 Census</div></div>
-      <div class="kpi-item"><div class="kpi-name">Audited homes (this FSA)</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
+      <div class="kpi-item"><div class="kpi-name">Audited homes (${opts.scope})</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
       <div class="kpi-item"><div class="kpi-name">Owner-occupied</div><div class="kpi-values"><div class="kpi-pct">${ownerPct!=null?ownerPct+'%':'—'}</div></div><div class="kpi-unit">${ownerPct!=null?`${(100-ownerPct)}% rented`:'tenure'}</div></div>
       <div class="kpi-item"><div class="kpi-name">Need major repairs</div><div class="kpi-values"><div class="kpi-pct">${majorPct!=null?majorPct+'%':'—'}</div></div><div class="kpi-unit">dwelling condition</div></div>`;
 
     const o=c.owner_stats||{};
+    // Medians don't aggregate, so the rollup file nulls them; the mean of
+    // FSA means weighted by owner households IS exact, so show that instead
+    // of a dash — with the label changed so the two aren't confused.
+    const valLabel=opts.isRollup?'Average dwelling value':'Median dwelling value';
+    const valNum=opts.isRollup?o.average_dwelling_value:o.median_dwelling_value;
     $('census-owner-kpis').innerHTML=`
       <div class="kpi-item"><div class="kpi-name">Owners with a mortgage</div><div class="kpi-values"><div class="kpi-pct">${o.pct_with_mortgage!=null?o.pct_with_mortgage+'%':'—'}</div></div></div>
       <div class="kpi-item"><div class="kpi-name">Spending 30%+ on shelter</div><div class="kpi-values"><div class="kpi-pct">${o.pct_spending_30pct_shelter!=null?o.pct_spending_30pct_shelter+'%':'—'}</div></div></div>
       <div class="kpi-item"><div class="kpi-name">In core housing need</div><div class="kpi-values"><div class="kpi-pct">${o.pct_core_housing_need!=null?o.pct_core_housing_need+'%':'—'}</div></div></div>
-      <div class="kpi-item"><div class="kpi-name">Median dwelling value</div><div class="kpi-values"><div class="kpi-pct">${o.median_dwelling_value!=null?'$'+o.median_dwelling_value.toLocaleString():'—'}</div></div></div>`;
-  }).catch(err=>{
-    console.error(err);
-    $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Could not load census data</div></div>';
-    $('census-coverage-cap').innerHTML='';
-    dc('censusCoverage');
-  });
+      <div class="kpi-item"><div class="kpi-name">${valLabel}</div><div class="kpi-values"><div class="kpi-pct">${valNum!=null?'$'+valNum.toLocaleString():'—'}</div></div></div>`;
+    $('census-note').innerHTML=opts.isRollup?CENSUS_NOTE_REGION(opts.scope):CENSUS_NOTE_FSA;
+    $('census-title').textContent=opts.isRollup
+      ?`Housing stock, ${opts.scope} — 2021 Census`
+      :'Neighbourhood housing stock — 2021 Census';
 }
 
 // ── Fuel breakdown: per-fuel pre/post boxes (sized to max(pre,post), filled
@@ -2966,20 +2998,60 @@ function renderWaterfall(){
   drawFuelBreakdown(fuelLabels,preVals,postVals);
 }
 
-// ── Custom canvas chart (not Chart.js — the partial-fill boxes are bespoke) ──
-let _fuelBreakdownArgs=null,_fuelBreakdownRO=null,_fuelTooltipEl=null,_fuelBoxes=[];
+// Same chart, space-heating consumption only (Pre_Heat*/Post_Heat* — the
+// portion HOT2000 attributes to heating, excluding DHW and appliances). FSA
+// mode only: the province precompute ships whole-house per-fuel means but no
+// heating-only equivalent, so there is nothing to draw province-wide.
+function renderWaterfallHeating(){
+  const FUELS=[['Electricity','Electricity'],['NaturalGas','Natural Gas'],['Oil','Oil'],['Propane','Propane'],['Wood','Wood']];
+  const fuelLabels=[],preVals=[],postVals=[];
+  let anyData=false;
+  FUELS.forEach(([key,lbl])=>{
+    // A selection with no heating breakdown at all must not read as a row of
+    // zeroes — track whether any row actually carried a value.
+    let pt=0,qt=0;
+    FILTERED.forEach(r=>{
+      const a=num(r[`Pre_Heat${key}`]),b=num(r[`Post_Heat${key}`]);
+      if(a!==null){pt+=a;anyData=true;}
+      if(b!==null){qt+=b;anyData=true;}
+    });
+    pt=Math.round(pt);qt=Math.round(qt);
+    if(pt===0&&qt===0)return;
+    fuelLabels.push(lbl);preVals.push(pt);postVals.push(qt);
+  });
+  const show=anyData&&fuelLabels.length>0;
+  toggleHeatWaterfallCard(show);
+  if(!show)return;
+  drawFuelBreakdown(fuelLabels,preVals,postVals,'waterfall-heat-chart','waterfall-heat-legend');
+}
+function toggleHeatWaterfallCard(show){
+  $('waterfall-heat-card').style.display=show?'':'none';
+}
 
-function drawFuelBreakdown(fuelLabels,preVals,postVals){
-  _fuelBreakdownArgs=[fuelLabels,preVals,postVals];
-  const canvas=$('waterfall-chart');
-  setChartLegend('waterfall-legend',fuelLabels.map(lbl=>({label:lbl,color:FUEL_COLORS[lbl]||PAL.tick})));
-  if(!_fuelBreakdownRO){
-    _fuelBreakdownRO=new ResizeObserver(()=>{ if(_fuelBreakdownArgs)paintFuelBreakdown(..._fuelBreakdownArgs); });
-    _fuelBreakdownRO.observe(canvas.parentElement);
-    canvas.addEventListener('mousemove',onFuelBreakdownHover);
+// ── Custom canvas chart (not Chart.js — the partial-fill boxes are bespoke) ──
+// Two instances exist (whole-house and heating-only), so the per-chart state
+// — last args, resize observer, hit boxes — is keyed by canvas id rather
+// than held in single module-level slots.
+let _fuelTooltipEl=null;
+const _fuelState=new Map(); // canvasId -> {args, ro, boxes}
+function fuelState(canvasId){
+  if(!_fuelState.has(canvasId))_fuelState.set(canvasId,{args:null,ro:null,boxes:[]});
+  return _fuelState.get(canvasId);
+}
+
+function drawFuelBreakdown(fuelLabels,preVals,postVals,canvasId,legendId){
+  canvasId=canvasId||'waterfall-chart';legendId=legendId||'waterfall-legend';
+  const st=fuelState(canvasId);
+  st.args=[fuelLabels,preVals,postVals,canvasId];
+  const canvas=$(canvasId);
+  setChartLegend(legendId,fuelLabels.map(lbl=>({label:lbl,color:FUEL_COLORS[lbl]||PAL.tick})));
+  if(!st.ro){
+    st.ro=new ResizeObserver(()=>{ if(st.args)paintFuelBreakdown(...st.args); });
+    st.ro.observe(canvas.parentElement);
+    canvas.addEventListener('mousemove',e=>onFuelBreakdownHover(e,canvasId));
     canvas.addEventListener('mouseleave',hideFuelTooltip);
   }
-  paintFuelBreakdown(fuelLabels,preVals,postVals);
+  paintFuelBreakdown(fuelLabels,preVals,postVals,canvasId);
 }
 
 function roundRectPath(ctx,x,y,w,h,r){
@@ -2993,8 +3065,10 @@ function roundRectPath(ctx,x,y,w,h,r){
   ctx.closePath();
 }
 
-function paintFuelBreakdown(fuelLabels,preVals,postVals){
-  const canvas=$('waterfall-chart');
+function paintFuelBreakdown(fuelLabels,preVals,postVals,canvasId){
+  canvasId=canvasId||'waterfall-chart';
+  const canvas=$(canvasId);
+  const _fuelBoxes=fuelState(canvasId).boxes;
   const wrap=canvas.parentElement;
   const wCss=wrap.clientWidth||300,hCss=wrap.clientHeight||280;
   const dpr=window.devicePixelRatio||1;
@@ -3003,7 +3077,7 @@ function paintFuelBreakdown(fuelLabels,preVals,postVals){
   const ctx=canvas.getContext('2d');
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,wCss,hCss);
-  _fuelBoxes=[];
+  _fuelBoxes.length=0;
 
   if(!fuelLabels.length){
     ctx.fillStyle=PAL.tick;ctx.font='13px Inter, sans-serif';ctx.textAlign='center';
@@ -3084,10 +3158,11 @@ function ensureFuelTooltip(){
   return (_fuelTooltipEl=el);
 }
 function hideFuelTooltip(){ if(_fuelTooltipEl)_fuelTooltipEl.style.display='none'; }
-function onFuelBreakdownHover(e){
-  const rect=$('waterfall-chart').getBoundingClientRect();
+function onFuelBreakdownHover(e,canvasId){
+  canvasId=canvasId||'waterfall-chart';
+  const rect=$(canvasId).getBoundingClientRect();
   const x=e.clientX-rect.left,y=e.clientY-rect.top;
-  const hit=_fuelBoxes.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);
+  const hit=fuelState(canvasId).boxes.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);
   const tip=ensureFuelTooltip();
   if(!hit){tip.style.display='none';return;}
   tip.innerHTML=hit.rowLabel==='Savings'
@@ -3745,8 +3820,12 @@ function renderProvinceHist(slice){
 // since no row-level data is shipped province-wide.)
 
 // ── EUI gradient bar for table ────────────────────────────────────
-function makeEUIBar(preEUI,postEUI,medPre,medPost){
-  const MAX=750,W=120,H=18,MH=10;
+// `big` renders the same bar at ~2x for the expanded detail panel, where it
+// sits in a column beside the envelope and heat-loss charts and needs the
+// height to match them. Table rows keep the compact default.
+function makeEUIBar(preEUI,postEUI,medPre,medPost,big){
+  const MAX=750,W=big?250:120,H=big?44:18,MH=big?30:10;
+  const R=big?8:4,FS=big?11:8;
   if(!preEUI&&!postEUI)return '—';
   const px=v=>Math.min(W,Math.max(0,Math.round(v/MAX*W)));
   const preX=preEUI?px(preEUI):null;
@@ -3758,10 +3837,10 @@ function makeEUIBar(preEUI,postEUI,medPre,medPost){
     <rect x="0" y="4" width="${W}" height="${MH}" fill="url(#eui-grad)" rx="3" opacity="0.25"/>`;
   if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke=PAL.primary stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
   if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke=PAL.pos stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
-  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="4" fill=PAL.primary stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
-  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="4" fill=PAL.pos stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
-  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill=PAL.primary font-family="Inter,sans-serif">${preEUI}</text>`;
-  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+11}" text-anchor="middle" font-size="8" fill=PAL.pos font-family="Inter,sans-serif">${postEUI}</text>`;
+  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="${R}" fill=PAL.primary stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
+  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="${R}" fill=PAL.pos stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
+  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill=PAL.primary font-family="Inter,sans-serif">${preEUI}</text>`;
+  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill=PAL.pos font-family="Inter,sans-serif">${postEUI}</text>`;
   s+=`</svg>`;
   return s;
 }
@@ -3778,10 +3857,10 @@ function makeInlineSVG(r){
   // ── EUI, promoted above the envelope measures box ──
   const preEUI=num(r.Pre_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Pre_TotalEnergy)/num(r.FloorArea)):null;
   const postEUI=num(r.Post_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Post_TotalEnergy)/num(r.FloorArea)):null;
-  let html=`<div style="margin-bottom:1rem">
-    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Energy use intensity (EUI), kWh/m²</div>
-    ${makeEUIBar(preEUI,postEUI,window._euiMedianPre,window._euiMedianPost)}
-  </div>`;
+  // ── Panel layout: measure chips as a full-width banner, then EUI /
+  // envelope / heat loss side by side in one row, then the HVAC table at
+  // full width underneath. ──
+  let html='';
 
   // ── Envelope measures (R-value bars) + which measures were applied ──
   const KPIs=[
@@ -3792,14 +3871,25 @@ function makeInlineSVG(r){
   ];
   const barW=160,barH=12,gap=28,startX=78;
   const svgH=KPIs.length*gap+10;
-  // Left column pinned to the envelope-SVG width (startX+barW+70 = 308) so the
-  // HVAC table's left edge and width stay put from one home to the next — the
-  // measure chips below wrap WITHIN this fixed width instead of widening the
-  // column and shoving the table sideways. max-width:100% lets it wrap under
-  // the table on narrow screens (the row is flex-wrap:wrap).
-  html+=`<div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
-  <div style="flex:0 0 ${startX+barW+70}px;max-width:100%;min-width:0">
-    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Envelope measures</div>
+
+  // Measure chips, promoted out of the envelope column into a full-width
+  // banner at the top — they describe the whole home, not just the envelope.
+  const pills=MEASURES.filter(m=>flag(r,m.key))
+    .map(m=>`<span class="measure-chip" style="background:${m.color}">${m.label}</span>`).join('');
+  html+=`<div class="detail-measures">
+    <div class="detail-h">Measures applied</div>
+    <div class="measure-chips">${pills||'<span style="font-size:11px;color:var(--light)">No measures flagged</span>'}</div>
+  </div>`;
+
+  // Three charts side by side; auto-fit collapses them to fewer columns on
+  // narrow screens rather than squeezing all three.
+  html+=`<div class="detail-charts">
+  <div style="min-width:0">
+    <div class="detail-h">Energy use intensity (EUI), kWh/m²</div>
+    ${makeEUIBar(preEUI,postEUI,window._euiMedianPre,window._euiMedianPost,true)}
+  </div>
+  <div style="min-width:0">
+    <div class="detail-h">Envelope measures</div>
     <svg viewBox="0 0 ${startX+barW+70} ${svgH}" style="width:${startX+barW+70}px;max-width:100%;display:block">`;
   KPIs.forEach((k,i)=>{
     const y=i*gap+8;
@@ -3814,14 +3904,11 @@ function makeInlineSVG(r){
     const imp=k.hi?(k.post||0)>(k.pre||0):(k.post||0)<(k.pre||0);
     html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?PAL.pos:PAL.neg}">${qStr}</tspan></text>`;
   });
-  const pills=MEASURES.filter(m=>flag(r,m.key))
-    .map(m=>`<span class="measure-chip" style="background:${m.color}">${m.label}</span>`).join('');
   html+=`</svg>
     <div style="display:flex;gap:12px;margin-top:4px">
       <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#0B254599;border-radius:2px"></span>Pre</span>
       <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#1A7A5599;border-radius:2px"></span>Post</span>
     </div>
-    <div class="measure-chips" style="margin-top:.6rem">${pills||'<span style="font-size:11px;color:var(--light)">No measures flagged</span>'}</div>
   </div>`;
 
   // ── HVAC & energy: Pre-audit / Post-audit / Savings columns ──
@@ -3930,8 +4017,8 @@ function makeInlineSVG(r){
       return s;
     };
     const y1=14,y2=y1+HLH+HLGAP;
-    heatLossBlock=`<div style="margin-top:1.25rem">
-      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">Annual heat loss by component, kWh/yr</div>
+    heatLossBlock=`<div style="min-width:0">
+      <div class="detail-h">Annual heat loss by component, kWh/yr</div>
       <svg viewBox="0 0 ${HLW+55} ${y2+HLH+6}" style="width:100%;max-width:${HLW+55}px;display:block">
         <text x="0" y="${y1-4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">Pre</text>
         ${stackedBar(hlPre,y1)}
@@ -3954,8 +4041,12 @@ function makeInlineSVG(r){
     <td style="padding:3px 0;color:var(--light)">${yearGap!==null?`${yearGap} yr apart`:'—'}</td>
   </tr>`;
 
-  html+=`<div style="min-width:0;flex:1">
-    <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem">HVAC &amp; energy</div>
+  // Third chart column, then close the charts row and give the table the
+  // full panel width.
+  html+=heatLossBlock;
+  html+=`</div>
+  <div style="min-width:0">
+    <div class="detail-h">HVAC &amp; energy</div>
     <div style="overflow-x:auto"><table style="font-size:12px;border-collapse:collapse;width:100%">
       <thead><tr>${th('Measure')}${th('Pre-audit')}${th('Post-audit')}${th('Savings')}</tr></thead>
       <tbody>
@@ -3975,8 +4066,7 @@ function makeInlineSVG(r){
         ${numRow('Solar PV',num(r.Pre_SolarPV),num(r.Post_SolarPV),'kW',true,1)}
       </tbody>
     </table></div>
-  </div></div>`;
-  html+=heatLossBlock;
+  </div>`;
   return html;
 }
 
