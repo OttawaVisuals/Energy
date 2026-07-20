@@ -86,12 +86,17 @@ def compute_slice(df):
     eui  = num(df.get('EUI'))
     tier = num(df.get('Tier'))
     impr = num(df.get('Improvement'))
+    # Plan-file (P) counterparts. On new construction the "before" audit is the
+    # design model, not a pre-retrofit house — see the airtightness note below.
+    dach  = num(df.get('Designed_AirLeakage'))
+    dtier = num(df.get('Designed_Tier'))
 
     # ---- headline stats ----
     out['median_ers']  = median(ers[ers > 0])
     out['median_area'] = median(area)
     out['median_ghg']  = median(ghg)
     out['median_ach']  = median(ach)
+    out['median_designed_ach'] = median(dach)
     out['median_eui']  = median(eui[(eui > 0) & (eui <= C_EUI)])
     out['median_improvement'] = median(impr)
     out['pct_solar'] = round(float((num(df.get('SolarPV')) > 0).mean()) * 100, 1) if n else 0
@@ -100,12 +105,32 @@ def compute_slice(df):
     out['ers_bins']  = bins(ers, B_ERS, lo=1, hi=C_ERS)
     out['ghg_bins']  = bins(ghg, B_GHG, lo=0, hi=C_GHG)
     out['ach_bins']  = bins(ach, B_ACH, lo=0, hi=C_ACH)
+    out['designed_ach_bins'] = bins(dach, B_ACH, lo=0, hi=C_ACH)
     out['area_bins'] = bins(area, B_AREA, lo=0, hi=C_AREA)
     out['eui_bins']  = bins(eui, B_EUI, lo=0, hi=C_EUI)
 
     # ---- as-built NBC tier mix (recent years) ----
     out['tier_counts'] = {int(k): int(v) for k, v in
                           tier.dropna().astype(int).value_counts().sort_index().items()}
+    out['designed_tier_counts'] = {int(k): int(v) for k, v in
+                                   dtier.dropna().astype(int).value_counts().sort_index().items()}
+    # Designed -> as-built tier movement, as [designed, as_built, homes] triples.
+    # Roughly half of homes land on a different tier than their plan file, in
+    # both directions, so the two mixes above can't be read as a before/after.
+    tpair = pd.DataFrame({'d': dtier, 'a': tier}).dropna()
+    if len(tpair):
+        tp = tpair.astype(int).groupby(['d', 'a']).size()
+        out['tier_transition'] = [[int(d), int(a), int(c)] for (d, a), c in tp.items()]
+        same = int((tpair['d'] == tpair['a']).sum())
+        out['tier_move'] = {
+            'n': len(tpair),
+            'pct_same':  round(same / len(tpair) * 100, 1),
+            'pct_up':    round(float((tpair['a'] > tpair['d']).mean()) * 100, 1),
+            'pct_down':  round(float((tpair['a'] < tpair['d']).mean()) * 100, 1),
+        }
+    else:
+        out['tier_transition'] = []
+        out['tier_move'] = {'n': 0}
 
     # ---- fuel + type breakdown ----
     out['fuel_counts'] = counts(df.get('HeatFuel', pd.Series(dtype=str)))
@@ -114,18 +139,21 @@ def compute_slice(df):
 
     # ---- trends by evaluation year ----
     yr = num(df.get('Year'))
-    tmp = pd.DataFrame({'yr': yr, 'ach': ach, 'ers': ers, 'tier': tier,
+    tmp = pd.DataFrame({'yr': yr, 'ach': ach, 'dach': dach, 'ers': ers, 'tier': tier,
                         'fuel': df.get('HeatFuel').map(fuel_group) if 'HeatFuel' in df else None})
     tmp = tmp[tmp['yr'].notna()]
     tmp['yr'] = tmp['yr'].astype(int)
 
-    ach_by_year, ers_by_year, tier_by_year, fuel_by_year = {}, {}, {}, {}
+    ach_by_year, dach_by_year, ers_by_year, tier_by_year, fuel_by_year = {}, {}, {}, {}, {}
     for y, g in tmp.groupby('yr'):
         if y < 2004 or y > 2030:
             continue
         m_ach = median(g['ach'])
         if m_ach is not None:
             ach_by_year[int(y)] = round(m_ach, 2)
+        m_dach = median(g['dach'])
+        if m_dach is not None:
+            dach_by_year[int(y)] = round(m_dach, 2)
         m_ers = median(g['ers'][g['ers'] > 0])
         if m_ers is not None:
             ers_by_year[int(y)] = round(m_ers, 1)
@@ -137,6 +165,7 @@ def compute_slice(df):
         if len(fc):
             fuel_by_year[int(y)] = fc.value_counts().to_dict()
     out['ach_by_year']  = ach_by_year
+    out['designed_ach_by_year'] = dach_by_year
     out['ers_by_year']  = ers_by_year
     out['tier_by_year'] = tier_by_year
     out['fuel_by_year'] = fuel_by_year
@@ -165,6 +194,24 @@ def compute_slice(df):
         out['gap_density'] = []
     out['gap_stats'] = gap_stats
 
+    # ---- airtightness: modelled at design vs measured on the finished house ----
+    # AirGap = as-built - designed; <0 means the blower door beat the design
+    # assumption. Most plan files carry a round assumed value (3.6, 4.5, 2.5
+    # ACH50 dominate) rather than a per-house target, so read this as
+    # "assumption vs measurement", not as two independent measurements.
+    agap = num(df.get('AirGap'))
+    apair = pd.DataFrame({'d': dach, 'a': ach, 'g': agap}).dropna()
+    air_stats = {'n': len(apair)}
+    if len(apair):
+        g = apair['g']
+        air_stats['median_gap']   = round(float(g.median()), 2)
+        air_stats['pct_tighter']  = round(float((g < 0).mean()) * 100, 1)
+        air_stats['pct_leakier']  = round(float((g > 0).mean()) * 100, 1)
+        out['air_gap_bins'] = bins(g.to_numpy(), B_ACH, lo=-8, hi=8)
+    else:
+        out['air_gap_bins'] = {}
+    out['air_stats'] = air_stats
+
     return out
 
 
@@ -185,7 +232,8 @@ def build_province_json(df, province, out_dir):
 FSA_COLS = ['Year', 'BldgType', 'Storeys', 'FloorArea', 'ERSRating', 'EGHRating',
             'Tier', 'InScopeNBC', 'Improvement', 'CompliancePath', 'GHG', 'GHGI',
             'AirLeakage', 'EUI', 'HeatFuel', 'HeatType', 'SolarPV',
-            'Designed_ERSRating', 'Designed_AirLeakage', 'RatingGap']
+            'Designed_ERSRating', 'Designed_AirLeakage', 'Designed_Tier',
+            'RatingGap', 'AirGap']
 
 def jval(v, col):
     if v is None or (isinstance(v, float) and np.isnan(v)):
