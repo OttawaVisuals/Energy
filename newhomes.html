@@ -12,54 +12,36 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site-theme.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
-  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
-  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
-  --r-sm:6px;--r-md:10px;--r-lg:16px;
-  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
-}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+/* Reset, theme variables (light/dark/cb), body base, header and hero now
+   live in assets/site-theme.css, shared with retrofits.html and
+   retrofit-insights.html.
 
-/* ── Header ── */
-header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
-.logo span{color:var(--amber2);font-style:italic}
-.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
-.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
-.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
-.sibling-link:hover{color:var(--amber2)}
-#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
+   This page's charts still use fixed hex colours, not the shared theme
+   variables, so — deliberately — .card/.stat-card/.map-wrap/methodology
+   below keep a fixed white background and dark text in every theme: only
+   the page chrome (header/hero/background) inverts for dark mode. */
+#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:#fff;background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
 #province-sel option{color:#1C2B3A;background:#fff}
-
-/* ── Hero ── */
-.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
-.hero h1 em{font-style:italic;color:var(--amber2)}
-.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:760px;margin:0 auto}
 
 /* ── Filters ── */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
-.filter-bar{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filter-bar{background:#fff;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:#1C2B3A;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
 .filter-group select:hover{border-color:var(--navy)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white);text-transform:uppercase;transition:border-color .15s}
+.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:#1C2B3A;background:#fff;text-transform:uppercase;transition:border-color .15s}
 .filter-group input::placeholder{color:var(--light);text-transform:none}
 .filter-group input:hover{border-color:var(--navy)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--navy);color:var(--navy)}
-.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--white);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.filter-count-bar{max-width:1280px;margin:0 auto;background:#fff;padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
-.filter-count strong{color:var(--text);font-weight:500}
+.filter-count strong{color:#1C2B3A;font-weight:500}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
@@ -68,7 +50,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 @media(max-width:620px){.grid-2{grid-template-columns:1fr}}
 
 /* ── Cards ── */
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
 .card-title-row .card-title{margin-bottom:0}
@@ -76,7 +58,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
-.map-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-wrap{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
 #fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
@@ -86,30 +68,30 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
 .fsa-shape.no-data{cursor:default}
 .map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
-.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--white);color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:#fff;color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
 .map-zoom-ctrl button:last-child{border-bottom:none}
-.map-zoom-ctrl button:hover{background:var(--surface)}
+.map-zoom-ctrl button:hover{background:#E8EDF4}
 .map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
 .map-attribution a{color:#5a6b80}
 .map-grad-wrap{min-width:190px;max-width:240px}
 .map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
 .map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
-.methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology details{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
 .methodology details[open] summary::after{content:'–'}
-.methodology summary:hover{background:var(--cream)}
-.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology summary:hover{background:#F7F4EE}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:#1C2B3A}
 .methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
 .methodology .method-body p{margin:0 0 .6rem}
-.methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body code{background:#E8EDF4;color:#1C2B3A;padding:1px 5px;border-radius:4px;font-size:12.5px}
 .methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
-.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-card{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
 .stat-value.accent{color:var(--amber)}
@@ -157,11 +139,23 @@ footer a:hover{color:var(--amber2)}
 /* ── Section headers ── */
 .section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
 .section-head:first-child{margin-top:.25rem}
-.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
 .section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:680px}
 </style>
 </head>
 <body>
+<script>
+// Resolved before any visible markup paints, so there's no flash of the
+// wrong theme (charts on this page don't re-theme, only the page chrome).
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
 
 <header>
   <div class="header-left">
@@ -187,6 +181,17 @@ footer a:hover{color:var(--amber2)}
       <option value="YK">Yukon</option>
     </select>
     <div class="header-badge" id="header-badge">EnerGuide data</div>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -376,13 +381,35 @@ const CLIP={ers:300,ghg:30,ach:10,area:700,eui:400};
 
 // Tier colour ramp: 0 grey (base / below), climbing to deep green (net-zero-ready).
 const TIER_COLORS=['#9AA7B6','#BBCBA6','#8CB273','#4E9A5A','#2E7D46','#14602F'];
-const FUEL_COLORS={Gas:'#533AB7',Electricity:'#378ADD',Other:'#8A9BB0'};
+// Colours match the fuel palette used on retrofits.html/retrofit-insights.html
+// (electricity blue, gas amber) so the same fuel reads the same across all
+// three tools.
+const FUEL_COLORS={Gas:'#C8881A',Electricity:'#378ADD',Other:'#8A9BB0'};
 const PRE_LINE='#0B2545',POST_LINE='#1A7A55';
 
 const charts={};
 const PROVINCE_SUMMARY_CACHE=new Map();
 const FSA_INDEX_CACHE=new Map();
 const FSA_CACHE=new Map();
+
+// ── Theme toggle (light/dark/colour-blind) ────────────────────────────
+// Page chrome only — charts here use fixed hex colours, not the shared
+// theme vars, so there's no chart redraw step.
+const THEMES=['light','dark','cb'];
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  syncThemeButtons(t);
+}
+syncThemeButtons(document.documentElement.dataset.theme||'light');
 
 // ── Small helpers ───────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
