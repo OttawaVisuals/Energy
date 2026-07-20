@@ -18,30 +18,31 @@
    live in assets/site-theme.css, shared with retrofits.html and
    retrofit-insights.html.
 
-   This page's charts still use fixed hex colours, not the shared theme
-   variables, so — deliberately — .card/.stat-card/.map-wrap/methodology
-   below keep a fixed white background and dark text in every theme: only
-   the page chrome (header/hero/background) inverts for dark mode. */
+   Cards, the map and the charts all read the shared theme variables, so
+   the whole page — not just the chrome — inverts for dark mode and
+   recolours for the colour-blind theme, exactly as retrofits.html does.
+   Chart colours come from PAL (see readPalette below), never hex
+   literals. */
 #province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:#fff;background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
-#province-sel option{color:#1C2B3A;background:#fff}
+#province-sel option{color:var(--text);background:var(--card)}
 
 /* ── Filters ── */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
-.filter-bar{background:#fff;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.7rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:#1C2B3A;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
-.filter-group select:hover{border-color:var(--navy)}
+.filter-group select{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select:hover{border-color:var(--ink)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:#1C2B3A;background:#fff;text-transform:uppercase;transition:border-color .15s}
+.filter-group input{height:36px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);text-transform:uppercase;transition:border-color .15s}
 .filter-group input::placeholder{color:var(--light);text-transform:none}
-.filter-group input:hover{border-color:var(--navy)}
+.filter-group input:hover{border-color:var(--ink)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
-.filter-reset:hover{border-color:var(--navy);color:var(--navy)}
-.filter-count-bar{max-width:1280px;margin:0 auto;background:#fff;padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.filter-reset:hover{border-color:var(--ink);color:var(--ink)}
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
-.filter-count strong{color:#1C2B3A;font-weight:500}
+.filter-count strong{color:var(--text);font-weight:500}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
@@ -50,7 +51,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 @media(max-width:620px){.grid-2{grid-template-columns:1fr}}
 
 /* ── Cards ── */
-.card{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
 .card-title-row .card-title{margin-bottom:0}
@@ -58,42 +59,42 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
-.map-wrap{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
-#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:#F4F7FB;border-radius:var(--r-md);cursor:grab;touch-action:none}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:var(--map-bg);border-radius:var(--r-md);cursor:grab;touch-action:none}
 #fsa-map-svg:active{cursor:grabbing}
-.fsa-shape{cursor:pointer;stroke:#fff;stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
-.fsa-shape:hover{stroke:#1C2B3A;stroke-width:1.6}
-.fsa-shape.is-selected{stroke:#1C2B3A;stroke-width:2.2}
+.fsa-shape{cursor:pointer;stroke:var(--map-stroke);stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
+.fsa-shape:hover{stroke:var(--ink);stroke-width:1.6}
+.fsa-shape.is-selected{stroke:var(--ink);stroke-width:2.2}
 .fsa-shape.no-data{cursor:default}
 .map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
-.map-zoom-ctrl button{width:30px;height:30px;border:none;background:#fff;color:var(--navy);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--card);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
 .map-zoom-ctrl button:last-child{border-bottom:none}
-.map-zoom-ctrl button:hover{background:#E8EDF4}
-.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:#5a6b80;background:rgba(255,255,255,.72);padding:1px 6px;border-radius:4px;line-height:1.4}
-.map-attribution a{color:#5a6b80}
+.map-zoom-ctrl button:hover{background:var(--surface)}
+.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:var(--muted);background:var(--map-attr-bg);padding:1px 6px;border-radius:4px;line-height:1.4}
+.map-attribution a{color:var(--muted)}
 .map-grad-wrap{min-width:190px;max-width:240px}
 .map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
 .map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
-.methodology details{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
-.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
 .methodology details[open] summary::after{content:'–'}
-.methodology summary:hover{background:#F7F4EE}
-.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:#1C2B3A}
+.methodology summary:hover{background:var(--cream)}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
 .methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
 .methodology .method-body p{margin:0 0 .6rem}
-.methodology .method-body code{background:#E8EDF4;color:#1C2B3A;padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body code{background:var(--surface);color:var(--text);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
-.stat-card{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
-.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
 .stat-value.accent{color:var(--amber)}
 .stat-value.green{color:var(--green)}
 .stat-sub{font-size:12px;color:var(--light);margin-top:4px}
@@ -105,10 +106,8 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .cw-lg{height:280px}
 .cw-xl{height:360px}
 
-/* ── Info "?" buttons ── */
-.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
-.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--navy)}
-#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
+/* Base .info-btn/#info-tip look lives in assets/site-theme.css, shared
+   with retrofits.html — one floating tip serves every button on the page. */
 
 /* ── Misc ── */
 .state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
@@ -261,15 +260,31 @@ footer a:hover{color:var(--amber2)}
     <p class="note">Each bar is one year of newly built homes, split by the energy tier they achieved. Tiers were only recorded on evaluations from 2024 on, so earlier years are sparse. Higher tiers (darker green) use progressively less energy than base code.</p>
   </div>
 
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">NBC tier: designed vs achieved<button class="info-btn" data-info="Both audits record a tier. The plan (P) file carries the tier the house was designed to; the as-built (N) file carries the tier it actually achieved once tested.">?</button></div><div class="chart-legend-inline" id="tiermove-legend"></div></div>
+    <div class="cw cw-md"><canvas id="tiermove-chart"></canvas></div>
+    <p class="note">The whole tier mix, before and after. Homes that beat their design tier outnumber those that fall short by more than ten to one — much of that is plan files filed at Tier 0 or 1 that test far better once the blower door goes in.</p>
+  </div>
+  <div class="stats-grid" id="tier-move-stats"></div>
+
   <div class="section-head">
     <h2>Getting tighter every year</h2>
-    <p class="sec-sub">Air leakage — measured with a blower-door test on the finished house — is one of the clearest signs of build quality. Lower is tighter.</p>
+    <p class="sec-sub">Air leakage is one of the clearest signs of build quality. Both audits carry a figure: the plan file's modelled value, and the blower-door result on the finished house. Lower is tighter.</p>
   </div>
-  <div class="card">
-    <div class="card-title">Median airtightness of new homes (air changes per hour @ 50 Pa)</div>
-    <div class="cw cw-lg"><canvas id="ach-chart"></canvas></div>
-    <p class="note">Median across all new homes evaluated that year. A lower number means less uncontrolled air leakage — a tighter, more efficient envelope.</p>
+  <div class="stats-grid" id="air-stats"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title-row"><div class="card-title">Median airtightness, as designed vs as built (ACH₅₀)</div><div class="chart-legend-inline" id="ach-legend"></div></div>
+      <div class="cw cw-lg"><canvas id="ach-chart"></canvas></div>
+      <p class="note">Median across all new homes evaluated that year. Both lines are falling, and the gap between them has held: builders keep beating the value their plan model assumed.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">The airtightness gap, per home (as-built − design, ACH₅₀)</div>
+      <div class="cw cw-lg"><canvas id="airgap-chart"></canvas></div>
+      <p class="note">Negative (green) = the finished house tested tighter than its plan model assumed; positive (red) = leakier.</p>
+    </div>
   </div>
+  <p class="note" style="max-width:820px;margin-top:-.4rem">Read the design figure as an <em>assumption</em>, not a measurement. Most plan files carry a round default value — 3.6, 4.5 and 2.5 ACH₅₀ account for most of them — rather than a per-house target, so this compares what the model assumed against what the house actually tested.</p>
 
   <div class="section-head">
     <h2>Do they perform as designed?</h2>
@@ -334,6 +349,8 @@ footer a:hover{color:var(--amber2)}
       <p>This tool uses Natural Resources Canada's <strong>EnerGuide Rating System</strong> open data — the same dataset behind the <a href="retrofits.html">Retrofit Explorer</a>, but a different slice of it. Every evaluation carries a type code: <code>D</code>/<code>E</code> are existing-home pre/post-retrofit audits (the Retrofit Explorer's subject), while <code>P</code> and <code>N</code> are new construction. <code>P</code> ("plan") is the home modelled from its architectural plans; <code>N</code> is the finished house, evaluated and blower-door tested after construction.</p>
       <h4>What a "home" is here</h4>
       <p>Each row is one <strong>as-built (N)</strong> home — a real, finished, tested house. Where the matching plan file (<code>P</code>) exists for the same home, its as-designed figures are joined on so the two can be compared ("Do they perform as designed?"). Homes with only a plan file — designed but not yet built or tested — are excluded.</p>
+      <h4>Designed vs as-built</h4>
+      <p>Three figures are carried on both audits, so the plan model and the finished house can be compared directly: the EnerGuide rating, the NBC energy-performance tier (<code>ENERGYPERFORMANCETIER</code>, recorded on P and N files alike) and airtightness (<code>AIR50P</code>). The tier comparison is a true before/after — both numbers are the software's own verdict on each model. The airtightness comparison is not symmetric: the as-built value is a real blower-door measurement, while most plan files carry a <strong>round assumed value</strong> (3.6, 4.5 and 2.5 ACH₅₀ between them cover most of the dataset) rather than a per-house design target. Treat it as assumption versus measurement.</p>
       <h4>The numbers</h4>
       <p>Energy figures are <strong>modelled</strong> estimates from the audit software (HOT2000), not metered utility bills — actual use varies with weather and occupants. The EnerGuide rating and NBC tier were only introduced in recent software versions, so those charts start in 2019 (rating) and 2024 (tiers); airtightness, fuel and floor area go back to 2004. Province-wide charts are pre-computed in Python; the postal-area view bins the raw records in your browser using the same bucket widths, so the two agree. Geography is postal-area (FSA) only — the public dataset carries just the first three characters of each postal code. The source contains no cost data, so no dollar figures are shown.</p>
       <p class="caveats">New construction is a smaller programme than retrofits (~223,000 as-built homes vs 500,000+ retrofits), and participation is voluntary and uneven across provinces — Alberta, BC and Ontario dominate. Small postal areas can be noisy; read them as indications, not precise measurements.</p>
@@ -379,22 +396,71 @@ const BINS={
 };
 const CLIP={ers:300,ghg:30,ach:10,area:700,eui:400};
 
-// Tier colour ramp: 0 grey (base / below), climbing to deep green (net-zero-ready).
+// Tier colour ramp: base/below at the neutral end, climbing to the deepest
+// "positive" colour (net-zero-ready). Rebuilt per theme in readPalette.
 const TIER_COLORS=['#9AA7B6','#BBCBA6','#8CB273','#4E9A5A','#2E7D46','#14602F'];
 // Colours match the fuel palette used on retrofits.html/retrofit-insights.html
 // (electricity blue, gas amber) so the same fuel reads the same across all
-// three tools.
+// three tools. Literal values here are light-mode defaults only — both this
+// and TIER_COLORS are re-pointed at the live palette by readPalette().
 const FUEL_COLORS={Gas:'#C8881A',Electricity:'#378ADD',Other:'#8A9BB0'};
-const PRE_LINE='#0B2545',POST_LINE='#1A7A55';
+let PRE_LINE='#0B2545',POST_LINE='#1A7A55';
+const TYPE_PALETTE=['#0B2545','#1A7A55','#378ADD','#C8881A','#533AB7','#B33A2E','#5C6E82','#8CB273'];
 
 const charts={};
 const PROVINCE_SUMMARY_CACHE=new Map();
 const FSA_INDEX_CACHE=new Map();
 const FSA_CACHE=new Map();
 
-// ── Theme toggle (light/dark/colour-blind) ────────────────────────────
-// Page chrome only — charts here use fixed hex colours, not the shared
-// theme vars, so there's no chart redraw step.
+// ── Theme palette ─────────────────────────────────────────────────────
+// Same contract as retrofits.html: PAL is the single source of truth for
+// every colour drawn into a canvas or SVG, repopulated from the CSS custom
+// properties on each theme change. Chart code reads PAL.* and never a hex
+// literal — otherwise the colour-blind theme recolours the chrome while the
+// data stays put, which is exactly the bug this replaced.
+const PAL={};
+function hexToRgb(hex){
+  const h=(hex||'').replace('#','');
+  return h.length>=6?[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]:[128,128,128];
+}
+// Blend two hex colours; t is the share of `b`. Used for tints that should
+// track the theme rather than being frozen light-mode greys.
+function mix(a,b,t){
+  const A=hexToRgb(a),B=hexToRgb(b);
+  return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  Object.assign(PAL,{
+    primary:g('--d-primary'),secondary:g('--d-secondary'),
+    pos:g('--d-pos'),neg:g('--d-neg'),blue:g('--d-blue'),purple:g('--d-purple'),
+    track:g('--d-track'),axis:g('--d-axis'),tick:g('--d-tick'),grid:g('--d-grid'),
+    text:g('--text'),muted:g('--muted'),light:g('--light'),
+    card:g('--card'),border:g('--border'),surface:g('--surface'),
+    fElec:g('--f-elec'),fGas:g('--f-gas'),
+  });
+  PAL.mapBase=mix(PAL.primary,PAL.card,.90);   // empty end of the count ramp
+  PAL.mapNull=mix(PAL.tick,PAL.card,.55);      // "no data" shapes
+  PAL.rampCountLo=hexToRgb(PAL.mapBase);
+  PAL.rampCountHi=hexToRgb(PAL.primary);
+  PAL.scatterFill=mix(PAL.primary,PAL.card,.55);
+  PAL.scatterEdge=mix(PAL.primary,PAL.card,.8);
+  // Tier ramp: neutral at Tier 0, five steps toward the "positive" colour.
+  // Derived from the theme rather than hard-coded so the colour-blind theme
+  // gets its own ramp for free.
+  TIER_COLORS.length=0;
+  TIER_COLORS.push(mix(PAL.tick,PAL.card,.25));                 // Tier 0
+  [.55,.35,.15,0].forEach(t=>TIER_COLORS.push(mix(PAL.pos,PAL.card,t)));
+  TIER_COLORS.push(mix(PAL.pos,PAL.text,.35));                  // Tier 5
+  Object.assign(FUEL_COLORS,{Gas:PAL.fGas,Electricity:PAL.fElec,Other:PAL.tick});
+  TYPE_PALETTE.length=0;
+  TYPE_PALETTE.push(PAL.primary,PAL.pos,PAL.blue,PAL.secondary,PAL.purple,PAL.neg,PAL.axis,mix(PAL.pos,PAL.card,.4));
+  PRE_LINE=PAL.primary;
+  POST_LINE=PAL.pos;
+  Chart.defaults.color=PAL.axis;
+}
+
 const THEMES=['light','dark','cb'];
 function syncThemeButtons(t){
   document.querySelectorAll('.theme-btn').forEach(b=>{
@@ -407,7 +473,18 @@ function setTheme(t){
   if(!THEMES.includes(t))t='light';
   document.documentElement.dataset.theme=t;
   try{localStorage.setItem('theme',t);}catch(e){}
+  readPalette();
   syncThemeButtons(t);
+  redrawAllCharts();
+}
+// Charts bake their colours in at construction time, so a theme change has to
+// rebuild them from data already in hand — never re-fetch.
+function redrawAllCharts(){
+  try{
+    if(MODE==='province'&&_lastSlice)renderDashboard(_lastSlice,_lastMeta||{fsaRows:null});
+    else if(MODE==='fsa'&&ALL.length)renderFsa();
+    if(MAP_STATE&&$('fsa-map-svg'))paintFsaMap();
+  }catch(e){console.error('theme redraw',e);}
 }
 syncThemeButtons(document.documentElement.dataset.theme||'light');
 
@@ -429,10 +506,10 @@ function fuelGroup(f){if(!f)return null;const s=String(f).trim();if(s==='Natural
 
 Chart.defaults.font.family="'Inter',sans-serif";
 Chart.defaults.font.size=11;
-Chart.defaults.color='#5C6E82';
 Chart.defaults.animation=false;   // preview/screenshot renderers have no rAF — paint synchronously
 Chart.defaults.plugins.legend.display=false;
 Chart.defaults.maintainAspectRatio=false;
+readPalette();   // must run after Chart exists — it sets Chart.defaults.color
 
 // ── Fetch layer ─────────────────────────────────────────────────────
 function fetchJSON(url){return fetch(url).then(r=>{if(!r.ok)throw new Error(`fetch ${r.status}: ${url}`);return r.json();});}
@@ -536,35 +613,48 @@ function computeSlice(rows){
   const n=rows.length;const out={row_count:n};if(!n)return out;
   const col=k=>rows.map(r=>num(r[k]));
   const ers=col('ERSRating'),area=col('FloorArea'),ghg=col('GHG'),ach=col('AirLeakage'),
-        eui=col('EUI'),tier=col('Tier'),impr=col('Improvement');
+        eui=col('EUI'),tier=col('Tier'),impr=col('Improvement'),
+        dach=col('Designed_AirLeakage'),dtier=col('Designed_Tier');
   out.median_ers=median(ers.filter(v=>v>0));
   out.median_area=median(area);
   out.median_ghg=median(ghg);
   out.median_ach=median(ach);
+  out.median_designed_ach=median(dach);
   out.median_eui=median(eui.filter(v=>v>0&&v<=CLIP.eui));
   out.median_improvement=median(impr);
   out.pct_solar=Math.round(rows.filter(r=>num(r.SolarPV)>0).length/n*1000)/10;
   out.ers_bins=binObj(ers,BINS.ers);
   out.ghg_bins=binObj(ghg,BINS.ghg);
   out.ach_bins=binObj(ach,BINS.ach);
+  out.designed_ach_bins=binObj(dach,BINS.ach);
   out.area_bins=binObj(area,BINS.area);
   out.eui_bins=binObj(eui,BINS.eui);
   const tc={};tier.forEach(v=>{if(v==null)return;const k=Math.round(v);tc[k]=(tc[k]||0)+1;});out.tier_counts=tc;
+  const dtc={};dtier.forEach(v=>{if(v==null)return;const k=Math.round(v);dtc[k]=(dtc[k]||0)+1;});out.designed_tier_counts=dtc;
+  // designed -> as-built tier movement (mirrors compute_slice in newhomes_precompute.py)
+  const tt={};let tSame=0,tUp=0,tDown=0,tN=0;
+  rows.forEach(r=>{const d=num(r.Designed_Tier),a=num(r.Tier);if(d==null||a==null)return;
+    const dk=Math.round(d),ak=Math.round(a);tN++;
+    if(ak===dk)tSame++;else if(ak>dk)tUp++;else tDown++;
+    const k=dk+'|'+ak;tt[k]=(tt[k]||0)+1;});
+  out.tier_transition=Object.keys(tt).map(k=>{const[d,a]=k.split('|').map(Number);return[d,a,tt[k]];});
+  out.tier_move=tN?{n:tN,pct_same:Math.round(tSame/tN*1000)/10,pct_up:Math.round(tUp/tN*1000)/10,pct_down:Math.round(tDown/tN*1000)/10}:{n:0};
   out.fuel_counts=countBy(rows.map(r=>r.HeatFuel));
   out.type_counts=countBy(rows.map(r=>r.BldgType));
   out.compliance_counts=countBy(rows.map(r=>r.CompliancePath));
   // trends by year
-  const ach_by_year={},ers_by_year={},tier_by_year={},fuel_by_year={},acc={};
+  const ach_by_year={},dach_by_year={},ers_by_year={},tier_by_year={},fuel_by_year={},acc={};
   rows.forEach(r=>{const y=num(r.Year);if(y==null||y<2004||y>2030)return;const yr=Math.round(y);
-    (acc[yr]=acc[yr]||{ach:[],ers:[],tier:[],fuel:[]});
-    acc[yr].ach.push(num(r.AirLeakage));const e=num(r.ERSRating);if(e>0)acc[yr].ers.push(e);
+    (acc[yr]=acc[yr]||{ach:[],dach:[],ers:[],tier:[],fuel:[]});
+    acc[yr].ach.push(num(r.AirLeakage));acc[yr].dach.push(num(r.Designed_AirLeakage));const e=num(r.ERSRating);if(e>0)acc[yr].ers.push(e);
     if(num(r.Tier)!=null)acc[yr].tier.push(Math.round(num(r.Tier)));const g=fuelGroup(r.HeatFuel);if(g)acc[yr].fuel.push(g);});
   Object.keys(acc).forEach(yr=>{const a=acc[yr];
     const ma=median(a.ach);if(ma!=null)ach_by_year[yr]=Math.round(ma*100)/100;
+    const md=median(a.dach);if(md!=null)dach_by_year[yr]=Math.round(md*100)/100;
     const me=median(a.ers);if(me!=null)ers_by_year[yr]=Math.round(me*10)/10;
     if(a.tier.length){const t={};a.tier.forEach(v=>t[v]=(t[v]||0)+1);tier_by_year[yr]=t;}
     if(a.fuel.length){const f={};a.fuel.forEach(v=>f[v]=(f[v]||0)+1);fuel_by_year[yr]=f;}});
-  out.ach_by_year=ach_by_year;out.ers_by_year=ers_by_year;out.tier_by_year=tier_by_year;out.fuel_by_year=fuel_by_year;
+  out.ach_by_year=ach_by_year;out.designed_ach_by_year=dach_by_year;out.ers_by_year=ers_by_year;out.tier_by_year=tier_by_year;out.fuel_by_year=fuel_by_year;
   // designed vs as-built
   const pairs=[];rows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating),g=num(r.RatingGap);
     if(d!=null&&a!=null&&g!=null&&d>0&&a>0)pairs.push({d,a,g});});
@@ -579,16 +669,31 @@ function computeSlice(rows){
     out.gap_density=Object.keys(dens).map(k=>{const[x,y]=k.split('|').map(Number);return[x,y,dens[k]];});
   }else{out.gap_bins={};out.gap_density=[];}
   out.gap_stats=gs;
+  // airtightness: modelled at design vs measured on the finished house
+  const agaps=[];rows.forEach(r=>{const d=num(r.Designed_AirLeakage),a=num(r.AirLeakage);
+    if(d!=null&&a!=null)agaps.push(a-d);});
+  const as={n:agaps.length};
+  if(agaps.length){
+    as.median_gap=Math.round(median(agaps)*100)/100;
+    as.pct_tighter=Math.round(agaps.filter(v=>v<0).length/agaps.length*1000)/10;
+    as.pct_leakier=Math.round(agaps.filter(v=>v>0).length/agaps.length*1000)/10;
+    out.air_gap_bins=binObj(agaps,{step:BINS.ach.step,lo:-8,hi:8});
+  }else out.air_gap_bins={};
+  out.air_stats=as;
   return out;
 }
 
 // ── Rendering ───────────────────────────────────────────────────────
 function legendInline(id,items){$(id).innerHTML=items.map(i=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${i.c}"></span>${i.l}</span>`).join('');}
 
+let _lastSlice=null,_lastMeta=null;
 function renderDashboard(slice,meta){
+  _lastSlice=slice;_lastMeta=meta;   // kept so a theme change can redraw without re-fetching
   renderStats(slice);
   renderTier(slice);
+  renderTierMove(slice);
   renderAch(slice);
+  renderAirGap(slice);
   renderGap(slice,meta);
   renderErs(slice);
   renderGhg(slice);
@@ -628,7 +733,7 @@ function renderTier(s){
   }));
   legendInline('tier-legend',tiers.map(t=>({c:TIER_COLORS[t],l:'T'+t})));
   charts.tier=new Chart($('tier-chart'),{type:'bar',data:{labels:years,datasets},
-    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#EEF1F5'}}},
+    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:PAL.grid}}},
       plugins:{tooltip:{callbacks:{title:i=>`${i[0].label} · ${yearTot(+i[0].label).toLocaleString()} tiered homes`,label:c=>c.parsed.y>=0.5?`${c.dataset.label}: ${Math.round(c.parsed.y)}%`:null}}}}});
 }
 
@@ -638,22 +743,86 @@ function lineChart(id,map,{color,yTitle,fmtY}){
   charts[id]=new Chart($(id),{type:'line',data:{labels:years,datasets:[{
     data:years.map(y=>map[y]),borderColor:color,backgroundColor:color,tension:.25,
     pointRadius:2,pointHoverRadius:4,borderWidth:2,fill:false}]},
-    options:{scales:{x:{grid:{display:false}},y:{title:{display:!!yTitle,text:yTitle},grid:{color:'#EEF1F5'},beginAtZero:false}},
+    options:{scales:{x:{grid:{display:false}},y:{title:{display:!!yTitle,text:yTitle},grid:{color:PAL.grid},beginAtZero:false}},
       plugins:{tooltip:{callbacks:{label:c=>(fmtY?fmtY(c.parsed.y):c.parsed.y)}}}}});
 }
-function renderAch(s){lineChart('ach-chart',s.ach_by_year||{},{color:POST_LINE,yTitle:'ACH₅₀',fmtY:v=>v.toFixed(2)+' ACH₅₀'});}
+// Airtightness, both audits: the value modelled in the plan (P) file and the
+// blower-door result on the finished house (N). Unlike a retrofit's pre/post,
+// the "before" here is an assumption, not a measurement — see the note in the
+// card and the methodology section.
+function renderAch(s){
+  dc('ach-chart');
+  const post=s.ach_by_year||{},pre=s.designed_ach_by_year||{};
+  const years=[...new Set([...Object.keys(post),...Object.keys(pre)])].map(Number).sort((a,b)=>a-b);
+  if(!years.length){$('ach-legend').innerHTML='';noData('ach-chart');return;}
+  legendInline('ach-legend',[{c:PRE_LINE,l:'As designed (plan)'},{c:POST_LINE,l:'As built (blower door)'}]);
+  const mk=(map,color,dash)=>({data:years.map(y=>map[y]??null),borderColor:color,backgroundColor:color,
+    borderDash:dash||[],tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2,fill:false,spanGaps:true});
+  charts['ach-chart']=new Chart($('ach-chart'),{type:'line',
+    data:{labels:years,datasets:[
+      Object.assign(mk(pre,PRE_LINE,[5,4]),{label:'As designed'}),
+      Object.assign(mk(post,POST_LINE),{label:'As built'})]},
+    options:{scales:{x:{grid:{display:false}},y:{title:{display:true,text:'ACH₅₀'},grid:{color:PAL.grid},beginAtZero:false}},
+      plugins:{tooltip:{mode:'index',intersect:false,callbacks:{
+        label:c=>c.parsed.y==null?null:`${c.dataset.label}: ${c.parsed.y.toFixed(2)} ACH₅₀`}}}}});
+}
+
+// Distribution of (as-built − as-designed) airtightness. Negative = the
+// finished house tested tighter than the plan file assumed.
+function renderAirGap(s){
+  dc('airgap-chart');
+  const as=s.air_stats||{n:0};
+  $('air-stats').innerHTML=[
+    statCard('Test tighter than design',as.pct_tighter!=null?as.pct_tighter+'%':'—','green',`of ${(as.n||0).toLocaleString()} homes with both values`),
+    statCard('Typical airtightness gap',as.median_gap!=null?(as.median_gap>0?'+':'')+fmt(as.median_gap,2):'—',as.median_gap<=0?'green':'accent','ACH₅₀ (as-built − design)'),
+    statCard('Median as designed',s.median_designed_ach!=null?fmt(s.median_designed_ach,2):'—','','ACH₅₀ modelled from plans'),
+    statCard('Median as built',s.median_ach!=null?fmt(s.median_ach,2):'—','green','ACH₅₀ blower-door tested'),
+  ].join('');
+  const gk=Object.keys(s.air_gap_bins||{}).map(Number).sort((a,b)=>a-b);
+  if(!gk.length){noData('airgap-chart');return;}
+  charts['airgap-chart']=new Chart($('airgap-chart'),{type:'bar',
+    data:{labels:gk,datasets:[{data:gk.map(k=>s.air_gap_bins[k]),
+      backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?PAL.tick:PAL.neg)),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
+    options:{scales:{x:{title:{display:true,text:'as-built − design (ACH₅₀)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},
+      y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
+      plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.ach.step} ACH₅₀`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
+}
+
+// Designed tier vs achieved tier. Both audits carry ENERGYPERFORMANCETIER, so
+// this is a genuine before/after — and it moves: most homes hold their tier,
+// a large minority beat it, very few fall short.
+function renderTierMove(s){
+  dc('tiermove-chart');
+  const mv=s.tier_move||{n:0};
+  $('tier-move-stats').innerHTML=[
+    statCard('Built to the tier designed',mv.pct_same!=null?mv.pct_same+'%':'—','',`of ${(mv.n||0).toLocaleString()} homes with both tiers`),
+    statCard('Beat their design tier',mv.pct_up!=null?mv.pct_up+'%':'—','green','finished a tier or more higher'),
+    statCard('Fell short',mv.pct_down!=null?mv.pct_down+'%':'—','accent','finished below their plan tier'),
+  ].join('');
+  const dt=s.designed_tier_counts||{},at=s.tier_counts||{};
+  const dTot=Object.values(dt).reduce((a,b)=>a+(+b),0),aTot=Object.values(at).reduce((a,b)=>a+(+b),0);
+  if(!dTot||!aTot){$('tiermove-legend').innerHTML='';noData('tiermove-chart');return;}
+  const tiers=[0,1,2,3,4,5];
+  legendInline('tiermove-legend',[{c:PRE_LINE,l:'As designed (plan)'},{c:POST_LINE,l:'As built'}]);
+  charts['tiermove-chart']=new Chart($('tiermove-chart'),{type:'bar',
+    data:{labels:tiers.map(t=>'Tier '+t),datasets:[
+      {label:'As designed',data:tiers.map(t=>(+dt[t]||0)/dTot*100),backgroundColor:PRE_LINE,borderWidth:0},
+      {label:'As built',data:tiers.map(t=>(+at[t]||0)/aTot*100),backgroundColor:POST_LINE,borderWidth:0}]},
+    options:{scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>v+'%'},grid:{color:PAL.grid},title:{display:true,text:'share of homes'}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
+}
 
 function barHist(id,binsObj,{color,step,xLabel,clip}){
   dc(id);const keys=Object.keys(binsObj).map(Number).sort((a,b)=>a-b);
   if(!keys.length){noData(id);return;}
   const labels=keys.map(k=>k);
   charts[id]=new Chart($(id),{type:'bar',data:{labels,datasets:[{data:keys.map(k=>binsObj[k]),backgroundColor:color,borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
-    options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}}},
+    options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
       plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
 }
 function renderErs(s){barHist('ers-chart',s.ers_bins||{},{color:PRE_LINE,step:BINS.ers.step,xLabel:'GJ/yr'});}
-function renderGhg(s){barHist('ghg-chart',s.ghg_bins||{},{color:'#7A6BC8',step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr'});}
-function renderArea(s){barHist('area-chart',s.area_bins||{},{color:'#5C6E82',step:BINS.area.step,xLabel:'m²'});}
+function renderGhg(s){barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr'});}
+function renderArea(s){barHist('area-chart',s.area_bins||{},{color:PAL.axis,step:BINS.area.step,xLabel:'m²'});}
 
 function renderGap(s,meta){
   const gs=s.gap_stats||{n:0};
@@ -666,8 +835,8 @@ function renderGap(s,meta){
   dc('gap');const gk=Object.keys(s.gap_bins||{}).map(Number).sort((a,b)=>a-b);
   if(gk.length){
     charts.gap=new Chart($('gap-chart'),{type:'bar',data:{labels:gk,datasets:[{data:gk.map(k=>s.gap_bins[k]),
-      backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?'#9AA7B6':'#B33A2E')),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
-      options:{scales:{x:{title:{display:true,text:'as-built − design (GJ/yr)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}}},
+      backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?PAL.tick:PAL.neg)),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
+      options:{scales:{x:{title:{display:true,text:'as-built − design (GJ/yr)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
         plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.gap.step} GJ/yr`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
   }else noData('gap-chart');
   // scatter: raw points (FSA) or density (province)
@@ -680,15 +849,15 @@ function renderGap(s,meta){
     (s.gap_density||[]).forEach(([x,y,c])=>{if(c>maxC)maxC=c;});
     (s.gap_density||[]).forEach(([x,y,c])=>pts.push({x:x+BINS.dens/2,y:y+BINS.dens/2,r:3+Math.sqrt(c/maxC)*10,c}));
   }
-  legendInline('scatter-legend',[{c:'#B33A2E',l:'dashed = as-built equals design'}]);
+  legendInline('scatter-legend',[{c:PAL.neg,l:'dashed = as-built equals design'}]);
   if(!pts.length){noData('scatter-chart');return;}
   const lim=Math.max(...pts.map(p=>Math.max(p.x,p.y)),150);
-  const diag={type:'line',data:[{x:0,y:0},{x:lim,y:lim}],borderColor:'#B33A2E',borderDash:[6,5],borderWidth:1.5,pointRadius:0,fill:false,order:0};
+  const diag={type:'line',data:[{x:0,y:0},{x:lim,y:lim}],borderColor:PAL.neg,borderDash:[6,5],borderWidth:1.5,pointRadius:0,fill:false,order:0};
   charts.scatter=new Chart($('scatter-chart'),{data:{datasets:[
-    {type:'scatter',data:pts,pointBackgroundColor:'rgba(11,37,69,.42)',pointBorderColor:'rgba(11,37,69,.15)',pointRadius:pts.map(p=>p.r),order:1},
+    {type:'scatter',data:pts,pointBackgroundColor:PAL.scatterFill,pointBorderColor:PAL.scatterEdge,pointRadius:pts.map(p=>p.r),order:1},
     diag]},
-    options:{scales:{x:{type:'linear',min:0,max:lim,title:{display:true,text:'as-designed rating (GJ/yr)'},grid:{color:'#EEF1F5'}},
-      y:{type:'linear',min:0,max:lim,title:{display:true,text:'as-built rating (GJ/yr)'},grid:{color:'#EEF1F5'}}},
+    options:{scales:{x:{type:'linear',min:0,max:lim,title:{display:true,text:'as-designed rating (GJ/yr)'},grid:{color:PAL.grid}},
+      y:{type:'linear',min:0,max:lim,title:{display:true,text:'as-built rating (GJ/yr)'},grid:{color:PAL.grid}}},
       plugins:{tooltip:{callbacks:{label:c=>c.raw.c>1?`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} · ${c.raw.c} homes`:`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} GJ/yr`}}}}});
 }
 
@@ -699,17 +868,16 @@ function donutChart(id,obj,legendId,palette){
   if(restTot)top.push(['Other',restTot]);
   const colors=top.map((e,i)=>palette[i%palette.length]);
   if(legendId)legendInline(legendId,top.map((e,i)=>({c:colors[i],l:e[0]})));
-  charts[id]=new Chart($(id),{type:'doughnut',data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:colors,borderWidth:1,borderColor:'#fff'}]},
+  charts[id]=new Chart($(id),{type:'doughnut',data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:colors,borderWidth:1,borderColor:PAL.card}]},
     options:{cutout:'55%',plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()}`}}}}});
 }
-const TYPE_PALETTE=['#0B2545','#1A7A55','#378ADD','#C8881A','#533AB7','#B33A2E','#5C6E82','#8CB273'];
 function renderTypes(s){donutChart('type-chart',s.type_counts,'type-legend',TYPE_PALETTE);}
 function renderFuel(s){
   dc('fuel');const entries=Object.entries(s.fuel_counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
   if(!entries.length){noData('fuel-chart');return;}
-  const colors=entries.map(e=>FUEL_COLORS[fuelGroup(e[0])]||'#8A9BB0');
+  const colors=entries.map(e=>FUEL_COLORS[fuelGroup(e[0])]||PAL.tick);
   charts.fuel=new Chart($('fuel-chart'),{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:colors,borderWidth:0}]},
-    options:{indexAxis:'y',scales:{x:{grid:{color:'#EEF1F5'},title:{display:true,text:'homes'}},y:{grid:{display:false}}},
+    options:{indexAxis:'y',scales:{x:{grid:{color:PAL.grid},title:{display:true,text:'homes'}},y:{grid:{display:false}}},
       plugins:{tooltip:{callbacks:{label:c=>`${c.parsed.x.toLocaleString()} homes`}}}}});
 }
 function renderFuelYear(s){
@@ -720,12 +888,12 @@ function renderFuelYear(s){
     data:years.map(y=>{const yr=byYear[y]||{};const tot=groups.reduce((a,k)=>a+(+yr[k]||0),0);return tot?(+(yr[g]||0))/tot*100:0;})}));
   legendInline('fuelyear-legend',groups.map(g=>({c:FUEL_COLORS[g],l:g})));
   charts.fuelyear=new Chart($('fuelyear-chart'),{type:'bar',data:{labels:years,datasets},
-    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#EEF1F5'}}},
+    options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:PAL.grid}}},
       plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.parsed.y)}%`}}}}});
 }
 
 function noData(id){dc(id);const cv=$(id);const ctx=cv.getContext('2d');
-  const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#8A9BB0';ctx.font="12px Inter, sans-serif";
+  const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=PAL.tick;ctx.font="12px Inter, sans-serif";
   ctx.textAlign='center';ctx.fillText('Not enough data for this view',w/2,h/2);}
 
 // ── FSA map (adapted from retrofits.html; colour = new-home count) ───
@@ -745,7 +913,7 @@ function projectRing(ring,ox,oy,z){return ring.map(([lo,la])=>[lon2x(lo,z)-ox,la
 function ringsToPathD(rings){return rings.map(p=>'M'+p.map(q=>q.join(',')).join('L')+'Z').join(' ');}
 function loadFsaMap(prov,fsaIndex){
   toggleFsaMapCard(true);
-  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13">Loading map…</text>';
+  $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="${PAL.tick}" font-size="13">Loading map…</text>';
   resetFsaMapZoom();
   fetchGeoJSON(prov).then(geojson=>{
     if(PROVINCE_CODE!==prov)return;
@@ -763,7 +931,7 @@ function loadFsaMap(prov,fsaIndex){
     let tiles='';for(let ty=tmnY;ty<=tmxY;ty++)for(let tx=tmnX;tx<=tmxX;tx++){const x=tx*256-ox,y=ty*256-oy;tiles+=`<image href="${tileUrl(z,tx,ty)}" x="${x}" y="${y}" width="256" height="256"></image>`;}
     MAP_STATE={prov,z,origin:[ox,oy],features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup:tiles};
     paintFsaMap();
-  }).catch(err=>{console.error(err);$('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="#8A9BB0" font-size="13">Map not available for this province</text>';MAP_STATE=null;});
+  }).catch(err=>{console.error(err);$('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="${PAL.tick}" font-size="13">Map not available for this province</text>';MAP_STATE=null;});
 }
 function setMapGradientLegend(css,l,m,r){$('map-legend').innerHTML=`<div class="map-grad-wrap"><div class="map-grad" style="background:${css}"></div><div class="map-grad-labels"><span>${l}</span>${m!=null?`<span>${m}</span>`:''}<span>${r}</span></div></div>`;}
 function lerpColor(lo,hi,t){t=Math.max(0,Math.min(1,t));const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));return`rgb(${c.join(',')})`;}
@@ -771,8 +939,8 @@ function buildFsaColorScale(state){
   const vals=state.features.map(f=>state.indexByFsa[f.fsa]).filter(Boolean);
   const counts=vals.map(e=>e.row_count||0);const maxC=Math.max(...counts,1);
   $('map-color-meaning').textContent='new homes built';
-  setMapGradientLegend('linear-gradient(90deg,#E6ECF5,#0B2545)','0',null,`${maxC.toLocaleString()} homes`);
-  return e=>e?lerpColor([230,236,245],[11,37,69],Math.sqrt((e.row_count||0)/maxC)):'#D3D9E2';
+  setMapGradientLegend(`linear-gradient(90deg,${PAL.mapBase},${PAL.primary})`,'0',null,`${maxC.toLocaleString()} homes`);
+  return e=>e?lerpColor(PAL.rampCountLo,PAL.rampCountHi,Math.sqrt((e.row_count||0)/maxC)):PAL.mapNull;
 }
 function paintFsaMap(){
   if(!MAP_STATE)return;const svg=$('fsa-map-svg');const colorOf=buildFsaColorScale(MAP_STATE);
