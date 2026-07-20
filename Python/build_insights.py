@@ -570,12 +570,27 @@ def build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad):
 # 0..1 across eligible FSAs (n >= MIN_N and has census); "low participation"
 # uses (1 - participation percentile). Score = 100 * weighted sum, so higher =
 # worse stock AND lower uptake = higher priority for programs to look next.
+# Expressed on the same ordinal scale the page's priority controls use
+# (Off/Low/Medium/High = 0/1/2/3, normalised to sum 1), so the shipped default
+# is reproducible from the UI rather than being a weighting the reader cannot
+# reach. High EUI / Medium GHG / Low age / Medium participation = 3/2/1/2.
+# The previous 0.30/0.25/0.20/0.25 was not expressible on that scale; the two
+# rank 18 of the same top 20, same #1, median shift 22 places out of 1,509.
 OPP_WEIGHTS = {
-    "pre_eui": 0.30,          # worst-performing stock (high pre-retrofit EUI)
-    "pre_ghg": 0.25,          # highest emissions
-    "pre_1980_share": 0.20,   # oldest housing
-    "low_participation": 0.25,  # least program uptake so far
+    "pre_eui": 0.375,         # High   — worst-performing stock (high pre-retrofit EUI)
+    "pre_ghg": 0.25,          # Medium — highest emissions
+    "pre_1980_share": 0.125,  # Low    — oldest housing
+    "low_participation": 0.25,  # Medium — least program uptake so far
+    "low_income": 0.0,        # Off    — lowest-income neighbourhoods; see note below
 }
+
+# low_income ships at weight 0, so the default ranking is exactly what it was
+# before the factor existed. It is emitted per FSA regardless, because the page
+# lets the reader re-weight all five factors live and re-sort the table (the
+# stored percentiles are the whole input to that; nothing is recomputed server
+# side). Unlike the income lens in the equity section, weighting an AREA's
+# income to decide where a PROGRAM should look is an area-level decision about
+# areas, which is what this data supports.
 
 
 def build_opportunity(metrics):
@@ -594,18 +609,21 @@ def build_opportunity(metrics):
         "fsa": m["fsa"], "prov": m["prov"], "n": m["n"],
         "pre_eui": m["eui_pre_median"], "pre_ghg": m["ghg_pre_median"],
         "pre_1980_share": m["pre_1980_share"], "participation": m["participation"],
+        "median_income": m["median_income"],
     } for m in elig])
 
     df["f_pre_eui"] = pctile_rank(df["pre_eui"])
     df["f_pre_ghg"] = pctile_rank(df["pre_ghg"])
     df["f_pre_1980"] = pctile_rank(df["pre_1980_share"])
     df["f_low_part"] = 1.0 - pctile_rank(df["participation"])
+    df["f_low_income"] = 1.0 - pctile_rank(df["median_income"])
 
     df["score"] = 100.0 * (
         OPP_WEIGHTS["pre_eui"] * df["f_pre_eui"]
         + OPP_WEIGHTS["pre_ghg"] * df["f_pre_ghg"]
         + OPP_WEIGHTS["pre_1980_share"] * df["f_pre_1980"]
         + OPP_WEIGHTS["low_participation"] * df["f_low_part"]
+        + OPP_WEIGHTS["low_income"] * df["f_low_income"]
     )
     df = df.sort_values("score", ascending=False)
 
@@ -614,25 +632,33 @@ def build_opportunity(metrics):
         ranking.append({
             "fsa": r["fsa"], "prov": r["prov"], "n": int(r["n"]),
             "score": round(float(r["score"]), 1),
+            # 4dp, not 2: the page re-scores the ranking from THESE percentiles
+            # when the reader re-weights, so coarse rounding would make the
+            # default weighting disagree with the "score" stored right above.
             "factors": {
-                "pre_eui": round(float(r["f_pre_eui"]), 2),
-                "pre_ghg": round(float(r["f_pre_ghg"]), 2),
-                "pre_1980_share": round(float(r["f_pre_1980"]), 2),
-                "low_participation": round(float(r["f_low_part"]), 2),
+                "pre_eui": round(float(r["f_pre_eui"]), 4),
+                "pre_ghg": round(float(r["f_pre_ghg"]), 4),
+                "pre_1980_share": round(float(r["f_pre_1980"]), 4),
+                "low_participation": round(float(r["f_low_part"]), 4),
+                "low_income": round(float(r["f_low_income"]), 4),
             },
             "values": {
                 "pre_eui": r0(float(r["pre_eui"])),
                 "pre_ghg": r1(float(r["pre_ghg"])),
                 "pre_1980_share": r3(float(r["pre_1980_share"])),
                 "participation": r3(float(r["participation"])),
+                "median_income": (None if pd.isna(r["median_income"])
+                                  else int(r["median_income"])),
             },
         })
     return {
         "weights": OPP_WEIGHTS,
         "min_n": MIN_N,
-        "formula": ("score = 100 * (0.30*pctile(pre_EUI) + 0.25*pctile(pre_GHG) "
-                    "+ 0.20*pctile(pre-1980 share) + 0.25*(1 - pctile(participation))); "
-                    "each factor percentile-ranked across eligible FSAs."),
+        "formula": ("score = 100 * (0.375*pctile(pre_EUI) + 0.25*pctile(pre_GHG) "
+                    "+ 0.125*pctile(pre-1980 share) + 0.25*(1 - pctile(participation)) "
+                    "+ 0*pctile(low income)); each factor percentile-ranked across "
+                    "eligible FSAs. Weights are reader-configurable on the page; "
+                    "these are the shipped defaults."),
         "n_fsas": len(ranking),
         "ranking": ranking,
     }
