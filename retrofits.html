@@ -129,6 +129,14 @@ body.mode-advanced .cap-simple{display:none}
 .theme-btn:not(.active):hover{color:var(--ink)}
 .theme-btn:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
 
+/* Census card: gauge on the left, supporting KPIs filling the rest of the
+   row. Collapses to stacked on narrow screens so the gauge keeps its size. */
+.census-gauge-row{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap}
+.census-gauge{flex:0 0 190px;max-width:190px}
+.census-gauge-cap{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;line-height:1.4}
+.census-gauge-kpis{flex:1 1 320px;min-width:0}
+@media(max-width:600px){.census-gauge{flex:1 1 100%;max-width:none;margin:0 auto}}
+
 /* ── Hero ── */
 /* Kept deliberately shallow: the eyebrow moved into the header bar and the
    headline runs wider instead of taller, so readers reach the filters and
@@ -352,6 +360,16 @@ tr.detail-row.open .detail-inner{display:block}
 /* ── Misc ── */
 .state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
 .state-msg strong{display:block;font-size:1rem;color:var(--text);margin-bottom:4px}
+/* ── Sources ── */
+.sources{max-width:1280px;margin:0 auto;padding:.5rem 1.5rem 2rem}
+.sources h2{font-family:'Fraunces',Georgia,serif;font-size:1.35rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;margin-bottom:.85rem}
+.sources-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr));gap:.85rem}
+.source-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.75rem .9rem;box-shadow:var(--shadow);min-width:0}
+.source-item a{color:var(--ink);font-weight:500;font-size:13.5px;text-decoration:none;overflow-wrap:anywhere}
+.source-item a:hover{color:var(--amber)}
+.source-item p{font-size:12.5px;color:var(--muted);margin-top:.3rem;line-height:1.5}
+.source-item code{font-size:11.5px;background:var(--surface);padding:1px 4px;border-radius:3px}
+
 footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
 footer a{color:rgba(255,255,255,.6);text-decoration:none}
 footer a:hover{color:var(--amber2)}
@@ -801,21 +819,20 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
        FSA mode by toggleCensusCard(). -->
   <div class="card" id="census-card" data-mode="advanced" style="display:none">
     <div class="card-title">Neighbourhood housing stock — 2021 Census</div>
-    <div class="kpi-grid" id="census-coverage-kpis"></div>
-    <div class="grid-2" style="margin-top:1rem">
-      <div>
-        <div class="measure-chart-title" style="margin-bottom:.5rem">Tenure</div>
-        <div style="position:relative;height:140px"><canvas id="census-tenure-gauge"></canvas></div>
-        <div class="chart-legend-inline" id="census-tenure-legend" style="justify-content:center;margin-top:4px"></div>
+    <!-- One gauge, and it answers the question the rest of the card exists to
+         frame: how much of this neighbourhood's housing the audit sample
+         actually covers. Tenure and condition used to be gauges too, which
+         gave three equally-weighted dials and no focal point — they are
+         single percentages, so they read better as plain KPIs below. -->
+    <div class="census-gauge-row">
+      <div class="census-gauge">
+        <div style="position:relative;height:150px"><canvas id="census-coverage-gauge"></canvas></div>
+        <div class="census-gauge-cap" id="census-coverage-cap"></div>
       </div>
-      <div>
-        <div class="measure-chart-title" style="margin-bottom:.5rem">Dwelling condition</div>
-        <div style="position:relative;height:140px"><canvas id="census-condition-gauge"></canvas></div>
-        <div class="chart-legend-inline" id="census-condition-legend" style="justify-content:center;margin-top:4px"></div>
-      </div>
+      <div class="kpi-grid census-gauge-kpis" id="census-coverage-kpis"></div>
     </div>
     <div class="kpi-grid" id="census-owner-kpis" style="margin-top:1rem"></div>
-    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. "Audit coverage" above compares the two — see also the Building type and Year built charts above, which overlay this same census data for direct comparison. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
+    <p class="note">Statistics Canada 2021 Census Profile, FSA level — describes <strong>all</strong> private dwellings in this FSA, not just the homes that got an EnerGuide audit. The gauge compares the two; see also the Building type and Year built charts above, which overlay this same census data for direct comparison. Tenure and dwelling condition are census counts for the whole FSA, so they describe the neighbourhood, not the audited homes. Owner stats (mortgage/shelter-cost/core-housing-need/dwelling-value) are 25%-sample-data estimates and may be suppressed (—) for small FSAs.</p>
   </div>
 
   
@@ -1033,6 +1050,46 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no cost data, so no payback or dollar figures are shown anywhere.</p>
     </div>
   </details>
+</section>
+
+<!-- Sources. Deliberately separate from the Methodology accordions above:
+     those explain HOW the numbers are derived, this answers the shorter
+     question of WHERE the inputs came from, with a link you can follow.
+     Links point at stable landing pages rather than deep file URLs, which
+     rot; the exact file/catalogue number is named in the description so a
+     reader can still find the specific extract. -->
+<section class="sources" aria-labelledby="sources-h">
+  <h2 id="sources-h">Sources</h2>
+  <div class="sources-grid">
+    <div class="source-item">
+      <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a>
+      <p>Every retrofit on this page. Anonymised household evaluations (type <code>D</code> initial and <code>E</code> follow-up), matched into before/after pairs.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/index.cfm?Lang=E" target="_blank" rel="noopener">Statistics Canada 2021 Census Profile ↗</a>
+      <p>Neighbourhood housing stock at FSA geography (catalogue 98-401-X2021013): dwelling counts, type, tenure, condition, period of construction.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index-eng.cfm" target="_blank" rel="noopener">StatCan FSA boundary files ↗</a>
+      <p>The shapes behind the map — 2021 cartographic boundary file <code>lfsa000b21a_e</code>, reprojected from Statistics Canada Lambert to lat/lon.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://www.ahridirectory.org/" target="_blank" rel="noopener">AHRI Directory of Certified Product Performance ↗</a>
+      <p>Certified heat-pump performance behind the equipment detail, looked up by AHRI reference number.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://climate.weather.gc.ca/climate_normals/index_e.html" target="_blank" rel="noopener">ECCC Canadian Climate Normals ↗</a>
+      <p>Heating and cooling degree days (base 18 °C) per FSA, from 1991–2020 normals where published.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER / NRCan energy conversion factors ↗</a>
+      <p>Fuel energy contents used to put natural gas, oil, propane and wood on one kWh basis. See Methodology B for the exact constants.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap ↗</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO ↗</a>
+      <p>Basemap tiles under the map.</p>
+    </div>
+  </div>
 </section>
 
 <footer>
@@ -2798,37 +2855,39 @@ function renderCensus(fsa,auditedCount){
     const c=data[fsa];
     if(!c){
       $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">No census data for this FSA</div></div>';
-      ['census-owner-kpis','census-tenure-legend','census-condition-legend'].forEach(id=>$(id).innerHTML='');
-      dc('censusTenure');dc('censusCondition');
+      ['census-owner-kpis','census-coverage-cap'].forEach(id=>$(id).innerHTML='');
+      dc('censusCoverage');
       return;
     }
     const coverage=c.total_dwellings?Math.round(auditedCount/c.total_dwellings*100):null;
-    $('census-coverage-kpis').innerHTML=`
-      <div class="kpi-item"><div class="kpi-name">Total private dwellings</div><div class="kpi-values"><div class="kpi-pct">${c.total_dwellings!=null?c.total_dwellings.toLocaleString():'—'}</div></div><div class="kpi-unit">2021 Census</div></div>
-      <div class="kpi-item"><div class="kpi-name">Audited homes (this FSA)</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
-      <div class="kpi-item"><div class="kpi-name">Audit coverage</div><div class="kpi-values"><div class="kpi-pct">${coverage!=null?coverage+'%':'—'}</div></div><div class="kpi-unit">of all dwellings</div></div>`;
+    // Coverage can legitimately exceed 100%: this is ~20 years of cumulative
+    // audits measured against a single 2021 dwelling snapshot, and a home can
+    // be audited more than once. So the ARC clamps to 100 (a doughnut cannot
+    // show more) while the printed number stays truthful, and the caption
+    // says why rather than letting ">100%" read as a bug.
+    if(coverage!=null){
+      drawGauge('census-coverage-gauge','censusCoverage',Math.min(coverage,100),
+        coverage>=100?PAL.pos:PAL.primary,coverage+'%','of dwellings audited');
+      $('census-coverage-cap').textContent=coverage>100
+        ?'Over 100%: audits accumulate over ~20 years, against a single 2021 dwelling count.'
+        :'EnerGuide-audited homes as a share of all private dwellings here.';
+    }else{
+      dc('censusCoverage');
+      $('census-coverage-cap').textContent='';
+    }
 
     const ten=c.tenure||{};
     const tenTotal=(ten.owner||0)+(ten.renter||0);
     const ownerPct=tenTotal?Math.round(ten.owner/tenTotal*100):null;
-    if(ownerPct!=null){
-      drawGauge('census-tenure-gauge','censusTenure',ownerPct,PAL.primary,ownerPct+'%','owner-occupied');
-      setChartLegend('census-tenure-legend',[{label:`Owner ${ownerPct}%`,color:PAL.primary},{label:`Renter ${100-ownerPct}%`,color:PAL.track}]);
-    }else{
-      dc('censusTenure');
-      setChartLegend('census-tenure-legend',[]);
-    }
-
     const cond=c.condition||{};
     const condTotal=(cond.minor_repairs||0)+(cond.major_repairs||0);
     const majorPct=condTotal?Math.round(cond.major_repairs/condTotal*100):null;
-    if(majorPct!=null){
-      drawGauge('census-condition-gauge','censusCondition',majorPct,PAL.neg,majorPct+'%','need major repairs');
-      setChartLegend('census-condition-legend',[{label:`Major repairs ${majorPct}%`,color:PAL.neg},{label:`Minor/none ${100-majorPct}%`,color:PAL.track}]);
-    }else{
-      dc('censusCondition');
-      setChartLegend('census-condition-legend',[]);
-    }
+
+    $('census-coverage-kpis').innerHTML=`
+      <div class="kpi-item"><div class="kpi-name">Total private dwellings</div><div class="kpi-values"><div class="kpi-pct">${c.total_dwellings!=null?c.total_dwellings.toLocaleString():'—'}</div></div><div class="kpi-unit">2021 Census</div></div>
+      <div class="kpi-item"><div class="kpi-name">Audited homes (this FSA)</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
+      <div class="kpi-item"><div class="kpi-name">Owner-occupied</div><div class="kpi-values"><div class="kpi-pct">${ownerPct!=null?ownerPct+'%':'—'}</div></div><div class="kpi-unit">${ownerPct!=null?`${(100-ownerPct)}% rented`:'tenure'}</div></div>
+      <div class="kpi-item"><div class="kpi-name">Need major repairs</div><div class="kpi-values"><div class="kpi-pct">${majorPct!=null?majorPct+'%':'—'}</div></div><div class="kpi-unit">dwelling condition</div></div>`;
 
     const o=c.owner_stats||{};
     $('census-owner-kpis').innerHTML=`
@@ -2839,6 +2898,8 @@ function renderCensus(fsa,auditedCount){
   }).catch(err=>{
     console.error(err);
     $('census-coverage-kpis').innerHTML='<div class="kpi-item"><div class="kpi-name">Could not load census data</div></div>';
+    $('census-coverage-cap').innerHTML='';
+    dc('censusCoverage');
   });
 }
 
