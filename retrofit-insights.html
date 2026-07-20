@@ -152,6 +152,24 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .qlist li::marker{color:#9C6812;font-weight:600}
 .qlist li b{display:block;color:#0B2545;margin-bottom:.2rem}
 .qlist li span{display:block;color:#1C2B3A;font-size:13.5px}
+/* Opportunity priority controls. Cards are white in every theme, so these use
+   fixed light-palette colours like the rest of the card-internal text. */
+.priority-box{border:1px solid #D2D8E3;border-radius:var(--r-sm);padding:.75rem .9rem;margin:.6rem 0 .75rem;background:#FFF}
+.priority-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.6rem}
+.priority-title{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#8A5D0F;font-weight:600}
+.priority-actions{display:flex;align-items:center;gap:8px}
+.priority-preset{font-size:12px;color:#5C6E82;font-style:italic}
+.priority-reset,.priority-copy{font-size:11.5px;color:#0B2545;background:#F7F4EE;border:1px solid #D2D8E3;border-radius:4px;padding:3px 9px;cursor:pointer}
+.priority-reset:hover,.priority-copy:hover{border-color:#8A5D0F;color:#8A5D0F}
+.priority-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:.6rem .9rem}
+.pw{display:flex;flex-direction:column;gap:3px}
+.pw label{font-size:12px;color:#1C2B3A;font-weight:500}
+.pw .pw-row{display:flex;align-items:center;gap:7px}
+.pw select{flex:1;font:inherit;font-size:12.5px;color:#1C2B3A;background:#FFF;border:1px solid #D2D8E3;border-radius:4px;padding:3px 5px;cursor:pointer}
+.pw select:focus-visible{outline:2px solid #8A5D0F;outline-offset:1px}
+.pw .pw-share{font-size:12px;color:#5C6E82;font-variant-numeric:tabular-nums;min-width:2.6em;text-align:right}
+.pw .pw-bar{height:3px;border-radius:2px;background:#E7E2D8;overflow:hidden}
+.pw .pw-fill{display:block;height:100%;background:#C8881A}
 .formula-box{background:#F7F4EE;border:1px solid #D2D8E3;border-radius:var(--r-sm);padding:.7rem .9rem;margin:.6rem 0 .9rem}
 .formula-line{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#0B2545;overflow-x:auto;white-space:nowrap;padding-bottom:2px}
 .formula-note{font-size:12.5px;color:#57687B;margin-top:.5rem;line-height:1.55}
@@ -417,8 +435,20 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
         <button class="jump-btn" data-jump-metric="opportunity">◲ See the opportunity score on the map</button>
       </div>
       <div class="sub">Higher score = worse stock + lower participation. Minimum 30 matched retrofits.</div>
+      <div class="priority-box">
+        <div class="priority-head">
+          <span class="priority-title">Set your priorities</span>
+          <div class="priority-actions">
+            <span class="priority-preset" id="opp-preset">Default weighting</span>
+            <button type="button" class="priority-reset" id="opp-reset">Reset</button>
+            <button type="button" class="priority-copy" id="opp-share">Copy link</button>
+          </div>
+        </div>
+        <div class="priority-grid" id="opp-weights"></div>
+        <div class="priority-note">Each factor is weighted <b>Off / Low / Medium / High</b>; the shares below are normalised to 100% so scores stay comparable. Turning everything off restores the default. The link button copies a URL that reopens this exact weighting.</div>
+      </div>
       <div class="formula-box">
-        <div class="formula-line">score = 100 × ( <b>0.30</b>·pct(pre-EUI) + <b>0.25</b>·pct(pre-GHG) + <b>0.20</b>·pct(pre-1980 share) + <b>0.25</b>·(1 − pct(participation)) )</div>
+        <div class="formula-line" id="opp-formula-line"></div>
         <div class="formula-note">Each of the four inputs is converted to its <b>percentile rank</b> across every eligible postal area, so all four land on a common 0–1 scale before weighting. The weights are a judgement call, not an estimate from data — they encode "worst stock first, least-served next". A score of 92 means the area sits near the top of the country on all four at once; it is a <b>ranking against other areas</b>, not a measurement of anything physical. Change the weights and the ranking changes.</div>
       </div>
       <div class="scroll-x">
@@ -877,7 +907,9 @@ function setMetric(key){
   document.querySelectorAll('.metric-btn').forEach(b=>b.classList.toggle('active',b.dataset.metric===key));
   const go=()=>{paintMap();renderLeaderboard();};
   if(key==='opportunity'&&!OPP_LOADED){
-    loadJSON(INS+'opportunity.json').then(d=>{d.ranking.forEach(o=>{if(FSA_INDEX[o.fsa])FSA_INDEX[o.fsa].opp_score=o.score;});OPP_LOADED=true;go();});
+    // Route through sec08 so the map uses the reader's current weighting rather
+    // than the shipped default score baked into opportunity.json.
+    sec08().then(go);
   }else go();
 }
 function sec03(){
@@ -1031,19 +1063,125 @@ function sec07(){
 /* ══════════════════════════════════════════════════════════════════════
    08 — MISSED OPPORTUNITY
    ══════════════════════════════════════════════════════════════════════ */
-function sec08(){return loadJSON(INS+'opportunity.json').then(o=>{
-  $('opp-formula-btn').dataset.tip=`Score = 100 × (0.30·pctile(pre-EUI) + 0.25·pctile(pre-GHG) + 0.20·pctile(pre-1980 share) + 0.25·(1−pctile(participation))), each factor percentile-ranked across ${o.n_fsas.toLocaleString()} FSAs with n≥${o.min_n}.`;
-  const body=$('opp-table').tBodies[0];const rows=o.ranking.slice(0,20);
-  const FL=[['pre_eui','Pre-EUI',0.30],['pre_ghg','Pre-GHG',0.25],['pre_1980_share','Pre-1980 share',0.20],['low_participation','Low participation',0.25]];
+/* Five factor percentiles ship per FSA, so any weighting re-scores the whole
+   1,509-row ranking client-side — no refetch, no server round trip. Weight
+   levels are ordinal (Off/Low/Med/High -> 0/1/2/3) and normalised to sum 1, so
+   only the RATIO between factors matters; "all High" equals "all Medium". */
+const OPP_FACTORS=[
+  {key:'pre_eui',        short:'eui',  label:'High starting EUI',   tip:'worst-performing stock'},
+  {key:'pre_ghg',        short:'ghg',  label:'High starting GHG',   tip:'highest emissions'},
+  {key:'pre_1980_share', short:'old',  label:'Older housing',       tip:'share built 1980 or earlier'},
+  {key:'low_participation',short:'part',label:'Low participation',  tip:'least program uptake so far'},
+  {key:'low_income',     short:'inc',  label:'Lower-income area',   tip:'lower median household income'},
+];
+const OPP_LEVELS=[['0','Off'],['1','Low'],['2','Medium'],['3','High']];
+let OPP_DATA=null,OPP_W=null;
+
+function oppDefaultLevels(){
+  // Mirror the shipped weights (0.30/0.25/0.20/0.25/0) on the ordinal scale as
+  // closely as 0-3 allows: EUI highest, old housing lowest, income off.
+  return {pre_eui:3,pre_ghg:2,pre_1980_share:1,low_participation:2,low_income:0};
+}
+function oppNormalise(levels){
+  const tot=OPP_FACTORS.reduce((a,f)=>a+(levels[f.key]||0),0);
+  const w={};
+  if(!tot){OPP_FACTORS.forEach(f=>w[f.key]=OPP_DATA.weights[f.key]??0);return w;}
+  OPP_FACTORS.forEach(f=>w[f.key]=(levels[f.key]||0)/tot);
+  return w;
+}
+function oppIsDefault(levels){
+  const d=oppDefaultLevels();
+  return OPP_FACTORS.every(f=>(levels[f.key]||0)===d[f.key]);
+}
+function oppEncode(levels){
+  return OPP_FACTORS.map(f=>`${f.short}:${levels[f.key]||0}`).join(',');
+}
+function oppDecode(str){
+  const out={},map={};OPP_FACTORS.forEach(f=>map[f.short]=f.key);
+  let any=false;
+  String(str||'').split(',').forEach(part=>{
+    const [k,v]=part.split(':');const key=map[(k||'').trim()];
+    const n=parseInt(v,10);
+    if(key&&n>=0&&n<=3){out[key]=n;any=true;}
+  });
+  if(!any)return null;
+  OPP_FACTORS.forEach(f=>{if(out[f.key]==null)out[f.key]=0;});
+  return out;
+}
+function oppLevelsFromURL(){
+  const m=location.hash.match(/opp=([^&]+)/);
+  return m?oppDecode(decodeURIComponent(m[1])):null;
+}
+function oppSyncURL(levels){
+  const base=location.pathname+location.search;
+  if(oppIsDefault(levels)){history.replaceState(null,'',base);return base;}
+  const url=`${base}#opp=${oppEncode(levels)}`;
+  history.replaceState(null,'',url);
+  return url;
+}
+function oppScore(rec,w){
+  let v=0;for(const f of OPP_FACTORS){const p=rec.factors[f.key];if(p!=null)v+=w[f.key]*p;}
+  return 100*v;
+}
+function oppRender(levels){
+  OPP_W=oppNormalise(levels);
+  const rows=OPP_DATA.ranking.map(r=>({...r,_s:oppScore(r,OPP_W)}))
+    .sort((a,b)=>b._s-a._s).slice(0,20);
+
+  // controls
+  const grid=$('opp-weights');
+  grid.innerHTML=OPP_FACTORS.map(f=>{
+    const pct=Math.round(100*OPP_W[f.key]);
+    return `<div class="pw"><label for="pw-${f.short}" title="${f.tip}">${f.label}</label>
+      <div class="pw-row">
+        <select id="pw-${f.short}" data-key="${f.key}" aria-label="${f.label} priority">
+          ${OPP_LEVELS.map(([v,l])=>`<option value="${v}"${(levels[f.key]||0)==v?' selected':''}>${l}</option>`).join('')}
+        </select><span class="pw-share">${pct}%</span>
+      </div>
+      <span class="pw-bar"><span class="pw-fill" style="width:${pct}%"></span></span></div>`;
+  }).join('');
+  grid.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',()=>{
+    const lv={};OPP_FACTORS.forEach(f=>lv[f.key]=+grid.querySelector(`[data-key="${f.key}"]`).value);
+    oppApply(lv);
+  }));
+
+  const isDef=oppIsDefault(levels);
+  $('opp-preset').textContent=isDef?'Default weighting':'Custom priority';
+  $('opp-formula-line').innerHTML='score = 100 × ( '+OPP_FACTORS.filter(f=>OPP_W[f.key]>0)
+    .map(f=>`<b>${OPP_W[f.key].toFixed(2)}</b>·pct(${f.label.toLowerCase()})`).join(' + ')+' )';
+  $('opp-formula-btn').dataset.tip=`Each factor is percentile-ranked across ${OPP_DATA.n_fsas.toLocaleString()} postal areas with n≥${OPP_DATA.min_n}, then weighted. Weights are yours to set; the shipped default is 0.30 EUI / 0.25 GHG / 0.20 pre-1980 / 0.25 low participation.`;
+
+  // table
+  const body=$('opp-table').tBodies[0];
+  const FL=OPP_FACTORS.map(f=>[f.key,f.label,OPP_W[f.key]]).filter(x=>x[2]>0);
   body.innerHTML=rows.map((r,i)=>{
-    const main=`<tr data-i="${i}"><td>${i+1}</td><td class="opp-fsa"><a class="fsa-link" href="retrofits.html?prov=${r.prov}&amp;fsa=${r.fsa}" title="Open ${r.fsa} in the Retrofit Explorer">${r.fsa}</a></td><td>${r.prov}</td><td><b>${r.score.toFixed(1)}</b></td>`+
+    const main=`<tr data-i="${i}"><td>${i+1}</td><td class="opp-fsa"><a class="fsa-link" href="retrofits.html?prov=${r.prov}&amp;fsa=${r.fsa}" title="Open ${r.fsa} in the Retrofit Explorer">${r.fsa}</a></td><td>${r.prov}</td><td><b>${r._s.toFixed(1)}</b></td>`+
       `<td>${Math.round(r.values.pre_eui)}</td><td>${r.values.pre_ghg.toFixed(1)}</td><td>${fmtPct(r.values.pre_1980_share,0)}</td><td>${fmtPct(r.values.participation,1)}</td></tr>`;
-    const bars=FL.map(([k,lab,w])=>`<span class="fb-label">${lab} <span style="color:#586A7D">×${w}</span></span><span class="fb-track"><span class="fb-fill" style="width:${Math.round(r.factors[k]*100)}%"></span></span><span class="fb-val">${(r.factors[k]*100).toFixed(0)}th pct</span>`).join('');
-    const detail=`<tr class="opp-detail" data-di="${i}" style="display:none"><td colspan="8"><div class="opp-detail-inner"><b>${r.fsa}</b> — ${PROV_NAME[r.prov]} · ${fmtInt(r.n)} matched retrofits. Factor percentiles (how it ranks nationally):<div class="factor-bars">${bars}</div></div></td></tr>`;
+    const bars=FL.map(([k,lab,w])=>`<span class="fb-label">${lab} <span style="color:var(--light)">×${w.toFixed(2)}</span></span><span class="fb-track"><span class="fb-fill" style="width:${Math.round(r.factors[k]*100)}%"></span></span><span class="fb-val">${(r.factors[k]*100).toFixed(0)}th pct</span>`).join('');
+    const inc=r.values.median_income!=null?` · median household income ${fmtInt(r.values.median_income)}`:'';
+    const detail=`<tr class="opp-detail" data-di="${i}" style="display:none"><td colspan="8"><div class="opp-detail-inner"><b>${r.fsa}</b> — ${PROV_NAME[r.prov]} · ${fmtInt(r.n)} matched retrofits${inc}. Factor percentiles (how it ranks nationally):<div class="factor-bars">${bars}</div></div></td></tr>`;
     return main+detail;
   }).join('');
-  body.querySelectorAll('tr[data-i]').forEach(tr=>tr.addEventListener('click',()=>{
+  body.querySelectorAll('tr[data-i]').forEach(tr=>tr.addEventListener('click',e=>{
+    if(e.target.closest('.fsa-link'))return;
     const d=body.querySelector(`tr[data-di="${tr.dataset.i}"]`);d.style.display=d.style.display==='none'?'':'none';}));
+
+  // keep the map's opportunity layer on the same weighting
+  OPP_DATA.ranking.forEach(r=>{if(FSA_INDEX&&FSA_INDEX[r.fsa])FSA_INDEX[r.fsa].opp_score=oppScore(r,OPP_W);});
+  if(CUR_METRIC==='opportunity'&&MAP_STATE.built){paintMap();renderLeaderboard();}
+}
+function oppApply(levels){oppSyncURL(levels);oppRender(levels);}
+function sec08(){return loadJSON(INS+'opportunity.json').then(o=>{
+  OPP_DATA=o;OPP_LOADED=true;
+  oppRender(oppLevelsFromURL()||oppDefaultLevels());
+  $('opp-reset').addEventListener('click',()=>oppApply(oppDefaultLevels()));
+  $('opp-share').addEventListener('click',async e=>{
+    const lv={};OPP_FACTORS.forEach(f=>lv[f.key]=+$('opp-weights').querySelector(`[data-key="${f.key}"]`).value);
+    const url=location.origin+oppSyncURL(lv);
+    try{await navigator.clipboard.writeText(url);e.target.textContent='Copied';}
+    catch(err){e.target.textContent='Copy failed';}
+    setTimeout(()=>{e.target.textContent='Copy link';},1600);
+  });
 });}
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1116,7 +1254,9 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
 
     <h4>The opportunity score</h4>
     <p><code>${m.opportunity_formula}</code></p>
-    <p>Each input is percentile-ranked across eligible areas first, so all four share a 0–1 scale before weighting: pre-EUI <b>${W.pre_eui??'—'}</b>, pre-GHG <b>${W.pre_ghg??'—'}</b>, pre-1980 share <b>${W.pre_1980_share??'—'}</b>, low participation <b>${W.low_participation??'—'}</b>. <b>These weights are a judgement, not an estimate.</b> They encode a priority ordering — worst stock first, least-served next — and a different ordering produces a different ranking. The score is a position relative to other areas, not a measurement of a physical quantity.</p>
+    <p>Each input is percentile-ranked across eligible areas first, so every factor shares a 0–1 scale before weighting. The shipped default is pre-EUI <b>${W.pre_eui??'—'}</b>, pre-GHG <b>${W.pre_ghg??'—'}</b>, pre-1980 share <b>${W.pre_1980_share??'—'}</b>, low participation <b>${W.low_participation??'—'}</b>, lower-income area <b>${W.low_income??0}</b>.</p>
+    <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
+    <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
 
     <h4>What this page will not tell you</h4>
     <div class="rail"><ul>${railList}</ul></div>
