@@ -37,6 +37,15 @@
    element's own parent is in view — inside .hero it would unstick as soon
    as the hero scrolled away). */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+/* Compact state: once scrolled past the hero, drop the field labels to
+   reclaim vertical space — desktop/laptop only, since mobile already
+   stacks fields and needs the labels more than the space. */
+@media(min-width:900px){
+  .filter-sticky.is-compact .filter-group label{display:none}
+  .filter-sticky.is-compact .filter-bar{padding-top:.3rem}
+  .filter-sticky.is-compact{padding-bottom:.4rem}
+}
+.filter-match{display:flex;align-items:center;flex-wrap:wrap;gap:8px;align-self:flex-end}
 .filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -74,7 +83,13 @@
 /* Pushes the mode toggle (and reset) to the right end of the filter bar. */
 .filter-spacer{flex:1 1 0;min-width:0}
 @media(max-width:600px){.filter-spacer{display:none}}
-.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
+/* No fixed padding here — this row only ever holds the rare small-sample /
+   invalid-postal-code hints, both display:none by default, so an empty
+   container should collapse to zero height rather than reserving space for
+   messages that usually aren't showing. Each hint carries its own padding
+   as a block so it only costs space when actually visible. */
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);border-radius:0 0 var(--r-lg) var(--r-lg)}
+.filter-count-bar>.filter-count{display:block;padding:.3rem 1.25rem .5rem}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}
 /* Current-area pill in the count bar. With the FSA dropdown gone, this is how
@@ -97,6 +112,14 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
 .card-title-row .card-title{margin-bottom:0}
+/* Collapsible intro cards (caveats) — collapsed by default so they don't
+   push the actual results below the fold, but reachable in one click rather
+   than hidden in a tooltip. Reuses .card-title's look for the summary line. */
+.intro-details>summary.card-title{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.intro-details>summary.card-title::-webkit-details-marker{display:none}
+.intro-details>summary.card-title::after{content:'+ show details';font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);white-space:nowrap;flex:none}
+.intro-details[open]>summary.card-title::after{content:'– hide details'}
+.intro-details:not([open])>summary.card-title{margin-bottom:0}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
@@ -162,10 +185,6 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .stats-grid-outcomes .stat-card{padding:1.05rem 1.2rem}
 .stats-grid-outcomes .stat-value{font-size:2.5rem}
 .stats-grid-activity{grid-template-columns:repeat(5,1fr)}
-.stats-grid-context{grid-template-columns:repeat(1,minmax(220px,320px))}
-.stats-grid-context .stat-card{background:transparent;box-shadow:none;padding:.4rem 0}
-.stats-grid-context .stat-value{font-size:1.4rem;color:var(--muted)}
-.stats-grid-context .stat-label{color:var(--light)}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
@@ -194,6 +213,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .kpi-values{display:flex;align-items:center;gap:8px;min-height:1.875rem}
 .kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
 .kpi-arrow{color:var(--light);font-size:14px}
+.hvac-arrow{color:var(--light)}
 .kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
 .kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink)}
 .kpi-unit{font-size:11px;color:var(--light);margin-top:2px}
@@ -471,11 +491,13 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       </button>
     </div>
     <button class="filter-reset" onclick="resetFilters()">Reset filters</button>
+    <div class="filter-match">
+      <span class="area-chip" id="area-chip" style="display:none"></span>
+      <span class="filter-count"><strong id="result-count">—</strong> retrofits match<span id="match-count-extra"></span><button type="button" class="info-btn" aria-label="What does homes in this view mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></span>
+    </div>
   </div>
   <div class="filter-count-bar">
-    <span class="area-chip" id="area-chip" style="display:none"></span>
-    <span class="filter-count"><strong id="result-count">—</strong> retrofits match</span>
-    <span class="filter-count" id="small-n-warn" style="display:none;color:var(--amber)"> · Small sample — medians and percentages here are noisy, read them as rough indications only</span>
+    <span class="filter-count" id="small-n-warn" style="display:none;color:var(--amber)">Small sample — medians and percentages here are noisy, read them as rough indications only</span>
     <span class="filter-count" id="pc-hint" style="display:none;color:var(--red)" role="status"></span>
   </div>
 </div>
@@ -521,10 +543,10 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 
 <main>
 
-  <div class="card" id="interpretation-card"><div class="card-title">Before you interpret these results</div><p>• Results are based on EnerGuide/HOT2000 modelled energy use, not utility bills.<br>• Most matched homes participated in retrofit programs and completed a follow-up evaluation.<br>• Results describe energy, emissions and estimated operating costs only.<br>• Retrofit costs, comfort, indoor air quality and homeowner satisfaction are not available in the source data.</p><p class="note">The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment.</p></div>
+  <details class="card intro-details" id="interpretation-card"><summary class="card-title">Before you interpret these results</summary><p>• Results are based on EnerGuide/HOT2000 modelled energy use, not utility bills.<br>• Most matched homes participated in retrofit programs and completed a follow-up evaluation.<br>• Results describe energy, emissions and estimated operating costs only.<br>• Retrofit costs, comfort, indoor air quality and homeowner satisfaction are not available in the source data.</p><p class="note">The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment.</p></details>
 
-  <div class="card" id="can-cannot-card">
-    <div class="card-title">What this tool can — and can't — tell you</div>
+  <details class="card intro-details" id="can-cannot-card">
+    <summary class="card-title">What this tool can — and can't — tell you</summary>
     <div class="can-cannot-grid">
       <div class="can-cannot-col can-cannot-yes">
         <div class="can-cannot-head">This tool CAN show</div>
@@ -547,14 +569,15 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
         </ul>
       </div>
     </div>
-  </div>
+  </details>
 
   <div class="section-head">
     <h2 data-icon="results">Did the retrofits work?</h2>
     <p class="sec-sub">The bottom-line outcome across every home in this view.</p>
   </div>
 
-<!-- Top stats: tiered by importance — outcomes (largest) → retrofit activity → sample context (smallest) -->
+<!-- Top stats: tiered by importance — outcomes (largest) → retrofit activity. Sample-context
+     ("homes in this view" / match %) now lives in the filter bar's match-count line. -->
   <div class="kpi-tier kpi-tier-outcomes">
     <div class="kpi-tier-label">Outcomes</div>
     <div class="stats-grid stats-grid-outcomes">
@@ -573,13 +596,6 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
       <div class="stat-card"><div class="stat-label">Deep retrofits<button type="button" class="info-btn" aria-label="What counts as a deep retrofit?" data-info="Total energy use dropped 50% or more. Medium = 10–50% saved, shallow = under 10%." data-method="m-derived">?</button></div><div class="stat-value" id="s-deep">—</div><div class="stat-sub" id="s-deep-sub"></div></div>
       <div class="stat-card"><div class="stat-label"><span class="cap-simple">Solar panels added</span><span class="cap-advanced">Solar PV added</span><button type="button" class="info-btn" aria-label="What counts as solar PV added?" data-info="Homes with solar panels recorded at the follow-up audit." data-method="m-caveats">?</button></div><div class="stat-value accent" id="s-solar">—</div><div class="stat-sub" id="s-solar-sub"></div></div>
       <div class="stat-card"><div class="stat-label"><span class="cap-simple">Upgrades per home</span><span class="cap-advanced">Avg. measures per home</span><button type="button" class="info-btn" aria-label="How is average number of measures calculated?" data-info="Average number of the 8 tracked upgrades per home — roof, wall, foundation and floor insulation, air sealing, windows, heating, heat pump." data-method="m-derived">?</button></div><div class="stat-value accent" id="s-avg-measures">—</div><div class="stat-sub"><span class="cap-simple">average of 8 tracked upgrades</span><span class="cap-advanced">measures · mean per home</span></div></div>
-    </div>
-  </div>
-
-  <div class="kpi-tier kpi-tier-context">
-    <div class="kpi-tier-label">Sample context</div>
-    <div class="stats-grid stats-grid-context">
-      <div class="stat-card" id="s-selected-card"><div class="stat-label"><span class="cap-simple">Homes in this view</span><span class="cap-advanced">Retrofits selected</span><button type="button" class="info-btn" aria-label="What does homes in this view mean?" data-info="Matched before/after homes fitting your filters — and their share of every home here with any EnerGuide audit on file." data-method="m-pairing">?</button></div><div class="stat-value" id="s-selected">—</div><div class="stat-sub" id="s-selected-sub"></div></div>
     </div>
   </div>
 
@@ -809,8 +825,11 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
   <div class="grid-2" data-mode="advanced">
     <div class="card">
       <div class="card-title" data-icon="heatpump">Heat pump + backup<button type="button" class="info-btn" aria-label="How is the backup identified?" data-info="For homes with a heat pump, the recorded heating-equipment fuel is the companion/backup system HOT2000 tracks separately from the heat pump itself — not the heat pump's own energy source (always electricity)." data-method="m-derived">?</button></div>
-      <div id="hp-backup-list" class="equip-list"></div>
-      <p class="note">What accompanies the heat pump in matched homes with one — the backup system that covers demand beyond the heat pump's own capacity, or when it's offline. The count is homes; the sub-line underneath counts how many of <em>those same</em> homes still show heating consumption from that fuel after the retrofit. A high share is expected rather than surprising: these are hybrid systems, and the backup is meant to run on the coldest days, so "still burned gas" means the system worked as designed, not that the heat pump failed. The check runs for <strong>gas, oil, and propane only</strong> — electric backup cannot be separated from the heat pump's own electricity draw (the heat pump runs on electricity, so the figure would be 100% by construction and tell you nothing), and the wood species (mixed/hard/soft/pellets) share one combined consumption figure, so a per-species check isn't meaningful.</p>
+      <div class="measure-chart-title">Backup fuel — share of heat-pump homes</div>
+      <div class="cw cw-md"><canvas id="hp-backup-donut"></canvas></div>
+      <div class="measure-chart-title" style="margin-top:1rem">Electricity vs. backup-fuel energy — mean kWh/yr<button type="button" class="info-btn" aria-label="How is this comparison built?" data-info="Mean heating-only energy per home, for homes whose backup is gas, oil or propane. Electric-backup homes are excluded — the heat pump's own electricity draw can't be split from an electric backup's, both share one HOT2000 column." data-method="m-derived">?</button></div>
+      <div class="cw cw-md"><canvas id="hp-backup-energy-chart"></canvas></div>
+      <p class="note">Top: what accompanies the heat pump in matched homes with one — the backup system that covers demand beyond the heat pump's own capacity, or when it's offline. Bottom: how much of the season's heating load the heat pump itself carried (electricity) vs. its backup, for homes with a gas, oil or propane backup — a deliberate hybrid design, not a sizing failure, since the backup is meant to run on the coldest days. Electric-backup homes aren't shown here: the heat pump's own electricity draw can't be separated from an electric backup's, both share one column. Wood backups (mixed/hard/soft/pellets share one combined consumption figure) still appear in the fuel-share chart above but not in this comparison.</p>
     </div>
     <div class="card">
       <div class="card-title" data-icon="heatpump">Heat pump sizing — capacity vs. design heat loss<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Heat pump heating capacity, from its AHRI certificate, divided by the home's design heat loss. 1.0 means the heat pump alone covers the full peak heating load; below 1.0 means the backup system covers the rest on the coldest days — a deliberate, common design choice, not a sizing mistake." data-method="m-derived">?</button></div>
@@ -1284,7 +1303,6 @@ let PRE_LINE, PRE_FILL, POST_LINE, POST_FILL;
 // Shared Simple/Advanced sub-label fragments for the JS-built stat subs —
 // same cap-simple/cap-advanced CSS pattern the static markup uses.
 const OF_MATCHED='% of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span>';
-const MATCHED_PAIRS_LBL='<span class="cap-simple">homes with a before-and-after audit</span><span class="cap-advanced">matched before/after homes</span>';
 
 
 
@@ -1661,6 +1679,19 @@ document.addEventListener('mouseout',e=>{
 });
 window.addEventListener('scroll',hideInfoTip,{passive:true});
 
+// Filter bar compaction: once the page has scrolled past the hero, hide the
+// field labels (Province, Your postal code, ...) to reclaim vertical space —
+// desktop/laptop only (gated in CSS), mobile already stacks fields.
+let _filterCompact=false;
+function updateFilterCompact(){
+  const compact=window.scrollY>72;
+  if(compact===_filterCompact)return;
+  _filterCompact=compact;
+  const el=document.querySelector('.filter-sticky');
+  if(el)el.classList.toggle('is-compact',compact);
+}
+window.addEventListener('scroll',updateFilterCompact,{passive:true});
+
 // ── Load ──────────────────────────────────────────────────────────
 // NOTE: the FSA JSON now ships already-decoded (human-readable BldgType,
 // fuel, etc.), so the old ers_web_keys.json lookup table and CODED_COLS
@@ -1944,14 +1975,13 @@ function render(){
   const n=FILTERED.length;
   $('result-count').textContent=n.toLocaleString();
   $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
-  // "Retrofits selected" KPI: matched homes matching the current filters, and
-  // what share that is of every HOUSEID in this FSA with ANY D or E audit
+  // Match-count line: matched homes fitting the current filters, and what
+  // share that is of every HOUSEID in this FSA with ANY D or E audit
   // (matched or not) — dore_count comes from the _index.json entry.
   const dore=doreCountForSelectedFsa();
-  $('s-selected').textContent=n.toLocaleString();
-  $('s-selected-sub').innerHTML=dore
-    ?`${Math.round(n/dore*100)}% of ${dore.toLocaleString()} homes audited here`
-    :MATCHED_PAIRS_LBL;
+  $('match-count-extra').innerHTML=dore
+    ?` · ${Math.round(n/dore*100)}% of ${dore.toLocaleString()} homes audited here`
+    :'';
   const savings=FILTERED.map(r=>num(r.EnergySavingPct)).filter(v=>v!==null);
   const med=median(savings);
   $('s-median').textContent=med!==null?Math.round(med*100)+'%':'—';
@@ -2576,7 +2606,7 @@ function renderFunnel(cfg){
     t.setAttribute('x',tx);t.setAttribute('y',n.y+n.h/2+4);
     t.setAttribute('text-anchor',n.side==='left'?'end':'start');
     t.setAttribute('font-size','11');t.setAttribute('font-family','Inter,sans-serif');
-    t.setAttribute('fill',PAL.text);t.setAttribute('stroke','#fff');
+    t.setAttribute('fill',PAL.text);t.setAttribute('stroke',PAL.card);
     t.setAttribute('stroke-width','3');t.setAttribute('paint-order','stroke');
     t.textContent=`${n.label} · ${n.count.toLocaleString()}`;
     svg.appendChild(t);
@@ -2782,42 +2812,58 @@ function hasHeatPump(r){
 // pump's own electricity use, and the wood species (Mixed Wood/Hardwood/
 // Wood Pellets/Softwood) all share one Post_HeatWood column, so a
 // per-species check isn't meaningful (see precompute_province_stats.py).
-// Only combustion fuels get a "did it actually burn?" check. Electricity is
-// deliberately absent: a heat pump runs on electricity itself, so post-retrofit
-// electric heating consumption is above zero in essentially every heat-pump
-// home whether or not the electric backup ever engaged. The figure would read
-// 100% and mean nothing, so the list says so instead of printing it.
 const HP_BACKUP_USED_COLS={'Natural Gas':'Post_HeatNaturalGas','Oil':'Post_HeatOil',
   'Propane':'Post_HeatPropane'};
-function renderHPBackupList(counts,used){
-  const items=Object.entries(counts||{}).sort((a,b)=>b[1]-a[1]).map(([fuel,count])=>{
-    let sub=null;
-    if(used&&used[fuel]!=null){
-      const pct=count?Math.round(used[fuel]/count*100):0;
-      sub=`${used[fuel].toLocaleString()} of ${count.toLocaleString()} (${pct}%) still burned this fuel for heat after the retrofit`;
-    }else if(/electric/i.test(fuel)){
-      sub='not measurable separately — the heat pump itself runs on electricity';
-    }
-    return{main:fuel,count,sub};
+function renderHPBackupDonut(counts){
+  const total=Object.values(counts||{}).reduce((a,b)=>a+b,0);
+  donut('hp-backup-donut',counts||{},'hpBackupDonut',total);
+}
+// Electricity (the heat pump's own heating draw, Post_HeatElectricity) vs.
+// backup-fuel energy, mean kWh/yr per home — restricted to combustion-backup
+// homes, so Post_HeatElectricity unambiguously means the heat pump's own
+// draw (no electric backup coexists in that case; see the note on
+// HP_BACKUP_USED_COLS/backup_energy_means for why electric backup itself
+// can't be split out this way).
+function renderHPBackupEnergyChart(energyMeans){
+  dc('hpBackupEnergy');
+  const fuels=Object.keys(HP_BACKUP_USED_COLS).filter(f=>energyMeans&&energyMeans[f]&&energyMeans[f].n>0);
+  if(!fuels.length)return;
+  const elecVals=fuels.map(f=>Math.round(energyMeans[f].elec_mean));
+  const fuelVals=fuels.map(f=>Math.round(energyMeans[f].fuel_mean));
+  charts['hpBackupEnergy']=new Chart($('hp-backup-energy-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels:fuels,datasets:[
+      {label:'Electricity (heat pump)',data:elecVals,backgroundColor:al(PAL.blue,'CC'),borderWidth:0,borderRadius:2},
+      {label:'Backup fuel',data:fuelVals,backgroundColor:al(PAL.secondary,'CC'),borderWidth:0,borderRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} kWh/yr`}}},
+      scales:{x:{ticks:{font:{size:11},color:PAL.tick},grid:{display:false}},
+              y:{ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track},title:{display:true,text:'kWh/yr (mean)',font:{size:10},color:PAL.axis}}}}
   });
-  $('hp-backup-list').innerHTML=barListHTML(items);
 }
 function renderHPBackupFsa(){
   const hp=FILTERED.filter(hasHeatPump);
   const counts={};
   hp.forEach(r=>{const f=r.Post_HeatFuel;if(f&&String(f).trim())counts[f]=(counts[f]||0)+1;});
-  // Denominator is homes whose OWN backup fuel is this fuel, not every
-  // heat-pump home — otherwise a home with a different backup showing trace
-  // nonzero consumption in an unrelated fuel channel can push this over
-  // counts[fuel], reading as a nonsensical >100%.
-  const used={};
+  renderHPBackupDonut(counts);
+  const energy={};
   Object.entries(HP_BACKUP_USED_COLS).forEach(([fuel,col])=>{
-    used[fuel]=hp.filter(r=>r.Post_HeatFuel===fuel&&num(r[col])>0).length;
+    const pairs=hp.filter(r=>r.Post_HeatFuel===fuel)
+      .map(r=>({fuel:num(r[col]),elec:num(r.Post_HeatElectricity)}))
+      .filter(p=>p.fuel!=null&&p.elec!=null);
+    if(pairs.length)energy[fuel]={
+      fuel_mean:pairs.reduce((s,p)=>s+p.fuel,0)/pairs.length,
+      elec_mean:pairs.reduce((s,p)=>s+p.elec,0)/pairs.length,
+      n:pairs.length,
+    };
   });
-  renderHPBackupList(counts,used);
+  renderHPBackupEnergyChart(energy);
 }
 function renderHPBackupProvince(slice){
-  renderHPBackupList(slice.backup_fuel_counts,slice.backup_used_counts);
+  renderHPBackupDonut(slice.backup_fuel_counts);
+  renderHPBackupEnergyChart(slice.backup_energy_means);
 }
 // Bin key rounded to 2dp to match precompute_province_stats.py's
 // bin_counts() rounding for fractional steps (the bin-width contract) —
@@ -2961,7 +3007,7 @@ function paintCensus(c,auditedCount,opts){
       <div class="kpi-item"><div class="kpi-name">Total private dwellings</div><div class="kpi-values"><div class="kpi-pct">${c.total_dwellings!=null?c.total_dwellings.toLocaleString():'—'}</div></div><div class="kpi-unit">2021 Census</div></div>
       <div class="kpi-item"><div class="kpi-name">Audited homes (${opts.scope})</div><div class="kpi-values"><div class="kpi-pct">${auditedCount.toLocaleString()}</div></div><div class="kpi-unit">EnerGuide</div></div>
       <div class="kpi-item"><div class="kpi-name">Owner-occupied</div><div class="kpi-values"><div class="kpi-pct">${ownerPct!=null?ownerPct+'%':'—'}</div></div><div class="kpi-unit">${ownerPct!=null?`${(100-ownerPct)}% rented`:'tenure'}</div></div>
-      <div class="kpi-item"><div class="kpi-name">Need major repairs</div><div class="kpi-values"><div class="kpi-pct">${majorPct!=null?majorPct+'%':'—'}</div></div><div class="kpi-unit">dwelling condition</div></div>`;
+      <div class="kpi-item"><div class="kpi-name">Need major repairs<button type="button" class="info-btn" aria-label="What counts as needing major repairs?" data-info="StatCan's 2021 Census 'dwelling condition' question — self-reported by the household, not an inspection. Major repairs means defective plumbing or electrical wiring, or structural repairs to walls, floors or ceilings; routine upkeep and minor repairs don't count.">?</button></div><div class="kpi-values"><div class="kpi-pct">${majorPct!=null?majorPct+'%':'—'}</div></div><div class="kpi-unit">dwelling condition</div></div>`;
 
     const o=c.owner_stats||{};
     // Medians don't aggregate, so the rollup file nulls them; the mean of
@@ -3222,14 +3268,15 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   dc(chartKey);
   const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins),...Object.keys(deltaBins)])].map(Number).sort((a,b)=>a-b);
   const datasets=[];
-  // Chart.js draws LOWER order values on top — bar needs order:1 (front) and
-  // the lines order:2 (behind), or the area fills paint over the bars.
+  // Chart.js draws LOWER order values FIRST (i.e. on the bottom) — bar needs
+  // the higher order (2, drawn last/on top) and the lines the lower order (1,
+  // drawn first/behind), or the area fills paint over the bars.
   if(Object.keys(deltaBins).length){
-    datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:PAL.secondary,borderWidth:1,borderRadius:2,order:1});
+    datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:PAL.secondary,borderWidth:1,borderRadius:2,order:2});
   }
   datasets.push(
-    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
-    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:2},
+    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
+    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'33',pointRadius:2,borderWidth:2,tension:0.25,fill:true,order:1},
   );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
@@ -3411,9 +3458,8 @@ function renderProvince(payload){
   $('result-count').textContent=n.toLocaleString();
   $('small-n-warn').style.display=(n>0&&n<30)?'':'none';
   // No per-FSA audited-population denominator in the province rollup, so the
-  // KPI just reports the matched count here (the % is FSA-view only).
-  $('s-selected').textContent=n.toLocaleString();
-  $('s-selected-sub').innerHTML=MATCHED_PAIRS_LBL;
+  // match-count line has no % suffix here (the % is FSA-view only).
+  $('match-count-extra').innerHTML='';
 
   const med=slice.median_saving_pct;
   $('s-median').textContent=med!=null?Math.round(med*100)+'%':'—';
@@ -3835,12 +3881,12 @@ function makeEUIBar(preEUI,postEUI,medPre,medPost,big){
   // Use shared #eui-grad defined once in static HTML — no random IDs needed
   let s=`<svg viewBox="0 0 ${W} ${H+14}" width="${W}" height="${H+14}" style="display:block;overflow:visible">
     <rect x="0" y="4" width="${W}" height="${MH}" fill="url(#eui-grad)" rx="3" opacity="0.25"/>`;
-  if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke=PAL.primary stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
-  if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke=PAL.pos stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
-  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="${R}" fill=PAL.primary stroke="#fff" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
-  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="${R}" fill=PAL.pos stroke="#fff" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
-  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill=PAL.primary font-family="Inter,sans-serif">${preEUI}</text>`;
-  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill=PAL.pos font-family="Inter,sans-serif">${postEUI}</text>`;
+  if(medPreX!==null)s+=`<line x1="${medPreX}" y1="2" x2="${medPreX}" y2="${4+MH+2}" stroke="${PAL.primary}" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(medPostX!==null)s+=`<line x1="${medPostX}" y1="2" x2="${medPostX}" y2="${4+MH+2}" stroke="${PAL.pos}" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>`;
+  if(preX!==null)s+=`<circle cx="${preX}" cy="${4+MH/2}" r="${R}" fill="${PAL.primary}" stroke="${PAL.card}" stroke-width="1.5"><title>Pre: ${preEUI} kWh/m²</title></circle>`;
+  if(postX!==null)s+=`<circle cx="${postX}" cy="${4+MH/2}" r="${R}" fill="${PAL.pos}" stroke="${PAL.card}" stroke-width="1.5"><title>Post: ${postEUI} kWh/m²</title></circle>`;
+  if(preX!==null)s+=`<text x="${preX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill="${PAL.primary}" font-family="Inter,sans-serif">${preEUI}</text>`;
+  if(postX!==null)s+=`<text x="${postX}" y="${4+MH+FS+3}" text-anchor="middle" font-size="${FS}" fill="${PAL.pos}" font-family="Inter,sans-serif">${postEUI}</text>`;
   s+=`</svg>`;
   return s;
 }
@@ -3893,38 +3939,44 @@ function makeInlineSVG(r){
     <svg viewBox="0 0 ${startX+barW+70} ${svgH}" style="width:${startX+barW+70}px;max-width:100%;display:block">`;
   KPIs.forEach((k,i)=>{
     const y=i*gap+8;
-    html+=`<text x="${startX-6}" y="${y+barH/2+4}" text-anchor="end" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${k.label}${k.noR?'':' R'}</text>`;
+    html+=`<text x="${startX-6}" y="${y+barH/2+4}" text-anchor="end" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${k.label}${k.noR?'':' R'}</text>`;
     const preW=k.pre?Math.max(2,Math.min(barW,k.pre/k.max*barW)):0;
     const postW=k.post?Math.max(2,Math.min(barW,k.post/k.max*barW)):0;
-    html+=`<rect x="${startX}" y="${y}" width="${barW}" height="${barH}" fill=PAL.track rx="3"/>`;
-    html+=`<rect x="${startX}" y="${y}" width="${preW}" height="${barH/2}" fill=al(PAL.primary,'99') rx="2"/>`;
-    html+=`<rect x="${startX}" y="${y+barH/2}" width="${postW}" height="${barH/2}" fill=al(PAL.pos,'99') rx="2"/>`;
+    html+=`<rect x="${startX}" y="${y}" width="${barW}" height="${barH}" fill="${PAL.track}" rx="3"/>`;
+    html+=`<rect x="${startX}" y="${y}" width="${preW}" height="${barH/2}" fill="${al(PAL.primary,'99')}" rx="2"/>`;
+    html+=`<rect x="${startX}" y="${y+barH/2}" width="${postW}" height="${barH/2}" fill="${al(PAL.pos,'99')}" rx="2"/>`;
     const pStr=k.pre?(k.noR?k.pre.toFixed(1):(k.pre*RSI_TO_R).toFixed(0)):'—';
     const qStr=k.post?(k.noR?k.post.toFixed(1):(k.post*RSI_TO_R).toFixed(0)):'—';
     const imp=k.hi?(k.post||0)>(k.pre||0):(k.post||0)<(k.pre||0);
-    html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?PAL.pos:PAL.neg}">${qStr}</tspan></text>`;
+    html+=`<text x="${startX+barW+6}" y="${y+barH/2+4}" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?PAL.pos:PAL.neg}">${qStr}</tspan></text>`;
   });
   html+=`</svg>
     <div style="display:flex;gap:12px;margin-top:4px">
-      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#0B254599;border-radius:2px"></span>Pre</span>
-      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:#1A7A5599;border-radius:2px"></span>Post</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:${al(PAL.primary,'99')};border-radius:2px"></span>Pre</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:${al(PAL.pos,'99')};border-radius:2px"></span>Post</span>
     </div>
   </div>`;
 
-  // ── HVAC & energy: Pre-audit / Post-audit / Savings columns ──
+  // ── HVAC & energy: Measure / Pre → Post / Savings columns. Pre and post
+  // share one column (an arrow only appears when the value actually changed)
+  // so the freed width goes to Savings, which needs it for values like
+  // "+26.0 tCO2e/yr" — see the column-width comment on the <table> below.
   const th=t=>`<th style="text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--light);padding:0 10px 4px 0">${t}</th>`;
   function textRow(lbl,pre,post){
-    const changed=pre&&post&&pre!==post;
+    const changed=!!(pre&&post&&pre!==post);
+    const val=changed?`${pre} <span class="hvac-arrow">→</span> ${post}`:(post||pre||'—');
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:var(--text)">${pre||'—'}</td>
-      <td style="padding:3px 10px;color:var(--text)">${post||'—'}</td>
+      <td style="padding:3px 10px;color:var(--text)">${val}</td>
       <td style="padding:3px 0;color:${changed?PAL.secondary:'var(--light)'}">${changed?'Changed':'—'}</td>
     </tr>`;
   }
   // AHRI-certificate-verified heat pump capacity/efficiency (join_hp_capacity.py).
   // Post-only, and only present when the AHRI reference resolved — most
   // homes with a heat pump but no row here simply lack a usable AHRI number.
+  // colspan=2 (value + savings) rather than a 3-column span from the old
+  // 4-column layout — with pre/post merged into one column there's no more
+  // "which column does this land under" ambiguity for this post-only figure.
   function hpCertRow(r){
     const cap47=num(r.Post_HPCapacity47),cap5=num(r.Post_HPCapacity5),hspf=num(r.Post_HPHSPF2);
     if(cap47===null&&cap5===null&&hspf===null)return'';
@@ -3936,36 +3988,45 @@ function makeInlineSVG(r){
     const sizing=(cap47!==null&&hl!==null&&hl>0)?` · sized to ${Math.round(cap47/hl*100)}% of design heat loss`:'';
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">&nbsp;&nbsp;· Cert. capacity</td>
-      <td colspan="3" style="padding:3px 0;color:var(--text)">${parts.join(' · ')}${sizing}</td>
+      <td colspan="2" style="padding:3px 0;color:var(--text)">${parts.join(' · ')}${sizing}</td>
     </tr>`;
   }
   function numRow(lbl,pre,post,unit,higherIsBetter,decimals){
-    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="3" style="padding:3px 0;color:var(--light)">—</td></tr>`;
+    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="2" style="padding:3px 0;color:var(--light)">—</td></tr>`;
     const d=pre!==null&&post!==null?(higherIsBetter?post-pre:pre-post):null;
     const good=d!==null&&d>=0;
+    const changed=d!==null&&Math.abs(d)>1e-9;
     const fmt=v=>v===null?'—':(decimals?v.toFixed(decimals):Math.round(v).toLocaleString());
+    const unitStr=unit?` ${unit}`:'';
+    const val=(pre!==null&&post!==null)
+      ?(changed?`${fmt(pre)} <span class="hvac-arrow">→</span> ${fmt(post)}${unitStr}`:`${fmt(post)}${unitStr}`)
+      :`${fmt(pre!==null?pre:post)}${unitStr}`;
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:var(--text)">${fmt(pre)}${unit?` ${unit}`:''}</td>
-      <td style="padding:3px 10px;color:var(--text)">${fmt(post)}${unit?` ${unit}`:''}</td>
-      <td style="padding:3px 0;color:${d===null?'var(--light)':good?PAL.pos:PAL.neg}">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unit?` ${unit}`:''}`}</td>
+      <td style="padding:3px 10px;color:var(--text);white-space:nowrap">${val}</td>
+      <td style="padding:3px 0;color:${d===null?'var(--light)':good?PAL.pos:PAL.neg};white-space:nowrap">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unitStr}`}</td>
     </tr>`;
   }
-  // Windows: decoded pre/post codes, plus an attribute-by-attribute change
-  // list when both codes decode cleanly against NRCan's standard table.
+  // Windows: decoded pre/post codes, with any attribute-by-attribute changes
+  // folded into the same row as a sub-line (instead of a separate row) when
+  // both codes decode cleanly against NRCan's standard table.
   const wPreCode=r.Pre_WindowCode,wPostCode=r.Post_WindowCode;
   const wPre=wPreCode?decodeWindow(wPreCode).main:null;
   const wPost=wPostCode?decodeWindow(wPostCode).main:null;
-  let windowRows=textRow('Windows',wPre,wPost);
   const wp=decodeWindowParts(wPreCode),wq=decodeWindowParts(wPostCode);
+  let windowSub='';
   if(wp&&wq){
     const changes=WINDOW_ATTRS.filter(({key})=>wp[key]!==wq[key])
       .map(({key,label})=>`${label}: ${wp[key]} → ${wq[key]}`);
-    windowRows+=`<tr>
-      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap;vertical-align:top">Window changes</td>
-      <td colspan="3" style="padding:3px 0;color:var(--text)">${changes.length?changes.join('<br>'):'<span style="color:var(--light)">Same window spec before and after</span>'}</td>
-    </tr>`;
+    if(changes.length)windowSub=`<div style="font-size:11px;color:var(--muted);margin-top:2px">${changes.join(' · ')}</div>`;
   }
+  const windowChanged=!!(wPre&&wPost&&wPre!==wPost);
+  const windowVal=windowChanged?`${wPre} <span class="hvac-arrow">→</span> ${wPost}`:(wPost||wPre||'—');
+  const windowRows=`<tr>
+    <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap;vertical-align:top">Windows</td>
+    <td style="padding:3px 10px;color:var(--text)">${windowVal}${windowSub}</td>
+    <td style="padding:3px 0;color:${windowChanged?PAL.secondary:'var(--light)'}">${windowChanged?'Changed':'—'}</td>
+  </tr>`;
   // Whole-house consumption by fuel (all end uses — heating, DHW,
   // appliances). Only fuels the home actually used pre or post are listed.
   const FUEL_FIELDS=[
@@ -4005,27 +4066,36 @@ function makeInlineSVG(r){
   const hlPreTotal=hlPre.reduce((a,b)=>a+b,0),hlPostTotal=hlPost.reduce((a,b)=>a+b,0);
   let heatLossBlock='';
   if(hlPreTotal>0||hlPostTotal>0){
-    const HLW=300,HLH=16,HLGAP=22,HLMAX=Math.max(hlPreTotal,hlPostTotal,1);
-    const px=v=>v/HLMAX*HLW;
-    const stackedBar=(vals,y)=>{
-      let x=0,s='';
-      HL_COMPONENTS.forEach((c,i)=>{
-        const w=px(vals[i]);
-        if(w>0.4)s+=`<rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="${HLH}" fill="${c.color}"><title>${c.label}: ${Math.round(vals[i]).toLocaleString()} kWh/yr</title></rect>`;
-        x+=w;
-      });
-      return s;
-    };
-    const y1=14,y2=y1+HLH+HLGAP;
+    // Small two-column flow diagram: same technique as the fuel Sankey
+    // (renderSankey) — stacked bar per side, a tapered ribbon per component
+    // connecting its pre segment to its post segment — but keyed by fixed
+    // component index (same order both sides) rather than by name-matched
+    // flows, since "Walls" always lines up with "Walls".
+    const BARW=10,HLH=110,TOPPAD=16,BOTPAD=14,LX=34,GAP=90,RX=LX+GAP;
+    const HLMAX=Math.max(hlPreTotal,hlPostTotal,1);
+    const scale=HLH/HLMAX;
+    let preY=0,postY=0,preBar='',postBar='',ribbons='';
+    const mx=(LX+BARW+RX)/2;
+    HL_COMPONENTS.forEach((c,i)=>{
+      const ph=hlPre[i]*scale,qh=hlPost[i]*scale;
+      const y1=TOPPAD+preY,y2=TOPPAD+preY+ph,y3=TOPPAD+postY,y4=TOPPAD+postY+qh;
+      if(ph>0.3)preBar+=`<rect x="${LX}" y="${y1.toFixed(1)}" width="${BARW}" height="${ph.toFixed(1)}" fill="${c.color}"><title>${c.label} · pre: ${Math.round(hlPre[i]).toLocaleString()} kWh/yr</title></rect>`;
+      if(qh>0.3)postBar+=`<rect x="${RX}" y="${y3.toFixed(1)}" width="${BARW}" height="${qh.toFixed(1)}" fill="${c.color}"><title>${c.label} · post: ${Math.round(hlPost[i]).toLocaleString()} kWh/yr</title></rect>`;
+      if(ph>0.3||qh>0.3){
+        ribbons+=`<path d="M${LX+BARW},${y1.toFixed(1)} C${mx},${y1.toFixed(1)} ${mx},${y3.toFixed(1)} ${RX},${y3.toFixed(1)} L${RX},${y4.toFixed(1)} C${mx},${y4.toFixed(1)} ${mx},${y2.toFixed(1)} ${LX+BARW},${y2.toFixed(1)} Z" fill="${c.color}" opacity="0.4"><title>${c.label}: ${Math.round(hlPre[i]).toLocaleString()} → ${Math.round(hlPost[i]).toLocaleString()} kWh/yr</title></path>`;
+      }
+      preY+=ph;postY+=qh;
+    });
+    const svgW=RX+BARW+14,svgH=TOPPAD+HLH+BOTPAD;
     heatLossBlock=`<div style="min-width:0">
       <div class="detail-h">Annual heat loss by component, kWh/yr</div>
-      <svg viewBox="0 0 ${HLW+55} ${y2+HLH+6}" style="width:100%;max-width:${HLW+55}px;display:block">
-        <text x="0" y="${y1-4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">Pre</text>
-        ${stackedBar(hlPre,y1)}
-        <text x="${HLW+8}" y="${y1+HLH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
-        <text x="0" y="${y2-4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">Post</text>
-        ${stackedBar(hlPost,y2)}
-        <text x="${HLW+8}" y="${y2+HLH/2+4}" font-size="10" fill=PAL.axis font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
+      <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:${svgW}px;display:block">
+        <text x="${LX+BARW/2}" y="${TOPPAD-5}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">Pre</text>
+        <text x="${RX+BARW/2}" y="${TOPPAD-5}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">Post</text>
+        ${ribbons}
+        ${preBar}${postBar}
+        <text x="${LX+BARW/2}" y="${TOPPAD+HLH+11}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
+        <text x="${RX+BARW/2}" y="${TOPPAD+HLH+11}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
       </svg>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
         ${HL_COMPONENTS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:9px;height:9px;background:${c.color};border-radius:2px"></span>${c.label}</span>`).join('')}
@@ -4036,8 +4106,7 @@ function makeInlineSVG(r){
   const yearGap=(py&&qy)?qy-py:null;
   const auditYearRow=`<tr>
     <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">Audit year</td>
-    <td style="padding:3px 10px;color:var(--text)">${r.Pre_Year||'—'}</td>
-    <td style="padding:3px 10px;color:var(--text)">${r.Post_Year||'—'}</td>
+    <td style="padding:3px 10px;color:var(--text)">${r.Pre_Year||'—'} <span class="hvac-arrow">→</span> ${r.Post_Year||'—'}</td>
     <td style="padding:3px 0;color:var(--light)">${yearGap!==null?`${yearGap} yr apart`:'—'}</td>
   </tr>`;
 
@@ -4048,7 +4117,8 @@ function makeInlineSVG(r){
   <div style="min-width:0">
     <div class="detail-h">HVAC &amp; energy</div>
     <div style="overflow-x:auto"><table style="font-size:12px;border-collapse:collapse;width:100%">
-      <thead><tr>${th('Measure')}${th('Pre-audit')}${th('Post-audit')}${th('Savings')}</tr></thead>
+      <colgroup><col style="width:28%"><col style="width:40%"><col style="width:32%"></colgroup>
+      <thead><tr>${th('Measure')}${th('Pre → Post')}${th('Savings')}</tr></thead>
       <tbody>
         ${auditYearRow}
         ${textRow(hasHeatPump(r)?'Backup fuel':'Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
