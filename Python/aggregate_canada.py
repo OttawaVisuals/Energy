@@ -195,6 +195,21 @@ def main():
         for fuel, t in fuel_totals.items()
     ]
 
+    # Backup-fuel energy means (elec_mean/fuel_mean/n per fuel) aren't
+    # additive -- weight each province's means by its own n, sum, divide back
+    # to a combined mean, same approach as the waterfall combiner above.
+    energy_totals = defaultdict(lambda: {"elec": 0.0, "fuel": 0.0, "n": 0})
+    for s in slices:
+        for fuel, v in s.get("backup_energy_means", {}).items():
+            t = energy_totals[fuel]
+            t["elec"] += v["elec_mean"] * v["n"]
+            t["fuel"] += v["fuel_mean"] * v["n"]
+            t["n"] += v["n"]
+    out["backup_energy_means"] = {
+        fuel: {"elec_mean": t["elec"] / t["n"], "fuel_mean": t["fuel"] / t["n"], "n": t["n"]}
+        for fuel, t in energy_totals.items() if t["n"]
+    }
+
     # Solar: post adopter count is additive; pre/post adopter counts are
     # derived from each province's own pct*row_count to recombine exactly,
     # rather than averaging percentages. solar_median_kw has no underlying
