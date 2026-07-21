@@ -595,6 +595,28 @@ def compute_slice(df):
             v = num(df.loc[fuel_mask, col]) if col in df.columns else pd.Series(dtype=float)
             backup_used[fuel] = int((v > 0).sum())
         out['backup_used_counts'] = backup_used
+
+        # Electricity (the heat pump's own heating draw) vs. backup-fuel
+        # energy, mean kWh/yr per home, for the "Heat pump + backup" card's
+        # comparison chart (mirrors renderHPBackupFsa in retrofits.html).
+        # Post_HeatElectricity is safe to use as "the heat pump's own
+        # electricity" here specifically because this is restricted to
+        # combustion-backup homes -- no electric backup coexists in that
+        # case (see the exclusion note on backup_used above).
+        backup_energy = {}
+        for fuel, col in [('Natural Gas', 'Post_HeatNaturalGas'), ('Oil', 'Post_HeatOil'),
+                          ('Propane', 'Post_HeatPropane')]:
+            fuel_mask = hp_mask & (df.get('Post_HeatFuel') == fuel)
+            fuel_v = num(df.loc[fuel_mask, col]) if col in df.columns else pd.Series(dtype=float)
+            elec_v = num(df.loc[fuel_mask, 'Post_HeatElectricity']) if 'Post_HeatElectricity' in df.columns else pd.Series(dtype=float)
+            paired = pd.concat([fuel_v, elec_v], axis=1).dropna()
+            if len(paired):
+                backup_energy[fuel] = {
+                    'elec_mean': float(paired.iloc[:, 1].mean()),
+                    'fuel_mean': float(paired.iloc[:, 0].mean()),
+                    'n': int(len(paired)),
+                }
+        out['backup_energy_means'] = backup_energy
     else:
         out['hp_sizing47_bins'] = {}
         out['hp_sizing5_bins'] = {}
@@ -602,6 +624,7 @@ def compute_slice(df):
         out['hp_sizing5_median'] = None
         out['backup_fuel_counts'] = {}
         out['backup_used_counts'] = {}
+        out['backup_energy_means'] = {}
 
     # ---- Heat pump AHRI numbers + window codes ----
     # Full counts are stored (not just the top N) so aggregate_canada.py can
