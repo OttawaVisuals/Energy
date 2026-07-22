@@ -1304,7 +1304,7 @@ const RSI_TO_R=5.678;
 // carries the new palette into every pre/post histogram. Declaring them
 // const at module scope would freeze the light-mode values (and, being above
 // the PAL block, would read PAL in its temporal dead zone).
-let PRE_LINE, PRE_FILL, POST_LINE, POST_FILL;
+let PRE_LINE, POST_LINE;
 // Shared Simple/Advanced sub-label fragments for the JS-built stat subs —
 // same cap-simple/cap-advanced CSS pattern the static markup uses.
 const OF_MATCHED='% of <span class="cap-simple">homes shown</span><span class="cap-advanced">matched homes</span>';
@@ -1363,11 +1363,12 @@ function readPalette(){
   // rather than array position, so `m.color` keeps working at every existing
   // call site without those sites knowing a theme exists.
   MEASURES.forEach(m=>{if(m.ck&&PAL[m.ck])m.color=PAL[m.ck];});
-  // Pre/post bar pair — see the declaration note above. Red vs green per
-  // explicit request; note this reintroduces the classic red-green
-  // colorblind confusion the original navy/green pairing was chosen to avoid.
-  PRE_LINE=PRE_FILL=PAL.neg;
-  POST_LINE=POST_FILL=PAL.pos;
+  // Pre/post bar pair — see the declaration note above. Colour is red vs
+  // green in light/dark (PAL.neg/PAL.pos); the cb theme repoints those same
+  // vars at a blue/orange pair instead (see site-theme.css) since pre/post
+  // is also told apart by point shape now, not colour alone.
+  PRE_LINE=PAL.neg;
+  POST_LINE=PAL.pos;
   // Fuel lookup rebuilt per theme — see FUEL_COLORS note above.
   Object.assign(FUEL_COLORS,{
     'Oil':PAL.fOil,'Electricity':PAL.fElec,'Propane':PAL.fPropane,
@@ -3265,6 +3266,37 @@ function renderKPI(n,fs){
   $('kpi-grid').innerHTML=html;
 }
 
+// Draws a small canvas swatch for the combo-chart legend so it shows the
+// dataset's real line style (dash pattern + thickness) and point shape,
+// not just a flat colour box — Chart.js's own legend can't render a dash
+// pattern when usePointStyle is on, so we hand it a pre-rendered icon per
+// dataset via generateLabels instead.
+function legendLineIcon(ds){
+  const w=26,h=14,cv=document.createElement('canvas');
+  cv.width=w;cv.height=h;
+  const ctx=cv.getContext('2d'),cy=h/2;
+  if(ds.type==='bar'){
+    ctx.fillStyle=ds.backgroundColor;ctx.strokeStyle=ds.borderColor;ctx.lineWidth=1.25;
+    ctx.fillRect(2,3,w-4,h-6);ctx.strokeRect(2,3,w-4,h-6);
+    return cv;
+  }
+  ctx.strokeStyle=ds.borderColor;ctx.lineWidth=ds.borderWidth||2;
+  ctx.setLineDash(ds.borderDash||[]);
+  ctx.beginPath();ctx.moveTo(1,cy);ctx.lineTo(w-1,cy);ctx.stroke();
+  ctx.setLineDash([]);
+  const cx=w/2,r=ds.pointStyle==='circle'?3.5:4;
+  ctx.fillStyle=ds.borderColor;
+  if(ds.pointStyle==='circle'){
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+  }else if(ds.pointStyle==='crossRot'){
+    ctx.strokeStyle=ds.borderColor;ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(cx-r,cy-r);ctx.lineTo(cx+r,cy+r);
+    ctx.moveTo(cx+r,cy-r);ctx.lineTo(cx-r,cy+r);
+    ctx.stroke();
+  }
+  return cv;
+}
 // ── Insulation pre/post histogram ─────────────────────────────────
 // Shared by FSA and province modes, and by EUI/GHG/heat-loss above: one
 // combined chart per measure — Pre/Post as filled area lines, Improvement
@@ -3280,17 +3312,22 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   // empirically (opaque test chart) since Chart.js's own docs are ambiguous
   // on this point.
   if(Object.keys(deltaBins).length){
-    datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:'#000',borderWidth:1.5,borderRadius:2,order:1});
+    datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:'#000',borderWidth:1.5,borderRadius:2,order:1,pointStyle:'rect'});
   }
+  // Pre/post are told apart three ways, not colour alone: point shape (x vs
+  // dot), line style (dashed vs solid), and thickness (post is 1.25x pre).
+  // No area fill — overlapping pre/post lines never blend into a third
+  // colour.
   datasets.push(
-    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,backgroundColor:PRE_LINE+'59',pointRadius:2,borderWidth:2.5,tension:0.25,fill:true,order:2},
-    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,backgroundColor:POST_LINE+'59',pointRadius:2,borderWidth:2.5,tension:0.25,fill:true,order:2},
+    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,pointRadius:4,pointStyle:'crossRot',pointBorderWidth:2,borderWidth:2,borderDash:[7,4],tension:0.25,fill:false,order:2},
+    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,pointRadius:3,pointStyle:'circle',borderWidth:2.5,tension:0.25,fill:false,order:2},
   );
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
     data:{labels:allKeys,datasets},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+      plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12,usePointStyle:true,pointStyleWidth:24,
+        generateLabels:c=>c.data.datasets.map((ds,i)=>({text:ds.label,datasetIndex:i,hidden:!c.isDatasetVisible(i),pointStyle:legendLineIcon(ds),fillStyle:ds.borderColor,strokeStyle:ds.borderColor,lineWidth:1,fontColor:PAL.axis}))}},
         tooltip:{callbacks:{title:i=>`${i[0].label} ${unit}`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
       scales:{x:{title:{display:true,text:unit,font:{size:11},color:PAL.axis},ticks:{font:{size:10},color:PAL.tick,maxTicksLimit:20},grid:{display:false}},
               y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}}}
