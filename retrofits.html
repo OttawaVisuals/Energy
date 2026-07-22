@@ -375,6 +375,22 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 .equip-list .measure-label .ml-badges .badge{margin-right:4px}
 .equip-list .bar-track{margin-top:6px}
 .equip-list .bar-pct{margin-top:6px}
+
+/* ── AHRI model groups: outdoor-unit header row (existing .measure-row bar
+   pattern) plus an indented list of the individual certificates behind it
+   (one outdoor model can carry many AHRI reference numbers — see
+   Methodology). ── */
+.ahri-model-group{margin-bottom:12px}
+.ahri-model-group:last-child{margin-bottom:0}
+.ahri-cert-list{margin:2px 0 0;padding-left:14px;border-left:2px solid var(--surface)}
+.ahri-cert-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:5px 0;font-size:12px}
+.ahri-cert-row+.ahri-cert-row{border-top:1px solid var(--surface)}
+.ahri-cert-row .ml-sub{color:var(--light);line-height:1.3}
+.ahri-cert-row .ml-sub a{color:var(--muted);text-decoration:underline}
+.ahri-cert-row .ml-sub a:hover{color:var(--ink)}
+.ahri-cert-row .ml-badges .badge{margin-right:4px}
+.ahri-cert-row .ahri-cert-count{margin-left:auto;font-size:11px;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
+.ahri-cert-more{padding:4px 0 0 14px;font-size:11px;color:var(--light);font-style:italic}
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
 <script>
@@ -838,8 +854,15 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
     </div>
     <div class="card">
       <div class="card-title" data-icon="heatpump">Heat pump sizing — capacity vs. design heat loss<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Heat pump heating capacity, from its AHRI certificate, divided by the home's design heat loss. 1.0 means the heat pump alone covers the full peak heating load; below 1.0 means the backup system covers the rest on the coldest days — a deliberate, common design choice, not a sizing mistake." data-method="m-derived">?</button></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem">
+        <label for="hpsizing-temp-sel" style="font-size:12px;color:var(--muted)">Outdoor temperature</label>
+        <select id="hpsizing-temp-sel">
+          <option value="47">8.3°C</option>
+          <option value="5">−15°C</option>
+        </select>
+      </div>
       <div class="cw cw-lg"><canvas id="hpsizing-chart"></canvas></div>
-      <p class="note"><span class="cap-simple">How much of a home's peak heating need the heat pump alone can cover, on a mild day (47°F) and a cold design day (5°F, about −15°C).</span><span class="cap-advanced">Ratio of AHRI-certificate-verified heat pump heating capacity to design heat loss (both kW) — not the raw auditor-entered capacity field, which runs a median 1.55× high against real certificates. Homes without a resolvable AHRI certificate reference aren't included (see Methodology) — coverage is highest for retrofits from about 2019 onward.</span></p>
+      <p class="note"><span class="cap-simple">How much of a home's peak heating need the heat pump alone can cover, at the selected outdoor temperature.</span><span class="cap-advanced">Ratio of AHRI-certificate-verified heat pump heating capacity to design heat loss (both kW) — not the raw auditor-entered capacity field, which runs a median 1.55× high against real certificates. Homes without a resolvable AHRI certificate reference aren't included (see Methodology) — coverage is highest for retrofits from about 2019 onward.</span></p>
     </div>
   </div>
 
@@ -848,9 +871,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 <!-- Heat pump AHRI numbers + window codes -->
   <div class="grid-2" data-mode="advanced">
     <div class="card">
-      <div class="card-title" data-icon="heatpump">Common heat pump models (AHRI number)</div>
+      <div class="card-title" data-icon="heatpump">Common heat pump models (outdoor unit)</div>
       <div id="ahri-list" class="equip-list"></div>
-      <p class="note">Top 5 most common AHRI certification numbers among heat pumps in matched homes (pre- and post-retrofit combined). Numbers outside the top 5 are not shown individually to avoid singling out near-unique installations. Where the AHRI certificate is on file, the line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency) and COP at 5°F, plus whether the unit is cold-climate certified — click the AHRI number for its directory page.</p>
+      <p class="note">Top 5 most common outdoor heat-pump units among matched homes (pre- and post-retrofit combined), grouped by brand + outdoor model number. One outdoor unit is certified under several AHRI reference numbers — different indoor coil pairings, refrigerant lines, or test-procedure revisions can each certify differently, including on cold-climate status — so every certificate behind an outdoor model is listed underneath it rather than picking one to represent the group. Each line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency), COP at 5°F, and cold-climate status where on file — click the AHRI number for its directory page.</p>
     </div>
     <div class="card">
       <div class="card-title" data-icon="window">Common window codes</div>
@@ -983,13 +1006,13 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
           <tr><td><code>Pre/Post_NaturalGas</code></td><td><code>EGHFCONNGAS</code></td><td>m³/yr</td><td>× 10.3611</td><td>37.30 MJ/m³ (0.0373 GJ/m³, basis 1,000 Btu/ft³) — <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER energy conversion tables</a></td></tr>
           <tr><td><code>Pre/Post_Oil</code></td><td><code>EGHFCONOIL</code></td><td>L/yr</td><td>× 10.7778</td><td>38.80 MJ/L, light fuel oil — <a href="https://www150.statcan.gc.ca/n1/pub/57-003-x/2018001/dq-qd/dq-qd-4-eng.htm" target="_blank" rel="noopener">StatCan RESD 57-003-X</a> (the factor ECCC's National Inventory Report uses)</td></tr>
           <tr><td><code>Pre/Post_Propane</code></td><td><code>EGHFCONPROP</code></td><td>L/yr</td><td>× 7.0917</td><td>25.53 MJ/L — <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER energy conversion tables</a></td></tr>
-          <tr><td><code>Pre/Post_Wood</code></td><td><code>EGHFCONWOODGJ</code>, else <code>EGHFCONWOOD</code></td><td>GJ/yr, else tonnes/yr</td><td>× 277.778, else × 3,888.89</td><td>GJ column used verbatim where populated (HOT2000 v11.2+); tonne fallback 14.0 GJ/t — <a href="https://natural-resources.canada.ca/sites/nrcan/files/files/NRCAN_BB_no2_e13.pdf" target="_blank" rel="noopener">NRCan Solid Biofuels Bulletin No. 2</a> (air-dry firewood 14–15 MJ/kg HHV)</td></tr>
+          <tr><td><code>Pre/Post_Wood</code></td><td><code>EGHFCONWOODGJ</code>, else <code>EGHHEATFCONSW</code>, else <code>EGHFCONWOOD</code></td><td>GJ/yr, else MJ/yr, else tonnes/yr</td><td>× 277.778, else × 0.27778, else × 3,888.89</td><td>GJ column used verbatim where populated (HOT2000 v11.2+); else HOT2000's own per-home heating-fuel split (already MJ, no assumption needed); tonne fallback (14.0 GJ/t) only for the remaining ~0.3% of records with neither column — <a href="https://natural-resources.canada.ca/sites/nrcan/files/files/NRCAN_BB_no2_e13.pdf" target="_blank" rel="noopener">NRCan Solid Biofuels Bulletin No. 2</a> (air-dry firewood 14–15 MJ/kg HHV)</td></tr>
           <tr><td><code>Pre/Post_HeatLoss</code></td><td><code>EGHDESHTLOSS</code></td><td>W</td><td>× 0.001 (→ kW)</td><td>design heat loss, not energy</td></tr>
           <tr><td><code>Pre/Post_GHG</code></td><td><code>ERSGHG</code></td><td>tCO₂e/yr</td><td>as-is</td><td>already includes electricity via provincial grid factor (<code>ERSELECGHG</code> is netted in at source)</td></tr>
           <tr><td><code>Pre/Post_SolarPV</code></td><td><code>KWPV</code></td><td>kW DC</td><td>as-is</td><td>—</td></tr>
         </tbody>
       </table></div>
-      <p><strong>Wood.</strong> Since HOT2000 v11.2 the dataset reports wood energy directly in GJ (<code>EGHFCONWOODGJ</code>), which is used as-is — no heating-value assumption at all for those records. Older records only carry tonnes (<code>EGHFCONWOOD</code>); for those the 14.0 GJ/t fallback applies, and per-home wood energy is approximate to the extent the actual wood type (softwood, hardwood, pellets) differs from that figure.</p>
+      <p><strong>Wood.</strong> Since HOT2000 v11.2 the dataset reports wood energy directly in GJ (<code>EGHFCONWOODGJ</code>), which is used as-is — no heating-value assumption at all for those records. Older records only carry tonnes (<code>EGHFCONWOOD</code>), which by itself needs a heating-value assumption to convert to energy — but most of those records also carry <code>EGHHEATFCONSW</code>, HOT2000's own per-home split of heating energy by fuel (already in MJ, no assumption needed, and already used for the heating-only <code>Pre/Post_HeatWood</code> figures elsewhere on this page), so that's used first. Only for the remaining ~0.3% of tonnes-only records with neither column does the flat 14.0 GJ/t fallback apply, and for those, per-home wood energy is approximate to the extent the actual wood type (softwood, hardwood, pellets) differs from that figure. (A flat-factor version of this fallback previously produced a small number of homes — 29 Pre-audit, 14 Post-audit, all wood-primary — where computed wood energy exceeded the home's own reported total; preferring <code>EGHHEATFCONSW</code> resolves this, since it's a subset of the home's own reported heating total by construction.)</p>
       <p><strong>Validation.</strong> As a consistency check, for homes consuming electricity plus exactly one other fuel, the per-fuel quantities × these factors reconcile with the audit's own total (<code>EGHFCONTOTAL</code>) to within about 1% across all audit years — so the cited factors closely track whatever HOT2000 applies internally. None of this affects <code>Pre/Post_TotalEnergy</code> or any savings figure (those convert from MJ exactly); it only scales the per-fuel breakdown charts.</p>
 
       <h4>C · Calculated fields</h4>
@@ -1060,7 +1083,6 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
         <li><strong>Negative energy savings with no measures (~4% of matched pairs).</strong> Some homes use more energy after the retrofit than before, and about three-quarters of those have no retrofit measure flagged at all. The working assumption is inter-audit modelling variance, but that has not been confirmed — what else could explain it?</li>
         <li><strong>Conversion factors.</strong> The kWh conversions in section B use published Government of Canada heating values. Are there factors better aligned with HOT2000’s own fuel library and the ERS, which we could adopt instead?</li>
         <li><strong>Heating-only propane exceeds whole-house propane by a constant 0.27%.</strong> Space-heating consumption (<code>EGHHEATFCONSP</code>) should by definition be a subset of the home's total propane use, yet it exceeds it in about 80% of propane-heated homes. The ratio is not scattered — it sits at <strong>1.0027</strong> across the interquartile range, which is the signature of a units constant rather than a data fault. It matches: the heating field is HOT2000's own MJ output, while whole-house propane is a <em>volumetric</em> column converted here at <strong>25.53 MJ/L</strong> (CER, section B), and 25.60 ÷ 25.53 = 1.0027. In other words HOT2000 appears to use ~25.60 MJ/L internally and our published figure is 0.27% low. This is cosmetic at chart scale but it is the cleanest available evidence of a HOT2000 fuel-library value, so it is worth confirming and adopting.</li>
-        <li><strong>Heating-only wood exceeds whole-house wood, and not by a constant.</strong> The same comparison for wood (<code>EGHHEATFCONSW</code>) exceeds whole-house use in about 55% of wood-heated homes, but unlike propane the ratio is genuinely dispersed — median 1.00, but spread from roughly 0.75 to 1.35, with a tail of about 60 homes above 1.5× and a worst case of 267×. No single heating value explains that. Wood is the fuel whose reporting changed at HOT2000 v11.2 (tonnes, then GJ directly — section B) and the only one where species (softwood, hardwood, pellets) genuinely varies the energy content, so a vintage or species mismatch between the two fields is the suspect. Natural gas, oil, and electricity show no such problem (under 0.1% of homes). Which of the two fields should be treated as authoritative?</li>
       </ul>
       <p class="caveats">The two pairing items are surfaced in the "From every audit to your selection" funnel above: the <em>Not paired</em> flow is where these homes currently drop out.</p>
     </div>
@@ -1156,7 +1178,7 @@ let MODE='none';              // 'none' | 'province' | 'fsa'
 const FUEL_COLORS={
   'Oil':'#D85A30','Electricity':'#378ADD','Propane':'#B79A6A',
   'Mixed Wood':'#6B4C2A','Mixed wood':'#6B4C2A','Hardwood':'#8B6343',
-  'Natural Gas':'#C8881A','Wood Pellets':'#A07040'
+  'Natural Gas':'#C8881A','Wood Pellets':'#A07040','Wood':'#6B4C2A'
 };
 
 const MEASURES=[
@@ -1476,8 +1498,14 @@ function fetchLookups(){
 }
 function decodeAhri(code){
   const c=String(code).trim();
+  // Verified pattern (see Python/check_ahri_directory.py): program 99 is the
+  // ASHP program every number in the lookup was checked against. Always
+  // built, even when the number hasn't resolved to cert data locally \u2014 we
+  // know the reference number either way, so the directory page is always
+  // reachable.
+  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(c)}" target="_blank" rel="noopener">AHRI ${c} \u2197</a>`;
   const hit=AHRI_LOOKUP&&AHRI_LOOKUP[c];
-  if(!hit)return{main:c,sub:null,badges:[]};
+  if(!hit)return{main:c,sub:link,badges:[],brand:null,model:null};
   const isObj=typeof hit==='object';
   const name=typeof hit==='string'?hit:[hit.brand,hit.model].filter(Boolean).join(' \u00b7 ');
   const badges=[];
@@ -1501,11 +1529,29 @@ function decodeAhri(code){
     const cop5=parseFloat(hit.heating_cop_5f);
     if(!isNaN(cop5))specs.push(`COP ${cop5.toFixed(1)} @ 5\u00b0F`);
   }
-  // Verified pattern (see Python/check_ahri_directory.py): program 99 is the
-  // ASHP program every number in the lookup was checked against.
-  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(c)}" target="_blank" rel="noopener">AHRI ${c} \u2197</a>`;
   const sub=[link,...specs].join(' \u00b7 ');
-  return name?{main:name,sub,badges}:{main:c,sub:link,badges};
+  return name?{main:name,sub,badges,brand:isObj?hit.brand:null,model:isObj?hit.model:null}
+             :{main:c,sub:link,badges,brand:null,model:null};
+}
+// Groups a list of {code,count} AHRI entries by outdoor unit (brand+model) --
+// one outdoor unit is certified under many AHRI reference numbers (different
+// indoor coil pairings, refrigerant lines, or test-procedure revisions can
+// each certify differently, including on cold-climate status), so a single
+// representative certificate per group would be arbitrary. Unresolved codes
+// (no local cert data) each stand alone, since their true model is unknown.
+function groupAhriByModel(items){
+  const groups=new Map();
+  for(const{code,count}of items){
+    const c=String(code).trim();
+    const d=decodeAhri(c);
+    const key=(d.brand&&d.model)?`${d.brand}${d.model}`:`code:${c}`;
+    let g=groups.get(key);
+    if(!g){g={name:d.model?[d.brand,d.model].filter(Boolean).join(' \u00b7 '):c,total:0,certs:[]};groups.set(key,g);}
+    g.total+=count;
+    g.certs.push({code:c,count,...d});
+  }
+  for(const g of groups.values())g.certs.sort((a,b)=>b.count-a.count);
+  return[...groups.values()].sort((a,b)=>b.total-a.total);
 }
 function decodeWindow(code){
   const c=String(code).trim();
@@ -2411,12 +2457,19 @@ function renderStoreyDonut(){
 }
 
 // ── Sankey ────────────────────────────────────────────────────────
+// Wood species (Softwood/Hardwood/Mixed Wood/Wood Pellets) each individually
+// too small to read on the Sankey and cluttering it with near-duplicate
+// nodes -- collapsed into one 'Wood' node. Matches the same collapse
+// precompute_province_stats.py applies to sankey_flows for province/CA mode.
+function sankeyFuelLabel(f){
+  return/wood/i.test(f)?'Wood':f;
+}
 function renderSankey(){
   const svg=$('sankey-svg');svg.innerHTML='';
   if(!FILTERED.length)return;
   const flows={};
   FILTERED.forEach(r=>{
-    const pf=r.Pre_HeatFuel,qf=r.Post_HeatFuel;
+    const pf=sankeyFuelLabel(r.Pre_HeatFuel),qf=sankeyFuelLabel(r.Post_HeatFuel);
     if(!pf||!qf)return;
     const k=`${pf}|||${qf}`;
     if(!flows[k])flows[k]={pre:0,post:0};
@@ -2774,12 +2827,37 @@ function barListHTML(items){
     return `<div class="measure-row"><div class="measure-label"><span class="ml-code">${main}</span>${sub}${badges}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(i.count/max*100)}%;background:#C8881A"></div></div><div class="bar-pct">${Math.round(i.count).toLocaleString()}</div></div>`;
   }).join('');
 }
+// Outdoor-model groups (see groupAhriByModel): a header bar per outdoor unit
+// (name + total installs), with every certificate behind it listed
+// underneath — link, spec line, status/cold-climate badges, install count.
+function ahriModelGroupsHTML(groups,capCerts=8){
+  if(!groups||!groups.length)return '<div class="state-msg" style="padding:1rem"><strong>No data</strong></div>';
+  const max=Math.max(...groups.map(g=>g.total))||1;
+  return groups.map(g=>{
+    const shown=g.certs.slice(0,capCerts);
+    const rest=g.certs.length-shown.length;
+    const restCount=g.certs.slice(capCerts).reduce((a,c)=>a+c.count,0);
+    const certRows=shown.map(c=>{
+      const badges=(c.badges&&c.badges.length)?`<span class="ml-badges">${c.badges.map(b=>`<span class="badge ${b.cls}">${b.label}</span>`).join('')}</span>`:'';
+      return `<div class="ahri-cert-row"><span class="ml-sub">${c.sub}</span>${badges}<span class="ahri-cert-count">${Math.round(c.count).toLocaleString()}</span></div>`;
+    }).join('');
+    const more=rest>0?`<div class="ahri-cert-more">+${rest} more certificate${rest>1?'s':''} (${Math.round(restCount).toLocaleString()} installs)</div>`:'';
+    return `<div class="ahri-model-group">`+
+      `<div class="measure-row"><div class="measure-label"><span class="ml-code">${g.name}</span></div>`+
+      `<div class="bar-track"><div class="bar-fill" style="width:${Math.round(g.total/max*100)}%;background:#C8881A"></div></div>`+
+      `<div class="bar-pct">${Math.round(g.total).toLocaleString()}</div></div>`+
+      `<div class="ahri-cert-list">${certRows}${more}</div></div>`;
+  }).join('');
+}
 
 // Mirrors the AHRI/window top-N logic in precompute_province_stats.py /
 // split_fsa_json.py, but client-side over whatever rows are currently
 // FILTERED — used only in FSA mode, where raw per-home AHRI/WindowCode
-// values are available (province mode uses the precomputed top_ahri_numbers/
+// values are available (province mode uses the precomputed ahri_counts/
 // window_pre_top/window_post_top fields instead, see renderAhriWindowProvince).
+// n=Infinity for AHRI (full counts needed so grouping by outdoor model
+// captures a model's true total, not just whichever individual certificates
+// happened to already be in a pre-truncated top-N — see groupAhriByModel).
 function topCounts(rows,cols,n,minDigits){
   const counts={};
   rows.forEach(r=>cols.forEach(c=>{
@@ -2794,13 +2872,19 @@ function topCounts(rows,cols,n,minDigits){
 function renderAhriWindowFsa(){
   const dec=(cols,n,minDigits,decoder)=>topCounts(FILTERED,cols,n,minDigits)
     .map(i=>{const d=decoder(i.code);return{...d,count:i.count};});
-  $('ahri-list').innerHTML=barListHTML(dec(['Pre_HPAHRI','Post_HPAHRI'],5,4,decodeAhri));
+  // Full AHRI counts (no top-N truncation) so grouping by outdoor model
+  // below reflects each model's true total, then take the top 5 models.
+  const ahriAll=topCounts(FILTERED,['Pre_HPAHRI','Post_HPAHRI'],Infinity,4);
+  $('ahri-list').innerHTML=ahriModelGroupsHTML(groupAhriByModel(ahriAll).slice(0,5));
   $('window-pre-list').innerHTML=barListHTML(dec(['Pre_WindowCode'],5,0,decodeWindow));
   $('window-post-list').innerHTML=barListHTML(dec(['Post_WindowCode'],5,0,decodeWindow));
 }
 function renderAhriWindowProvince(slice){
   const toItems=(list,decoder)=>(list||[]).slice(0,5).map(x=>{const d=decoder(x.code);return{...d,count:Math.round(x.count)};});
-  $('ahri-list').innerHTML=barListHTML(toItems(slice.top_ahri_numbers,decodeAhri));
+  // ahri_counts carries every code seen in this province (not just a top-N
+  // slice), same reasoning as renderAhriWindowFsa above.
+  const ahriAll=Object.entries(slice.ahri_counts||{}).map(([code,count])=>({code,count}));
+  $('ahri-list').innerHTML=ahriModelGroupsHTML(groupAhriByModel(ahriAll).slice(0,5));
   $('window-pre-list').innerHTML=barListHTML(toItems(slice.window_pre_top,decodeWindow));
   $('window-post-list').innerHTML=barListHTML(toItems(slice.window_post_top,decodeWindow));
 }
@@ -2889,17 +2973,33 @@ function hpSizingBins(rows,capCol){
   });
   return b;
 }
+// Selected outdoor temperature for the sizing chart -- '47' (8.3°C) or '5'
+// (−15°C), set by #hpsizing-temp-sel. One line at a time (not both
+// overlaid): at FSA scale two overlapping ratio histograms were hard to
+// read as anything but "which is bigger", and the plain °C label (no
+// "mild day"/"design day" framing) is the temperature, not a claim about
+// what day that temperature represents.
+let HP_SIZING_TEMP='47';
+const HP_SIZING_LABEL={'47':'8.3°C','5':'−15°C'};
 function renderHPSizing(){
   const hp=FILTERED.filter(hasHeatPump);
+  const capCol=HP_SIZING_TEMP==='5'?'Post_HPCapacity5':'Post_HPCapacity47';
   drawComboChart('hpsizing-chart','hpsizing',
-    hpSizingBins(hp,'Post_HPCapacity47'),hpSizingBins(hp,'Post_HPCapacity5'),{},
-    'sizing ratio','At 47°F (mild day)','At 5°F (design day)');
+    hpSizingBins(hp,capCol),null,{},
+    'sizing ratio',HP_SIZING_LABEL[HP_SIZING_TEMP]);
 }
 function renderProvinceHPSizing(slice){
+  const bins=HP_SIZING_TEMP==='5'?(slice.hp_sizing5_bins||{}):(slice.hp_sizing47_bins||{});
   drawComboChart('hpsizing-chart','hpsizing',
-    slice.hp_sizing47_bins||{},slice.hp_sizing5_bins||{},{},
-    'sizing ratio','At 47°F (mild day)','At 5°F (design day)');
+    bins,null,{},
+    'sizing ratio',HP_SIZING_LABEL[HP_SIZING_TEMP]);
 }
+function redrawHPSizing(){
+  if(!isAdvancedMode())return;
+  if(MODE==='fsa')renderHPSizing();
+  else if(MODE==='province'&&_lastProvinceSlice)renderProvinceHPSizing(_lastProvinceSlice);
+}
+$('hpsizing-temp-sel').addEventListener('change',function(){HP_SIZING_TEMP=this.value;redrawHPSizing();});
 
 // ── Most common window changes (FSA mode only — needs paired per-home
 // Pre/Post window codes; province mode only ships independent pre/post
@@ -3305,13 +3405,15 @@ function legendLineIcon(ds){
 // province-precomputed measures don't ship a delta histogram).
 function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLabel='Before retrofit',postLabel='After retrofit',deltaLabel='Improvement'){
   dc(chartKey);
-  const allKeys=[...new Set([...Object.keys(preBins),...Object.keys(postBins),...Object.keys(deltaBins)])].map(Number).sort((a,b)=>a-b);
+  // postBins=null means "single-series mode" (e.g. hpsizing's one-temperature
+  // view) -- omit the second line entirely rather than drawing a flat zero.
+  const allKeys=[...new Set([...Object.keys(preBins||{}),...Object.keys(postBins||{}),...Object.keys(deltaBins||{})])].map(Number).sort((a,b)=>a-b);
   const datasets=[];
   // Chart.js draws LOWER order values on top — bars need order:1 (front) so
   // they paint over the area fills, and the lines order:2 (behind). Verified
   // empirically (opaque test chart) since Chart.js's own docs are ambiguous
   // on this point.
-  if(Object.keys(deltaBins).length){
+  if(deltaBins&&Object.keys(deltaBins).length){
     datasets.push({type:'bar',label:deltaLabel,data:allKeys.map(k=>deltaBins[k]||0),backgroundColor:al(PAL.secondary,'99'),borderColor:'#000',borderWidth:1.5,borderRadius:2,order:1,pointStyle:'rect'});
   }
   // Pre/post are told apart three ways, not colour alone: point shape (x vs
@@ -3319,9 +3421,11 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   // No area fill — overlapping pre/post lines never blend into a third
   // colour.
   datasets.push(
-    {type:'line',label:preLabel,data:allKeys.map(k=>preBins[k]||0),borderColor:PRE_LINE,pointRadius:4,pointStyle:'crossRot',pointBorderWidth:2,borderWidth:2,borderDash:[7,4],tension:0.25,fill:false,order:2},
-    {type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,pointRadius:3,pointStyle:'circle',borderWidth:2.5,tension:0.25,fill:false,order:2},
+    {type:'line',label:preLabel,data:allKeys.map(k=>(preBins||{})[k]||0),borderColor:PRE_LINE,pointRadius:4,pointStyle:'crossRot',pointBorderWidth:2,borderWidth:2,borderDash:[7,4],tension:0.25,fill:false,order:2},
   );
+  if(postBins){
+    datasets.push({type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,pointRadius:3,pointStyle:'circle',borderWidth:2.5,tension:0.25,fill:false,order:2});
+  }
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
     data:{labels:allKeys,datasets},
@@ -3645,8 +3749,19 @@ function renderProvinceStoreyDonut(slice){
 
 function renderProvinceSankey(slice){
   const svg=$('sankey-svg');svg.innerHTML='';
-  const flows=slice.sankey_flows||{};
-  if(!Object.keys(flows).length)return;
+  const rawFlows=slice.sankey_flows||{};
+  if(!Object.keys(rawFlows).length)return;
+  // Re-group through sankeyFuelLabel client-side too, not just server-side
+  // in precompute_province_stats.py -- keeps this correct even against an
+  // older province_json that predates that aggregation, and is a no-op once
+  // the server-side data is already collapsed to 'Wood'.
+  const flows={};
+  Object.entries(rawFlows).forEach(([k,v])=>{
+    const [a,b]=k.split('|||');
+    const key=`${sankeyFuelLabel(a)}|||${sankeyFuelLabel(b)}`;
+    if(!flows[key])flows[key]={pre:0,post:0};
+    flows[key].pre+=v.pre;flows[key].post+=v.post;
+  });
   const preMap={},postMap={};
   Object.entries(flows).forEach(([k,v])=>{
     const [a,b]=k.split('|||');
@@ -4102,57 +4217,52 @@ function makeInlineSVG(r){
     if(!pre&&!post)return'';
     return numRow(`&nbsp;&nbsp;· ${label}`,pre,post,'kWh',false,0);
   }).join('');
-  // Annual heat loss by building component — a stacked horizontal bar per
-  // side (pre/post), both scaled to the same max so bar length is directly
-  // comparable. This is the ANNUAL loss (EGHHL*), not the peak/design-day
+  // Annual heat loss by building component — same pre/post-bar-per-category
+  // pattern as "Envelope measures" above (one shared track per row, split
+  // top/bottom into a pre segment and a post segment), rather than a
+  // separate flow diagram, so the two panels read the same way. All six
+  // components share one scale (not each its own, unlike the R-value KPIs
+  // above) so bar length stays a fair comparison of which component loses
+  // the most heat. This is the ANNUAL loss (EGHHL*), not the peak/design-day
   // "Design heat loss" row in the HVAC table below (EGHDESHTLOSS) — the two
   // aren't the same quantity, hence the separate chart rather than a shared row.
   const HL_COMPONENTS=[
-    {key:'HeatLossWindowDoor',label:'Windows/doors',color:PAL.neg},
-    {key:'HeatLossWall',label:'Walls',color:PAL.blue},
-    {key:'HeatLossFoundation',label:'Foundation',color:PAL.purple},
-    {key:'HeatLossRoof',label:'Roof',color:PAL.pos},
-    {key:'HeatLossFloor',label:'Exposed floor',color:PAL.tick},
-    {key:'HeatLossAir',label:'Air leakage',color:PAL.secondary},
+    {key:'HeatLossWindowDoor',label:'Windows/doors'},
+    {key:'HeatLossWall',label:'Walls'},
+    {key:'HeatLossFoundation',label:'Foundation'},
+    {key:'HeatLossRoof',label:'Roof'},
+    {key:'HeatLossFloor',label:'Exposed floor'},
+    {key:'HeatLossAir',label:'Air leakage'},
   ];
-  const hlPre=HL_COMPONENTS.map(c=>num(r['Pre_'+c.key])||0);
-  const hlPost=HL_COMPONENTS.map(c=>num(r['Post_'+c.key])||0);
-  const hlPreTotal=hlPre.reduce((a,b)=>a+b,0),hlPostTotal=hlPost.reduce((a,b)=>a+b,0);
+  const hlPre=HL_COMPONENTS.map(c=>num(r['Pre_'+c.key]));
+  const hlPost=HL_COMPONENTS.map(c=>num(r['Post_'+c.key]));
   let heatLossBlock='';
-  if(hlPreTotal>0||hlPostTotal>0){
-    // Small two-column flow diagram: same technique as the fuel Sankey
-    // (renderSankey) — stacked bar per side, a tapered ribbon per component
-    // connecting its pre segment to its post segment — but keyed by fixed
-    // component index (same order both sides) rather than by name-matched
-    // flows, since "Walls" always lines up with "Walls".
-    const BARW=10,HLH=110,TOPPAD=16,BOTPAD=14,LX=34,GAP=90,RX=LX+GAP;
-    const HLMAX=Math.max(hlPreTotal,hlPostTotal,1);
-    const scale=HLH/HLMAX;
-    let preY=0,postY=0,preBar='',postBar='',ribbons='';
-    const mx=(LX+BARW+RX)/2;
+  if(hlPre.some(v=>v!==null)||hlPost.some(v=>v!==null)){
+    const hlMax=Math.max(...hlPre.map(v=>v||0),...hlPost.map(v=>v||0),1);
+    const hlBarW=160,hlBarH=12,hlGap=28,hlStartX=94;
+    const hlSvgH=HL_COMPONENTS.length*hlGap+10;
+    let hlSvg=`<svg viewBox="0 0 ${hlStartX+hlBarW+70} ${hlSvgH}" style="width:${hlStartX+hlBarW+70}px;max-width:100%;display:block">`;
     HL_COMPONENTS.forEach((c,i)=>{
-      const ph=hlPre[i]*scale,qh=hlPost[i]*scale;
-      const y1=TOPPAD+preY,y2=TOPPAD+preY+ph,y3=TOPPAD+postY,y4=TOPPAD+postY+qh;
-      if(ph>0.3)preBar+=`<rect x="${LX}" y="${y1.toFixed(1)}" width="${BARW}" height="${ph.toFixed(1)}" fill="${c.color}"><title>${c.label} · pre: ${Math.round(hlPre[i]).toLocaleString()} kWh/yr</title></rect>`;
-      if(qh>0.3)postBar+=`<rect x="${RX}" y="${y3.toFixed(1)}" width="${BARW}" height="${qh.toFixed(1)}" fill="${c.color}"><title>${c.label} · post: ${Math.round(hlPost[i]).toLocaleString()} kWh/yr</title></rect>`;
-      if(ph>0.3||qh>0.3){
-        ribbons+=`<path d="M${LX+BARW},${y1.toFixed(1)} C${mx},${y1.toFixed(1)} ${mx},${y3.toFixed(1)} ${RX},${y3.toFixed(1)} L${RX},${y4.toFixed(1)} C${mx},${y4.toFixed(1)} ${mx},${y2.toFixed(1)} ${LX+BARW},${y2.toFixed(1)} Z" fill="${c.color}" opacity="0.4"><title>${c.label}: ${Math.round(hlPre[i]).toLocaleString()} → ${Math.round(hlPost[i]).toLocaleString()} kWh/yr</title></path>`;
-      }
-      preY+=ph;postY+=qh;
+      const y=i*hlGap+8;
+      const pre=hlPre[i],post=hlPost[i];
+      hlSvg+=`<text x="${hlStartX-6}" y="${y+hlBarH/2+4}" text-anchor="end" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${c.label}</text>`;
+      const preW=pre?Math.max(2,Math.min(hlBarW,pre/hlMax*hlBarW)):0;
+      const postW=post?Math.max(2,Math.min(hlBarW,post/hlMax*hlBarW)):0;
+      hlSvg+=`<rect x="${hlStartX}" y="${y}" width="${hlBarW}" height="${hlBarH}" fill="${PAL.track}" rx="3"/>`;
+      hlSvg+=`<rect x="${hlStartX}" y="${y}" width="${preW}" height="${hlBarH/2}" fill="${al(PAL.primary,'99')}" rx="2"/>`;
+      hlSvg+=`<rect x="${hlStartX}" y="${y+hlBarH/2}" width="${postW}" height="${hlBarH/2}" fill="${al(PAL.pos,'99')}" rx="2"/>`;
+      const pStr=pre!==null?Math.round(pre).toLocaleString():'—';
+      const qStr=post!==null?Math.round(post).toLocaleString():'—';
+      const imp=(post||0)<(pre||0); // lower heat loss is the improvement
+      hlSvg+=`<text x="${hlStartX+hlBarW+6}" y="${y+hlBarH/2+4}" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${pStr}→<tspan fill="${imp?PAL.pos:PAL.neg}">${qStr}</tspan></text>`;
     });
-    const svgW=RX+BARW+14,svgH=TOPPAD+HLH+BOTPAD;
+    hlSvg+=`</svg>`;
     heatLossBlock=`<div style="min-width:0">
       <div class="detail-h">Annual heat loss by component, kWh/yr</div>
-      <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:${svgW}px;display:block">
-        <text x="${LX+BARW/2}" y="${TOPPAD-5}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">Pre</text>
-        <text x="${RX+BARW/2}" y="${TOPPAD-5}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">Post</text>
-        ${ribbons}
-        ${preBar}${postBar}
-        <text x="${LX+BARW/2}" y="${TOPPAD+HLH+11}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${Math.round(hlPreTotal).toLocaleString()}</text>
-        <text x="${RX+BARW/2}" y="${TOPPAD+HLH+11}" text-anchor="middle" font-size="10" fill="${PAL.axis}" font-family="Inter,sans-serif">${Math.round(hlPostTotal).toLocaleString()}</text>
-      </svg>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
-        ${HL_COMPONENTS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:9px;height:9px;background:${c.color};border-radius:2px"></span>${c.label}</span>`).join('')}
+      ${hlSvg}
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:${al(PAL.primary,'99')};border-radius:2px"></span>Pre</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:16px;height:4px;background:${al(PAL.pos,'99')};border-radius:2px"></span>Post</span>
       </div>
     </div>`;
   }
