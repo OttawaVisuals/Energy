@@ -213,7 +213,12 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .kpi-values{display:flex;align-items:center;gap:8px;min-height:1.875rem}
 .kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
 .kpi-arrow{color:var(--light);font-size:14px}
-.hvac-arrow{color:var(--light)}
+/* Small circular badge that straddles the Pre/Post column border in the
+   HVAC & energy table — only rendered when that row's value actually
+   changed, so a glance at the border tells you which rows moved without
+   reading both cells. Background colour is set inline per-row (PAL.secondary,
+   theme-dependent). */
+.td-arrow{position:absolute;left:0;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;line-height:14px;text-align:center;font-size:9px;color:#fff;border-radius:50%;z-index:1}
 .kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
 .kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink)}
 .kpi-unit{font-size:11px;color:var(--light);margin-top:2px}
@@ -3960,26 +3965,26 @@ function makeInlineSVG(r){
     </div>
   </div>`;
 
-  // ── HVAC & energy: Measure / Pre → Post / Savings columns. Pre and post
-  // share one column (an arrow only appears when the value actually changed)
-  // so the freed width goes to Savings, which needs it for values like
-  // "+26.0 tCO2e/yr" — see the column-width comment on the <table> below.
+  // ── HVAC & energy: separate Measure / Pre / Post / Savings columns.
+  // A changed value gets a small round arrow badge (.td-arrow) straddling
+  // the Pre/Post border instead of an inline arrow inside a merged cell —
+  // visible at a glance without reading both cells.
   const th=t=>`<th style="text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--light);padding:0 10px 4px 0">${t}</th>`;
+  const changeArrow=()=>`<span class="td-arrow" style="background:${PAL.secondary}">→</span>`;
   function textRow(lbl,pre,post){
     const changed=!!(pre&&post&&pre!==post);
-    const val=changed?`${pre} <span class="hvac-arrow">→</span> ${post}`:(post||pre||'—');
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:var(--text)">${val}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--text)">${pre||'—'}</td>
+      <td style="padding:3px 10px 3px 12px;color:var(--text);position:relative">${changed?changeArrow():''}${post||'—'}</td>
       <td style="padding:3px 0;color:${changed?PAL.secondary:'var(--light)'}">${changed?'Changed':'—'}</td>
     </tr>`;
   }
   // AHRI-certificate-verified heat pump capacity/efficiency (join_hp_capacity.py).
   // Post-only, and only present when the AHRI reference resolved — most
   // homes with a heat pump but no row here simply lack a usable AHRI number.
-  // colspan=2 (value + savings) rather than a 3-column span from the old
-  // 4-column layout — with pre/post merged into one column there's no more
-  // "which column does this land under" ambiguity for this post-only figure.
+  // colspan=3 (Pre + Post + Savings) since this post-only figure doesn't
+  // belong under any single one of those columns.
   function hpCertRow(r){
     const cap47=num(r.Post_HPCapacity47),cap5=num(r.Post_HPCapacity5),hspf=num(r.Post_HPHSPF2);
     if(cap47===null&&cap5===null&&hspf===null)return'';
@@ -3991,45 +3996,54 @@ function makeInlineSVG(r){
     const sizing=(cap47!==null&&hl!==null&&hl>0)?` · sized to ${Math.round(cap47/hl*100)}% of design heat loss`:'';
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">&nbsp;&nbsp;· Cert. capacity</td>
-      <td colspan="2" style="padding:3px 0;color:var(--text)">${parts.join(' · ')}${sizing}</td>
+      <td colspan="3" style="padding:3px 0;color:var(--text)">${parts.join(' · ')}${sizing}</td>
     </tr>`;
   }
   function numRow(lbl,pre,post,unit,higherIsBetter,decimals){
-    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="2" style="padding:3px 0;color:var(--light)">—</td></tr>`;
+    if(pre===null&&post===null)return `<tr><td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td><td colspan="3" style="padding:3px 0;color:var(--light)">—</td></tr>`;
     const d=pre!==null&&post!==null?(higherIsBetter?post-pre:pre-post):null;
     const good=d!==null&&d>=0;
     const changed=d!==null&&Math.abs(d)>1e-9;
     const fmt=v=>v===null?'—':(decimals?v.toFixed(decimals):Math.round(v).toLocaleString());
     const unitStr=unit?` ${unit}`:'';
-    const val=(pre!==null&&post!==null)
-      ?(changed?`${fmt(pre)} <span class="hvac-arrow">→</span> ${fmt(post)}${unitStr}`:`${fmt(post)}${unitStr}`)
-      :`${fmt(pre!==null?pre:post)}${unitStr}`;
     return `<tr>
       <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">${lbl}</td>
-      <td style="padding:3px 10px;color:var(--text);white-space:nowrap">${val}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--text);white-space:nowrap">${pre!==null?fmt(pre)+unitStr:'—'}</td>
+      <td style="padding:3px 10px 3px 12px;color:var(--text);white-space:nowrap;position:relative">${changed?changeArrow():''}${post!==null?fmt(post)+unitStr:'—'}</td>
       <td style="padding:3px 0;color:${d===null?'var(--light)':good?PAL.pos:PAL.neg};white-space:nowrap">${d===null?'—':`${d>=0?'+':''}${fmt(d)}${unitStr}`}</td>
     </tr>`;
   }
-  // Windows: decoded pre/post codes, with any attribute-by-attribute changes
-  // folded into the same row as a sub-line (instead of a separate row) when
-  // both codes decode cleanly against NRCan's standard table.
+  // Windows: one row per element (glazing, coating, gas fill, spacer, window
+  // type, frame material) — always shown, so the Pre/Post cells hold a short
+  // per-attribute value instead of one long combined description. The change
+  // arrow only appears on rows where that specific attribute differs (e.g.
+  // "Double/double with 1 coat glazing" in both columns gets no arrow).
   const wPreCode=r.Pre_WindowCode,wPostCode=r.Post_WindowCode;
-  const wPre=wPreCode?decodeWindow(wPreCode).main:null;
-  const wPost=wPostCode?decodeWindow(wPostCode).main:null;
   const wp=decodeWindowParts(wPreCode),wq=decodeWindowParts(wPostCode);
-  let windowSub='';
+  let windowRows;
   if(wp&&wq){
-    const changes=WINDOW_ATTRS.filter(({key})=>wp[key]!==wq[key])
-      .map(({key,label})=>`${label}: ${wp[key]} → ${wq[key]}`);
-    if(changes.length)windowSub=`<div style="font-size:11px;color:var(--muted);margin-top:2px">${changes.join(' · ')}</div>`;
-  }
-  const windowChanged=!!(wPre&&wPost&&wPre!==wPost);
-  const windowVal=windowChanged?`${wPre} <span class="hvac-arrow">→</span> ${wPost}`:(wPost||wPre||'—');
-  const windowRows=`<tr>
+    windowRows=WINDOW_ATTRS.map(({key,label})=>{
+      const changed=wp[key]!==wq[key];
+      return `<tr>
+      <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">Window – ${label}</td>
+      <td style="padding:3px 10px 3px 0;color:var(--text)">${wp[key]}</td>
+      <td style="padding:3px 10px 3px 12px;color:var(--text);position:relative">${changed?changeArrow():''}${wq[key]}</td>
+      <td style="padding:3px 0;color:${changed?PAL.secondary:'var(--light)'}">${changed?'Changed':'—'}</td>
+    </tr>`;
+    }).join('');
+  }else{
+    // Codes didn't decode cleanly (non-standard/user-defined code, or the
+    // lookup table hasn't loaded) — fall back to the raw/main decoded string.
+    const wPre=wPreCode?decodeWindow(wPreCode).main:null;
+    const wPost=wPostCode?decodeWindow(wPostCode).main:null;
+    const windowChanged=!!(wPre&&wPost&&wPre!==wPost);
+    windowRows=`<tr>
     <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap;vertical-align:top">Windows</td>
-    <td style="padding:3px 10px;color:var(--text)">${windowVal}${windowSub}</td>
+    <td style="padding:3px 10px 3px 0;color:var(--text)">${wPre||'—'}</td>
+    <td style="padding:3px 10px 3px 12px;color:var(--text);position:relative">${windowChanged?changeArrow():''}${wPost||'—'}</td>
     <td style="padding:3px 0;color:${windowChanged?PAL.secondary:'var(--light)'}">${windowChanged?'Changed':'—'}</td>
   </tr>`;
+  }
   // Whole-house consumption by fuel (all end uses — heating, DHW,
   // appliances). Only fuels the home actually used pre or post are listed.
   const FUEL_FIELDS=[
@@ -4109,7 +4123,8 @@ function makeInlineSVG(r){
   const yearGap=(py&&qy)?qy-py:null;
   const auditYearRow=`<tr>
     <td style="padding:3px 10px 3px 0;color:var(--muted);white-space:nowrap">Audit year</td>
-    <td style="padding:3px 10px;color:var(--text)">${r.Pre_Year||'—'} <span class="hvac-arrow">→</span> ${r.Post_Year||'—'}</td>
+    <td style="padding:3px 10px 3px 0;color:var(--text)">${r.Pre_Year||'—'}</td>
+    <td style="padding:3px 10px 3px 12px;color:var(--text);position:relative">${yearGap!==null?changeArrow():''}${r.Post_Year||'—'}</td>
     <td style="padding:3px 0;color:var(--light)">${yearGap!==null?`${yearGap} yr apart`:'—'}</td>
   </tr>`;
 
@@ -4120,8 +4135,8 @@ function makeInlineSVG(r){
   <div style="min-width:0">
     <div class="detail-h">HVAC &amp; energy</div>
     <div style="overflow-x:auto"><table style="font-size:12px;border-collapse:collapse;width:100%">
-      <colgroup><col style="width:28%"><col style="width:40%"><col style="width:32%"></colgroup>
-      <thead><tr>${th('Measure')}${th('Pre → Post')}${th('Savings')}</tr></thead>
+      <colgroup><col style="width:18%"><col style="width:26%"><col style="width:28%"><col style="width:28%"></colgroup>
+      <thead><tr>${th('Measure')}${th('Pre')}${th('Post')}${th('Savings')}</tr></thead>
       <tbody>
         ${auditYearRow}
         ${textRow(hasHeatPump(r)?'Backup fuel':'Heating fuel',r.Pre_HeatFuel,r.Post_HeatFuel)}
