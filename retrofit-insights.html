@@ -184,17 +184,36 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .factor-bars .fb-fill{height:100%;background:#C8881A;border-radius:3px}
 .factor-bars .fb-val{font-size:12px;color:#1C2B3A;font-variant-numeric:tabular-nums}
 
-/* ── models table ── */
-.models-table{width:100%;border-collapse:collapse;font-size:13px}
-.models-table th,.models-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-.models-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#5C6E82;font-weight:500}
-.models-table td.num{text-align:right;font-variant-numeric:tabular-nums}
-.models-table td.rank{color:#586A7D;font-variant-numeric:tabular-nums;width:1.4rem}
-.models-table .certs{margin-left:6px;font-size:10.5px;color:#586A7D;cursor:help}
-.models-table a{color:var(--navy);text-decoration:none;border-bottom:1px solid var(--border)}
-.models-table a:hover{color:#9C6812;border-color:#9C6812}
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:#E8EDF4;color:#57687B;margin-left:6px}
 .tag.cc{background:rgba(26,122,85,.12);color:#166B4A}
+.tag.status-active{background:rgba(26,122,85,.12);color:#166B4A}
+.tag.status-inactive{background:#E8EDF4;color:#57687B}
+
+/* ── heat-pump decomposition tree (brand -> outdoor model -> AHRI cert) ──
+   Plain nested rows, not a chart -- each level reuses the same row shape
+   (label/bar/count) at increasing indent, with a chevron toggling a
+   .tree-children block via the .open class. Leaf (cert) rows have no
+   chevron/bar; they show the spec line + badges + link instead. */
+.hp-tree{font-size:13px}
+.tree-row{display:flex;align-items:center;gap:9px;padding:6px 4px;border-radius:5px;cursor:pointer;user-select:none}
+.tree-row:hover{background:#F7F4EE}
+.tree-row.leaf{cursor:default;align-items:flex-start;flex-wrap:wrap;padding:6px 4px 6px 0}
+.tree-row.leaf:hover{background:none}
+.tree-chevron{flex:none;width:14px;height:14px;color:#8A9BB0;transition:transform .15s}
+.tree-node.open>.tree-row>.tree-chevron{transform:rotate(90deg)}
+.tree-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1C2B3A;font-weight:500}
+.tree-row.l1 .tree-name{color:var(--navy);font-weight:600}
+.tree-row.leaf .tree-name{white-space:normal;font-weight:400;flex:1 1 100%}
+.tree-bar-track{flex:1 1 80px;min-width:40px;height:6px;background:#E8EDF4;border-radius:3px;overflow:hidden}
+.tree-bar-fill{height:100%;background:#C8881A;border-radius:3px}
+.tree-count{flex:none;width:5.5em;text-align:right;font-variant-numeric:tabular-nums;color:#5C6E82;font-size:12px}
+.tree-children{margin-left:23px;padding-left:9px;border-left:2px solid #E8EDF4;display:none}
+.tree-node.open>.tree-children{display:block}
+.tree-more{margin-left:23px;padding:2px 0 4px 10px;font-size:11.5px;color:#8A9BB0;font-style:italic}
+.tree-leaf-detail{font-size:11.5px;color:#5C6E82;line-height:1.5}
+.tree-leaf-detail a{color:var(--navy);text-decoration:none;border-bottom:1px solid var(--border)}
+.tree-leaf-detail a:hover{color:#9C6812;border-color:#9C6812}
+.tree-leaf-count{margin-left:auto;flex:none;font-size:11px;color:#8A9BB0;font-variant-numeric:tabular-nums;padding-left:8px}
 
 /* ── methodology accordion ── */
 .methodology{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
@@ -405,19 +424,17 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <p class="intro">Where the roughly 328,000 heat pumps in this dataset went in, and what got installed.</p>
       <div class="sowhat"><b>By the numbers:</b> heat-pump adoption spans a <b>25×</b> range across provinces, from 50.3% in New Brunswick to 2.0% in Saskatchewan. The same spread reappears inside the income and dwelling-value breakdowns below, because those quintiles differ in provincial composition.</div>
     </div>
-    <div class="grid2">
-      <div class="card">
-        <h3>Heat-pump adoption by province</h3>
-        <div class="sub">Share of matched retrofits that added a heat pump.</div>
-        <div class="chart-wrap" style="height:340px"><canvas id="ch-hp-prov"></canvas></div>
-        <button class="jump-btn" data-jump-metric="hp_rate" style="margin-top:.7rem">◲ See heat-pump adoption on the map</button>
-      </div>
-      <div class="card">
-        <h3>The most-installed models nationally</h3>
-        <div class="sub">The ten most-installed AHRI-listed heat pumps across all matched retrofits, merged across each model's certificates.</div>
-        <div id="models-wrap"><div class="skl" style="height:220px"></div></div>
-        <div class="note">Counts across all matched pairs with an AHRI number. Links open the AHRI Directory listing. <span class="tag cc">CC</span> = cold-climate rated.</div>
-      </div>
+    <div class="card">
+      <h3>Heat-pump adoption by province</h3>
+      <div class="sub">Share of matched retrofits that added a heat pump.</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="ch-hp-prov"></canvas></div>
+      <button class="jump-btn" data-jump-metric="hp_rate" style="margin-top:.7rem">◲ See heat-pump adoption on the map</button>
+    </div>
+    <div class="card">
+      <h3>The most-installed models nationally</h3>
+      <div class="sub">Brand → outdoor unit → AHRI certificate, by install count. Click a row to expand it — one outdoor unit is certified under several AHRI reference numbers (different indoor coil pairings, refrigerant lines, or test revisions can each certify differently, including on cold-climate status), so every certificate is broken out rather than merged into one figure.</div>
+      <div id="hp-tree-wrap"><div class="skl" style="height:260px"></div></div>
+      <div class="note">Counts across all matched pairs with an AHRI number that resolved to a brand + model. <span class="tag cc">CC</span> = cold-climate rated. Links open the AHRI Directory listing.</div>
     </div>
   </section>
 
@@ -1034,31 +1051,99 @@ function sec07(){
   });
   const pModels=Promise.all([loadJSON(BASE_URL+'province_json/CA.json'),loadJSON(BASE_URL+'lookup/ahri_numbers.json')])
     .then(([ca,ah])=>{
-      // One model can hold many AHRI certificates (YORK HMH72B341 has 143), so
-      // ranking raw certificate numbers badly understates the popular units —
-      // GREE GUD36W/A-D(U) is 2.2% as a single cert but 6.0% merged. Group by
-      // brand+model, then deep-link the certificate with the most installs.
-      const t=ca.by_type['All types'],counts=t.ahri_counts,byModel=new Map();
-      let identified=0;
-      for(const code in counts){
-        const info=ah[code];if(!info||!info.model)continue;
-        const n=counts[code],key=(info.brand||'—')+'|'+info.model;
-        let e=byModel.get(key);
-        if(!e){e={brand:info.brand||'—',model:info.model,n:0,certs:0,lead:code,leadN:0,cc:info.cold_climate==='Yes'};byModel.set(key,e);}
-        e.n+=n;e.certs++;identified+=n;
-        if(n>e.leadN){e.leadN=n;e.lead=code;}
-      }
-      const rows=[...byModel.values()].sort((a,b)=>b.n-a.n).slice(0,10);
-      $('models-wrap').innerHTML=`<table class="models-table"><thead><tr><th>#</th><th>Brand</th><th>Model</th><th class="num">Installs</th><th class="num">Share</th></tr></thead><tbody>`+
-        rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td>${r.brand}${r.cc?'<span class="tag cc">CC</span>':''}</td>`+
-          `<td><a href="https://www.ahridirectory.org/details/99/${r.lead}" target="_blank" rel="noopener">${r.model}</a>`+
-          `${r.certs>1?`<span class="certs" title="${r.certs} AHRI certificates map to this model; the link opens the one with the most installs">×${r.certs}</span>`:''}</td>`+
-          `<td class="num">${fmtInt(r.n)}</td><td class="num">${(100*r.n/identified).toFixed(2)}%</td></tr>`).join('')+
-        `</tbody></table>`+
-        `<div class="note">Share of the ${fmtInt(identified)} heat-pump installs carrying an identifiable AHRI certificate — ${(100*identified/t.heat_pump_count).toFixed(0)}% of all ${fmtInt(t.heat_pump_count)} installs. ×n marks models holding more than one certificate.</div>`;
-    }).catch(e=>{console.error(e);$('models-wrap').innerHTML='<div class="note">Model list unavailable.</div>';});
+      $('hp-tree-wrap').innerHTML=hpTreeHTML(buildHPTree(ca,ah));
+    }).catch(e=>{console.error(e);$('hp-tree-wrap').innerHTML='<div class="note">Model list unavailable.</div>';});
   return Promise.all([pMetrics,pModels]);
 }
+
+// Brand -> outdoor unit -> AHRI certificate. One outdoor unit is certified
+// under many AHRI reference numbers (different indoor coil pairings,
+// refrigerant lines, or test-procedure revisions can each certify
+// differently, including on cold-climate status -- see the AHRI-aggregation
+// verification pass in Methodology), so every certificate is kept as its own
+// leaf rather than picking one to represent its outdoor unit. Top 10 at each
+// level, all by install count.
+function buildHPTree(ca,ah){
+  const t=ca.by_type['All types'],counts=t.ahri_counts;
+  const brands=new Map();
+  let identified=0;
+  for(const code in counts){
+    const info=ah[code];if(!info||!info.model)continue;
+    const n=counts[code];identified+=n;
+    const bname=info.brand||'—';
+    let b=brands.get(bname);if(!b){b={name:bname,total:0,models:new Map()};brands.set(bname,b);}
+    b.total+=n;
+    let m=b.models.get(info.model);if(!m){m={name:info.model,total:0,certs:[]};b.models.set(info.model,m);}
+    m.total+=n;
+    m.certs.push({code,count:n,info});
+  }
+  const brandList=[...brands.values()].sort((a,b)=>b.total-a.total).slice(0,10);
+  for(const b of brandList){
+    b.modelList=[...b.models.values()].sort((a,c)=>c.total-a.total).slice(0,10);
+    b.restModels=b.models.size-b.modelList.length;
+    for(const m of b.modelList){
+      m.certs.sort((a,c)=>c.count-a.count);
+      m.certList=m.certs.slice(0,10);
+      m.restCerts=m.certs.length-m.certList.length;
+      m.restCertsN=m.certs.slice(10).reduce((a,c)=>a+c.count,0);
+    }
+  }
+  return{brandList,totalBrands:brands.size,identified,hpTotal:t.heat_pump_count};
+}
+const TREE_CHEVRON='<svg class="tree-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Same spec fields as retrofits.html's decodeAhri, minus the brand/model name
+// (already shown by the parent outdoor-unit row) -- indoor coil model is
+// included here since it's usually what actually distinguishes certificates
+// that share an outdoor model number.
+function certDetail(code,info){
+  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(code)}" target="_blank" rel="noopener">AHRI ${code} ↗</a>`;
+  const btu=v=>{const n=parseFloat(v);return isNaN(n)?null:(n>=10000?Math.round(n/1000)+'k':Math.round(n).toLocaleString());};
+  const specs=[];
+  if(info.indoor_model)specs.push(`indoor ${info.indoor_model}`);
+  const h47=btu(info.heating_capacity_47f_btuh),h5=btu(info.heating_capacity_5f_btuh);
+  if(h47)specs.push(`heats ${h47} BTU/h @ 47°F${h5?`, ${h5} @ 5°F`:''}`);
+  const hspf=parseFloat(info.hspf2);
+  if(!isNaN(hspf))specs.push(`HSPF2 ${hspf}`);
+  const cop5=parseFloat(info.heating_cop_5f);
+  if(!isNaN(cop5))specs.push(`COP ${cop5.toFixed(1)} @ 5°F`);
+  const tags=[];
+  if(info.model_status)tags.push(`<span class="tag ${/^active$/i.test(info.model_status)?'status-active':'status-inactive'}">${info.model_status}</span>`);
+  if(String(info.cold_climate).toLowerCase()==='yes')tags.push('<span class="tag cc">CC</span>');
+  return`${link}${specs.length?' · '+specs.join(' · '):''}${tags.join('')}`;
+}
+function hpTreeHTML(tree){
+  const{brandList,totalBrands,identified,hpTotal}=tree;
+  if(!brandList.length)return '<div class="note">Model list unavailable.</div>';
+  const grandMax=brandList[0].total;
+  const brandRows=brandList.map((b,bi)=>{
+    const modelMax=b.modelList[0]?b.modelList[0].total:1;
+    const modelRows=b.modelList.map((m,mi)=>{
+      const certRows=m.certList.map(c=>
+        `<div class="tree-row leaf"><span class="tree-leaf-detail">${certDetail(c.code,c.info)}</span><span class="tree-leaf-count">${fmtInt(c.count)}</span></div>`
+      ).join('');
+      const moreCerts=m.restCerts>0?`<div class="tree-more">+${m.restCerts} more certificate${m.restCerts>1?'s':''} (${fmtInt(m.restCertsN)} installs)</div>`:'';
+      const open=(bi===0&&mi===0)?' open':'';
+      return`<div class="tree-node${open}"><div class="tree-row l2">${TREE_CHEVRON}`+
+        `<span class="tree-name">${m.name}</span><div class="tree-bar-track"><div class="tree-bar-fill" style="width:${Math.round(m.total/modelMax*100)}%"></div></div>`+
+        `<span class="tree-count">${fmtInt(m.total)}</span></div><div class="tree-children">${certRows}${moreCerts}</div></div>`;
+    }).join('');
+    const moreModels=b.restModels>0?`<div class="tree-more">+${b.restModels} more outdoor unit${b.restModels>1?'s':''} for ${b.name}</div>`:'';
+    const open=bi===0?' open':'';
+    return`<div class="tree-node${open}"><div class="tree-row l1">${TREE_CHEVRON}`+
+      `<span class="tree-name">${b.name}</span><div class="tree-bar-track"><div class="tree-bar-fill" style="width:${Math.round(b.total/grandMax*100)}%"></div></div>`+
+      `<span class="tree-count">${fmtInt(b.total)}</span></div><div class="tree-children">${modelRows}${moreModels}</div></div>`;
+  }).join('');
+  const restBrandsNote=totalBrands>brandList.length?` (${totalBrands-brandList.length} more brands not shown)`:'';
+  return`<div class="hp-tree">${brandRows}</div>`+
+    `<div class="note" style="margin-top:.7rem">Top 10 brands${restBrandsNote}, top 10 outdoor units per brand, top 10 certificates per unit — all ranked by install count. Share of the ${fmtInt(identified)} heat-pump installs carrying an identifiable AHRI certificate: ${(100*identified/hpTotal).toFixed(0)}% of all ${fmtInt(hpTotal)} installs.</div>`;
+}
+// Click-to-expand: delegated once on the container so it survives the
+// innerHTML replacement above (and any future re-render).
+document.addEventListener('click',e=>{
+  const row=e.target.closest('#hp-tree-wrap .tree-row:not(.leaf)');
+  if(!row)return;
+  row.closest('.tree-node').classList.toggle('open');
+});
 
 /* ══════════════════════════════════════════════════════════════════════
    08 — MISSED OPPORTUNITY

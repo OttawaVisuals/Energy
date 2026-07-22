@@ -129,11 +129,17 @@ BASE_MAPPING = [
     ('Pre_Propane',     'EGHFCONPROP',      'D', 7.0917),     # L -> kWh (25.53 MJ/L, CER)
     ('Post_Propane',    'EGHFCONPROP',      'E', 7.0917),
     # Wood: HOT2000 v11.2+ writes EGHFCONWOODGJ (GJ/yr) directly — used when
-    # populated (see apply_mapping), so no heating-value assumption is needed
-    # for those records. The tonne factor below is the fallback for older
-    # records: 14.0 GJ/t, within NRCan Solid Biofuels Bulletin No. 2's range
-    # for stacked air-dry firewood (14-15 MJ/kg HHV) and matching the median
-    # implied by records carrying both columns (wood-type dependent, 13.4-18.0).
+    # populated, no heating-value assumption needed. Next, EGHHEATFCONSW
+    # (HOT2000's own per-home heating-fuel split, already in MJ) is used when
+    # populated — a per-home actual rather than a population-average
+    # estimate, and it can't exceed the home's own reported total the way
+    # the tonnes fallback below sometimes did (see wood_kwh docstring — found
+    # via 29 Pre/14 Post wood-primary homes where the flat factor pushed
+    # Wood above TotalEnergy). Only for the remaining ~0.3% of tonnes-only
+    # records with neither column populated does the fallback below apply:
+    # 14.0 GJ/t, within NRCan Solid Biofuels Bulletin No. 2's range for
+    # stacked air-dry firewood (14-15 MJ/kg HHV) and matching the median
+    # implied by the ~140k EGHHEATFCONSW-reconcilable records (13.98 GJ/t).
     ('Pre_Wood',        'EGHFCONWOOD',      'D', 3888.89),    # tonne -> kWh (14.0 GJ/t fallback)
     ('Post_Wood',       'EGHFCONWOOD',      'E', 3888.89),
 
@@ -422,16 +428,52 @@ GJ_TO_KWH = 277.778
 
 def wood_kwh(df, tonnes_col, tonne_factor):
     """
-    Wood energy in kWh. Prefer EGHFCONWOODGJ (GJ/yr, written directly by
-    HOT2000 v11.2+) — no heating-value assumption needed. Fall back to
-    tonnes * 14.0 GJ/t for older records where the GJ column is absent/zero.
+    Wood energy in kWh, in priority order:
+      1. EGHFCONWOODGJ (GJ/yr, written directly by HOT2000 v11.2+) — no
+         heating-value assumption needed. Only trusted when corroborated by
+         tonnes>0 or EGHHEATFCONSW>0 (true for 31,419 of 31,439 GJ-populated
+         records, 99.94%) — the other 20, nearly all FURNACEFUEL=Electricity
+         with zero wood tonnes AND zero wood-heating-split, are a source-data
+         glitch confined to 2019-2021-vintage records (11 of the 20 would
+         otherwise exceed the home's own EGHFCONTOTAL, up to 2x).
+      2. EGHHEATFCONSW (MJ/yr, HOT2000's own per-home heating-fuel split —
+         already used for Pre/Post_HeatWood). Wood is used for space heating
+         only in practice (0.27778 MJ->kWh, same as EGHFCONTOTAL), so this is
+         a per-home actual rather than a population-average assumption, and
+         being a subset of EGHFURNACEAEC/EGHFCONTOTAL it can't exceed the
+         home's own reported total the way the tonnes fallback sometimes did.
+      3. tonnes * 14.0 GJ/t, for the remaining ~0.3% of tonnes-only records
+         where EGHHEATFCONSW is also absent/zero (median implied factor
+         across ~140k reconcilable records is 13.98 GJ/t, confirming 14.0 is
+         a good population-level constant for this last-resort case).
+    Found via: 29 Pre-side and 14 Post-side records had tonnes-fallback wood
+    energy exceeding the home's own EGHFCONTOTAL — all wood-primary homes
+    where the flat 14.0 GJ/t factor overshot that specific home's actual
+    HOT2000-computed heating value (see EGHHEATFCONSW above).
+
+    Final safety net: even after all of the above, a handful of records (4 of
+    1,369,305 Pre+Post rows) have EGHFCONWOODGJ and EGHHEATFCONSW disagreeing
+    with each other by a large margin -- both corroborated, both nonzero, but
+    not consistent -- an unresolvable disagreement between two HOT2000-native
+    fields in the source data itself, not a client-side conversion choice.
+    Since wood is structurally one component of a home's total energy, it is
+    clipped to that home's own reported EGHFCONTOTAL as a last resort.
     """
     tonnes = coerce_numeric(df[tonnes_col]) if tonnes_col in df.columns \
         else pd.Series(pd.NA, index=df.index, dtype=float)
+    heatw = coerce_numeric(df['EGHHEATFCONSW']) if 'EGHHEATFCONSW' in df.columns \
+        else pd.Series(pd.NA, index=df.index, dtype=float)
+
     kwh = tonnes * tonne_factor
+    kwh = kwh.where(~(heatw > 0), heatw * GJ_TO_KWH / 1000.0)
     if 'EGHFCONWOODGJ' in df.columns:
         gj = coerce_numeric(df['EGHFCONWOODGJ'])
-        kwh = kwh.where(~(gj > 0), gj * GJ_TO_KWH)
+        corroborated = (tonnes.fillna(0) > 0) | (heatw.fillna(0) > 0)
+        kwh = kwh.where(~((gj > 0) & corroborated), gj * GJ_TO_KWH)
+
+    if 'EGHFCONTOTAL' in df.columns:
+        total_kwh = coerce_numeric(df['EGHFCONTOTAL']) * 0.27778
+        kwh = kwh.where(~((total_kwh > 0) & (kwh > total_kwh)), total_kwh)
     return kwh
 
 

@@ -435,12 +435,20 @@ def compute_slice(df):
         out['savings_pct_bins'] = {}
 
     # ---- Sankey (mirrors renderSankey(): fuel flow totals, pre/post energy GWh) ----
+    # Wood species (Softwood/Hardwood/Mixed Wood/Wood Pellets) collapsed into
+    # one 'Wood' node -- each individually too small to read on the Sankey
+    # and cluttering it with near-duplicate nodes. Matches sankeyFuelLabel()
+    # in retrofits.html's client-side (FSA-mode) renderSankey().
+    def sankey_fuel_label(s):
+        # .str.contains(na=False) leaves genuine NaNs as NaN (not stringified),
+        # so the notna()/!='' filter below still drops them same as before.
+        return s.where(~s.str.contains('wood', case=False, na=False), 'Wood')
     pre_fuel = df.get('Pre_HeatFuel')
     post_fuel = df.get('Post_HeatFuel')
     flows = {}
     if pre_fuel is not None and post_fuel is not None:
         tmp = pd.DataFrame({
-            'pf': pre_fuel, 'qf': post_fuel,
+            'pf': sankey_fuel_label(pre_fuel), 'qf': sankey_fuel_label(post_fuel),
             'pre_e': pre_e.fillna(0), 'post_e': post_e.fillna(0),
         })
         tmp = tmp[(tmp['pf'].notna()) & (tmp['pf'] != '') & (tmp['qf'].notna()) & (tmp['qf'] != '')]

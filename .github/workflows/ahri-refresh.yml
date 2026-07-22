@@ -1,0 +1,59 @@
+name: Refresh AHRI heat-pump certificate lookup
+
+# Weekly refresh of lookup/ahri_numbers.json. Runs without the raw ERS CSVs
+# (local-only, 8+ GB) -- candidates come from the already-committed
+# Python/ahri_numbers_all.json, and existing entries are re-checked on a
+# rolling basis (oldest-checked first) to catch AHRI amending a certificate
+# after the fact, e.g. a cold-climate designation changing on a cert already
+# in the lookup -- see Python/refresh_ahri_lookup.py's docstring for the
+# 211644151 case this is meant to catch. refresh_ahri_lookup.py only ever
+# writes entries built from a real API response for that exact reference
+# number (or a clean "not found" -> Delisted), so a bad run degrades to
+# "made less progress this week", not "wrote wrong data" -- there is no
+# review step before the push.
+
+on:
+  schedule:
+    - cron: "0 15 * * 1"   # 15:00 UTC every Monday (grid-refresh runs 13:00 UTC same day)
+  workflow_dispatch:
+    inputs:
+      max_requests:
+        description: "Override AHRI_REFRESH_MAX_REQUESTS for this run"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run AHRI lookup refresh
+        working-directory: Python
+        env:
+          AHRI_REFRESH_MAX_REQUESTS: ${{ github.event.inputs.max_requests }}
+        run: python refresh_ahri_lookup.py | tee refresh_output.log
+
+      - name: Commit updated lookup (only if changed)
+        working-directory: Python
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ../lookup/ahri_numbers.json
+          if git diff --cached --quiet; then
+            echo "No AHRI data changes this week."
+          else
+            SUMMARY=$(grep '^AHRI_REFRESH_SUMMARY' refresh_output.log | sed 's/^AHRI_REFRESH_SUMMARY //')
+            git commit -m "chore: weekly AHRI certificate lookup refresh" -m "$SUMMARY"
+            git push
+          fi
