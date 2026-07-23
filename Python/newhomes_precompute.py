@@ -229,11 +229,71 @@ def build_province_json(df, province, out_dir):
 
 
 # raw-row columns shipped to the FSA view
-FSA_COLS = ['Year', 'BldgType', 'Storeys', 'FloorArea', 'ERSRating', 'EGHRating',
-            'Tier', 'InScopeNBC', 'Improvement', 'CompliancePath', 'GHG', 'GHGI',
-            'AirLeakage', 'EUI', 'HeatFuel', 'HeatType', 'SolarPV',
-            'Designed_ERSRating', 'Designed_AirLeakage', 'Designed_Tier',
-            'RatingGap', 'AirGap']
+FSA_COLS = [
+    'Year', 'BldgType', 'Storeys', 'FloorArea', 'ERSRating', 'EGHRating',
+    'Tier', 'InScopeNBC', 'Improvement', 'CompliancePath', 'GHG', 'GHGI',
+    'AirLeakage', 'EUI', 'HeatFuel', 'HeatType', 'SolarPV',
+    'Designed_ERSRating', 'Designed_AirLeakage', 'Designed_Tier',
+    'RatingGap', 'AirGap',
+
+    # --- energy per fuel (whole-house, kWh) ---
+    'TotalEnergy', 'Designed_TotalEnergy',
+    'Electricity', 'Designed_Electricity',
+    'NaturalGas', 'Designed_NaturalGas',
+    'Oil', 'Designed_Oil',
+    'Propane', 'Designed_Propane',
+    'Wood', 'Designed_Wood',
+
+    # --- space heating energy per fuel (kWh) ---
+    'HeatElectricity', 'Designed_HeatElectricity',
+    'HeatNaturalGas', 'Designed_HeatNaturalGas',
+    'HeatOil', 'Designed_HeatOil',
+    'HeatPropane', 'Designed_HeatPropane',
+    'HeatWood', 'Designed_HeatWood',
+
+    # --- heat loss: total (kW, design/peak) + by component (kWh, annual) ---
+    'HeatLoss', 'Designed_HeatLoss',
+    'HeatLossAir', 'Designed_HeatLossAir',
+    'HeatLossRoof', 'Designed_HeatLossRoof',
+    'HeatLossWall', 'Designed_HeatLossWall',
+    'HeatLossFoundation', 'Designed_HeatLossFoundation',
+    'HeatLossFloor', 'Designed_HeatLossFloor',
+    'HeatLossWindowDoor', 'Designed_HeatLossWindowDoor',
+
+    # --- GHG per fuel (tonnes/yr) ---
+    'GHGElectricity', 'Designed_GHGElectricity',
+    'GHGNaturalGas', 'Designed_GHGNaturalGas',
+    'GHGOil', 'Designed_GHGOil',
+    'GHGPropane', 'Designed_GHGPropane',
+    'GHGWood', 'Designed_GHGWood',
+
+    # --- envelope: insulation levels (RSI) + window code ---
+    'RoofInsulation', 'Designed_RoofInsulation',
+    'WallInsulation', 'Designed_WallInsulation',
+    'FoundationInsulation', 'Designed_FoundationInsulation',
+    'FloorInsulation', 'Designed_FloorInsulation',
+    'WindowCode', 'Designed_WindowCode',
+
+    # --- ventilation ---
+    'VentType', 'Designed_VentType',
+
+    # --- heating equipment efficiency ---
+    'HeatAFUE', 'Designed_HeatAFUE',
+    'HeatSeasonalCOP', 'Designed_HeatSeasonalCOP',
+
+    # --- heat pump specifics ---
+    'HPType', 'Designed_HPType',
+    'HPCOP', 'Designed_HPCOP',
+    'HPEquipType', 'Designed_HPEquipType',
+    'CCASHP', 'Designed_CCASHP',
+    'CCASHPCapacity', 'Designed_CCASHPCapacity',
+    'CCASHPHSPF', 'Designed_CCASHPHSPF',
+    'ASHPHSPF', 'Designed_ASHPHSPF',
+    'ASHPSEER', 'Designed_ASHPSEER',
+
+    # --- AHRI certificate number ---
+    'HPAHRI', 'Designed_HPAHRI',
+]
 
 def jval(v, col):
     if v is None or (isinstance(v, float) and np.isnan(v)):

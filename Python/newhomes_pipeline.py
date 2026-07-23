@@ -73,6 +73,37 @@ SOURCE_COLS = [
     'ERSGHG', 'GHGI',
     'AIR50P', 'EGHFCONTOTAL', 'EGHDESHTLOSS',
     'FURNACEFUEL', 'FURNACETYPE', 'KWPV',
+
+    # --- energy per fuel (whole-house) ---
+    'EGHFCONELEC', 'EGHFCONNGAS', 'EGHFCONOIL', 'EGHFCONPROP',
+    'EGHFCONWOOD', 'EGHFCONWOODGJ',
+
+    # --- space heating energy per fuel (HOT2000's own heating-only split) ---
+    'EGHHEATFCONSE', 'EGHHEATFCONSG', 'EGHHEATFCONSO', 'EGHHEATFCONSP',
+    'EGHHEATFCONSW',
+
+    # --- annual heat loss by building component ---
+    'EGHHLAIR', 'EGHHLCEILING', 'EGHHLWALLS', 'EGHHLFOUND',
+    'EGHHLEXPOSEDFLR', 'EGHHLWINDOOR',
+
+    # --- GHG per fuel ---
+    'ERSELECGHG', 'ERSNGASGHG', 'ERSOILGHG', 'ERSPROPGHG', 'ERSWOODGHG',
+
+    # --- envelope: insulation levels + window code ---
+    'CEILINS', 'MAINWALLINS', 'FNDWALLINS', 'EGHINEXPOSEDFLR', 'WINDOWCODE',
+
+    # --- ventilation ---
+    'CENVENTSYSTYPE',
+
+    # --- heating equipment efficiency ---
+    'HEATAFUE', 'EGHFURSEASEFF',
+
+    # --- heat pump specifics ---
+    'HPSOURCE', 'COP', 'HPEquipType', 'CCASHP', 'CCASHPCAP',
+    'CCASHPHSPF', 'ASHPHSPF', 'ASHPSEER',
+
+    # --- AHRI certificate number ---
+    'AHRI',
 ]
 
 
@@ -130,6 +161,41 @@ def title_case(s):
     return re.sub(r'\b\w', lambda m: m.group().upper(), s.strip())
 
 
+GJ_TO_KWH = 277.778
+
+
+def wood_kwh(df):
+    """Wood energy in kWh. Same priority order as ers_web_pipeline.py's
+    wood_kwh: EGHFCONWOODGJ (direct, HOT2000 v11.2+) > EGHHEATFCONSW (HOT2000's
+    own heating-fuel split) > EGHFCONWOOD tonnes * 14.0 GJ/t fallback, clipped
+    to EGHFCONTOTAL. See that function's docstring for the full derivation."""
+    tonnes = coerce(df['EGHFCONWOOD']) if 'EGHFCONWOOD' in df.columns \
+        else pd.Series(np.nan, index=df.index)
+    heatw = coerce(df['EGHHEATFCONSW']) if 'EGHHEATFCONSW' in df.columns \
+        else pd.Series(np.nan, index=df.index)
+
+    kwh = tonnes * 3888.89  # tonne -> kWh (14.0 GJ/t fallback)
+    kwh = kwh.where(~(heatw > 0), heatw * GJ_TO_KWH / 1000.0)
+    if 'EGHFCONWOODGJ' in df.columns:
+        gj = coerce(df['EGHFCONWOODGJ'])
+        corroborated = (tonnes.fillna(0) > 0) | (heatw.fillna(0) > 0)
+        kwh = kwh.where(~((gj > 0) & corroborated), gj * GJ_TO_KWH)
+
+    if 'EGHFCONTOTAL' in df.columns:
+        total_kwh = coerce(df['EGHFCONTOTAL']) * MJ_TO_KWH
+        kwh = kwh.where(~((total_kwh > 0) & (kwh > total_kwh)), total_kwh)
+    return kwh
+
+
+# AHRI is an identifier, not a number -- some source-CSV years write it as
+# e.g. '211644151.0' for the same model as another year's '211644151'
+# (same quirk documented in ers_web_pipeline.py's clean_ahri).
+def clean_ahri(s):
+    s = s.astype(str).str.strip()
+    s = s.str.replace(r'\.0+$', '', regex=True)
+    return s.replace({'': np.nan, 'nan': np.nan, 'None': np.nan})
+
+
 def build_home_table(all_pn):
     """all_pn: concat of every year's P/N rows. Returns one row per as-built home."""
     all_pn = all_pn.copy()
@@ -158,6 +224,12 @@ def build_home_table(all_pn):
 
     out = pd.DataFrame(index=n_rows.index)
 
+    def pcol(key, conv=None):
+        """Plan-file (P) counterpart of `key`, reindexed/aligned to `out`."""
+        s = p_rows[key].reindex(out.index) if key in p_rows.columns \
+            else pd.Series(np.nan, index=out.index)
+        return coerce(s) if conv == 'num' else s
+
     # --- identity / location (as-built) ---
     out['Year']       = n_rows['_year'].astype('Int64')
     out['PT']         = n_rows['PROVINCE']
@@ -182,12 +254,117 @@ def build_home_table(all_pn):
     out['HeatType']   = n_rows['FURNACETYPE'].map(title_case)
     out['SolarPV']    = col(n_rows, 'KWPV', 'num')           # kW DC
 
+    # --- energy per fuel (whole-house, kWh) ---
+    out['Electricity'] = col(n_rows, 'EGHFCONELEC', 'num')
+    out['NaturalGas']  = col(n_rows, 'EGHFCONNGAS', 'num') * 10.3611   # m3 -> kWh (37.30 MJ/m3)
+    out['Oil']         = col(n_rows, 'EGHFCONOIL', 'num') * 10.7778    # L -> kWh (38.80 MJ/L)
+    out['Propane']     = col(n_rows, 'EGHFCONPROP', 'num') * 7.0917    # L -> kWh (25.53 MJ/L)
+    out['Wood']        = wood_kwh(n_rows)
+
+    # --- space heating energy per fuel (HOT2000's own heating-only split) ---
+    out['HeatElectricity'] = col(n_rows, 'EGHHEATFCONSE', 'num') * MJ_TO_KWH
+    out['HeatNaturalGas']  = col(n_rows, 'EGHHEATFCONSG', 'num') * MJ_TO_KWH
+    out['HeatOil']         = col(n_rows, 'EGHHEATFCONSO', 'num') * MJ_TO_KWH
+    out['HeatPropane']     = col(n_rows, 'EGHHEATFCONSP', 'num') * MJ_TO_KWH
+    out['HeatWood']        = col(n_rows, 'EGHHEATFCONSW', 'num') * MJ_TO_KWH
+
+    # --- annual heat loss by building component (MJ -> kWh; unit inferred from
+    # scale like ers_web_pipeline.py's Pre/Post_HeatLoss*, not independently
+    # reconciled -- treat as directionally reliable for a component-share view) ---
+    out['HeatLossAir']        = col(n_rows, 'EGHHLAIR', 'num') * MJ_TO_KWH
+    out['HeatLossRoof']       = col(n_rows, 'EGHHLCEILING', 'num') * MJ_TO_KWH
+    out['HeatLossWall']       = col(n_rows, 'EGHHLWALLS', 'num') * MJ_TO_KWH
+    out['HeatLossFoundation'] = col(n_rows, 'EGHHLFOUND', 'num') * MJ_TO_KWH
+    out['HeatLossFloor']      = col(n_rows, 'EGHHLEXPOSEDFLR', 'num') * MJ_TO_KWH
+    out['HeatLossWindowDoor'] = col(n_rows, 'EGHHLWINDOOR', 'num') * MJ_TO_KWH
+
+    # --- GHG per fuel (tonnes/yr) ---
+    out['GHGElectricity'] = col(n_rows, 'ERSELECGHG', 'num')
+    out['GHGNaturalGas']  = col(n_rows, 'ERSNGASGHG', 'num')
+    out['GHGOil']         = col(n_rows, 'ERSOILGHG', 'num')
+    out['GHGPropane']     = col(n_rows, 'ERSPROPGHG', 'num')
+    out['GHGWood']        = col(n_rows, 'ERSWOODGHG', 'num')
+
+    # --- envelope: insulation levels (RSI) + window code ---
+    out['RoofInsulation']       = col(n_rows, 'CEILINS', 'num')
+    out['WallInsulation']       = col(n_rows, 'MAINWALLINS', 'num')
+    out['FoundationInsulation'] = col(n_rows, 'FNDWALLINS', 'num')
+    out['FloorInsulation']      = col(n_rows, 'EGHINEXPOSEDFLR', 'num')
+    out['WindowCode']           = n_rows['WINDOWCODE']
+
+    # --- ventilation ---
+    out['VentType'] = n_rows['CENVENTSYSTYPE']
+
+    # --- heating equipment efficiency ---
+    out['HeatAFUE']        = col(n_rows, 'HEATAFUE', 'num')
+    out['HeatSeasonalCOP'] = col(n_rows, 'EGHFURSEASEFF', 'num')
+
+    # --- heat pump specifics ---
+    out['HPType']         = n_rows['HPSOURCE']
+    out['HPCOP']          = col(n_rows, 'COP', 'num')
+    out['HPEquipType']    = n_rows['HPEquipType']
+    out['CCASHP']         = n_rows['CCASHP'].astype(str).str.strip().str.upper().eq('T')
+    out['CCASHPCapacity'] = col(n_rows, 'CCASHPCAP', 'num')
+    out['CCASHPHSPF']     = col(n_rows, 'CCASHPHSPF', 'num')
+    out['ASHPHSPF']       = col(n_rows, 'ASHPHSPF', 'num')
+    out['ASHPSEER']       = col(n_rows, 'ASHPSEER', 'num')
+
+    # --- AHRI certificate number (strips the '.0'-suffix artifact some
+    # source years write -- see clean_ahri docstring) ---
+    out['HPAHRI'] = clean_ahri(n_rows['AHRI'])
+
     # --- designed (plan) counterparts, aligned by HOUSEID ---
-    out['Designed_ERSRating']  = p_rows['ERSRATING'].reindex(out.index).pipe(coerce)
-    out['Designed_AirLeakage'] = p_rows['AIR50P'].reindex(out.index).pipe(coerce)
-    de = p_rows['EGHFCONTOTAL'].reindex(out.index).pipe(coerce) * MJ_TO_KWH
-    out['Designed_TotalEnergy'] = de
-    out['Designed_Tier']       = p_rows['ENERGYPERFORMANCETIER'].reindex(out.index).pipe(coerce)
+    out['Designed_ERSRating']   = pcol('ERSRATING', 'num')
+    out['Designed_AirLeakage']  = pcol('AIR50P', 'num')
+    out['Designed_TotalEnergy'] = pcol('EGHFCONTOTAL', 'num') * MJ_TO_KWH
+    out['Designed_Tier']        = pcol('ENERGYPERFORMANCETIER', 'num')
+    out['Designed_HeatLoss']    = pcol('EGHDESHTLOSS', 'num') * 0.001
+
+    out['Designed_Electricity'] = pcol('EGHFCONELEC', 'num')
+    out['Designed_NaturalGas']  = pcol('EGHFCONNGAS', 'num') * 10.3611
+    out['Designed_Oil']         = pcol('EGHFCONOIL', 'num') * 10.7778
+    out['Designed_Propane']     = pcol('EGHFCONPROP', 'num') * 7.0917
+    out['Designed_Wood']        = wood_kwh(p_rows).reindex(out.index)
+
+    out['Designed_HeatElectricity'] = pcol('EGHHEATFCONSE', 'num') * MJ_TO_KWH
+    out['Designed_HeatNaturalGas']  = pcol('EGHHEATFCONSG', 'num') * MJ_TO_KWH
+    out['Designed_HeatOil']         = pcol('EGHHEATFCONSO', 'num') * MJ_TO_KWH
+    out['Designed_HeatPropane']     = pcol('EGHHEATFCONSP', 'num') * MJ_TO_KWH
+    out['Designed_HeatWood']        = pcol('EGHHEATFCONSW', 'num') * MJ_TO_KWH
+
+    out['Designed_HeatLossAir']        = pcol('EGHHLAIR', 'num') * MJ_TO_KWH
+    out['Designed_HeatLossRoof']       = pcol('EGHHLCEILING', 'num') * MJ_TO_KWH
+    out['Designed_HeatLossWall']       = pcol('EGHHLWALLS', 'num') * MJ_TO_KWH
+    out['Designed_HeatLossFoundation'] = pcol('EGHHLFOUND', 'num') * MJ_TO_KWH
+    out['Designed_HeatLossFloor']      = pcol('EGHHLEXPOSEDFLR', 'num') * MJ_TO_KWH
+    out['Designed_HeatLossWindowDoor'] = pcol('EGHHLWINDOOR', 'num') * MJ_TO_KWH
+
+    out['Designed_GHGElectricity'] = pcol('ERSELECGHG', 'num')
+    out['Designed_GHGNaturalGas']  = pcol('ERSNGASGHG', 'num')
+    out['Designed_GHGOil']         = pcol('ERSOILGHG', 'num')
+    out['Designed_GHGPropane']     = pcol('ERSPROPGHG', 'num')
+    out['Designed_GHGWood']        = pcol('ERSWOODGHG', 'num')
+
+    out['Designed_RoofInsulation']       = pcol('CEILINS', 'num')
+    out['Designed_WallInsulation']       = pcol('MAINWALLINS', 'num')
+    out['Designed_FoundationInsulation'] = pcol('FNDWALLINS', 'num')
+    out['Designed_FloorInsulation']      = pcol('EGHINEXPOSEDFLR', 'num')
+    out['Designed_WindowCode']           = pcol('WINDOWCODE')
+
+    out['Designed_VentType'] = pcol('CENVENTSYSTYPE')
+
+    out['Designed_HeatAFUE']        = pcol('HEATAFUE', 'num')
+    out['Designed_HeatSeasonalCOP'] = pcol('EGHFURSEASEFF', 'num')
+
+    out['Designed_HPType']         = pcol('HPSOURCE')
+    out['Designed_HPCOP']          = pcol('COP', 'num')
+    out['Designed_HPEquipType']    = pcol('HPEquipType')
+    out['Designed_CCASHP']         = pcol('CCASHP').astype(str).str.strip().str.upper().eq('T')
+    out['Designed_CCASHPCapacity'] = pcol('CCASHPCAP', 'num')
+    out['Designed_CCASHPHSPF']     = pcol('CCASHPHSPF', 'num')
+    out['Designed_ASHPHSPF']       = pcol('ASHPHSPF', 'num')
+    out['Designed_ASHPSEER']       = pcol('ASHPSEER', 'num')
+    out['Designed_HPAHRI']         = clean_ahri(pcol('AHRI'))
 
     # --- derived ---
     out['RatingGap'] = out['ERSRating'] - out['Designed_ERSRating']       # <0 beats design
