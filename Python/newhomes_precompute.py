@@ -38,6 +38,18 @@ B_DENS = 5      # designed-vs-as-built 2D scatter density cell (GJ/yr)
 # clip ranges (values outside stay in medians/counts, dropped from histograms)
 C_ERS, C_GHG, C_ACH, C_AREA, C_EUI = 300, 30, 10, 700, 400
 
+# Insulation histograms, in R-value (imperial) to match retrofits.html's
+# convention -- RoofInsulation etc. are RSI in the source data, converted
+# with the same factor retrofits.html uses (RSI_TO_R=5.678). Bin widths/max
+# mirror the ranges retrofits.html already charts for the same components.
+RSI_TO_R = 5.678
+B_ROOF_R, C_ROOF_R = 2, 80
+B_WALL_R, C_WALL_R = 2, 40
+B_FND_R,  C_FND_R  = 2, 35
+B_FLR_R,  C_FLR_R  = 2, 40
+
+NO_HP = 'N/A {no Heat Pump}'
+
 FUEL_GROUPS = {  # collapse the long fuel tail into 3 series for trend charts
     'Natural Gas': 'Gas', 'Electricity': 'Electricity',
 }
@@ -72,6 +84,18 @@ def counts(series):
     s = s[s != '']
     return s.value_counts().to_dict()
 
+def code_counts(series, min_digits=0):
+    """Mirrors precompute_province_stats.py's code_counts: full counts (not
+    top-N) so the client can group by outdoor model itself; '.0'-suffix
+    normalized defensively even though newhomes_pipeline.py's clean_ahri
+    already strips it."""
+    s = series.dropna().astype(str).str.strip()
+    s = s.str.replace(r'\.0+$', '', regex=True)
+    if min_digits:
+        s = s[s.str.count(r'\d') >= min_digits]
+    s = s[s != '']
+    return s.value_counts().to_dict()
+
 
 def compute_slice(df):
     n = len(df)
@@ -100,6 +124,33 @@ def compute_slice(df):
     out['median_eui']  = median(eui[(eui > 0) & (eui <= C_EUI)])
     out['median_improvement'] = median(impr)
     out['pct_solar'] = round(float((num(df.get('SolarPV')) > 0).mean()) * 100, 1) if n else 0
+
+    # ---- heat pump ----
+    hp_type = df.get('HPType')
+    if hp_type is not None:
+        hp_s = hp_type.astype(str).str.strip()
+        has_hp = hp_type.notna() & (hp_s != '') & (hp_s != NO_HP)
+        out['heat_pump_count'] = int(has_hp.sum())
+    else:
+        out['heat_pump_count'] = 0
+
+    # As-built (installed) heat pump AHRI certificate numbers only -- not
+    # Designed_HPAHRI, matching heat_pump_count's as-built-only framing.
+    out['ahri_counts'] = code_counts(df.get('HPAHRI', pd.Series(dtype=str)), min_digits=4)
+
+    # ---- insulation (RSI -> R-value, matching retrofits.html's convention) ----
+    roof_r  = num(df.get('RoofInsulation')) * RSI_TO_R
+    wall_r  = num(df.get('WallInsulation')) * RSI_TO_R
+    fnd_r   = num(df.get('FoundationInsulation')) * RSI_TO_R
+    floor_r = num(df.get('FloorInsulation')) * RSI_TO_R
+    out['median_roof_r']  = median(roof_r[roof_r > 0])
+    out['median_wall_r']  = median(wall_r[wall_r > 0])
+    out['median_fnd_r']   = median(fnd_r[fnd_r > 0])
+    out['median_floor_r'] = median(floor_r[floor_r > 0])
+    out['roof_ins_bins']  = bins(roof_r,  B_ROOF_R, lo=0, hi=C_ROOF_R)
+    out['wall_ins_bins']  = bins(wall_r,  B_WALL_R, lo=0, hi=C_WALL_R)
+    out['fnd_ins_bins']   = bins(fnd_r,   B_FND_R,  lo=0, hi=C_FND_R)
+    out['floor_ins_bins'] = bins(floor_r, B_FLR_R,  lo=0, hi=C_FLR_R)
 
     # ---- distributions ----
     out['ers_bins']  = bins(ers, B_ERS, lo=1, hi=C_ERS)
