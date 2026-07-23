@@ -23,8 +23,6 @@
    recolours for the colour-blind theme, exactly as retrofits.html does.
    Chart colours come from PAL (see readPalette below), never hex
    literals. */
-#province-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:#fff;background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;transition:border-color .15s}
-#province-sel option{color:var(--text);background:var(--card)}
 
 /* ── Filters ── */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
@@ -170,14 +168,12 @@ footer a:hover{color:var(--amber2)}
   .header-badge{display:none}
   .sibling-link{display:none}
   .filter-explore{width:100%;justify-content:center}
-  #province-sel{max-width:130px;font-size:12px}
   .logo{font-size:16px}
   .card{padding:1rem}
   .stat-value{font-size:1.6rem}
 }
 @media(max-width:420px){
   .logo{font-size:14px}
-  #province-sel{max-width:105px;font-size:11px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -218,22 +214,6 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
-    <select id="province-sel">
-      <option value="CA" selected>All of Canada</option>
-      <option value="AB">Alberta</option>
-      <option value="BC">British Columbia</option>
-      <option value="MB">Manitoba</option>
-      <option value="NB">New Brunswick</option>
-      <option value="NF">Newfoundland &amp; Labrador</option>
-      <option value="NT">Northwest Territories</option>
-      <option value="NS">Nova Scotia</option>
-      <option value="NU">Nunavut</option>
-      <option value="ON">Ontario</option>
-      <option value="PE">Prince Edward Island</option>
-      <option value="QC">Quebec</option>
-      <option value="SK">Saskatchewan</option>
-      <option value="YK">Yukon</option>
-    </select>
     <div class="header-badge" id="header-badge">EnerGuide data</div>
     <div class="theme-toggle" role="group" aria-label="Colour theme">
       <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
@@ -256,6 +236,24 @@ footer a:hover{color:var(--amber2)}
 
 <div class="filter-sticky">
   <div class="filter-bar">
+    <div class="filter-group" style="flex:0 1 170px"><label for="province-sel">Province</label>
+      <select id="province-sel">
+        <option value="CA" selected>All of Canada</option>
+        <option value="AB">Alberta</option>
+        <option value="BC">British Columbia</option>
+        <option value="MB">Manitoba</option>
+        <option value="NB">New Brunswick</option>
+        <option value="NF">Newfoundland &amp; Labrador</option>
+        <option value="NT">Northwest Territories</option>
+        <option value="NS">Nova Scotia</option>
+        <option value="NU">Nunavut</option>
+        <option value="ON">Ontario</option>
+        <option value="PE">Prince Edward Island</option>
+        <option value="QC">Quebec</option>
+        <option value="SK">Saskatchewan</option>
+        <option value="YK">Yukon</option>
+      </select>
+    </div>
     <div class="filter-group" style="flex:0 1 200px"><label for="pc-input">Your postal code</label>
       <input id="pc-input" type="text" autocomplete="postal-code" maxlength="7" placeholder="e.g. K1A 0B1" aria-describedby="pc-hint">
     </div>
@@ -1295,8 +1293,17 @@ function lon2x(lon,z){return(lon+180)/360*Math.pow(2,z)*256;}
 function lat2y(lat,z){const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*256;}
 function x2lon(x,z){return x/(256*Math.pow(2,z))*360-180;}
 function y2lat(y,z){const n=Math.PI-2*Math.PI*y/(256*Math.pow(2,z));return 180/Math.PI*Math.atan((Math.exp(n)-Math.exp(-n))/2);}
-function pickTileZoom(a,b,c,d,tW,tH){for(let z=15;z>=2;z--){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(c,z)-lat2y(d,z);if(w<=tW&&h<=tH)return z;}return 2;}
-function pickSharperZoom(a,b,c,d,tW,tH,mz){for(let z=2;z<=mz;z++){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(c,z)-lat2y(d,z);if(w>=tW&&h>=tH)return z;}return mz;}
+// Called as (minLon,maxLon,maxLat,minLat,...) i.e. c=maxLat,d=minLat -- lat2y
+// DECREASES as latitude increases (Mercator y grows southward), so the
+// positive height span is lat2y(d)-lat2y(c), not lat2y(c)-lat2y(d). Getting
+// this backwards made h permanently negative: pickTileZoom's h<=tH check
+// then passed trivially (baseZ picked on width alone), and pickSharperZoom's
+// h>=tH check could never pass, so it always fell through to the deepest
+// zoom (mz) regardless of how large the FSA's own bbox already was -- fatal
+// for a geographically huge rural FSA, where that produces a tile grid in
+// the hundreds of thousands and locks up the tab building the tile markup.
+function pickTileZoom(a,b,c,d,tW,tH){for(let z=15;z>=2;z--){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(d,z)-lat2y(c,z);if(w<=tW&&h<=tH)return z;}return 2;}
+function pickSharperZoom(a,b,c,d,tW,tH,mz){for(let z=2;z<=mz;z++){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(d,z)-lat2y(c,z);if(w>=tW&&h>=tH)return z;}return mz;}
 const TILE_SUB=['a','b','c','d'];
 function tileUrl(z,x,y){return`https://${TILE_SUB[(x+y)%4]}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;}
 let MAP_STATE=null,_mapTipEl=null,_mapDragged=false;
