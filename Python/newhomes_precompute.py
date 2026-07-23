@@ -263,6 +263,36 @@ def compute_slice(df):
         out['air_gap_bins'] = {}
     out['air_stats'] = air_stats
 
+    # ---- Top 20 lowest-EUI homes (most efficient, real as-built houses) ----
+    # Powers the "most efficient new homes" table at the bottom of
+    # newhomes.html. FSA mode computes the equivalent client-side from its
+    # own raw rows (see topEuiList() in newhomes.html) -- this precomputed
+    # list is only needed for the province-wide view, which has no raw rows
+    # on the client.
+    valid_eui = eui[eui > 0].dropna()
+    if len(valid_eui):
+        idx = valid_eui.sort_values().index[:20]
+        top = df.loc[idx]
+        hp_col = top.get('HPType')
+        year_col = num(top.get('Year'))
+        area_col = num(top.get('FloorArea'))
+        top20 = []
+        for i in idx:
+            hp_val = hp_col.at[i] if hp_col is not None else None
+            hp_s = str(hp_val).strip() if pd.notna(hp_val) else ''
+            top20.append({
+                'eui': round(float(eui.at[i]), 1),
+                'fsa': top.at[i, 'FSA'] if 'FSA' in top.columns and pd.notna(top.at[i, 'FSA']) else None,
+                'type': top.at[i, 'BldgType'] if 'BldgType' in top.columns and pd.notna(top.at[i, 'BldgType']) else None,
+                'year': int(year_col.at[i]) if pd.notna(year_col.at[i]) else None,
+                'area': round(float(area_col.at[i]), 0) if pd.notna(area_col.at[i]) else None,
+                'fuel': top.at[i, 'HeatFuel'] if 'HeatFuel' in top.columns and pd.notna(top.at[i, 'HeatFuel']) else None,
+                'hp': bool(hp_s and hp_s != NO_HP),
+            })
+        out['top20_lowest_eui'] = top20
+    else:
+        out['top20_lowest_eui'] = []
+
     return out
 
 

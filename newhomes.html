@@ -40,6 +40,10 @@
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .filter-reset{height:36px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
 .filter-reset:hover{border-color:var(--ink);color:var(--ink)}
+.filter-explore{height:36px;padding:0 16px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--card);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;display:inline-flex;align-items:center;gap:7px}
+.filter-explore:hover{background:var(--navy);color:var(--on-navy)}
+.filter-explore.is-open{background:var(--navy);color:var(--on-navy)}
+.filter-explore .exp-ic{font-size:14px;line-height:1}
 .filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);padding:.35rem 1.25rem .6rem;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}
@@ -56,6 +60,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
 .card-title-row .card-title{margin-bottom:0}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-inline.ref-legend{margin-top:8px}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
@@ -164,6 +169,7 @@ footer a:hover{color:var(--amber2)}
   main{padding:1rem 1rem 2rem}
   .header-badge{display:none}
   .sibling-link{display:none}
+  .filter-explore{width:100%;justify-content:center}
   #province-sel{max-width:130px;font-size:12px}
   .logo{font-size:16px}
   .card{padding:1rem}
@@ -174,6 +180,15 @@ footer a:hover{color:var(--amber2)}
   #province-sel{max-width:105px;font-size:11px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── Simple data table (top-20 lowest-EUI homes) ── */
+.simple-table{width:100%;border-collapse:collapse;font-size:13px}
+.simple-table th{text-align:left;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.simple-table td{padding:7px 10px;border-bottom:1px solid var(--surface);color:var(--text);white-space:nowrap}
+.simple-table tr:last-child td{border-bottom:none}
+.simple-table .st-rank{color:var(--light);font-variant-numeric:tabular-nums}
+.simple-table .st-eui{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.simple-table .st-hp{color:var(--green)}
 
 /* ── Section headers ── */
 .section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
@@ -250,6 +265,7 @@ footer a:hover{color:var(--amber2)}
     <div class="filter-group"><label for="type-sel">House type</label>
       <select id="type-sel"><option value="">All types</option></select>
     </div>
+    <button type="button" class="filter-explore" id="explore-btn" aria-expanded="false" style="display:none" onclick="toggleExploreMap()"><span class="exp-ic">◈</span><span id="explore-btn-text">Explore the map</span></button>
     <button class="filter-reset" onclick="resetFilters()">Reset</button>
   </div>
   <div class="filter-count-bar">
@@ -416,6 +432,19 @@ footer a:hover{color:var(--amber2)}
     <div class="cw cw-md"><canvas id="area-chart"></canvas></div>
   </div>
 
+  <div class="section-head">
+    <h2>The most efficient new homes</h2>
+    <p class="sec-sub">The 20 lowest-EUI as-built homes in this view — real houses, not a hypothetical best case.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Top 20 by energy use intensity (kWh/m²/yr)</div>
+    <div style="overflow-x:auto"><table class="simple-table" id="top-eui-table">
+      <thead><tr><th>#</th><th>EUI</th><th>Area</th><th>House type</th><th>Year built</th><th>Floor area</th><th>Heating fuel</th><th>Heat pump</th></tr></thead>
+      <tbody id="top-eui-body"></tbody>
+    </table></div>
+    <p class="note">Ranked by measured EUI, lowest first, within the current filters. A handful of very small or unusual homes can post extreme low values — read this list alongside the median above, not as a substitute for it.</p>
+  </div>
+
 </main>
 
 <section class="methodology" aria-label="Methodology">
@@ -471,7 +500,7 @@ let SELECTED_TYPE='';
 let MODE='none';   // 'province' | 'fsa'
 let ALL=[];        // FSA-mode raw rows
 let LOAD_TOKEN=0;
-let EXISTING_EUI=null;   // retrofit-sourced "existing home" EUI comparison for the current province
+let RETRO_CMP=null;   // retrofit-sourced "existing home, pre/post retrofit" comparison for the current province
 
 // ── Bin widths (single source of truth — MUST match newhomes_precompute.py) ──
 const BINS={
@@ -616,20 +645,42 @@ function fetchFsaRows(prov,fsa){
   if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
   return fetchJSON(`${FSA_JSON_BASE}${prov}/${fsa}.json`).then(p=>{const rows=reconstructRows(p);FSA_CACHE.set(key,rows);return rows;});
 }
-// "Existing home" EUI comparison, sourced from retrofits.html's own
-// province_json (median Pre_-retrofit EUI = the existing housing stock as
+// "Existing home" comparison, sourced from retrofits.html's own
+// province_json (Pre_-retrofit medians = the existing housing stock as
 // found, before any upgrade — the closest available baseline for "existing
-// home" since this dataset has no separate never-retrofitted population).
-// Falls back to the CA aggregate for provinces retrofits.html doesn't cover
-// (e.g. YK) or on any fetch error.
-const RETROFIT_EUI_CACHE=new Map();
-function fetchRetrofitEui(prov){
-  if(RETROFIT_EUI_CACHE.has(prov))return Promise.resolve(RETROFIT_EUI_CACHE.get(prov));
-  const pick=j=>{const s=j&&j.by_type&&j.by_type['All types'];return s&&s.eui_pre_median!=null?s.eui_pre_median:null;};
+// home" since this dataset has no separate never-retrofitted population;
+// Post_-retrofit medians = that same stock after its retrofit). Falls back
+// to the CA aggregate for provinces retrofits.html doesn't cover (e.g. YK)
+// or on any fetch error.
+// Extended to a fuller "existing home, before vs after retrofit" comparison
+// (EUI, GHG, airtightness, roof/wall/foundation insulation) — same
+// province_json, same 'All types' slice, just reading more of the fields
+// precompute_province_stats.py already computes from matched D/E pairs.
+// Kept at province granularity even in FSA mode: retrofits.html's FSA index
+// doesn't carry these medians (only median_saving_pct), and fetching a
+// whole FSA's raw rows (~3MB) just for this comparison isn't worth it.
+const RETROFIT_COMPARISON_CACHE=new Map();
+function fetchRetrofitComparison(prov){
+  if(RETROFIT_COMPARISON_CACHE.has(prov))return RETROFIT_COMPARISON_CACHE.get(prov);
+  const pick=j=>{
+    const s=j&&j.by_type&&j.by_type['All types'];
+    if(!s)return null;
+    const kpi=label=>{const k=(s.insulation_kpis||[]).find(x=>x.label===label);return k?{pre:k.pre,post:k.post}:null;};
+    const roof=kpi('Roof insulation'),wall=kpi('Wall insulation'),fnd=kpi('Foundation ins.'),air=kpi('Air leakage');
+    return{
+      euiPre:s.eui_pre_median??null, euiPost:s.eui_post_median??null,
+      ghgPre:s.ghg_pre_median??null, ghgPost:s.ghg_post_median??null,
+      achPre:air?air.pre:null, achPost:air?air.post:null,
+      roofRPre:roof?roof.pre*RSI_TO_R:null, roofRPost:roof?roof.post*RSI_TO_R:null,
+      wallRPre:wall?wall.pre*RSI_TO_R:null, wallRPost:wall?wall.post*RSI_TO_R:null,
+      fndRPre:fnd?fnd.pre*RSI_TO_R:null, fndRPost:fnd?fnd.post*RSI_TO_R:null,
+      n:s.row_count||0,
+    };
+  };
   const p=fetchJSON(`${RETROFIT_PROVINCE_JSON_BASE}${prov}.json`).then(pick)
     .catch(()=>prov!=='CA'?fetchJSON(`${RETROFIT_PROVINCE_JSON_BASE}CA.json`).then(pick):null)
     .catch(()=>null);
-  RETROFIT_EUI_CACHE.set(prov,p);
+  RETROFIT_COMPARISON_CACHE.set(prov,p);
   return p;
 }
 
@@ -652,12 +703,16 @@ function load(){
   $('header-title').textContent=`${prov.name} · new-home efficiency`;
   $('footer-province').textContent=prov.name;
   $('header-badge').textContent=`EnerGuide · ${prov.name} · loading…`;
-  EXISTING_EUI=null;
-  fetchRetrofitEui(PROVINCE_CODE).then(v=>{if(myToken!==LOAD_TOKEN)return;EXISTING_EUI=v;if(_lastSlice)renderStats(_lastSlice);});
+  RETRO_CMP=null;
+  fetchRetrofitComparison(PROVINCE_CODE).then(v=>{
+    if(myToken!==LOAD_TOKEN)return;RETRO_CMP=v;if(!_lastSlice)return;
+    renderStats(_lastSlice);renderEui(_lastSlice);renderGhg(_lastSlice);
+    renderAchDist(_lastSlice);renderInsulation(_lastSlice);
+  });
   if(PROVINCE_CODE==='CA'){
     SELECTED_FSA='';
     $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
-    $('fsa-sel').disabled=true;toggleFsaMapCard(false);
+    $('fsa-sel').disabled=true;setMapAvailable(false);
     loadProvinceView(myToken);return;
   }
   $('fsa-sel').disabled=false;
@@ -825,6 +880,7 @@ function renderDashboard(slice,meta){
   renderInsulation(slice);
   renderHeatPump(slice);
   renderHeatPumpModels(slice,meta);
+  renderTopEui(slice,meta);
 }
 
 function statCard(label,value,cls,sub){
@@ -836,7 +892,7 @@ function renderStats(s){
   $('stats-grid').innerHTML=[
     statCard('New homes in view',(s.row_count||0).toLocaleString(),'',''),
     statCard('Median EUI',s.median_eui!=null?fmt(s.median_eui,0):'—','accent','kWh/m²/yr · lower is better'),
-    statCard('Existing home EUI',EXISTING_EUI!=null?fmt(EXISTING_EUI,0):'—','','kWh/m²/yr · avg existing home, from retrofit audits'),
+    statCard('Existing home EUI',RETRO_CMP&&RETRO_CMP.euiPre!=null?fmt(RETRO_CMP.euiPre,0):'—','','kWh/m²/yr · avg existing home, before retrofit'),
     statCard('Median airtightness',s.median_ach!=null?fmt(s.median_ach,2):'—','green','ACH₅₀'),
     statCard('Median emissions',s.median_ghg!=null?fmt(s.median_ghg,1):'—','','tonnes CO₂e/yr'),
     statCard('Median floor area',s.median_area!=null?fmt(s.median_area,0):'—','','m²'),
@@ -937,27 +993,103 @@ function renderTierMove(s){
       plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
 }
 
-function barHist(id,binsObj,{color,step,xLabel,clip}){
+// ── Retrofit D/E comparison reference lines ──────────────────────────
+// Dashed vertical markers laid over a handful of histograms (EUI, GHG,
+// as-built airtightness, insulation) showing where the *existing* housing
+// stock sits, before and after its own retrofit (RETRO_CMP, sourced from
+// retrofits.html's matched-pair province_json) — so a reader can see a new
+// build against both ends of the retrofit journey, not just the bars for
+// new construction itself.
+//
+// These bar charts use a category (not linear) x-scale, and Chart.js's own
+// CategoryScale#getPixelForValue doesn't reliably resolve a raw numeric
+// label back to a pixel (it's built for index lookups, not value lookups),
+// so the category slot centers are computed directly from chartArea width
+// / category count instead — the same even division Chart.js itself uses
+// to lay out one slot per category. A reference value that doesn't land
+// exactly on a bin edge is then linearly interpolated between the pixel
+// centers of its two neighbouring bin labels — bin edges the chart
+// actually rendered, not the logical value range, since sparse (FSA-scale)
+// histograms can have gaps where a bin has zero homes.
+function xPixelForCategoryValue(chart,value){
+  const labels=chart.data.labels;
+  if(value==null||!labels||!labels.length)return null;
+  const{left,right}=chart.chartArea;
+  const n=labels.length,catW=(right-left)/n;
+  const centerX=i=>left+catW*(i+0.5);
+  const last=n-1;
+  if(value<=labels[0])return centerX(0);
+  if(value>=labels[last])return centerX(last);
+  for(let i=1;i<=last;i++){
+    if(labels[i]>=value){
+      const frac=(value-labels[i-1])/((labels[i]-labels[i-1])||1);
+      return centerX(i-1)+(centerX(i)-centerX(i-1))*frac;
+    }
+  }
+  return centerX(last);
+}
+function refLinesPlugin(lines){
+  return{id:'refLines',afterDatasetsDraw(chart){
+    if(!lines||!lines.length)return;
+    const{ctx,chartArea}=chart;
+    ctx.save();
+    lines.forEach(l=>{
+      if(l.value==null)return;
+      const x=xPixelForCategoryValue(chart,l.value);
+      if(x==null||x<chartArea.left-1||x>chartArea.right+1)return;
+      ctx.beginPath();ctx.setLineDash([5,4]);ctx.lineWidth=1.75;ctx.strokeStyle=l.color;
+      ctx.moveTo(x,chartArea.top);ctx.lineTo(x,chartArea.bottom);ctx.stroke();
+    });
+    ctx.restore();
+  }};
+}
+function setRefLegend(chartId,lines){
+  const cv=$(chartId);if(!cv)return;const wrap=cv.closest('.cw');if(!wrap)return;
+  let el=document.getElementById(chartId+'-reflegend');
+  if(!lines||!lines.length){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id=chartId+'-reflegend';el.className='chart-legend-inline ref-legend';wrap.insertAdjacentElement('afterend',el);}
+  el.innerHTML=lines.map(l=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${l.color}"></span>${l.label}</span>`).join('');
+}
+// Existing-home EUI/GHG/ACH comparison lines, shared by renderEui/renderGhg/
+// renderAchDist — same {value,color,label} shape for all three.
+function retroLines(preVal,postVal,preLabel,postLabel){
+  const lines=[];
+  if(!RETRO_CMP)return lines;
+  if(preVal!=null)lines.push({value:preVal,color:PRE_LINE,label:preLabel});
+  if(postVal!=null)lines.push({value:postVal,color:POST_LINE,label:postLabel});
+  return lines;
+}
+
+function barHist(id,binsObj,{color,step,xLabel,clip,refLines}){
   dc(id);const keys=Object.keys(binsObj).map(Number).sort((a,b)=>a-b);
-  if(!keys.length){noData(id);return;}
+  if(!keys.length){noData(id);setRefLegend(id,null);return;}
   const labels=keys.map(k=>k);
   charts[id]=new Chart($(id),{type:'bar',data:{labels,datasets:[{data:keys.map(k=>binsObj[k]),backgroundColor:color,borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
     options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
-      plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
+      plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}},
+    plugins:(refLines&&refLines.length)?[refLinesPlugin(refLines)]:[]});
+  setRefLegend(id,refLines);
 }
-function renderEui(s){barHist('eui-chart',s.eui_bins||{},{color:PRE_LINE,step:BINS.eui.step,xLabel:'kWh/m²/yr'});}
-function renderAchDist(s){barHist('ach-dist-chart',s.ach_bins||{},{color:POST_LINE,step:BINS.ach.step,xLabel:'ACH₅₀'});}
+function renderEui(s){
+  const lines=retroLines(RETRO_CMP&&RETRO_CMP.euiPre,RETRO_CMP&&RETRO_CMP.euiPost,'Existing home, before retrofit','Existing home, after retrofit');
+  barHist('eui-chart',s.eui_bins||{},{color:PAL.axis,step:BINS.eui.step,xLabel:'kWh/m²/yr',refLines:lines});
+}
+function renderAchDist(s){
+  const lines=retroLines(RETRO_CMP&&RETRO_CMP.achPre,RETRO_CMP&&RETRO_CMP.achPost,'Existing home, before retrofit','Existing home, after retrofit');
+  barHist('ach-dist-chart',s.ach_bins||{},{color:PAL.axis,step:BINS.ach.step,xLabel:'ACH₅₀',refLines:lines});
+}
 
 function renderInsulation(s){
   const parts=[
-    {id:'roof-ins-chart',medId:'roof-ins-median',bins:s.roof_ins_bins,med:s.median_roof_r,step:BINS.roofIns.step},
-    {id:'wall-ins-chart',medId:'wall-ins-median',bins:s.wall_ins_bins,med:s.median_wall_r,step:BINS.wallIns.step},
-    {id:'fnd-ins-chart', medId:'fnd-ins-median', bins:s.fnd_ins_bins, med:s.median_fnd_r, step:BINS.fndIns.step},
-    {id:'floor-ins-chart',medId:'floor-ins-median',bins:s.floor_ins_bins,med:s.median_floor_r,step:BINS.floorIns.step},
+    {id:'roof-ins-chart',medId:'roof-ins-median',bins:s.roof_ins_bins,med:s.median_roof_r,step:BINS.roofIns.step,pre:RETRO_CMP&&RETRO_CMP.roofRPre,post:RETRO_CMP&&RETRO_CMP.roofRPost},
+    {id:'wall-ins-chart',medId:'wall-ins-median',bins:s.wall_ins_bins,med:s.median_wall_r,step:BINS.wallIns.step,pre:RETRO_CMP&&RETRO_CMP.wallRPre,post:RETRO_CMP&&RETRO_CMP.wallRPost},
+    {id:'fnd-ins-chart', medId:'fnd-ins-median', bins:s.fnd_ins_bins, med:s.median_fnd_r, step:BINS.fndIns.step, pre:RETRO_CMP&&RETRO_CMP.fndRPre, post:RETRO_CMP&&RETRO_CMP.fndRPost},
+    {id:'floor-ins-chart',medId:'floor-ins-median',bins:s.floor_ins_bins,med:s.median_floor_r,step:BINS.floorIns.step}, // no retrofit floor-insulation figure is precomputed on the retrofit side — no comparison lines
   ];
   parts.forEach(p=>{
     $(p.medId).textContent=p.med!=null?`median R-${Math.round(p.med)}`:'';
-    barHist(p.id,p.bins||{},{color:PAL.primary,step:p.step,xLabel:'R-value'});
+    const lines=retroLines(p.pre,p.post,'Existing home, before retrofit','Existing home, after retrofit');
+    barHist(p.id,p.bins||{},{color:PAL.axis,step:p.step,xLabel:'R-value',refLines:lines});
   });
 }
 
@@ -969,7 +1101,10 @@ function renderHeatPump(s){
       hp.toLocaleString(),'accent',n?`${pct}% of ${n.toLocaleString()} homes in view`:''),
   ].join('');
 }
-function renderGhg(s){barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr'});}
+function renderGhg(s){
+  const lines=retroLines(RETRO_CMP&&RETRO_CMP.ghgPre,RETRO_CMP&&RETRO_CMP.ghgPost,'Existing home, before retrofit','Existing home, after retrofit');
+  barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr',refLines:lines});
+}
 function renderArea(s){barHist('area-chart',s.area_bins||{},{color:PAL.axis,step:BINS.area.step,xLabel:'m²'});}
 
 function renderGap(s,meta){
@@ -1123,6 +1258,32 @@ function renderHeatPumpModels(s,meta){
   $('ahri-list').innerHTML=ahriModelGroupsHTML(groupAhriByModel(ahriAll).slice(0,5));
 }
 
+// ── Top 20 lowest-EUI homes ────────────────────────────────────────
+// FSA mode has raw rows on hand, so it's computed straight from them; the
+// province-wide view has no raw rows client-side, so it reads the list
+// newhomes_precompute.py already ranked and shipped (mirrors the meta.fsaRows
+// vs slice split used throughout this file, e.g. renderGap/renderHeatPumpModels).
+function topEuiFromRows(rows){
+  const hasHp=r=>{const s=(r.HPType==null?'':String(r.HPType)).trim();return!!(s&&s!==NO_HP);};
+  return rows.map(r=>({eui:num(r.EUI),fsa:r.FSA||SELECTED_FSA,type:r.BldgType,year:num(r.Year),area:num(r.FloorArea),fuel:r.HeatFuel,hp:hasHp(r)}))
+    .filter(x=>x.eui>0).sort((a,b)=>a.eui-b.eui).slice(0,20);
+}
+function renderTopEui(s,meta){
+  const list=(meta&&meta.fsaRows)?topEuiFromRows(meta.fsaRows):(s.top20_lowest_eui||[]);
+  const tbody=$('top-eui-body');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="8"><div class="state-msg" style="padding:1rem"><strong>No data</strong></div></td></tr>';return;}
+  tbody.innerHTML=list.map((r,i)=>`<tr>
+    <td class="st-rank">${i+1}</td>
+    <td class="st-eui">${fmt(r.eui,1)}</td>
+    <td>${r.fsa||'—'}</td>
+    <td>${r.type||'—'}</td>
+    <td>${r.year!=null?Math.round(r.year):'—'}</td>
+    <td>${r.area!=null?fmt(r.area,0)+' m²':'—'}</td>
+    <td>${r.fuel||'—'}</td>
+    <td class="st-hp">${r.hp?'✓':'—'}</td>
+  </tr>`).join('');
+}
+
 function noData(id){dc(id);const cv=$(id);const ctx=cv.getContext('2d');
   const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=PAL.tick;ctx.font="12px Inter, sans-serif";
   ctx.textAlign='center';ctx.fillText('Not enough data for this view',w/2,h/2);}
@@ -1140,10 +1301,41 @@ const TILE_SUB=['a','b','c','d'];
 function tileUrl(z,x,y){return`https://${TILE_SUB[(x+y)%4]}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;}
 let MAP_STATE=null,_mapTipEl=null,_mapDragged=false;
 function toggleFsaMapCard(show){$('fsa-map-card').style.display=show?'':'none';}
+// ── Explore-the-map toggle (mirrors retrofits.html) ─────────────────
+// The FSA map is collapsed by default; the "Explore the map" button in the
+// filter bar reveals it. The map is still built (hidden) whenever a province
+// loads, so opening it is instant and no data is fetched on click.
+let MAP_OPEN=false;      // is the map card currently expanded?
+let MAP_AVAILABLE=false; // does the current province have a usable map?
+function syncExploreBtn(){
+  const btn=$('explore-btn');
+  btn.classList.toggle('is-open',MAP_OPEN);
+  btn.setAttribute('aria-expanded',MAP_OPEN?'true':'false');
+  $('explore-btn-text').textContent=MAP_OPEN?'Hide the map':'Explore the map';
+}
+// "All of Canada" and provinces with no boundary file have no map: hide the
+// button and force the card closed.
+function setMapAvailable(avail){
+  MAP_AVAILABLE=avail;
+  $('explore-btn').style.display=avail?'':'none';
+  if(!avail)MAP_OPEN=false;
+  toggleFsaMapCard(avail&&MAP_OPEN);
+  syncExploreBtn();
+}
+function toggleExploreMap(){
+  if(!MAP_AVAILABLE)return;
+  MAP_OPEN=!MAP_OPEN;
+  toggleFsaMapCard(MAP_OPEN);
+  syncExploreBtn();
+  if(MAP_OPEN){
+    $('fsa-map-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(SELECTED_FSA)zoomFsaMapTo(SELECTED_FSA);
+  }
+}
 function projectRing(ring,ox,oy,z){return ring.map(([lo,la])=>[lon2x(lo,z)-ox,lat2y(la,z)-oy]);}
 function ringsToPathD(rings){return rings.map(p=>'M'+p.map(q=>q.join(',')).join('L')+'Z').join(' ');}
 function loadFsaMap(prov,fsaIndex){
-  toggleFsaMapCard(true);
+  setMapAvailable(true); // enables the Explore button; the card stays collapsed until the user opens it
   $('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="${PAL.tick}" font-size="13">Loading map…</text>';
   resetFsaMapZoom();
   fetchGeoJSON(prov).then(geojson=>{
@@ -1162,7 +1354,7 @@ function loadFsaMap(prov,fsaIndex){
     let tiles='';for(let ty=tmnY;ty<=tmxY;ty++)for(let tx=tmnX;tx<=tmxX;tx++){const x=tx*256-ox,y=ty*256-oy;tiles+=`<image href="${tileUrl(z,tx,ty)}" x="${x}" y="${y}" width="256" height="256"></image>`;}
     MAP_STATE={prov,z,origin:[ox,oy],features,fullViewBox:[0,0,W,H],indexByFsa,tilesMarkup:tiles};
     paintFsaMap();
-  }).catch(err=>{console.error(err);$('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="${PAL.tick}" font-size="13">Map not available for this province</text>';MAP_STATE=null;});
+  }).catch(err=>{console.error(err);$('fsa-map-svg').innerHTML='<text x="300" y="300" text-anchor="middle" fill="${PAL.tick}" font-size="13">Map not available for this province</text>';MAP_STATE=null;setMapAvailable(false);});
 }
 function setMapGradientLegend(css,l,m,r){$('map-legend').innerHTML=`<div class="map-grad-wrap"><div class="map-grad" style="background:${css}"></div><div class="map-grad-labels"><span>${l}</span>${m!=null?`<span>${m}</span>`:''}<span>${r}</span></div></div>`;}
 function lerpColor(lo,hi,t){t=Math.max(0,Math.min(1,t));const c=lo.map((v,i)=>Math.round(v+(hi[i]-v)*t));return`rgb(${c.join(',')})`;}
