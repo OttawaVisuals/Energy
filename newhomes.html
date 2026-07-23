@@ -1061,6 +1061,14 @@ function refLinesPlugin(lines){
     const marks=lines.map(l=>({...l,x:l.value==null?null:xPixelFor(chart,l.value)}))
       .filter(l=>l.x!=null&&l.x>=chartArea.left-1&&l.x<=chartArea.right+1);
     if(!marks.length)return;
+    // Both markers land on the same pixel whenever both values sit past the
+    // same end of the plotted range (common on a small FSA's own narrow
+    // histogram — the local homes can cluster well outside the province-wide
+    // existing-home figures) -- category-scale clamps both to that edge's
+    // bin center and linear clamps both to min/max, so without a nudge the
+    // one drawn second would silently hide the other. Nudge them apart just
+    // enough to keep both visible while still reading as "off at this edge".
+    if(marks.length===2&&Math.abs(marks[0].x-marks[1].x)<4){marks[0].x-=4;marks[1].x+=4;}
     // Skip the inline short label when two arrows would overlap.
     const crowded=marks.length>1&&Math.abs(marks[0].x-marks[marks.length-1].x)<56;
     ctx.save();
@@ -1119,9 +1127,31 @@ function barHist(id,binsObj,{color,step,xLabel,refLines}){
 // overlapping outright; the x position is always the home's real value, so
 // a run of close-but-not-equal homes reads as a little cluster rather than
 // one misleadingly wide bar. Used instead of barHist() wherever raw rows
-// are on hand (FSA mode); the province-wide view only has server-
-// precomputed bins for tens of thousands of rows — far too many to plot as
-// individual points — so it keeps the bucketed histogram.
+// are on hand (FSA mode) AND dotStripFits() says the result will actually
+// read as a strip rather than degrading into a solid blob -- new
+// construction is often many near-identical homes from the same builder/
+// subdivision, so a handful of values can absorb most of even a
+// several-hundred-home FSA regardless of the total count. Above that, or
+// for the province-wide view (only server-precomputed bins, far too many
+// rows to plot individually), it keeps the bucketed histogram.
+const DOT_STRIP_LANES=50;     // collision-avoidance lanes across the plotted width
+const DOT_STRIP_MAX_STACK=16; // tallest a lane can stack before dots start merging visually
+const DOT_STRIP_MAX_N=400;    // backstop regardless of how evenly spread the values are
+function laneStacks(vals,domLo,domHi){
+  const span=(domHi-domLo)||1,laneW=span/DOT_STRIP_LANES||1;
+  const laneCounts={};
+  return vals.map(v=>{const lane=Math.round(v/laneW);return{x:v,y:(laneCounts[lane]=(laneCounts[lane]||0)+1)};});
+}
+function dotStripFits(rawValues,lo,hi){
+  let vals=rawValues.filter(v=>v!=null&&!isNaN(v));
+  if(lo!=null)vals=vals.filter(v=>v>=lo);
+  if(hi!=null)vals=vals.filter(v=>v<=hi);
+  if(!vals.length)return true; // let dotStrip's own no-data path handle it
+  if(vals.length>DOT_STRIP_MAX_N)return false;
+  const domLo=lo!=null?lo:Math.min(...vals),domHi=hi!=null?hi:Math.max(...vals);
+  const pts=laneStacks(vals,domLo,domHi);
+  return Math.max(...pts.map(p=>p.y))<=DOT_STRIP_MAX_STACK;
+}
 function dotStrip(id,rawValues,{color,xLabel,lo,hi,refLines,fmtVal}){
   dc(id);showChart(id);
   let vals=rawValues.filter(v=>v!=null&&!isNaN(v));
@@ -1130,9 +1160,7 @@ function dotStrip(id,rawValues,{color,xLabel,lo,hi,refLines,fmtVal}){
   if(!vals.length){noData(id);setRefLegend(id,null);return;}
   vals.sort((a,b)=>a-b);
   const domLo=lo!=null?lo:vals[0],domHi=hi!=null?hi:vals[vals.length-1];
-  const span=(domHi-domLo)||1,laneW=span/50||1;
-  const laneCounts={};
-  const pts=vals.map(v=>{const lane=Math.round(v/laneW);return{x:v,y:(laneCounts[lane]=(laneCounts[lane]||0)+1)};});
+  const pts=laneStacks(vals,domLo,domHi);
   const maxY=Math.max(...pts.map(p=>p.y),1);
   charts[id]=new Chart($(id),{type:'scatter',
     data:{datasets:[{data:pts,backgroundColor:color,borderColor:color,pointRadius:5,pointHoverRadius:7,pointBorderWidth:0}]},
@@ -1147,16 +1175,18 @@ function dotStrip(id,rawValues,{color,xLabel,lo,hi,refLines,fmtVal}){
 
 function renderEui(s,meta){
   const lines=retroLines(RETRO_CMP&&RETRO_CMP.euiPre,RETRO_CMP&&RETRO_CMP.euiPost,'Existing home, before retrofit','Existing home, after retrofit');
-  if(meta&&meta.fsaRows){
-    dotStrip('eui-chart',meta.fsaRows.map(r=>num(r.EUI)),{color:PAL.axis,xLabel:'kWh/m²/yr',lo:0,hi:CLIP.eui,refLines:lines,fmtVal:v=>`${fmt(v,1)} kWh/m²/yr`});
+  const vals=meta&&meta.fsaRows?meta.fsaRows.map(r=>num(r.EUI)):null;
+  if(vals&&dotStripFits(vals,0,CLIP.eui)){
+    dotStrip('eui-chart',vals,{color:PAL.axis,xLabel:'kWh/m²/yr',lo:0,hi:CLIP.eui,refLines:lines,fmtVal:v=>`${fmt(v,1)} kWh/m²/yr`});
   }else{
     barHist('eui-chart',s.eui_bins||{},{color:PAL.axis,step:BINS.eui.step,xLabel:'kWh/m²/yr',refLines:lines});
   }
 }
 function renderAchDist(s,meta){
   const lines=retroLines(RETRO_CMP&&RETRO_CMP.achPre,RETRO_CMP&&RETRO_CMP.achPost,'Existing home, before retrofit','Existing home, after retrofit');
-  if(meta&&meta.fsaRows){
-    dotStrip('ach-dist-chart',meta.fsaRows.map(r=>num(r.AirLeakage)),{color:PAL.axis,xLabel:'ACH₅₀',lo:0,hi:CLIP.ach,refLines:lines,fmtVal:v=>`${fmt(v,2)} ACH₅₀`});
+  const vals=meta&&meta.fsaRows?meta.fsaRows.map(r=>num(r.AirLeakage)):null;
+  if(vals&&dotStripFits(vals,0,CLIP.ach)){
+    dotStrip('ach-dist-chart',vals,{color:PAL.axis,xLabel:'ACH₅₀',lo:0,hi:CLIP.ach,refLines:lines,fmtVal:v=>`${fmt(v,2)} ACH₅₀`});
   }else{
     barHist('ach-dist-chart',s.ach_bins||{},{color:PAL.axis,step:BINS.ach.step,xLabel:'ACH₅₀',refLines:lines});
   }
@@ -1172,8 +1202,8 @@ function renderInsulation(s,meta){
   parts.forEach(p=>{
     $(p.medId).textContent=p.med!=null?`median R-${Math.round(p.med)}`:'';
     const lines=retroLines(p.pre,p.post,'Existing home, before retrofit','Existing home, after retrofit');
-    if(meta&&meta.fsaRows){
-      const vals=meta.fsaRows.map(r=>{const v=num(r[p.col]);return v!=null?v*RSI_TO_R:null;});
+    const vals=meta&&meta.fsaRows?meta.fsaRows.map(r=>{const v=num(r[p.col]);return v!=null?v*RSI_TO_R:null;}):null;
+    if(vals&&dotStripFits(vals,0,p.hi)){
       dotStrip(p.id,vals,{color:PAL.axis,xLabel:'R-value',lo:0,hi:p.hi,refLines:lines,fmtVal:v=>`R-${fmt(v,1)}`});
     }else{
       barHist(p.id,p.bins||{},{color:PAL.axis,step:p.step,xLabel:'R-value',refLines:lines});
@@ -1191,8 +1221,9 @@ function renderHeatPump(s){
 }
 function renderGhg(s,meta){
   const lines=retroLines(RETRO_CMP&&RETRO_CMP.ghgPre,RETRO_CMP&&RETRO_CMP.ghgPost,'Existing home, before retrofit','Existing home, after retrofit');
-  if(meta&&meta.fsaRows){
-    dotStrip('ghg-chart',meta.fsaRows.map(r=>num(r.GHG)),{color:PAL.purple,xLabel:'tonnes CO₂e/yr',lo:0,hi:CLIP.ghg,refLines:lines,fmtVal:v=>`${fmt(v,2)} tCO₂e/yr`});
+  const vals=meta&&meta.fsaRows?meta.fsaRows.map(r=>num(r.GHG)):null;
+  if(vals&&dotStripFits(vals,0,CLIP.ghg)){
+    dotStrip('ghg-chart',vals,{color:PAL.purple,xLabel:'tonnes CO₂e/yr',lo:0,hi:CLIP.ghg,refLines:lines,fmtVal:v=>`${fmt(v,2)} tCO₂e/yr`});
   }else{
     barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr',refLines:lines});
   }
