@@ -181,10 +181,26 @@ footer a:hover{color:var(--amber2)}
 .simple-table{width:100%;border-collapse:collapse;font-size:13px}
 .simple-table th{text-align:left;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 .simple-table td{padding:7px 10px;border-bottom:1px solid var(--surface);color:var(--text);white-space:nowrap}
-.simple-table tr:last-child td{border-bottom:none}
+.simple-table tbody tr.st-row:last-child td{border-bottom:none}
+.simple-table tbody tr.st-row:last-child.open td{border-bottom:1px solid var(--surface)}
 .simple-table .st-rank{color:var(--light);font-variant-numeric:tabular-nums}
 .simple-table .st-eui{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .simple-table .st-hp{color:var(--green)}
+.simple-table .st-chevron{display:inline-block;width:10px;margin-right:6px;color:var(--light);transition:transform .15s;transform-origin:45% 50%}
+.simple-table tr.st-row{cursor:pointer}
+.simple-table tr.st-row:hover td{background:var(--surface)}
+.simple-table tr.st-row.open td{background:var(--surface)}
+.simple-table tr.st-row.open .st-chevron{transform:rotate(90deg)}
+.simple-table tr.st-row:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.simple-table tr.st-detail-row td{padding:0;border-bottom:1px solid var(--border);background:var(--surface)}
+.simple-table tr.st-detail-row:last-child td{border-bottom:none}
+.st-detail-inner{display:none}
+.simple-table tr.st-detail-row.open .st-detail-inner{display:block}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 16px;padding:.9rem 1rem 1rem}
+.detail-item{display:flex;flex-direction:column;gap:2px;min-width:0}
+.detail-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.detail-value{font-size:13px;color:var(--text);white-space:normal}
+.detail-value a{color:var(--muted);text-decoration:underline}
 
 /* ── Section headers ── */
 .section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
@@ -440,7 +456,7 @@ footer a:hover{color:var(--amber2)}
       <thead><tr><th>#</th><th>EUI</th><th>Area</th><th>House type</th><th>Year built</th><th>Floor area</th><th>Heating fuel</th><th>Heat pump</th></tr></thead>
       <tbody id="top-eui-body"></tbody>
     </table></div>
-    <p class="note">Ranked by measured EUI, lowest first, within the current filters. A handful of very small or unusual homes can post extreme low values — read this list alongside the median above, not as a substitute for it.</p>
+    <p class="note">Ranked by measured EUI, lowest first, within the current filters — click a row for insulation, airtightness, tier and heating-equipment detail. A handful of very small or unusual homes can post extreme low values, so read this list alongside the median above, not as a substitute for it.</p>
   </div>
 
 </main>
@@ -704,8 +720,9 @@ function load(){
   RETRO_CMP=null;
   fetchRetrofitComparison(PROVINCE_CODE).then(v=>{
     if(myToken!==LOAD_TOKEN)return;RETRO_CMP=v;if(!_lastSlice)return;
-    renderStats(_lastSlice);renderEui(_lastSlice);renderGhg(_lastSlice);
-    renderAchDist(_lastSlice);renderInsulation(_lastSlice);
+    const m=_lastMeta||{fsaRows:null};
+    renderStats(_lastSlice);renderEui(_lastSlice,m);renderGhg(_lastSlice,m);
+    renderAchDist(_lastSlice,m);renderInsulation(_lastSlice,m);
   });
   if(PROVINCE_CODE==='CA'){
     SELECTED_FSA='';
@@ -868,14 +885,14 @@ function renderDashboard(slice,meta){
   renderAch(slice);
   renderAirGap(slice);
   renderGap(slice,meta);
-  renderEui(slice);
-  renderGhg(slice);
+  renderEui(slice,meta);
+  renderGhg(slice,meta);
   renderTypes(slice);
   renderFuel(slice);
   renderFuelYear(slice);
   renderArea(slice);
-  renderAchDist(slice);
-  renderInsulation(slice);
+  renderAchDist(slice,meta);
+  renderInsulation(slice,meta);
   renderHeatPump(slice);
   renderHeatPumpModels(slice,meta);
   renderTopEui(slice,meta);
@@ -899,7 +916,7 @@ function renderStats(s){
 }
 
 function renderTier(s){
-  dc('tier');const byYear=s.tier_by_year||{};
+  dc('tier');showChart('tier-chart');const byYear=s.tier_by_year||{};
   const yearTot=y=>Object.values(byYear[y]||{}).reduce((a,b)=>a+(+b),0);
   // Tiers weren't mandatory until 2024, so earlier years carry only a handful
   // of tiered homes — drop years with too few to be representative.
@@ -930,7 +947,7 @@ function lineChart(id,map,{color,yTitle,fmtY}){
 // the "before" here is an assumption, not a measurement — see the note in the
 // card and the methodology section.
 function renderAch(s){
-  dc('ach-chart');
+  dc('ach-chart');showChart('ach-chart');
   const post=s.ach_by_year||{},pre=s.designed_ach_by_year||{};
   const years=[...new Set([...Object.keys(post),...Object.keys(pre)])].map(Number).sort((a,b)=>a-b);
   if(!years.length){$('ach-legend').innerHTML='';noData('ach-chart');return;}
@@ -949,7 +966,7 @@ function renderAch(s){
 // Distribution of (as-built − as-designed) airtightness. Negative = the
 // finished house tested tighter than the plan file assumed.
 function renderAirGap(s){
-  dc('airgap-chart');
+  dc('airgap-chart');showChart('airgap-chart');
   const as=s.air_stats||{n:0};
   $('air-stats').innerHTML=[
     statCard('Test tighter than design',as.pct_tighter!=null?as.pct_tighter+'%':'—','green',`of ${(as.n||0).toLocaleString()} homes with both values`),
@@ -971,16 +988,20 @@ function renderAirGap(s){
 // this is a genuine before/after — and it moves: most homes hold their tier,
 // a large minority beat it, very few fall short.
 function renderTierMove(s){
-  dc('tiermove-chart');
+  dc('tiermove-chart');showChart('tiermove-chart');
   const mv=s.tier_move||{n:0};
+  const dt=s.designed_tier_counts||{},at=s.tier_counts||{};
+  const dTot=Object.values(dt).reduce((a,b)=>a+(+b),0),aTot=Object.values(at).reduce((a,b)=>a+(+b),0);
+  if(!dTot||!aTot){
+    $('tiermove-legend').innerHTML='';$('tier-move-stats').innerHTML='';$('tier-move-stats').style.display='none';
+    noData('tiermove-chart');return;
+  }
+  $('tier-move-stats').style.display='';
   $('tier-move-stats').innerHTML=[
     statCard('Built to the tier designed',mv.pct_same!=null?mv.pct_same+'%':'—','',`of ${(mv.n||0).toLocaleString()} homes with both tiers`),
     statCard('Beat their design tier',mv.pct_up!=null?mv.pct_up+'%':'—','green','finished a tier or more higher'),
     statCard('Fell short',mv.pct_down!=null?mv.pct_down+'%':'—','accent','finished below their plan tier'),
   ].join('');
-  const dt=s.designed_tier_counts||{},at=s.tier_counts||{};
-  const dTot=Object.values(dt).reduce((a,b)=>a+(+b),0),aTot=Object.values(at).reduce((a,b)=>a+(+b),0);
-  if(!dTot||!aTot){$('tiermove-legend').innerHTML='';noData('tiermove-chart');return;}
   const tiers=[0,1,2,3,4,5];
   legendInline('tiermove-legend',[{c:PRE_LINE,l:'As designed (plan)'},{c:POST_LINE,l:'As built'}]);
   charts['tiermove-chart']=new Chart($('tiermove-chart'),{type:'bar',
@@ -991,24 +1012,28 @@ function renderTierMove(s){
       plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
 }
 
-// ── Retrofit D/E comparison reference lines ──────────────────────────
-// Dashed vertical markers laid over a handful of histograms (EUI, GHG,
-// as-built airtightness, insulation) showing where the *existing* housing
-// stock sits, before and after its own retrofit (RETRO_CMP, sourced from
-// retrofits.html's matched-pair province_json) — so a reader can see a new
-// build against both ends of the retrofit journey, not just the bars for
-// new construction itself.
+// ── Retrofit D/E comparison markers ───────────────────────────────────
+// A handful of charts (EUI, GHG, as-built airtightness, roof/wall/foundation
+// insulation) carry a marker for where the *existing* housing stock sits,
+// before and after its own retrofit (RETRO_CMP, sourced from retrofits.html's
+// matched-pair province_json) — so a reader can see a new build against both
+// ends of the retrofit journey, not just the distribution for new
+// construction itself. Drawn as a small filled arrow + short label above the
+// plot, with a light dashed guide line down through it, rather than a plain
+// vertical line — easier to spot at a glance, and doesn't rely on colour
+// alone to tell "before" from "after".
 //
-// These bar charts use a category (not linear) x-scale, and Chart.js's own
-// CategoryScale#getPixelForValue doesn't reliably resolve a raw numeric
+// The bucketed charts use a category (not linear) x-scale, and Chart.js's
+// own CategoryScale#getPixelForValue doesn't reliably resolve a raw numeric
 // label back to a pixel (it's built for index lookups, not value lookups),
-// so the category slot centers are computed directly from chartArea width
-// / category count instead — the same even division Chart.js itself uses
-// to lay out one slot per category. A reference value that doesn't land
+// so the category slot centers are computed directly from chartArea width /
+// category count instead — the same even division Chart.js itself uses to
+// lay out one slot per category. A reference value that doesn't land
 // exactly on a bin edge is then linearly interpolated between the pixel
-// centers of its two neighbouring bin labels — bin edges the chart
-// actually rendered, not the logical value range, since sparse (FSA-scale)
-// histograms can have gaps where a bin has zero homes.
+// centers of its two neighbouring bin labels — bin edges the chart actually
+// rendered, not the logical value range, since sparse histograms can have
+// gaps where a bin has zero homes. The dot-strip charts (below) use a true
+// linear scale, whose own getPixelForValue works correctly.
 function xPixelForCategoryValue(chart,value){
   const labels=chart.data.labels;
   if(value==null||!labels||!labels.length)return null;
@@ -1026,17 +1051,29 @@ function xPixelForCategoryValue(chart,value){
   }
   return centerX(last);
 }
+function xPixelFor(chart,value){
+  return chart.scales.x.type==='category'?xPixelForCategoryValue(chart,value):chart.scales.x.getPixelForValue(value);
+}
 function refLinesPlugin(lines){
   return{id:'refLines',afterDatasetsDraw(chart){
     if(!lines||!lines.length)return;
     const{ctx,chartArea}=chart;
+    const marks=lines.map(l=>({...l,x:l.value==null?null:xPixelFor(chart,l.value)}))
+      .filter(l=>l.x!=null&&l.x>=chartArea.left-1&&l.x<=chartArea.right+1);
+    if(!marks.length)return;
+    // Skip the inline short label when two arrows would overlap.
+    const crowded=marks.length>1&&Math.abs(marks[0].x-marks[marks.length-1].x)<56;
     ctx.save();
-    lines.forEach(l=>{
-      if(l.value==null)return;
-      const x=xPixelForCategoryValue(chart,l.value);
-      if(x==null||x<chartArea.left-1||x>chartArea.right+1)return;
-      ctx.beginPath();ctx.setLineDash([5,4]);ctx.lineWidth=1.75;ctx.strokeStyle=l.color;
-      ctx.moveTo(x,chartArea.top);ctx.lineTo(x,chartArea.bottom);ctx.stroke();
+    marks.forEach(l=>{
+      const x=l.x,top=chartArea.top;
+      ctx.globalAlpha=.5;ctx.beginPath();ctx.setLineDash([4,3]);ctx.lineWidth=1.25;ctx.strokeStyle=l.color;
+      ctx.moveTo(x,top+9);ctx.lineTo(x,chartArea.bottom);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+      ctx.beginPath();ctx.moveTo(x-6,top-8);ctx.lineTo(x+6,top-8);ctx.lineTo(x,top+2);ctx.closePath();
+      ctx.fillStyle=l.color;ctx.fill();
+      if(!crowded&&l.short){
+        ctx.font='700 10px Inter, sans-serif';ctx.fillStyle=l.color;ctx.textAlign='center';
+        ctx.fillText(l.short,x,top-11);
+      }
     });
     ctx.restore();
   }};
@@ -1048,46 +1085,99 @@ function setRefLegend(chartId,lines){
   if(!el){el=document.createElement('div');el.id=chartId+'-reflegend';el.className='chart-legend-inline ref-legend';wrap.insertAdjacentElement('afterend',el);}
   el.innerHTML=lines.map(l=>`<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${l.color}"></span>${l.label}</span>`).join('');
 }
-// Existing-home EUI/GHG/ACH comparison lines, shared by renderEui/renderGhg/
-// renderAchDist — same {value,color,label} shape for all three.
+// Existing-home EUI/GHG/ACH/insulation comparison markers, shared by
+// renderEui/renderGhg/renderAchDist/renderInsulation — same
+// {value,color,label,short} shape for all of them.
 function retroLines(preVal,postVal,preLabel,postLabel){
   const lines=[];
   if(!RETRO_CMP)return lines;
-  if(preVal!=null)lines.push({value:preVal,color:PRE_LINE,label:preLabel});
-  if(postVal!=null)lines.push({value:postVal,color:POST_LINE,label:postLabel});
+  if(preVal!=null)lines.push({value:preVal,color:PRE_LINE,label:preLabel,short:'Before'});
+  if(postVal!=null)lines.push({value:postVal,color:POST_LINE,label:postLabel,short:'After'});
   return lines;
 }
+// Extra headroom above the plot for the arrow markers, so they don't get
+// clipped against the canvas edge. Reserved even when this render has no
+// markers, so the plot area doesn't resize once RETRO_CMP resolves and a
+// second render adds them.
+const REF_PAD_TOP=l=>l&&l.length?20:6;
 
-function barHist(id,binsObj,{color,step,xLabel,clip,refLines}){
-  dc(id);const keys=Object.keys(binsObj).map(Number).sort((a,b)=>a-b);
+function barHist(id,binsObj,{color,step,xLabel,refLines}){
+  dc(id);showChart(id);const keys=Object.keys(binsObj).map(Number).sort((a,b)=>a-b);
   if(!keys.length){noData(id);setRefLegend(id,null);return;}
   const labels=keys.map(k=>k);
   charts[id]=new Chart($(id),{type:'bar',data:{labels,datasets:[{data:keys.map(k=>binsObj[k]),backgroundColor:color,borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
-    options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
+    options:{layout:{padding:{top:REF_PAD_TOP(refLines)}},
+      scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
       plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}},
     plugins:(refLines&&refLines.length)?[refLinesPlugin(refLines)]:[]});
   setRefLegend(id,refLines);
 }
-function renderEui(s){
-  const lines=retroLines(RETRO_CMP&&RETRO_CMP.euiPre,RETRO_CMP&&RETRO_CMP.euiPost,'Existing home, before retrofit','Existing home, after retrofit');
-  barHist('eui-chart',s.eui_bins||{},{color:PAL.axis,step:BINS.eui.step,xLabel:'kWh/m²/yr',refLines:lines});
-}
-function renderAchDist(s){
-  const lines=retroLines(RETRO_CMP&&RETRO_CMP.achPre,RETRO_CMP&&RETRO_CMP.achPost,'Existing home, before retrofit','Existing home, after retrofit');
-  barHist('ach-dist-chart',s.ach_bins||{},{color:PAL.axis,step:BINS.ach.step,xLabel:'ACH₅₀',refLines:lines});
+
+// Individual-value strip plot for small (FSA-scale) samples: one point per
+// home at its own exact value on a continuous linear axis — no bucketing.
+// Points stack vertically only to keep near-identical values from
+// overlapping outright; the x position is always the home's real value, so
+// a run of close-but-not-equal homes reads as a little cluster rather than
+// one misleadingly wide bar. Used instead of barHist() wherever raw rows
+// are on hand (FSA mode); the province-wide view only has server-
+// precomputed bins for tens of thousands of rows — far too many to plot as
+// individual points — so it keeps the bucketed histogram.
+function dotStrip(id,rawValues,{color,xLabel,lo,hi,refLines,fmtVal}){
+  dc(id);showChart(id);
+  let vals=rawValues.filter(v=>v!=null&&!isNaN(v));
+  if(lo!=null)vals=vals.filter(v=>v>=lo);
+  if(hi!=null)vals=vals.filter(v=>v<=hi);
+  if(!vals.length){noData(id);setRefLegend(id,null);return;}
+  vals.sort((a,b)=>a-b);
+  const domLo=lo!=null?lo:vals[0],domHi=hi!=null?hi:vals[vals.length-1];
+  const span=(domHi-domLo)||1,laneW=span/50||1;
+  const laneCounts={};
+  const pts=vals.map(v=>{const lane=Math.round(v/laneW);return{x:v,y:(laneCounts[lane]=(laneCounts[lane]||0)+1)};});
+  const maxY=Math.max(...pts.map(p=>p.y),1);
+  charts[id]=new Chart($(id),{type:'scatter',
+    data:{datasets:[{data:pts,backgroundColor:color,borderColor:color,pointRadius:5,pointHoverRadius:7,pointBorderWidth:0}]},
+    options:{layout:{padding:{top:REF_PAD_TOP(refLines)}},
+      scales:{
+        x:{type:'linear',min:domLo,max:domHi,title:{display:!!xLabel,text:xLabel},grid:{color:PAL.grid}},
+        y:{display:false,min:0,max:maxY+1,grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{title:()=>'',label:c=>fmtVal?fmtVal(c.parsed.x):c.parsed.x}}}},
+    plugins:(refLines&&refLines.length)?[refLinesPlugin(refLines)]:[]});
+  setRefLegend(id,refLines);
 }
 
-function renderInsulation(s){
+function renderEui(s,meta){
+  const lines=retroLines(RETRO_CMP&&RETRO_CMP.euiPre,RETRO_CMP&&RETRO_CMP.euiPost,'Existing home, before retrofit','Existing home, after retrofit');
+  if(meta&&meta.fsaRows){
+    dotStrip('eui-chart',meta.fsaRows.map(r=>num(r.EUI)),{color:PAL.axis,xLabel:'kWh/m²/yr',lo:0,hi:CLIP.eui,refLines:lines,fmtVal:v=>`${fmt(v,1)} kWh/m²/yr`});
+  }else{
+    barHist('eui-chart',s.eui_bins||{},{color:PAL.axis,step:BINS.eui.step,xLabel:'kWh/m²/yr',refLines:lines});
+  }
+}
+function renderAchDist(s,meta){
+  const lines=retroLines(RETRO_CMP&&RETRO_CMP.achPre,RETRO_CMP&&RETRO_CMP.achPost,'Existing home, before retrofit','Existing home, after retrofit');
+  if(meta&&meta.fsaRows){
+    dotStrip('ach-dist-chart',meta.fsaRows.map(r=>num(r.AirLeakage)),{color:PAL.axis,xLabel:'ACH₅₀',lo:0,hi:CLIP.ach,refLines:lines,fmtVal:v=>`${fmt(v,2)} ACH₅₀`});
+  }else{
+    barHist('ach-dist-chart',s.ach_bins||{},{color:PAL.axis,step:BINS.ach.step,xLabel:'ACH₅₀',refLines:lines});
+  }
+}
+
+function renderInsulation(s,meta){
   const parts=[
-    {id:'roof-ins-chart',medId:'roof-ins-median',bins:s.roof_ins_bins,med:s.median_roof_r,step:BINS.roofIns.step,pre:RETRO_CMP&&RETRO_CMP.roofRPre,post:RETRO_CMP&&RETRO_CMP.roofRPost},
-    {id:'wall-ins-chart',medId:'wall-ins-median',bins:s.wall_ins_bins,med:s.median_wall_r,step:BINS.wallIns.step,pre:RETRO_CMP&&RETRO_CMP.wallRPre,post:RETRO_CMP&&RETRO_CMP.wallRPost},
-    {id:'fnd-ins-chart', medId:'fnd-ins-median', bins:s.fnd_ins_bins, med:s.median_fnd_r, step:BINS.fndIns.step, pre:RETRO_CMP&&RETRO_CMP.fndRPre, post:RETRO_CMP&&RETRO_CMP.fndRPost},
-    {id:'floor-ins-chart',medId:'floor-ins-median',bins:s.floor_ins_bins,med:s.median_floor_r,step:BINS.floorIns.step}, // no retrofit floor-insulation figure is precomputed on the retrofit side — no comparison lines
+    {id:'roof-ins-chart',medId:'roof-ins-median',bins:s.roof_ins_bins,med:s.median_roof_r,step:BINS.roofIns.step,hi:BINS.roofIns.hi,col:'RoofInsulation',pre:RETRO_CMP&&RETRO_CMP.roofRPre,post:RETRO_CMP&&RETRO_CMP.roofRPost},
+    {id:'wall-ins-chart',medId:'wall-ins-median',bins:s.wall_ins_bins,med:s.median_wall_r,step:BINS.wallIns.step,hi:BINS.wallIns.hi,col:'WallInsulation',pre:RETRO_CMP&&RETRO_CMP.wallRPre,post:RETRO_CMP&&RETRO_CMP.wallRPost},
+    {id:'fnd-ins-chart', medId:'fnd-ins-median', bins:s.fnd_ins_bins, med:s.median_fnd_r, step:BINS.fndIns.step, hi:BINS.fndIns.hi, col:'FoundationInsulation', pre:RETRO_CMP&&RETRO_CMP.fndRPre, post:RETRO_CMP&&RETRO_CMP.fndRPost},
+    {id:'floor-ins-chart',medId:'floor-ins-median',bins:s.floor_ins_bins,med:s.median_floor_r,step:BINS.floorIns.step,hi:BINS.floorIns.hi,col:'FloorInsulation'}, // no retrofit floor-insulation figure is precomputed on the retrofit side — no comparison markers
   ];
   parts.forEach(p=>{
     $(p.medId).textContent=p.med!=null?`median R-${Math.round(p.med)}`:'';
     const lines=retroLines(p.pre,p.post,'Existing home, before retrofit','Existing home, after retrofit');
-    barHist(p.id,p.bins||{},{color:PAL.axis,step:p.step,xLabel:'R-value',refLines:lines});
+    if(meta&&meta.fsaRows){
+      const vals=meta.fsaRows.map(r=>{const v=num(r[p.col]);return v!=null?v*RSI_TO_R:null;});
+      dotStrip(p.id,vals,{color:PAL.axis,xLabel:'R-value',lo:0,hi:p.hi,refLines:lines,fmtVal:v=>`R-${fmt(v,1)}`});
+    }else{
+      barHist(p.id,p.bins||{},{color:PAL.axis,step:p.step,xLabel:'R-value',refLines:lines});
+    }
   });
 }
 
@@ -1099,9 +1189,13 @@ function renderHeatPump(s){
       hp.toLocaleString(),'accent',n?`${pct}% of ${n.toLocaleString()} homes in view`:''),
   ].join('');
 }
-function renderGhg(s){
+function renderGhg(s,meta){
   const lines=retroLines(RETRO_CMP&&RETRO_CMP.ghgPre,RETRO_CMP&&RETRO_CMP.ghgPost,'Existing home, before retrofit','Existing home, after retrofit');
-  barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr',refLines:lines});
+  if(meta&&meta.fsaRows){
+    dotStrip('ghg-chart',meta.fsaRows.map(r=>num(r.GHG)),{color:PAL.purple,xLabel:'tonnes CO₂e/yr',lo:0,hi:CLIP.ghg,refLines:lines,fmtVal:v=>`${fmt(v,2)} tCO₂e/yr`});
+  }else{
+    barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr',refLines:lines});
+  }
 }
 function renderArea(s){barHist('area-chart',s.area_bins||{},{color:PAL.axis,step:BINS.area.step,xLabel:'m²'});}
 
@@ -1113,7 +1207,7 @@ function renderGap(s,meta){
     statCard('Perform worse than design',gs.pct_worse!=null?gs.pct_worse+'%':'—','','tested above design rating'),
   ].join('');
   // gap histogram (diverging)
-  dc('gap');const gk=Object.keys(s.gap_bins||{}).map(Number).sort((a,b)=>a-b);
+  dc('gap');showChart('gap-chart');const gk=Object.keys(s.gap_bins||{}).map(Number).sort((a,b)=>a-b);
   if(gk.length){
     charts.gap=new Chart($('gap-chart'),{type:'bar',data:{labels:gk,datasets:[{data:gk.map(k=>s.gap_bins[k]),
       backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?PAL.tick:PAL.neg)),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
@@ -1121,7 +1215,7 @@ function renderGap(s,meta){
         plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.gap.step} GJ/yr`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
   }else noData('gap-chart');
   // scatter: raw points (FSA) or density (province)
-  dc('scatter');
+  dc('scatter');showChart('scatter-chart');
   let pts=[],maxC=1;
   if(meta.fsaRows){
     meta.fsaRows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating);
@@ -1143,7 +1237,7 @@ function renderGap(s,meta){
 }
 
 function donutChart(id,obj,legendId,palette){
-  dc(id);const entries=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);
+  dc(id);showChart(id);const entries=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);
   if(!entries.length){noData(id);if(legendId)$(legendId).innerHTML='';return;}
   const top=entries.slice(0,7);const restTot=entries.slice(7).reduce((a,b)=>a+b[1],0);
   if(restTot)top.push(['Other',restTot]);
@@ -1154,7 +1248,7 @@ function donutChart(id,obj,legendId,palette){
 }
 function renderTypes(s){donutChart('type-chart',s.type_counts,'type-legend',TYPE_PALETTE);}
 function renderFuel(s){
-  dc('fuel');const entries=Object.entries(s.fuel_counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  dc('fuel');showChart('fuel-chart');const entries=Object.entries(s.fuel_counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
   if(!entries.length){noData('fuel-chart');return;}
   const colors=entries.map(e=>FUEL_COLORS[fuelGroup(e[0])]||PAL.tick);
   charts.fuel=new Chart($('fuel-chart'),{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:colors,borderWidth:0}]},
@@ -1162,7 +1256,7 @@ function renderFuel(s){
       plugins:{tooltip:{callbacks:{label:c=>`${c.parsed.x.toLocaleString()} homes`}}}}});
 }
 function renderFuelYear(s){
-  dc('fuelyear');const byYear=s.fuel_by_year||{};const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  dc('fuelyear');showChart('fuelyear-chart');const byYear=s.fuel_by_year||{};const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
   if(!years.length){$('fuelyear-legend').innerHTML='';noData('fuelyear-chart');return;}
   const groups=['Gas','Electricity','Other'];
   const datasets=groups.map(g=>({label:g,backgroundColor:FUEL_COLORS[g],stack:'s',
@@ -1263,15 +1357,44 @@ function renderHeatPumpModels(s,meta){
 // vs slice split used throughout this file, e.g. renderGap/renderHeatPumpModels).
 function topEuiFromRows(rows){
   const hasHp=r=>{const s=(r.HPType==null?'':String(r.HPType)).trim();return!!(s&&s!==NO_HP);};
-  return rows.map(r=>({eui:num(r.EUI),fsa:r.FSA||SELECTED_FSA,type:r.BldgType,year:num(r.Year),area:num(r.FloorArea),fuel:r.HeatFuel,hp:hasHp(r)}))
-    .filter(x=>x.eui>0).sort((a,b)=>a.eui-b.eui).slice(0,20);
+  const rval=v=>{const n=num(v);return n!=null?Math.round(n*RSI_TO_R*10)/10:null;};
+  return rows.map(r=>({
+    eui:num(r.EUI),fsa:r.FSA||SELECTED_FSA,type:r.BldgType,year:num(r.Year),area:num(r.FloorArea),fuel:r.HeatFuel,hp:hasHp(r),
+    ach:num(r.AirLeakage),tier:num(r.Tier),
+    roofR:rval(r.RoofInsulation),wallR:rval(r.WallInsulation),fndR:rval(r.FoundationInsulation),floorR:rval(r.FloorInsulation),
+    heatType:r.HeatType,hpType:r.HPType,hpAhri:r.HPAHRI,ghg:num(r.GHG),solar:num(r.SolarPV),compliance:r.CompliancePath,
+  })).filter(x=>x.eui>0).sort((a,b)=>a.eui-b.eui).slice(0,20);
 }
+// Per-home detail panel for a top-20 row -- insulation, airtightness, tier,
+// heating equipment and emissions, the same fields retrofits.html's own
+// expandable row shows for a retrofit. decodeAhri (defined below, in the
+// AHRI equipment-list code shared with retrofits.html) already knows how to
+// turn a bare certificate number into a brand/model + spec line.
+function topDetailHTML(r){
+  const hpVal=r.hp?[r.hpType||'Heat pump installed',r.hpAhri?decodeAhri(r.hpAhri).sub:null].filter(Boolean).join(' · '):'No';
+  const rows=[
+    ['Airtightness',r.ach!=null?fmt(r.ach,2)+' ACH₅₀':'—'],
+    ['NBC tier',r.tier!=null?'Tier '+Math.round(r.tier):'—'],
+    ['Roof insulation',r.roofR!=null?'R-'+fmt(r.roofR,0):'—'],
+    ['Wall insulation',r.wallR!=null?'R-'+fmt(r.wallR,0):'—'],
+    ['Foundation insulation',r.fndR!=null?'R-'+fmt(r.fndR,0):'—'],
+    ['Floor insulation',r.floorR!=null?'R-'+fmt(r.floorR,0):'—'],
+    ['Heating equipment',[r.fuel,r.heatType].filter(Boolean).join(' · ')||'—'],
+    ['Heat pump',hpVal],
+    ['Emissions',r.ghg!=null?fmt(r.ghg,2)+' tCO₂e/yr':'—'],
+    ['Solar PV',r.solar!=null&&r.solar>0?fmt(r.solar,1)+' kW':'—'],
+    ['Compliance path',r.compliance||'—'],
+  ];
+  return`<div class="detail-grid">${rows.map(([l,v])=>`<div class="detail-item"><span class="detail-label">${l}</span><span class="detail-value">${v}</span></div>`).join('')}</div>`;
+}
+let _topEuiRows=[];
 function renderTopEui(s,meta){
   const list=(meta&&meta.fsaRows)?topEuiFromRows(meta.fsaRows):(s.top20_lowest_eui||[]);
+  _topEuiRows=list;
   const tbody=$('top-eui-body');
   if(!list.length){tbody.innerHTML='<tr><td colspan="8"><div class="state-msg" style="padding:1rem"><strong>No data</strong></div></td></tr>';return;}
-  tbody.innerHTML=list.map((r,i)=>`<tr>
-    <td class="st-rank">${i+1}</td>
+  tbody.innerHTML=list.map((r,i)=>`<tr class="st-row" data-idx="${i}" tabindex="0" role="button" aria-expanded="false" aria-controls="top-eui-detail-${i}" onclick="toggleTopEuiRow(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTopEuiRow(${i});}">
+    <td class="st-rank"><span class="st-chevron">▸</span>${i+1}</td>
     <td class="st-eui">${fmt(r.eui,1)}</td>
     <td>${r.fsa||'—'}</td>
     <td>${r.type||'—'}</td>
@@ -1279,12 +1402,31 @@ function renderTopEui(s,meta){
     <td>${r.area!=null?fmt(r.area,0)+' m²':'—'}</td>
     <td>${r.fuel||'—'}</td>
     <td class="st-hp">${r.hp?'✓':'—'}</td>
-  </tr>`).join('');
+  </tr>
+  <tr class="st-detail-row" id="top-eui-detail-${i}"><td colspan="8"><div class="st-detail-inner">${topDetailHTML(r)}</div></td></tr>`).join('');
+}
+function toggleTopEuiRow(i){
+  const row=document.querySelector(`#top-eui-body tr.st-row[data-idx="${i}"]`);
+  const det=$(`top-eui-detail-${i}`);
+  if(!row||!det)return;
+  const isOpen=row.classList.contains('open');
+  document.querySelectorAll('#top-eui-body tr.st-row.open').forEach(r=>{r.classList.remove('open');r.setAttribute('aria-expanded','false');});
+  document.querySelectorAll('#top-eui-body tr.st-detail-row.open').forEach(r=>r.classList.remove('open'));
+  if(!isOpen){row.classList.add('open');row.setAttribute('aria-expanded','true');det.classList.add('open');}
 }
 
-function noData(id){dc(id);const cv=$(id);const ctx=cv.getContext('2d');
-  const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);ctx.fillStyle=PAL.tick;ctx.font="12px Inter, sans-serif";
-  ctx.textAlign='center';ctx.fillText('Not enough data for this view',w/2,h/2);}
+// A chart's "unit" is the whole card it lives in, except insulation's four
+// sub-charts which share one card and hide individually as their own
+// .measure-chart-block. Charts with nothing to show (most often the NBC
+// tier charts on a small FSA, pre-2024) hide their unit entirely rather
+// than rendering a "not enough data" placeholder -- every render function
+// calls showChart(id) on its own canvas before checking for data, so a
+// chart hidden for one geography reappears the moment a filter change
+// gives it something to draw.
+function chartUnit(id){const cv=$(id);if(!cv)return null;return cv.closest('.measure-chart-block')||cv.closest('.card');}
+function showChart(id){const u=chartUnit(id);if(u)u.style.display='';}
+function hideChart(id){const u=chartUnit(id);if(u)u.style.display='none';}
+function noData(id){dc(id);hideChart(id);}
 
 // ── FSA map (adapted from retrofits.html; colour = new-home count) ───
 const GEO_CACHE=new Map();
