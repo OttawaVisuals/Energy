@@ -99,6 +99,46 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .stat-value.green{color:var(--green)}
 .stat-sub{font-size:12px;color:var(--light);margin-top:4px}
 
+/* ── Measure charts (matches retrofits.html's insulation card layout) ── */
+.measure-chart-block{margin-bottom:1.5rem}
+.measure-chart-block:last-child{margin-bottom:0}
+.measure-chart-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem}
+.measure-chart-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.75rem}
+.measure-chart-title-row .measure-chart-title{margin-bottom:0}
+
+/* ── Equipment list / AHRI model groups (matches retrofits.html) ── */
+.measure-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.measure-label{font-size:13px;color:var(--text);width:185px;flex-shrink:0}
+.bar-track{flex:1;height:7px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-pct{font-size:12px;color:var(--muted);width:34px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge-deep{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
+.badge-medium{background:var(--badge-med-bg);color:var(--badge-med-fg)}
+.badge-shallow{background:var(--badge-shal-bg);color:var(--badge-shal-fg)}
+.badge-neg{background:var(--badge-neg-bg);color:var(--badge-neg-fg)}
+.equip-list .measure-row{align-items:flex-start}
+.equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
+.equip-list .measure-label .ml-code{display:block;line-height:1.3}
+.equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
+.equip-list .measure-label .ml-sub a{color:var(--muted);text-decoration:underline}
+.equip-list .measure-label .ml-sub a:hover{color:var(--ink)}
+.equip-list .measure-label .ml-badges{display:block;margin-top:4px}
+.equip-list .measure-label .ml-badges .badge{margin-right:4px}
+.equip-list .bar-track{margin-top:6px}
+.equip-list .bar-pct{margin-top:6px}
+.ahri-model-group{margin-bottom:12px}
+.ahri-model-group:last-child{margin-bottom:0}
+.ahri-cert-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:5px 0;font-size:12px}
+.ahri-cert-row+.ahri-cert-row{border-top:1px solid var(--surface)}
+.ahri-cert-row .ml-sub{color:var(--light);line-height:1.3}
+.ahri-cert-row .ml-sub a{color:var(--muted);text-decoration:underline}
+.ahri-cert-row .ml-sub a:hover{color:var(--ink)}
+.ahri-cert-row .ml-badges .badge{margin-right:4px}
+.ahri-cert-row .ahri-cert-count{margin-left:auto;font-size:11px;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
+.ahri-cert-more{padding:4px 0 0 14px;font-size:11px;color:var(--light);font-style:italic}
+@media(max-width:600px){.measure-label{width:120px}}
+
 /* ── Chart wrappers ── */
 .cw{position:relative;width:100%}
 .cw-sm{height:180px}
@@ -286,6 +326,37 @@ footer a:hover{color:var(--amber2)}
   </div>
   <p class="note" style="max-width:820px;margin-top:-.4rem">Read the design figure as an <em>assumption</em>, not a measurement. Most plan files carry a round default value — 3.6, 4.5 and 2.5 ACH₅₀ account for most of them — rather than a per-house target, so this compares what the model assumed against what the house actually tested.</p>
 
+  <div class="card">
+    <div class="card-title">Distribution of as-built airtightness (ACH₅₀)</div>
+    <div class="cw cw-lg"><canvas id="ach-dist-chart"></canvas></div>
+    <p class="note">Blower-door result across every as-built home in this view — not the design/build gap shown above, just how tight the finished houses actually are.</p>
+  </div>
+
+  <div class="section-head">
+    <h2>How new homes are insulated</h2>
+    <p class="sec-sub">Insulation level, by building component, across every as-built home in this view — shown in R-value, the imperial unit most commonly quoted in Canada (R = RSI × 5.68).</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Insulation levels by component (R-value)</div>
+    <div class="measure-chart-block">
+      <div class="measure-chart-title-row"><div class="measure-chart-title">Roof / attic</div><div class="note" id="roof-ins-median" style="margin-top:0"></div></div>
+      <div class="cw cw-lg"><canvas id="roof-ins-chart"></canvas></div>
+    </div>
+    <div class="measure-chart-block">
+      <div class="measure-chart-title-row"><div class="measure-chart-title">Wall</div><div class="note" id="wall-ins-median" style="margin-top:0"></div></div>
+      <div class="cw cw-lg"><canvas id="wall-ins-chart"></canvas></div>
+    </div>
+    <div class="measure-chart-block">
+      <div class="measure-chart-title-row"><div class="measure-chart-title">Foundation</div><div class="note" id="fnd-ins-median" style="margin-top:0"></div></div>
+      <div class="cw cw-lg"><canvas id="fnd-ins-chart"></canvas></div>
+    </div>
+    <div class="measure-chart-block" style="margin-bottom:0">
+      <div class="measure-chart-title-row"><div class="measure-chart-title">Exposed floor</div><div class="note" id="floor-ins-median" style="margin-top:0"></div></div>
+      <div class="cw cw-lg"><canvas id="floor-ins-chart"></canvas></div>
+    </div>
+    <p class="note" style="margin-top:1rem">Unlike airtightness, insulation levels are essentially fixed at the design stage — they rarely move between the plan file and the finished house.</p>
+  </div>
+
   <div class="section-head">
     <h2>Do they perform as designed?</h2>
     <p class="sec-sub">Every new home is modelled twice: once from the plans (as designed) and again after it's built and blower-door tested (as built). Comparing the two shows whether the finished house lives up to its design.</p>
@@ -310,9 +381,9 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="grid-2">
     <div class="card">
-      <div class="card-title">EnerGuide rating — annual energy use (GJ/yr)</div>
-      <div class="cw cw-lg"><canvas id="ers-chart"></canvas></div>
-      <p class="note">The as-built EnerGuide rating: modelled total annual energy in gigajoules. Lower is more efficient. Only recorded on evaluations from 2019 on.</p>
+      <div class="card-title">Energy use intensity — EUI (kWh/m²/yr)<button type="button" class="info-btn" aria-label="What is EUI" data-info="Total modelled annual energy use divided by floor area — lets homes of different sizes be compared fairly. Same metric retrofits.html uses for existing homes.">?</button></div>
+      <div class="cw cw-lg"><canvas id="eui-chart"></canvas></div>
+      <p class="note">Total modelled annual energy ÷ floor area. Lower is more efficient. Values above 400 kWh/m²/yr are clipped for scale.</p>
     </div>
     <div class="card">
       <div class="card-title">Greenhouse-gas emissions (tonnes CO₂e/yr)</div>
@@ -324,6 +395,12 @@ footer a:hover{color:var(--amber2)}
   <div class="section-head">
     <h2>What's being built, and how it's heated</h2>
     <p class="sec-sub">The mix of house types, heating fuels, and sizes among newly built homes — and how the fuel mix is shifting over time.</p>
+  </div>
+  <div class="stats-grid" id="hp-stats"></div>
+  <div class="card">
+    <div class="card-title">Common heat pump models (outdoor unit)<button type="button" class="info-btn" aria-label="How are these grouped" data-info="One outdoor unit is certified under several AHRI reference numbers — different indoor coil pairings, refrigerant lines, or test-procedure revisions can each certify differently, including on cold-climate status — so every certificate behind an outdoor model is listed underneath it rather than picking one to represent the group.">?</button></div>
+    <div id="ahri-list" class="equip-list"></div>
+    <p class="note">Top 5 most common outdoor heat-pump units installed in as-built new homes in this view, grouped by brand + outdoor model number. Each line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency), COP at 5°F, and cold-climate status where on file — click the AHRI number for its directory page. Only codes with 4+ digits are counted, to exclude placeholder values.</p>
   </div>
   <div class="grid-2">
     <div class="card"><div class="card-title-row"><div class="card-title">House type</div><div class="chart-legend-inline" id="type-legend"></div></div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
@@ -371,6 +448,12 @@ const BASE_URL=(location.hostname==='localhost'||location.hostname==='127.0.0.1'
 const PROVINCE_JSON_BASE=`${BASE_URL}newhomes_json/`;   // newhomes_json/<PROV>.json
 const FSA_JSON_BASE=`${BASE_URL}newhomes_fsa/`;         // newhomes_fsa/<PROV>/<FSA>.json + _index.json
 const GEO_JSON_BASE=`${BASE_URL}geo_json/`;             // shared with retrofits
+const RETROFIT_PROVINCE_JSON_BASE=`${BASE_URL}province_json/`;   // retrofits.html's own province_json — cross-read for the "existing home" EUI comparison
+const AHRI_LOOKUP_URL=`${BASE_URL}lookup/ahri_numbers.json`;     // shared with retrofits.html: { "<ahri>": {"brand":...,"model":...,...} }
+let AHRI_LOOKUP=null;
+function fetchAhriLookup(){
+  return fetchJSON(AHRI_LOOKUP_URL).then(d=>{AHRI_LOOKUP=d;}).catch(()=>{AHRI_LOOKUP={};});
+}
 
 const PROVINCES={
   CA:{name:'All of Canada',short:'CA'},
@@ -388,13 +471,19 @@ let SELECTED_TYPE='';
 let MODE='none';   // 'province' | 'fsa'
 let ALL=[];        // FSA-mode raw rows
 let LOAD_TOKEN=0;
+let EXISTING_EUI=null;   // retrofit-sourced "existing home" EUI comparison for the current province
 
 // ── Bin widths (single source of truth — MUST match newhomes_precompute.py) ──
 const BINS={
   ers:{step:10,lo:1,hi:300}, ghg:{step:1,lo:0,hi:30}, ach:{step:0.5,lo:0,hi:10},
   area:{step:25,lo:0,hi:700}, eui:{step:10,lo:0,hi:400}, gap:{step:2,lo:-40,hi:20}, dens:5,
+  roofIns:{step:2,lo:0,hi:80}, wallIns:{step:2,lo:0,hi:40}, fndIns:{step:2,lo:0,hi:35}, floorIns:{step:2,lo:0,hi:40},
 };
 const CLIP={ers:300,ghg:30,ach:10,area:700,eui:400};
+// Insulation histograms use R-value (imperial), matching retrofits.html's
+// convention -- source RSI * RSI_TO_R (retrofits.html's own constant).
+const RSI_TO_R=5.678;
+const NO_HP='N/A {no Heat Pump}';
 
 // Tier colour ramp: base/below at the neutral end, climbing to the deepest
 // "positive" colour (net-zero-ready). Rebuilt per theme in readPalette.
@@ -527,6 +616,22 @@ function fetchFsaRows(prov,fsa){
   if(FSA_CACHE.has(key))return Promise.resolve(FSA_CACHE.get(key));
   return fetchJSON(`${FSA_JSON_BASE}${prov}/${fsa}.json`).then(p=>{const rows=reconstructRows(p);FSA_CACHE.set(key,rows);return rows;});
 }
+// "Existing home" EUI comparison, sourced from retrofits.html's own
+// province_json (median Pre_-retrofit EUI = the existing housing stock as
+// found, before any upgrade — the closest available baseline for "existing
+// home" since this dataset has no separate never-retrofitted population).
+// Falls back to the CA aggregate for provinces retrofits.html doesn't cover
+// (e.g. YK) or on any fetch error.
+const RETROFIT_EUI_CACHE=new Map();
+function fetchRetrofitEui(prov){
+  if(RETROFIT_EUI_CACHE.has(prov))return Promise.resolve(RETROFIT_EUI_CACHE.get(prov));
+  const pick=j=>{const s=j&&j.by_type&&j.by_type['All types'];return s&&s.eui_pre_median!=null?s.eui_pre_median:null;};
+  const p=fetchJSON(`${RETROFIT_PROVINCE_JSON_BASE}${prov}.json`).then(pick)
+    .catch(()=>prov!=='CA'?fetchJSON(`${RETROFIT_PROVINCE_JSON_BASE}CA.json`).then(pick):null)
+    .catch(()=>null);
+  RETROFIT_EUI_CACHE.set(prov,p);
+  return p;
+}
 
 // ── Dropdown population ──────────────────────────────────────────────
 function populateFsaDropdown(prov,idx){
@@ -547,6 +652,8 @@ function load(){
   $('header-title').textContent=`${prov.name} · new-home efficiency`;
   $('footer-province').textContent=prov.name;
   $('header-badge').textContent=`EnerGuide · ${prov.name} · loading…`;
+  EXISTING_EUI=null;
+  fetchRetrofitEui(PROVINCE_CODE).then(v=>{if(myToken!==LOAD_TOKEN)return;EXISTING_EUI=v;if(_lastSlice)renderStats(_lastSlice);});
   if(PROVINCE_CODE==='CA'){
     SELECTED_FSA='';
     $('fsa-sel').innerHTML='<option value="">Not available for All of Canada</option>';
@@ -623,6 +730,19 @@ function computeSlice(rows){
   out.median_eui=median(eui.filter(v=>v>0&&v<=CLIP.eui));
   out.median_improvement=median(impr);
   out.pct_solar=Math.round(rows.filter(r=>num(r.SolarPV)>0).length/n*1000)/10;
+  out.heat_pump_count=rows.filter(r=>{const s=(r.HPType==null?'':String(r.HPType)).trim();return s&&s!==NO_HP;}).length;
+  const roofR=col('RoofInsulation').map(v=>v!=null?v*RSI_TO_R:null);
+  const wallR=col('WallInsulation').map(v=>v!=null?v*RSI_TO_R:null);
+  const fndR=col('FoundationInsulation').map(v=>v!=null?v*RSI_TO_R:null);
+  const floorR=col('FloorInsulation').map(v=>v!=null?v*RSI_TO_R:null);
+  out.median_roof_r=median(roofR.filter(v=>v>0));
+  out.median_wall_r=median(wallR.filter(v=>v>0));
+  out.median_fnd_r=median(fndR.filter(v=>v>0));
+  out.median_floor_r=median(floorR.filter(v=>v>0));
+  out.roof_ins_bins=binObj(roofR,BINS.roofIns);
+  out.wall_ins_bins=binObj(wallR,BINS.wallIns);
+  out.fnd_ins_bins=binObj(fndR,BINS.fndIns);
+  out.floor_ins_bins=binObj(floorR,BINS.floorIns);
   out.ers_bins=binObj(ers,BINS.ers);
   out.ghg_bins=binObj(ghg,BINS.ghg);
   out.ach_bins=binObj(ach,BINS.ach);
@@ -695,12 +815,16 @@ function renderDashboard(slice,meta){
   renderAch(slice);
   renderAirGap(slice);
   renderGap(slice,meta);
-  renderErs(slice);
+  renderEui(slice);
   renderGhg(slice);
   renderTypes(slice);
   renderFuel(slice);
   renderFuelYear(slice);
   renderArea(slice);
+  renderAchDist(slice);
+  renderInsulation(slice);
+  renderHeatPump(slice);
+  renderHeatPumpModels(slice,meta);
 }
 
 function statCard(label,value,cls,sub){
@@ -711,7 +835,8 @@ function renderStats(s){
   const t3plus=tierTot?Math.round(((+tier[3]||0)+(+tier[4]||0)+(+tier[5]||0))/tierTot*100):null;
   $('stats-grid').innerHTML=[
     statCard('New homes in view',(s.row_count||0).toLocaleString(),'',''),
-    statCard('Median energy rating',s.median_ers!=null?fmt(s.median_ers,0):'—','accent','GJ/yr · lower is better'),
+    statCard('Median EUI',s.median_eui!=null?fmt(s.median_eui,0):'—','accent','kWh/m²/yr · lower is better'),
+    statCard('Existing home EUI',EXISTING_EUI!=null?fmt(EXISTING_EUI,0):'—','','kWh/m²/yr · avg existing home, from retrofit audits'),
     statCard('Median airtightness',s.median_ach!=null?fmt(s.median_ach,2):'—','green','ACH₅₀'),
     statCard('Median emissions',s.median_ghg!=null?fmt(s.median_ghg,1):'—','','tonnes CO₂e/yr'),
     statCard('Median floor area',s.median_area!=null?fmt(s.median_area,0):'—','','m²'),
@@ -820,7 +945,30 @@ function barHist(id,binsObj,{color,step,xLabel,clip}){
     options:{scales:{x:{title:{display:!!xLabel,text:xLabel},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
       plugins:{tooltip:{callbacks:{title:items=>{const k=+items[0].label;return `${k}–${k+step}`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
 }
-function renderErs(s){barHist('ers-chart',s.ers_bins||{},{color:PRE_LINE,step:BINS.ers.step,xLabel:'GJ/yr'});}
+function renderEui(s){barHist('eui-chart',s.eui_bins||{},{color:PRE_LINE,step:BINS.eui.step,xLabel:'kWh/m²/yr'});}
+function renderAchDist(s){barHist('ach-dist-chart',s.ach_bins||{},{color:POST_LINE,step:BINS.ach.step,xLabel:'ACH₅₀'});}
+
+function renderInsulation(s){
+  const parts=[
+    {id:'roof-ins-chart',medId:'roof-ins-median',bins:s.roof_ins_bins,med:s.median_roof_r,step:BINS.roofIns.step},
+    {id:'wall-ins-chart',medId:'wall-ins-median',bins:s.wall_ins_bins,med:s.median_wall_r,step:BINS.wallIns.step},
+    {id:'fnd-ins-chart', medId:'fnd-ins-median', bins:s.fnd_ins_bins, med:s.median_fnd_r, step:BINS.fndIns.step},
+    {id:'floor-ins-chart',medId:'floor-ins-median',bins:s.floor_ins_bins,med:s.median_floor_r,step:BINS.floorIns.step},
+  ];
+  parts.forEach(p=>{
+    $(p.medId).textContent=p.med!=null?`median R-${Math.round(p.med)}`:'';
+    barHist(p.id,p.bins||{},{color:PAL.primary,step:p.step,xLabel:'R-value'});
+  });
+}
+
+function renderHeatPump(s){
+  const n=s.row_count||0,hp=s.heat_pump_count||0;
+  const pct=n?Math.round(hp/n*100):0;
+  $('hp-stats').innerHTML=[
+    statCard('Heat pump installed<button type="button" class="info-btn" aria-label="What counts as a heat pump installed?" data-info="The as-built home\'s heat-pump source (air, ground or water) is populated — i.e. not blank / \'N/A {no Heat Pump}\'.">?</button>',
+      hp.toLocaleString(),'accent',n?`${pct}% of ${n.toLocaleString()} homes in view`:''),
+  ].join('');
+}
 function renderGhg(s){barHist('ghg-chart',s.ghg_bins||{},{color:PAL.purple,step:BINS.ghg.step,xLabel:'tonnes CO₂e/yr'});}
 function renderArea(s){barHist('area-chart',s.area_bins||{},{color:PAL.axis,step:BINS.area.step,xLabel:'m²'});}
 
@@ -890,6 +1038,89 @@ function renderFuelYear(s){
   charts.fuelyear=new Chart($('fuelyear-chart'),{type:'bar',data:{labels:years,datasets},
     options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:PAL.grid}}},
       plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.parsed.y)}%`}}}}});
+}
+
+// ── Heat pump AHRI numbers (ported from retrofits.html, page-agnostic) ──
+function decodeAhri(code){
+  const c=String(code).trim();
+  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(c)}" target="_blank" rel="noopener">AHRI ${c} ↗</a>`;
+  const hit=AHRI_LOOKUP&&AHRI_LOOKUP[c];
+  if(!hit)return{main:c,sub:link,badges:[],brand:null,model:null};
+  const isObj=typeof hit==='object';
+  const name=typeof hit==='string'?hit:[hit.brand,hit.model].filter(Boolean).join(' · ');
+  const badges=[];
+  const status=isObj?hit.model_status:null;
+  if(status)badges.push({label:status,cls:/^active$/i.test(status)?'badge-deep':'badge-neg'});
+  if(isObj){
+    const cc=String(hit.cold_climate).toLowerCase();
+    if(cc==='yes')badges.push({label:'Cold Climate',cls:'badge-medium'});
+    else if(cc==='no')badges.push({label:'Not cold climate',cls:'badge-shallow'});
+  }
+  const specs=[];
+  if(isObj){
+    const btu=v=>{const n=parseFloat(v);return isNaN(n)?null:(n>=10000?Math.round(n/1000)+'k':Math.round(n).toLocaleString());};
+    const h47=btu(hit.heating_capacity_47f_btuh),h5=btu(hit.heating_capacity_5f_btuh);
+    if(h47)specs.push(`heats ${h47} BTU/h @ 47°F${h5?`, ${h5} @ 5°F`:''}`);
+    const hspf=parseFloat(hit.hspf2);
+    if(!isNaN(hspf))specs.push(`HSPF2 ${hspf}`);
+    const cop5=parseFloat(hit.heating_cop_5f);
+    if(!isNaN(cop5))specs.push(`COP ${cop5.toFixed(1)} @ 5°F`);
+  }
+  const sub=[link,...specs].join(' · ');
+  return name?{main:name,sub,badges,brand:isObj?hit.brand:null,model:isObj?hit.model:null}
+             :{main:c,sub:link,badges,brand:null,model:null};
+}
+function groupAhriByModel(items){
+  const groups=new Map();
+  for(const{code,count}of items){
+    const c=String(code).trim();
+    const d=decodeAhri(c);
+    const key=(d.brand&&d.model)?`${d.brand}${d.model}`:`code:${c}`;
+    let g=groups.get(key);
+    if(!g){g={name:d.model?[d.brand,d.model].filter(Boolean).join(' · '):c,total:0,certs:[]};groups.set(key,g);}
+    g.total+=count;
+    g.certs.push({code:c,count,...d});
+  }
+  for(const g of groups.values())g.certs.sort((a,b)=>b.count-a.count);
+  return[...groups.values()].sort((a,b)=>b.total-a.total);
+}
+function ahriModelGroupsHTML(groups,capCerts=8){
+  if(!groups||!groups.length)return '<div class="state-msg" style="padding:1rem"><strong>No data</strong></div>';
+  const max=Math.max(...groups.map(g=>g.total))||1;
+  return groups.map(g=>{
+    const shown=g.certs.slice(0,capCerts);
+    const rest=g.certs.length-shown.length;
+    const restCount=g.certs.slice(capCerts).reduce((a,c)=>a+c.count,0);
+    const certRows=shown.map(c=>{
+      const badges=(c.badges&&c.badges.length)?`<span class="ml-badges">${c.badges.map(b=>`<span class="badge ${b.cls}">${b.label}</span>`).join('')}</span>`:'';
+      return `<div class="ahri-cert-row"><span class="ml-sub">${c.sub}</span>${badges}<span class="ahri-cert-count">${Math.round(c.count).toLocaleString()}</span></div>`;
+    }).join('');
+    const more=rest>0?`<div class="ahri-cert-more">+${rest} more certificate${rest>1?'s':''} (${Math.round(restCount).toLocaleString()} installs)</div>`:'';
+    return `<div class="ahri-model-group">`+
+      `<div class="measure-row"><div class="measure-label"><span class="ml-code">${g.name}</span></div>`+
+      `<div class="bar-track"><div class="bar-fill" style="width:${Math.round(g.total/max*100)}%;background:#C8881A"></div></div>`+
+      `<div class="bar-pct">${Math.round(g.total).toLocaleString()}</div></div>`+
+      `<div class="ahri-cert-list">${certRows}${more}</div></div>`;
+  }).join('');
+}
+// n=Infinity: full counts needed so grouping by outdoor model captures a
+// model's true total, not just whichever certificates were in a pre-
+// truncated top-N (mirrors retrofits.html's topCounts()).
+function ahriTopCounts(rows,minDigits){
+  const counts={};
+  rows.forEach(r=>{
+    const v=r.HPAHRI;
+    if(v===null||v===undefined||v==='')return;
+    const s=String(v).trim();
+    if(minDigits&&(s.match(/\d/g)||[]).length<minDigits)return;
+    counts[s]=(counts[s]||0)+1;
+  });
+  return Object.entries(counts).map(([code,count])=>({code,count}));
+}
+function renderHeatPumpModels(s,meta){
+  const ahriAll=meta&&meta.fsaRows?ahriTopCounts(meta.fsaRows,4)
+    :Object.entries(s.ahri_counts||{}).map(([code,count])=>({code,count}));
+  $('ahri-list').innerHTML=ahriModelGroupsHTML(groupAhriByModel(ahriAll).slice(0,5));
 }
 
 function noData(id){dc(id);const cv=$(id);const ctx=cv.getContext('2d');
@@ -1042,6 +1273,7 @@ document.addEventListener('click',e=>{
 });
 
 // ── Boot ────────────────────────────────────────────────────────────
+fetchAhriLookup().then(()=>{if(_lastSlice)renderHeatPumpModels(_lastSlice,_lastMeta||{fsaRows:null});});
 parseDeepLink();updateShareUrl();load();
 </script>
 </body>
