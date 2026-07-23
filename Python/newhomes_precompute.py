@@ -265,10 +265,11 @@ def compute_slice(df):
 
     # ---- Top 20 lowest-EUI homes (most efficient, real as-built houses) ----
     # Powers the "most efficient new homes" table at the bottom of
-    # newhomes.html. FSA mode computes the equivalent client-side from its
-    # own raw rows (see topEuiList() in newhomes.html) -- this precomputed
-    # list is only needed for the province-wide view, which has no raw rows
-    # on the client.
+    # newhomes.html, including its per-home expandable detail (insulation,
+    # airtightness, NBC tier, heating equipment, emissions). FSA mode
+    # computes the equivalent client-side from its own raw rows (see
+    # topEuiFromRows() in newhomes.html) -- this precomputed list is only
+    # needed for the province-wide view, which has no raw rows on the client.
     valid_eui = eui[eui > 0].dropna()
     if len(valid_eui):
         idx = valid_eui.sort_values().index[:20]
@@ -276,6 +277,19 @@ def compute_slice(df):
         hp_col = top.get('HPType')
         year_col = num(top.get('Year'))
         area_col = num(top.get('FloorArea'))
+        ach_col = num(top.get('AirLeakage'))
+        tier_col = num(top.get('Tier'))
+        roof_col = num(top.get('RoofInsulation'))
+        wall_col = num(top.get('WallInsulation'))
+        fnd_col = num(top.get('FoundationInsulation'))
+        floor_col = num(top.get('FloorInsulation'))
+        ghg_col = num(top.get('GHG'))
+        solar_col = num(top.get('SolarPV'))
+
+        def rval(col, i):
+            v = col.at[i] if col is not None else None
+            return round(float(v) * RSI_TO_R, 1) if pd.notna(v) else None
+
         top20 = []
         for i in idx:
             hp_val = hp_col.at[i] if hp_col is not None else None
@@ -288,6 +302,16 @@ def compute_slice(df):
                 'area': round(float(area_col.at[i]), 0) if pd.notna(area_col.at[i]) else None,
                 'fuel': top.at[i, 'HeatFuel'] if 'HeatFuel' in top.columns and pd.notna(top.at[i, 'HeatFuel']) else None,
                 'hp': bool(hp_s and hp_s != NO_HP),
+                'ach': round(float(ach_col.at[i]), 2) if pd.notna(ach_col.at[i]) else None,
+                'tier': int(tier_col.at[i]) if pd.notna(tier_col.at[i]) else None,
+                'roofR': rval(roof_col, i), 'wallR': rval(wall_col, i),
+                'fndR': rval(fnd_col, i), 'floorR': rval(floor_col, i),
+                'heatType': top.at[i, 'HeatType'] if 'HeatType' in top.columns and pd.notna(top.at[i, 'HeatType']) else None,
+                'hpType': hp_s or None,
+                'hpAhri': top.at[i, 'HPAHRI'] if 'HPAHRI' in top.columns and pd.notna(top.at[i, 'HPAHRI']) else None,
+                'ghg': round(float(ghg_col.at[i]), 2) if pd.notna(ghg_col.at[i]) else None,
+                'solar': round(float(solar_col.at[i]), 1) if pd.notna(solar_col.at[i]) else None,
+                'compliance': top.at[i, 'CompliancePath'] if 'CompliancePath' in top.columns and pd.notna(top.at[i, 'CompliancePath']) else None,
             })
         out['top20_lowest_eui'] = top20
     else:
