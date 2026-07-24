@@ -54,6 +54,8 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
+from parquet_meta import write_with_meta
+
 # ---------------------------------------------------------------------------
 # Paths (project convention: run from C:\Energy)
 # ---------------------------------------------------------------------------
@@ -700,16 +702,11 @@ def write_outputs(gdf):
                     "space-heat share; fuel: ERS per-FSA raked to StatCan "
                     "38-10-0286 with rural no-gas constraint."),
     }
-    # parquet with metadata
-    import pyarrow.parquet as pq
-    # geopandas parquet keeps geo metadata; attach our screening note too
-    gdf.to_parquet(BUILDINGS)
-    # re-open to append custom metadata
-    t = pq.read_table(BUILDINGS)
-    md = dict(t.schema.metadata or {})
-    md[b"heatdemand_phase2"] = json.dumps(meta).encode()
-    t = t.replace_schema_metadata(md)
-    pq.write_table(t, BUILDINGS)
+    # parquet with metadata -- write_with_meta carries any later phase's notes
+    # (e.g. Phase 3's heatdemand_phase3) forward, so re-running Phase 2 on an
+    # already-electrified file does not destroy them.
+    kept = write_with_meta(gdf, BUILDINGS, "phase2", meta)
+    print(f"  metadata keys: {', '.join(kept)}")
     print(f"  {BUILDINGS}  ({len(gdf):,} rows, {len(gdf.columns)} cols)")
 
     # gpkg for QGIS spot-checks (drop heavy object cols it can't type well)
