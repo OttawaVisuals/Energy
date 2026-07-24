@@ -154,12 +154,14 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="htitle">
       <span class="logo">energy<em>·</em>atlas</span>
       <span class="chip build" style="font-size:.7rem">v2 · expanded methodology</span>
-      <span class="sub">every project, how it was built, what was assumed — updated 2026-07-10</span>
+      <span class="sub">every project, how it was built, what was assumed — updated 2026-07-24</span>
     </div>
     <nav>
       <a href="#overview">Overview</a>
       <a href="#timeline">Timeline</a>
       <a href="#retrofits">🏠 Retrofits</a>
+      <a href="#insights">📈 Insights</a>
+      <a href="#newhomes">🏡 New Homes</a>
       <a href="#ceud">📊 CEUD</a>
       <a href="#construction">🏗️ Construction</a>
       <a href="#geothermal">🌍 Geothermal</a>
@@ -175,17 +177,18 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
 <!-- ══════════════════ OVERVIEW ══════════════════ -->
 <section id="overview">
   <div class="tldr">
-    <b>TL;DR:</b> Seven tools are live (plus the prices layer). The Ottawa Case Study is 3 of 6 phases in.
-    Two haven't started (landing page, grid.html — its data layer is done and
-    auto-refreshing). Every assumption anyone made is listed below with a
+    <b>TL;DR:</b> Seven tools are live (plus the prices and AHRI-lookup automation layers).
+    The Ottawa Case Study is 3 of 6 phases in; the grid dashboard's data layer is done and
+    auto-refreshing weekly but its page hasn't been built. Only the landing page hasn't been
+    started at all. Every assumption anyone made is listed below with a
     checkbox, the alternatives that existed, and concrete steps to verify it yourself.
     Ticks are saved on this computer.
   </div>
 
   <div class="tiles">
     <div class="tile"><div class="n">7</div><div class="l">✅ tools live</div></div>
-    <div class="tile"><div class="n">1</div><div class="l">🔨 in progress</div></div>
-    <div class="tile"><div class="n">2</div><div class="l">🆕 not started</div></div>
+    <div class="tile"><div class="n">2</div><div class="l">🔨 in progress</div></div>
+    <div class="tile"><div class="n">1</div><div class="l">🆕 not started</div></div>
     <div class="tile"><div class="n" id="assump-count">—</div><div class="l">⚠️ assumptions to verify</div></div>
     <div class="tile"><div class="n" id="assump-done">0</div><div class="l">✓ verified by you</div></div>
   </div>
@@ -203,12 +206,16 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏙️ Ottawa Case Study</span><div class="track"><div class="fill f-build" style="width:60%"></div></div><span class="pct">60%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">📈 Retrofit Insights</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🚪 Landing page</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="pct">0%</span></div>
-    <p class="small muted" style="margin-top:.6rem">Status as of 2026-07-19. Ottawa Case Study = heat-demand
-    Phases 0–3 of 6 done (stock, load, electrified load; next: feeder aggregation → map → case-study page).
-    Retrofit Insights (national big-picture page) shipped 2026-07-19; New Homes Explorer shipped
-    2026-07-15; Retrofit Explorer gained the audit funnel, pairing fix (matched 538k → 1.37M) and
-    bill card 2026-07-18. This page's per-project assumption sections predate those additions —
-    <code>ROADMAP.md</code> is the current tracker.</p>
+    <p class="small muted" style="margin-top:.6rem">Status as of 2026-07-24. Ottawa Case Study = heat-demand
+    Phases 0–3 of 6 done (stock, load, electrified load; next: feeder aggregation → map → case-study page) —
+    no movement since the 2026-07-17 session, still the next thing to build. Retrofit Insights
+    (national big-picture page) shipped 2026-07-19; New Homes Explorer shipped 2026-07-15 and had its
+    pipeline substantially extended 2026-07-22/23 (per-fuel energy, per-component heat loss, full
+    heat-pump detail — see its section below). Retrofit Explorer gained a theme system, a reworked
+    census card, and a combo-chart fix 2026-07-19–21; its AHRI badge lookup now refreshes itself
+    weekly instead of needing a manual rerun (shipped 2026-07-22). Construction Tracker's first
+    scheduled monthly refresh ran clean 2026-07-20. <code>ROADMAP.md</code> remains the day-to-day
+    tracker; this page is the deeper "how and why" reference, refreshed alongside it.</p>
   </div>
 
   <div class="card">
@@ -265,7 +272,12 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
   </svg>
   </div>
   <p class="small muted">Everything was built between <b>June 23 and July 10, 2026</b> — about 2½ weeks.
-  Green dot = the day it went live on GitHub Pages.</p>
+  Green dot = the day it went live on GitHub Pages. <b>Not pictured:</b> the suite kept shipping after
+  this chart was drawn — Retrofit Insights (2026-07-19) and New Homes Explorer (2026-07-15) went live,
+  and the Ottawa Case Study, Retrofit Explorer polish and grid/AHRI automation continued through
+  2026-07-24. See the timestamps in each section above, or <code>git log</code>, for the current
+  picture — redrawing this SVG accurately for a 5-week-and-growing history is due for a rebuild rather
+  than a patch.</p>
 </section>
 
 <!-- ══════════════════ RETROFITS ══════════════════ -->
@@ -407,6 +419,212 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <ul>
       <li>A July 2026 accuracy pass audited every label against the source columns — found and fixed a mislabelled unit (design heat loss is kW, not GJ/yr) and a chart-binning mismatch between the two views.</li>
       <li>The province view and postal-area view are computed two different ways (Python vs JavaScript) and must agree — a documented "bin-width contract" keeps them in sync.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>✅ Done since launch</h3>
+    <ul>
+      <li><b>2026-07-19/20:</b> reworked the census card around a coverage gauge, added a Sources section, added a light/dark/colour-blind theme system, reworded the hero and trimmed the heat-pump aside.</li>
+      <li><b>2026-07-21:</b> fixed the pre/post combo-chart's bar/area draw order and switched pre/post colours to red/green for clarity.</li>
+      <li><b>2026-07-22:</b> the AHRI heat-pump badge lookup (<code>lookup/ahri_numbers.json</code>) is now refreshed automatically every Monday via <code>ahri-refresh.yml</code>, re-checking existing certificates on a rolling basis (catches AHRI amending a certificate after the fact) instead of needing a manual rerun.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ RETROFIT INSIGHTS ══════════════════ -->
+<section id="insights" class="card">
+  <div class="proj-head">
+    <h2>📈 Retrofit Insights</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofit-insights" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> the national, cross-sectional sibling of the Retrofit Explorer — the
+  same 1,369,305 matched retrofit pairs, but zoomed out to "what actually works, and where" instead
+  of one postal area at a time. Shipped 2026-07-19.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Same ERS retrofit pairs<small>row-level source is the raw parquets, not the shipped fsa_json split</small></div>
+    <div class="src">StatCan 2021 Census Profile<small>per-FSA income, extracted for this page (extract_fsa_census.py extension)</small></div>
+    <div class="src">ECCC Climate Normals<small>per-FSA heating/cooling degree-days, new build_fsa_climate.py join</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>0 · Fill 2 data gaps</b><span>per-FSA income (extract_fsa_census.py) + per-FSA HDD/CDD (build_fsa_climate.py, ECCC normals)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>1 · Analyse</b><span>build_insights.py → insights_json/ (~1.3 MB, 7 files): metrics, success, climate, equity, opportunity, timeline</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · One web page</b><span>retrofit-insights.html — KPIs, choropleth, leaderboards, methodology accordion</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>What's actually new vs. the Retrofit Explorer</h4>
+    <p>retrofits.html is deep on <em>one area</em> at a time; this page is the cross-sectional view —
+    leaderboards, a Canada-wide FSA choropleth with a metric switcher, a "what makes a retrofit
+    successful" breakdown, climate and income-equity lenses, heat-pump geography, a missed-opportunity
+    ranking, and a program-era timeline (EnerGuide for Houses → ecoENERGY Retrofit–Homes → Canada
+    Greener Homes Grant). Scope was deliberately kept descriptive + stratified — no fitted regression
+    models in v1.</p>
+    <h4>The single most robust finding: savings scale with # of measures</h4>
+    <p>Zero-measure pairs (118,282, 8.6% of all pairs) are the audit-noise population flagged in
+    docs/RETROFITS.md — a re-audit with no tracked upgrade, median "saving" 3.3%. Every "what worked"
+    statistic on the page (bundles, top-decile, climate/equity medians) excludes them and instead
+    quotes the 1,251,023 nonzero-measure pairs; the zero-measure count is reported separately, never
+    silently dropped. Above that floor, savings rise cleanly with measure count — 1 measure ≈16%
+    median saving, 4 measures ≈34%, 7–8 measures ≈62–69% — and heat pump alone (141,677 pairs, 25.5%
+    median saving) clearly outperforms windows alone (66,744 pairs, 6.1%).</p>
+    <h4>The missed-opportunity composite ranking</h4>
+    <p>A per-FSA score combining worst stock (high pre-retrofit EUI, high GHG, older vintage) and
+    lowest program uptake so far — "where should a program look next?" All factors are
+    percentile-ranked 0–1 first so different units combine fairly. Reworked 2026-07-20 from continuous
+    weights (0.30/0.25/0.20/0.25) to the same ordinal scale (Off/Low/Medium/High → 0/1/2/3, normalised
+    to sum to 1) the page's own reader-facing priority controls use, so the shipped default ranking is
+    something a reader can actually reproduce from the UI rather than a number they can't reach. The
+    rework barely moved the ranking (18 of the top 20 FSAs unchanged, same #1, median rank shift 22
+    places out of 1,509) — evidence the reweighting was cosmetic, not a substantive change to "who's
+    flagged".</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & judgment calls — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="ri-zero"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Zero-measure pairs are excluded from every "what worked" statistic, reported only as a count.</b>
+        <p>118,282 pairs (8.6%) logged no tracked upgrade between audits — re-audits, not retrofits. Including them would dilute every measure-effectiveness number with noise.</p>
+        <p class="alt"><b>Other options:</b> include them as a "0 measures" bucket in the bundle table (the previous approach in retrofits.html's own stats — muddies the "what worked" question this page asks); or try to reclassify some as real (untracked) retrofits (no reliable signal to do so).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>On the page, the "what worked" section states its denominator (1,251,023) explicitly — check it's smaller than the 1,369,305 hero number, and the gap (118,282) matches the zero-measure count called out in the methodology accordion.</li>
+        </ol></div>
+        <div class="where">Python/insights_notes.md §1; docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-opportunity"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The missed-opportunity ranking is a reader-adjustable weighted composite</b> — the reader can re-weight all 5 factors live and the table re-sorts client-side from stored per-FSA percentiles.
+        <p>Default weights: pre-EUI High, pre-GHG Medium, pre-1980 share Low, low participation Medium, low income Off (income is emitted but not weighted by default — see next assumption).</p>
+        <p class="alt"><b>Other options:</b> a fixed, non-adjustable formula (simpler, but hides the judgment call instead of exposing it); a single "priority score" with no factor breakdown.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Open the missed-opportunity section and change a factor's priority slider — the ranking should visibly re-sort without a page reload (nothing is recomputed server-side, it's arithmetic over the stored percentiles).</li>
+        </ol></div>
+        <div class="where">Python/build_insights.py "opportunity.json" section (OPP_WEIGHTS + comment); the page's priority controls.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-income"><div class="a-body">
+        <span class="tag data">source limit</span><b>Income correlations are ecological (FSA-level), not household-level.</b>
+        <p>"This FSA's median income is $X" describes the postal area, not the specific households that got audited. "Rich FSA" ≠ "rich participant" — a common mixing-of-levels trap the page states on-page.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Cross-check the national dwelling-weighted median income the page implies (~$82,000) against StatCan's 2020 published Canada median (~$84,000) — close but not identical, since this is a dwelling-weighted FSA aggregate, not a direct household survey figure.</li>
+        </ol></div>
+        <div class="where">Python/insights_notes.md intro cross-checks; equity section methodology note on-page.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-participation"><div class="a-body">
+        <span class="tag data">source limit</span><b>Participation rate mixes ~20 years of cumulative audits over a single 2021 census dwelling snapshot — it can exceed 100%.</b>
+        <p>A FSA where more homes have EVER been audited (2004–2026) than existed as dwellings in the 2021 census will show &gt;100% participation. Not a bug; stated on-page wherever the metric appears.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Sort the participation leaderboard and check whether any FSA sits above 100% — if so, confirm the page's own caveat text next to that metric explains why.</li>
+        </ol></div>
+        <div class="where">docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>National matched total in insights_json (1,369,305) cross-checked against the sum of the retrofit-explorer province files — exact match.</li>
+      <li>Spot-checked FSAs (L3R, K2P, M5V) reproduce the same median saving % as retrofits.html's own <code>fsa_json</code> for those areas.</li>
+      <li>National dwelling-weighted median household income (~$82,000) lands close to StatCan's 2020 published Canada figure (~$84,000) — same-ballpark sanity check, not an exact match (different weighting methods).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ NEW HOMES ══════════════════ -->
+<section id="newhomes" class="card">
+  <div class="proj-head">
+    <h2>🏡 New Homes Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/newhomes" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> how efficient Canada's brand-new homes actually are — as-designed
+  (Plan) vs. as-built (blower-door-tested) EnerGuide evaluations, 223,052 matched rows. Shipped
+  2026-07-15; pipeline substantially extended 2026-07-22/23.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Same NRCan EnerGuide/ERS audits<small>as the Retrofit Explorer, but the P (Plan) and N (As-built) evaluation types instead of D/E</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Pair P/N records</b><span>raw ERS CSVs → per-province parquet, plan left-joined to its matching as-built (newhomes_pipeline.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Pre-compute</b><span>parquet → newhomes_json/ (province summaries) + newhomes_fsa/ (per-FSA drill-down) (newhomes_precompute.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>newhomes.html — same architecture as retrofits.html, fully separate data trees</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>P vs. N — two very different snapshots of the same house</h4>
+    <p><b>P ("Plan")</b> is evaluated from architectural drawings before a shovel hits the ground —
+    no blower-door test, purely modelled. <b>N ("As-built")</b> is evaluated after construction with
+    a real blower-door air-leakage test. One row per finished, tested new home, with its matching
+    plan record left-joined so as-designed can be compared to as-built. Homes with a plan but no
+    matching as-built record are excluded — they're either still under construction or the paperwork
+    never got filed, and neither case has a real "as-built" number to show.</p>
+    <h4>Small enough to pair in memory</h4>
+    <p>New construction is a small slice of ERS activity (~30k homes/yr, 223,052 total P/N rows
+    nationally vs. 1.37M+ retrofit pairs) — the whole pairing job runs in memory, no chunking needed.</p>
+    <h4>2026-07-22/23 rework: parity with the Retrofit Explorer's per-fuel detail</h4>
+    <p>The Retrofit Explorer's fsa_json already carries per-fuel heating energy, per-building-component
+    heat loss and ventilation type (shipped 2026-07-17). This session pulled ~35 more source columns
+    into newhomes_pipeline.py to give New Homes the same depth: whole-house and space-heating energy
+    split per fuel (elec/gas/oil/propane/wood, with wood using the same
+    EGHFCONWOODGJ-first-then-tonnage-fallback derivation as the retrofit pipeline), annual heat loss by
+    component (air, ceiling, walls, foundation, exposed floor, windows/doors), insulation R-values,
+    window code, ventilation system type, heating-equipment efficiency (AFUE/seasonal), and full
+    heat-pump detail (type, COP, HSPF/SEER, capacity, AHRI certificate number). All of it now
+    flows into the "most efficient new homes" table's expandable per-home detail
+    (<code>top20_lowest_eui</code> in newhomes_json), which previously only showed year, floor area,
+    fuel and a plain heat-pump flag. A byproduct data-quality audit
+    (<code>Python/ers_pn_column_fill.csv</code>) confirms population rates per source column so gaps
+    are visible rather than silently null.</p>
+    <h4>Year-coverage caveat baked into the page</h4>
+    <p>Tier, ACH (air-changes-per-hour) and ERS-rating fields weren't collected in every audit year —
+    the page states which years each metric actually covers rather than showing a flat "N/A" that
+    looks like a data error.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & data quirks — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="nh-excluded"><div class="a-body">
+        <span class="tag data">source limit</span><b>Plan-only homes (no matching as-built record) are excluded entirely.</b>
+        <p>Homes still under construction, or where the as-built evaluation was never filed, don't appear anywhere in the tool — there's no "as-built" number to show them with.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Compare the total P (plan) record count in a raw ERS CSV for a recent year against newhomes_json's row count for that year — plan-only homes explain the gap.</li>
+        </ol></div>
+        <div class="where">docs/NEWHOMES.md "One row per finished, tested new home".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="nh-coverage"><div class="a-body">
+        <span class="tag data">source limit</span><b>Tier / ACH / ERS-rating availability varies by audit year.</b>
+        <p>These fields weren't consistently collected across the full history; the page states year coverage per metric rather than implying full history everywhere.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Filter the page to an early audit year and check whether Tier/ACH show real values or an explicit "not collected this year" state.</li>
+        </ol></div>
+        <div class="where">docs/NEWHOMES.md "Notes".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="nh-shared"><div class="a-body">
+        <span class="tag data">source limit</span><b>Shares every caveat the Retrofit Explorer has about modelled (not metered) energy and self-selection.</b>
+        <p>Same HOT2000-modelled energy numbers, same "only audited homes appear" sampling logic — see the Retrofit Explorer section above for the full detail rather than repeating it here.</p>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" (shared conventions); docs/NEWHOMES.md.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>223,052 matched P/N rows nationally (newhomes_json/CA.json total_rows) — cross-referenced against the raw ERS new-construction row counts per province during the pipeline build.</li>
+      <li>Refreshes on the same ERS CSV drops as the Retrofit Explorer — no separate download; rerun both pipeline scripts after ers_web_pipeline.py's source files update.</li>
     </ul>
   </div>
 </section>
@@ -1117,9 +1335,15 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   sections and per-assumption verification guides) by reading every project document in the repo
   (<code>ROADMAP.md</code>, <code>HeatPump/PLAN.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
   <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>docs/archive/CONSTRUCTION_PLAN/STATUS.md</code>,
-  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Status sections updated 2026-07-18 —
-  regenerate it by asking Claude to re-read those documents after major changes.
-  Your ✓ checkmarks are stored in this browser only (localStorage).</p>
+  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Updated 2026-07-24:
+  added the missing Retrofit Insights and New Homes Explorer sections (both had shipped but were only
+  reflected in the overview tiles, not full write-ups), refreshed every status line against the current
+  <code>ROADMAP.md</code> and commit history, and added the <code>ahri-refresh.yml</code> automation
+  layer nowhere else in the atlas mentioned it. Sources for the new sections:
+  <code>docs/NEWHOMES.md</code>, <code>docs/archive/ROADMAP_COMPLETED.md</code> item 13,
+  <code>Python/insights_notes.md</code>, <code>Python/build_insights.py</code>. Regenerate it by asking
+  Claude to re-read those documents after major changes. Your ✓ checkmarks are stored in this browser
+  only (localStorage).</p>
   <button class="reset-btn" id="reset-checks">Reset all my verification checkmarks</button>
 </section>
 

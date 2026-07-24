@@ -1,7 +1,7 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-19** (verified against the repo, GitHub Actions, and the live site).
+Updated **2026-07-24** (verified against the repo and commit history; GitHub Actions run status not directly queried — inferred from bot-authored commits).
 
 - 📦 Full record of completed items (prompts + build notes): [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)
 - 🗺️ Visual status page: [project-atlas.html](project-atlas.html) — <https://ottawavisuals.github.io/Energy/project-atlas>
@@ -17,7 +17,7 @@ Updated **2026-07-19** (verified against the repo, GitHub Actions, and the live 
 |---|---|---|---|
 | 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fix (matched 538k → 1.37M), bill card, visual polish |
 | 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19 |
-| 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/RETROFITS.md](docs/RETROFITS.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15 |
+| 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
@@ -28,9 +28,10 @@ Updated **2026-07-19** (verified against the repo, GitHub Actions, and the live 
 
 | Layer | Refresh | Status |
 |---|---|---|
-| Energy prices (`prices_json/`) | monthly, 3rd — `rates-refresh.yml` | ✅ built; first scheduled run **2026-08-03** |
+| Energy prices (`prices_json/`) | monthly, 3rd — `rates-refresh.yml` | ✅ built; first scheduled run **2026-08-03** (not yet happened) |
 | Grid mix ETL (`grid_json/`) | weekly, Mon — `grid-refresh.yml` | ✅ first scheduled run went **green 2026-07-13** |
-| Construction data (`construction_json/`) | monthly, 20th — `construction-refresh.yml` | ✅ built; first scheduled run **2026-07-20** |
+| AHRI cert lookup (`lookup/ahri_numbers.json`) | weekly, Mon 15:00 UTC — `ahri-refresh.yml` | ✅ shipped 2026-07-22; replaces manual `build_ahri_lookup.py` reruns |
+| Construction data (`construction_json/`) | monthly, 20th — `construction-refresh.yml` | ✅ first scheduled run confirmed **green 2026-07-20** |
 | Utility rates for bill cards (`utility_rates_reference.json`) | manual (`Python/utility_rates_reference.py`) | ✅ shipped 2026-07-18 |
 
 ### In flight 🔨
@@ -61,14 +62,13 @@ Updated **2026-07-19** (verified against the repo, GitHub Actions, and the live 
 
 **Small loose ends (fold into any session):**
 
-- [ ] Rerun `Python/build_ahri_lookup.py` — `lookup/ahri_numbers.json` is missing
-      7 newly-seen AHRI numbers (flagged 2026-07-12).
 - [ ] `Geothermal/scripts/build_building_demand.py` has the parquet-metadata
       clobbering bug Phase 3 fixed in its own writer — re-running Phase 2 today
-      would silently destroy the `heatdemand_phase3` note (flagged 2026-07-17).
-- [ ] Watch first scheduled runs: construction **2026-07-20**, rates **2026-08-03**.
-- [ ] `project-atlas.html` has no New Homes Explorer section; add one next time
-      the atlas is open.
+      would silently destroy the `heatdemand_phase3` note (flagged 2026-07-17,
+      still unfixed as of 2026-07-23).
+- [ ] Watch first scheduled run: rates **2026-08-03**. (Construction's first run
+      went green 2026-07-20; AHRI lookup is now a weekly automated refresh as of
+      2026-07-22 — both resolved, no longer loose ends.)
 
 ---
 
