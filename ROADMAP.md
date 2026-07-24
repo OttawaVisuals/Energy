@@ -22,6 +22,8 @@ Updated **2026-07-24** (verified against the repo and commit history; GitHub Act
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
 | 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs |
+| ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
+| 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
 
 **Data layers behind the tools (all built, all auto-refreshing):**
@@ -42,23 +44,19 @@ Updated **2026-07-24** (verified against the repo and commit history; GitHub Act
 
 ### Queued 🆕
 
-| Project | Size | Blocked by |
-|---|---|---|
-| 🚪 **Landing page hub** (`index.html`) | 1 session | nothing — [item 5](#5-landing-page-hub-1-session) |
-| ⚡ **Live grid dashboard page** (`grid.html`) | 1 session | nothing (ETL done) — [item 6](#6-live-grid-dashboard-page-1-session) |
+Nothing queued — every planned tool has shipped. Next up is finishing the
+in-flight Ottawa Case Study (below), then picking from the project ideas.
 
 ---
 
 ## 🎯 What's next — recommended order
 
-1. **Ottawa Case Study Phases 4 → 5 → 6** (item 7). The flagship. Phase 4 is the
-   defensibility step (coincidence factor — Phase 3 proved the undiversified sums
-   are upper bounds); Phase 6 is the public narrative page the whole project
-   builds toward.
-2. **Landing page hub** (item 5). One session, makes everything else findable —
-   now including Retrofit Insights, shipped 2026-07-19 (item 13, archived).
-3. **Grid dashboard page** (item 6). ETL already refreshes weekly; one page
-   session. Doubles as the heat-pump marginal-emissions explainer.
+1. **Ottawa Case Study Phases 4 → 5 → 6** (item 7). The only thing left on the
+   board. Phase 4 is the defensibility step (coincidence factor — Phase 3
+   proved the undiversified sums are upper bounds); Phase 6 is the public
+   narrative page the whole project builds toward.
+2. Once Phase 6 ships, pick from **Project ideas** below — nothing queued
+   ahead of it.
 
 **Small loose ends (fold into any session):**
 
@@ -69,61 +67,6 @@ Updated **2026-07-24** (verified against the repo and commit history; GitHub Act
 - [ ] Watch first scheduled run: rates **2026-08-03**. (Construction's first run
       went green 2026-07-20; AHRI lookup is now a weekly automated refresh as of
       2026-07-22 — both resolved, no longer loose ends.)
-
----
-
-## 5. Landing page hub (1 session)
-
-Seven (soon eight) tools, no front door — `…/Energy/` still 404s.
-
-### Prompt (Opus — design-heavy)
-
-```text
-Read README.md and skim retrofits.html, ceud.html, construction.html
-headers/hero sections for the shared design system. Build index.html at the
-repo root: a landing page in the same navy/amber/cream + Fraunces/Inter
-language presenting the suite ("Ottawa Visuals — Canadian energy data
-tools"). One card per tool — Retrofit Explorer, New Homes Explorer, CEUD
-Explorer, Construction Tracker, Ottawa Geothermal Map
-(https://ottawavisuals.github.io/Energy/Geothermal/output/), and the Heat
-Pump Explorer (https://ottawavisuals.github.io/Energy/heatpump — live, NOT
-coming-soon), plus a greyed "coming soon" card for the grid dashboard
-(grid.html, ROADMAP.md item 6) — each with a one-sentence plain-language
-description, the data source, and a small representative static graphic
-(inline SVG, no live data fetches; keep the page < 200 KB total). Add a
-short "about the data" footer. Follow the deployment pattern the other
-pages use so it becomes the site's front page, and add cross-links from
-each existing tool's header back to the hub (small, unobtrusive). Verify
-in a browser preview at mobile and desktop widths.
-```
-
----
-
-## 6. Live grid dashboard page (1 session)
-
-ETL is **done and auto-refreshing weekly** (`Python/grid_etl.py` →
-`grid_json/{grid_on,grid_ab,grid_qc,meta}.json`; first scheduled run went green
-2026-07-13). ON (IESO) is fully live; AB is parse-only from manually placed CSD
-zips (no scriptable recent AESO source — real-time API needs a key we don't
-have); QC is a static flat-EF context card. Full ETL notes in
-[docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 6)
-and the script docstring.
-
-### Prompt — page (Opus)
-
-```text
-Read ROADMAP.md item 6 and skim construction.html for the design system and
-BASE_URL pattern. Build grid.html: current + recent grid mix and emissions
-intensity for ON and AB from grid_json/. Sections: (1) latest-day stacked
-generation-by-fuel area with intensity line beneath (chart-pair pattern
-from construction.html, not dual axes); (2) 12-month daily intensity band
-(min/mean/max); (3) an "average vs marginal emissions" explainer panel with
-a small interactive toggle demonstrating why new load (like a heat pump) is
-priced at the margin — link to heatpump.html; (4) typical-day profiles by
-season (Advanced). Run /dataviz before building charts. Simple/Advanced
-toggle, same header/hub link, verified in browser preview with zero console
-errors and values spot-checked against grid_json.
-```
 
 ---
 
@@ -192,13 +135,14 @@ feeder loading rather than quote raw sums.
 | 2 | Repo housekeeping — AHRI legacy files | 2026-07-12 |
 | 3 | Heat Pump tool, all 7 phases | 2026-07-10 |
 | 4 | Energy prices layer, all 3 phases | 2026-07-12 |
-| 6-ETL | Grid dashboard ETL + weekly workflow | 2026-07-12 |
 | 8 | Geothermal v2 (4 phases) | 2026-07-15 |
 | 9 | Heat Pump v2 (6 workstreams) | 2026-07-17 |
 | 10 | Retrofit Explorer post-launch additions | 2026-07-17 |
 | 11 | Retrofit audit funnel + pairing-filter fix | 2026-07-18 |
 | 12 | Retrofit EnerGuide-demo visual polish | 2026-07-18 |
 | 13 | Retrofit Insights — national "big picture" page | 2026-07-19 |
+| 6 | Live grid dashboard — ETL + page (`grid.html`) | 2026-07-12 (ETL) / 2026-07-24 (page) |
+| 5 | Landing page hub (`index.html`) | 2026-07-24 |
 | — | New Homes Explorer (built outside the roadmap) | 2026-07-15 |
 
 ---
