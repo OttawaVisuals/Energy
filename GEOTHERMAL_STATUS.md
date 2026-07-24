@@ -3,9 +3,34 @@
 Companion to [Geothermal/ottawa-geothermal-guide.md](Geothermal/ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-17.*
+*Last session: 2026-07-24.*
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-07-24 session — parquet-metadata carry-forward fix (no data change)
+
+Closes the loose end flagged 2026-07-17. Every heat-demand phase augments
+`buildings_ottawa.parquet` **in place** and stamps a `heatdemand_phaseN`
+provenance note into its custom schema metadata. geopandas does not round-trip
+custom schema metadata through the GeoDataFrame, so `gdf.to_parquet()` writes a
+fresh schema and drops every note not explicitly re-attached. Phase 3 handled
+this; **Phase 2 did not** — re-running `build_building_demand.py` on an
+already-electrified file silently destroyed the `heatdemand_phase3` note. The
+columns survived (Phase 2 reads the current parquet, so Phase 3's `elec_*`
+columns pass through), so the loss was provenance only: the record of which
+heat-pump curve, COP assumptions and lockout temperature produced the Phase 3
+peaks Phase 4 has to defend.
+
+**Fix:** new shared module `Geothermal/scripts/parquet_meta.py` —
+`write_with_meta(gdf, path, key, meta)` reads the existing `heatdemand_*` keys
+before rewriting and merges them back. Phases 2 and 3 both call it; the
+hand-rolled blocks in each are gone. **Phase 4 must use it too** — that is the
+point of putting it in one place.
+
+Verified by round-trip on a scratch parquet: phase1 → 2 → 3, then a Phase 2
+**re-run**, after which `heatdemand_phase3` still reads back intact, Phase 2's
+own note is updated, and geo metadata/CRS survive. No pipeline re-run and no
+change to any committed data.
 
 ## 2026-07-17 session — Heat Demand Phase 3: electrified load per building
 

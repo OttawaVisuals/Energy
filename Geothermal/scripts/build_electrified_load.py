@@ -114,6 +114,8 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
+from parquet_meta import write_with_meta
+
 # ---------------------------------------------------------------------------
 # Paths (project convention: run from C:\Energy)
 # ---------------------------------------------------------------------------
@@ -921,22 +923,9 @@ def write_outputs(gdf, central, gshp):
                         f"unreachable with this curve (~17% of Ottawa's annual load "
                         f"falls below -15 C); it stalls near 83%."),
     }
-    import pyarrow.parquet as pq
-    # Capture the EXISTING custom schema metadata (Phase 2's heatdemand_phase2
-    # note, and anything an earlier phase attached) BEFORE rewriting. geopandas
-    # does not round-trip custom metadata through the GeoDataFrame, so
-    # to_parquet() writes a fresh schema and any key not re-attached here is
-    # silently destroyed -- each phase must carry its predecessors' notes forward.
-    prior = {k: v for k, v in (pq.read_schema(BUILDINGS).metadata or {}).items()
-             if k.startswith(b"heatdemand_")}
-    gdf.to_parquet(BUILDINGS)
-    t = pq.read_table(BUILDINGS)
-    md = dict(t.schema.metadata or {})
-    md.update(prior)                                   # keep upstream phases' notes
-    md[b"heatdemand_phase3"] = json.dumps(meta).encode()
-    t = t.replace_schema_metadata(md)
-    pq.write_table(t, BUILDINGS)
-    kept = sorted(k.decode() for k in md if k.startswith(b"heatdemand_"))
+    # write_with_meta preserves the upstream phases' notes (Phase 2's
+    # heatdemand_phase2 and anything earlier) across the rewrite.
+    kept = write_with_meta(gdf, BUILDINGS, "phase3", meta)
     print(f"  metadata keys: {', '.join(kept)}")
     print(f"  {BUILDINGS}  ({len(gdf):,} rows, {len(gdf.columns)} cols)")
 

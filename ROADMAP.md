@@ -60,10 +60,10 @@ in-flight Ottawa Case Study (below), then picking from the project ideas.
 
 **Small loose ends (fold into any session):**
 
-- [ ] `Geothermal/scripts/build_building_demand.py` has the parquet-metadata
-      clobbering bug Phase 3 fixed in its own writer — re-running Phase 2 today
-      would silently destroy the `heatdemand_phase3` note (flagged 2026-07-17,
-      still unfixed as of 2026-07-23).
+- [x] ~~`Geothermal/scripts/build_building_demand.py` parquet-metadata clobbering
+      bug~~ — fixed 2026-07-24. Both phase writers now call the shared
+      `Geothermal/scripts/parquet_meta.py:write_with_meta()`, which carries
+      every `heatdemand_*` note across a rewrite. **Phase 4 must use it too.**
 - [ ] Watch first scheduled run: rates **2026-08-03**. (Construction's first run
       went green 2026-07-20; AHRI lookup is now a weekly automated refresh as of
       2026-07-22 — both resolved, no longer loose ends.)
