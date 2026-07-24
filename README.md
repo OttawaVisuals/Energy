@@ -77,6 +77,7 @@ Energy/
 | Workflow | Cadence | Data |
 |---|---|---|
 | `grid-refresh.yml` | weekly (Mon 13:00 UTC) | `grid_json/` |
+| `ahri-refresh.yml` | weekly (Mon 15:00 UTC) | `lookup/ahri_numbers.json` |
 | `construction-refresh.yml` | monthly (20th 14:00 UTC) | `construction_json/` |
 | `rates-refresh.yml` | monthly (3rd) | `prices_json/` |
 
