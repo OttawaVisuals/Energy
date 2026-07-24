@@ -10,6 +10,9 @@ GitHub Pages.
 > **📋 [Project Tracker & Roadmap → ROADMAP.md](ROADMAP.md)** — what's shipped,
 > what's in flight, what's next. Start here.
 
+**🏠 [Landing page →](https://ottawavisuals.github.io/Energy/)** — one card per
+tool, the public front door.
+
 ## 🔗 Live tools
 
 | Tool | What it is | Live page |
@@ -21,11 +24,11 @@ GitHub Pages.
 | 🌍 **Ottawa Geothermal Map** | Ground-source heat pump screening for Ottawa: conductivity from 55k water wells, drilling difficulty, grid capacity | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) |
 | 📊 **CEUD Explorer** | NRCan's Comprehensive Energy Use Database, browsable — all 5 sectors, national + provincial | [/ceud](https://ottawavisuals.github.io/Energy/ceud) |
 | 🏗️ **Construction Tracker** | Permits, housing starts and construction investment — national / provincial / metro | [/construction](https://ottawavisuals.github.io/Energy/construction) |
+| ⚡ **Grid Dashboard** | Ontario/Alberta generation mix & emissions intensity, plus the average-vs-marginal emissions explainer | [/grid](https://ottawavisuals.github.io/Energy/grid) |
 | 🗺️ **Project Atlas** | Internal status & assumptions page for the suite | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) |
 
-**Coming:** landing-page hub (`index.html`), live grid dashboard (`grid.html` —
-data already refreshing weekly), and the Ottawa Case Study (heat demand →
-electrification → grid). See the [roadmap](ROADMAP.md).
+**Coming:** the Ottawa Case Study (heat demand → electrification → grid) —
+the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 
 ## 📖 Documentation per project
 
@@ -39,7 +42,7 @@ electrification → grid). See the [roadmap](ROADMAP.md).
 | Ottawa Case Study / heat demand | [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) (active plan) |
 | CEUD Explorer | [docs/CEUD.md](docs/CEUD.md) |
 | Construction Tracker | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) |
-| Grid dashboard (data layer) | [docs/GRID.md](docs/GRID.md) |
+| Grid Dashboard | [docs/GRID.md](docs/GRID.md) |
 | Completed plans (archive) | [docs/archive/](docs/archive/README.md) |
 
 ## 🗂️ Repository layout

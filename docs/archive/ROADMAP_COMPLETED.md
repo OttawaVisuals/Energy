@@ -1322,5 +1322,128 @@ exist and are browser-verified. Ship + integrate:
 
 ---
 
+## 6. Live grid dashboard — ETL (✅ 2026-07-12) + page (✅ 2026-07-24)
+
+**ETL, 2026-07-12:** `Python/grid_etl.py` → `grid_json/{grid_on,grid_ab,grid_qc,meta}.json`,
+reusing (not reimplementing) the fetch/parse/EF logic already built and
+validated for the Heat Pump tool's Phase 1 — `HeatPump/pipeline/grid_common.py`
+is the shared module both `fetch_ieso.py`/`fetch_aeso.py`/`build_grid_ef.py`/
+`build_grid_ef_ab.py` and this script import from. ON (IESO) is fully live,
+re-fetched every run; AB (AESO) is parse-only from manually placed CSD zips
+(no scriptable recent AESO source — their API needs a registered key nobody
+has); QC is a static flat-EF context card (Hydro-Québec's grid is >99%
+hydro/wind, so a live pipeline wasn't warranted). `grid-refresh.yml` runs
+weekly (Mondays 13:00 UTC); first scheduled run went green 2026-07-13.
+
+**Page, 2026-07-24:** `grid.html`, built per the prompt below with two
+adaptations made during the build rather than in a second planning pass:
+
+1. **Chart engine — construction.html, not Chart.js.** The prompt asked for
+   the "chart-pair pattern from construction.html, not dual axes"; the build
+   went further and ported construction.html's whole bespoke SVG engine
+   (`svgEl`/`niceTicks`/linked-hover tooltips/`showTip`/`tipRow`) rather than
+   using retrofits.html's Chart.js, since that's the actual code the prompt
+   was pointing at and it sidesteps any animation-frame dependency for a
+   dashboard that's mostly time-series line/area/band charts. Page chrome
+   (header, hero, Simple/Advanced + light/dark/colour-blind theme toggles,
+   footer) still reuses `assets/site-theme.css` — the retrofits.html-family
+   convention — so the page matches the rest of the suite exactly and the
+   charts theme correctly via the same `--d-*` CSS vars.
+2. **"Typical day by season" needed a new precompute step.** `grid_json/`
+   only carries a rolling 14-day hourly window + ~12 months of daily
+   min/mean/max — there's no way to derive a real seasonal hourly profile
+   from it. The multi-year hourly history the Advanced panel needed does
+   exist (`HeatPump/data/processed/grid_ef_{on,ab}.json`, the Heat Pump
+   tool's own Phase-1 output, 2020–2026 ON / 2015–2026 AB), but at 6–9 MB
+   each it's too large to ship to a browser for one sub-panel. New script
+   `Python/build_grid_seasonal.py` reuses those files (no re-fetch, no
+   re-derivation of the EF model) and aggregates them into
+   `grid_json/typical_day_{on,ab}.json` — mean AvgEF/MarginalEF/fossil-share
+   per (meteorological season, hour-of-day), ~8 KB each. Run manually
+   (not on the weekly schedule) whenever the Phase-1 files refresh. The
+   panel's own copy states plainly that this is a multi-year historical
+   average, not "today" — the suite's grid has gotten dirtier over that
+   window (more gas dispatched in recent years per the Heat Pump tool's own
+   Phase 7 finding), so today's actual intensity runs above these lines.
+
+Also added: a reciprocal `↳ Grid Dashboard` link in heatpump.html's header
+(grid.html already linked out to heatpump.html per the prompt). Verified in
+browser preview: zero console errors, ON/AB toggle, Simple/Advanced,
+light/dark/cb theme, and a 375px-wide mobile check all pass; KPI/chart
+values spot-checked against the raw `grid_json/` payloads.
+
+### Prompt — page (Opus)
+
+```text
+Read ROADMAP.md item 6 and skim construction.html for the design system and
+BASE_URL pattern. Build grid.html: current + recent grid mix and emissions
+intensity for ON and AB from grid_json/. Sections: (1) latest-day stacked
+generation-by-fuel area with intensity line beneath (chart-pair pattern
+from construction.html, not dual axes); (2) 12-month daily intensity band
+(min/mean/max); (3) an "average vs marginal emissions" explainer panel with
+a small interactive toggle demonstrating why new load (like a heat pump) is
+priced at the margin — link to heatpump.html; (4) typical-day profiles by
+season (Advanced). Run /dataviz before building charts. Simple/Advanced
+toggle, same header/hub link, verified in browser preview with zero console
+errors and values spot-checked against grid_json.
+```
+
+---
+
+## 5. Landing page hub — ✅ DONE (2026-07-24)
+
+`index.html` — one card per tool (Retrofit Explorer, Retrofit Insights, New
+Homes Explorer, CEUD Explorer, Construction Tracker, Grid Dashboard, Ottawa
+Geothermal Map, Heat Pump Explorer), each with a one-sentence description,
+its data source, and a small hand-drawn inline SVG graphic themed to the
+page's own subject (before/after bars for Retrofit Explorer, a mini
+choropleth for Retrofit Insights, a blueprint-to-built house for New Homes,
+a stacked sector bar for CEUD, an ascending permit "skyline" for
+Construction, a bolt over a generation wave for Grid, a pin over ground
+layers for Geothermal, a heat-pump box with a COP curve for Heat Pump). No
+data fetches, no chart library — 17 KB total, well under the 200 KB budget.
+Built on `assets/site-theme.css` like every other page in the suite (theme
+toggle only; no Simple/Advanced mode, nothing to toggle on a directory page).
+
+Cross-links added both ways: every card links out, and a small `↳ All tools`
+link (`⌂` icon) was added to the header of all seven other suite pages
+(retrofits.html, retrofit-insights.html, newhomes.html, ceud.html,
+construction.html, heatpump.html, grid.html) plus a minimal equivalent in the
+Geothermal map's floating title panel (`../../index.html` — that page is a
+full-viewport Leaflet app with no shared header, so it got the smallest
+change that fit rather than being restructured to match). An "About the
+data" card explains the shared pipeline pattern and links the GitHub repo;
+a quiet link to project-atlas.html sits below it for anyone who wants the
+build notes rather than the tools.
+
+Verified in browser preview: zero console errors on the hub itself (only
+fetch is `assets/site-theme.css`), all 8 card links plus the About/GitHub/
+Project-Atlas links resolve, dark theme applies correctly, no horizontal
+overflow at 375px, and the hub link round-trips correctly from at least one
+tool page and from the Geothermal map.
+
+### Prompt (Opus — design-heavy)
+
+```text
+Read README.md and skim retrofits.html, ceud.html, construction.html
+headers/hero sections for the shared design system. Build index.html at the
+repo root: a landing page in the same navy/amber/cream + Fraunces/Inter
+language presenting the suite ("Ottawa Visuals — Canadian energy data
+tools"). One card per tool — Retrofit Explorer, Retrofit Insights, New Homes
+Explorer, CEUD Explorer, Construction Tracker, Grid Dashboard
+(https://ottawavisuals.github.io/Energy/grid), Ottawa Geothermal Map
+(https://ottawavisuals.github.io/Energy/Geothermal/output/), and the Heat
+Pump Explorer (https://ottawavisuals.github.io/Energy/heatpump) — all live,
+none coming-soon — each with a one-sentence plain-language description, the
+data source, and a small representative static graphic (inline SVG, no live
+data fetches; keep the page < 200 KB total). Add a short "about the data"
+footer. Follow the deployment pattern the other pages use so it becomes the
+site's front page, and add cross-links from each existing tool's header back
+to the hub (small, unobtrusive). Verify in a browser preview at mobile and
+desktop widths.
+```
+
+---
+
 ---
 
