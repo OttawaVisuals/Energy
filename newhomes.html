@@ -219,6 +219,50 @@ footer a:hover{color:var(--amber2)}
 .section-head:first-child{margin-top:.25rem}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
 .section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:680px}
+
+/* ── National picture (province scorecard + national FSA choropleth) ──
+   Sits above the filter bar because it is deliberately *not* filtered: it is
+   national context, and putting it below the filters would imply it responds
+   to them. The map is behind a button -- geo_json is ~10 MB across the ten
+   provinces, which must not land on every page load for a section this high
+   up the page. */
+.nat-wrap{max-width:1280px;margin:0 auto;padding:0 1.25rem}
+.nat-sowhat{font-size:13px;color:var(--muted);line-height:1.65;margin-top:.7rem;
+  padding:.7rem .9rem;background:var(--cream);border-left:2px solid var(--amber);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.nat-sowhat b{color:var(--ink);font-weight:600}
+.scroll-x{overflow-x:auto}
+.scorecard{width:100%;border-collapse:collapse;font-size:13.5px}
+.scorecard th,.scorecard td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scorecard th{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
+.scorecard th:hover,.scorecard th.arrow-active{color:var(--ink)}
+.scorecard td:first-child,.scorecard th:first-child{text-align:left}
+.scorecard tbody tr:hover td{background:var(--cream)}
+.scorecard .prov-name{font-weight:500;color:var(--ink)}
+.bar-cell{position:relative}
+.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;background:color-mix(in srgb,var(--amber) 40%,transparent);border-radius:2px;z-index:0}
+.bar-cell span{position:relative;z-index:1}
+.nat-metric-switch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.8rem}
+.nat-metric-btn{font-size:12.5px;padding:6px 12px;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.nat-metric-btn:hover{border-color:var(--ink);color:var(--ink)}
+.nat-metric-btn.active{background:var(--navy);border-color:var(--navy);color:var(--on-navy);font-weight:500}
+.nat-frame{position:relative;background:var(--map-bg);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+#nat-map{display:block;width:100%;height:auto;background:var(--map-bg)}
+.nat-shape{stroke:var(--map-stroke);stroke-width:.4;vector-effect:non-scaling-stroke}
+.nat-skeleton{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.nat-grad-wrap{max-width:380px;margin-top:.6rem}
+.nat-grad{height:11px;border-radius:3px;border:1px solid var(--border)}
+.nat-grad-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.nat-progress{font-size:11px;color:var(--muted);margin-top:.5rem}
+.nat-lb-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.6rem;margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--border);align-items:start}
+@media(max-width:700px){.nat-lb-grid{grid-template-columns:1fr}}
+.nat-lb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
+.nat-lb-title{font-size:13px;font-weight:600;color:var(--ink)}
+.nat-lb-sub{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:.25rem}
+.nat-lb-row{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-radius:4px;font-size:13px;font-variant-numeric:tabular-nums;cursor:pointer}
+.nat-lb-row:hover{background:var(--cream)}
+.nat-lb-row .lb-fsa{font-weight:500;color:var(--ink);letter-spacing:.02em}
+.nat-lb-row .lb-prov{color:var(--muted);font-size:11px;margin-left:6px}
+.nat-lb-note{font-size:11px;color:var(--muted);margin-top:.35rem}
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
 <script>
@@ -268,6 +312,56 @@ footer a:hover{color:var(--amber2)}
 <div class="hero" id="hero-section">
   <h1>How efficient are <em>Canada's new homes</em>?</h1>
   <p class="hero-sub">As-built EnerGuide evaluations of newly constructed Canadian houses. Pick a province and postal area — or browse the whole country — to see energy-code tiers, airtightness, how new homes are heated, and whether they perform as designed.</p>
+</div>
+
+<!-- National picture — always national, never filtered (see .nat-wrap in the CSS). -->
+<div class="nat-wrap" id="sec-national">
+  <div class="section-head">
+    <h2>The national picture</h2>
+    <p class="sec-sub">Before you narrow down: how the provinces compare on take-up, on how new homes are heated, and on how they perform. This section always shows the whole country — the filters below it do not change it.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Provincial scorecard</div></div>
+    <div class="scroll-x">
+      <table class="scorecard" id="nat-scorecard"><thead></thead><tbody></tbody></table>
+    </div>
+    <p class="note" id="nat-part-note"></p>
+    <div class="nat-sowhat" id="nat-sowhat"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title-row">
+      <div class="card-title">Every postal area, five ways</div>
+      <button type="button" class="filter-explore" id="nat-map-btn" aria-expanded="false" onclick="toggleNatMap()"><span class="exp-ic">◈</span><span id="nat-map-btn-text">Show the national map</span></button>
+    </div>
+    <div id="nat-map-body" style="display:none">
+      <div class="nat-metric-switch" id="nat-metric-switch"></div>
+      <div class="nat-frame">
+        <svg id="nat-map" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="National map of postal areas, coloured by the selected new-home metric"></svg>
+        <div class="nat-skeleton" id="nat-skeleton">Loading the map…</div>
+        <div id="nat-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
+      </div>
+      <div id="nat-legend"></div>
+      <div class="nat-progress" id="nat-progress"></div>
+      <div class="nat-lb-head">
+        <span class="nat-lb-title" id="nat-lb-title">Leaderboard</span>
+        <span class="nat-progress" id="nat-lb-count"></span>
+      </div>
+      <div class="nat-lb-grid">
+        <div><div class="nat-lb-sub" id="nat-lb-top-label">Top 10</div><div id="nat-lb-top"></div></div>
+        <div><div class="nat-lb-sub" id="nat-lb-bot-label">Bottom 10</div><div id="nat-lb-bot"></div></div>
+      </div>
+      <p class="nat-lb-note" id="nat-lb-note"></p>
+    </div>
+    <p class="note" id="nat-map-note">Each postal area with enough as-built evaluations, coloured by the metric you pick. Click a leaderboard row to load that area into the explorer below.</p>
+  </div>
+
+  <div class="card" id="nat-openq">
+    <div class="card-title-row"><div class="card-title">A note on the ERS rating — resolved</div></div>
+    <p class="note" style="margin-top:0"><strong><code>ERSRating</code> is 0 on 12.9% of the new-construction records that carry the field</strong> (14,151 of 109,827), and 94% of those homes have a modelled EUI above 60 kWh/m²/yr — so the zero was never reporting a net-zero house. We had flagged this as an open question; the data answers it. <strong>Those files are rated on the older EnerGuide 0–100 scale instead, and the two scales are mutually exclusive per record:</strong> 96.3% of the <code>ERSRating</code>&nbsp;=&nbsp;0 rows carry a real <code>EGHRating</code> (median 82), against 0.2% of the rows with a genuine GJ/yr rating.</p>
+    <p class="note">It is a vintage artifact, not a regional one and not a plan-file one. Every evaluation up to 2015 is on the old scale; the share falls through the changeover — 86% in 2016, 45% in 2017, 16% in 2018, 5% in 2019 — and settles near 0.5% from 2023 on. So the provincial spread (29.4% in Ontario and 19.9% in Nova Scotia against 1.5% in New Brunswick and 0.2% in PEI) is tracking how old each province's file mix is, not a difference in rating practice. The design-side <code>Designed_ERSRating</code> carries the same placeholder on the same files, so plan-only submissions are not the dividing line either. The small residual after 2023 carries no <code>EGHRating</code> either — genuinely missing.</p>
+    <p class="note">Every ERS figure on this page now reads that 0 as <em>no rating</em> rather than as a value. The clearest case was T2Z in Calgary, whose median <code>ERSRating</code> read 0 across 1,460 homes with a median EUI of 149: only 56 of those homes had a non-null rating, and 44 of the 56 were the placeholder. Excluding it, T2Z's median is 96&nbsp;GJ/yr. ERS is still left off the map above, which ranks postal areas on quantities every file carries — the GJ/yr scale only covers the post-2019 share of each area's records.</p>
+  </div>
 </div>
 
 <div class="filter-sticky">
@@ -417,17 +511,17 @@ footer a:hover{color:var(--amber2)}
 
   <div class="section-head">
     <h2>Do they perform as designed?</h2>
-    <p class="sec-sub">Every new home is modelled twice: once from the plans (as designed) and again after it's built and blower-door tested (as built). Comparing the two shows whether the finished house lives up to its design.</p>
+    <p class="sec-sub">Every new home is modelled twice: once from the plans (as designed) and again after it's built and blower-door tested (as built). Comparing the two shows whether the finished house lives up to its design. Both sides are shown as energy use intensity — total modelled energy ÷ floor area — so homes of different sizes compare on the same scale.</p>
   </div>
   <div class="stats-grid" id="gap-stats"></div>
   <div class="grid-2">
     <div class="card">
-      <div class="card-title-row"><div class="card-title">As-designed vs as-built energy rating (GJ/yr)</div><div class="chart-legend-inline" id="scatter-legend"></div></div>
+      <div class="card-title-row"><div class="card-title">As-designed vs as-built EUI (kWh/m²/yr)</div><div class="chart-legend-inline" id="scatter-legend"></div></div>
       <div class="cw cw-lg"><canvas id="scatter-chart"></canvas></div>
-      <p class="note">Each point is a home (or, province-wide, a cluster of homes): horizontal = its design rating, vertical = its as-built rating. On or below the dashed line means the finished home matched or beat its design. Lower = less energy.</p>
+      <p class="note">Each point is a home (or, province-wide, a cluster of homes): horizontal = its design EUI, vertical = its as-built EUI. On or below the dashed line means the finished home matched or beat its design. Lower = less energy.</p>
     </div>
     <div class="card">
-      <div class="card-title">The design gap, per home (as-built − as-designed, GJ/yr)</div>
+      <div class="card-title">The design gap, per home (as-built − as-designed, kWh/m²/yr)</div>
       <div class="cw cw-lg"><canvas id="gap-chart"></canvas></div>
       <p class="note">Negative (green) = the finished home tested better than its design model; positive (red) = worse. Most homes cluster at or just below zero.</p>
     </div>
@@ -458,7 +552,7 @@ footer a:hover{color:var(--amber2)}
   <div class="card">
     <div class="card-title">Common heat pump models (outdoor unit)<button type="button" class="info-btn" aria-label="How are these grouped" data-info="One outdoor unit is certified under several AHRI reference numbers — different indoor coil pairings, refrigerant lines, or test-procedure revisions can each certify differently, including on cold-climate status — so every certificate behind an outdoor model is listed underneath it rather than picking one to represent the group.">?</button></div>
     <div id="ahri-list" class="equip-list"></div>
-    <p class="note">Top 5 most common outdoor heat-pump units installed in as-built new homes in this view, grouped by brand + outdoor model number. Each line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency), COP at 5°F, and cold-climate status where on file — click the AHRI number for its directory page. Only codes with 4+ digits are counted, to exclude placeholder values.</p>
+    <p class="note">Top 5 most common outdoor heat-pump units installed in as-built new homes in this view, grouped by brand + outdoor model number. Each line shows heating capacity at 47°F and 5°F outdoor temperature, HSPF2 (seasonal heating efficiency), COP at 5°F, and cold-climate status where on file — click the AHRI number for its directory page. Only certificate numbers that resolve in the AHRI directory are counted: on new construction 79% of non-empty <code>HPAHRI</code> values are a literal <code>0</code>, and a further 540 installs carry a number with no certificate behind it.</p>
   </div>
   <div class="grid-2">
     <div class="card"><div class="card-title-row"><div class="card-title">House type</div><div class="chart-legend-inline" id="type-legend"></div></div><div class="cw cw-md"><canvas id="type-chart"></canvas></div></div>
@@ -521,9 +615,10 @@ const FSA_JSON_BASE=`${BASE_URL}newhomes_fsa/`;         // newhomes_fsa/<PROV>/<
 const GEO_JSON_BASE=`${BASE_URL}geo_json/`;             // shared with retrofits
 const RETROFIT_PROVINCE_JSON_BASE=`${BASE_URL}province_json/`;   // retrofits.html's own province_json — cross-read for the "existing home" EUI comparison
 const AHRI_LOOKUP_URL=`${BASE_URL}lookup/ahri_numbers.json`;     // shared with retrofits.html: { "<ahri>": {"brand":...,"model":...,...} }
-let AHRI_LOOKUP=null;
+let AHRI_LOOKUP=null,AHRI_LOOKUP_FAILED=false;
 function fetchAhriLookup(){
-  return fetchJSON(AHRI_LOOKUP_URL).then(d=>{AHRI_LOOKUP=d;}).catch(()=>{AHRI_LOOKUP={};});
+  return fetchJSON(AHRI_LOOKUP_URL).then(d=>{AHRI_LOOKUP=d;})
+    .catch(()=>{AHRI_LOOKUP={};AHRI_LOOKUP_FAILED=true;});
 }
 
 const PROVINCES={
@@ -547,7 +642,7 @@ let RETRO_CMP=null;   // retrofit-sourced "existing home, pre/post retrofit" com
 // ── Bin widths (single source of truth — MUST match newhomes_precompute.py) ──
 const BINS={
   ers:{step:10,lo:1,hi:300}, ghg:{step:1,lo:0,hi:30}, ach:{step:0.5,lo:0,hi:10},
-  area:{step:25,lo:0,hi:700}, eui:{step:10,lo:0,hi:400}, gap:{step:2,lo:-40,hi:20}, dens:5,
+  area:{step:25,lo:0,hi:700}, eui:{step:10,lo:0,hi:400}, gap:{step:5,lo:-100,hi:60}, dens:10,
   roofIns:{step:2,lo:0,hi:80}, wallIns:{step:2,lo:0,hi:40}, fndIns:{step:2,lo:0,hi:35}, floorIns:{step:2,lo:0,hi:40},
 };
 const CLIP={ers:300,ghg:30,ach:10,area:700,eui:400};
@@ -644,6 +739,8 @@ function redrawAllCharts(){
     if(MODE==='province'&&_lastSlice)renderDashboard(_lastSlice,_lastMeta||{fsaRows:null});
     else if(MODE==='fsa'&&ALL.length)renderFsa();
     if(MAP_STATE&&$('fsa-map-svg'))paintFsaMap();
+    // The national scorecard/choropleth bake colours in the same way.
+    if(typeof NAT!=='undefined'&&NAT){renderScorecard();paintNatMap();}
   }catch(e){console.error('theme redraw',e);}
 }
 syncThemeButtons(document.documentElement.dataset.theme||'light');
@@ -820,6 +917,9 @@ function computeSlice(rows){
   const ers=col('ERSRating'),area=col('FloorArea'),ghg=col('GHG'),ach=col('AirLeakage'),
         eui=col('EUI'),tier=col('Tier'),impr=col('Improvement'),
         dach=col('Designed_AirLeakage'),dtier=col('Designed_Tier');
+  // ERSRating/Designed_ERSRating arrive already null where the source had the
+  // 0 "not rated on the GJ/yr scale" placeholder (newhomes_precompute.py nulls
+  // it at load). The >0 filters here and on BINS.ers are belt-and-braces.
   out.median_ers=median(ers.filter(v=>v>0));
   out.median_area=median(area);
   out.median_ghg=median(ghg);
@@ -873,9 +973,14 @@ function computeSlice(rows){
     if(a.tier.length){const t={};a.tier.forEach(v=>t[v]=(t[v]||0)+1);tier_by_year[yr]=t;}
     if(a.fuel.length){const f={};a.fuel.forEach(v=>f[v]=(f[v]||0)+1);fuel_by_year[yr]=f;}});
   out.ach_by_year=ach_by_year;out.designed_ach_by_year=dach_by_year;out.ers_by_year=ers_by_year;out.tier_by_year=tier_by_year;out.fuel_by_year=fuel_by_year;
-  // designed vs as-built
-  const pairs=[];rows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating),g=num(r.RatingGap);
-    if(d!=null&&a!=null&&g!=null&&d>0&&a>0)pairs.push({d,a,g});});
+  // Designed vs as-built, in EUI — mirrors the same block in
+  // newhomes_precompute.py. EUI rather than the ERS GJ/yr rating: it is
+  // floor-area normalised, and it is present on 99.4% of records against
+  // 42.3% for a pair of ERS ratings (the GJ/yr scale only began in 2019).
+  const pairs=[];rows.forEach(r=>{const ar=num(r.FloorArea),de=num(r.Designed_TotalEnergy),ae=num(r.TotalEnergy);
+    if(ar==null||de==null||ae==null||ar<=0)return;
+    const d=de/ar,a=ae/ar;
+    if(d>0&&a>0&&d<=CLIP.eui&&a<=CLIP.eui)pairs.push({d,a,g:a-d});});
   const gs={n:pairs.length};
   if(pairs.length){const gaps=pairs.map(p=>p.g);
     gs.median_gap=Math.round(median(gaps)*10)/10;
@@ -883,7 +988,7 @@ function computeSlice(rows){
     gs.pct_worse=Math.round(pairs.filter(p=>p.g>0).length/pairs.length*1000)/10;
     out.gap_bins=binObj(gaps,BINS.gap);
     const dens={};pairs.forEach(p=>{const x=Math.floor(p.d/BINS.dens)*BINS.dens,y=Math.floor(p.a/BINS.dens)*BINS.dens;
-      if(x<=CLIP.ers&&y<=CLIP.ers){const k=x+'|'+y;dens[k]=(dens[k]||0)+1;}});
+      if(x<=CLIP.eui&&y<=CLIP.eui){const k=x+'|'+y;dens[k]=(dens[k]||0)+1;}});
     out.gap_density=Object.keys(dens).map(k=>{const[x,y]=k.split('|').map(Number);return[x,y,dens[k]];});
   }else{out.gap_bins={};out.gap_density=[];}
   out.gap_stats=gs;
@@ -1300,23 +1405,25 @@ function renderGap(s,meta){
   const gs=s.gap_stats||{n:0};
   $('gap-stats').innerHTML=[
     statCard('Meet or beat their design',gs.pct_beat!=null?gs.pct_beat+'%':'—','green',`of ${(gs.n||0).toLocaleString()} matched homes`),
-    statCard('Typical design gap',gs.median_gap!=null?(gs.median_gap>0?'+':'')+gs.median_gap:'—',gs.median_gap<=0?'green':'accent','GJ/yr (as-built − design)'),
-    statCard('Perform worse than design',gs.pct_worse!=null?gs.pct_worse+'%':'—','','tested above design rating'),
+    statCard('Typical design gap',gs.median_gap!=null?(gs.median_gap>0?'+':'')+gs.median_gap:'—',gs.median_gap<=0?'green':'accent','kWh/m²/yr (as-built − design)'),
+    statCard('Perform worse than design',gs.pct_worse!=null?gs.pct_worse+'%':'—','','tested above design EUI'),
   ].join('');
   // gap histogram (diverging)
   dc('gap');showChart('gap-chart');const gk=Object.keys(s.gap_bins||{}).map(Number).sort((a,b)=>a-b);
   if(gk.length){
     charts.gap=new Chart($('gap-chart'),{type:'bar',data:{labels:gk,datasets:[{data:gk.map(k=>s.gap_bins[k]),
       backgroundColor:gk.map(k=>k<0?POST_LINE:(k===0?PAL.tick:PAL.neg)),borderWidth:0,categoryPercentage:.98,barPercentage:.98}]},
-      options:{scales:{x:{title:{display:true,text:'as-built − design (GJ/yr)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
-        plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.gap.step} GJ/yr`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
+      options:{scales:{x:{title:{display:true,text:'as-built − design (kWh/m²/yr)'},grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:PAL.grid},title:{display:true,text:'homes'}}},
+        plugins:{tooltip:{callbacks:{title:i=>{const k=+i[0].label;return `${k} to ${k+BINS.gap.step} kWh/m²/yr`;},label:c=>`${c.parsed.y.toLocaleString()} homes`}}}}});
   }else noData('gap-chart');
   // scatter: raw points (FSA) or density (province)
   dc('scatter');showChart('scatter-chart');
   let pts=[],maxC=1;
   if(meta.fsaRows){
-    meta.fsaRows.forEach(r=>{const d=num(r.Designed_ERSRating),a=num(r.ERSRating);
-      if(d>0&&a>0&&d<=CLIP.ers&&a<=CLIP.ers)pts.push({x:d,y:a,r:2.5,c:1});});
+    meta.fsaRows.forEach(r=>{const ar=num(r.FloorArea),de=num(r.Designed_TotalEnergy),ae=num(r.TotalEnergy);
+      if(ar==null||de==null||ae==null||ar<=0)return;
+      const d=de/ar,a=ae/ar;
+      if(d>0&&a>0&&d<=CLIP.eui&&a<=CLIP.eui)pts.push({x:d,y:a,r:2.5,c:1});});
   }else{
     (s.gap_density||[]).forEach(([x,y,c])=>{if(c>maxC)maxC=c;});
     (s.gap_density||[]).forEach(([x,y,c])=>pts.push({x:x+BINS.dens/2,y:y+BINS.dens/2,r:3+Math.sqrt(c/maxC)*10,c}));
@@ -1328,9 +1435,9 @@ function renderGap(s,meta){
   charts.scatter=new Chart($('scatter-chart'),{data:{datasets:[
     {type:'scatter',data:pts,pointBackgroundColor:PAL.scatterFill,pointBorderColor:PAL.scatterEdge,pointRadius:pts.map(p=>p.r),order:1},
     diag]},
-    options:{scales:{x:{type:'linear',min:0,max:lim,title:{display:true,text:'as-designed rating (GJ/yr)'},grid:{color:PAL.grid}},
-      y:{type:'linear',min:0,max:lim,title:{display:true,text:'as-built rating (GJ/yr)'},grid:{color:PAL.grid}}},
-      plugins:{tooltip:{callbacks:{label:c=>c.raw.c>1?`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} · ${c.raw.c} homes`:`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} GJ/yr`}}}}});
+    options:{scales:{x:{type:'linear',min:0,max:lim,title:{display:true,text:'as-designed EUI (kWh/m²/yr)'},grid:{color:PAL.grid}},
+      y:{type:'linear',min:0,max:lim,title:{display:true,text:'as-built EUI (kWh/m²/yr)'},grid:{color:PAL.grid}}},
+      plugins:{tooltip:{callbacks:{label:c=>c.raw.c>1?`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} · ${c.raw.c} homes`:`design ${Math.round(c.raw.x)}, built ${Math.round(c.raw.y)} kWh/m²/yr`}}}}});
 }
 
 function donutChart(id,obj,legendId,palette){
@@ -1441,9 +1548,37 @@ function ahriTopCounts(rows,minDigits){
   });
   return Object.entries(counts).map(([code,count])=>({code,count}));
 }
+// Only codes that actually resolve to a certificate in the AHRI directory are
+// shown. The dominant junk value is a literal '0' (53,232 installs, 79% of all
+// non-empty HPAHRI values on new construction) plus a handful of 1-3 digit
+// stubs; beyond those, 540 installs carry a plausible-looking number that has
+// no certificate behind it -- withdrawn, mistyped, or never AHRI-listed. A
+// digit-count heuristic cannot tell those apart, and an unresolvable row shows
+// as a bare "AHRI 5295984 ↗" link to a directory page that does not exist.
+function ahriResolves(code){
+  return !!(AHRI_LOOKUP&&AHRI_LOOKUP[String(code).trim()]);
+}
 function renderHeatPumpModels(s,meta){
-  const ahriAll=meta&&meta.fsaRows?ahriTopCounts(meta.fsaRows,4)
+  // The lookup arrives async; until it does there is no way to tell a real
+  // certificate from a placeholder, so say so rather than render a list that
+  // is about to change underneath the reader. fetchAhriLookup re-renders.
+  if(!AHRI_LOOKUP){$('ahri-list').innerHTML='<div class="state-msg" style="padding:1rem">Loading certificate data…</div>';return;}
+  if(AHRI_LOOKUP_FAILED){$('ahri-list').innerHTML='<div class="state-msg" style="padding:1rem"><strong>Certificate data unavailable</strong><br>The AHRI directory lookup could not be loaded, so installed models cannot be verified.</div>';return;}
+  const raw=meta&&meta.fsaRows?ahriTopCounts(meta.fsaRows,4)
     :Object.entries(s.ahri_counts||{}).map(([code,count])=>({code,count}));
+  const ahriAll=raw.filter(x=>ahriResolves(x.code));
+  if(!ahriAll.length){
+    // Distinguish "no certificate numbers at all" from "numbers present, none
+    // of them in the directory" — the latter is the signature of a ground- or
+    // water-source cluster, since AHRI programme 99 lists air-source units.
+    const dropped=raw.reduce((a,x)=>a+x.count,0);
+    $('ahri-list').innerHTML=dropped
+      ?`<div class="state-msg" style="padding:1rem"><strong>No listed models</strong><br>`+
+       `${dropped.toLocaleString()} install${dropped>1?'s':''} here carry a certificate number that is not in the AHRI directory. `+
+       `That is the usual pattern for ground- and water-source units, which are certified under a different programme.</div>`
+      :'<div class="state-msg" style="padding:1rem"><strong>No certificate numbers recorded</strong></div>';
+    return;
+  }
   $('ahri-list').innerHTML=ahriModelGroupsHTML(groupAhriByModel(ahriAll).slice(0,5));
 }
 
@@ -1709,6 +1844,233 @@ document.addEventListener('click',e=>{
     tip.style.left=Math.min(r.left,window.innerWidth-300)+'px';tip.style.top=(r.bottom+6)+'px';btn.classList.add('open');}
   else if(tip){tip.style.display='none';document.querySelectorAll('.info-btn.open').forEach(b=>b.classList.remove('open'));}
 });
+
+// ── National picture ────────────────────────────────────────────────
+// Two payloads, both built by Python/newhomes_insights.py from files already
+// in the repo: insights.json (3 KB, province scorecard, loaded on boot) and
+// insights_fsa.json (~110 KB, one row per FSA, loaded only with the map).
+let NAT=null,NAT_FSA=null,NAT_STATE={shapes:{},built:false},NAT_METRIC='hp',NAT_SORT={key:'n',dir:-1};
+const NAT_PROVS=['ON','QC','BC','AB','NB','NS','MB','SK','NF','PE'];
+const natInt=v=>v==null?'—':Math.round(v).toLocaleString();
+const natPct=(v,d)=>v==null?'—':v.toFixed(d==null?1:d)+'%';
+
+const NAT_METRICS={
+  hp:{label:'Heat-pump adoption',leg:'Share of new homes with a heat pump',
+    get:r=>r.hp,fmt:v=>natPct(v,0),accent:'--amber',
+    top:'Highest adoption',bot:'Lowest adoption'},
+  eui:{label:'Energy use (EUI)',leg:'Median energy use intensity (kWh/m²/yr)',
+    get:r=>r.eui,fmt:v=>Math.round(v)+' kWh/m²',accent:'--red',
+    top:'Highest use',bot:'Lowest use'},
+  ach:{label:'Airtightness',leg:'Median as-built blower-door result (ACH₅₀)',
+    get:r=>r.ach,fmt:v=>v.toFixed(2)+' ACH₅₀',accent:'--red',
+    top:'Leakiest',bot:'Tightest'},
+  // No ERS-rating metric here on purpose. ERSRating is 0 on 12.9% of the
+  // records that carry it -- files rated on the older EnerGuide 0-100 scale,
+  // which never populated the GJ/yr field (see #nat-openq for the evidence).
+  // newhomes_precompute.py now nulls those out, so the artifact is gone from
+  // r.ers, but the coverage problem it leaves behind is not: the GJ/yr scale
+  // only reaches the post-2019 share of each area's files, and that share
+  // varies by province. Every other metric here is carried by all vintages.
+  elec:{label:'Electric heating',leg:'Share heated by electricity',
+    get:r=>r.elec,fmt:v=>natPct(v,0),accent:'--blue',
+    top:'Most electric',bot:'Least electric'},
+};
+
+const NAT_COLS=[
+  {k:'name',lab:'Province',fmt:r=>`<span class="prov-name">${r.name}</span>`,txt:true},
+  {k:'n',lab:'New homes',fmt:r=>natInt(r.n),bar:true},
+  {k:'part',lab:'Participation',fmt:r=>natPct(r.part)},
+  {k:'hp',lab:'Heat pump',fmt:r=>natPct(r.hp,0),bar:true},
+  {k:'elec',lab:'Electric heat',fmt:r=>natPct(r.elec,0)},
+  {k:'eui',lab:'Median EUI',fmt:r=>r.eui==null?'—':Math.round(r.eui)},
+  {k:'ach',lab:'Median ACH₅₀',fmt:r=>r.ach==null?'—':r.ach.toFixed(2)},
+  {k:'area',lab:'Median m²',fmt:r=>r.area==null?'—':Math.round(r.area)},
+];
+
+function renderScorecard(){
+  if(!NAT)return;
+  const tbl=$('nat-scorecard'),head=tbl.tHead,body=tbl.tBodies[0];
+  head.innerHTML='<tr>'+NAT_COLS.map(c=>
+    `<th data-k="${c.k}" class="${NAT_SORT.key===c.k?'arrow-active':''}">${c.lab}${NAT_SORT.key===c.k?(NAT_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const rows=NAT.provinces.slice().sort((a,b)=>{
+    const A=a[NAT_SORT.key],B=b[NAT_SORT.key];
+    if(A==null&&B==null)return 0; if(A==null)return 1; if(B==null)return -1;
+    return typeof A==='string'?A.localeCompare(B)*(NAT_SORT.dir<0?-1:1):(A-B)*(NAT_SORT.dir<0?-1:1);
+  });
+  const max={};NAT_COLS.filter(c=>c.bar).forEach(c=>{max[c.k]=Math.max(...rows.map(r=>r[c.k]||0));});
+  body.innerHTML=rows.map(r=>'<tr>'+NAT_COLS.map(c=>{
+    const v=c.fmt(r);
+    if(c.bar&&max[c.k]>0&&r[c.k]!=null)
+      return `<td class="bar-cell"><span class="bar" style="width:${(100*r[c.k]/max[c.k]).toFixed(1)}%"></span><span>${v}</span></td>`;
+    return `<td>${v}</td>`;
+  }).join('')+'</tr>').join('');
+  head.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{
+    const k=th.dataset.k;
+    if(NAT_SORT.key===k)NAT_SORT.dir*=-1;else{NAT_SORT.key=k;NAT_SORT.dir=(k==='name')?1:-1;}
+    renderScorecard();
+  }));
+
+  const n=NAT.national,[y0,y1]=NAT.part_years;
+  $('nat-part-note').innerHTML=
+    `<b>Participation</b> = as-built EnerGuide evaluations ÷ CMHC ground-oriented completions (single + semi + row) over ${y0}–${y1}, `+
+    `the years both series cover: ${natInt(n.evals_win)} evaluations against ${natInt(n.completions)} completions, or ${natPct(n.part)} nationally. `+
+    `Read it as an order of magnitude, not a precise rate — CMHC surveys centres of 10,000+ population, so participation is overstated where building is mostly rural, `+
+    `and the numerator counts every dwelling type in the EnerGuide file (94.3% of it is ground-oriented; apartments are 0.4%). `+
+    `The territories are not in the CMHC provincial series and so carry no figure.`;
+
+  // Ranked over provinces with a substantial sample only. Quebec would
+  // otherwise take both "lowest" slots on a technicality — it has almost no
+  // records at all, for the reason spelled out in the closing sentence.
+  const SUB=5000,by=k=>NAT.provinces.filter(p=>p.n>=SUB&&p[k]!=null).slice().sort((a,b)=>b[k]-a[k]);
+  const byHp=by('hp'),byPart=by('part');
+  const hi=byHp[0],lo=byHp[byHp.length-1],pHi=byPart[0],pLo=byPart[byPart.length-1];
+  const pe=NAT.provinces.find(p=>p.prov==='PE'),qc=NAT.provinces.find(p=>p.prov==='QC');
+  $('nat-sowhat').innerHTML=`<b>By the numbers:</b> among provinces with a substantial sample, heat-pump adoption in new builds runs from `+
+    `${natPct(hi.hp,0)} in ${hi.name} down to ${natPct(lo.hp,0)} in ${lo.name} — a ${Math.round(hi.hp/lo.hp)}-fold spread, with Ontario at `+
+    `${natPct(NAT.provinces.find(p=>p.prov==='ON').hp,0)} and British Columbia at ${natPct(NAT.provinces.find(p=>p.prov==='BC').hp,0)}. `+
+    `Prince Edward Island is higher still at ${natPct(pe.hp,0)} on a smaller ${natInt(pe.n)}-home sample. `+
+    `Participation is just as uneven: ${natPct(pHi.part)} of ${pHi.name}'s ground-oriented completions carry an as-built evaluation, against ${natPct(pLo.part)} in ${pLo.name}. `+
+    `Quebec is all but absent (${natInt(qc.n)} homes in twenty years), which says where builders enrol rather than how much gets built. `+
+    `What drives any of these spreads is not established here.`;
+}
+
+// projection — same national Mercator frame as retrofit-insights.html
+const natMercX=lon=>(lon+180)/360;
+const natMercY=lat=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2;};
+const NAT_BOX={minLon:-140,maxLon:-52,minLat:41.5,maxLat:62.8};
+const NWX0=natMercX(NAT_BOX.minLon),NWX1=natMercX(NAT_BOX.maxLon),
+      NWYT=natMercY(NAT_BOX.maxLat),NWYB=natMercY(NAT_BOX.minLat);
+const NAT_W=1000,NSC=NAT_W/(NWX1-NWX0),NAT_H=Math.round((NWYB-NWYT)*NSC);
+const natX=lon=>Math.round((natMercX(lon)-NWX0)*NSC);
+const natY=lat=>Math.round((natMercY(lat)-NWYT)*NSC);
+function natRing(ring){let d='',px=null,py=null,pts=0;
+  for(const[lon,lat]of ring){const x=natX(lon),y=natY(lat);
+    if(x===px&&y===py)continue;d+=(pts===0?'M':'L')+x+','+y;px=x;py=y;pts++;}
+  return pts>=3?d+'Z':'';}
+function natPath(ft){const g=ft.geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
+  let d='';polys.forEach(rings=>rings.forEach(r=>{d+=natRing(r);}));return d;}
+
+function cssRGB(varName){
+  const c=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  const m=c.match(/^#([0-9a-f]{6})$/i);
+  if(m)return[parseInt(m[1].slice(0,2),16),parseInt(m[1].slice(2,4),16),parseInt(m[1].slice(4,6),16)];
+  const n=c.match(/\d+/g);return n?n.slice(0,3).map(Number):[128,128,128];
+}
+function natLerp(a,b,t){t=Math.max(0,Math.min(1,t));
+  return`rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`;}
+
+function natEligible(){
+  if(!NAT_FSA)return[];
+  const m=NAT_METRICS[NAT_METRIC];
+  return NAT_FSA.rows.filter(r=>r.n>=NAT_FSA.min_n&&m.get(r)!=null);
+}
+function paintNatMap(){
+  if(!NAT_STATE.built||!NAT_FSA)return;
+  const m=NAT_METRICS[NAT_METRIC],elig=natEligible();
+  if(!elig.length)return;
+  const vals=elig.map(m.get).sort((a,b)=>a-b);
+  // 2nd–98th percentile domain: a handful of tiny-sample extremes otherwise
+  // flatten the whole ramp into one colour.
+  const lo=vals[Math.floor(vals.length*0.02)],hi=vals[Math.ceil(vals.length*0.98)-1];
+  const base=cssRGB('--cream'),accent=cssRGB(m.accent),grey=cssRGB('--d-track');
+  const byFsa={};elig.forEach(r=>{byFsa[r.fsa]=m.get(r);});
+  Object.entries(NAT_STATE.shapes).forEach(([fsa,p])=>{
+    const v=byFsa[fsa];
+    p.setAttribute('fill',v==null?`rgb(${grey.join(',')})`:natLerp(base,accent,hi>lo?(v-lo)/(hi-lo):0.5));
+  });
+  const stops=[];for(let i=0;i<=10;i++)stops.push(natLerp(base,accent,i/10)+' '+(i*10)+'%');
+  $('nat-legend').innerHTML=`<div class="nat-grad-wrap"><div class="nat-grad" style="background:linear-gradient(90deg,${stops.join(',')})"></div>`+
+    `<div class="nat-grad-labels"><span>${m.fmt(lo)}</span><span>${m.fmt(hi)}</span></div></div>`+
+    `<div class="note" style="margin-top:.35rem">${m.leg} · grey = fewer than ${NAT_FSA.min_n} as-built evaluations</div>`;
+  renderNatLeaderboard();
+}
+function renderNatLeaderboard(){
+  const m=NAT_METRICS[NAT_METRIC],elig=natEligible().slice().sort((a,b)=>m.get(b)-m.get(a));
+  $('nat-lb-title').textContent=m.label;
+  $('nat-lb-count').textContent=`${elig.length.toLocaleString()} postal areas · n≥${NAT_FSA.min_n}`;
+  $('nat-lb-top-label').textContent=m.top;$('nat-lb-bot-label').textContent=m.bot;
+  const row=o=>`<div class="nat-lb-row" data-fsa="${o.fsa}" data-prov="${o.prov}" title="Load ${o.fsa} into the explorer below">`+
+    `<span><span class="lb-fsa">${o.fsa}</span><span class="lb-prov">${o.prov}</span>`+
+    `${NAT_METRIC==='hp'&&o.gs>=25?'<span class="lb-prov" title="Mostly ground- or water-source">◇ geo</span>':''}</span>`+
+    `<span class="lb-val">${m.fmt(m.get(o))}</span></div>`;
+  $('nat-lb-top').innerHTML=elig.slice(0,10).map(row).join('');
+  $('nat-lb-bot').innerHTML=elig.slice(-10).reverse().map(row).join('');
+  $('nat-lb-note').textContent=`Minimum ${NAT_FSA.min_n} as-built evaluations per postal area. Click a row to load it into the explorer below.`+
+    (NAT_METRIC==='hp'?' Areas marked ◇ geo are mostly ground- or water-source — a few subdivisions were built on geothermal loops, which lifts their adoption figure well above the provincial pattern.':'');
+  document.querySelectorAll('.nat-lb-row').forEach(rw=>rw.addEventListener('click',()=>{
+    PROVINCE_CODE=rw.dataset.prov;SELECTED_FSA=rw.dataset.fsa;SELECTED_TYPE='';
+    $('province-sel').value=PROVINCE_CODE;$('type-sel').value='';$('pc-input').value='';showPcHint('');
+    updateShareUrl();load();
+    document.querySelector('.filter-sticky').scrollIntoView({behavior:'instant',block:'start'});
+  }));
+}
+function wireNatTip(){
+  const svg=$('nat-map'),tip=$('nat-tip'),idx={};
+  NAT_FSA.rows.forEach(r=>{idx[r.fsa]=r;});
+  svg.addEventListener('mousemove',e=>{
+    const el=e.target.closest('.nat-shape');
+    if(!el){tip.style.display='none';return;}
+    const r=idx[el.dataset.fsa],m=NAT_METRICS[NAT_METRIC];
+    let h=`<b>${el.dataset.fsa}</b>${r?' · '+r.prov:''}`;
+    if(r&&r.n>=NAT_FSA.min_n&&m.get(r)!=null){
+      h+=`<br>${m.label}: ${m.fmt(m.get(r))}<br>${r.n.toLocaleString()} as-built evaluations`;
+      // A few postal areas are geothermal subdivisions; without this the
+      // adoption figure there reads as a data fault.
+      if(NAT_METRIC==='hp'&&r.gs>=25)h+=`<br>${Math.round(r.gs)}% of them ground- or water-source`;
+    }else if(r)h+=`<br>${r.n.toLocaleString()} evaluations (under ${NAT_FSA.min_n} — not ranked)`;
+    else h+='<br>no as-built evaluations';
+    tip.innerHTML=h;tip.style.display='block';
+    tip.style.left=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8)+'px';
+    tip.style.top=(e.clientY+14)+'px';
+  });
+  svg.addEventListener('mouseleave',()=>{tip.style.display='none';});
+}
+function buildNatMap(){
+  if(NAT_STATE.built)return Promise.resolve();
+  NAT_STATE.built=true;
+  const svg=$('nat-map');svg.setAttribute('viewBox',`0 0 ${NAT_W} ${NAT_H}`);
+  svg.innerHTML='';
+  let done=0;
+  return fetchJSON(`${PROVINCE_JSON_BASE}insights_fsa.json`).then(d=>{
+    NAT_FSA=d;
+    return Promise.all(NAT_PROVS.map(prov=>
+      fetchJSON(`${GEO_JSON_BASE}${prov}.json`).then(gj=>{
+        let frag='';
+        gj.features.forEach(ft=>{const fsa=ft.properties.CFSAUID,p=natPath(ft);
+          if(p)frag+=`<path class="nat-shape" data-fsa="${fsa}" d="${p}"></path>`;});
+        svg.insertAdjacentHTML('beforeend',frag);
+        svg.querySelectorAll('path[data-fsa]').forEach(p=>{NAT_STATE.shapes[p.dataset.fsa]=p;});
+        done++;$('nat-skeleton').style.display='none';
+        $('nat-progress').textContent=`Loaded ${done}/${NAT_PROVS.length} provinces`;
+        paintNatMap();
+      }).catch(e=>{console.error('nat geo',prov,e);done++;})
+    ));
+  }).then(()=>{
+    $('nat-progress').textContent=`${Object.keys(NAT_STATE.shapes).length.toLocaleString()} postal areas · 10 provinces`;
+    wireNatTip();
+  }).catch(e=>{
+    console.error('national map',e);NAT_STATE.built=false;
+    $('nat-skeleton').textContent='Could not load the map.';
+  });
+}
+function toggleNatMap(){
+  const body=$('nat-map-body'),btn=$('nat-map-btn'),open=body.style.display!=='none';
+  body.style.display=open?'none':'';
+  btn.setAttribute('aria-expanded',String(!open));
+  $('nat-map-btn-text').textContent=open?'Show the national map':'Hide the national map';
+  if(!open){
+    $('nat-metric-switch').innerHTML=Object.entries(NAT_METRICS).map(([k,m])=>
+      `<button type="button" class="nat-metric-btn${k===NAT_METRIC?' active':''}" data-m="${k}">${m.label}</button>`).join('');
+    $('nat-metric-switch').querySelectorAll('.nat-metric-btn').forEach(b=>b.addEventListener('click',()=>{
+      NAT_METRIC=b.dataset.m;
+      $('nat-metric-switch').querySelectorAll('.nat-metric-btn').forEach(x=>x.classList.toggle('active',x===b));
+      paintNatMap();
+    }));
+    buildNatMap();
+  }
+}
+fetchJSON(`${PROVINCE_JSON_BASE}insights.json`).then(d=>{NAT=d;renderScorecard();})
+  .catch(e=>{console.error('insights',e);$('sec-national').style.display='none';});
 
 // ── Boot ────────────────────────────────────────────────────────────
 fetchAhriLookup().then(()=>{if(_lastSlice)renderHeatPumpModels(_lastSlice,_lastMeta||{fsaRows:null});});
