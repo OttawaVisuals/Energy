@@ -32,8 +32,8 @@ B_GHG  = 1      # tonnes CO2e/yr
 B_ACH  = 0.5    # air changes / hr @ 50 Pa
 B_AREA = 25     # m2
 B_EUI  = 10     # kWh/m2/yr
-B_GAP  = 2      # RatingGap GJ/yr (as-built - designed)
-B_DENS = 5      # designed-vs-as-built 2D scatter density cell (GJ/yr)
+B_GAP  = 5      # EUI design gap kWh/m2/yr (as-built - designed)
+B_DENS = 10     # designed-vs-as-built 2D scatter density cell (kWh/m2/yr)
 
 # clip ranges (values outside stay in medians/counts, dropped from histograms)
 C_ERS, C_GHG, C_ACH, C_AREA, C_EUI = 300, 30, 10, 700, 400
@@ -57,6 +57,35 @@ def fuel_group(f):
     if not isinstance(f, str) or not f.strip():
         return None
     return FUEL_GROUPS.get(f.strip(), 'Other')
+
+
+def null_ers_placeholders(df):
+    """ERSRating/Designed_ERSRating == 0 is "not rated on the ERS scale", not a
+    net-zero house -- null it out before anything downstream reads the column.
+
+    These are files rated on the older EnerGuide 0-100 scale instead: the two
+    scales are mutually exclusive per record. Of the 14,151 as-built rows with
+    ERSRating == 0, 96.3% carry a real EGHRating (median 82) while only 0.2% of
+    ERSRating > 0 rows do. It is a vintage artifact, not a regional one -- 100%
+    of 2015-and-earlier files are EGH-scale, decaying to ~0.5% from 2023 on, so
+    the provincial spread (ON 29.4% vs PE 0.2%) just tracks how old each
+    province's file mix is. The residual post-2023 zeros carry no EGHRating
+    either, i.e. genuinely missing.
+
+    RatingGap is as-built minus design, so it is meaningless once either side is
+    a placeholder -- drop it on those rows too.
+    """
+    for c in ('ERSRating', 'Designed_ERSRating'):
+        if c in df.columns:
+            df.loc[pd.to_numeric(df[c], errors='coerce') == 0, c] = np.nan
+    if 'RatingGap' in df.columns:
+        miss = False
+        for c in ('ERSRating', 'Designed_ERSRating'):
+            if c in df.columns:
+                miss = miss | df[c].isna()
+        if miss is not False:
+            df.loc[miss, 'RatingGap'] = np.nan
+    return df
 
 
 def num(s):
@@ -221,11 +250,18 @@ def compute_slice(df):
     out['tier_by_year'] = tier_by_year
     out['fuel_by_year'] = fuel_by_year
 
-    # ---- designed vs as-built (RatingGap = asbuilt - designed; <0 beats design) ----
-    gap = num(df.get('RatingGap'))
-    dez = num(df.get('Designed_ERSRating'))
-    pair = pd.DataFrame({'d': dez, 'a': ers, 'g': gap}).dropna()
-    pair = pair[(pair['d'] > 0) & (pair['a'] > 0)]
+    # ---- designed vs as-built, in EUI (as-built - designed; <0 beats design) ----
+    # EUI rather than the ERS GJ/yr rating for two reasons. It is floor-area
+    # normalised, so a big house and a small one are on the same scale -- a raw
+    # GJ/yr gap is partly just a size difference. And coverage is far better:
+    # both ERS ratings are present on 42.3% of records (the GJ/yr scale only
+    # started in 2019), against 99.4% for EUI, which is derived from
+    # TotalEnergy / FloorArea and carried on essentially every file.
+    d_energy = num(df.get('Designed_TotalEnergy'))
+    deui = (d_energy / area).replace([np.inf, -np.inf], np.nan)
+    pair = pd.DataFrame({'d': deui, 'a': eui}).dropna()
+    pair = pair[(pair['d'] > 0) & (pair['a'] > 0) & (pair['d'] <= C_EUI) & (pair['a'] <= C_EUI)]
+    pair['g'] = pair['a'] - pair['d']
     npair = len(pair)
     gap_stats = {'n': npair}
     if npair:
@@ -233,13 +269,13 @@ def compute_slice(df):
         gap_stats['median_gap'] = round(float(g.median()), 1)
         gap_stats['pct_beat']  = round(float((g <= 0).mean()) * 100, 1)   # tested <= design
         gap_stats['pct_worse'] = round(float((g > 0).mean()) * 100, 1)
-        out['gap_bins'] = bins(g.to_numpy(), B_GAP, lo=-40, hi=20)
-        # 2D density for the scatter (designed x, as-built y), cell = B_DENS GJ
+        out['gap_bins'] = bins(g.to_numpy(), B_GAP, lo=-100, hi=60)
+        # 2D density for the scatter (designed x, as-built y), cell = B_DENS
         dx = (np.floor(pair['d'] / B_DENS) * B_DENS).astype(int)
         dy = (np.floor(pair['a'] / B_DENS) * B_DENS).astype(int)
         dens = pd.Series(1, index=pd.MultiIndex.from_arrays([dx, dy])).groupby(level=[0, 1]).sum()
         out['gap_density'] = [[int(x), int(y), int(c)] for (x, y), c in dens.items()
-                              if x <= C_ERS and y <= C_ERS]
+                              if x <= C_EUI and y <= C_EUI]
     else:
         out['gap_bins'] = {}
         out['gap_density'] = []
@@ -448,7 +484,7 @@ def main():
     ca_frames = []
     for pq in parquets:
         province = Path(pq).stem.replace('nc_', '')
-        df = pd.read_parquet(pq)
+        df = null_ers_placeholders(pd.read_parquet(pq))
         build_province_json(df, province, PROVINCE_JSON_DIR)
         split_fsa(df, province, FSA_JSON_DIR)
         ca_frames.append(df)
