@@ -316,9 +316,13 @@ populated from these keys.
 
 ## Front-end architecture
 
-`retrofits.html` is a single self-contained file (no build step). It pulls in Chart.js
-from a CDN; everything else — CSS, the Sankey/spider SVG renderers, all chart logic — is
-inline.
+`retrofits.html` is markup only (no build step). Chart.js comes from a CDN; the page's own
+CSS and JavaScript live beside it in **`assets/retrofits.css`** and
+**`assets/retrofits.js`** — split out of the HTML on 2026-07-24 because 200 KB of inline
+script had to be re-downloaded and re-parsed on every single page view. The script is
+loaded with `defer` at the end of `<body>`, exactly where it used to sit inline, so
+execution order is unchanged. **Look for render functions in `assets/retrofits.js`, not in
+the HTML.**
 
 Two render modes share the same DOM:
 
@@ -448,8 +452,42 @@ page redeploy needed.
 
 - **Modelled, not metered.** All energy/GHG values come from HOT2000, not utility bills.
   Real consumption varies with weather and occupant behaviour.
-- **Matched homes only.** A home needs exactly one before and one after audit (after dated
-  later), and must pass the same-home checks (≤10% area change; unchanged type/storeys/units).
+- **Matched homes only.** A home needs at least one before (D) and one after (E) audit —
+  reduced to its **oldest D and newest E** — with the E dated later, and must pass the
+  same-home checks (≤10% area change; unchanged type/storeys/units). A home audited more
+  than once therefore contributes a single row spanning its whole audit history, which
+  may cover more than one retrofit project.
+- **Pairing gates A and B — measured 2026-07-24** (`diagnose_gates_ab.py`, full scan of
+  all 21 source CSVs; 2,154,236 homes, 1,630,171 with at least one D and one E).
+
+  **Gate A — recovered 2026-07-24.** The pipeline now reduces each home to oldest D +
+  newest E; the matched sample went **1,369,305 → 1,451,433 (+82,128, +6.0%)** and the
+  matched share of homes having both a D and an E audit went 84.0% → 89.1%. The pair
+  stage gained the full predicted +148,155; the structural and floor-area gates then
+  removed proportionally more of the recovered homes, which is expected — a home with
+  several audits spans a longer period and is likelier to have changed structurally.
+  Headline figures barely moved (median saving 20% before and after; whole-home heat
+  loss −12%), which is the check that the recovered homes are representative. Original
+  measurement follows.
+
+  **Gate A — "exactly one D and one E" dropped 149,145 homes.** Multiplicity is mostly
+  small and symmetric: D=2/E=2 is 54%, D=2/E=1 is 28%, and 96% of cases sit at ≤3 of
+  each. Reducing each home to **oldest D + newest E** would give a valid,
+  correctly-ordered pair for **148,511 of them (99.6%)**; only 634 fail on date order
+  or unparseable dates. This is a real ~10% recovery of the matched sample and the
+  reduction rule matches what the page already claims to measure (earliest before vs
+  latest after). The caveat is interpretive, not technical: a D=2/E=2 home may be two
+  separate retrofit projects, and collapsing it reports the combined change as one.
+
+  **Gate B — "E dated after D" drops 84,755 pairs, and should stay dropped.** The
+  earlier assumption that these were parsing failures is wrong: **zero** are
+  unparseable. 99.4% (84,253) have E on the *exact same calendar day* as D, and every
+  frequent case is a first-of-month placeholder (`2011-03-01 → 2011-03-01` alone is
+  6,219 homes, a batch-load artifact). Only 502 have E genuinely before D. Because the
+  day component is a placeholder, these pairs carry **no recoverable ordering** — the
+  source cannot tell us which audit is the "before". Admitting them would mean assuming
+  a direction on a page whose entire premise is before-vs-after, so the honest handling
+  is to keep excluding them and document the reason here.
 - **The sample is self-selected.** Requiring a matched before/after audit pair means the
   data is dominated by incentive-program participants who completed their retrofit and
   booked the follow-up audit. Savings shown likely run higher than for a randomly chosen
@@ -486,6 +524,27 @@ page redeploy needed.
 ---
 
 ## Changelog
+
+### 2026-07-24 heat-loss breakdown, asset split, measured pairing gates
+- **New chart: "Where the heat escapes — annual loss by component."** Surfaces the
+  `Pre_/Post_HeatLoss{WindowDoor,Wall,Foundation,Roof,Floor,Air}` columns that had only
+  been visible inside an expanded row. Shared drawing code
+  (`drawHeatLossComponents`) serves both modes: `renderHeatLossComponents()` sums raw
+  rows in FSA mode, `renderProvinceHeatLossComponents()` reads the new
+  `heatloss_components` key in province mode. **Per-home means, not medians** — the
+  chart reports each component's share of total loss, which requires the six to sum to
+  the whole-home figure. New mirror pair to keep in sync: `HL_COMPONENT_FIELDS` in
+  `assets/retrofits.js` ↔ `HEATLOSS_COMPONENTS` in `precompute_province_stats.py`, with
+  `aggregate_canada.py` combining them by `row_count` weighting (same as `waterfall`).
+  Nationally: foundation 25%, air leakage 24%, windows/doors 22%, walls 21%, roof 8%,
+  exposed floor 0.5%; 38,081 → 33,416 kWh/yr (−12%).
+- **CSS and JS extracted** to `assets/retrofits.css` / `assets/retrofits.js` (see
+  Front-end architecture). Repeat-visit transfer drops from ~93 KB to ~26 KB gzipped
+  and 200 KB of script no longer blocks HTML parsing; first-visit total is unchanged.
+- **Analytics tag fixed** — the `gtag.js` loader was requesting the placeholder
+  measurement ID `G-XXXXXXXXXX` while `gtag('config')` used the real `G-3QLS1Q554N`.
+- **Pairing gates A and B measured** (`diagnose_gates_ab.py`, full 9.5 GB scan) — see
+  the new "Pairing gates" note under Data notes & caveats. No pipeline change yet.
 
 ### 2026-07 heat pump sizing & backup pairing
 - **New Step 1b (`join_hp_capacity.py`)** joins `Post_HPAHRI` against a newly-built

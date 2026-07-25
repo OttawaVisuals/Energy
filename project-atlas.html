@@ -4,8 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Energy Suite — Project Atlas</title>
+<meta property="og:title" content="Energy Suite — Project Atlas">
+<meta property="og:description" content="Status, data sources and standing assumptions behind every tool in the suite.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/project-atlas">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/project-atlas.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Project Atlas social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/project-atlas.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"></noscript>
 <style>
 :root{
   --navy:#0B2545; --amber:#E8A124; --cream:#F7F4EE; --card:#FFFFFF;
@@ -146,6 +159,13 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
 .reset-btn{background:none;border:1px solid var(--line);border-radius:8px;padding:.3rem .7rem;font-size:.78rem;color:var(--muted);cursor:pointer}
 .reset-btn:hover{border-color:var(--warn);color:var(--warn)}
 </style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
 </head>
 <body>
 
@@ -313,8 +333,11 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
   <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
     <h4>Step 1 — turning raw audits into before/after pairs</h4>
     <p>Every audit record carries an evaluation type: <b>D</b> = the initial "before" audit,
-    <b>E</b> = the follow-up "after" audit. The pipeline keeps only homes with <b>exactly one D and
-    exactly one E</b>, requires the E to be dated later, then applies "same home?" sanity checks:
+    <b>E</b> = the follow-up "after" audit. The pipeline keeps homes with <b>at least one D and at
+    least one E</b>, reducing a re-audited home to its <b>earliest D and latest E</b> (changed
+    2026-07-24 — it previously required exactly one of each, which discarded 149,145 re-audited
+    homes; see the open questions on retrofits.html). It requires the E to be dated later, then
+    applies "same home?" sanity checks:
     floor area changed ≤ 10%, and house type / storeys / number of units identical. Anything failing
     is dropped — better to lose a real pair than to compare two different houses. About 45 source
     columns are then mapped to friendly names and all fuels converted to kWh so they share one chart:</p>
@@ -442,7 +465,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofit-insights" target="_blank">open the tool ↗</a>
   </div>
   <p><b>In one sentence:</b> the national, cross-sectional sibling of the Retrofit Explorer — the
-  same 1,369,305 matched retrofit pairs, but zoomed out to "what actually works, and where" instead
+  same 1,451,433 matched retrofit pairs, but zoomed out to "what actually works, and where" instead
   of one postal area at a time. Shipped 2026-07-19.</p>
 
   <h3>Where the data comes from</h3>
@@ -497,7 +520,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <p>118,282 pairs (8.6%) logged no tracked upgrade between audits — re-audits, not retrofits. Including them would dilute every measure-effectiveness number with noise.</p>
         <p class="alt"><b>Other options:</b> include them as a "0 measures" bucket in the bundle table (the previous approach in retrofits.html's own stats — muddies the "what worked" question this page asks); or try to reclassify some as real (untracked) retrofits (no reliable signal to do so).</p>
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
-          <li>On the page, the "what worked" section states its denominator (1,251,023) explicitly — check it's smaller than the 1,369,305 hero number, and the gap (118,282) matches the zero-measure count called out in the methodology accordion.</li>
+          <li>On the page, the "what worked" section states its denominator (1,326,144) explicitly — check it's smaller than the 1,451,433 hero number, and the gap (125,289) matches the zero-measure count called out in the methodology accordion.</li>
         </ol></div>
         <div class="where">Python/insights_notes.md §1; docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
       </div></li>
@@ -532,7 +555,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
   <div class="check-box">
     <h3>✓ How it was checked</h3>
     <ul>
-      <li>National matched total in insights_json (1,369,305) cross-checked against the sum of the retrofit-explorer province files — exact match.</li>
+      <li>National matched total in insights_json (1,451,433) cross-checked against the sum of the retrofit-explorer province files — exact match.</li>
       <li>Spot-checked FSAs (L3R, K2P, M5V) reproduce the same median saving % as retrofits.html's own <code>fsa_json</code> for those areas.</li>
       <li>National dwelling-weighted median household income (~$82,000) lands close to StatCan's 2020 published Canada figure (~$84,000) — same-ballpark sanity check, not an exact match (different weighting methods).</li>
     </ul>
@@ -574,7 +597,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     never got filed, and neither case has a real "as-built" number to show.</p>
     <h4>Small enough to pair in memory</h4>
     <p>New construction is a small slice of ERS activity (~30k homes/yr, 223,052 total P/N rows
-    nationally vs. 1.37M+ retrofit pairs) — the whole pairing job runs in memory, no chunking needed.</p>
+    nationally vs. 1.45M retrofit pairs) — the whole pairing job runs in memory, no chunking needed.</p>
     <h4>2026-07-22/23 rework: parity with the Retrofit Explorer's per-fuel detail</h4>
     <p>The Retrofit Explorer's fsa_json already carries per-fuel heating energy, per-building-component
     heat loss and ventilation type (shipped 2026-07-17). This session pulled ~35 more source columns
