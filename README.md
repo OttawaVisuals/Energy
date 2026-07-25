@@ -17,8 +17,8 @@ tool, the public front door.
 
 | Tool | What it is | Live page |
 |---|---|---|
-| 🏠 **Retrofit Explorer** | 1.37M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2025) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
-| 📈 **Retrofit Insights** | National big-picture view of the same 1.37M retrofits — leaderboards, choropleth, what makes a retrofit work, climate/equity linkage, missed-opportunity ranking, program-era timeline | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) |
+| 🏠 **Retrofit Explorer** | 1.45M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2025) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
+| 📈 **Retrofit Insights** | National big-picture view of the same 1.45M retrofits — leaderboards, choropleth, what makes a retrofit work, climate/equity linkage, missed-opportunity ranking, program-era timeline | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) |
 | 🏡 **New Homes Explorer** | How efficient new construction actually is — as-designed vs as-built EnerGuide evaluations | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) |
 | 🔥 **Heat Pump Explorer** | Hourly simulation of switching to a cold-climate heat pump in 14 cities: energy, GHG, costs, backup needs | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) |
 | 🌍 **Ottawa Geothermal Map** | Ground-source heat pump screening for Ottawa: conductivity from 55k water wells, drilling difficulty, grid capacity | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) |
@@ -49,7 +49,8 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 
 ```
 Energy/
-├─ *.html                    # one self-contained page per tool
+├─ *.html                    # one page per tool
+├─ assets/                   # shared site theme, retrofits.css/.js, og/ preview cards
 ├─ ROADMAP.md                # ← the project tracker
 ├─ README.md                 # this file
 ├─ HEATDEMAND_PLAN.md        # active plan: Ottawa Case Study

@@ -24,7 +24,7 @@ precomputed bins/medians/counts, so:
 import json
 import glob
 import os
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 # Same OUTPUT_DIR as precompute_province_stats.py / ers_web_pipeline.py —
 # this reads the province JSONs that script just wrote and writes CA.json
@@ -193,6 +193,24 @@ def main():
         {"fuel": fuel, "pre": round(t["pre"] / n_total) if n_total else 0,
          "post": round(t["post"] / n_total) if n_total else 0}
         for fuel, t in fuel_totals.items()
+    ]
+
+    # Heat-loss components ship per-home MEANS too -- same weight-by-n,
+    # sum, divide-back treatment as the waterfall directly above. Order is
+    # preserved from the first province that reports each component so the
+    # national file lists them in the same order as a provincial one.
+    hl_totals = OrderedDict()
+    for s in slices:
+        n = s.get("row_count", 0)
+        for c in s.get("heatloss_components", []):
+            t = hl_totals.setdefault(c["label"], {"pre": 0.0, "post": 0.0})
+            t["pre"] += c["pre"] * n
+            t["post"] += c["post"] * n
+    out["heatloss_components"] = [
+        {"label": label,
+         "pre": round(t["pre"] / n_total, 1) if n_total else 0,
+         "post": round(t["post"] / n_total, 1) if n_total else 0}
+        for label, t in hl_totals.items()
     ]
 
     # Backup-fuel energy means (elec_mean/fuel_mean/n per fuel) aren't

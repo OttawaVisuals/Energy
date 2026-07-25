@@ -34,6 +34,19 @@ retrofit `province_json/` + `fsa_json/`.
 
 - Tier / ACH / ERS-rating availability varies by audit year — the page states
   year coverage per metric.
+- **NBC 9.36 tier coverage varies enormously by province, and is effectively
+  zero in Ontario and Québec** — ON has 0 tiered evaluations out of 70,568, QC
+  1 out of 2,577, versus 25% in Alberta and 22% in BC. Both provinces regulate
+  new-construction energy performance under their own codes rather than
+  adopting the NBC tier ladder, so `ENERGYPERFORMANCETIER` arrives blank. This
+  is a source gap, not a pipeline fault — the same extraction populates every
+  other province.
+
+  `renderTierSection()` handles it: below `TIER_MIN` (50) tiered evaluations,
+  the two tier charts are suppressed via `TIER_SUPPRESSED` and a `#tier-empty`
+  card explains the counts and the reason. The floor exists because QC's single
+  tiered home would otherwise render a one-bar "distribution" at 100%. **Any
+  new tier chart must check `TIER_SUPPRESSED` too.**
 - Refreshes with the same ERS CSV drops as the Retrofit Explorer (no separate
   download); rerun the two scripts above after `ers_web_pipeline.py`'s source
   files update.

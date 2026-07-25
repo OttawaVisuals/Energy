@@ -2,12 +2,12 @@
 
 Grounding notes for the Phase 2 page copy (`retrofit-insights.html`). Every
 number here comes from `insights_json/` built by `build_insights.py` on
-2026-07-19 over the 1,369,305 matched before/after ERS pairs. **Read the
+2026-07-19 over the 1,451,433 matched before/after ERS pairs. **Read the
 honesty rails in `meta.json` before writing copy** — several of the strongest
 "findings" below are composition artifacts, flagged explicitly.
 
-Cross-checks that passed: national matched total = **1,369,305** (== sum of
-province parquet rows == the 1.37M pairing-fix number); L3R / K2P / M5V median
+Cross-checks that passed: national matched total = **1,451,433** (== sum of
+province parquet rows == the 1.45M Gate-A pairing number); L3R / K2P / M5V median
 saving % identical to `fsa_json/ON/_index.json`; national dwelling-weighted
 median household income **≈ $82,000** vs StatCan 2020 published ≈ $84k.
 

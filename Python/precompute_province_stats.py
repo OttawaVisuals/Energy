@@ -131,6 +131,18 @@ STOREY_MAP = {
     'split entry/raised base.': 'Split entry',
 }
 
+# Envelope components in the annual heat-loss chart. Mirrors
+# HL_COMPONENT_FIELDS in assets/retrofits.js — labels included, since they
+# ship in the JSON and are drawn verbatim.
+HEATLOSS_COMPONENTS = [
+    ('HeatLossWindowDoor', 'Windows & doors'),
+    ('HeatLossWall',       'Walls'),
+    ('HeatLossFoundation', 'Foundation'),
+    ('HeatLossRoof',       'Roof'),
+    ('HeatLossFloor',      'Exposed floor'),
+    ('HeatLossAir',        'Air leakage'),
+]
+
 # Fuels shown in the waterfall chart. Mirrors the FUELS array in renderWaterfall().
 WATERFALL_FUELS = [
     ('Electricity', 'Electricity'),
@@ -423,6 +435,28 @@ def compute_slice(df):
     hl_deltas = (hl_pair['pre'] - hl_pair['post'])
     hl_deltas = hl_deltas[(hl_deltas > 0) & (hl_deltas <= 150)].to_numpy()
     out['heatloss_delta_bins'] = bin_counts(hl_deltas, step=2)
+
+    # ---- Annual heat loss by envelope component (mirrors
+    # renderHeatLossComponents() / HL_COMPONENT_FIELDS in assets/retrofits.js).
+    # Per-home MEANS in kWh/yr, for the same reason the waterfall uses means:
+    # the FSA view sums raw rows and divides by n, and the chart's "share of
+    # total" column only makes sense if the six components add to the whole.
+    # These are EGHHL* annual energies, NOT the EGHDESHTLOSS design-day kW
+    # binned immediately above — different quantity, same English name.
+    hl_components = []
+    for key, label in HEATLOSS_COMPONENTS:
+        pre_arr = num(df.get(f'Pre_{key}')).fillna(0).to_numpy()
+        post_arr = num(df.get(f'Post_{key}')).fillna(0).to_numpy()
+        pre_mean = float(pre_arr.mean()) if pre_arr.size else 0.0
+        post_mean = float(post_arr.mean()) if post_arr.size else 0.0
+        if pre_mean == 0 and post_mean == 0:
+            continue
+        hl_components.append({
+            'label': label,
+            'pre': round(pre_mean, 1),
+            'post': round(post_mean, 1),
+        })
+    out['heatloss_components'] = hl_components
 
     # ---- Savings histogram (mirrors renderHist(): 1% bins on EnergySavingPct) ----
     if savings.size:

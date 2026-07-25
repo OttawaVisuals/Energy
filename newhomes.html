@@ -8,10 +8,19 @@
 <meta property="og:title" content="New Homes Explorer — how efficient are Canada's new houses?">
 <meta property="og:description" content="200,000+ as-built EnerGuide evaluations of newly constructed Canadian homes: code tiers, airtightness, heating fuel, and designed-vs-as-built performance.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/newhomes">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/newhomes.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="New Homes Explorer social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/newhomes.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M16 6 5 15h3v10h7v-6h2v6h7V15h3z' fill='%23E8A124'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="assets/site-theme.css">
 <style>
 /* Reset, theme variables (light/dark/cb), body base, header and hero now
@@ -62,6 +71,9 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.empty-state{border-left:3px solid var(--amber)}
+.empty-state-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.empty-state-body{font-size:13px;color:var(--muted);line-height:1.6;max-width:70ch}
 .map-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
 .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
 .map-svg-wrap{position:relative}
@@ -208,6 +220,13 @@ footer a:hover{color:var(--amber2)}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
 .section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:680px}
 </style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
 </head>
 <body>
 <script>
@@ -324,6 +343,14 @@ footer a:hover{color:var(--amber2)}
   <div class="section-head">
     <h2>Climbing the code tiers</h2>
     <p class="sec-sub">Canada's National Building Code sets tiered energy-performance levels (Tier 1 = base code, Tier 5 = net-zero-ready). As the code ratchets up, new builds are being pushed higher up the ladder.</p>
+  </div>
+  <!-- Shown instead of the two tier charts when the current selection has no
+       tiered evaluations at all (Ontario and Québec, notably — see
+       renderTierSection). Without it the section header sat above empty space,
+       which reads as a broken page rather than a gap in the source data. -->
+  <div class="card empty-state" id="tier-empty" style="display:none">
+    <div class="empty-state-title">No energy-tier data for this selection</div>
+    <p class="empty-state-body" id="tier-empty-body"></p>
   </div>
   <div class="card">
     <div class="card-title-row"><div class="card-title">NBC 9.36 energy-performance tier, by year built</div><div class="chart-legend-inline" id="tier-legend"></div></div>
@@ -881,6 +908,7 @@ let _lastSlice=null,_lastMeta=null;
 function renderDashboard(slice,meta){
   _lastSlice=slice;_lastMeta=meta;   // kept so a theme change can redraw without re-fetching
   renderStats(slice);
+  renderTierSection(slice);
   renderTier(slice);
   renderTierMove(slice);
   renderAch(slice);
@@ -916,7 +944,44 @@ function renderStats(s){
   ].join('');
 }
 
+// Ontario and Québec regulate new-home energy performance under their own
+// codes (OBC SB-12 / the Québec construction code) rather than NBC 9.36's
+// tier ladder, so ENERGYPERFORMANCETIER comes through blank on essentially
+// every evaluation there — 0 of 70,568 ON records and 1 of 2,577 in QC.
+// Several territories are empty for the plainer reason of tiny sample size.
+// Either way the two charts below hide themselves, so say why rather than
+// leaving the reader with a heading over blank space.
+// A handful of tiered homes is not a tier distribution: Québec has exactly one
+// tiered evaluation in 2,577, which is enough to draw a "chart" that is really
+// a single bar at 100%. So the whole section needs a floor, and both charts
+// below honour TIER_SUPPRESSED rather than each applying its own threshold.
+const TIER_MIN=50;
+let TIER_SUPPRESSED=false;
+
+function renderTierSection(s){
+  const tot=o=>Object.values(o||{}).reduce((a,b)=>a+(+b||0),0);
+  const asBuilt=tot(s.tier_counts),designed=tot(s.designed_tier_counts);
+  const tiered=Math.max(asBuilt,designed);
+  const box=$('tier-empty');
+  TIER_SUPPRESSED=tiered<TIER_MIN;
+  if(!TIER_SUPPRESSED){box.style.display='none';return;}
+
+  const rows=s.row_count||0;
+  const where=SELECTED_FSA||(PROVINCES[PROVINCE_CODE]||{}).name||'this selection';
+  const count=tiered===0
+    ? `None of the ${rows.toLocaleString()} evaluations in ${where} carry an NBC 9.36 energy tier.`
+    : `Only ${tiered.toLocaleString()} of the ${rows.toLocaleString()} evaluations in ${where} carry an NBC 9.36 energy tier — too few to show a distribution.`;
+  const why=(PROVINCE_CODE==='ON'||PROVINCE_CODE==='QC')
+    ? ` ${(PROVINCES[PROVINCE_CODE]||{}).name} sets its own new-construction energy requirements rather than adopting the National Building Code's tier ladder, `
+      +`so the tier field is left blank on EnerGuide files there. It's a gap in what gets recorded, not a sign these homes perform badly.`
+    : ` Tiers were only recorded from about 2023 on, and only where the province has adopted them, so smaller and earlier samples often carry none.`;
+  $('tier-empty-body').textContent=count+why
+    +` Every other section on this page — airtightness, EnerGuide rating, heating fuel, designed-vs-as-built — works normally here.`;
+  box.style.display='';
+}
+
 function renderTier(s){
+  if(TIER_SUPPRESSED){$('tier-legend').innerHTML='';noData('tier-chart');return;}
   dc('tier');showChart('tier-chart');const byYear=s.tier_by_year||{};
   const yearTot=y=>Object.values(byYear[y]||{}).reduce((a,b)=>a+(+b),0);
   // Tiers weren't mandatory until 2024, so earlier years carry only a handful
@@ -993,7 +1058,7 @@ function renderTierMove(s){
   const mv=s.tier_move||{n:0};
   const dt=s.designed_tier_counts||{},at=s.tier_counts||{};
   const dTot=Object.values(dt).reduce((a,b)=>a+(+b),0),aTot=Object.values(at).reduce((a,b)=>a+(+b),0);
-  if(!dTot||!aTot){
+  if(TIER_SUPPRESSED||!dTot||!aTot){
     $('tiermove-legend').innerHTML='';$('tier-move-stats').innerHTML='';$('tier-move-stats').style.display='none';
     noData('tiermove-chart');return;
   }

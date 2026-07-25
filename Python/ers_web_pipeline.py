@@ -351,10 +351,34 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
     del d_frames, e_frames
     print(f"  D records: {len(all_d):,}  E records: {len(all_e):,}")
 
-    d_counts = all_d.groupby('HOUSEID').size()
-    e_counts = all_e.groupby('HOUSEID').size()
-    paired_ids = set(d_counts[d_counts == 1].index) & set(e_counts[e_counts == 1].index)
-    print(f"  HOUSEIDs with exactly 1 D + 1 E: {len(paired_ids):,}")
+    # GATE A — reduce each home to OLDEST D + NEWEST E.
+    #
+    # This used to require exactly one D and exactly one E, which threw away
+    # 149,145 homes outright. diagnose_gates_ab.py measured what those homes
+    # actually look like: multiplicity is small and symmetric (D=2/E=2 is 54%,
+    # D=2/E=1 is 28%, 96% sit at <=3 of each), and 148,511 of them — 99.6% —
+    # yield a correctly-ordered pair under this rule. Only 634 fail on date
+    # order or unparseable dates, and they fall out at the date gate below
+    # like any other bad pair.
+    #
+    # Earliest-before / latest-after is also the pairing the page already
+    # claims to show. The interpretive cost: a home with two D and two E
+    # audits may have had two separate retrofit projects, and this reports
+    # their combined change as a single before/after. That is the conservative
+    # direction (it captures the whole change rather than an arbitrary half)
+    # but it does mean "one row" is not always "one project".
+    # drop_duplicates (not groupby.first/last) so the surviving row stays
+    # coherent — a per-column groupby aggregate could pair one record's
+    # ENTRYDATE with another's _year. ENTRYDATE is ISO 'YYYY-MM-DD', so a
+    # plain string sort is chronological. Undated records are removed first:
+    # they cannot clear the date-order gate below, and leaving them in would
+    # let a NaT sort to the end and win the "newest E" slot.
+    all_d = all_d.dropna(subset=['ENTRYDATE'])
+    all_e = all_e.dropna(subset=['ENTRYDATE'])
+    all_d = all_d.sort_values('ENTRYDATE').drop_duplicates('HOUSEID', keep='first')
+    all_e = all_e.sort_values('ENTRYDATE').drop_duplicates('HOUSEID', keep='last')
+    paired_ids = set(all_d['HOUSEID']) & set(all_e['HOUSEID'])
+    print(f"  HOUSEIDs with >=1 D and >=1 E (oldest D + newest E): {len(paired_ids):,}")
 
     all_d = all_d[all_d['HOUSEID'].isin(paired_ids)]
     all_e = all_e[all_e['HOUSEID'].isin(paired_ids)]
