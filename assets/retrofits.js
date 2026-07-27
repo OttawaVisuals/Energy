@@ -1,11 +1,8 @@
 // NOTE: PapaParse/pako removed — data now ships as pre-split JSON, no CSV
 // parsing or gzip decompression needed client-side.
-// When served from localhost (python -m http.server in Energy/), read the
-// data folders sitting next to this file instead of the published GitHub
-// copy — so local pipeline changes are visible before being pushed.
-const BASE_URL=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
-  ?'./'
-  :'https://raw.githubusercontent.com/OttawaVisuals/Energy/main/';
+// Data ships on the gh-pages branch alongside these pages, so it is always
+// same-origin: identical relative paths on localhost and in production.
+const BASE_URL='./';
 const FSA_JSON_BASE=`${BASE_URL}fsa_json/`;       // fsa_json/<PROV>/<FSA>.json + _index.json
 const PROVINCE_JSON_BASE=`${BASE_URL}province_json/`; // province_json/<PROV>.json
 
