@@ -14,11 +14,23 @@ on:
 permissions:
   contents: write
 
+# gh-pages is amended and force-pushed; never let two refreshes race for it.
+concurrency:
+  group: gh-pages-deploy
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4          # main: code + pipelines
+
+      - uses: actions/checkout@v4          # gh-pages: the published data
+        with:
+          ref: gh-pages
+          path: .ghpages
+
+      - name: Seed existing data from gh-pages
+        run: cp -r .ghpages/grid_json ./grid_json
 
       - uses: actions/setup-python@v5
         with:
@@ -31,14 +43,20 @@ jobs:
         working-directory: Python
         run: python grid_etl.py
 
-      - name: Commit updated data (only if changed)
+      # Data lives on gh-pages, which is kept at a single commit: amend and
+      # force-push rather than adding a commit per refresh.
+      - name: Publish to gh-pages (only if changed)
+        working-directory: .ghpages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add grid_json/
+          rsync -a --delete ../grid_json/ ./grid_json/
+          git add grid_json
           if git diff --cached --quiet; then
             echo "No data changes this week."
           else
-            git commit -m "chore: weekly grid dashboard data refresh"
-            git push
+            git commit --amend --date=now \
+              -m "Deploy site + data ($(date +%F)) — weekly grid refresh" \
+              -m "Single-commit branch; source and history live on main."
+            git push --force origin HEAD:gh-pages
           fi

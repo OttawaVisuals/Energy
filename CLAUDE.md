@@ -31,8 +31,8 @@ to `docs/<TOOL>.md`.
   `project-atlas.html`, and the relevant `docs/<TOOL>.md`. Completed items move
   to `docs/archive/ROADMAP_COMPLETED.md`. Decisions get recorded with their *why*.
 - **Absolute dates everywhere.** Never "last week" / "recently" in docs.
-- **Commits**: only when asked. Never push a regenerated data tree without first
-  reporting the size delta.
+- **Commits**: only when asked — but "commit and push" means *both branches*, and
+  I handle the split without asking which is which (see below).
 
 ## Don't overcomplicate
 
@@ -59,6 +59,25 @@ Where things go:
 | Tracker line | `ROADMAP.md` |
 
 `Python/*.log`, `Python/*_cache/`, `climate_cache/` are scratch — never deliverables.
+
+## Two branches — never commit data to `main`
+
+| Branch | Holds | History |
+|---|---|---|
+| `main` | HTML, `assets/`, `Python/`, per-tool `pipeline/`, docs, trackers | Full — this is the decision record |
+| `gh-pages` | The published site: pages + every generated data tree | **One commit, force-pushed each deploy.** No history, by design |
+
+GitHub Pages publishes `gh-pages`, so data is same-origin with the pages —
+`BASE_URL` is `'./'` everywhere; never reintroduce raw.githubusercontent URLs.
+`.nojekyll` is mandatory (data trees contain `_index.json`; Jekyll drops
+underscore paths).
+
+Every generated tree is gitignored on `main` and lives on local disk only.
+Losing it is fine — re-run the pipeline. **What must be defensible is the
+process, not the bytes**, and the process is versioned on `main`.
+
+"Commit and push" therefore means: commit code/docs/decisions to `main`, then
+run `./deploy.sh` to republish the site + data. Do both; don't ask which.
 
 ## Data honesty rails
 
