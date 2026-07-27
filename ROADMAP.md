@@ -44,8 +44,28 @@ Updated **2026-07-24** (verified against the repo and commit history; GitHub Act
 
 ### Queued 🆕
 
-Nothing queued — every planned tool has shipped. Next up is finishing the
-in-flight Ottawa Case Study (below), then picking from the project ideas.
+- ♨️ **Heat pump tool — Phase 3c bucket rework** (spec done, curves outstanding).
+  Equipment selection rebuilt on **AHRI as sampling frame / manufacturer
+  datasheets as measurement**: a 3×3 grid of COP @ 5 °F × capacity maintenance,
+  36 representatives chosen by real Canadian installation frequency from
+  439,975 EnerGuide record appearances. Spec:
+  [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md). **Next step:** hand-fetch the
+  6 priority units' performance data (datasheets give capacity + lockout; NEEP
+  needed for power/COP), then rebuild `hp_curves.json` and rewire
+  `heatpump.html`'s tier selector.
+
+- 🔧 **Tech debt: consolidate the two heat-pump engines** (deferred, do later).
+  `HeatPump/app/engine.js` and the copy inlined verbatim in `heatpump.html`
+  (~line 743 onward) are the same ~600-line engine maintained twice — any logic
+  change has to be applied to both by hand or they silently diverge, and only
+  the inlined copy is what users actually run. Target: one source of truth
+  (build step that injects `app/engine.js` into the page, or ship it as a
+  separate `<script>` and drop the inline copy), keeping `engine.test.js` and
+  `pipeline/validate_engine.py` pointed at it. **Not part of the current
+  heat-pump-selection rework — flagged now, scheduled later.**
+
+Otherwise nothing queued — next up is finishing the in-flight Ottawa Case Study
+(below), then picking from the project ideas.
 
 ---
 

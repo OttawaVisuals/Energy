@@ -76,6 +76,17 @@ FIELD_MAP_M1 = {
     "ColdClimateDesignationSearch": "cold_climate",
     "AHRIType": "ahri_type",
     "ModelStatusId": "model_status",
+    # --- Added 2026-07-26 (Phase 3c). Keep in sync with the identical map in
+    # build_ahri_lookup_full.py / refresh_ahri_lookup.py.
+    "SoldIn": "sold_in",
+    "SplitOrPackaged": "split_or_packaged",
+    "Phase": "phase",
+    "IsRerated": "is_rerated",
+    "IsHSVTC": "is_hsvtc",
+    "EnergyGuideLabel": "energy_guide_label",
+    "manufacturertype": "manufacturer_type",
+    "IndoorUnitBrandNameSearch": "indoor_brand",
+    "TotalCoolingFullLoadAirVolumeRateM1": "airflow_cfm",
 }
 # Legacy "Appendix M" fields, used only to fill in a value the M1 map
 # didn't find -- some older certifications predate the M1 test procedure

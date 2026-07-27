@@ -30,6 +30,46 @@ near-zero baseline). See the new "Validation against published benchmarks
 (Phase 7)" section in `HeatPump/METHODOLOGY.md` and the "How accurate is this?"
 note in `heatpump.html`'s assumptions panel.
 
+> **Phase 3c (2026-07-26) — heat pump buckets rebuilt from AHRI.** The Phase 3a/3b NEEP-bucket
+> tiering is superseded. Design: **AHRI certification is the sampling frame; manufacturer
+> datasheets are the measurement.** AHRI tells us which models Canadians actually install
+> (439,975 EnerGuide record appearances / 15,148 certified models) and lets us bucket them on
+> certified ratings; it does not carry enough points to simulate one, so the selected units are
+> modelled from their own published performance tables. Buckets are a **3×3 grid** of COP @ 5 °F
+> (≤1.8 / 1.8–2.0 / >2.0) × **capacity maintenance** (<0.60 / 0.60–0.80 / ≥0.80) — near-independent
+> (corr −0.168), both axes publicly defined; capacity maintenance is the ratio ENERGY STAR, CEE and
+> NRCan Greener Homes all use. **36 representatives** = most-frequent Active model per cell × four
+> capacity bands. Specification: **[TIER_SPEC.md](TIER_SPEC.md)**; decisions + evidence in
+> METHODOLOGY.md "Heat pump performance tiers, rebuilt from AHRI (Phase 3c)". New sources:
+> `pipeline/fetch_nrcan_spl.py` (HSPF2 **Region V**, not on the AHRI certificate) and
+> `pipeline/fetch_energystar.py` (attributes only — verified to republish AHRI's own figures).
+>
+> **Datasheet audit (2026-07-26): the good submittals carry everything.** Manufacturers who publish
+> an **EXTENDED RATINGS** table give capacity, COP *and* power input at 20+ outdoor temperatures.
+> Confirmed for the GREE FLEXX Ultra sheet covering GUD36W/A-D(U) (AHRI 211644151 / 206249117 /
+> 206249116): **23 heating points from −30.0 °C to +23.9 °C**, COP internally consistent with
+> capacity ÷ (3.412 × power) on every point, plus "Heating Temperature Range −22 – 75 °F" — which
+> **resolves `min_op_temp_C`**, previously the blocker. Strictly richer than AHRI/ENERGY STAR/NRCan;
+> for such units no other source is needed. Extracted by `pipeline/extract_datasheet_tables.py` →
+> `data/interim/datasheet_points_v2.json`. Coverage is manufacturer-dependent: MDV/Mits Air gives 2
+> COP points + lock-out; the LG submittals give capacity only, so try LG's engineering manual before
+> falling back to NEEP. **Note:** these tables extract as bare numbers with detached headers and are
+> easy to miss — dump every page's full text before concluding a sheet has none.
+>
+> **Remaining:** hand-fetch the LG/MDV units, build the curves, then **replace `hp_curves.json` and
+> delete the superseded three-tier section from `heatpump.html`'s assumptions panel** (the page
+> currently documents both the old tiers and the new bucket method — that is deliberate only until
+> the curves land).
+
+> ⚠️ **Tech debt (deferred, do later): consolidate the two engines.** The Phase 5 engine exists
+> twice — `HeatPump/app/engine.js` and a verbatim inline copy in `heatpump.html` (~line 743). Only
+> the inline copy runs for users, but only the standalone file is covered by `app/engine.test.js`
+> and `pipeline/validate_engine.py`, so a change made to one and not the other passes every test
+> while doing nothing live. They have already drifted once. Target: one source of truth (build-step
+> injection, or a separate `<script src>` with the inline copy deleted). Tracked in ROADMAP.md
+> (Queued) and METHODOLOGY.md. **Not part of the current heat-pump-selection rework.** Until it's
+> done, every engine edit must touch BOTH copies in the same commit.
+
 > **Deploy note:** `heatpump.html` reads `HeatPump/data/processed/*.json` — those files plus the new
 > `tmy_temps.json` are currently untracked; they (and `heatpump.html`) must be committed and pushed
 > for the GitHub Pages copy to load (localhost reads them directly).
