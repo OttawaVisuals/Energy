@@ -1850,6 +1850,18 @@ per the backup type). All 15 self-test vectors unchanged and passing.
 extract of the inlined copy, with a header note saying so — edit one,
 re-sync the other.
 
+> ⚠️ **Known tech debt — the two engines must be consolidated (deferred).**
+> "Edit one, re-sync the other" is a manual discipline, not a guarantee: this
+> exact pair has already drifted once (that's why the paragraph above exists),
+> and the copy users actually run is the *inlined* one, so a fix applied only
+> to `app/engine.js` would pass `engine.test.js` and `validate_engine.py` while
+> changing nothing on the live page. The fix is one source of truth — a build
+> step that injects `app/engine.js` into `heatpump.html`, or shipping it as a
+> separate `<script src>` and deleting the inline copy. Tracked in
+> [ROADMAP.md](../ROADMAP.md) under Queued. **Scheduled for later; not part of
+> the current heat-pump-selection rework.** Until then, any engine change must
+> be applied to BOTH copies in the same commit.
+
 **New charts — "by outdoor temperature" pair.** Every TMY hour with a
 positive heating load is dropped into the same **2 °C bins** the grid-EF
 surface uses (`tempBinLeft`, floor to a multiple of 2); each bar is the
@@ -1955,3 +1967,77 @@ errors; summary checked across Ottawa gas/marginal (diverge → "but", costs
 more), Toronto townhouse gas (both improve → "and"), and Montreal baseboard
 (near-zero guard → "barely changes carbon", saves $1,459); all 7 glyphs
 render with tooltips.
+
+---
+
+## Heat pump performance tiers, rebuilt from AHRI (Phase 3c)
+
+**Full specification: [TIER_SPEC.md](TIER_SPEC.md).** Summary of the decisions
+and their evidence, recorded here because they supersede the Phase 3a/3b
+NEEP-derived tiering described above.
+
+**What changed and why.** The Phase 3a/3b tiers bucketed the NEEP product list.
+That made the tier definition depend on a third-party database we cannot
+redistribute, with boundaries of our own invention. The Phase 3c tiers are built
+from AHRI-certified ratings on the actual Canadian installed base (439,975 AHRI
+appearances, 15,148 distinct models from the ERS data), with cut points anchored
+on published program thresholds.
+
+**Tiering metric: capacity maintenance = capacity at 5 °F ÷ capacity at 47 °F.**
+Not invented here — it is the ratio ENERGY STAR v6.2, CEE and NRCan's Greener
+Homes ccASHP criterion all use, the last stating it explicitly as
+`(Max −15 °C [5 °F]) / (Rated 8.3 °C [47 °F]) ≥ 70%`.
+
+**The mixed rating basis (important).** The 5 °F rating is at MAXIMUM capacity;
+47 °F and 17 °F are RATED points. NEEP ccASHP Specification v4.0 is explicit
+("COP at 5°F ≥ 1.75 at maximum capacity operation"; 47/17 °F in the "Rated"
+reporting column, 5 °F in "Maximum"). This is why 47.7% of models report a 5 °F
+capacity above their 17 °F capacity — correct and expected, not a data error. A
+monotonicity filter would silently discard ~180,000 installs of valid data. The
+fitted capacity curve is therefore a **maximum-capacity envelope** below ~17 °C,
+which matches how the engine consumes it, but must be stated in the UI.
+
+**Rejected axes, with reasons.** COP @ 5 °F is unusable for ranking: 1.75 is the
+shared certification floor across ENERGY STAR/CEE/NEEP and 54.8% of installs
+report exactly 1.80. HSPF2 Region IV is *anti-correlated* with cold performance
+here (the ≥10 band retains less capacity, 0.68, than the 9–10 band, 0.77) — it
+is a mild-climate seasonal average. HSPF2 **Region V** is the correct
+cold-climate seasonal metric, correlates better with capacity maintenance
+(0.508 vs 0.449), and is available only from NRCan; it is used as the secondary
+axis and as the COP-curve constraint.
+
+**Source verification.** ENERGY STAR republishes AHRI figures rather than
+measuring independently — on 3,447 models in both, 5 °F capacity agrees within
+2% on 100% of rows. It is used for attributes only (compressor staging, market,
+vintage). NRCan agrees with AHRI to a median 0.5 pp on capacity maintenance but
+differs by >2 pp on 17.0% of models; AHRI is authoritative, NRCan fills gaps.
+
+**AHRI's `cold_climate` flag is not used as the cut.** It is 99.8% precise but
+under-reports badly — 91,431 installs meet the ≥70% criterion while flagged
+`No`, because the designation post-dates their certificates.
+
+**Tiers** (cut points 0.60 / 0.70 / 0.85; the first two are published program
+floors, the third an install-weighted split of the large ≥0.70 mass):
+
+| Tier | Definition | Installs | % base | med HSPF2 Reg V |
+|---|---|---:|---:|---:|
+| T0 Legacy (unrated) | no 5 °F point | 121,977 | 27.7% | — |
+| T1 Non-cold-climate | < 0.60 | 12,921 | 2.9% | 6.95 |
+| T2 Standard | 0.60–0.70 | 14,142 | 3.2% | 7.10 |
+| T3 Cold-climate | 0.70–0.85 | 169,513 | 38.5% | 7.40 |
+| T4 Premium cold-climate | ≥ 0.85 | 121,422 | 27.6% | 8.00 |
+
+Region V rises monotonically T1→T4 without being used in the assignment — an
+independent confirmation that the metric orders equipment sensibly.
+
+**T0 is a real population, not a residue.** 99.2% Discontinued/Delisted, 0.0%
+flagged ccASHP, 0.0% on new refrigerants — genuinely pre-designation equipment.
+It gets a conservative modelled curve and must not be presented as equivalent to
+a rated tier.
+
+**Open item: `min_op_temp_C` (compressor lockout) has no source.** Not in AHRI,
+not in ENERGY STAR, not in NRCan; NEEP requests it from manufacturers but it
+lives in the product database, not the specification. Previously supplied by the
+NEEP extract. Must be resolved — from manufacturer datasheets or a documented
+per-tier assumption — before the rebuilt curves ship, since the engine's lockout
+behaviour is governed by it.

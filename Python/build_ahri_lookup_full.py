@@ -43,6 +43,7 @@ Output:
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -110,6 +111,19 @@ FIELD_MAP_M1 = {
     "ColdClimateDesignationSearch": "cold_climate",
     "AHRIType": "ahri_type",
     "ModelStatusId": "model_status",
+    # --- Added 2026-07-26 for the heat-pump tier rework (Phase 3c). These are
+    # returned by the same detail call at no extra cost; they were simply never
+    # mapped. Confirmed non-empty on live responses.
+    "SoldIn": "sold_in",                       # market, e.g. "Canada" -- our only
+                                               # Canadian-availability signal
+    "SplitOrPackaged": "split_or_packaged",
+    "Phase": "phase",                          # 1 = residential single-phase
+    "IsRerated": "is_rerated",
+    "IsHSVTC": "is_hsvtc",
+    "EnergyGuideLabel": "energy_guide_label",
+    "manufacturertype": "manufacturer_type",
+    "IndoorUnitBrandNameSearch": "indoor_brand",
+    "TotalCoolingFullLoadAirVolumeRateM1": "airflow_cfm",
 }
 FIELD_MAP_LEGACY = {
     "Capacity95FHighM": "cooling_capacity_btuh",
@@ -209,32 +223,79 @@ def extract_fields(details):
     return out
 
 
-def atomic_write_json(path, data):
+def atomic_write_json(path, data, attempts=6):
+    """Write JSON via a temp file + atomic rename, retrying on transient locks.
+
+    On Windows os.replace() raises PermissionError (WinError 5) if any other
+    process holds the destination open even momentarily -- antivirus, the
+    search indexer and cloud-sync clients all do this on a multi-megabyte file
+    that is rewritten every second. Observed 2026-07-26: a backfill run died at
+    5,564/12,562 this way after ~90 minutes of successful writes. The written
+    data was fine; only the rename failed. Retry with backoff rather than
+    losing the run.
+    """
     tmp = path.with_suffix(path.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, path)
+    for i in range(attempts):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if i == attempts - 1:
+                raise
+            time.sleep(0.5 * 2 ** i)  # 0.5s .. 16s
 
 
 def main():
-    print("Scanning raw ERS CSVs for every distinct AHRI value...")
-    counts = scan_candidates()
-    print(f"\n{len(counts)} candidate codes found (numeric, {MIN_DIGITS}-{MAX_DIGITS} digits)")
+    # `--no-scan` reuses the committed Python/ahri_numbers_all.json candidate
+    # list instead of re-streaming the ~8 GB of raw ERS CSVs. Correct whenever
+    # the ERS data has not changed since the last scan -- e.g. a field-backfill
+    # run, where only the fetch step matters. Re-scan (the default) after any
+    # ERS refresh, since that is what regenerates the install counts.
+    no_scan = "--no-scan" in sys.argv
+
+    if no_scan and CANDIDATES_OUT.exists():
+        cached = json.loads(CANDIDATES_OUT.read_text(encoding="utf-8"))
+        counts = {e["number"]: e["total_count"] for e in cached["ahri_numbers"]}
+        print(f"--no-scan: reusing {CANDIDATES_OUT.name} ({len(counts)} candidates)")
+    else:
+        print("Scanning raw ERS CSVs for every distinct AHRI value...")
+        counts = scan_candidates()
+        print(f"\n{len(counts)} candidate codes found (numeric, {MIN_DIGITS}-{MAX_DIGITS} digits)")
 
     candidates_sorted = sorted(counts.items(), key=lambda kv: -kv[1])
-    atomic_write_json(CANDIDATES_OUT, {
-        "generated_from": "raw ERS CSVs, all years, unmasked (build_ahri_lookup_full.py)",
-        "min_digits": MIN_DIGITS, "max_digits": MAX_DIGITS,
-        "ahri_numbers": [{"number": k, "total_count": v} for k, v in candidates_sorted],
-    })
-    print(f"wrote {CANDIDATES_OUT}")
+    if not no_scan:
+        atomic_write_json(CANDIDATES_OUT, {
+            "generated_from": "raw ERS CSVs, all years, unmasked (build_ahri_lookup_full.py)",
+            "min_digits": MIN_DIGITS, "max_digits": MAX_DIGITS,
+            "ahri_numbers": [{"number": k, "total_count": v} for k, v in candidates_sorted],
+        })
+        print(f"wrote {CANDIDATES_OUT}")
 
     lookup = {}
     if LOOKUP_PATH.exists():
         lookup = json.loads(LOOKUP_PATH.read_text(encoding="utf-8"))
     print(f"{len(lookup)} numbers already resolved in {LOOKUP_PATH.name}")
 
-    todo = [num for num, _ in candidates_sorted if num not in lookup]
+    # `--backfill-field KEY` re-fetches entries that ALREADY resolved but are
+    # missing KEY. Needed whenever FIELD_MAP_M1 gains a field: the default
+    # `num not in lookup` skip is right for the one-time backfill job, but it
+    # means existing entries never pick up newly-mapped fields (e.g. the
+    # Phase 3c additions -- sold_in, split_or_packaged, airflow_cfm, ...).
+    # Delisted entries are left alone: they have no fields to gain.
+    backfill_field = None
+    if "--backfill-field" in sys.argv:
+        backfill_field = sys.argv[sys.argv.index("--backfill-field") + 1]
+
+    if backfill_field:
+        todo = [num for num, _ in candidates_sorted
+                if num not in lookup
+                or (backfill_field not in lookup[num]
+                    and lookup[num].get("model_status") != "Delisted")]
+        print(f"backfill mode: re-fetching entries missing {backfill_field!r}")
+    else:
+        todo = [num for num, _ in candidates_sorted if num not in lookup]
     print(f"{len(todo)} numbers left to fetch\n")
 
     t0 = time.time()
