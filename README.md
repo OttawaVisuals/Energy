@@ -63,7 +63,8 @@ Energy/
 ├─ FSA_Maps/                 # simplified FSA boundary GeoJSONs per province
 ├─ Census/                   # StatCan 2021 census profile source (gitignored)
 │
-│  # committed data the pages fetch (via raw.githubusercontent.com):
+│  # generated data — published on the gh-pages branch, gitignored on main
+│  # (present on your disk after running the pipelines; fetched same-origin):
 ├─ province_json/  fsa_json/         # Retrofit Explorer
 ├─ insights_json/                    # Retrofit Insights (national)
 ├─ climate_json/                     # per-FSA HDD/CDD (ECCC normals, static)
@@ -75,6 +76,23 @@ Energy/
 ├─ census_json/  geo_json/  lookup/  # shared lookups (census, geometry, AHRI, windows)
 └─ utility_rates_reference.json      # bill-card rates (fetched by retrofits.html)
 ```
+
+## 🌿 Branches — code on `main`, data on `gh-pages`
+
+| Branch | Holds | History |
+|---|---|---|
+| `main` | pages, `assets/`, `Python/`, per-tool pipelines, docs, trackers | full — the decision record |
+| `gh-pages` | the published site: pages + every generated data tree | **one commit, force-pushed each deploy** |
+
+GitHub Pages publishes `gh-pages`, so the data sits next to the pages and every
+`BASE_URL` is simply `'./'`. Generated trees are gitignored on `main`: they live
+on local disk and are rebuilt by re-running the pipelines. Data versions are
+deliberately not kept — the *process* is what has to be defensible, and the
+process is versioned on `main`.
+
+Publish with `./deploy.sh` (rebuilds `gh-pages` from the working tree as a
+single commit). `.nojekyll` is required — the data trees contain `_index.json`
+files and Jekyll drops underscore-prefixed paths.
 
 ## ⚙️ Automated refreshes (GitHub Actions)
 
