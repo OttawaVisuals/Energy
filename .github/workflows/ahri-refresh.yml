@@ -25,11 +25,23 @@ on:
 permissions:
   contents: write
 
+# gh-pages is amended and force-pushed; never let two refreshes race for it.
+concurrency:
+  group: gh-pages-deploy
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4          # main: code + pipelines
+
+      - uses: actions/checkout@v4          # gh-pages: the published data
+        with:
+          ref: gh-pages
+          path: .ghpages
+
+      - name: Seed existing lookup from gh-pages
+        run: cp -r .ghpages/lookup ./lookup
 
       - uses: actions/setup-python@v5
         with:
@@ -44,16 +56,22 @@ jobs:
           AHRI_REFRESH_MAX_REQUESTS: ${{ github.event.inputs.max_requests }}
         run: python refresh_ahri_lookup.py | tee refresh_output.log
 
-      - name: Commit updated lookup (only if changed)
-        working-directory: Python
+      # Data lives on gh-pages, which is kept at a single commit: amend and
+      # force-push rather than adding a commit per refresh.
+      - name: Publish to gh-pages (only if changed)
         run: |
+          SUMMARY=$(grep '^AHRI_REFRESH_SUMMARY' Python/refresh_output.log | sed 's/^AHRI_REFRESH_SUMMARY //')
+          cd .ghpages
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add ../lookup/ahri_numbers.json
+          rsync -a --delete ../lookup/ ./lookup/
+          git add lookup
           if git diff --cached --quiet; then
             echo "No AHRI data changes this week."
           else
-            SUMMARY=$(grep '^AHRI_REFRESH_SUMMARY' refresh_output.log | sed 's/^AHRI_REFRESH_SUMMARY //')
-            git commit -m "chore: weekly AHRI certificate lookup refresh" -m "$SUMMARY"
-            git push
+            git commit --amend --date=now \
+              -m "Deploy site + data ($(date +%F)) — weekly AHRI lookup refresh" \
+              -m "$SUMMARY" \
+              -m "Single-commit branch; source and history live on main."
+            git push --force origin HEAD:gh-pages
           fi
