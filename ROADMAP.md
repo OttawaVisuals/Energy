@@ -1,7 +1,7 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-24** (verified against the repo and commit history; GitHub Actions run status not directly queried — inferred from bot-authored commits).
+Updated **2026-07-27** (heat-pump load-model rebuild started: city design temperatures step shipped; CCHP Challenge screen added; earlier 2026-07-24 pass verified against the repo and commit history — GitHub Actions run status not directly queried, inferred from bot-authored commits).
 
 - 📦 Full record of completed items (prompts + build notes): [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)
 - 🗺️ Visual status page: [project-atlas.html](project-atlas.html) — <https://ottawavisuals.github.io/Energy/project-atlas>
@@ -53,6 +53,101 @@ Updated **2026-07-24** (verified against the repo and commit history; GitHub Act
   6 priority units' performance data (datasheets give capacity + lockout; NEEP
   needed for power/COP), then rebuild `hp_curves.json` and rewire
   `heatpump.html`'s tier selector.
+
+- 🌡️ **Heat pump tool — heating-load model rebuild** (started 2026-07-27,
+  step 1 shipped). The load model is being rebuilt from scratch so the design
+  load and load curve are explainable and defensible end to end.
+
+  **Step 1 done: city design temperatures from the station HOT2000 actually
+  used.** `HeatPump/pipeline/build_city_design_temps.py` →
+  `data/processed/city_design_temps.json`. The raw ERS files carry `WEATHERLOC`
+  and `WTHDATA`, which were never carried into `ers_web_*.parquet`; recovering
+  them lets each home's `EGHDESHTLOSS` be divided by the design temperature it
+  was actually computed at, instead of the 2.5%-ile proxy in
+  `build_archetypes.py`. Scanned 1,430,221 matched pairs — **100% matched, 0
+  unmatched** — and joined to NBC Appendix C via the new committed
+  `HeatPump/reference/nbc_station_design_temps.csv`. **84 cities, 1,020,246
+  homes (71.3%), zero homes without a design temperature.** Method + caveats in
+  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "City design temperatures
+  from HOT2000 weather stations".
+
+  **Step 2 done: archetypes rebuilt on NRCan's published loads.**
+  `HeatPump/pipeline/build_archetypes_nrcan.py` →
+  `data/processed/archetypes_nrcan.json`. Decision taken 2026-07-27: **stop
+  fitting a balance point to our own data and take both quantities from one
+  published source** — NRCan CanmetENERGY *Cold-Climate ASHPs*
+  (Cat. M154-149/2022E-PDF) Table 1 + Figure 1. Because each NRCan archetype is
+  one house relocated to 16 cities, regressing the 16 published peaks against
+  the 16 NBC design temperatures recovers UA and T_balance per archetype
+  (R² 0.90–0.93), and independently reproduces the Figure 1 intercepts within
+  0.5 °C for archetypes A and B — which also **settles that Table 1 is a
+  design-condition load, not a TMY-series peak** (a 16% difference in UA).
+  UA is taken **per city** from the published peak, preserving a real
+  wind-infiltration effect the single fit discards (archetype A: 389 W/K in
+  St. John's vs 291 in Kamloops). **Scope is NRCan's 16 cities for now**;
+  TMY covers 11 of them. Full method + limitations in
+  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "NRCan-published archetypes".
+
+  **Steps outstanding:**
+  1. **Wire `heatpump.html` onto `archetypes_nrcan.json`** — the page still
+     loads the old ERS `archetypes.json`. Archetype set changes (townhouse/row
+     out, Net-Zero-Ready in), the city list changes to NRCan's 11 with TMY, and
+     `autoSize()` / the "which is my home?" helper both reference floor area,
+     which NRCan does not publish. **Nothing is live yet.**
+  2. **Commit an explicit peak-load field on a stated percentile** (1% or 2.5%
+     coldest hour) rather than the single coldest TMY hour.
+  3. **Decide whether to credit the night setback when sizing.** ERS SOC drops
+     to 18 °C for 8 h and the sizing hour falls inside it; CSA F280 takes no
+     setback credit because the system must recover. Simulate with, size without,
+     and say so.
+  4. **Display gross vs net** design load with both definitions stated, and say
+     which one sizes the equipment.
+  5. **Send the NRCan question list.** All open EnerGuide/HOT2000 questions
+     across every ERS-based tool are now consolidated in
+     [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md) — the blocking
+     one is the four monthly HOT2000 fields (`energy_loadGJ`, `solar_gainsGJ`,
+     `internal_gainsGJ`, `aux_energy_GJ`) or, failing that, the SOC solar gain
+     per city. Answering it would let us return to ERS-derived archetypes and
+     recover the population sample, floor areas, local construction practice
+     and the townhouse archetype. Also collects the design-temperature /
+     weather-library questions, `EGHDESHTLOSS` semantics, `HPCAP` vs
+     `CCASHPCAP`, `ERSRating=0`, the pairing-key question, and the ON/QC NBC
+     tier gap.
+
+  **Superseded:** the ERS design-temperature rewiring of `build_archetypes.py`
+  (step 1's original purpose). `city_design_temps.json` is still the input for
+  any future ERS-based work, and the 84-city table stands.
+
+  **Two engine bugs to fix during the rebuild** (found 2026-07-27, not yet
+  fixed): `buildOpts()` gives **propane backup 100% efficiency**
+  (`gas?0.95:oil?0.85:1.0` has no propane branch), and `simulate()` applies the
+  **upstream-methane term to propane using natural-gas properties**
+  (`GAS_KWH_PER_M3` 10.55, `GAS_KG_PER_M3`, CH₄ GWP) on both baseline and backup
+  sides. Also open, lower priority: no part-load/cycling degradation (curves are
+  steady-state, so mild hours are optimistic) and no defrost penalty.
+
+- 🇺🇸 **US DOE CCHP Challenge screen — analysis done 2026-07-27, not yet on any
+  page.** `HeatPump/pipeline/screen_cchp.py` screens all 15,148 models against
+  the [Challenge specifications](https://www.energy.gov/cmei/buildings/cchp-technology-challenge-specifications)
+  Table II-3. Headline: **4 models, 8 of 439,975 ERS appearances (0.00%)** clear
+  every checkable criterion, and three of the four sit *exactly* on the
+  threshold. 34.4% of the base is `out_of_scope` (<24,000 Btu/h, which the
+  Challenge deliberately does not address). **Decision outstanding: where and
+  how to surface this** — it does not fit the 3×3 tier grid (no qualifying unit
+  is a cell representative), so it wants its own framing. Method in
+  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "US DOE Cold Climate Heat
+  Pump Challenge screen"; caveats in
+  [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md) §6.7.
+
+- 🧾 **Reproducibility gap: two Phase 3c inputs cannot be regenerated**
+  (found 2026-07-27). `HeatPump/data/interim/hp_units_joined.csv` — the joined
+  15,148-model universe that the bucket grid *and* the CCHP screen both read —
+  **has no producer script anywhere in the repo**; it was built ad hoc in an
+  earlier session. And `lookup/ahri_numbers.json`, the AHRI scrape itself, is
+  not on local disk. Both are gitignored, so the "process, not bytes" rule does
+  not currently hold for them: losing `hp_units_joined.csv` would strand Phase
+  3c. **Fix:** write the join as a real pipeline step, and confirm the weekly
+  `ahri-refresh.yml` still restores `lookup/`.
 
 - 🔧 **Tech debt: consolidate the two heat-pump engines** (deferred, do later).
   `HeatPump/app/engine.js` and the copy inlined verbatim in `heatpump.html`

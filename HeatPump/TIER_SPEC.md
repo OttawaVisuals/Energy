@@ -337,6 +337,23 @@ A working 6-unit tool covering the dominant scenarios needs only steps 1–2.
 6. **The `cm < 0.60` column is historical.** Only 6–24% of its models are Active
    and several cells have <10 appearances on the top unit. Valid as scenarios,
    not as "typical Canadian install".
+7. **This grid does not describe the frontier.** Screened against the **US DOE
+   Cold Climate Heat Pump Challenge** specifications (2026-07-27,
+   `pipeline/screen_cchp.py`), **4 models — 8 of 439,975 appearances — clear
+   every checkable criterion**, and none of the four is a cell representative.
+   The grid is a description of the *installed* base, which is a historical
+   record; it is not evidence about what today's best equipment can do. Method,
+   caveats and the four qualifying units: METHODOLOGY.md, "US DOE Cold Climate
+   Heat Pump Challenge screen".
+8. **The rep is a thin proxy in most cells.** In the largest cell (13.1% of the
+   screened base) the representative carries ~11% of its own cell's appearances,
+   chosen from 748 models; in the four `1.8–2.0 × cm<0.60` cells the reps carry
+   **6 to 16 appearances each**. Those are the least-arbitrary pick available,
+   not representatives in any statistical sense. The page must not present all
+   36 as equivalent.
+9. **396 bucketed models have no rated 47 °F capacity** and so get a COP×cm cell
+   but no capacity band — **10,738 appearances, 3.39% of the screened base**,
+   absent from the 36-cell table. Named here per the never-silently-drop rule.
 
 ---
 
@@ -352,3 +369,25 @@ The third backfills newly-mapped AHRI fields into already-resolved entries (the
 default run skips them). ~12,500 fetches at 1 req/s, checkpointed after every
 fetch, safe to interrupt. `atomic_write_json` retries the rename with backoff —
 a long run previously died on a transient Windows file lock at 5,564/12,562.
+
+### ⚠️ Reproducibility gap — this spec is not currently reproducible (2026-07-27)
+
+Two inputs the repo's *"what must be defensible is the process, not the bytes"*
+rule does **not** currently cover:
+
+1. **`data/interim/hp_units_joined.csv`** — the joined 15,148-model universe
+   (`k,w,cm,cm_ahri,cm_nrcan,h5,pg,h4,cop,cc,c47`) that the §3 grid, the §4
+   representative selection **and** `pipeline/screen_cchp.py` all read. **No
+   producer script exists anywhere in the repo** — grepping the filename returns
+   nothing. It was built ad hoc in an earlier session.
+2. **`lookup/ahri_numbers.json`** — the AHRI scrape itself. Gitignored *and*
+   absent from local disk. Only the derived `Python/ahri_numbers_all.json`
+   survives, and that carries bare appearance counts with no certified ratings.
+
+Every other generated tree here is safe to lose because a script rebuilds it.
+These two are not: deleting `hp_units_joined.csv` would strand Phase 3c, and the
+§7 commands above do **not** regenerate it.
+
+**Fix before the next refresh:** write the join as a real pipeline step under
+`HeatPump/pipeline/`, and confirm the weekly `ahri-refresh.yml` Action still
+restores `lookup/`. Tracked in [ROADMAP.md](../ROADMAP.md), Queued.
