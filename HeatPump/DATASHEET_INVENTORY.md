@@ -123,3 +123,72 @@ untested and least likely to publish.
    points across several GREE units.
 4. **Find the right LG manuals** for LSU120HSV5, LMU363HV, LUU480HHV.
 5. **Concede the rated-only brands to NEEP** rather than hunting further.
+
+---
+
+## 5b. The band issue — what it actually is (2026-07-27)
+
+This is the failure mode that halted the first sweep, so it is worth stating
+precisely. **One outdoor model name spans several certified combinations.** The
+same outdoor unit paired with a different indoor coil gets its own AHRI number
+*and its own rated capacity*. A model string on a datasheet therefore does not
+identify the certified combination — and the ERS records key on AHRI number.
+
+Detection is `ratio = datasheet 47 °F max ÷ certificate rated 47 °F`, computed
+per unit by `pipeline/build_unit_curves.py` and tabulated by the new
+`pipeline/build_fetch_manifest.py` → `data/interim/datasheet_fetch_manifest.csv`.
+Variable-speed units legitimately boost above rated, so >1.0 is normal; **>1.35
+is flagged, never auto-rejected.** Four outcomes:
+
+| `band_issue` | Meaning |
+|---|---|
+| `ok` | ratio ≤ 1.35 — datasheet and certificate are consistent |
+| `flagged` | ratio > 1.35 — **wrong combination** *or* **genuine wide boost range**, and these cannot be separated automatically. Needs a human reading the sheet's own AHRI printing |
+| `unchecked` | no certificate rated-47 °F figure to compare against — **not** the same as `ok` |
+| `not_fetched` | no datasheet digitized yet |
+
+**A fifth case found this pass: benign number mismatch.** A sheet can print a
+*different* AHRI number that is nonetheless the **same physical unit with
+identical certified ratings** — in which case the sheet is usable and the
+mismatch is cosmetic. See MDV below. Check the ratings before rejecting a sheet
+on its printed number alone.
+
+> ⚠️ **The check was silently dead.** `build_unit_curves.py` sourced the
+> certificate figure from `lookup/ahri_numbers.json`, which is not on disk
+> (§ TIER_SPEC.md §7). With it absent, every curve normalized on its own
+> datasheet 47 °F — TIER_SPEC.md §5 trap 1, reintroduced — and **no ratio was
+> computed at all**. Fixed 2026-07-27: it now falls back to `hp_units_joined.csv`
+> (`c47`) and **refuses to build** if neither source exists. All 7 curves now
+> reproduce the §1 ratios exactly.
+
+## 5c. Fetch pass 2026-07-27 — 5 documents, 0 new curves
+
+| Unit | Doc fetched | Verdict | Finding |
+|---|---|---|---|
+| `208101910` MDV MOD30-24HFN1-MW (**13.1%**, largest cell) | `mdv/MDV_MOD30-24_MitsAir_casedcoil_submittal.pdf` | SPARSE (2 pts) | Prints **AHRI 211911381** again — but 211911381 and 208101910 have **identical certified ratings** (c47 25,000, cm 0.80, COP 1.95), i.e. the same unit in two combinations. **Benign mismatch, sheet is usable** — but it is rated-only, so still no curve |
+| `10570123` LG LSU120HSV5 (4.8%) | `lg/LG_LSU120HSV5_submittal_ajmadison.pdf` | SPARSE (3 pts) | Confirms max heating as % of rated (102% @17 °F, 88% @5 °F, 76% @−4 °F) but no power/COP column. Engineering manual still needed |
+| `208786090` GREE GWHD(24)ND3MO (3.7%) | `gree/GREE_GWHD24ND3MO_GEN2_submittal.pdf` | SPARSE (3 pts) | **Prints our exact AHRI 208786090** — no band issue — but rated points only |
+| `10062019` TOSOT TW12HQ3D6DO (3.3%) | `tosot/TOSOT_heatpump_catalogue_2022.pdf` | SPARSE (1 pt) | Catalogue, not a submittal |
+| GREE multi-zone (context) | `gree/GREE_multizone_freematch_brochure_2024.pdf` | SPARSE (0 pts) | Marketing brochure |
+
+**Brand pattern sharpened:** GREE's *single-zone FLEXX* line publishes full
+extended ratings; GREE's *multi-zone Free Match* line does **not** — the split is
+by product line, not by manufacturer. A dead LG lead was also cleared
+(`cdn.bakerdist.com` returns HTML, not a PDF; deleted).
+
+---
+
+## 6. Lead surfaced by the CCHP screen (2026-07-27)
+
+**Mitsubishi MXZ-3C30NAHZ4, AHRI 209424905, 693 appearances** — the single
+largest unit anywhere near the DOE Challenge bar. Capacity ratio exactly
+1.0000, and it fails **only** on refrigerant (R-410A, GWP 2,088 > 750). Its
+R-454B successor generation would plausibly pass outright.
+
+We already hold `spec_sheets/mitsubishi/MXZ-3C30NAHZ2-submittal.pdf` — the
+**NAHZ2**, an earlier variant, not the NAHZ4 in the records. Same combination
+trap as TIER_SPEC.md §5: match the sheet to the certified combination. Worth
+fetching the NAHZ4 submittal, though note the brand-level pattern above puts
+Mitsubishi in the rated-points-only group.
+
+Context: METHODOLOGY.md, "US DOE Cold Climate Heat Pump Challenge screen".

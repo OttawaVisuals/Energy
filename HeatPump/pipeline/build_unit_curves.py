@@ -144,8 +144,15 @@ def main():
     units = json.loads(SRC.read_text(encoding="utf-8")).get("units", {})
 
     # AHRI certificate rated 47F capacity, the correct normalization denominator.
+    #
+    # Two sources, because the scrape is not always on disk. If BOTH are absent
+    # we must not quietly fall back to the datasheet's own 47F figure: that is
+    # TIER_SPEC.md 5 trap 1, it inflates every cap_frac, and -- worse -- it
+    # disables the combination-mismatch ratio check entirely, so a datasheet for
+    # the wrong certified combination would be accepted in silence.
     lookup_path = ROOT.parent / "lookup" / "ahri_numbers.json"
-    certs = {}
+    joined_path = ROOT / "data" / "interim" / "hp_units_joined.csv"
+    certs, cert_source = {}, None
     if lookup_path.exists():
         raw = json.loads(lookup_path.read_text(encoding="utf-8"))
         for k, v in raw.items():
@@ -153,6 +160,25 @@ def main():
                 certs[k] = float(str(v.get("heating_capacity_47f_btuh")).replace(",", "")) / 3412.14
             except (TypeError, ValueError):
                 pass
+        cert_source = "lookup/ahri_numbers.json"
+    elif joined_path.exists():
+        # Derived copy of the same certificate figures (column c47, Btu/h).
+        import csv
+        with joined_path.open(encoding="utf-8", errors="replace", newline="") as fh:
+            for row in csv.DictReader(fh):
+                try:
+                    certs[row["k"].strip()] = float(row["c47"]) / 3412.14
+                except (TypeError, ValueError, KeyError):
+                    pass
+        cert_source = f"{joined_path.name} (derived; lookup/ absent)"
+    print(f"certificate rated-47F source: {cert_source or 'NONE'} ({len(certs)} entries)",
+          file=sys.stderr)
+    if not certs:
+        print("REFUSING TO BUILD: no certificate rated-47F capacities available, so "
+              "curves cannot be normalized correctly and the combination-mismatch "
+              "check cannot run. See TIER_SPEC.md 7, 'Reproducibility gap'.",
+              file=sys.stderr)
+        return 1
     if not units:
         print("no units in source", file=sys.stderr)
         return 1

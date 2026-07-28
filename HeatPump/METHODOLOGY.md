@@ -1260,6 +1260,115 @@ station/FSA, not the single city value used here — using one city-wide
 population-level simplification, acceptable for archetype-level UA but not
 exact per-house.
 
+> **Superseded 2026-07-27.** The proxy above is being replaced by the home's
+> *actual* station design temperature — see
+> "[City design temperatures from HOT2000 weather stations](#city-design-temperatures-from-hot2000-weather-stations-2026-07-27)"
+> below. `build_archetypes.py` has **not** been rewired yet; it still uses the
+> computed 2.5%-ile proxy. The new table is built and committed, the swap is
+> the next step of the load-model rebuild.
+
+### City design temperatures from HOT2000 weather stations (2026-07-27)
+
+Built by `pipeline/build_city_design_temps.py`.
+Outputs `data/processed/city_design_temps.json` + `data/interim/city_design_temps.csv`.
+
+**The problem this fixes.** `EGHDESHTLOSS` is computed by HOT2000 at the design
+temperature of *the home's own weather station*, drawn from HOT2000's weather
+library. Dividing it by a proxy derived from a different record, over a
+different period, mixes two climate bases in one equation. The raw ERS year
+files carry `WEATHERLOC` (station) and `WTHDATA` (library version), so the real
+basis is recoverable — those columns were simply never carried into
+`ers_web_*.parquet`.
+
+**Method.**
+
+1. Universe = every `HOUSEID` in the web parquets (the paired, gated homes that
+   reach the retrofit page): **1,430,221**.
+2. One pass over `C:\ERS\*.csv`, first-hit-wins per `HOUSEID` (a home
+   re-evaluated later keeps its earliest station). **100.0% matched, 0
+   unmatched**; every year file 2004–2026 carried both columns. Cached to
+   `data/interim/houseid_city.parquet` so the 7.7 GB scan runs once.
+3. `CLIENTCITY` (operator-entered free text: 35,450 distinct raw values,
+   23,984 after folding) is normalised for mojibake, accents and punctuation —
+   merging `MONTRÉAL`/`MONTREAL`, `QUÉBEC`/`QUEBEC`, `ST. CATHARINES`/`ST
+   CATHARINES` — then rolled into metro areas by the explicit `CITY_MEMBERS`
+   table in the script.
+4. Each station is joined to NBC Appendix C design heating dry-bulb via
+   `reference/nbc_station_design_temps.csv` (419 stations, 334 distinct NBC
+   locations). **Zero homes lack a design temperature.**
+5. **City design temperature = the house-weighted mean** of each home's own
+   station value — *not* the modal station's. Homes inside one city spread
+   across many stations (Toronto: 55 stations, the top one only 42%), so the
+   mode is not representative.
+
+**Result: 84 cities, 1,020,246 homes (71.3% of the universe).** Top 10:
+
+| City | homes | % | design °C (wtd) | modal station (share) | n stations |
+|---|---|---|---|---|---|
+| Toronto | 293,950 | 20.6 | −18.4 | TORONTO MET RES STN (42%) | 55 |
+| Montreal | 73,322 | 5.1 | −23.6 | MCTAVISH (22%) | 43 |
+| Ottawa-Gatineau | 57,971 | 4.1 | −24.1 | OTTAWA (63%) | 34 |
+| Vancouver | 50,636 | 3.5 | −4.9 | VANCOUVER (69%) | 52 |
+| London | 35,309 | 2.5 | −18.4 | LONDON (98%) | 26 |
+| Calgary | 35,130 | 2.5 | −26.1 | CALGARY INTL (42%) | 25 |
+| Kitchener-Waterloo | 31,170 | 2.2 | −18.3 | TORONTO MET RES STN (46%) | 40 |
+| Hamilton | 31,150 | 2.2 | −17.9 | SIMCOE (54%) | 30 |
+| Quebec City | 30,538 | 2.1 | −25.5 | QUEBEC (45%) | 33 |
+| Edmonton | 29,986 | 2.1 | −30.7 | EDMONTON INTL (51%) | 30 |
+
+Full 84-city table in `data/interim/city_design_temps.csv`.
+
+**What the data can't tell us / what we assumed / what would change the answer:**
+
+- **Station-name matching is not exact for everyone.** Only ~53% of homes match
+  NBC by `exact` station name. The two largest stations — 265,001 homes, ~19% —
+  are `alias:nearest (Downsview absent)` and `alias:downtown approx`, and they
+  disagree by 3.5 °C. `matched_via` is carried into the output so the match
+  quality travels with the number.
+- **The weather library is mostly not `Wth2020`.** Across the universe:
+  `WTH100` 56.3%, `Wth2020` 35.4%, `Wth110` 8.0%. We hold one NBC-vintage value
+  per station and apply it to all vintages. Library revisions typically move a
+  station 1–2 °C → roughly 2–3% on peak load (see the sensitivity table below).
+- **The percentile is inferred, not stated.** The source file has no metadata;
+  value-matching against published NBC figures (Toronto Intl −18.3, Ottawa Intl
+  −24.3, Winnipeg −31.3) indicates **2.5% January dry-bulb**. Confirm with the
+  file's author before citing, and pin the NBC edition (2015 vs 2020 shifts some
+  stations ~1 °C).
+- **28.7% of homes are unassigned** — genuine mid-size municipalities outside
+  the 84 listed (Saint-Bruno-de-Montarville, Summerside, Cobourg, Rivière-du-Loup…),
+  not mapping failures. They are counted and reported, never silently dropped.
+- **`CITY_MEMBERS` is a judgement call**, written out in full in the script.
+  Notably Oshawa is folded into Toronto.
+- **`design_temp_spread_C` is large in some cities** (Toronto 23.4, Victoria
+  32.6) because a handful of homes carry distant stations — presumably data
+  entry or relocated files. It barely moves the weighted mean, but it is
+  reported rather than trimmed.
+- **Two cities to override by hand**: **Barrie** (weighted −22.0 vs modal −26.6
+  — modal station is MUSKOKA, well north) and **Trois-Rivières** (draws QUEBEC
+  as top station, making it climatically identical to Quebec City).
+
+**Design-temperature sensitivity.** How much does getting `T_design` wrong
+actually matter? Holding Toronto pre-1980 detached fixed (design heat loss
+16.27 kW, annual delivered heat 23,343 kWh) and re-fitting `Tbalance` each time:
+
+| T_design | UA (W/K) | fitted Tbalance | peak @ TMY min | peak @ 1%-ile |
+|---|---|---|---|---|
+| −14.0 | 464.9 | 11.37 | 16.54 kW | 12.07 kW |
+| −17.1 *(current proxy)* | 427.0 | 12.27 | 15.57 kW | 11.47 kW |
+| −20.0 | 396.8 | 13.07 | 14.79 kW | 10.98 kW |
+| −22.0 | 378.4 | 13.61 | 14.31 kW | 10.67 kW |
+
+An **8 °C** swing moves the peak only ~14%, because the balance-point fit
+compensates: a colder `T_design` lowers UA, and the fit raises `Tbalance` to
+keep annual energy on target. **The annual-energy anchor does the real work;
+`T_design` is a weak lever.** The reason to use the real station value is
+defensibility, not accuracy — "we used the station HOT2000 used" is a
+one-sentence defence.
+
+The genuinely dominant choice is the **peak basis**: 15.57 kW at the single
+coldest TMY hour vs 11.47 kW at the 1st percentile, a 26% swing. See the
+open issues below.
+
 ### Balance-point calibration
 
 Per PLAN.md §5 ("assuming internal + solar gains offset load above
@@ -1279,6 +1388,217 @@ solve for Tbalance:  annual_load_kWh(Tbalance) = Pre_HeatDelivered
 only adds positive-Δ hours), so bisection over `Tbalance ∈ [8, 21] °C` is
 well-posed; every one of the 20 archetypes converged inside that range
 (none clamped to a bound).
+
+> **Open issue, found 2026-07-27 — `Tbalance` is a residual, not a physical
+> balance point, and using it to size equipment double-counts sunshine.**
+>
+> `Tbalance` is the model's *single free parameter*, so it absorbs everything
+> the model does not represent: solar gains, internal gains, setback behaviour,
+> heat delivered by supplementary systems that `EGHFURNACEAEC` excludes, and any
+> error in `T_design`. It cannot honestly be described as "the temperature at
+> which the house stops needing heat."
+>
+> Backing the implied gains out of the fits — `gains_kW = UA × (21 − Tbalance)` —
+> gives **2.5–4.1 kW across every city and archetype**, remarkably flat despite
+> floor areas of 149–341 m² and UA of 209–463 W/K:
+>
+> | | Toronto | Ottawa | Montreal | Edmonton | Vancouver |
+> |---|---|---|---|---|---|
+> | pre-1980 | 3.73 | 3.94 | 3.84 | 2.87 | 3.53 |
+> | 1980–2005 | 3.80 | 4.03 | 3.38 | 3.21 | 3.47 |
+> | post-2005 | 4.12 | 3.84 | 3.02 | 2.53 | 3.00 |
+> | townhouse | 3.41 | 3.40 | 3.72 | 2.54 | 2.69 |
+>
+> Two conclusions:
+>
+> 1. **Gains behave as a roughly constant absolute power, not a fraction of
+>    design load.** Any "peak = X% of design heat loss" rule is therefore the
+>    wrong shape — the same physical credit is 23% of a Toronto pre-1980 home's
+>    design load and 44% of a Vancouver townhouse's.
+> 2. **3.5 kW is 2–3× plausible internal gains** (typically 5–8 W/m², so
+>    1.0–1.6 kW for a 200 m² home; the table implies 12–23 W/m²). The excess is
+>    mostly **solar**, because `Tbalance` is fitted against *annual* energy and
+>    therefore encodes *season-average* gains. But the sizing peak is a January
+>    pre-dawn hour, when **solar is zero**. Using the annual-fitted `Tbalance`
+>    to compute the peak credits the house with sunshine it is not receiving and
+>    **undersizes the heat pump**. Missing supplementary heat biases the same
+>    way.
+>
+> **The fix is two gains numbers, not one**: season-average (internal + solar)
+> for the annual-energy calibration, and peak-hour internal-only for sizing.
+> Collapsing them into a single `Tbalance` is the actual defect, and it is
+> independent of the design-temperature question above.
+>
+> Cross-check available: NRCan CanmetENERGY, *Cold-Climate Air Source Heat
+> Pumps* (Cat. M154-149/2022E-PDF, `data/raw/nrcan/gid_329701.pdf`) Table 1
+> gives peak heating loads for four EnerGuide-drawn archetypes in 16 cities —
+> Toronto 11.6 / 9.8 / 6.1 / ~2.2 kW. Our Toronto archetypes currently compute
+> 15.6–12.1 kW simulated peak against 13.0–16.3 kW gross design heat loss. The
+> report also gives a temperature-vs-load scatter with fitted lines (Figure 1)
+> whose slope is UA_net and x-intercept the effective balance temperature —
+> a direct published check on both quantities. **Note the report contradicts
+> itself on Toronto**: §3.1 text says Archetype A is 10.7 kW and B is 9 kW;
+> Table 1 says 11.6 and 9.8. Cite Table 1 and note the discrepancy.
+>
+> Two further reasons our figures sit above NRCan's, both definitional rather
+> than errors: `EGHDESHTLOSS` is a **gross** design heat loss with no gains
+> credit, while NRCan Table 1 is a **net** peak from an hourly simulation that
+> credits solar and internal gains (report §3.2); and ours is the **median of
+> tens of thousands of audited local homes** (Toronto pre-1980: 57,256 homes,
+> median 199 m², 85.6 W/m²) whereas NRCan's is **one hand-picked house
+> relocated** to 16 cities. The latter shows up as a structural tell: NRCan's
+> loads scale with climate (Toronto 11.6 → Edmonton 16.8 kW) while ours are
+> nearly flat and Edmonton is *lower* than Toronto, because Edmonton's audited
+> stock is genuinely better built per m². Our archetypes bundle house *and*
+> local construction practice, so cross-city comparisons are not comparing the
+> same building.
+
+### NRCan-published archetypes (2026-07-27) — the replacement
+
+Built by `pipeline/build_archetypes_nrcan.py`.
+Outputs `data/processed/archetypes_nrcan.json` + `data/interim/archetypes_nrcan_validation.csv`.
+
+**Why replace the ERS archetypes.** The fitted `Tbalance` above is a residual, not
+a balance point (see the open issue). Rather than repair a parameter we cannot
+defend, both quantities now come from one published source.
+
+**Source.** NRCan CanmetENERGY, *Cold-Climate Air Source Heat Pumps: Assessing
+Cost-Effectiveness, Energy Savings and Greenhouse Gas Emission Reductions in
+Canadian Homes*, Cat. No. M154-149/2022E-PDF, ISBN 978-0-660-42353-1
+(`data/raw/nrcan/gid_329701.pdf`) — **Table 1** (peak heating loads, 4 archetypes
+× 16 locations) and **Figure 1** (load vs outdoor temperature, whose x-intercept
+is the zero-heating temperature).
+
+**Method.** Each NRCan archetype is *one house* drawn from the EnerGuide database
+and relocated to 16 cities (report §3.1), so its UA is constant and each city's
+peak differs only through that city's design temperature:
+
+```
+peak_city = UA × (T_balance − T_design_city)
+```
+
+Regressing Table 1's 16 published peaks against the 16 NBC Appendix C design
+temperatures therefore recovers UA (slope) and `T_balance` (x-intercept) per
+archetype, using every published number rather than one chart reading:
+
+| Archetype | UA (W/K) | T_balance | R² | Figure 1 read-off | diff |
+|---|---|---|---|---|---|
+| A: pre-1980, 2-storey | 339.1 | **16.53 °C** | 0.921 | 16 | +0.53 |
+| B: post-1980, 2-storey (larger) | 290.9 | **15.89 °C** | 0.905 | 15 | +0.89 |
+| C: post-1980, 1-storey (smaller) | 187.0 | **15.47 °C** | 0.921 | 14 | +1.47 |
+| D: Net-Zero-Energy-Ready | 92.4 | **10.26 °C** | 0.926 | 12 | −1.74 |
+
+This also **settles what Table 1's peaks are referenced to.** Had they been peaks
+of an hourly TMY series rather than design-condition loads, the recovered
+`T_balance` would not land on Figure 1's intercept. It does — within 0.5 °C for A
+and B — so Table 1 is a design-condition load. That mattered: the alternative
+reading changes UA by ~16%.
+
+**UA is taken per city, not from the single fit.** Because we ship only NRCan's
+16 published cities there is no extrapolation, so `UA_city = peak_published /
+(T_balance − T_design_city)` — which reproduces the published peak *exactly*.
+The single fitted UA is retained in the output as a diagnostic.
+
+The per-city spread this exposes is **real physics, not noise**. Implied UA for
+archetype A:
+
+| | UA (W/K) | | UA (W/K) |
+|---|---|---|---|
+| St. John's | 389 | Toronto | 333 |
+| Halifax | 382 | Prince George | 309 |
+| Fredericton | 362 | Vancouver | 306 |
+| Edmonton / London | 355 | Kamloops | 291 |
+
+The same house needs 34% more heat at design conditions in St. John's than in
+Kamloops. That is **wind-driven infiltration** — windy Atlantic coast vs
+sheltered interior valley — which HOT2000 models and a single UA cannot. Forcing
+one UA costs up to 1.65 kW (14% on St. John's archetype B) and discards the
+effect; taking UA per city keeps it.
+
+**Sanity check.** Toronto archetype A gives 26,157 kWh/yr delivered heat against
+the ERS Toronto pre-1980 detached median of 23,343 kWh — 12% apart, the right
+order for one specific house vs a population median.
+
+**What the data can't tell us / what we assumed / what would change the answer:**
+
+- **Four houses, not a population.** Sample size stops being a claim we can make.
+- **No floor areas are published.** No per-m² figures, and no area-based "which is
+  my home?" helper.
+- **A relocated house cannot show local construction practice.** The ERS medians
+  did — Edmonton's audited stock is genuinely better built per m² than Toronto's.
+  That signal is gone; the model now says "the same house in a different climate."
+- **The archetype set changes**: townhouse/row disappears, Net-Zero-Ready appears.
+- **TMY covers 11 of the 16 cities.** Annual energy is reported for those 11;
+  Kamloops, Prince George, Victoria, Fredericton and St. John's have peak load
+  and UA but no annual figure until CWEC files are added.
+- **The report contradicts itself on Toronto.** §3.1 text gives archetype A =
+  10.7 kW and B = 9 kW; Table 1 gives 11.6 and 9.8. **Table 1 is used**; cite it,
+  and note the discrepancy rather than let a reader find it.
+- **Table 1's archetype-D column extracts misaligned from the PDF.** The pairing
+  used was verified by `corr(A, D) = 0.9945` and by physical ordering (Victoria
+  1.0 and Vancouver 1.1 lowest, Regina 4.0 highest). Toronto D = 2.6 kW from
+  Table 1, against 2.4 kW in the §3.1 text — the same text-vs-table pattern.
+- **Design temperatures are NBC Appendix C**, which is *probably* what HOT2000's
+  weather library uses but is not confirmed; the residual structure above is
+  partly wind and partly any mismatch here.
+- **Solar gains are inside `T_balance`.** As with the ERS archetypes, the balance
+  temperature is a season-average construct, so using it for a January pre-dawn
+  sizing peak still over-credits solar. The difference is that `T_balance` is now
+  *published* rather than fitted to our own data.
+
+### Open question for the HOT2000 / EnerGuide team
+
+Returning to ERS-derived archetypes — which would restore the population sample,
+floor areas, local construction practice and the townhouse archetype — needs one
+thing we do not have. **The public ERS extract carries annual figures and design
+heat loss only; it has no monthly outputs.** CanmetENERGY's own HTAP tool
+(`github.com/canmet-energy/htap`, LGPL-3.0, `inc/hourly.rb`) builds hourly load
+shapes — the "load fitting technique" referenced in the report — from four
+monthly HOT2000 fields:
+
+| Field | Purpose |
+|---|---|
+| `energy_loadGJ` | monthly conduction loss |
+| `solar_gainsGJ` | monthly solar gain |
+| `internal_gainsGJ` | monthly internal gain |
+| `aux_energy_GJ` | monthly auxiliary heat, used to rebalance the hourly series |
+
+**The ask:** either those four monthly fields added to the ERS extract, or the
+standard-operating-conditions **solar gain per city** (the only house- and
+climate-specific term we cannot derive). Everything else is already in hand:
+UA from `EGHDESHTLOSS` ÷ station design temperature, the ERS SOC setpoint
+schedule, and the SOC internal-gains constant — all verified against a real
+CanmetENERGY `.h2k` file (see below).
+
+### HOT2000 standard operating conditions, verified from an `.h2k` file
+
+`reference/htap_NRCan-arch4-ERS.h2k` — an ERS standard-operating-conditions run
+from CanmetENERGY's HTAP repository (LGPL-3.0). The ERS documentation does not
+publish these values: HOT2000 User Guide v15.8 §7.12 only says *"Do not change
+any values/selections in the Base Loads, Water Usage or Electrical Use screens"*,
+and none of the guide's 22 Technical Procedures cross-references covers them.
+They are program defaults, readable from any `.h2k`:
+
+- **Setpoints**: main floors 21 °C daytime, **18 °C at night for 8 h** (setback
+  ends 07:00 per HTAP's `temp_schedule`), basement 19 °C,
+  `basementFractionOfInternalGains = 0.15`.
+- **Occupancy**: 2 adults + 1 child, each `atHome = 50%`.
+- **Interior electrical base load**: appliances 6.2997 + lighting 2.6 + other 9.7
+  = **18.6 kWh/day = 0.775 kW** (exterior 0.9 kWh/day excluded — it does not heat
+  the house). Hot water 189.8 L/day at 55 °C.
+- **Utilized gains** (`<Gains>`): internal **0.88 kW, near-constant** across every
+  heating month (0.878–0.902); solar 0.76–1.65 kW, January 1.05 kW.
+  `SolarUtilization` = 0.996 in January, so in deep winter utilized ≈ available.
+- **HTAP's hourly internal-gain profile** (`inc/hourly.rb`, `norm_int_gains`)
+  puts hours 02:00–06:00 at **0.56–0.59×** the monthly mean — so pre-dawn
+  internal gains are ≈ 0.49 kW, at an 18 °C setpoint, with zero solar.
+- **`designHeatLossRate`** sits in `<Other>`, entirely outside the monthly gains
+  balance — confirming `EGHDESHTLOSS` is in **watts** and is **gross, with no
+  gains credit**, as assumed throughout.
+
+Internal gains and setpoints are SOC constants and therefore generalise to every
+ERS-rated house. **Solar does not** — it is specific to that house's windows and
+climate, which is why it is the outstanding ask above.
 
 ### Validation: reconstructed vs. observed annual load — 20/20 within ±10 %
 
@@ -2041,3 +2361,165 @@ lives in the product database, not the specification. Previously supplied by the
 NEEP extract. Must be resolved — from manufacturer datasheets or a documented
 per-tier assumption — before the rebuilt curves ship, since the engine's lockout
 behaviour is governed by it.
+
+---
+
+## US DOE Cold Climate Heat Pump Challenge screen (2026-07-27)
+
+Screens the whole installed base against the specifications of the **US DOE
+Cold Climate Heat Pump (CCHP) Technology Challenge**, Table II-3:
+<https://www.energy.gov/cmei/buildings/cchp-technology-challenge-specifications>
+
+Built by `pipeline/screen_cchp.py`. Outputs `data/interim/cchp_qualifying.csv`
+(units passing every checkable criterion) and `data/interim/cchp_screen.csv`
+(all 15,148 models with their per-criterion result, for audit).
+
+**Not yet surfaced on any page** — see ROADMAP.md, Queued.
+
+### What the screen is, and what it is not
+
+It is a screen against **published certificate ratings**. The Challenge is a
+verification programme with its own H11/H1N laboratory test protocol, and we
+hold AHRI certificate figures. A unit passing here has *rating-consistent*
+performance and nothing more. The passing verdict is therefore named
+`screen_pass`, and no column in the output is named "meets" or "certified".
+**Do not relabel these in the UI.** The honest page wording is *"screened
+against the DOE Challenge specifications"*, never *"meets the DOE Challenge"*.
+
+### Thresholds (Table II-3)
+
+| Nominal capacity (Btu/h) | COP at 5 °F | Capacity ratio at 5 °F |
+|---|---:|---:|
+| ≥ 24,000 and ≤ 36,000 | 2.4 | 100% |
+| > 36,000 and ≤ 48,000 | 2.4 | 100% |
+| > 48,000 | 2.1 | 100% |
+
+Plus: minimum HSPF2 `8.5 × (1 + capacity factor) × (1 + COP factor)`, minimum
+turndown ratio 30%, low-temperature compressor cut-out/cut-in limits at 5 °F
+and −15 °F, electric heat staging per Table II-1, refrigerant GWP ≤ 750
+(AR4 100-year), and ENERGY STAR CACHP §3C/4B/4C/4D.
+
+### Which criteria we can actually check
+
+Four of roughly eight. The rest are recorded as `not_checkable` columns rather
+than quietly ignored:
+
+| Criterion | Source | Status |
+|---|---|---|
+| Nominal capacity band | AHRI heating rated 47 °F | ⚠️ approximation — see caveat 1 |
+| COP @ 5 °F ≥ 2.4 / 2.1 | AHRI certificate | ✅ |
+| Capacity ratio ≥ 100% | AHRI, Max 5 °F ÷ Rated 47 °F | ⚠️ basis — see caveat 2 |
+| HSPF2 ≥ 8.5 | NRCan SPL / ENERGY STAR | ⚠️ floor only — see caveat 3 |
+| Refrigerant GWP ≤ 750 | ENERGY STAR refrigerant + AR4 table | ✅ |
+| Turndown ratio ≥ 30% | — | ❌ needs minimum capacity; not in AHRI |
+| Compressor cut-out / cut-in | — | ❌ not in AHRI or ENERGY STAR; datasheets give a lock-out only |
+| Electric heat staging (Table II-1) | — | ❌ |
+| ENERGY STAR CACHP §3C/4B/4C/4D | — | ❌ partially proxied by `es_cold_climate`, not evaluated |
+
+**Caveat 1 — capacity band basis.** Table II-3 note 1 defines nominal capacity
+by the **A2 test of Appendix M1**, a *cooling* test. We hold AHRI **heating
+rated capacity at 47 °F**. Close, but not the same test: a unit near a band
+edge (24,000 / 36,000 / 48,000 Btu/h) could be assigned the wrong COP
+threshold. Carried per row as `band_basis`.
+
+**Caveat 2 — capacity ratio basis.** Ours is `Max 5 °F / Rated 47 °F`, the
+ratio ENERGY STAR v6.2, CEE and NRCan Greener Homes all define (TIER_SPEC.md
+§2). The Challenge states "Capacity Ratio 100%" without naming the two points.
+If it intends rated-to-rated, our figure is the **more generous** of the two —
+so the qualifying set is, if anything, an over-count. Carried as `ratio_basis`.
+
+**Caveat 3 — HSPF2 is a floor test only.** The real threshold is
+`8.5 × (1 + capacity factor) × (1 + COP factor)`, and both factors derive from
+H11/H1N verification-test results we do not have. We can only test the base
+8.5. A `screen_pass` unit may still fail the actual, higher bar.
+`hspf2_floor_only` is `True` on **every** row for exactly this reason.
+
+### Results
+
+Denominator is all **439,975 ERS appearances** across 15,148 models — the full
+universe, not the 317,056-appearance screened grid of TIER_SPEC.md §3.
+
+| Verdict | Models | Appearances | % |
+|---|---:|---:|---:|
+| `screen_pass` | 4 | 8 | 0.00% |
+| `near` (exactly one gate failed) | 671 | 8,975 | 2.04% |
+| `fail` | 4,644 | 194,294 | 44.16% |
+| `out_of_scope` (<24,000 Btu/h) | 3,866 | 151,496 | 34.43% |
+| `unknown` (a needed rating is absent) | 5,963 | 85,202 | 19.37% |
+
+**The qualifying four:**
+
+| AHRI | Brand / model | Band | c47 | COP@5 °F / thr | Cap. ratio | HSPF2 IV | Refrigerant (GWP) | Appear. |
+|---|---|---|---:|---|---:|---:|---|---:|
+| 217120762 | GREE GUD60W2/NHE-D(U) | >48k | 54,000 | 2.10 / 2.1 | 1.0000 | 10.50 | R-32 (675) | 4 |
+| 214568857 | GREE GUD60W2/NHE-D(U) | >48k | 54,000 | 2.10 / 2.1 | 1.0000 | 10.50 | R-32 (675) | 2 |
+| 215213332 | GREE FXU60HP230V1R32AO | >48k | 54,000 | 2.10 / 2.1 | 1.0000 | 10.50 | R-32 (675) | 1 |
+| 216776011 | LENNOX SL22KLV-036-230A** | 24–36k | 32,600 | 2.42 / 2.4 | 1.0184 | 10.50 | R-454B (466) | 1 |
+
+All four are Active, continuously variable, ENERGY STAR Most Efficient **and**
+ENERGY STAR Cold Climate, and none carries an implausible rating.
+
+### What the result actually means
+
+**1. The qualifying set is knife-edge, not merely small.** Three of the four
+report COP 2.10 against a 2.1 threshold and capacity ratio 1.0000 against 100%.
+That is design-to-spec, not coincidence — and it means a routine certificate
+amendment of 0.01 would drop them out. Any page showing this number must show
+that it is fragile; a bare "4 models" implies a stability the data does not
+have. (Bucket assignment is already known to be scrape-date dependent —
+TIER_SPEC.md §6.4.)
+
+**2. COP is the binding constraint, not capacity ratio.** Among units failing
+exactly one gate: COP @ 5 °F blocks the most volume (203 models, 5,075
+appearances), HSPF2 the most models (387), capacity ratio only 80 models.
+Separately, **342 models — 5.3% of the screened base — already hold ≥100%
+capacity at 5 °F** but pair it with a COP far below 2.4. Holding capacity in the
+cold is achievable and increasingly common; holding it *efficiently* is what is
+rare. That is the Challenge's design intent visible in Canadian install data.
+
+**3. Refrigerant is an independent gate that removes almost everything.** The
+base is **59.6% R-410A (GWP 2,088)** and only **2.6% at GWP ≤ 750**. GWP blocks
+just one `near` unit — but that unit is **Mitsubishi MXZ-3C30NAHZ4 with 693
+appearances**, by far the largest single unit anywhere near the bar, failing on
+refrigerant alone with a capacity ratio of exactly 1.0000. Its R-454B successor
+generation would plausibly pass outright.
+
+**4. `out_of_scope` is a statement about the Challenge, not the equipment.**
+Table II-3's smallest row starts at 24,000 Btu/h. The 34.4% of the base below
+it is not failing anything — the Challenge deliberately does not address that
+size class. Never render `out_of_scope` in the same visual channel as `fail`.
+
+**5. The finding is the point, not the selection.** No qualifying unit is a
+representative of any of the 36 tier cells (TIER_SPEC.md §4) — the two GREE 54k
+units land in `>2.0 × ≥0.80 × ≥42k`, worth 0.1% of the base, and the LENNOX in
+`>2.0 × ≥0.80 × 18–30k`. The screen changes no curve and no tier. Its value is
+the statement that **essentially none of what Canadians have actually installed
+meets the Challenge bar** — which is expected, since Challenge products reached
+market in 2024–25 and our selection frame is historical audit records.
+
+### Data-honesty notes
+
+- **Nothing is dropped.** Implausible ratings (COP > 3.0, capacity ratio > 1.30
+  — TIER_SPEC.md §6.2) are flagged in `implausible_rating` and still written. A
+  screen that silently discarded them would hide the units most likely to pass
+  on bad data. None of the four qualifying units is flagged.
+- **Unknown never resolves to pass.** A missing rating yields `unknown` for that
+  criterion and an `unknown` verdict overall. ENERGY STAR joins only ~62% of
+  appearances, so most of the base cannot be GWP-tested at all — that is the
+  bulk of the 19.37% `unknown` row.
+- **Five designations, five different things.** ENERGY STAR Cold Climate,
+  ENERGY STAR Most Efficient, NEEP ccASHP, AHRI's `cold_climate` flag and this
+  DOE screen are five distinct labels. If a page shows more than one, it needs
+  an explicit "these are not the same thing" line or the simple and advanced
+  methodology sections will contradict each other.
+
+### Reproducing
+
+```bash
+python HeatPump/pipeline/screen_cchp.py
+```
+
+Reads `data/interim/hp_units_joined.csv`, `energystar_by_ahri.csv`,
+`nrcan_spl.csv` and `hp_buckets.csv`. **Note the reproducibility gap:**
+`hp_units_joined.csv` has no producer script in the repo (see ROADMAP.md,
+Queued), so this screen currently depends on a file that cannot be regenerated.

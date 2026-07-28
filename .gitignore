@@ -16,7 +16,14 @@
 /lookup/
 /FSA_Maps/
 /GridCapacity/
-/HeatPump/data/
+# HeatPump/data is local-only EXCEPT cell_candidates.csv, which carries
+# HAND-ENTERED datasheet findings (Spec sheet / page / note) that no pipeline
+# can regenerate. Directory contents are excluded rather than the directories
+# themselves, because git cannot re-include a file inside an excluded directory.
+/HeatPump/data/**
+!/HeatPump/data/
+!/HeatPump/data/interim/
+!/HeatPump/data/interim/cell_candidates.csv
 /Geothermal/output/
 /utility_rates_reference.json
 /utility_rates_reference.csv
@@ -35,8 +42,12 @@ Python/rates_cache/
 # --- large raw inputs, kept locally only (not served, not needed by CI) ---
 /Census
 lfsa000b21a_e.json
-/heatpump/data/raw
-/heatpump/data/interim
+/heatpump/data/raw/**
+# Contents, not the directory — and the same cell_candidates.csv exception as
+# above, repeated because this lowercase spelling also matches on a
+# case-insensitive filesystem.
+/heatpump/data/interim/**
+!/heatpump/data/interim/cell_candidates.csv
 HeatPump/All_Generators_Aggregated.xlsx
 
 # --- Geothermal: build inputs & intermediates ---
