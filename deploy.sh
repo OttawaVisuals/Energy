@@ -14,10 +14,16 @@ STAMP="$(date +%Y-%m-%d)"
 
 # Pages content: every page, the shared assets, and each generated data tree.
 # Keep this list in sync with the generated-data block in .gitignore.
+#
+# tier-scatter.html is TEMPORARY — a generated discussion aid for the heat-pump
+# tier rework (HeatPump/pipeline/build_tier_scatter.py). It is gitignored on
+# main, unlinked from every page, and should be dropped from this list once the
+# tier cells are chosen.
 PATHS=(
   .nojekyll
   index.html ceud.html construction.html grid.html heatpump.html
   newhomes.html project-atlas.html retrofit-insights.html retrofits.html
+  tier-scatter.html
   assets
   fsa_json newhomes_fsa newhomes_json province_json insights_json
   ceud_json construction_json grid_json prices_json geo_json census_json

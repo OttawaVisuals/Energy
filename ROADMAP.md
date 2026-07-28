@@ -1,7 +1,13 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-27** (heat-pump load-model rebuild started: city design temperatures step shipped; CCHP Challenge screen added; earlier 2026-07-24 pass verified against the repo and commit history — GitHub Actions run status not directly queried, inferred from bot-authored commits).
+Updated **2026-07-28** (heat-pump engine rebuild redirected: F280 excludes gains
+so the ERS design heat loss stands, sizing moves to a user-set design load, NRCan
+archetypes parked, selection becomes tier × capacity — tier-selection scatter
+built. Same day: BDA Heat Pump Lifecycle Emissions Explorer reviewed;
+lifecycle-update candidates logged — see
+[HeatPump/BDA_COMPARISON.md](HeatPump/BDA_COMPARISON.md). Prior pass
+2026-07-27: heat-pump load-model rebuild started: city design temperatures step shipped; CCHP Challenge screen added; earlier 2026-07-24 pass verified against the repo and commit history — GitHub Actions run status not directly queried, inferred from bot-authored commits).
 
 - 📦 Full record of completed items (prompts + build notes): [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)
 - 🗺️ Visual status page: [project-atlas.html](project-atlas.html) — <https://ottawavisuals.github.io/Energy/project-atlas>
@@ -88,12 +94,29 @@ Updated **2026-07-27** (heat-pump load-model rebuild started: city design temper
   TMY covers 11 of them. Full method + limitations in
   [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "NRCan-published archetypes".
 
+  **⚠️ Redirected 2026-07-28 — see "engine rebuild" below.** Decisions taken
+  after discussion with a colleague supersede the archetype approach entirely:
+  `EGHDESHTLOSS` is a CSA F280 design heat loss and **F280 takes no credit for
+  solar or internal gains**, so the ERS heat loss was correct for sizing all
+  along and the balance-point worry was the wrong frame for the sizing question.
+  Sizing moves to a **user-set design heat load** plus a **distribution chart of
+  local design heat loss**, and the **NRCan report and archetypes are parked as
+  reference, not used for the methodology**. Step 1 below is therefore
+  **cancelled, not outstanding**. Full reasoning in
+  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "Design-heat-load &
+  selection rework — decisions taken 2026-07-28".
+
   **Steps outstanding:**
-  1. **Wire `heatpump.html` onto `archetypes_nrcan.json`** — the page still
-     loads the old ERS `archetypes.json`. Archetype set changes (townhouse/row
-     out, Net-Zero-Ready in), the city list changes to NRCan's 11 with TMY, and
-     `autoSize()` / the "which is my home?" helper both reference floor area,
-     which NRCan does not publish. **Nothing is live yet.**
+  1. ~~**Wire `heatpump.html` onto `archetypes_nrcan.json`**~~ — **cancelled
+     2026-07-28.** This had in fact been *written* (uncommitted working-tree
+     changes to `heatpump.html` and `project-atlas.html`: fetch
+     `archetypes_nrcan.json`, city list cut to NRCan's 11, archetypes A–D). It
+     was **never committed and never deployed**, and was **reverted on
+     2026-07-28** rather than shipped, since decision 2 replaces archetype
+     sizing altogether. The live tool continues to run the ERS
+     `archetypes.json` / 14 cities until the rebuild lands.
+     `build_archetypes_nrcan.py` is committed, so the analysis is reproducible
+     if it is ever wanted.
   2. **Commit an explicit peak-load field on a stated percentile** (1% or 2.5%
      coldest hour) rather than the single coldest TMY hour.
   3. **Decide whether to credit the night setback when sizing.** ERS SOC drops
@@ -125,6 +148,68 @@ Updated **2026-07-27** (heat-pump load-model rebuild started: city design temper
   (`GAS_KWH_PER_M3` 10.55, `GAS_KG_PER_M3`, CH₄ GWP) on both baseline and backup
   sides. Also open, lower priority: no part-load/cycling degradation (curves are
   steady-state, so mild hours are optimistic) and no defrost penalty.
+
+- 🔧 **Heat pump tool — engine rebuild: user-set design load + tier/capacity
+  selection** (decisions taken 2026-07-28, nothing implemented). Supersedes the
+  archetype sizing path above. Four decisions, recorded with their reasoning in
+  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "Design-heat-load &
+  selection rework":
+  1. **The ERS heat loss was right for sizing.** CSA F280 excludes solar and
+     internal gains by design, so `EGHDESHTLOSS` needs no repair as a *design
+     load*. The gains question stays open for the *energy* simulation only.
+  2. **Sizing moves to the user** — a design-heat-load dropdown/slider plus a
+     distribution chart of design heat loss for the selected location, built
+     from `city_design_temps.json` (84 cities, 1,020,246 homes).
+  3. **NRCan report + archetypes parked** as reference; not used for the
+     methodology.
+  4. **Heat-pump selection = two dropdowns** (performance tier, nominal
+     capacity), replacing auto-sizing — and collapsing the 36-cell
+     `cell_candidates.csv` to **3 tiers × 3–4 capacities = 9–12 datasheets**.
+
+  **Done so far:** the tier-selection scatter,
+  `HeatPump/pipeline/build_tier_scatter.py` → `data/interim/tier_scatter.html`
+  (COP @ 5 °F × capacity maintenance, bubble area = ERS appearances, colour =
+  nominal size; 7,314 units = 67.8 % of ERS appearances, gate stated on the
+  page). Selection aid, not published. Shows the fleet concentrated in the
+  mid-COP band and the ≥42k capacity band carrying <5 % of appearances — a
+  3 × 3 grid over <18k / 18–30k / 30–42k covers **93.2 %**.
+
+  **Blocking / next:** pick the 9–12 cells off the scatter → pull those
+  datasheets → build the curve library → then rebuild `simulate()`/`buildOpts()`
+  to take design load and unit as direct inputs (`autoSize()` and the
+  floor-area "which is my home?" helper go away). Fix the two known engine bugs
+  in the same pass. **The `hp_units_joined.csv` reproducibility gap gates all of
+  it** — the scatter and the CCHP screen both rest on a file with no producer
+  script.
+
+- 🔬 **Heat pump tool — lifecycle updates from the BDA comparison** (reviewed
+  2026-07-28, nothing implemented yet). The Building Decarbonization Alliance
+  shipped a [Heat Pump Lifecycle Emissions
+  Explorer](https://buildingdecarbonization.ca/report/heat-pump-lifecycle-emissions-explorer/)
+  in June 2026 — a single-equation scalar tool with no weather or dispatch, so
+  no threat to our load/performance model, but **ahead of us on refrigerants and
+  on a forward-looking grid**. Full review, their constants, and where each tool
+  wins: [HeatPump/BDA_COMPARISON.md](HeatPump/BDA_COMPARISON.md). Candidate work,
+  in priority order:
+  1. **Refrigerant GWPs → IPCC AR6, blend-weighted.** Ours are AR4/AR5-era
+     (R-410A 2088, R-32 675, R-454B 467, R-290 3) vs AR6 2256 / 771 / 531 / 0.02,
+     and the UI's 2088 **contradicts the engine test vector's 2256** for the same
+     refrigerant. Correctness fix.
+  2. **AC counterfactual credit** — if the household would have installed AC
+     anyway, that AC's refrigerant and electricity belong to the baseline. We
+     omit it entirely. Should ship as a toggle, not a default.
+  3. **Per-refrigerant charge mass** — our single capacity-scaled `charge_kg`
+     gives the R-290 option an R-410A-sized charge.
+  4. **Forward grid trajectory** from CER *Canada's Energy Future 2026* Current
+     Measures, alongside (not replacing) the existing three EF bases. Closes the
+     "does not forecast future levels" limitation already flagged in
+     METHODOLOGY.md — the one place BDA genuinely leads us.
+  5. **Freed-kWh displacement framing** for clean-grid provinces (their QC
+     answer). Undecided whether it is in scope.
+
+  Explicitly **not** copying their scalar seasonal COPs (their weakest link,
+  our strongest) or their `skeptic`/`central`/`best` preset naming (advocacy
+  framing, fails the two-audience test).
 
 - 🇺🇸 **US DOE CCHP Challenge screen — analysis done 2026-07-27, not yet on any
   page.** `HeatPump/pipeline/screen_cchp.py` screens all 15,148 models against

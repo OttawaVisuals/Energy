@@ -42,6 +42,7 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 | Ottawa Case Study / heat demand | [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) (active plan) |
 | CEUD Explorer | [docs/CEUD.md](docs/CEUD.md) |
 | Construction Tracker | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) |
+| *(cross-cutting)* Open questions for NRCan | [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md) — consolidated EnerGuide/HOT2000 questions across all ERS-based tools |
 | Grid Dashboard | [docs/GRID.md](docs/GRID.md) |
 | Completed plans (archive) | [docs/archive/](docs/archive/README.md) |
 

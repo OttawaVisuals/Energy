@@ -1883,6 +1883,12 @@ caveat inline.
 
 ## Lifecycle sourcing — methane, GWP20, line losses (v2, ROADMAP item 9 workstream E)
 
+> **Open items (2026-07-28):** a review of BDA's *Heat Pump Lifecycle Emissions
+> Explorer* found our refrigerant GWPs are AR4/AR5-era and inconsistent with the
+> engine test vector, and that we have no AC counterfactual, no per-refrigerant
+> charge mass, and no forward grid trajectory. Nothing changed yet — see
+> [BDA_COMPARISON.md](BDA_COMPARISON.md) and the ROADMAP entry.
+
 The lifecycle sliders were always adjustable defaults; v2 sources their ranges
 from the primary literature and widens two of them. Nothing here is baked into a
 headline — the defaults (1 % methane leak, GWP 28, 5 % line loss) are unchanged;
@@ -2523,3 +2529,156 @@ Reads `data/interim/hp_units_joined.csv`, `energystar_by_ahri.csv`,
 `nrcan_spl.csv` and `hp_buckets.csv`. **Note the reproducibility gap:**
 `hp_units_joined.csv` has no producer script in the repo (see ROADMAP.md,
 Queued), so this screen currently depends on a file that cannot be regenerated.
+
+---
+
+## Design-heat-load & selection rework — decisions taken 2026-07-28
+
+Four decisions taken after discussion with a colleague. **None of these are
+implemented.** They are recorded here so the reasoning survives, and they all
+land on the same piece of work: the engine/UI rebuild. Nothing below changes the
+shipped tool, which still runs the ERS archetypes (`archetypes.json`).
+
+### 1. The ERS heat loss was right all along — F280 excludes gains
+
+`EGHDESHTLOSS` is a **CSA F280 design heat loss**, and F280 deliberately takes
+**no credit for solar or internal gains** when sizing. Our long-running worry —
+recorded above in "Balance-point calibration" and again under "NRCan-published
+archetypes", that the fitted `T_balance` was a residual absorbing solar gains,
+night setback and missing supplementary heat, and that we therefore undersize by
+~23 % against HOT2000's standard operating conditions — **was the wrong frame for
+the sizing question.** Gains belong in the *annual energy* calculation, not in
+the *design load*. The ERS design heat loss needs no repair for sizing purposes.
+
+This does **not** retire the gains question for the energy simulation, where
+gains genuinely do reduce delivered heat; see
+[../docs/ENERGUIDE_QUESTIONS.md](../docs/ENERGUIDE_QUESTIONS.md), which still
+wants the four monthly HOT2000 fields.
+
+### 2. Stop sizing on archetypes — put design heat load in the user's hands
+
+Archetypes were only ever a device for getting to a design load, and most of
+them carry large heat losses, so the archetype choice was silently driving the
+sizing answer. Replace with:
+
+- a **dropdown or slider for design heat load** (kW), set directly by the user;
+- a **distribution chart of design heat loss for the selected location**, from
+  the ERS data, so a user can see where their number sits in the local stock
+  rather than picking a label and inheriting its load.
+
+This makes the single most consequential input explicit and adjustable instead
+of implicit in an archetype name — and `city_design_temps.json` (84 cities,
+1,020,246 homes, every home's `EGHDESHTLOSS` divided by the design temperature
+it was actually computed at) is already the right input for the distribution.
+
+### 3. NRCan report and archetypes: parked
+
+`build_archetypes_nrcan.py`, `archetypes_nrcan.json` and the
+"NRCan-published archetypes" section above are **kept as reference and not used
+for the methodology**. The regression recovering UA and `T_balance` from Table 1
+against NBC design temperatures stands as documented work, and the finding that
+Table 1 is a design-condition load rather than a TMY peak is still worth having.
+But decision 2 removes the need for a published archetype set, and its known
+limitations (4 houses not a population, no floor areas, townhouse archetype
+gone, TMY for 11 of 16 cities) no longer have to be lived with.
+
+The ROADMAP's "wire `heatpump.html` onto `archetypes_nrcan.json`" step is
+therefore **cancelled, not outstanding.** That wiring had actually been written
+as uncommitted working-tree changes (page fetching `archetypes_nrcan.json`, city
+list cut to NRCan's 11, archetypes A–D); it was **never committed or deployed**,
+and was **reverted on 2026-07-28**. The live tool keeps running the ERS
+`archetypes.json` and 14 cities until the rebuild lands, so nothing published
+claims the parked method.
+
+### 4. Heat-pump selection: two dropdowns, tier and capacity
+
+The user picks a **performance tier** and a **nominal capacity** separately,
+rather than the tool auto-sizing from an archetype. This makes the sizing
+decision visible and lets a user test an over- or under-sized unit against their
+own design load — which the sizing sweep (see "Sizing sensitivity") already
+showed is where the interesting behaviour lives.
+
+Consequence for the curve library: the **36-cell candidate table
+(`cell_candidates.csv`) is an overcomplication** and is superseded by a
+**3 tiers × 3–4 capacities = 9–12 cell** grid, i.e. 9–12 datasheets to pull and
+defend rather than 36. Selection of those cells is being done by eye against the
+real installed distribution — see the next section.
+
+### What this blocks on
+
+All four land in the **engine rebuild**, not before it:
+
+- `simulate()` and `buildOpts()` currently take an archetype and auto-size;
+  both need the design load and the selected unit as direct inputs.
+- `autoSize()` and the "which is my home?" floor-area helper are removed or
+  re-purposed by decision 2.
+- The tier/capacity dropdowns need the 9–12 cell curve library to exist first.
+- The two known engine bugs (propane backup efficiency; upstream methane applied
+  to propane with natural-gas properties) should be fixed in the same pass —
+  see ROADMAP.md.
+
+---
+
+## Tier-selection scatter (2026-07-28)
+
+A visual aid for choosing the 9–12 cells of decision 4 above, built by
+`pipeline/build_tier_scatter.py` → `data/interim/tier_scatter.html`
+(self-contained, inline SVG, no CDN or build step, per the repo architecture
+rule). It is a **selection aid, not a browser-facing deliverable** — it lives in
+`data/interim/` and is not published.
+
+| Channel | Quantity |
+|---|---|
+| Y | COP @ 5 °F (−15 °C), max compressor speed |
+| X | Capacity maintenance = max cap @ 5 °F ÷ rated cap @ 47 °F |
+| Bubble **area** | Appearances in the ERS retrofit data |
+| Colour | Nominal size band from rated capacity @ 47 °F |
+
+Input is `data/interim/hp_units_joined.csv` (one row per AHRI-certified unit),
+with brand/model joined from `hp_buckets.csv` for the hover labels. **The
+`hp_units_joined.csv` reproducibility gap applies here too** — it has no
+producer script in the repo, so this scatter currently rests on a file that
+cannot be regenerated. See the Phase 3c note above and ROADMAP.md.
+
+### Gate — quantified, not silent
+
+A unit is plotted only if it carries **all three** of capacity maintenance,
+COP @ 5 °F and rated capacity @ 47 °F:
+
+| | Units | ERS appearances |
+|---|---|---|
+| In `hp_units_joined.csv` | 15,148 | 439,975 |
+| **Plotted** | **7,314** | **298,209 (67.8 %)** |
+
+Missing-field counts driving the drop: capacity maintenance 7,390 · COP @ 5 °F
+7,551 · rated capacity @ 47 °F 3,600 (overlapping). Nothing is imputed. The
+gate is stated on the page itself, not only here. **A third of installed
+appearances are invisible to this plot** — the selected cells are representative
+of the units we have AHRI metrics for, not of the installed fleet outright.
+
+23 units fall outside the plot window (CM 0.15–1.35, COP 0.5–3.5); they are
+**clamped to the edge and drawn with a dashed outline**, not dropped.
+
+### What the distribution shows
+
+Appearance-weighted terciles are drawn as guide lines — **as a reference, not as
+the proposed boundaries**. The COP lower tercile lands on **exactly 1.80**,
+because COP @ 5 °F piles up hard against NEEP's own 1.75 inclusion floor. That
+is the point of drawing them: it shows concretely why a naive quantile cut is a
+bad way to place these tiers (the same degeneracy that made k-means incoherent
+in Phase 3a), and why the cells are being chosen by eye instead.
+
+Share of plotted appearances, 3 COP tiers × 4 capacity bands:
+
+| COP @ 5 °F | <18k | 18–30k | 30–42k | ≥42k |
+|---|---|---|---|---|
+| low (< 1.80) | 1.4 % | 2.1 % | 1.0 % | 0.2 % |
+| mid (1.80–1.91) | 9.4 % | 19.7 % | **26.3 %** | 3.3 % |
+| high (≥ 1.91) | 8.7 % | 18.4 % | 8.2 % | 1.4 % |
+
+Two readings that bear on cell selection: the installed fleet is concentrated in
+the **mid-COP band** (1.80–1.91) — consistent with Phase 3a's finding that the
+most-installed units lean baseline, not premium — and the **≥42k column carries
+under 5 % of appearances**, so a fourth capacity band at the top end buys very
+little. A 3 × 3 grid over <18k / 18–30k / 30–42k covers **93.2 %** of plotted
+appearances.
