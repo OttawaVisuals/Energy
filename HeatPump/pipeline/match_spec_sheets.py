@@ -93,6 +93,34 @@ SHAPE_NOTE = {
 }
 
 
+# Provenance for the held PDFs, keyed by path relative to spec_sheets/.
+#
+# The binaries are NOT in git: they are third-party manufacturer documents
+# (copyright), and 120 MB besides. This mapping is what makes the set
+# reconstructible on another machine -- `curl -sL -o <path> <url>`.
+#
+# ONLY URLs actually used to fetch the file belong here. Most of the corpus was
+# hand-fetched in earlier sessions with no URL recorded; those stay blank rather
+# than being guessed. A plausible-looking wrong URL is worse than an empty cell:
+# it would fetch a different document, and the rebadge families share ratings,
+# so the substitution would not show up in any downstream check.
+SOURCE_URLS = {
+    "mdv/MDV_MOD30-24_MitsAir_casedcoil_submittal.pdf":
+        "https://www.mitsair.com/wp-content/uploads/2025/06/"
+        "Mits-Air-Cased-Coil-Hyper-Heat-Submittal_MOD30-24_MAC24.pdf",
+    "lg/LG_LSU120HSV5_submittal_ajmadison.pdf":
+        "https://assets.ajmadison.com/ajmadison/itemdocs/D5b84511d22570.pdf",
+    "gree/GREE_GWHD24ND3MO_GEN2_submittal.pdf":
+        "https://greehvac.ca/wp-content/uploads/2024/03/"
+        "GEN2-Heap-Pump-Submittal-GWHD24ND3MO.pdf",
+    "gree/GREE_multizone_freematch_brochure_2024.pdf":
+        "https://petroleleger.ca/wp-content/uploads/2024/05/"
+        "GREE-BROCHURE-MULTI-ZONE-FREEMATCH-M-SERIES-EN-WEB.pdf",
+    "tosot/TOSOT_heatpump_catalogue_2022.pdf":
+        "https://tosotamerica.com/wp-content/uploads/2022/05/TOSOTCAT22_EN_1mai.pdf",
+}
+
+
 def normalize(text):
     return re.sub(r"[^A-Z0-9]", "", (text or "").upper())
 
@@ -174,6 +202,10 @@ def main():
         if col not in fields:
             sys.exit(f"expected column '{col}' not found — is this the edited CSV?")
 
+    # Appended, never inserted, so hand-added columns keep their positions.
+    if "source_url" not in fields:
+        fields = list(fields) + ["source_url"]
+
     docs = load_texts()
     print(f"indexed {len(docs)} PDFs")
 
@@ -251,6 +283,12 @@ def main():
         row["_kind"] = kind
         row["_shape"] = shape
         filled += 1
+
+    # Provenance is keyed on the linked document, so it applies to manually
+    # linked rows too -- and is refreshed every run, including for rows whose
+    # Spec sheet was hand-entered and therefore skipped above.
+    for row in rows:
+        row["source_url"] = SOURCE_URLS.get(row.get("Spec sheet", "").strip(), "")
 
     shutil.copy2(TARGET, TARGET.with_suffix(".csv.bak"))
     with io.open(TARGET, "w", encoding="utf-8-sig", newline="") as fh:
