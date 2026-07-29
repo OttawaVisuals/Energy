@@ -357,6 +357,40 @@ A working 6-unit tool covering the dominant scenarios needs only steps 1–2.
 
 ---
 
+## 6.1 Real installs vs. design load — does a sizing default make sense?
+
+Quick check (`HeatPump/pipeline/check_hp_sizing_correlation.py`, 2026-07-29)
+ahead of adding a tier x capacity-band dropdown pair to the engine: does
+installed capacity track the home's own design heat loss closely enough to
+suggest a default?
+
+Of 311,535 ERS homes that added a heat pump this retrofit (7 provinces),
+178,263 (57.2%) have both a post-retrofit design heat loss (`Post_HeatLoss`)
+and an AHRI-certified installed capacity at 47F (`Post_HPCapacity47` —
+the validated field; the auditor-entered `HPCAP` runs ~1.55x high and is not
+used here). Capacity/design-load ratio: **median 0.66**, IQR [0.50, 0.86],
+10–90th percentile [0.37, 1.11].
+
+- **68.7%** of installs are undersized (ratio < 0.8) against the home's own
+  design load — the heat pump is deliberately (or by installer habit) smaller
+  than what would cover the coldest design day alone, leaning on backup.
+- **24.0%** land within ±20% of the design load.
+- **7.2%** are oversized (ratio > 1.2).
+
+**Conclusion for the engine UI:** real installs do not cluster near "capacity
+= design load." A single suggested-default ratio would misrepresent the
+market — the tier/capacity-band dropdowns should let a user freely pick above
+or below their design load without an implied "correct" answer, and any
+default shown should be framed as the median (0.66x, i.e. undersized) rather
+than 1.0x, or left unset. Chart: `data/interim/hp_sizing_correlation.png`.
+
+**Caveat:** 42.8% of HP-addition homes are excluded for a missing
+`Post_HPCapacity47` (AHRI lookup didn't resolve their `Post_HPAHRI`) — the
+same lookup-coverage gap documented elsewhere in this file. Not necessarily
+representative of the excluded homes' true sizing.
+
+---
+
 ## 7. Reproducing
 
 ```bash

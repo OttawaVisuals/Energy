@@ -1,10 +1,17 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-28** (heat-pump engine rebuild redirected: F280 excludes gains
-so the ERS design heat loss stands, sizing moves to a user-set design load, NRCan
-archetypes parked, selection becomes tier × capacity — tier-selection scatter
-built. Same day: BDA Heat Pump Lifecycle Emissions Explorer reviewed;
+Updated **2026-07-29** (heat-pump engine rebuild **implemented**: design-load +
+balance-point sliders replace archetype auto-sizing, tier × capacity-band
+dropdowns pin one of 9 real AHRI-certified cell curves from the new
+`build_cell_curves.py` pipeline, backup switchover is derived from backup type
+instead of a manual control-strategy dropdown, and the propane
+efficiency/methane-leak engine bugs are fixed in both `engine.js` and the
+inlined copy. `validate_engine.py` passes. Prior pass 2026-07-28 (heat-pump
+engine rebuild redirected: F280 excludes gains so the ERS design heat loss
+stands, sizing moves to a user-set design load, NRCan archetypes parked,
+selection becomes tier × capacity — tier-selection scatter built). Same day:
+BDA Heat Pump Lifecycle Emissions Explorer reviewed;
 lifecycle-update candidates logged — see
 [HeatPump/BDA_COMPARISON.md](HeatPump/BDA_COMPARISON.md). Prior pass
 2026-07-27: heat-pump load-model rebuild started: city design temperatures step shipped; CCHP Challenge screen added; earlier 2026-07-24 pass verified against the repo and commit history — GitHub Actions run status not directly queried, inferred from bot-authored commits).
@@ -141,46 +148,58 @@ lifecycle-update candidates logged — see
   (step 1's original purpose). `city_design_temps.json` is still the input for
   any future ERS-based work, and the 84-city table stands.
 
-  **Two engine bugs to fix during the rebuild** (found 2026-07-27, not yet
-  fixed): `buildOpts()` gives **propane backup 100% efficiency**
-  (`gas?0.95:oil?0.85:1.0` has no propane branch), and `simulate()` applies the
-  **upstream-methane term to propane using natural-gas properties**
-  (`GAS_KWH_PER_M3` 10.55, `GAS_KG_PER_M3`, CH₄ GWP) on both baseline and backup
-  sides. Also open, lower priority: no part-load/cycling degradation (curves are
-  steady-state, so mild hours are optimistic) and no defrost penalty.
+  **Two engine bugs — fixed 2026-07-29** in both `HeatPump/app/engine.js` and
+  the inlined copy in `heatpump.html`: propane backup now defaults to 90%
+  AFUE instead of falling through to 100%, and the upstream-methane leak
+  adder is restricted to `fuel/backup.type === "gas"` only (was misapplied to
+  propane using natural-gas density/energy constants). Propane gets no leak
+  adder rather than reusing gas's number — no defensible propane
+  upstream-loss constant exists yet. Still open, lower priority: no
+  part-load/cycling degradation (curves are steady-state, so mild hours are
+  optimistic) and no defrost penalty.
 
 - 🔧 **Heat pump tool — engine rebuild: user-set design load + tier/capacity
-  selection** (decisions taken 2026-07-28, nothing implemented). Supersedes the
-  archetype sizing path above. Four decisions, recorded with their reasoning in
+  selection — implemented 2026-07-29.** Supersedes the archetype sizing path
+  above. Four decisions, recorded with their reasoning in
   [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "Design-heat-load &
   selection rework":
   1. **The ERS heat loss was right for sizing.** CSA F280 excludes solar and
      internal gains by design, so `EGHDESHTLOSS` needs no repair as a *design
      load*. The gains question stays open for the *energy* simulation only.
-  2. **Sizing moves to the user** — a design-heat-load dropdown/slider plus a
-     distribution chart of design heat loss for the selected location, built
-     from `city_design_temps.json` (84 cities, 1,020,246 homes).
+  2. **Sizing moved to the user** — a design-heat-load slider plus a balance-
+     point slider, with `UA_W_per_K` derived from both against
+     `city_design_temps.json` (84 cities, 1,020,246 homes). A lightweight
+     4-point reference display (this city's archetype-vintage medians) sits
+     beside the slider for calibration only.
   3. **NRCan report + archetypes parked** as reference; not used for the
      methodology.
-  4. **Heat-pump selection = two dropdowns** (performance tier, nominal
-     capacity), replacing auto-sizing — and collapsing the 36-cell
-     `cell_candidates.csv` to **3 tiers × 3–4 capacities = 9–12 datasheets**.
+  4. **Heat-pump selection = two dropdowns** (performance tier, capacity
+     band), replacing auto-sizing. `HeatPump/pipeline/build_cell_curves.py`
+     ships `hp_cell_curves.json` — 9 cells (3 tiers × <18k/18–30k/30–42k Btu/h),
+     each pinned to exactly one real AHRI-certified unit, no scaling.
+     `build_tier_curves.py` now imports `UNITS` from this module.
+  5. **Backup dispatch derived from backup type**, not a manual dropdown:
+     electric resistance tops up capacity shortfall; gas/oil is a temperature
+     switchover via a repurposed switch-over-temperature slider. The existing
+     hour-by-hour `simulate()` already implemented both dispatch modes
+     correctly, so it was not rewritten — only how the UI derives
+     `control.strategy` changed.
+  6. A quick ERS check (`HeatPump/pipeline/check_hp_sizing_correlation.py`,
+     finding in `HeatPump/TIER_SPEC.md` §6.1) found real installs scattered
+     widely against design load (median ratio 0.66, only 24% within ±20%),
+     so the UI implies no "correct" sizing ratio.
 
-  **Done so far:** the tier-selection scatter,
-  `HeatPump/pipeline/build_tier_scatter.py` → `data/interim/tier_scatter.html`
-  (COP @ 5 °F × capacity maintenance, bubble area = ERS appearances, colour =
-  nominal size; 7,314 units = 67.8 % of ERS appearances, gate stated on the
-  page). Selection aid, not published. Shows the fleet concentrated in the
-  mid-COP band and the ≥42k capacity band carrying <5 % of appearances — a
-  3 × 3 grid over <18k / 18–30k / 30–42k covers **93.2 %**.
+  Done: the tier-selection scatter (`build_tier_scatter.py` →
+  `data/interim/tier_scatter.html`), `build_cell_curves.py`, the ERS sizing
+  check, and the full `heatpump.html`/`engine.js` rewiring above.
+  `validate_engine.py` passes against the rebuilt engine wiring.
 
-  **Blocking / next:** pick the 9–12 cells off the scatter → pull those
-  datasheets → build the curve library → then rebuild `simulate()`/`buildOpts()`
-  to take design load and unit as direct inputs (`autoSize()` and the
-  floor-area "which is my home?" helper go away). Fix the two known engine bugs
-  in the same pass. **The `hp_units_joined.csv` reproducibility gap gates all of
-  it** — the scatter and the CCHP screen both rest on a file with no producer
-  script.
+  **Still open:** the `hp_units_joined.csv` reproducibility gap (no producer
+  script) still gates the 36-cell candidate table / CCHP screen specifically —
+  it does not affect the 9 cells actually shipped, which now have a real
+  producer script (`build_cell_curves.py`). The ≥42k Btu/h band is identified
+  in the 36-cell table but not yet wired into the simulation (only the 9
+  cells across <18k/18–30k/30–42k are simulated).
 
 - 🔬 **Heat pump tool — lifecycle updates from the BDA comparison** (reviewed
   2026-07-28, nothing implemented yet). The Building Decarbonization Alliance

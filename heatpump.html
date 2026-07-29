@@ -255,9 +255,20 @@ footer a{color:var(--muted)}
       <span class="ctrl-hint" id="weather-hint"></span>
     </div>
     <div class="ctrl">
-      <label for="in-arch">My home <button type="button" class="info-btn" id="arch-info" aria-label="Which is my home?">i</button></label>
-      <select id="in-arch"></select>
-      <span class="ctrl-hint" id="arch-hint"></span>
+      <label for="in-designload">Design heat load <button type="button" class="info-btn" id="arch-info" aria-label="How do I pick this?">i</button></label>
+      <div class="range-row">
+        <input type="range" id="in-designload" min="3" max="20" step="0.5">
+        <span class="range-val" id="designload-val"></span>
+      </div>
+      <span class="ctrl-hint" id="designload-hint"></span>
+    </div>
+    <div class="ctrl">
+      <label for="in-balance">Balance point</label>
+      <div class="range-row">
+        <input type="range" id="in-balance" min="8" max="16" step="0.5">
+        <span class="range-val" id="balance-val"></span>
+      </div>
+      <span class="ctrl-hint">Outdoor temp above which the home needs no heating (sun, people, appliances cover it).</span>
     </div>
     <div class="ctrl">
       <label for="in-fuel">Current heating</label>
@@ -265,6 +276,7 @@ footer a{color:var(--muted)}
         <option value="gas">Natural-gas furnace</option>
         <option value="oil">Oil furnace</option>
         <option value="electric">Electric baseboard</option>
+        <option value="propane">Propane furnace</option>
       </select>
     </div>
     <div class="ctrl">
@@ -275,27 +287,27 @@ footer a{color:var(--muted)}
       </div>
     </div>
     <div class="ctrl">
-      <label for="in-bucket">Heat pump</label>
-      <select id="in-bucket">
-        <option value="tier1">Tier 1 — cold-climate premium</option>
-        <option value="tier2">Tier 2 — mid-market cold-climate</option>
-        <option value="tier3">Tier 3 — baseline</option>
-        <option value="avg">Average installed (typical Canadian)</option>
+      <label for="in-tier">Heat pump tier</label>
+      <select id="in-tier">
+        <option value="high">Premium cold-climate</option>
+        <option value="mid">Mid-range</option>
+        <option value="low">Value</option>
       </select>
-      <span class="ctrl-hint" id="bucket-hint"></span>
+      <span class="ctrl-hint" id="tier-hint"></span>
+    </div>
+    <div class="ctrl">
+      <label for="in-band">Heat pump size</label>
+      <select id="in-band">
+        <option value="&lt;18k">&lt;18,000 Btu/h (≈&lt;5.3 kW)</option>
+        <option value="18-30k">18,000–30,000 Btu/h (≈5.3–8.8 kW)</option>
+        <option value="30-42k">30,000–42,000 Btu/h (≈8.8–12.3 kW)</option>
+      </select>
+      <span class="ctrl-hint" id="band-hint"></span>
     </div>
 
     <div class="helper-panel" id="arch-helper"></div>
 
     <!-- Advanced -->
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-nominal">Heat-pump size (rated kW @ 8&nbsp;°C)</label>
-      <div class="range-row">
-        <input type="range" id="in-nominal" min="3" max="20" step="0.5">
-        <span class="range-val" id="nominal-val"></span>
-      </div>
-      <span class="ctrl-hint" id="nominal-hint"></span>
-    </div>
     <div class="ctrl" data-mode="advanced">
       <label for="in-backup">Backup heat</label>
       <select id="in-backup">
@@ -304,21 +316,15 @@ footer a{color:var(--muted)}
         <option value="oil">Oil furnace (dual-fuel)</option>
         <option value="none">None (heat-pump only)</option>
       </select>
-    </div>
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-control">Control strategy</label>
-      <select id="in-control">
-        <option value="load-exceeds-capacity">Heat pump leads, backup tops up</option>
-        <option value="lockout">Lock out heat pump below a setpoint</option>
-      </select>
       <span class="ctrl-hint" id="control-hint"></span>
     </div>
     <div class="ctrl" data-mode="advanced" id="lockout-ctrl" style="display:none">
-      <label for="in-lockout">Lock-out temperature</label>
+      <label for="in-lockout">Switch-over temperature</label>
       <div class="range-row">
         <input type="range" id="in-lockout" min="-25" max="5" step="1" value="-8">
         <span class="range-val" id="lockout-val">−8 °C</span>
       </div>
+      <span class="ctrl-hint">Below this, the heat pump switches off and the fossil backup carries the load.</span>
     </div>
     <div class="ctrl" data-mode="advanced">
       <label>Below the published minimum temperature</label>
@@ -494,7 +500,7 @@ footer a{color:var(--muted)}
         <div class="card">
           <div class="card-title-row">
             <span class="card-title">Heat pump performance curve</span>
-            <span class="card-sub" id="eq-sub">capacity and COP vs outdoor temperature, for the selected bucket</span>
+            <span class="card-sub" id="eq-sub">capacity and COP vs outdoor temperature, for the selected tier and size</span>
           </div>
           <div class="keychart-wrap">
             <svg id="eqchart" viewBox="0 0 740 380" role="img" aria-label="Heat pump capacity and COP versus outdoor temperature"></svg>
@@ -676,26 +682,26 @@ footer a{color:var(--muted)}
       <p>This tool runs a transparent, dependency-free hour-by-hour simulation (8,760 hours) of a single typical year, entirely in your browser. It is a <b>screening tool</b>: good for understanding direction and rough magnitude, not a substitute for a heat-loss assessment or a quote. Full derivations, factors and validation live in <code>HeatPump/METHODOLOGY.md</code> in the repository.</p>
 
       <h4>Heating load</h4>
-      <p>Each hour's heat demand is <code>Load = UA × max(0, T_balance − T_outdoor)</code>. <code>UA</code> (heat-loss coefficient) and the balance-point temperature are derived per city × archetype from NRCan EnerGuide (ERS) audit records — median design heat loss, floor area and pre-retrofit annual heating energy — calibrated so the reconstructed annual load reproduces the audited median within ±10%. Values describe an <b>as-found, un-retrofitted</b> home. Domestic hot water is excluded.</p>
+      <p>Each hour's heat demand is <code>Load = UA × max(0, T_balance − T_outdoor)</code>. <b>Design heat load</b> (kW, at the city's design temperature) and <b>balance point</b> (°C) are direct inputs you set — <code>UA = design_load_kW × 1000 / (T_balance − T_design_city)</code>, where the city's design temperature comes from NRCan/HOT2000 weather-station records (see <code>HeatPump/data/processed/city_design_temps.json</code>). There is no auto-sizing: earlier versions of this tool inferred a design load from an archetype label (home vintage/type); that inference step has been removed in favour of letting you enter your own EnerGuide/HOT2000 design heat loss, or a number calibrated against the 4 audited-home reference medians shown beside the slider. Domestic hot water is excluded.</p>
 
       <h4>Weather</h4>
       <p>A CWEC2020 Typical Meteorological Year (8,760 hourly temperatures) for each city's airport station (ECCC engineering climate datasets).</p>
 
       <h4>Heat-pump performance</h4>
-      <p>Capacity and COP versus outdoor temperature are digitized from each representative unit's <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output (what a cold home calling for full heat draws), converted to SI. Each <b>tier</b> is the average of two real, publicly-documented models: <b>premium</b> = Mitsubishi MUZ-FH12NAH (H2i) + PUZ-HA36NKA (hyper-heat); <b>mid-market</b> = Carrier Infinity 25HNB9 (2-stage) + Daikin DZ20VC (variable-speed); <b>baseline</b> = Carrier 25HNB5 (single-stage) + Mitsubishi MUZ-HM12NA2. <b>Average installed</b> maps to the baseline curve. Below the coldest published point, capacity is extrapolated and COP floored; by default output is zero below each unit's <b>published minimum operating temperature</b> (compressor lock-out). Carrier's tables are already defrost-integrated; the others get a 7% defrost derate to COP between −7 and +4 °C.</p>
-      <div class="caveats">The published minimum (e.g. −25 °C for the premium tier) is a manufacturer's warranty/ratings floor, not a hard physical stop. An Advanced toggle, <b>“continue derated below minimum”</b>, lets the pump keep running colder — capacity extrapolated on the coldest-segment slope, COP held at the floor. This is genuinely <b>manufacturer-unspecified</b> territory (no datasheet publishes it), so it is off by default and clearly labelled where on.</div>
-      <div class="caveats">A <b>sizing sweep</b> card re-runs the whole year at 40–160% of the home's design heat loss so you can see how emissions, cost, seasonal COP and backup reliance respond to under/oversizing. It has <b>no short-cycling model</b>, so it <i>understates</i> the penalty of oversizing (short-cycling and worse part-load efficiency) — oversizing looks nearly free on that chart but isn't in a real home.</div>
-      <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — the premium units hold ~100% of rated capacity down to −15 °C and run to −25 °C, while baseline units shed capacity and lock out around −15 to −19 °C. Peak efficiency (COP) is similar across all modern units; the premium advantage is needing far less backup on the coldest hours. Tier curves are two-model averages, not a specific model you can buy.</div>
+      <p>Tier × size selects exactly one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands — &lt;18k, 18–30k, 30–42k Btu/h) — no scaling, no averaging, no interpolation between models. Capacity and COP versus outdoor temperature are digitized from that unit's own <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output, converted to SI and normalized on its AHRI-certified rated (47 °F) capacity. The equipment-curve chart and the calculation walkthrough name the exact brand/model and AHRI number in play. Below the coldest published point, capacity is extrapolated and COP floored; by default output is zero below the unit's <b>published minimum operating temperature</b> (compressor lock-out). Any caveats recorded against that specific unit (e.g. digitized-not-tabulated points, a shared physical platform across capacity ratings) are surfaced directly under the equipment-curve chart.</p>
+      <div class="caveats">The published minimum is a manufacturer's warranty/ratings floor, not a hard physical stop. An Advanced toggle, <b>“continue derated below minimum”</b>, lets the pump keep running colder — capacity extrapolated on the coldest-segment slope, COP held at the floor. This is genuinely <b>manufacturer-unspecified</b> territory (no datasheet publishes it), so it is off by default and clearly labelled where on.</div>
+      <div class="caveats">A <b>sizing sweep</b> card re-runs the whole year at 40–160% of your design load, synthetically scaling the selected unit's own capacity curve — a hypothetical resizing for sensitivity, not a menu of purchasable sizes (real units come only in the 9 discrete tier × band combinations above). It has <b>no short-cycling model</b>, so it <i>understates</i> the penalty of oversizing (short-cycling and worse part-load efficiency) — oversizing looks nearly free on that chart but isn't in a real home. A quick check of ERS retrofit records (installed-capacity vs. audited design heat loss for homes with a certified heat pump) found real installs scattered widely around design load — median ratio ≈0.66, only 24% within ±20% — so no single "correctly sized" ratio is implied or suggested by this tool.</div>
+      <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — premium-tier units tend to hold capacity better and lock out colder than value-tier units, but this varies unit to unit; check the specific model named for your selection rather than assuming tier behaviour in general.</div>
 
       <h4>How the equipment is chosen — rebuilt 2026</h4>
-      <p>The tiers above are being replaced. The old ones were buckets of a third-party vendor product list, with boundaries of our own invention. The new method separates two jobs that should never have been one: <b>AHRI certification is the sampling frame; manufacturer datasheets are the measurement.</b></p>
+      <p>The tiers above replaced an earlier scheme that averaged two hand-picked, vendor-list models per tier, with tier boundaries of our own invention. The current method separates two jobs that should never have been one: <b>AHRI certification is the sampling frame; manufacturer datasheets are the measurement.</b></p>
       <p><b>Which models matter</b> comes from Canada's own <b>EnerGuide/ERS audit records</b> — every AHRI certified reference number ever entered by an energy advisor, <b>439,975 record appearances across 15,148 distinct certified models</b>. So the answer to <i>“why these heat pumps?”</i> is simply: <b>these are the ones Canadians actually bought.</b> Not a vendor list, not a hand-picked shortlist.</p>
       <p><b>How they are bucketed</b> uses two ratings from each unit's public AHRI certificate, on a 3×3 grid:</p>
       <ul>
         <li><b>COP at 5 °F</b> — ≤ 1.8 / 1.8–2.0 / &gt; 2.0. Efficiency in deep cold. The bands are deliberately coarse: 1.75 is the certification floor shared by ENERGY STAR, CEE and NEEP, and <b>55% of records report exactly 1.80</b>, so this number measures compliance as much as performance and should not be read as a fine-grained ranking.</li>
         <li><b>Capacity maintenance</b> — capacity at 5 °F ÷ capacity at 47 °F, banded &lt; 0.60 / 0.60–0.80 / ≥ 0.80. How much heat the unit still delivers when you need it most. This is <b>not our metric</b>: ENERGY STAR v6.2, CEE and NRCan's Greener Homes ccASHP criterion all define exactly this ratio, the last as <i>(Max −15 °C) / (Rated 8.3 °C) ≥ 70%</i>.</li>
       </ul>
-      <p>The two axes are near-independent (correlation −0.168), so all nine cells describe genuinely different equipment. Each cell is then split into four <b>capacity bands</b> (&lt;18k, 18–30k, 30–42k, ≥42k Btu/h), and the <b>most frequently installed currently-certified model</b> in each is taken as the representative — 36 in total, every one traceable to an AHRI number you can look up yourself.</p>
+      <p>The two axes are near-independent (correlation −0.168), so all nine cells describe genuinely different equipment. Each cell is then split into four <b>capacity bands</b> (&lt;18k, 18–30k, 30–42k, ≥42k Btu/h), and the <b>most frequently installed currently-certified model</b> in each is taken as the representative — 36 in total, every one traceable to an AHRI number you can look up yourself. This tool currently simulates the <b>9 cells in the &lt;18k/18–30k/30–42k bands</b> (the ≥42k band is identified but not yet wired into the simulation).</p>
       <div class="caveats"><b>A higher COP number is not a better heat pump.</b> The &gt; 2.0 band contains the most models but the fewest installations, and is the band most concentrated in the <i>worst</i> capacity-maintenance column — high reported COP tends to flag older or conservatively-rated units. Capacity maintenance is the axis that tracks real cold-climate capability.</div>
       <div class="caveats"><b>Ratings are measured on two different bases, and this matters.</b> The 5 °F figures are taken at <i>maximum</i> compressor output; the 47 °F and 17 °F figures are <i>rated</i> (full-load) points. That is why nearly half of all certified models report a 5 °F capacity <i>above</i> their 17 °F capacity — it is correct, not an error, and filtering it out would discard roughly 180,000 records of valid data. Because both bucketing numbers come from that same maximum-output test, an optimistically reported unit moves on both axes at once.</div>
       <div class="caveats"><b>What the certificate cannot tell us.</b> AHRI publishes capacity at three temperatures but COP at only one, and no compressor lock-out temperature — not enough to simulate a heating season. So certification is used only to <i>choose</i> the representative units; their actual capacity-and-power curves come from each unit's <b>published manufacturer datasheet</b>. The better submittals carry a full <i>extended ratings</i> table — for the most-installed unit in this dataset (GREE GUD36W/A-D(U)) that is <b>23 operating points from −30 °C to +24 °C, each giving capacity, COP and electrical power draw</b>, plus the published heating lock-out of −30 °C. Where a manufacturer publishes no such table, the <b>NEEP cold-climate listing</b> is used as the fallback, cited per model. Where a datasheet and its certificate disagree — for that GREE unit, 0.79 vs 0.80 capacity maintenance and COP 1.83 vs 1.80 — the certificate governs which bucket a unit sits in and the datasheet governs the simulation, so units cannot silently drift between buckets when better data arrives.</div>
@@ -1127,7 +1133,11 @@ footer a{color:var(--muted)}
         h_base_ghg[i] += baseCombGhg;
         if (baseFuel === "oil") {
           m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
-        } else if (baseFuel === "gas" || baseFuel === "propane") {
+        } else if (baseFuel === "gas") {
+          // Methane-leak adder is pipeline-gas-specific (density/energy
+          // constants below are natural gas's, not propane's); propane gets
+          // no leak adder here rather than reusing gas's number -- no
+          // defensible propane upstream-loss constant exists yet.
           var baseM3 = baseFuelIn / GAS_KWH_PER_M3;
           var baseCH4kg = (methanePct / 100.0) * baseM3 * GAS_KG_PER_M3;
           m_base_ch4[mi] += baseCH4kg * methaneGWP;
@@ -1190,7 +1200,9 @@ footer a{color:var(--muted)}
           var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
           m_proj_comb[mi] += bkCombGhg;
           h_proj_ghg[i] += bkCombGhg;
-          if (backup.type === "gas" || backup.type === "propane") {
+          if (backup.type === "gas") {
+            // See base-case note above: propane leak adder omitted, not
+            // reused from gas's density/energy constants.
             var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
             var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
             m_proj_ch4[mi] += bkCH4kg * methaneGWP;
@@ -1356,35 +1368,26 @@ const CITY_PROV={Ottawa:'on',Toronto:'on',Montreal:'qc',Calgary:'ab',Edmonton:'a
 const CITIES=['Ottawa','Toronto','Hamilton','London','Windsor','Montreal','Quebec City',
   'Calgary','Edmonton','Vancouver','Winnipeg','Halifax','Saskatoon','Regina'];
 
+// Archetype vintages -- no longer drive sizing (design load is a direct user
+// input, see state.designLoad), kept only as the 4 reference points shown
+// beside the design-load slider so a user can calibrate their own number.
 const ARCH_ORDER=['pre_1980_detached','1980_2005_detached','post_2005_detached','townhouse_row'];
 const ARCH_LABEL={
-  pre_1980_detached:'Detached, built before 1980',
-  '1980_2005_detached':'Detached, 1980–2005',
-  post_2005_detached:'Detached, built after 2005',
-  townhouse_row:'Townhouse / row house',
+  pre_1980_detached:'Pre-1980 detached',
+  '1980_2005_detached':'1980–2005 detached',
+  post_2005_detached:'Post-2005 detached',
+  townhouse_row:'Townhouse / row',
 };
-// Short inline form for the one-line summary ("in a <phrase> in <city>").
-const ARCH_PHRASE={
-  pre_1980_detached:'pre-1980 detached home',
-  '1980_2005_detached':'1980–2005 detached home',
-  post_2005_detached:'post-2005 detached home',
-  townhouse_row:'townhouse',
+const TIER_LABEL={high:'Premium cold-climate',mid:'Mid-range',low:'Value'};
+const TIER_BLURB={
+  high:'Holds capacity best through deep cold and locks out the coldest — the closest thing to "backup rarely needed" in this data.',
+  mid:'Middle of the pack on cold-weather capacity retention and lock-out temperature.',
+  low:'Capacity fades fastest through the cold and locks out warmest of the three tiers.',
 };
-const ARCH_BLURB={
-  pre_1980_detached:'Older detached houses — leakier envelope, higher heat loss for their size.',
-  '1980_2005_detached':'Detached homes of the insulation-code era — moderate heat loss.',
-  post_2005_detached:'Newer, larger detached homes — tighter envelope per m².',
-  townhouse_row:'Attached row/townhouses — shared walls, lowest heat loss.',
-};
-const BUCKET_BLURB={
-  tier1:'Premium cold-climate (Mitsubishi H2i / hyper-heat) — holds ~100% of rated capacity to −15 °C and runs to −25 °C, so backup is rarely needed.',
-  tier2:'Mid-market (Carrier 2-stage / Daikin variable-speed) — capacity fades through the cold, lock-out around −20 to −23 °C.',
-  tier3:'Baseline (single-stage ducted / standard mini-split) — capacity drops off faster and locks out around −15 to −19 °C.',
-  avg:'Maps to the baseline curve — the typical installed unit leans baseline (EnerGuide retrofit records).',
-};
+const BAND_LABEL={'<18k':'<18,000 Btu/h','18-30k':'18,000–30,000 Btu/h','30-42k':'30,000–42,000 Btu/h'};
 const FUEL_LABEL={gas:'natural gas',oil:'oil',electric:'electricity',propane:'propane'};
-const EFF_DEFAULT={gas:92,oil:83,electric:100};
-const EFF_RANGE={gas:[70,98],oil:[60,90],electric:[95,100]};
+const EFF_DEFAULT={gas:92,oil:83,electric:100,propane:90};
+const EFF_RANGE={gas:[70,98],oil:[60,90],electric:[95,100],propane:[75,96]};
 // Refrigerant GWP (AR6 / AR5 100-yr; a single representative value each).
 const REFRIG_GWP={r410a:2088,r32:675,r454b:467,r290:3};
 // Typical factory charge ~0.25 kg per rated kW; end-of-life loss amortized.
@@ -1417,7 +1420,15 @@ const GHG_CATS=[
   {key:'upstream',    name:'Upstream fuel supply',color:'var(--red)'},
 ];
 
-let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null;
+let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null;
+// city_design_temps.json keys most city names verbatim; the exceptions get an
+// explicit mapping rather than assuming a match.
+const CITY_TO_DESIGNTEMP_KEY={Ottawa:'Ottawa-Gatineau'};
+function designTempFor(city){
+  const key=CITY_TO_DESIGNTEMP_KEY[city]||city;
+  const c=DESIGN_TEMPS&&DESIGN_TEMPS.cities&&DESIGN_TEMPS.cities[key];
+  return c?c.design_temp_C:-20; // conservative fallback if a city is ever missing
+}
 const EF_CACHE={};
 const WEATHER_CACHE={}; // slug -> weather_<city>.json (multi-decade record)
 
@@ -1469,13 +1480,32 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 
 // ---- state ----
 const state={
-  city:'Ottawa', arch:'pre_1980_detached', fuel:'gas', eff:92,
-  bucket:'tier1', nominal:12, backup:'electric', control:'load-exceeds-capacity',
+  city:'Ottawa', designLoad:12, balancePoint:10.5, fuel:'gas', eff:92,
+  tier:'high', band:'18-30k', backup:'electric',
   lockout:-8, efBasis:'marginal', weatherYear:'tmy', refrig:'r410a', leakRate:2.0, methane:1.0, methaneGWP:28, lineloss:5.0,
   belowLockout:'hard', // ASHP behaviour below the published minimum operating temp
-  nominalTouched:false, plan:null, // null = city's default electricity plan
+  plan:null, // null = city's default electricity plan
   hourlyRange:'all', sweepMetric:'ghg',
 };
+// Home-weighted median design heat loss (kW) across a city's 4 archetype
+// vintages -- the default seed for the design-load slider. Deliberately the
+// lightweight 4-point version, not a full ERS population histogram.
+function cityDesignLoadDefault(city){
+  const c=ARCH[city];
+  const rows=ARCH_ORDER.filter(k=>c[k]).map(k=>({v:c[k].design_heat_loss_kW,w:c[k].n_homes})).sort((a,b)=>a.v-b.v);
+  const total=rows.reduce((s,r)=>s+r.w,0);
+  let acc=0;
+  for(const r of rows){acc+=r.w;if(acc>=total/2)return Math.round(r.v*2)/2;}
+  return rows.length?rows[rows.length-1].v:10;
+}
+function cityBalancePointDefault(city){
+  const c=ARCH[city];
+  const rows=ARCH_ORDER.filter(k=>c[k]).map(k=>({v:c[k].Tbalance_C,w:c[k].n_homes})).sort((a,b)=>a.v-b.v);
+  const total=rows.reduce((s,r)=>s+r.w,0);
+  let acc=0;
+  for(const r of rows){acc+=r.w;if(acc>=total/2)return Math.round(r.v*2)/2;}
+  return rows.length?rows[rows.length-1].v:10.5;
+}
 let lastRes=null;
 
 // ==========================================================================
@@ -1486,8 +1516,12 @@ Promise.all([
   fetch(DATA+'hp_curves.json').then(r=>r.json()),
   fetch(DATA+'tmy_temps.json').then(r=>r.json()),
   fetch(DATA+'grid_ef_annual.json').then(r=>r.json()).catch(()=>null),
-]).then(([a,c,t,ann])=>{
-  ARCH=a; CURVES=c; TMY=t; ANNUAL_EF=ann;
+  fetch(DATA+'hp_cell_curves.json').then(r=>r.json()),
+  fetch(DATA+'city_design_temps.json').then(r=>r.json()),
+]).then(([a,c,t,ann,cc,dt])=>{
+  ARCH=a; CURVES=c; TMY=t; ANNUAL_EF=ann; CELL_CURVES=cc; DESIGN_TEMPS=dt;
+  state.designLoad=cityDesignLoadDefault(state.city);
+  state.balancePoint=cityBalancePointDefault(state.city);
   runSelfTest();
   buildInputs();
   return Promise.all([ensureEF(CITY_PROV[state.city]),ensurePrices(CITY_PROV[state.city]),ensureWeather(state.city)]);
@@ -1564,32 +1598,32 @@ function buildInputs(){
   const citySel=$('in-city');
   CITIES.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o);});
   citySel.value=state.city;
-  rebuildArchOptions();
+  updateDesignLoadRef();
 
   citySel.addEventListener('change',e=>{
     state.city=e.target.value;
     state.plan=null; // back to the new city's default electricity plan
-    rebuildArchOptions();
-    autoSize();
+    state.designLoad=cityDesignLoadDefault(state.city);
+    state.balancePoint=cityBalancePointDefault(state.city);
+    $('in-designload').value=state.designLoad;$('designload-val').textContent=fmt1(state.designLoad)+' kW';
+    $('in-balance').value=state.balancePoint;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';
+    updateDesignLoadRef();
     const p=CITY_PROV[state.city];
     state.weatherYear='tmy'; // reset to typical on city change
     Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city)]).then(()=>{syncEfSeg();populateWeatherSelector(state.city);recompute();});
   });
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
   $('in-plan').addEventListener('change',e=>{state.plan=e.target.value;recompute();});
-  $('in-arch').addEventListener('change',e=>{state.arch=e.target.value;autoSize();updateArchHint();recompute();});
+  $('in-designload').addEventListener('input',e=>{state.designLoad=+e.target.value;$('designload-val').textContent=fmt1(state.designLoad)+' kW';recompute();});
+  $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
   $('in-eff').addEventListener('input',e=>{state.eff=+e.target.value;$('eff-val').textContent=state.eff+' %';recompute();});
-  $('in-bucket').addEventListener('change',e=>{state.bucket=e.target.value;$('bucket-hint').textContent=BUCKET_BLURB[state.bucket];recompute();});
+  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-hint').textContent=TIER_BLURB[state.tier];recompute();});
+  $('in-band').addEventListener('change',e=>{state.band=e.target.value;$('band-hint').textContent=cellFor(state.tier,state.band).brand_model;recompute();});
 
-  $('in-nominal').addEventListener('input',e=>{state.nominal=+e.target.value;state.nominalTouched=true;$('nominal-val').textContent=fmt1(state.nominal)+' kW';recompute();});
-  $('in-backup').addEventListener('change',e=>{state.backup=e.target.value;recompute();});
-  $('in-control').addEventListener('change',e=>{
-    state.control=e.target.value;
-    $('lockout-ctrl').style.display=state.control==='lockout'?'':'none';
-    $('control-hint').textContent=state.control==='lockout'
-      ?'Heat pump switches off below the setpoint; backup carries all colder hours.'
-      :'Heat pump runs to its capacity every hour; backup only makes up the shortfall.';
+  $('in-backup').addEventListener('change',e=>{
+    state.backup=e.target.value;
+    syncBackupControl();
     recompute();
   });
   $('in-lockout').addEventListener('input',e=>{state.lockout=+e.target.value;$('lockout-val').textContent=fmtSigned(state.lockout)+' °C';recompute();});
@@ -1634,11 +1668,14 @@ function buildInputs(){
 
   $('arch-info').addEventListener('click',()=>{$('arch-helper').classList.toggle('open');renderArchHelper();});
 
+  $('in-designload').value=state.designLoad;$('designload-val').textContent=fmt1(state.designLoad)+' kW';
+  $('in-balance').value=state.balancePoint;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';
+  $('in-tier').value=state.tier;$('in-band').value=state.band;
   applyFuel();
-  autoSize();
   syncEfSeg();
-  $('bucket-hint').textContent=BUCKET_BLURB[state.bucket];
-  $('control-hint').textContent='Heat pump runs to its capacity every hour; backup only makes up the shortfall.';
+  $('tier-hint').textContent=TIER_BLURB[state.tier];
+  $('band-hint').textContent=cellFor(state.tier,state.band).brand_model;
+  syncBackupControl();
   $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   $('methane-val').textContent='1.0 %';
   $('lineloss-val').textContent='5.0 %';
@@ -1712,26 +1749,20 @@ function syncEfSeg(){
   }
 }
 
-function rebuildArchOptions(){
-  const sel=$('in-arch');const cur=state.arch;sel.innerHTML='';
-  ARCH_ORDER.forEach(k=>{
-    if(!ARCH[state.city][k])return;
-    const o=document.createElement('option');o.value=k;o.textContent=ARCH_LABEL[k];sel.appendChild(o);
-  });
-  if(!ARCH[state.city][cur])state.arch=ARCH_ORDER[0];
-  sel.value=state.arch;
-  updateArchHint();
-}
-function updateArchHint(){
-  const a=ARCH[state.city][state.arch];
-  $('arch-hint').textContent=`≈ ${fmtI(a.floor_area_m2)} m² · design heat loss ${fmt1(a.design_heat_loss_kW)} kW · ${fmtI(a.n_homes)} in the audit data`;
+// Reference hint under the design-load slider: this city's 4 archetype-vintage
+// median design heat losses, informational only (doesn't drive the slider).
+// Deliberately 4 points, not a full ERS population histogram (see plan).
+function updateDesignLoadRef(){
+  const c=ARCH[state.city];
+  const parts=ARCH_ORDER.filter(k=>c[k]).map(k=>`${ARCH_LABEL[k]} ${fmt1(c[k].design_heat_loss_kW)} kW`);
+  $('designload-hint').textContent=`For reference, this city's audited-home medians: ${parts.join(' · ')}.`;
   if($('arch-helper').classList.contains('open'))renderArchHelper();
 }
 function renderArchHelper(){
   const c=ARCH[state.city];
-  let h=`<div class="hp-row"><b>Which is my home?</b> Pick the closest match — figures below are the median audited home of each type in ${state.city}.</div>`;
+  let h=`<div class="hp-row"><b>Picking a design heat load</b> — figures below are the median audited home of each type in ${state.city} (4 reference points, not a full distribution). Use them to calibrate your own number, or use your own EnerGuide/HOT2000 design heat loss if you have one.</div>`;
   ARCH_ORDER.forEach(k=>{if(!c[k])return;const a=c[k];
-    h+=`<div class="hp-row">• <b>${ARCH_LABEL[k]}</b> — ${ARCH_BLURB[k]} <span style="color:var(--light)">(${fmtI(a.floor_area_m2)} m², ${fmt1(a.design_heat_loss_kW)} kW design load)</span></div>`;});
+    h+=`<div class="hp-row">• <b>${ARCH_LABEL[k]}</b> <span style="color:var(--light)">(${fmtI(a.floor_area_m2)} m², ${fmt1(a.design_heat_loss_kW)} kW design load, balance point ${fmt1(a.Tbalance_C)} °C)</span></div>`;});
   $('arch-helper').innerHTML=h;
 }
 function applyFuel(){
@@ -1740,47 +1771,53 @@ function applyFuel(){
   state.eff=EFF_DEFAULT[state.fuel];sl.value=state.eff;
   $('eff-val').textContent=state.eff+' %';
   $('eff-unit').textContent=state.fuel==='electric'?'(≈100%)':'(AFUE)';
-  // backup default: keep gas backup sensible only if not electric base
 }
-function autoSize(){
-  if(state.nominalTouched)return;
-  const a=ARCH[state.city][state.arch];
-  // Suggest rated capacity ≈ design heat loss, clamped to the slider range.
-  let n=Math.round(a.design_heat_loss_kW*2)/2;
-  n=Math.max(3,Math.min(20,n));
-  state.nominal=n;
-  $('in-nominal').value=n;
-  $('nominal-val').textContent=fmt1(n)+' kW';
-  $('nominal-hint').textContent=`Auto-sized to this home's design heat loss (${fmt1(a.design_heat_loss_kW)} kW). Cold-climate units are often sized smaller, letting backup cover the coldest hours — adjust freely.`;
+// Backup type drives the control strategy directly (see buildOpts): electric
+// resistance always tops up capacity shortfall; gas/oil switches the heat
+// pump off entirely below a chosen temperature. The switch-over slider is
+// only meaningful -- and only shown -- for the combustion-backup case.
+function syncBackupControl(){
+  const isCombustionBackup=state.backup==='gas'||state.backup==='oil';
+  $('lockout-ctrl').style.display=isCombustionBackup?'':'none';
+  $('control-hint').textContent=isCombustionBackup
+    ?'Below the switch-over temperature the heat pump turns off entirely and the furnace carries 100% of the load; above it, the heat pump leads and the furnace only tops up any shortfall.'
+    :'Heat pump runs to its own lockout every hour; electric resistance only makes up the shortfall above its capacity (never a full switchover).';
 }
 
 // ==========================================================================
 // Build engine opts + run
 // ==========================================================================
+// Tier x size band always pins exactly one of the 9 real cell curves --
+// no scaling, no interpolation.
+function cellFor(tier,band){
+  return CELL_CURVES.cells[tier+'_'+band];
+}
 function hpCurveConfig(){
-  if(state.bucket==='avg'){
-    return {curve:CURVES.average_installed.curve, minOp:CURVES.average_installed.min_op_temp_C};
-  }
-  const t=state.bucket.replace('tier','');
-  return {curve:CURVES.tiers[t].curve, minOp:CURVES.tiers[t].min_op_temp_C};
+  const cell=cellFor(state.tier,state.band);
+  return {curve:cell.curve, minOp:cell.min_op_temp_C, ratedCap_kW:cell.rated_cap_47f_btuh/3412};
 }
 function buildOpts(){
   const prov=CITY_PROV[state.city];
-  const a=ARCH[state.city][state.arch];
   const hc=hpCurveConfig();
-  const backupEff = state.backup==='gas'?0.95:state.backup==='oil'?0.85:1.0;
+  // backup==='electric': HP always runs to its own lockout, resistance tops
+  // up any capacity shortfall (control.strategy='load-exceeds-capacity').
+  // backup==='gas'|'oil': temperature switchover -- HP off entirely below
+  // the switch-over temp, furnace carries 100% (control.strategy='lockout').
+  const strategy = (state.backup==='gas'||state.backup==='oil') ? 'lockout' : 'load-exceeds-capacity';
+  const backupEff = state.backup==='gas'?0.95:state.backup==='oil'?0.85:state.backup==='propane'?0.90:1.0;
+  const UA_W_per_K = state.designLoad*1000/(state.balancePoint-designTempFor(state.city));
   return {
     tempSeries:tempSeriesFor(state.city,state.weatherYear),
-    archetype:{UA_W_per_K:a.UA_W_per_K, Tbalance_C:a.Tbalance_C},
+    archetype:{UA_W_per_K, Tbalance_C:state.balancePoint},
     baseCase:{fuel:state.fuel, efficiency:state.eff/100},
-    hp:{curve:hc.curve, nominalCap_kW:state.nominal, minOpTemp_C:hc.minOp, kind:'ashp', belowLockout:state.belowLockout},
+    hp:{curve:hc.curve, nominalCap_kW:hc.ratedCap_kW, minOpTemp_C:hc.minOp, kind:'ashp', belowLockout:state.belowLockout},
     backup:{type:state.backup, efficiency:backupEff},
-    control:{strategy:state.control, lockoutTemp_C:state.lockout},
+    control:{strategy, lockoutTemp_C:state.lockout},
     lifecycle:{
       lineLossPct:state.lineloss,
       methaneLeakPct:state.methane, methaneGWP:state.methaneGWP,
       oilUpstreamFrac:0.12,
-      charge_kg:state.nominal*CHARGE_KG_PER_KW,
+      charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW,
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
       refrigerantGWP:REFRIG_GWP[state.refrig],
     },
@@ -1880,7 +1917,7 @@ function render(res,opts){
   // "but" when the energy and carbon stories diverge (energy improves, carbon
   // doesn't), else "and". nearZeroBase is treated as carbon-not-improving.
   const conj=(ePct>=0&&(nearZeroBase||pct<=-2))?'but':'and';
-  $('summary').innerHTML=`<span class="lede-eyebrow">The short version</span>A <b>${bucketShort()}</b> heat pump in a ${ARCH_PHRASE[state.arch]} in ${state.city} ${energyClause} ${conj} ${carbonClause}<span id="summary-cost">.</span>`;
+  $('summary').innerHTML=`<span class="lede-eyebrow">The short version</span>A <b>${bucketShort()}</b> heat pump in a ${fmt1(state.designLoad)}-kW design-load home in ${state.city} ${energyClause} ${conj} ${carbonClause}<span id="summary-cost">.</span>`;
 
   // ---- calculation walkthrough ----
   renderWalkthrough(res,opts);
@@ -1919,7 +1956,7 @@ function render(res,opts){
     ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
     : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`;
 }
-function bucketShort(){return state.bucket==='avg'?'typical installed':state.bucket==='tier1'?'premium':state.bucket==='tier2'?'mid-market':'baseline';}
+function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':'value';}
 
 // ---- Calculation walkthrough: the whole chain, live, with numbers plugged in.
 // "Show your work" so the tool can be explained to anyone by hand. Each step's
@@ -1933,7 +1970,7 @@ function calcStep(n,h,p,math,resLine){
     `</div></div>`;
 }
 function renderWalkthrough(res,opts){
-  const a=ARCH[state.city][state.arch], d=res.project.diagnostics;
+  const d=res.project.diagnostics;
   const base=res.base, proj=res.project;
   const UA=opts.archetype.UA_W_per_K, Tbal=opts.archetype.Tbalance_C;
   const load=d.load_kWh, scop=d.seasonal_cop||0;
@@ -1960,13 +1997,13 @@ function renderWalkthrough(res,opts){
   const baseT=base.ghg.total, projT=proj.ghg.total, cut=baseT-projT;
   const M3=n=>fmtI(n/E.GAS_KWH_PER_M3);
 
-  $('calc-intro').innerHTML=`Every number above comes from an hour-by-hour run of one typical weather year. Here is the whole chain for your current choices — <b>${state.city}</b>, ${ARCH_LABEL[state.arch].toLowerCase()}, ${info.label.toLowerCase()} heat pump — with the actual figures plugged in. These are the same steps you'd walk someone through by hand.`;
+  $('calc-intro').innerHTML=`Every number above comes from an hour-by-hour run of one typical weather year. Here is the whole chain for your current choices — <b>${state.city}</b>, ${fmt1(state.designLoad)} kW design load, ${info.label.toLowerCase()} heat pump — with the actual figures plugged in. These are the same steps you'd walk someone through by hand.`;
 
   const steps=[];
 
   // 1 — heat demand
   steps.push(calcStep(1,'How much heat your home needs',
-    `Your home is modelled as the median of <b>${fmtI(a.n_homes)}</b> audited <b>${ARCH_LABEL[state.arch].toLowerCase()}</b> homes in ${state.city}: about <b>${fmtI(a.floor_area_m2)} m²</b>, with a measured design heat loss of <b>${fmt1(a.design_heat_loss_kW)} kW</b>. From that we know how fast it loses heat — <b>${fmtI(UA)} watts per °C</b> of indoor–outdoor difference — and the outdoor temperature below which it needs heating: its <b>balance point of ${fmt1(Tbal)} °C</b> (below 21 °C because people, appliances and sunlight supply the rest).`,
+    `You've set a design heat load of <b>${fmt1(state.designLoad)} kW</b> at ${state.city}'s design temperature (${fmt1(designTempFor(state.city))} °C), and a balance point of <b>${fmt1(Tbal)} °C</b> (below that, people, appliances and sunlight can no longer cover the loss). Together those two numbers fix how fast the home loses heat — <b>${fmtI(UA)} watts per °C</b> of indoor–outdoor difference.`,
     `heat(hour) = UA × (balance − outdoor)\n           = ${fmtI(UA)} W/°C × (${fmt1(Tbal)} − outdoor) °C`,
     `Added up over the <b>${fmtI(d.heating_hours)}</b> hours of the year below that balance point: <b class="r">${fmtI(load)} kWh</b> of heat delivered.`));
 
@@ -1975,7 +2012,7 @@ function renderWalkthrough(res,opts){
     ? `The pump carries <b>${Math.round(hpPct)}%</b> of the year's heat; on the coldest <b>${fmtI(d.backup_hours)}</b> hours the ${hasBackup?FUEL_LABEL[state.backup]+' backup':'unmet portion'} covers the other ${Math.round(bkPct)}%.`
     : `The pump carries the entire load on its own — no backup needed in a typical year.`;
   steps.push(calcStep(2,'How efficiently the heat pump makes that heat',
-    `You picked the <b>${info.label.toLowerCase()}</b> tier, modelled from two real units (${info.members.join(' + ')}). A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
+    `You picked the <b>${info.label.toLowerCase()}</b> tier at ${BAND_LABEL[state.band]}, modelled on a real certified unit: <b>${info.brand_model}</b> (AHRI ${info.ahri}). A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
     `electricity = heat ÷ COP\n(each hour uses that hour's COP; ${fmt1(scop)} is the season average)`,
     bkLine));
 
@@ -2284,9 +2321,8 @@ function attachSrcHover(){
 const EQ_DEFROST_BAND=[-7,4]; // matches build_hp_curves.py DEFROST_BAND
 let EQ_MODEL=null;
 function tierCurveInfo(){
-  if(state.bucket==='avg') return {label:'Average installed (maps to Tier 3 — baseline)', members:CURVES.tiers['3'].members};
-  const t=state.bucket.replace('tier','');
-  return {label:CURVES.tiers[t].label, members:CURVES.tiers[t].members};
+  const cell=cellFor(state.tier,state.band);
+  return {label:TIER_LABEL[state.tier], brand_model:cell.brand_model, ahri:cell.ahri, source:cell.source, flags:cell.flags||[]};
 }
 function renderEqChart(opts){
   const svg=$('eqchart');if(!svg)return;
@@ -2337,10 +2373,11 @@ function renderEqChart(opts){
   attachEqHover();
 
   const info=tierCurveInfo();
-  $('eq-sub').textContent=info.label;
+  $('eq-sub').textContent=`${info.label} · ${BAND_LABEL[state.band]}`;
   const cop47=cop[T.findIndex(t=>Math.abs(t-8.33)<0.3)];
   const cop17=cop[T.findIndex(t=>Math.abs(t-(-8.33))<0.3)];
-  $('eq-note').innerHTML=`This is the equipment's own curve — capacity as a fraction of its rated (47 °F) size, scaled elsewhere by the nominal-size slider; COP is size-independent. Built from two real models: <b>${info.members.join(' + ')}</b>. COP ≈ ${cop47?fmt1(cop47):'–'} at 47 °F, ${cop17?fmt1(cop17):'–'} at 17 °F, dipping in the shaded −7…+4 °C defrost band, before locking out at ${fmtSigned(Math.round(minOp))} °C.`;
+  const flagsHtml=info.flags.length?`<br><b>Caveats from the source datasheet:</b> ${info.flags.join(' · ')}`:'';
+  $('eq-note').innerHTML=`This is the equipment's own curve — capacity as a fraction of its rated (47 °F) size; COP is size-independent. This tier × size pins exactly one real certified unit, no scaling: <b>${info.brand_model}</b> (AHRI ${info.ahri}), from ${info.source}. COP ≈ ${cop47?fmt1(cop47):'–'} at 47 °F, ${cop17?fmt1(cop17):'–'} at 17 °F, dipping in the shaded −7…+4 °C defrost band, before locking out at ${fmtSigned(Math.round(minOp))} °C.${flagsHtml}`;
 }
 
 // Month boundaries (start hour of each month) for an 8760- or 8784-hour series.
@@ -2416,7 +2453,7 @@ function niceTicksSigned(lo,hi,n){
 let _bandMemo={key:null,val:null};
 function weatherBand(){
   const w=WEATHER_CACHE[weatherSlug(state.city)];if(!w||!w.years)return null;
-  const key=[state.city,state.arch,state.fuel,state.eff,state.bucket,state.nominal,state.backup,state.control,state.lockout,state.efBasis,state.refrig,state.leakRate,state.methane,state.lineloss].join('|');
+  const key=[state.city,state.designLoad,state.balancePoint,state.fuel,state.eff,state.tier,state.band,state.backup,state.lockout,state.efBasis,state.refrig,state.leakRate,state.methane,state.lineloss].join('|');
   if(_bandMemo.key===key)return _bandMemo.val;
   const baseOpts=buildOpts();
   let best=null,worst=null; // best = biggest cut, worst = smallest
@@ -2473,8 +2510,13 @@ const SWEEP_METRICS={
   backupPct:{label:'Share of heat from backup',axis:v=>fmtI(v)+'%',tip:v=>fmt1(v)+'%',betterLow:true},
   hours:{label:'Hours on backup / unmet',axis:v=>fmtI(v)+' h',tip:v=>fmtI(v)+' h',betterLow:true},
 };
+// This sweeps a SYNTHETIC scaling of the selected cell's own capacity curve
+// (cap_frac_of_rated47 held fixed, nominalCap_kW scaled) purely for this
+// sensitivity chart -- a hypothetical resizing of this equipment, not a menu
+// of real purchasable units (those are the 9 discrete tier x band cells
+// picked above). Real units aren't continuously resizable.
 function runSizingSweep(opts){
-  const a=ARCH[state.city][state.arch], design=a.design_heat_loss_kW;
+  const design=state.designLoad, curSize=opts.hp.nominalCap_kW;
   const pts=[];
   for(let pct=40;pct<=160.001;pct+=5){
     const size=Math.round(design*pct/100*100)/100;
@@ -2491,8 +2533,8 @@ function runSizingSweep(opts){
       ghg:r.project.ghg.total,
       cost:projectCostOf(r)});
   }
-  const curPct=100*state.nominal/design;
-  SWEEP={pts,design,curPct,costAvailable:pts.every(p=>p.cost!=null)};
+  const curPct=100*curSize/design;
+  SWEEP={pts,design,curPct,curSize,costAvailable:pts.every(p=>p.cost!=null)};
   // hide the cost metric button when this city has no rates
   const costBtn=document.querySelector('#sweep-seg button[data-metric="cost"]');
   if(costBtn){costBtn.style.display=SWEEP.costAvailable?'':'none';
@@ -2548,7 +2590,7 @@ function renderSweepChart(){
   attachSweepHover();
   // note
   const cur=pts.reduce((a,b)=>Math.abs(b.pct-SWEEP.curPct)<Math.abs(a.pct-SWEEP.curPct)?b:a);
-  $('sweep-note').innerHTML=`At your current size (${fmt1(state.nominal)} kW ≈ ${Math.round(SWEEP.curPct)}% of design load): seasonal COP ${fmt1(cur.cop)}, ${fmt1(cur.backupPct)}% of heat from backup, ${fmtI(cur.hours)} h needing backup${cur.lockoutH?` (${fmtI(cur.lockoutH)} h locked out)`:''}, ${fmtGHG(cur.ghg)} CO₂e/yr${cur.cost!=null?`, $${fmtI(cur.cost)}/yr to run`:''}. The green dot marks the ${mc.betterLow?'lowest':'highest'} <b>${mc.label.toLowerCase()}</b> across the sweep.`;
+  $('sweep-note').innerHTML=`Your selected unit is rated at ${fmt1(SWEEP.curSize)} kW ≈ ${Math.round(SWEEP.curPct)}% of your ${fmt1(SWEEP.design)}-kW design load. This chart is a <b>hypothetical resizing</b> of that equipment's own capacity curve, not a menu of real purchasable sizes (real units come in the 9 discrete tier × size combinations above) — it shows the sensitivity, not a shopping list. At your current size: seasonal COP ${fmt1(cur.cop)}, ${fmt1(cur.backupPct)}% of heat from backup, ${fmtI(cur.hours)} h needing backup${cur.lockoutH?` (${fmtI(cur.lockoutH)} h locked out)`:''}, ${fmtGHG(cur.ghg)} CO₂e/yr${cur.cost!=null?`, $${fmtI(cur.cost)}/yr to run`:''}. The green dot marks the ${mc.betterLow?'lowest':'highest'} <b>${mc.label.toLowerCase()}</b> across the sweep.`;
 }
 function interpSweep(pts,key,pct){
   if(pct<=pts[0].pct)return pts[0][key];
