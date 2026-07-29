@@ -55,6 +55,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from build_tier_curves import CURVES_HTML
+
 HERE = Path(__file__).resolve().parent
 INTERIM = HERE.parent / "data" / "interim"
 SRC = INTERIM / "hp_units_joined.csv"
@@ -192,6 +194,7 @@ def main():
     }
 
     html = render(pts, band_stats, meta, grid, sx, sy)
+    html = html.replace("</html>", "") + CURVES_HTML
     OUT.write_text(html, encoding="utf-8")
     OUT_PUBLIC.write_text(html, encoding="utf-8")
     print(f"wrote {OUT}\nwrote {OUT_PUBLIC}")
