@@ -77,7 +77,47 @@ Losing it is fine — re-run the pipeline. **What must be defensible is the
 process, not the bytes**, and the process is versioned on `main`.
 
 "Commit and push" therefore means: commit code/docs/decisions to `main`, then
-run `./deploy.sh` to republish the site + data. Do both; don't ask which.
+publish to `gh-pages`. Two ways to do the publish half:
+
+- **Full `./deploy.sh`** — rebuilds `gh-pages` from scratch as a single
+  orphan commit. Requires *every* path in its `PATHS` list to exist on local
+  disk (all generated trees: `fsa_json`, `census_json`, `grid_json`, etc.),
+  since it reads from the working tree, not from what's already published.
+  Use this when you actually have the full local data checkout, or when
+  something genuinely needs a from-scratch rebuild.
+- **Incremental single/few-file update** — when only a handful of paths
+  changed (e.g. one tool's HTML + its own `data/processed` tree) and the rest
+  of the local data trees aren't present (a fresh checkout, a different
+  machine, a sandboxed session): build a new commit **on top of the current
+  remote `gh-pages` tree** instead of the working tree, touching only the
+  changed paths. This needs no local copy of the untouched trees at all.
+  Precedent: commits `cd454e7`, `3a0145f`, `874ad2f`/`d989fe0` on `gh-pages`.
+
+  ```bash
+  git fetch origin gh-pages -q
+  BASE=origin/gh-pages
+  IDX=$(mktemp)
+  export GIT_INDEX_FILE="$IDX"
+  git read-tree "$BASE"
+  git add -f <changed-path-1> <changed-path-2> ...   # -f: paths under
+                                                       # HeatPump/data/** etc.
+                                                       # are gitignored on main
+  TREE=$(git write-tree)
+  COMMIT=$(git commit-tree "$TREE" -p "$BASE" -m "…")
+  git push origin "$COMMIT:gh-pages"
+  unset GIT_INDEX_FILE; rm -f "$IDX"
+  ```
+
+  `git add` silently skips gitignored paths without `-f` — always pass `-f`
+  explicitly for anything under a generated-data directory, and afterwards
+  confirm with `git ls-tree -r <commit> -- <path>` that what you meant to add
+  actually landed, since a silent skip leaves the page fetching a 404 with no
+  local error to catch it.
+
+  The next full `./deploy.sh` resets `gh-pages` to a single squashed commit
+  as usual — this path is a stopgap between full rebuilds, not a replacement
+  for one. GitHub Pages can take 1-2 minutes to redeploy after either kind of
+  push; verify with `curl` or a browser check before declaring it live.
 
 ## Data honesty rails
 
