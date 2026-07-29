@@ -384,7 +384,11 @@
         h_base_ghg[i] += baseCombGhg;
         if (baseFuel === "oil") {
           m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
-        } else if (baseFuel === "gas" || baseFuel === "propane") {
+        } else if (baseFuel === "gas") {
+          // Methane-leak adder is pipeline-gas-specific (density/energy
+          // constants below are natural gas's, not propane's); propane gets
+          // no leak adder here rather than reusing gas's number -- no
+          // defensible propane upstream-loss constant exists yet.
           var baseM3 = baseFuelIn / GAS_KWH_PER_M3;
           var baseCH4kg = (methanePct / 100.0) * baseM3 * GAS_KG_PER_M3;
           m_base_ch4[mi] += baseCH4kg * methaneGWP;
@@ -447,7 +451,9 @@
           var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
           m_proj_comb[mi] += bkCombGhg;
           h_proj_ghg[i] += bkCombGhg;
-          if (backup.type === "gas" || backup.type === "propane") {
+          if (backup.type === "gas") {
+            // See base-case note above: propane leak adder omitted, not
+            // reused from gas's density/energy constants.
             var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
             var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
             m_proj_ch4[mi] += bkCH4kg * methaneGWP;

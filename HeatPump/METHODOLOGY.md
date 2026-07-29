@@ -2534,10 +2534,9 @@ Queued), so this screen currently depends on a file that cannot be regenerated.
 
 ## Design-heat-load & selection rework — decisions taken 2026-07-28
 
-Four decisions taken after discussion with a colleague. **None of these are
-implemented.** They are recorded here so the reasoning survives, and they all
-land on the same piece of work: the engine/UI rebuild. Nothing below changes the
-shipped tool, which still runs the ERS archetypes (`archetypes.json`).
+Four decisions taken after discussion with a colleague. **Implemented
+2026-07-29** in `heatpump.html` / `HeatPump/app/engine.js` (mirrored). They are
+recorded here so the reasoning survives.
 
 ### 1. The ERS heat loss was right all along — F280 excludes gains
 
@@ -2604,18 +2603,46 @@ Consequence for the curve library: the **36-cell candidate table
 defend rather than 36. Selection of those cells is being done by eye against the
 real installed distribution — see the next section.
 
-### What this blocks on
+### What this blocked on — now resolved (2026-07-29)
 
-All four land in the **engine rebuild**, not before it:
-
-- `simulate()` and `buildOpts()` currently take an archetype and auto-size;
-  both need the design load and the selected unit as direct inputs.
-- `autoSize()` and the "which is my home?" floor-area helper are removed or
-  re-purposed by decision 2.
-- The tier/capacity dropdowns need the 9–12 cell curve library to exist first.
-- The two known engine bugs (propane backup efficiency; upstream methane applied
-  to propane with natural-gas properties) should be fixed in the same pass —
-  see ROADMAP.md.
+- `buildOpts()` now takes `state.designLoad` (kW) and `state.balancePoint` (°C)
+  as direct user inputs; `UA_W_per_K` is derived as
+  `designLoad_kW * 1000 / (balancePoint - T_design_city)`, with
+  `T_design_city` read from `city_design_temps.json`.
+- `autoSize()` and the "which is my home?" floor-area helper are removed. A
+  lightweight reference display (4 archetype-vintage medians for the selected
+  city, from `archetypes.json`) is shown beside the design-load slider for
+  calibration only — it does not drive the slider. This is deliberately the
+  4-point version, not a full ERS population histogram; a fuller distribution
+  remains a possible future addition.
+- The tier/capacity dropdowns (`in-tier`, `in-band`) pin exactly one of the 9
+  real cell curves from `hp_cell_curves.json` (see "Part 1" below) — no
+  scaling, no interpolation.
+- The two known engine bugs are fixed in both `engine.js` and the inlined copy:
+  propane backup now defaults to 90% AFUE (previously fell through to 100%);
+  the upstream-methane leak adder is restricted to `fuel/backup.type ===
+  "gas"` (previously misapplied natural-gas density/energy constants to
+  propane too). Propane gets no leak adder — no defensible propane
+  upstream-loss constant exists yet, stated as a gap rather than reusing
+  gas's number.
+- Backup control strategy is now **derived from the backup type**, not a
+  separate manual dropdown: electric resistance always tops up any capacity
+  shortfall (`control.strategy = 'load-exceeds-capacity'`); gas/oil backup is
+  a temperature switchover (`control.strategy = 'lockout'`) via a
+  switch-over-temperature slider (repurposed from the old lock-out slider),
+  shown only when backup is gas or oil. `engine.js`'s existing hour-by-hour
+  `simulate()` already implemented both dispatch modes correctly — it was not
+  rewritten, only how the UI derives `control.strategy` changed.
+- The sizing-sweep card (40–160% of design load) was kept, sweeping a
+  *synthetic* scaling of the selected cell's own capacity curve — explicitly
+  labelled a hypothetical resizing for sensitivity analysis, not a menu of
+  purchasable sizes (real units come only in the 9 discrete tier × band
+  cells). This was the least-disruptive option once the continuous
+  nominal-capacity slider was removed.
+- Propane was also added as a **baseline** heating-fuel option (`in-fuel`),
+  since the engine already fully supports it and the addition was trivial;
+  this was not explicitly required by the plan but is a natural completion of
+  the propane bug fix.
 
 ---
 
