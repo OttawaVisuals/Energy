@@ -488,7 +488,9 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <h4>What's actually new vs. the Retrofit Explorer</h4>
     <p>retrofits.html is deep on <em>one area</em> at a time; this page is the cross-sectional view —
     leaderboards, a Canada-wide FSA choropleth with a metric switcher, a "what makes a retrofit
-    successful" breakdown, climate and income-equity lenses, heat-pump geography, a missed-opportunity
+    successful" breakdown, climate and income-equity lenses, heat-pump geography, cold-climate
+    equipment (an AHRI COP-vs-capacity-maintenance scatter plus a screen against the US DOE Cold
+    Climate Heat Pump Challenge specifications — added 2026-07-30), a missed-opportunity
     ranking, and a program-era timeline (EnerGuide for Houses → ecoENERGY Retrofit–Homes → Canada
     Greener Homes Grant). Scope was deliberately kept descriptive + stratified — no fitted regression
     models in v1.</p>
@@ -548,6 +550,16 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>Sort the participation leaderboard and check whether any FSA sits above 100% — if so, confirm the page's own caveat text next to that metric explains why.</li>
         </ol></div>
         <div class="where">docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-cchp"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>"Screened against the DOE Challenge specifications" — never "meets" or "certified for" the Challenge.</b>
+        <p>The screen checks published AHRI/ENERGY STAR certificate ratings against Table II-3 of the US DOE Cold Climate Heat Pump Challenge specifications. The Challenge itself is a verification programme with its own H11/H1N lab test protocol we do not hold, so a unit clearing every checkable criterion has rating-consistent performance and nothing more — the output column is named <code>screen_pass</code>, deliberately not "meets" or "certified". Only 4 of 8 Table II-3 criteria are checkable from the ratings we hold; the other 4 (turndown ratio, compressor cut-out/cut-in, electric-heat staging, ENERGY STAR CACHP sections) are shown as explicitly not checkable rather than silently dropped. Of 15,148 models / 439,975 ERS appearances, 4 certificate rows (3 distinct models, 8 appearances, 0.00%) clear every checkable criterion — three of the four sit exactly on the COP threshold, which is expected since Challenge-qualifying products only reached market in 2024–25 and this is a historical audit record.</p>
+        <p class="alt"><b>Other options:</b> say a passing unit "qualifies for" or "meets" the Challenge (overclaims a lab verification test we never ran); silently drop the 4 uncheckable criteria instead of showing them (hides how much of the spec we can't actually check).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 3 min<ol>
+          <li>Search the "Cold-climate equipment" section and its methodology text for the word "meets" or "certified" next to "Challenge" — it should not appear; the wording is always "screened against the specifications".</li>
+          <li>Check the qualifying-models table: it should show 4 rows but call out 3 distinct models, since GREE's GUD60W2/NHE-D(U) is AHRI-certified under two reference numbers.</li>
+        </ol></div>
+        <div class="where">HeatPump/pipeline/screen_cchp.py docstring; HeatPump/METHODOLOGY.md "US DOE Cold Climate Heat Pump Challenge screen"; docs/archive/ROADMAP_COMPLETED.md item 14.</div>
       </div></li>
     </ul>
   </div>

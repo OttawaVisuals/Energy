@@ -71,6 +71,22 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .chart-wrap{position:relative;width:100%}
 .note{font-size:12px;color:#5C6E82;margin-top:.6rem;line-height:1.5}
 
+/* ── AHRI scatter + CCHP panel (§06) ── */
+#ahri-scatter-wrap circle.pt{cursor:pointer}
+#ahri-scatter-wrap circle.pt.clamped{stroke:#12202E;stroke-width:1.4;stroke-dasharray:2 2}
+#ahri-tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;background:#12202E;color:#fff;padding:8px 11px;border-radius:7px;font-size:12.5px;line-height:1.5;z-index:220;max-width:280px}
+#ahri-tip b{font-size:13px}
+.equip-tally-row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin-bottom:6px}
+.equip-tally-row .et-label{width:190px;flex:none;color:#1C2B3A}
+.equip-tally-row .et-bar-wrap{flex:1;background:#EEF1F5;border-radius:3px;height:14px;overflow:hidden}
+.equip-tally-row .et-bar{height:100%;border-radius:3px}
+.equip-tally-row .et-val{width:210px;flex:none;text-align:right;color:#5C6E82;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.equip-tally-row{flex-wrap:wrap}.equip-tally-row .et-label,.equip-tally-row .et-val{width:auto}}
+.crit-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.crit-table th,.crit-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.crit-table th{font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;color:#5C6E82;font-weight:500;white-space:nowrap}
+.crit-table td.crit-status{white-space:nowrap;font-weight:500}
+
 /* ── Provincial scorecard table ── */
 .scorecard{width:100%;border-collapse:collapse;font-size:13.5px}
 .scorecard th,.scorecard td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -455,10 +471,32 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 06 MISSED OPPORTUNITY -->
+  <!-- 06 COLD-CLIMATE EQUIPMENT -->
+  <section id="sec-hp-equipment">
+    <div class="section-head">
+      <div class="section-num">06 — COLD-CLIMATE EQUIPMENT</div>
+      <h2>What the installed heat pumps can actually do at 5 °F</h2>
+      <p class="intro">Every AHRI-certified unit that appears in this data, plotted by cold-climate efficiency and capacity retention, then screened against the specifications of the US DOE Cold Climate Heat Pump (CCHP) Technology Challenge.</p>
+      <div class="sowhat"><b>By the numbers:</b> of <b>15,148</b> certified models covering <b>439,975</b> ERS install appearances, <b>4 certificate rows</b> — <b>3 distinct models</b>, <b>8 appearances (0.00%)</b> — clear every checkable Challenge criterion. Three of the four sit <i>exactly</i> on the COP threshold. This is not a critique of the installed base: Challenge-qualifying products only began reaching market in 2024–25, and these are historical ERS audit records.</div>
+    </div>
+    <div class="card">
+      <h3>COP at 5 °F vs. capacity maintenance</h3>
+      <div class="sub">Every AHRI-certified unit with a recorded COP at 5 °F, capacity maintenance and rated capacity @47 °F. Bubble <b>area</b> ∝ ERS install appearances; colour = nominal capacity band.</div>
+      <div class="chart-wrap" id="ahri-scatter-wrap"><div class="skl" style="height:420px"></div></div>
+      <div class="legend" id="ahri-scatter-legend"></div>
+      <div class="note" id="ahri-scatter-note"></div>
+    </div>
+    <div class="card">
+      <h3>Screened against the DOE Cold Climate Heat Pump Challenge specifications</h3>
+      <div class="sub">Table II-3 of the Challenge specifications, checked against AHRI certificate ratings — a screen against published ratings, not a determination that any unit met the Challenge's own H11/H1N verification test.</div>
+      <div id="cchp-panel"><div class="skl" style="height:320px"></div></div>
+    </div>
+  </section>
+
+  <!-- 07 MISSED OPPORTUNITY -->
   <section id="sec-opp">
     <div class="section-head">
-      <div class="section-num">06 — MISSED OPPORTUNITY</div>
+      <div class="section-num">07 — MISSED OPPORTUNITY</div>
       <h2>Where programs should look next</h2>
       <p class="intro">A composite score combining the worst starting stock with the lowest uptake — the postal areas with the most to gain that have barely participated.</p>
       <div class="sowhat"><b>By the numbers:</b> the highest-scoring postal areas are in the older cores of <b>Winnipeg (R3B, R3C, R3A), Saint John (E2L), Edmonton (T5G, T5B) and Regina (S4P)</b>. Click any row to see the four factor percentiles behind its score.</div>
@@ -497,7 +535,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 07 TIMELINE -->
   <section id="sec-timeline">
     <div class="section-head">
-      <div class="section-num">07 — THE TIMELINE</div>
+      <div class="section-num">08 — THE TIMELINE</div>
       <h2>Twenty years of programs</h2>
       <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
       <div class="sowhat"><b>By the numbers:</b> completed retrofits peaked at <b>205,502 in 2010</b>, during ecoENERGY Retrofit – Homes (2007–2012), and again at <b>150,798 in 2023</b> under the Canada Greener Homes Grant (2021–2024). 2025 recorded 72,870, about half the 2024 total, after the grant closed to new applicants on 31 March 2024. Programme dates and sources are listed under the chart.</div>
@@ -517,7 +555,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 08 OPEN QUESTIONS -->
   <section id="sec-questions">
     <div class="section-head">
-      <div class="section-num">08 — OPEN QUESTIONS</div>
+      <div class="section-num">09 — OPEN QUESTIONS</div>
       <h2>Questions for the EnerGuide team</h2>
       <p class="intro">Things this dataset cannot answer on its own. Each one is a limit we hit while building the page, written down rather than papered over with an assumption.</p>
     </div>
@@ -558,7 +596,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 09 METHODOLOGY -->
   <section id="sec-method">
     <div class="section-head">
-      <div class="section-num">09 — METHODOLOGY</div>
+      <div class="section-num">10 — METHODOLOGY</div>
       <h2>How this was built</h2>
       <p class="intro">Every formula, threshold and honesty rail behind the numbers above.</p>
     </div>
@@ -1165,6 +1203,116 @@ document.addEventListener('click',e=>{
 });
 
 /* ══════════════════════════════════════════════════════════════════════
+   06B — COLD-CLIMATE EQUIPMENT (AHRI scatter + DOE CCHP Challenge screen)
+   Data: insights_json/hp_ahri_scatter.json, insights_json/cchp_screen.json
+   (built by Python/build_hp_equipment_insights.py from the same
+   HeatPump/data/interim/hp_units_joined.csv Phase-3c universe as
+   HeatPump/pipeline/build_tier_scatter.py and screen_cchp.py). The scatter
+   is a bespoke inline SVG, not Chart.js, ported from tier-scatter.html's
+   circle/legend/tooltip pattern — same reasoning as that page: avoids the
+   preview renderer's no-requestAnimationFrame trap entirely.
+   ══════════════════════════════════════════════════════════════════════ */
+function renderAhriScatter(d){
+  const W=880,H=460,PADL=64,PADR=18,PADT=18,PADB=46;
+  const XMIN=0.15,XMAX=1.35,YMIN=0.5,YMAX=3.5;
+  const pxW=W-PADL-PADR,pxH=H-PADT-PADB;
+  const sx=v=>PADL+(Math.min(Math.max(v,XMIN),XMAX)-XMIN)/(XMAX-XMIN)*pxW;
+  const sy=v=>PADT+(1-(Math.min(Math.max(v,YMIN),YMAX)-YMIN)/(YMAX-YMIN))*pxH;
+  const maxW=Math.max(...d.pts.map(p=>p.w));
+  const RMIN=1.4,RMAX=26;
+  const sr=w=>RMIN+(RMAX-RMIN)*Math.sqrt(w/maxW);
+
+  const xticks=[];for(let v=0.2;v<1.35;v+=0.2)xticks.push(Math.round(v*100)/100);
+  const yticks=[];for(let v=1.0;v<3.6;v+=0.5)yticks.push(v);
+
+  const gridSvg=xticks.map(v=>`<line x1="${sx(v).toFixed(1)}" y1="${PADT}" x2="${sx(v).toFixed(1)}" y2="${H-PADB}" stroke="${GRID}" stroke-width="1"/><text x="${sx(v).toFixed(1)}" y="${H-PADB+18}" font-size="10.5" fill="#5C6E82" text-anchor="middle">${Math.round(v*100)}%</text>`).join('')
+    +yticks.map(v=>`<line x1="${PADL}" y1="${sy(v).toFixed(1)}" x2="${W-PADR}" y2="${sy(v).toFixed(1)}" stroke="${GRID}" stroke-width="1"/><text x="${PADL-8}" y="${(sy(v)+3.5).toFixed(1)}" font-size="10.5" fill="#5C6E82" text-anchor="end">${v.toFixed(1)}</text>`).join('');
+
+  const pts=d.pts.map(p=>({...p,x:sx(p.cm),y:sy(p.cop),
+    r:sr(p.w),cl:(p.cm<XMIN||p.cm>XMAX||p.cop<YMIN||p.cop>YMAX)?1:0}));
+
+  $('ahri-scatter-wrap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="display:block;max-width:100%;height:auto">
+    <rect x="${PADL}" y="${PADT}" width="${pxW}" height="${pxH}" fill="#fff" stroke="${GRID}"/>
+    ${gridSvg}
+    <g id="ahri-pts"></g>
+    <text x="${PADL+pxW/2}" y="${H-10}" font-size="12" font-weight="600" fill="#1C2B3A" text-anchor="middle">Capacity maintenance — max capacity @5°F ÷ rated capacity @47°F</text>
+    <text x="16" y="${PADT+pxH/2}" font-size="12" font-weight="600" fill="#1C2B3A" text-anchor="middle" transform="rotate(-90 16 ${PADT+pxH/2})">COP @ 5°F (−15°C)</text>
+  </svg>`;
+
+  const g=document.getElementById('ahri-pts');
+  const on=new Set(d.bands.map((_,i)=>i));
+  function draw(){
+    g.innerHTML=pts.filter(p=>on.has(p.b)).map(p=>
+      `<circle class="pt${p.cl?' clamped':''}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r.toFixed(2)}" fill="${d.bands[p.b].colour}" fill-opacity=".55" stroke="#fff" stroke-width=".7" data-k="${p.k}"/>`
+    ).join('');
+  }
+  draw();
+
+  $('ahri-scatter-legend').innerHTML=d.bands.map((b,i)=>
+    `<label class="lg" style="cursor:pointer"><input type="checkbox" data-band="${i}" checked style="margin-right:4px">`+
+    `<span class="sw" style="background:${b.colour}"></span>${b.label} <span style="color:#8A9BB0">(${b.pct}% · ${b.units.toLocaleString()} units)</span></label>`
+  ).join('');
+  document.querySelectorAll('#ahri-scatter-legend input').forEach(cb=>cb.onchange=()=>{
+    const b=+cb.dataset.band; cb.checked?on.add(b):on.delete(b); draw();
+  });
+
+  if(!$('ahri-tip')){const tip=document.createElement('div');tip.id='ahri-tip';document.body.appendChild(tip);}
+  const tip=$('ahri-tip');
+  const byK=new Map(pts.map(p=>[String(p.k),p]));
+  g.addEventListener('mouseover',e=>{
+    if(e.target.tagName!=='circle')return;
+    const p=byK.get(e.target.dataset.k); if(!p)return;
+    tip.innerHTML=`<b>${p.n}</b><br>AHRI ${p.k}<br>COP @ 5°F <b>${p.cop}</b> · capacity maintenance <b>${(p.cm*100).toFixed(0)}%</b><br>rated ${p.c47.toLocaleString()} BTU/h @ 47°F<br><b>${p.w.toLocaleString()}</b> ERS appearance${p.w===1?'':'s'}`+(p.cl?'<br><i>clamped to plot edge</i>':'');
+    tip.style.opacity=1;
+  });
+  g.addEventListener('mousemove',e=>{tip.style.left=Math.min(e.clientX+16,innerWidth-300)+'px';tip.style.top=(e.clientY+16)+'px';});
+  g.addEventListener('mouseout',()=>tip.style.opacity=0);
+
+  $('ahri-scatter-note').innerHTML=`<b>Gate:</b> ${d.meta.kept_units.toLocaleString()} of ${d.meta.total_units.toLocaleString()} certified units plotted, covering ${d.meta.kept_app.toLocaleString()} of ${d.meta.total_app.toLocaleString()} ERS appearances (<b>${d.meta.app_pct}%</b>). Dropped: units missing capacity maintenance (${d.meta.missing.cm.toLocaleString()}), COP @5°F (${d.meta.missing.cop.toLocaleString()}) or rated capacity (${d.meta.missing.c47.toLocaleString()}). Nothing is imputed. Dashed-outline bubbles sit outside the plot window and are clamped to the edge, not dropped.`;
+}
+
+function renderCchpPanel(d){
+  const VCOL={screen_pass:GREEN,near:AMBER2,fail:RED,out_of_scope:MUTED,unknown:'#B9C6D4'};
+  const VLABEL={screen_pass:'Screen pass',near:'Near (1 criterion short)',fail:'Fail',
+    out_of_scope:'Out of scope (<24,000 Btu/h)',unknown:'Unknown (insufficient data)'};
+  const maxApp=Math.max(...d.tally.map(t=>t.appearances));
+  const tallyHtml=d.tally.map(t=>`
+    <div class="equip-tally-row">
+      <div class="et-label">${VLABEL[t.verdict]}</div>
+      <div class="et-bar-wrap"><div class="et-bar" style="width:${(100*t.appearances/maxApp).toFixed(1)}%;background:${VCOL[t.verdict]}"></div></div>
+      <div class="et-val">${t.models.toLocaleString()} models · ${t.appearances.toLocaleString()} app. (${t.pct}%)</div>
+    </div>`).join('');
+
+  const critRows=d.checkable.map(c=>`<tr><td>${c.label}</td><td class="crit-status" style="color:${GREEN}">✅ checkable</td><td>AHRI / ENERGY STAR certificate</td></tr>`).join('')
+    +d.not_checkable.map(c=>`<tr><td>${c.label}</td><td class="crit-status" style="color:${MUTED}">— not checkable</td><td>${c.reason}</td></tr>`).join('');
+
+  const qRows=d.qualifying.map(q=>`<tr><td>${q.brand} ${q.model}</td><td>${q.ahri_number}</td><td>${q.ers_appearances}</td><td>${q.cop_5f} / ${q.cop_threshold}</td><td>${(parseFloat(q.capacity_ratio)*100).toFixed(1)}%</td><td>${q.refrigerant} (${q.gwp_ar4_100yr})</td></tr>`).join('');
+
+  $('cchp-panel').innerHTML=`
+    <div class="equip-tally">${tallyHtml}</div>
+    <div class="note">Denominator: all <b>${d.meta.total_appearances.toLocaleString()}</b> ERS appearances across <b>${d.meta.total_models.toLocaleString()}</b> AHRI-certified models — the full universe, not a pre-filtered subset. <b>${d.meta.out_of_scope_pct}%</b> is out of scope because it sits below the Challenge's stated 24,000 Btu/h floor, which is a statement about the Challenge's scope, not the equipment.</div>
+
+    <h4 style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#9C6812;font-weight:600;margin:1rem 0 .4rem">Which criteria we can actually check</h4>
+    <div class="scroll-x"><table class="crit-table"><thead><tr><th>Challenge criterion (Table II-3)</th><th>Status</th><th>Source / reason</th></tr></thead><tbody>${critRows}</tbody></table></div>
+
+    <h4 style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#9C6812;font-weight:600;margin:1rem 0 .4rem">The 4 certificate rows that clear every checkable criterion</h4>
+    <div class="scroll-x"><table class="crit-table"><thead><tr><th>Model</th><th>AHRI #</th><th>ERS appearances</th><th>COP@5°F / threshold</th><th>Capacity ratio</th><th>Refrigerant (GWP)</th></tr></thead><tbody>${qRows}</tbody></table></div>
+    <div class="note"><b>${d.meta.qualifying_models} distinct models</b> across these ${d.meta.qualifying_rows} certificate rows — GREE's GUD60W2/NHE-D(U) is AHRI-certified twice under different reference numbers (different indoor-coil pairings), so it appears as two rows. Combined, these rows cover <b>${d.meta.qualifying_appearances} of ${d.meta.total_appearances.toLocaleString()} ERS appearances (${d.meta.qualifying_appearances_pct}%)</b>.</div>
+
+    <div class="caveat"><b>Screened against the specifications, not "meets" or "certified for" the Challenge.</b> This checks published AHRI/ENERGY STAR certificate ratings against Table II-3 of the DOE Challenge specifications. The Challenge itself is a verification programme with its own H11/H1N laboratory test protocol, which we do not hold. A row that clears every checkable criterion has <i>rating-consistent</i> performance and nothing more.<br><br>
+    <b>Only 4 of 8 Table II-3 criteria are checkable</b> from the ratings we hold (table above). The other four — minimum turndown ratio, low-temperature compressor cut-out/cut-in, electric-heat staging, and ENERGY STAR CACHP §3C/4B/4C/4D — are not published in any dataset we hold, and are shown above as not checkable rather than silently dropped.<br><br>
+    <b>Three basis caveats carry through every row:</b> nominal capacity band is assigned from AHRI heating rated capacity at 47°F, while the spec's own basis is a cooling test (Appendix M1, A2); capacity ratio is <code>Max 5°F ÷ Rated 47°F</code>, which — if the spec intends rated-to-rated — is the more generous of the two possible bases; and HSPF2 ≥ 8.5 is a floor test only, since the real Challenge threshold scales upward with capacity and COP factors we have no data to compute, so <code>hspf2_floor_only</code> is true on every row. Full detail: <a href="HeatPump/METHODOLOGY.md" style="color:var(--navy)" target="_blank">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen".</div>`;
+}
+
+function sec07b(){
+  return Promise.all([loadJSON(INS+'hp_ahri_scatter.json'),loadJSON(INS+'cchp_screen.json')])
+    .then(([scatter,cchp])=>{renderAhriScatter(scatter);renderCchpPanel(cchp);})
+    .catch(e=>{console.error(e);
+      $('ahri-scatter-wrap').innerHTML='<div class="note">Scatter unavailable.</div>';
+      $('cchp-panel').innerHTML='<div class="note">CCHP screen unavailable.</div>';});
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    08 — MISSED OPPORTUNITY
    ══════════════════════════════════════════════════════════════════════ */
 /* Five factor percentiles ship per FSA, so any weighting re-scores the whole
@@ -1362,6 +1510,10 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
     <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
 
+    <h4>Cold-climate equipment: the AHRI scatter and the DOE CCHP screen</h4>
+    <p><b>Plain language:</b> the scatter plots every AHRI-certified heat pump that appears in this data by two things — how efficiently it heats at 5 °F (COP), and how much of its warm-weather capacity it keeps at that temperature. Bubble size shows how often that unit was actually installed. The panel below it checks those same certificates against the specification sheet for a US government programme (the DOE Cold Climate Heat Pump Challenge) that only 3 distinct models in this entire dataset clear. That is not a defect in the data — Challenge-qualifying products only started reaching the market in 2024–25, and this dataset is a historical record of past installs.</p>
+    <p><b>Advanced:</b> both panels are built by <code>Python/build_hp_equipment_insights.py</code> from the same Phase-3c interim CSVs used by <code>HeatPump/pipeline/build_tier_scatter.py</code> (scatter geometry) and <code>HeatPump/pipeline/screen_cchp.py</code> (the screen). Scatter fields: <code>cm</code> = capacity maintenance = max capacity @5°F ÷ rated capacity @47°F; <code>cop</code> = COP @5°F at max compressor speed; <code>c47</code> = rated heating capacity @47°F, BTU/h, which sets the colour band. A unit is plotted only if all three are present; the chart's own gate note states how many units and appearances were dropped for each missing field. The CCHP screen checks 4 of the DOE Challenge's Table II-3 criteria that AHRI/ENERGY STAR ratings can resolve (capacity ratio, COP @5°F by capacity band, HSPF2 floor, refrigerant GWP) and carries the other 4 through as explicit "not checkable" entries. Denominator for every percentage is the full 15,148-model / 439,975-appearance universe, never a pre-filtered subset. <b>Wording rule:</b> the passing value is named <code>screen_pass</code>; the page must say "screened against the DOE Challenge specifications", never "meets" or "certified for" the Challenge — a screen against published ratings is not the Challenge's own H11/H1N verification test. Full method, thresholds table and all three basis caveats: <a href="HeatPump/METHODOLOGY.md" style="color:var(--navy)">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen" and "Tier-selection scatter". <b>Known gap:</b> <code>hp_units_joined.csv</code>, the 15,148-model universe both panels read, has no producer script in this repo (built ad hoc in an earlier session) — see <a href="ROADMAP.md" style="color:var(--navy)">ROADMAP.md</a>.</p>
+
     <h4>What this page will not tell you</h4>
     <div class="rail"><ul>${railList}</ul></div>
     <p>Two limits are worth stating plainly. <b>Self-selection:</b> every home here chose to get an audit, usually to claim a rebate, so this is not a sample of Canadian housing and cannot support statements about the housing stock as a whole. <b>Ecology:</b> income and dwelling value are attributes of a postal area, never of the household that did the work, so an association between an area's income and its retrofit behaviour says nothing about individual households.</p>
@@ -1381,6 +1533,7 @@ whenVisible('sec-map',sec03);
 whenVisible('sec-success',sec04);
 whenVisible('sec-equity',sec06);
 whenVisible('sec-hp',sec07);
+whenVisible('sec-hp-equipment',sec07b);
 whenVisible('sec-opp',sec08);
 whenVisible('sec-timeline',sec09);
 whenVisible('sec-method',sec10);

@@ -1445,5 +1445,43 @@ desktop widths.
 
 ---
 
+## 14. Cold-climate equipment section on Retrofit Insights — AHRI scatter + DOE CCHP Challenge screen (✅ 2026-07-30)
+
+Resolved the "decision outstanding: where and how to surface this" note on
+the CCHP Challenge screen (analysis done 2026-07-27, item queued below).
+Added a new section 06 — "Cold-climate equipment" — to
+[retrofit-insights.html](../../retrofit-insights.html), placed right after
+the heat-pump geography section:
+
+- **AHRI scatter**: every AHRI-certified unit with a recorded COP @5°F,
+  capacity maintenance and rated capacity, as a bespoke inline SVG bubble
+  plot (bubble area = ERS install appearances, colour = nominal capacity
+  band, legend checkboxes, hover tooltip) — ported from
+  `tier-scatter.html`'s pattern rather than Chart.js, sidestepping the
+  preview renderer's no-requestAnimationFrame trap entirely. Gate: 7,314 of
+  15,148 units plotted (298,209 of 439,975 appearances, 67.8%).
+- **CCHP Challenge screen panel**: verdict tally (screen_pass/near/fail/
+  out_of_scope/unknown), the 4 checkable vs. 4 not-checkable Table II-3
+  criteria shown explicitly (not dropped), and the 4 qualifying certificate
+  rows (3 distinct models — GREE's GUD60W2/NHE-D(U) is double-certified —
+  covering 8 of 439,975 appearances, 0.00%). Wording is strictly "screened
+  against the DOE Challenge specifications"; the page never says "meets" or
+  "certified for" the Challenge.
+
+New pipeline step `Python/build_hp_equipment_insights.py` reads the same
+`HeatPump/data/interim/hp_units_joined.csv` + `hp_buckets.csv` +
+`cchp_screen.csv` + `cchp_qualifying.csv` that `build_tier_scatter.py` and
+`screen_cchp.py` already produce, and writes `insights_json/hp_ahri_scatter.json`
+(646 KB) and `insights_json/cchp_screen.json` (2.8 KB) — all counts computed
+from the CSVs, none hardcoded. A dual-methodology subsection was added to
+the page's "How this was built" accordion, cross-linked to
+[HeatPump/METHODOLOGY.md](../../HeatPump/METHODOLOGY.md). Verified in a
+local browser preview: both panels render from the fetched JSON, no console
+errors from the new code, no prohibited wording found.
+
+Known gap carried forward, unchanged by this work: `hp_units_joined.csv`
+still has no producer script in the repo (see the reproducibility-gap item
+below).
+
 ---
 

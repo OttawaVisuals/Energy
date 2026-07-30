@@ -2370,7 +2370,13 @@ Built by `pipeline/screen_cchp.py`. Outputs `data/interim/cchp_qualifying.csv`
 (units passing every checkable criterion) and `data/interim/cchp_screen.csv`
 (all 15,148 models with their per-criterion result, for audit).
 
-**Not yet surfaced on any page** — see ROADMAP.md, Queued.
+**Surfaced 2026-07-30** on [retrofit-insights.html](../retrofit-insights.html)
+(section 06, "Cold-climate equipment"), alongside an AHRI COP-vs-capacity-
+maintenance scatter of the same universe. Built by
+`Python/build_hp_equipment_insights.py`, which reads the two CSVs above (plus
+`hp_units_joined.csv` and `hp_buckets.csv` for the scatter) and writes
+`insights_json/hp_ahri_scatter.json` and `insights_json/cchp_screen.json` —
+see `docs/archive/ROADMAP_COMPLETED.md` item 14 for the build note.
 
 ### What the screen is, and what it is not
 
