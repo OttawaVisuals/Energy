@@ -2188,24 +2188,14 @@ re-sync the other.
 > the current heat-pump-selection rework.** Until then, any engine change must
 > be applied to BOTH copies in the same commit.
 
-**New charts — "by outdoor temperature" pair.** Every TMY hour with a
-positive heating load is dropped into the same **2 °C bins** the grid-EF
-surface uses (`tempBinLeft`, floor to a multiple of 2); each bar is the
-**sum over that bin's hours** — so the charts show where the year's energy
-and emissions actually accumulate (many mild hours can outweigh a few
-brutal ones, which the per-hour rate charts above them cannot show).
-
-- *Annual energy by outdoor temperature*: side-by-side stacks — base-case
-  input energy vs (HP electricity + backup input). Bars sum exactly to the
-  annual energy card's totals (verified: Ottawa gas base 24,985 kWh,
-  HP 9,401 + backup 277 kWh).
-- *Annual emissions by outdoor temperature*: base vs project, from the
-  hourly GHG series (combustion + grid electricity at the selected
-  average/marginal basis). **Not** in these bars, by construction of the
-  hourly series: refrigerant (annual amortized, not hourly) and upstream
-  methane/oil terms — the chart caption says so, and the stacked
-  annual-total bars remain the complete accounting. Verified: bins sum to
-  `ghg.combustion + ghg.electricity` exactly (4,522 kg, Ottawa gas base).
+**"By outdoor temperature" chart pair — removed 2026-07-30.** An earlier
+version binned every positive-load TMY hour into 2 °C bins (`tempBinLeft`)
+and summed energy and emissions per bin, as a pair of charts in "Across the
+year". The **page re-organisation of 2026-07-30** removed both as redundant
+with the load-vs-capacity chart in the "Why: heat needed vs heat delivered"
+section, which already shows the temperature dependence directly. The
+`binByTemp` / `renderTempEnergyChart` / `renderTempGhgChart` functions and the
+`tempEnergyChart` / `tempGhgChart` canvases were deleted from `heatpump.html`.
 
 **KPI row.** Added two cards: **Energy purchased** (base fuel+electricity →
 HP+backup input, % change) and **Operating cost** (the $ delta from the
