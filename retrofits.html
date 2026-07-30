@@ -66,14 +66,13 @@
   <div style="display:flex;align-items:center;gap:12px">
     <a class="sibling-link" href="index.html">⌂ All tools</a>
     <a class="sibling-link" href="retrofit-insights.html">↳ National insights</a>
-    <a class="sibling-link" href="ceud.html">↳ Energy use explorer</a> <! Change: remove that link> 
     <div class="header-badge" id="header-badge">EnerGuide data</div>
   </div>
 </header>
 
-<div class="hero" id="hero-section"> <! Change: hero section is missing the rounded corner at the bottom, add those>
-  <h1>What happened after <em>Canadian home energy retrofits</em>?</h1> <! Change: reduce padding between title and the header above>
-  <p class="hero-sub">Explore matched EnerGuide evaluations to see which upgrades were installed and how modelled energy use, emissions and estimated operating costs changed.</p> <! Change: reduce padding above and below>
+<div class="hero" id="hero-section">
+  <h1>What happened after <em>Canadian home energy retrofits</em>?</h1>
+  <p class="hero-sub">Explore matched EnerGuide evaluations to see which upgrades were installed and how modelled energy use, emissions and estimated operating costs changed.</p>
 </div>
 
 <div class="filter-sticky">
@@ -195,12 +194,18 @@
 </div>
 
 <main>
-<! Change: I would combine the "Before you interpret these results" and "What this tool can — and can't — tell you" sections into one collapsible section "Before you interpret these results" that would be a 3 columns section: "Disclaimer" (or something like that) on the left that would be the 4 bullet points of the "Before you interpret these results" section | "This tool CAN show" | "This tool CANNOT show" then at the bottom, the "The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment." text>
-  <details class="card intro-details" id="interpretation-card"><summary class="card-title">Before you interpret these results</summary><p>• Results are based on EnerGuide/HOT2000 modelled energy use, not utility bills.<br>• Most matched homes participated in retrofit programs and completed a follow-up evaluation.<br>• Results describe energy, emissions and estimated operating costs only.<br>• Retrofit costs, comfort, indoor air quality and homeowner satisfaction are not available in the source data.</p><p class="note">The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment.</p></details>
-
-  <details class="card intro-details" id="can-cannot-card">
-    <summary class="card-title">What this tool can — and can't — tell you</summary>
+  <details class="card intro-details" id="interpretation-card">
+    <summary class="card-title">Before you interpret these results</summary>
     <div class="can-cannot-grid">
+      <div class="can-cannot-col">
+        <div class="can-cannot-head">Disclaimer</div>
+        <ul>
+          <li>Results are based on EnerGuide/HOT2000 modelled energy use, not utility bills.</li>
+          <li>Most matched homes participated in retrofit programs and completed a follow-up evaluation.</li>
+          <li>Results describe energy, emissions and estimated operating costs only.</li>
+          <li>Retrofit costs, comfort, indoor air quality and homeowner satisfaction are not available in the source data.</li>
+        </ul>
+      </div>
       <div class="can-cannot-col can-cannot-yes">
         <div class="can-cannot-head">This tool CAN show</div>
         <ul>
@@ -222,6 +227,7 @@
         </ul>
       </div>
     </div>
+    <p class="note">The homes shown here are not a random sample of Canadian homes. Most have both a pre- and post-retrofit EnerGuide evaluation, which often means they participated in a retrofit incentive program and completed a follow-up assessment.</p>
   </details>
 
   <div class="section-head">
@@ -316,7 +322,7 @@
 <!-- Design heat loss (kW — peak heating demand, NOT annual energy).
      Advanced-only: too technical a concept for the Simple view. -->
   <div class="card" data-mode="advanced">
-    <div class="card-title">Design heat loss — pre &amp; post (kW)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Peak heating power a home needs on the coldest day, before (red) vs after (green). Amber bars show each reduction." data-method="m-derived">?</button></div> <! Verify that Design Heat Loss is on the coldest day. It could be on the design temperature value>
+    <div class="card-title">Design heat loss — pre &amp; post (kW)<button type="button" class="info-btn" aria-label="How to read this chart" data-info="Peak heating power a home needs at its winter design temperature — a statistically defined cold day, not literally the coldest on record — before (red) vs after (green). Amber bars show each reduction." data-method="m-derived">?</button></div>
     <div class="cw cw-lg"><canvas id="heatloss-chart"></canvas></div>
     <p class="note"><span class="cap-simple">The heating power a home needs on the coldest design day — lower means a better-sealed, better-insulated home that's cheaper to keep warm.</span><span class="cap-advanced">Modelled design heat loss (kW) at the design outdoor temperature — the peak heating demand the envelope imposes, i.e. what heating equipment is sized against. A lower post value can allow a smaller furnace or heat pump at replacement time. Pre- and post-retrofit distributions are shown as lines; amber bars show the per-home reduction distribution.</span></p>
   </div>
@@ -448,7 +454,7 @@
 <!-- Year + Floor area -->
   <div class="grid-2" data-mode="advanced">
     <div class="card"><div class="card-title-row"><div class="card-title">Year built</div><div class="chart-legend-inline" id="year-legend"></div></div><div class="cw cw-sm"><canvas id="year-chart"></canvas></div></div>
-    <div class="card"><div class="card-title-row"><div class="card-title">Floor area (m²)</div><div class="chart-legend-inline" id="area-legend"></div></div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div> <! Change: do not stack the attached and single detached, show them side by side>
+    <div class="card"><div class="card-title-row"><div class="card-title">Floor area (m²)</div><div class="chart-legend-inline" id="area-legend"></div></div><div class="cw cw-sm"><canvas id="area-chart"></canvas></div></div>
   </div>
 
 
@@ -745,8 +751,8 @@
       <p class="caveats"><strong>Changed 2026-07-24.</strong> This rule previously required <em>exactly one</em> D and <em>exactly one</em> E, dropping every multi-audit home rather than guessing which evaluation paired with which — 149,145 homes, about 9% of those holding both an initial and a follow-up audit. Measured against the full dataset, the earliest-D/latest-E reduction gives a correctly-ordered pair for 99.6% of them. The matched sample rose from <strong>1,369,305 to 1,451,433 homes (+6.0%)</strong>, and the share of D&amp;E homes that end up matched rose from 84.0% to 89.1%; the remainder of the gain is absorbed by the same-home integrity filters below, which reject proportionally more multi-audit homes because a longer span makes structural change likelier. Headline results were essentially unchanged by the addition — the median saving stayed at 20% — which is the evidence that the recovered homes resemble the ones already included. The trade-off is stated in the open questions below: a home with two separate retrofit projects now contributes one row covering both.</p>
       <p><strong>Same-home integrity filters.</strong> A pair is dropped when the home appears to have physically changed between D and E:</p>
       <ul>
-        <li><code>FLOORAREA</code> changed by more than ±10% (relative to D, which must be &gt; 0)</li> <! Change: this needs to be indented>
-        <li>a change in <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, or <code>NUMDWELLINGUNITS</code></li> <! Change: this needs to be indented>
+        <li><code>FLOORAREA</code> changed by more than ±10% (relative to D, which must be &gt; 0)</li>
+        <li>a change in <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, or <code>NUMDWELLINGUNITS</code></li>
       </ul>
       <p>These three are compared <em>robustly</em>, not as raw strings: <code>NUMDWELLINGUNITS</code> is compared as a number, so <code>1.0</code> and <code>1</code> (the same count written differently in different audit years) count as equal, and a field left blank in <strong>both</strong> audits is treated as unchanged — a pair is dropped only when a field genuinely differs, or is present in one audit but blank in the other. This removes additions, rebuilds, and evaluations keyed to the wrong house, without discarding pairs over cosmetic formatting or jointly-missing values. (An earlier exact-string comparison dropped roughly 831,000 otherwise-valid pairs on those two artifacts alone — almost all on <code>NUMDWELLINGUNITS</code>; see the open-questions note below.) No other outlier filtering is applied at the record level — extreme values are only clipped at chart-display time (see section G).</p>
       <p>Identity and descriptive fields carried through unchanged: <code>HOUSEID</code>, <code>CLIENTPCODE</code> (the forward sortation area — the public file carries only the first three postal characters), <code>PROVINCE</code>, <code>YEARBUILT</code>, <code>FLOORAREA</code>, <code>TYPEOFHOUSE</code>, <code>STOREYS</code>, <code>FNDTYPE</code>, and <code>ENTRYDATE</code> (reduced to year for publication).</p>
@@ -817,7 +823,7 @@
       <p><strong>2021 Census join.</strong> <code>extract_fsa_census.py</code> reads the Statistics Canada 2021 Census Profile at forward-sortation-area geography (catalogue 98-401-X2021013, long format: one row per FSA × characteristic) and keeps ~30 housing-stock characteristics by their <code>CHARACTERISTIC_ID</code>: population (1), total private dwellings (4), structural dwelling type (42–49), tenure (1415–1416), period of construction (1441–1448), dwelling condition (1450–1451), and owner-household costs and values (1482–1489). StatCan suppression and quality symbols (<code>x</code>, <code>F</code>, <code>E</code>, <code>r</code>, <code>rE</code>, <code>..</code>, <code>…</code>) become nulls. The result is one ~1 MB JSON keyed by FSA, fetched once and joined in the browser to the selected area via <code>CLIENTPCODE</code>. This is a context panel only — census values never enter the retrofit calculations.</p>
       <p><strong>Heat pump backup identification.</strong> For a home with a heat pump, the heating-equipment fuel and type columns (<code>FURNACEFUEL</code>, <code>FURNACETYPE</code>) describe the <em>companion</em> system HOT2000 models alongside the heat pump — the furnace or boiler that covers load beyond the heat pump's capacity or when it is offline — not the heat pump's own energy source, which is always electricity. That is what the "Heat pump + backup" card counts. The "still burned this fuel" sub-line is the share of homes with that recorded backup fuel whose post-retrofit <em>heating-only</em> consumption in that same fuel is above zero (<code>Post_HeatNaturalGas</code>, <code>Post_HeatOil</code>, <code>Post_HeatPropane</code>). It is computed for combustion fuels only: electric backup shares a meter with the heat pump's own draw, so the figure would be 100% by construction, and the wood species share a single combined consumption field.</p>
       <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. <em>Appendix M</em> and <em>Appendix M1</em> are the two versions of the US Department of Energy's test procedure for rating heat pumps and air conditioners (10 CFR Part 430, Subpart B). M1 took effect for equipment manufactured from 2023 and tests at external static pressures closer to real installed ductwork, so it generally reports lower capacities and efficiencies than M did for the same unit — which is also why its efficiency metrics are renamed (HSPF2, SEER2, EER2). The two are not interchangeable, so where a certificate carries both the M1 figures are used and the M values only fill gaps. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
-      <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Electricity and natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p> <! Need to explain to me the Alberta issue>
+      <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Electricity and natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p>
       <p>Reduction rules, applied by <code>rates_etl.py</code> (per-city detail for ON/QC/AB) and <code>utility_rates_reference.py</code> (one blended number per province, all provinces): residential tariffs only; the latest <code>effective_date</code> per (utility, tariff) wins; carbon components are excluded because the federal consumer fuel charge went to zero on 2025-04-01; $/GJ converts to $/m³ at 0.03798 GJ/m³ and $/day fixed charges to monthly at ×365/12; a utility offering several residential plans contributes one, time-of-use blended to a single ¢/kWh on the OEB-typical 63/18/19 off/mid/on split. <strong>Alberta is the weak spot</strong>: it is deregulated, so energy and wires are separate bills that must be summed rather than averaged, and the upstream export omits the electricity transmission volumetric charge and the default gas commodity charge outright — screening-grade constants are substituted for both, flagged low confidence, because omitting them would bias AB electricity ~15% low and make AB gas look nearly free. Propane, oil and wood rates are single-province averages throughout and are lower confidence than the electricity and gas tariff figures; the wood rate is one flat national screening ¢/kWh, since no per-species price breakdown exists.</p>
       <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
       <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
@@ -831,7 +837,7 @@
       <p class="caveats"><strong>Geography is FSA-only</strong> (the public dataset carries just the first three postal characters in <code>CLIENTPCODE</code>), and charts clip display outliers for readability (EUI ≤ 500 kWh/m², GHG ≤ 30 tCO₂e, design heat loss ≤ 150 kW, floor area ≤ 700 m², year built 1850–2030) — clipped homes remain in all medians and counts. The Canada-wide view offers only "All types" because house-type labels are not a consistent taxonomy across provinces. The source contains no retrofit cost information and no household utility bills. Dollar values shown in this tool are estimated operating costs derived from modelled energy use and current provincial energy prices. Retrofit costs and payback cannot be calculated from the available data.</p>
 
       <h4 id="m-openq">H · Open questions — to be investigated with the EnerGuide team</h4>
-      <p>Open items we would like to confirm with NRCan's EnerGuide team.</p> <!Change: make sure bullet points are indented> 
+      <p>Open items we would like to confirm with NRCan's EnerGuide team.</p>
       <ul>
         <li><strong>Homes with more than one D or E audit.</strong> When a <code>HOUSEID</code> has several initial and/or several follow-up audits (a re-audit, or a home that went through an incentive program more than once), these 149,145 homes — about 9% of those holding both audit types — used to be dropped entirely rather than guessing which evaluations pair. <strong>They are now paired earliest-D to latest-E</strong>, which yields a correctly-ordered pair for 99.6% of them and raised the matched sample from 1,369,305 to 1,451,433 homes.
           <br><em>What we would like the EnerGuide team to confirm:</em> is earliest-D-to-latest-E the right reduction? About 55% of these homes have two Ds and two Es, and for them the span may cover <strong>two separate retrofit projects reported as one</strong> before/after. We chose it because it is conservative in the direction that matters — it captures the home's whole change rather than an arbitrary half — and because headline results barely moved when the homes were added (median saving stayed at 20%), suggesting they behave like the homes already in the sample. But if the intended reading is one row per project, the correct treatment would instead be to pair each D with the next E that follows it, producing multiple rows per home. Which does NRCan consider faithful to how these evaluations are recorded?</li>
@@ -840,6 +846,8 @@
         <li><strong>Negative energy savings with no measures (2.8% of matched pairs).</strong> Some homes use more energy after the retrofit than before, and about 56% of those have no retrofit measure flagged at all. The working assumption is inter-audit modelling variance, but that has not been confirmed — what else could explain it? (Both figures fell when the pairing rule above changed — previously ~4% and ~75% — which is itself mild evidence for the modelling-variance reading, since the homes added were ones with longer, better-documented audit histories.)</li>
         <li><strong>Conversion factors.</strong> The kWh conversions in section B use published Government of Canada heating values. Are there factors better aligned with HOT2000’s own fuel library and the ERS, which we could adopt instead?</li>
         <li><strong>Heating-only propane exceeds whole-house propane by a constant 0.27%.</strong> Space-heating consumption (<code>EGHHEATFCONSP</code>) should by definition be a subset of the home's total propane use, yet it exceeds it in about 80% of propane-heated homes. The ratio is not scattered — it sits at <strong>1.0027</strong> across the interquartile range, which is the signature of a units constant rather than a data fault. It matches: the heating field is HOT2000's own MJ output, while whole-house propane is a <em>volumetric</em> column converted here at <strong>25.53 MJ/L</strong> (CER, section B), and 25.60 ÷ 25.53 = 1.0027. In other words HOT2000 appears to use ~25.60 MJ/L internally and our published figure is 0.27% low. This is cosmetic at chart scale but it is the cleanest available evidence of a HOT2000 fuel-library value, so it is worth confirming and adopting.</li>
+        <li><strong>What exactly each envelope component in "Where the heat escapes" covers.</strong> The six <code>EGHHL*</code> fields are taken at face value as Windows &amp; doors (<code>EGHHLWINDOOR</code>), Walls (<code>EGHHLWALLS</code>), Foundation (<code>EGHHLFOUND</code>), Roof (<code>EGHHLCEILING</code>), Exposed floor (<code>EGHHLEXPOSEDFLR</code>) and Air leakage (<code>EGHHLAIR</code>), but HOT2000's own component boundaries are not publicly documented in detail.
+          <br><em>What we would like the EnerGuide team to confirm:</em> does <code>EGHHLAIR</code> include mechanical ventilation heat loss (e.g. an HRV's unrecovered share) or only envelope infiltration? Does <code>EGHHLFOUND</code> cover the whole basement/crawlspace envelope (walls and slab) or just below-grade walls, with the slab counted elsewhere? Does <code>EGHHLCEILING</code> include cathedral/flat-roof assemblies, or only attic ceilings? Confirming the boundaries would let us describe each bar precisely instead of by field name alone.</li>
       </ul>
       <p class="caveats">Both pairing items are surfaced in the "From every audit to your selection" funnel above: the <em>Not paired</em> flow is where the remaining unpaired homes drop out. Since the first item was resolved, that flow has shrunk — 89.1% of homes holding both an initial and a follow-up audit now reach the matched sample, up from 84.0%.</p>
     </div>
@@ -856,7 +864,7 @@
   <h2 id="sources-h">Sources</h2>
   <div class="sources-grid">
     <div class="source-item">
-      <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a> <! Links returns and error, but the link in the methdology section seems to work>
+      <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a>
       <p>Every retrofit on this page. Anonymised household evaluations (type <code>D</code> initial and <code>E</code> follow-up), matched into before/after pairs.</p>
     </div>
     <div class="source-item">
@@ -881,13 +889,17 @@
     </div>
     <div class="source-item">
       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap ↗</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO ↗</a>
-      <p>Basemap tiles under the map.</p> <! Add link to utility costs GitHub>
+      <p>Basemap tiles under the map.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates ↗</a>
+      <p>Community-maintained electricity and natural gas tariffs behind the "Energy bill" chart, re-scraped monthly from official utility and regulator rate pages.</p>
     </div>
   </div>
 </section>
 
 <footer>
-  Data: <a href="https://open.canada.ca/data/en/dataset/794f6e8f-c15f-4b0a-9d09-7e3a5bc6b3aa" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2026 · dataset last rebuilt July 2026<br>
+  Data: <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2026 · dataset last rebuilt July 2026<br>
   Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.<br>
   Website, data pipeline and python scripts were developed using Claude AI.
 </footer>
