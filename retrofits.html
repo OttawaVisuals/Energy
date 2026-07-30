@@ -256,7 +256,7 @@
   <div class="card">
     <div class="card-title-row"><div class="card-title"><span class="cap-simple">How much did homes save?</span><span class="cap-advanced">Energy saving distribution — 1% increments</span></div><div class="chart-legend-inline"><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-pos)"></span>Saved energy</div><div class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--d-neg)"></span>Used more</div></div></div>
     <div class="cw cw-xl"><canvas id="hist-chart"></canvas></div>
-    <p class="note"><span class="cap-simple">Most homes show lower modelled energy use after retrofit. About 4% show higher modelled energy use. Many of these homes had no detected upgrade under this tool's thresholds and the increases are generally small. The data cannot determine whether these differences reflect modelling variation, untracked changes, home modifications, occupant behaviour, or a genuine increase in expected energy use.</span><span class="cap-advanced">Negative values mean modelled total energy use was higher at the follow-up evaluation than at the initial evaluation. These cases are uncommon and are typically small in magnitude. The dataset alone cannot determine the reason for the increase.</span></p>
+    <p class="note"><span class="cap-simple">Most homes show lower modelled energy use after retrofit. About 2.8% show higher modelled energy use. Many of these homes had no detected upgrade under this tool's thresholds and the increases are generally small. The data cannot determine whether these differences reflect modelling variation, untracked changes, home modifications, occupant behaviour, or a genuine increase in expected energy use.</span><span class="cap-advanced">Negative values mean modelled total energy use was higher at the follow-up evaluation than at the initial evaluation. These cases are uncommon and are typically small in magnitude. The dataset alone cannot determine the reason for the increase.</span></p>
   </div>
 
 <!-- Audit funnel — how the area's full audited population narrows to the
@@ -581,7 +581,7 @@
       <p>Audit data comes from Natural Resources Canada's <strong><a href="https://natural-resources.canada.ca/energy-efficiency/product-energy-ratings/energuide" target="_blank" rel="noopener">EnerGuide</a> Rating System (ERS)</strong> <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">open dataset</a> — the official record of home-energy audits across Canada, covering audit years <strong>2004–2026</strong>. NRCan introduced the rating system in 1998 as an unbiased, credible way to estimate how energy is used in a home, and it has since rated over a million of them. An audit is a registered energy advisor visiting a home and modelling it in <a href="https://natural-resources.canada.ca/energy-efficiency/home-energy-efficiency/tools-industry-professionals" target="_blank" rel="noopener">HOT2000</a> — NRCan's residential energy analysis and rating software, described by NRCan as "the Canadian standard for evaluating the energy performance of houses and multi-unit residential buildings" — to work out how much energy the home uses and where that energy is lost.</p>
 
       <h4 id="m-pairing">2 · Matching "before retrofit" and "after retrofit"</h4>
-      <p>Each audit record has an evaluation type tag. We treat type <strong>D</strong> as the <em>initial</em> ("before retrofit") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after retrofit") evaluation. A home is identified by a stable house ID, and we keep it only when it has <strong>exactly one</strong> before and <strong>exactly one</strong> after audit, with the after audit <strong>dated later</strong> than the before. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
+      <p>Each audit record has an evaluation type tag. We treat type <strong>D</strong> as the <em>initial</em> ("before retrofit") evaluation and type <strong>E</strong> as the <em>follow-up</em> ("after retrofit") evaluation. A home is identified by a stable house ID, and we keep it when it has <strong>at least one</strong> before and <strong>at least one</strong> after audit. Where a home has more than one of either — a re-audit, or a home that went through an incentive program more than once — we use its <strong>earliest</strong> before audit and its <strong>latest</strong> after audit, so the pair spans the home's whole audit history. That after audit must be <strong>dated later</strong> than the before one. That paired record becomes one <strong>pre → post</strong> row. A home audited only once is dropped — there is nothing to compare it to.</p>
 
       <h4>3 · Making sure it's really the same home</h4>
       <p>To avoid accidentally comparing two different homes (or a home that had a major addition), a pair is kept only if, between the two audits, the <strong>floor area changed by no more than 10%</strong> and the <strong>house type, number of storeys, and number of dwelling units stayed the same</strong>. Pairs that fail these checks are removed before anything is counted.</p>
@@ -625,6 +625,119 @@
     <summary>Advanced methodology — source columns, formulas &amp; pipeline</summary>
     <div class="method-body">
       <p>This section documents the full technical pipeline for readers familiar with the EnerGuide Rating System (ERS) dataset and HOT2000 — including the original source column names, every conversion factor and threshold, and the transformation scripts. Column names in <code>UPPERCASE</code> are the original headers of the ERS public CSVs; mixed-case names (e.g. <code>Pre_TotalEnergy</code>) are the fields this site derives from them.</p>
+
+      <div class="card" style="margin:1.2rem 0">
+        <div class="card-title">Pipeline overview — CSVs to interactive charts</div>
+        <div style="overflow-x:auto;position:relative">
+          <svg viewBox="0 0 880 450" style="width:100%;min-width:720px" role="img" aria-label="Flow diagram: ERS CSVs are cleaned, paired, checked for a valid same-home match, converted to kWh and reduced to derived fields, then stored as Parquet, transformed into JSON enriched with supplementary datasets, and served as the Canada, province and FSA views of this site.">
+            <defs>
+              <marker id="pipe-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0L10,5L0,10Z" style="fill:var(--muted)"/>
+              </marker>
+            </defs>
+            <g style="font-family:Inter,sans-serif">
+              <g style="fill:none;stroke:var(--muted);stroke-width:1.5" marker-end="url(#pipe-arrow)">
+                <path d="M119,99 L146,99"/>
+                <path d="M256,99 L289,99"/>
+                <path d="M415,99 L438,99"/>
+                <path d="M493,52 L493,36"/>
+                <path d="M548,99 L572,99"/>
+                <path d="M698,99 L730,99"/>
+                <path d="M793,138 L793,164"/>
+                <path d="M475,177 L475,208"/>
+                <path d="M293,177 L293,208"/>
+                <path d="M113,177 L113,208"/>
+                <path d="M672,384 L672,242"/>
+                <path d="M113,262 C113,300 293,300 293,330"/>
+                <path d="M293,262 L293,330"/>
+                <path d="M475,262 C475,300 293,300 293,330"/>
+              </g>
+              <g style="fill:none;stroke:var(--muted);stroke-width:1.5">
+                <path d="M572,177 L113,177"/>
+                <path d="M672,269 L704,269"/>
+                <path d="M672,307 L704,307"/>
+                <path d="M672,345 L704,345"/>
+                <path d="M672,384 L704,384"/>
+              </g>
+              <text x="510" y="47" text-anchor="middle" font-size="10.5" font-weight="600" style="fill:var(--red)">No</text>
+              <text x="560" y="90" text-anchor="middle" font-size="10.5" font-weight="600" style="fill:var(--green)">Yes</text>
+
+              <g style="fill:var(--card);stroke:var(--border);stroke-width:1.3">
+                <rect x="9" y="60" width="110" height="78" rx="8"/>
+                <rect x="146" y="60" width="110" height="78" rx="8"/>
+                <rect x="289" y="60" width="126" height="78" rx="8"/>
+                <rect x="572" y="60" width="126" height="78" rx="8"/>
+                <rect x="730" y="60" width="126" height="78" rx="8"/>
+                <rect x="34" y="208" width="158" height="54" rx="8"/>
+                <rect x="214" y="208" width="158" height="54" rx="8"/>
+                <rect x="396" y="208" width="158" height="54" rx="8"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--text)">
+                <text x="64" y="84" font-size="12" font-weight="600">ERS CSVs</text>
+                <text x="64" y="102" font-size="9.5" style="fill:var(--muted)">Annual extracts</text>
+                <text x="64" y="116" font-size="9.5" style="fill:var(--muted)">2004–2026</text>
+                <text x="201" y="84" font-size="12" font-weight="600">Prepare</text>
+                <text x="201" y="102" font-size="9.5" style="fill:var(--muted)">Clean and normalize</text>
+                <text x="201" y="116" font-size="9.5" style="fill:var(--muted)">data</text>
+                <text x="352" y="84" font-size="12" font-weight="600">Pair audits</text>
+                <text x="352" y="102" font-size="9.5" style="fill:var(--muted)">Group by HOUSEID</text>
+                <text x="352" y="116" font-size="9.5" style="fill:var(--muted)">Earliest D + latest E</text>
+                <text x="635" y="84" font-size="12" font-weight="600">Calculate</text>
+                <text x="635" y="102" font-size="9.5" style="fill:var(--muted)">Convert to kWh,</text>
+                <text x="635" y="116" font-size="9.5" style="fill:var(--muted)">savings &amp; measures</text>
+                <text x="793" y="84" font-size="12" font-weight="600">Store data</text>
+                <text x="793" y="102" font-size="9.5" style="fill:var(--muted)">Store outputs</text>
+                <text x="793" y="116" font-size="9.5" style="fill:var(--muted)">in parquet files</text>
+                <text x="113" y="234" font-size="12" font-weight="600">Canada JSON</text>
+                <text x="113" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
+                <text x="293" y="234" font-size="12" font-weight="600">Province JSON</text>
+                <text x="293" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
+                <text x="475" y="234" font-size="12" font-weight="600">FSA JSON</text>
+                <text x="475" y="250" font-size="9.5" style="fill:var(--muted)">Detailed home-level data</text>
+              </g>
+
+              <polygon points="493,52 548,99 493,146 438,99" style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5"/>
+              <text x="493" y="103" text-anchor="middle" font-size="11.5" font-weight="600" style="fill:var(--text)">Valid pair?</text>
+
+              <g style="fill:var(--badge-neg-bg);stroke:var(--red);stroke-width:1.3">
+                <rect x="459" y="10" width="69" height="26" rx="8"/>
+              </g>
+              <text x="493" y="27" text-anchor="middle" font-size="10.5" font-weight="600" style="fill:var(--badge-neg-fg)">Exclude</text>
+
+              <g style="fill:var(--surface);stroke:var(--border);stroke-width:1.2">
+                <rect x="704" y="256" width="132" height="25" rx="12.5"/>
+                <rect x="704" y="294" width="132" height="25" rx="12.5"/>
+                <rect x="704" y="332" width="132" height="25" rx="12.5"/>
+                <rect x="704" y="371" width="132" height="25" rx="12.5"/>
+              </g>
+              <g text-anchor="middle" font-size="10" style="fill:var(--text)">
+                <text x="770" y="273">2021 Census</text>
+                <text x="770" y="311">Energy Rates</text>
+                <text x="770" y="349">FSA map</text>
+                <text x="770" y="388">AHRI directory</text>
+              </g>
+
+              <g style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5">
+                <rect x="572" y="164" width="283" height="78" rx="8"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--text)">
+                <text x="714" y="190" font-size="13" font-weight="600">Transform and add data</text>
+                <text x="714" y="210" font-size="10" style="fill:var(--muted)">Transform data into JSON files for web loading</text>
+                <text x="714" y="224" font-size="10" style="fill:var(--muted)">and add supplemental data</text>
+              </g>
+
+              <g style="fill:var(--navy)">
+                <rect x="112" y="330" width="362" height="101" rx="8"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--on-navy)">
+                <text x="293" y="368" font-size="15" font-weight="600">Interactive website</text>
+                <text x="293" y="392" font-size="11">Canada → Province → FSA</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <p class="note">How an ERS CSV extract becomes a row on this page: cleaned and paired into a before/after home (earliest initial audit, latest follow-up), checked that it's really the same home, converted to common units and reduced to the derived fields below — then stored as Parquet and transformed into the static JSON this page loads, enriched with Census, AHRI, pricing and boundary data, and split into Canada, province and FSA views. Full detail in sections A–F below.</p>
+      </div>
 
       <h4>A · Source data &amp; record selection</h4>
       <p>Input is NRCan's public ERS dataset as annual CSV extracts (evaluation entry years 2004–2026, all provinces and territories, using the <code>PROVINCE</code> column). Records are separated on <code>EVALTYPE</code>: <strong>D</strong> = initial (pre-retrofit) evaluation, <strong>E</strong> = follow-up (post-retrofit) evaluation. Pairs are formed on <code>HOUSEID</code>, across all file years, with these rules applied in order:</p>
@@ -687,7 +800,6 @@
           <tr><td><code>Air_Tightness_Upgrade</code></td><td><code>AIR50P</code> (ACH @ 50 Pa)</td><td>E &lt; 0.90 × D, with D &gt; 0 (lower is better)</td></tr>
           <tr><td><code>Windows_Change</code></td><td><code>WINDOWCODE</code></td><td>both non-empty and different</td></tr>
           <tr><td><code>Heating_Change</code></td><td><code>FURNACEFUEL</code>, <code>FURNACETYPE</code></td><td>either differs</td></tr>
-          <tr><td><code>Cooling_Change</code></td><td><code>AIRCONDTYPE</code></td><td>differs</td></tr>
           <tr><td><code>HeatPump_Addition</code></td><td><code>HPSOURCE</code></td><td>blank or "N/A…" in D, populated in E</td></tr>
         </tbody>
       </table></div>
