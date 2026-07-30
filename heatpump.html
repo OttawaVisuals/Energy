@@ -41,12 +41,7 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 .header-right{display:flex;align-items:center;gap:14px}
 .sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
 .sibling-link:hover{color:var(--amber2)}
-.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
-.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
-.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
-.mode-btn:not(.active):hover{color:var(--white)}
-@media(max-width:600px){.mode-btn{padding:5px 9px;font-size:11px}.sibling-link{display:none}}
-body.mode-simple [data-mode="advanced"]{display:none!important}
+@media(max-width:600px){.sibling-link{display:none}}
 
 /* ── Hero ── */
 .hero{background:var(--navy);padding:2.25rem 1.5rem 1.75rem;text-align:center}
@@ -56,17 +51,27 @@ body.mode-simple [data-mode="advanced"]{display:none!important}
 .hero-sub{font-size:15px;color:rgba(255,255,255,.6);max-width:560px;margin:0 auto}
 
 /* ── Inputs ── */
-.controls{max-width:1180px;margin:-1px auto 0;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:1.2rem 1.25rem .4rem}
-.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 14px}
-.ctrl{display:flex;flex-direction:column;gap:5px;min-width:0}
-.ctrl label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
-.ctrl select,.ctrl input[type=number]{height:40px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%}
-.ctrl input[type=number]{background-image:none;padding:0 10px;cursor:text}
+.controls{max-width:1280px;margin:-1px auto 0;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.9rem 1.25rem .6rem}
+/* Fixed column counts (not auto-fit) so fields land in predictable rows at
+   every width -- auto-fit's per-row column count can differ between rows
+   at in-between viewport widths (e.g. 5 cols then 3), scattering labels
+   out of their logical groups. */
+.ctrl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 14px;align-items:start}
+@media(max-width:900px){.ctrl-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.ctrl-grid{grid-template-columns:1fr}}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctrl label{font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%}
+.ctrl input[type=number]{background-image:none;padding:0 9px;cursor:text}
 .ctrl select:hover,.ctrl input:hover{border-color:var(--navy)}
 .ctrl select:focus,.ctrl input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
-.ctrl-hint{font-size:11px;color:var(--light);line-height:1.4}
+.ctrl-hint{font-size:10.5px;color:var(--light);line-height:1.35}
 .info-btn{width:15px;height:15px;border-radius:50%;border:1px solid var(--light);color:var(--light);background:transparent;font-size:10px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none;font-style:italic;font-family:Georgia,serif}
-.info-btn:hover{border-color:var(--amber);color:var(--amber)}
+.info-btn:hover,.info-btn.open{border-color:var(--amber);color:var(--amber)}
+.weather-row{display:flex;align-items:center;gap:6px}
+.weather-row select{flex:1}
+.weather-btn{height:34px;padding:0 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap;transition:all .15s;flex:none}
+.weather-btn:hover{border-color:var(--amber);color:var(--navy)}
 .helper-panel{grid-column:1/-1;background:var(--cream);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:12.5px;color:var(--muted);line-height:1.55;display:none}
 .helper-panel.open{display:block}
 .helper-panel b{color:var(--text);font-weight:500}
@@ -81,12 +86,33 @@ body.mode-simple [data-mode="advanced"]{display:none!important}
 .preset-row button{font-family:'Inter',sans-serif;font-size:11px;padding:4px 9px;border:1px solid var(--surface);border-radius:999px;background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s}
 .preset-row button:hover{border-color:var(--blue);color:var(--navy)}
 .preset-row button.active{background:var(--navy);border-color:var(--navy);color:var(--white);font-weight:500}
-.adv-note{grid-column:1/-1;font-size:12px;color:var(--muted);background:var(--cream);border-radius:var(--r-sm);padding:.6rem .85rem;line-height:1.5;border-left:3px solid var(--blue)}
-.adv-note b{color:var(--text);font-weight:500}
-.controls-foot{max-width:1180px;margin:0 auto;padding:.35rem 1.25rem 0;font-size:12px;color:var(--light)}
+.controls-foot{max-width:1280px;margin:0 auto;padding:.35rem 1.25rem 0;font-size:12px;color:var(--light)}
+
+/* ── Advanced-settings dropdown ── */
+/* Compact popover so Advanced mode doesn't push the whole layout down --
+   one toggle button in the simple control row, one absolutely-positioned
+   panel, same hand-rolled pattern as retrofits.html's .multi-select. */
+/* Sits under the simple-mode field grid, inside the same white controls
+   box, and expands in place (pushes the page down) rather than floating
+   over it -- a plain inline disclosure, not a popover. */
+/* Thin rule marking the boundary between the core simple-mode fields and
+   the equipment/lifecycle fields below, now that everything lives in one
+   flat, always-visible grid (no more simple/advanced split). */
+.ctrl-divider{grid-column:1/-1;border-top:1px solid var(--border);margin:2px 0}
+/* Reserves its grid slot even when hidden (backup=electric/none), so
+   Grid emissions basis -- placed right after it -- doesn't jump columns
+   as the backup type changes. */
+.ctrl.slot-hidden{visibility:hidden}
+
+/* ── Shared info tooltip (mirrors retrofits.html's floating #info-tip) ── */
+#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3);display:none}
+.info-tip-link{display:block;margin-top:7px;color:var(--amber2);font-weight:500;text-decoration:none;cursor:pointer}
+.info-tip-link:hover{text-decoration:underline}
+@keyframes method-flash{0%{background:rgba(232,161,36,.28)}100%{background:transparent}}
+.method-flash{animation:method-flash 1.6s ease-out}
 
 /* ── Layout ── */
-main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
 @media(max-width:720px){.grid-2{grid-template-columns:1fr}}
 .card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
@@ -192,7 +218,7 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .cost-row .cr-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* ── Methodology ── */
-.methodology{max-width:1180px;margin:1rem auto 0;padding:0 1.25rem}
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1.25rem}
 .methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
@@ -208,10 +234,18 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px;margin:.4rem 0 .8rem}
 .method-body a{color:var(--blue)}
 
-footer{max-width:1180px;margin:1.25rem auto 0;padding:1rem 1.25rem 2rem;font-size:12px;color:var(--light);line-height:1.6}
+footer{max-width:1280px;margin:1.25rem auto 0;padding:1rem 1.25rem 2rem;font-size:12px;color:var(--light);line-height:1.6}
 footer a{color:var(--muted)}
 .loading-msg{text-align:center;color:var(--muted);padding:2.5rem 1rem;font-size:14px}
-.err-msg{max-width:1180px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:var(--red);font-size:13px}
+.err-msg{max-width:1280px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:var(--red);font-size:13px}
+
+/* ── Weather-years chart (collapsed section) ── */
+.weather-years-section{display:none}
+.weather-years-section.open{display:block}
+#weather-years-chart{width:100%;height:auto;display:block}
+.wy-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px}
+.wy-leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.wy-swatch{width:14px;height:0;border-top:2.5px solid;flex:none}
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
 <script>
@@ -221,7 +255,7 @@ footer a{color:var(--muted)}
   gtag('config', 'G-3QLS1Q554N');
 </script>
 </head>
-<body class="mode-simple">
+<body>
 
 <header>
   <div class="logo">heat<span>pump</span></div>
@@ -230,10 +264,6 @@ footer a{color:var(--muted)}
     <a class="sibling-link" href="grid.html">↳ Grid Dashboard</a>
     <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
     <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
-    <div class="mode-toggle" role="group" aria-label="View mode">
-      <button type="button" class="mode-btn active" data-view="simple" onclick="setViewMode('simple')">Simple</button>
-      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
-    </div>
   </div>
 </header>
 
@@ -250,9 +280,11 @@ footer a{color:var(--muted)}
       <select id="in-city"></select>
     </div>
     <div class="ctrl">
-      <label for="in-weather">Weather year</label>
-      <select id="in-weather"><option value="tmy">Typical (TMY)</option></select>
-      <span class="ctrl-hint" id="weather-hint"></span>
+      <label for="in-weather">Weather year <button type="button" class="info-btn" id="weather-info" aria-label="About this weather record">?</button></label>
+      <div class="weather-row">
+        <select id="in-weather"><option value="tmy">Typical (TMY)</option></select>
+        <button type="button" class="weather-btn" id="weather-years-btn" aria-expanded="false">All years ↓</button>
+      </div>
     </div>
     <div class="ctrl">
       <label for="in-designload">Design heat load <button type="button" class="info-btn" id="arch-info" aria-label="How do I pick this?">i</button></label>
@@ -260,15 +292,13 @@ footer a{color:var(--muted)}
         <input type="range" id="in-designload" min="3" max="20" step="0.5">
         <span class="range-val" id="designload-val"></span>
       </div>
-      <span class="ctrl-hint" id="designload-hint"></span>
     </div>
     <div class="ctrl">
-      <label for="in-balance">Balance point</label>
+      <label for="in-balance">Balance point <button type="button" class="info-btn" aria-label="What is the balance point?" data-info="Outdoor temperature above which the home needs no heating — sun, people and appliances already cover it.">?</button></label>
       <div class="range-row">
         <input type="range" id="in-balance" min="8" max="16" step="0.5">
         <span class="range-val" id="balance-val"></span>
       </div>
-      <span class="ctrl-hint">Outdoor temp above which the home needs no heating (sun, people, appliances cover it).</span>
     </div>
     <div class="ctrl">
       <label for="in-fuel">Current heating</label>
@@ -287,13 +317,12 @@ footer a{color:var(--muted)}
       </div>
     </div>
     <div class="ctrl">
-      <label for="in-tier">Heat pump tier</label>
+      <label for="in-tier">Heat pump tier <button type="button" class="info-btn" id="tier-info" aria-label="What differs between tiers?">?</button></label>
       <select id="in-tier">
         <option value="high">Premium cold-climate</option>
         <option value="mid">Mid-range</option>
         <option value="low">Value</option>
       </select>
-      <span class="ctrl-hint" id="tier-hint"></span>
     </div>
     <div class="ctrl">
       <label for="in-band">Heat pump size</label>
@@ -307,98 +336,70 @@ footer a{color:var(--muted)}
 
     <div class="helper-panel" id="arch-helper"></div>
 
-    <!-- Advanced -->
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-backup">Backup heat</label>
+    <div class="ctrl-divider"></div>
+
+    <div class="ctrl">
+      <label for="in-backup">Backup heat <button type="button" class="info-btn" id="backup-info" aria-label="How does backup work?">?</button></label>
       <select id="in-backup">
         <option value="electric">Electric resistance</option>
         <option value="gas">Gas furnace (dual-fuel)</option>
         <option value="oil">Oil furnace (dual-fuel)</option>
         <option value="none">None (heat-pump only)</option>
       </select>
-      <span class="ctrl-hint" id="control-hint"></span>
     </div>
-    <div class="ctrl" data-mode="advanced" id="lockout-ctrl" style="display:none">
-      <label for="in-lockout">Switch-over temperature</label>
+    <div class="ctrl" id="lockout-ctrl">
+      <label for="in-lockout">Switch-over temp. <button type="button" class="info-btn" id="lockout-info" aria-label="How does this interact with the tier cut-off?">?</button></label>
       <div class="range-row">
         <input type="range" id="in-lockout" min="-25" max="5" step="1" value="-8">
         <span class="range-val" id="lockout-val">−8 °C</span>
       </div>
-      <span class="ctrl-hint">Below this, the heat pump switches off and the fossil backup carries the load.</span>
     </div>
-    <div class="ctrl" data-mode="advanced">
-      <label>Below the published minimum temperature</label>
-      <div class="seg" id="belowlock-seg" role="group" aria-label="Below minimum operating temperature behaviour">
-        <button type="button" data-bl="hard" class="active">Hard stop</button>
-        <button type="button" data-bl="derate">Continue derated</button>
-      </div>
-      <span class="ctrl-hint" id="belowlock-hint"></span>
-    </div>
-    <div class="ctrl" data-mode="advanced">
-      <label>Grid emissions basis</label>
+    <div class="ctrl" style="grid-column:span 2">
+      <label>Grid emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
       <div class="seg" id="ef-seg" role="group" aria-label="Emissions basis">
         <button type="button" data-ef="marginal" class="active">Marginal</button>
         <button type="button" data-ef="average">Hourly average</button>
         <button type="button" data-ef="annual">ECCC yearly</button>
       </div>
-      <span class="ctrl-hint" id="ef-hint"></span>
     </div>
 
-    <div class="adv-note">
-      <b>Three ways to price the grid.</b> A heat pump is <i>new</i> electricity demand. <b>Marginal</b> (default) prices each extra kilowatt-hour at the generator the grid actually ramps to meet it — in Ontario and Alberta almost always natural gas (~500 g CO₂e/kWh) — the honest basis for new load. <b>Hourly average</b> uses this tool's temperature × hour × season fleet-average surface (Ontario ≈ 97 g/kWh in 2025); far cleaner, and what most published studies use. <b>ECCC yearly</b> uses Environment and Climate Change Canada's published National-Inventory annual grid average for the province — a single flat number, the official inventory basis, and the only option for provinces without an hourly pipeline. Quebec is near-zero on any basis. <a href="#methodology" onclick="openMethod()">Full explanation ↓</a>
-    </div>
-
-    <!-- Advanced: lifecycle -->
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-refrig">Refrigerant</label>
+    <div class="ctrl">
+      <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential." data-method="m-lifecycle">?</button></label>
       <select id="in-refrig">
         <option value="r410a">R-410A (GWP 2088)</option>
         <option value="r32">R-32 (GWP 675)</option>
         <option value="r454b">R-454B (GWP 467)</option>
         <option value="r290">R-290 propane (GWP 3)</option>
       </select>
-      <span class="ctrl-hint">Charge leaks slowly + at end-of-life.</span>
     </div>
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-leak">Refrigerant leak rate</label>
+    <div class="ctrl">
+      <label for="in-leak">Leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life.">?</button></label>
       <div class="range-row">
         <input type="range" id="in-leak" min="0" max="10" step="0.5" value="2">
         <span class="range-val" id="leak-val">2.0 %/yr</span>
       </div>
-      <span class="ctrl-hint">Annual charge leaked in service (before end-of-life).</span>
     </div>
-    <div class="ctrl" data-mode="advanced">
-      <label>Methane global-warming potential</label>
-      <div class="seg" id="gwp-seg" role="group" aria-label="Methane GWP horizon">
-        <button type="button" data-gwp="28" class="active">100-yr (28)</button>
-        <button type="button" data-gwp="82.5">20-yr (82.5)</button>
-      </div>
-      <span class="ctrl-hint" id="gwp-hint">100-yr GWP (AR5). The 20-yr horizon weights methane's near-term warming ~3× higher.</span>
-    </div>
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-methane">Upstream gas methane leak</label>
+    <div class="ctrl">
+      <label for="in-methane">Methane leak <button type="button" class="info-btn" aria-label="What does this leak rate represent, and what GWP is used?" data-info="% of gas leaked well-to-meter before it burns — presets bracket NIR-implied (~1%), measurement-adjusted (~1.5×) and full-chain (~3%) estimates. Weighted at the 100-year methane GWP (28, IPCC AR5) — fixed, not user-adjustable; see methodology." data-method="m-lifecycle">?</button></label>
       <div class="range-row">
         <input type="range" id="in-methane" min="0" max="5" step="0.1" value="1">
         <span class="range-val" id="methane-val">1.0 %</span>
       </div>
       <div class="preset-row" id="methane-presets">
-        <button type="button" data-leak="1.0">NIR-implied (~1%)</button>
-        <button type="button" data-leak="1.5">Measurement-adjusted (~1.5×)</button>
-        <button type="button" data-leak="3.0">High (full-chain)</button>
+        <button type="button" data-leak="1.0">NIR (~1%)</button>
+        <button type="button" data-leak="1.5">Adjusted (~1.5×)</button>
+        <button type="button" data-leak="3.0">High (~3%)</button>
       </div>
-      <span class="ctrl-hint">% of gas throughput leaked, well-to-meter, before it burns.</span>
     </div>
-    <div class="ctrl" data-mode="advanced">
-      <label for="in-lineloss">Grid line losses</label>
+    <div class="ctrl">
+      <label for="in-lineloss">Line losses <button type="button" class="info-btn" aria-label="What are grid line losses?" data-info="Added to delivered electricity to account for transmission and distribution losses.">?</button></label>
       <div class="range-row">
         <input type="range" id="in-lineloss" min="0" max="12" step="0.5" value="5">
         <span class="range-val" id="lineloss-val">5.0 %</span>
       </div>
-      <span class="ctrl-hint">Added to delivered electricity.</span>
     </div>
   </div>
 </section>
-<div class="controls-foot" data-mode="advanced">All lifecycle terms are adjustable defaults, not fixed truths — see the assumptions panel for sources.</div>
 
 <main id="main">
   <div class="loading-msg" id="loading">Loading equipment curves, grid data and weather…</div>
@@ -451,7 +452,7 @@ footer a{color:var(--muted)}
       <div class="seg" id="how-tabs" role="tablist" aria-label="Model view" style="max-width:640px;margin-bottom:1rem">
         <button type="button" class="active" data-tab="load" role="tab" aria-selected="true">Load vs. capacity</button>
         <button type="button" data-tab="source" role="tab" aria-selected="false">Who delivers the heat</button>
-        <button type="button" data-tab="equipment" role="tab" aria-selected="false" data-mode="advanced">Equipment curve</button>
+        <button type="button" data-tab="equipment" role="tab" aria-selected="false">Equipment curve</button>
       </div>
 
       <!-- KEY chart -->
@@ -496,7 +497,7 @@ footer a{color:var(--muted)}
       </div>
 
       <!-- Equipment curve: capacity + COP vs temperature (advanced only) -->
-      <div class="tab-panel" data-tabpanel="equipment" data-mode="advanced">
+      <div class="tab-panel" data-tabpanel="equipment">
         <div class="card">
           <div class="card-title-row">
             <span class="card-title">Heat pump performance curve</span>
@@ -631,7 +632,7 @@ footer a{color:var(--muted)}
       </div>
 
       <!-- EF basis: no new chart — points at the existing control, which every chart above already reacts to -->
-      <div class="card" data-mode="advanced">
+      <div class="card">
         <div class="card-title-row">
           <span class="card-title">Emissions basis, compared</span>
           <span class="card-sub">how the verdict shifts across pricing bases</span>
@@ -670,6 +671,20 @@ footer a{color:var(--muted)}
   </div>
 </main>
 
+<section class="weather-years-section" id="weather-years-section" aria-label="Weather years">
+  <div class="methodology" style="max-width:1280px;margin:0 auto 1.25rem;padding:0 1.25rem">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title-row">
+        <span class="card-title">Weather years — <span id="wy-city-name"></span>, hours by temperature</span>
+        <button type="button" class="weather-btn" onclick="toggleWeatherYearsSection()">Collapse ↑</button>
+      </div>
+      <p class="ctrl-hint" id="wy-note" style="margin-bottom:8px"></p>
+      <div class="keychart-wrap"><svg id="weather-years-chart" viewBox="0 0 920 360" preserveAspectRatio="none"></svg></div>
+      <div class="wy-legend" id="wy-legend"></div>
+    </div>
+  </div>
+</section>
+
 <section class="methodology" id="methodology" aria-label="Assumptions and methodology">
   <div class="out-section-head" style="margin-bottom:.75rem">
     <div class="out-section-eyebrow">06</div>
@@ -687,9 +702,9 @@ footer a{color:var(--muted)}
       <h4>Weather</h4>
       <p>A CWEC2020 Typical Meteorological Year (8,760 hourly temperatures) for each city's airport station (ECCC engineering climate datasets).</p>
 
-      <h4>Heat-pump performance</h4>
-      <p>Tier × size selects exactly one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands — &lt;18k, 18–30k, 30–42k Btu/h) — no scaling, no averaging, no interpolation between models. Capacity and COP versus outdoor temperature are digitized from that unit's own <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output, converted to SI and normalized on its AHRI-certified rated (47 °F) capacity. The equipment-curve chart and the calculation walkthrough name the exact brand/model and AHRI number in play. Below the coldest published point, capacity is extrapolated and COP floored; by default output is zero below the unit's <b>published minimum operating temperature</b> (compressor lock-out). Any caveats recorded against that specific unit (e.g. digitized-not-tabulated points, a shared physical platform across capacity ratings) are surfaced directly under the equipment-curve chart.</p>
-      <div class="caveats">The published minimum is a manufacturer's warranty/ratings floor, not a hard physical stop. An Advanced toggle, <b>“continue derated below minimum”</b>, lets the pump keep running colder — capacity extrapolated on the coldest-segment slope, COP held at the floor. This is genuinely <b>manufacturer-unspecified</b> territory (no datasheet publishes it), so it is off by default and clearly labelled where on.</div>
+      <h4 id="m-equip">Heat-pump performance</h4>
+      <p>Tier × size selects exactly one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands — &lt;18k, 18–30k, 30–42k Btu/h) — no scaling, no averaging, no interpolation between models. Capacity and COP versus outdoor temperature are digitized from that unit's own <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output, converted to SI and normalized on its AHRI-certified rated (47 °F) capacity. The equipment-curve chart and the calculation walkthrough name the exact brand/model and AHRI number in play.</p>
+      <div class="caveats"><b>Below-lockout is now a fixed, assumed hard-stop by tier — not the unit's own published minimum.</b> Real published minimums for the 9 certified units span −15 to −30 °C, scattered by model rather than cleanly by tier. Rather than expose a per-unit lockout plus a hard-stop/continue-derated toggle (the previous version's approach), this tool now <b>assumes</b> a single round number per tier — low −10 °C, mid −20 °C, high −25 °C — and hard-stops there: output is zero below it, no derating. This is a simplification in the spirit of the tiers themselves (see “Don't overcomplicate” in the project's working notes): easier to state and defend than a per-unit figure, at the cost of not reflecting the specific selected model's own real cold-weather floor. The <b>switch-over temperature</b> control (Advanced → Backup heat) is separate: it decides when a dual-fuel system <i>chooses</i> to hand off to its furnace, and can be set warmer than the tier cut-off; below the tier cut-off the heat pump can't run regardless of that setting.</div>
       <div class="caveats">A <b>sizing sweep</b> card re-runs the whole year at 40–160% of your design load, synthetically scaling the selected unit's own capacity curve — a hypothetical resizing for sensitivity, not a menu of purchasable sizes (real units come only in the 9 discrete tier × band combinations above). It has <b>no short-cycling model</b>, so it <i>understates</i> the penalty of oversizing (short-cycling and worse part-load efficiency) — oversizing looks nearly free on that chart but isn't in a real home. A quick check of ERS retrofit records (installed-capacity vs. audited design heat loss for homes with a certified heat pump) found real installs scattered widely around design load — median ratio ≈0.66, only 24% within ±20% — so no single "correctly sized" ratio is implied or suggested by this tool.</div>
       <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — premium-tier units tend to hold capacity better and lock out colder than value-tier units, but this varies unit to unit; check the specific model named for your selection rather than assuming tier behaviour in general.</div>
 
@@ -707,7 +722,7 @@ footer a{color:var(--muted)}
       <div class="caveats"><b>What the certificate cannot tell us.</b> AHRI publishes capacity at three temperatures but COP at only one, and no compressor lock-out temperature — not enough to simulate a heating season. So certification is used only to <i>choose</i> the representative units; their actual capacity-and-power curves come from each unit's <b>published manufacturer datasheet</b>. The better submittals carry a full <i>extended ratings</i> table — for the most-installed unit in this dataset (GREE GUD36W/A-D(U)) that is <b>23 operating points from −30 °C to +24 °C, each giving capacity, COP and electrical power draw</b>, plus the published heating lock-out of −30 °C. Where a manufacturer publishes no such table, the <b>NEEP cold-climate listing</b> is used as the fallback, cited per model. Where a datasheet and its certificate disagree — for that GREE unit, 0.79 vs 0.80 capacity maintenance and COP 1.83 vs 1.80 — the certificate governs which bucket a unit sits in and the datasheet governs the simulation, so units cannot silently drift between buckets when better data arrives.</div>
       <div class="caveats"><b>Coverage.</b> About 28% of records are for models with no certified 5 °F rating at all and cannot be bucketed. That group is <b>99% discontinued or delisted</b> and none of it carries a cold-climate designation — it is genuinely older equipment that predates the rating, not missing data we could go and find. Counts throughout are <b>EnerGuide record appearances, not installed units</b>: a home audited twice counts twice, and retrofit and new-construction records are pooled. It is a sound measure of popularity and a poor headcount.</div>
 
-      <h4>Grid emissions — the biggest choice</h4>
+      <h4 id="m-grid">Grid emissions — the biggest choice</h4>
       <p>Hourly grid intensity comes from a temperature × hour-of-day × season "surface" built from 2019–2026 IESO / AESO / Hydro-Québec generation, calibrated against published provincial intensities (within ±6%). It is decomposed as <code>EF = annual_level × shape</code>, so the shape (weather/time pattern) is applied on top of the most recent complete year's level (the current grid).</p>
       <ul>
         <li><b>Marginal</b> (default): new load is served by the marginal generator — modelled as gas whenever gas is running (~500 g CO₂e/kWh in ON/AB). This is the honest basis for a <i>new</i> load like a heat pump.</li>
@@ -716,11 +731,11 @@ footer a{color:var(--muted)}
       </ul>
       <div class="caveats">Ontario's average intensity is actively rising as gas generation grows. Quebec's marginal figure is a known gap: new winter demand there may in practice be met by higher-carbon imports (~35 g/kWh) rather than curtailed hydro — not modelled, so Quebec's "after" number is a floor.</div>
 
-      <h4>Lifecycle terms (adjustable)</h4>
+      <h4 id="m-lifecycle">Lifecycle terms (adjustable)</h4>
       <ul>
         <li><b>Combustion:</b> natural gas 181, oil 275, propane 214 g CO₂e/kWh of fuel input (ECCC National Inventory Report).</li>
         <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × global-warming potential of the selected refrigerant.</li>
-        <li><b>Upstream methane:</b> a slider (0–5%, default 1%) for gas leaked well-to-meter before combustion × a methane <b>global-warming potential toggle</b> — <b>28</b> (100-yr, IPCC AR5) or <b>82.5</b> (20-yr fossil methane, IPCC AR6, weighting near-term warming ≈3× higher). Labelled presets bracket the evidence: <i>NIR-implied</i> (~1%, Canada's National Inventory Report), <i>measurement-adjusted</i> (~1.5×, atmospheric-measurement studies find inventories understate leakage), and <i>high / full-chain</i> (~3%, adding post-meter building leakage measured at 2.0–2.5× the inventory end-use factor). A 3% full-chain leak at the 20-yr GWP roughly <b>doubles</b> gas heating's effective carbon intensity (≈×1.9).</li>
+        <li><b>Upstream methane:</b> a slider (0–5%, default 1%) for gas leaked well-to-meter before combustion, weighted at the methane <b>100-year global-warming potential</b> — <b>28</b> (IPCC AR5). This is fixed, not user-adjustable: the tool no longer offers the 20-year fossil-methane horizon (82.5, IPCC AR6, weighting near-term warming ≈3× higher) as a toggle, to keep the headline number tied to one inventory-standard basis rather than a choice that alone can swing gas heating's effective carbon intensity by roughly 2×. Labelled leak-rate presets bracket the evidence: <i>NIR-implied</i> (~1%, Canada's National Inventory Report), <i>measurement-adjusted</i> (~1.5×, atmospheric-measurement studies find inventories understate leakage), and <i>high / full-chain</i> (~3%, adding post-meter building leakage measured at 2.0–2.5× the inventory end-use factor).</li>
         <li><b>Grid line losses:</b> default 5% added to delivered electricity — World Bank/IEA transmission-and-distribution losses for Canada were ~5% in 2019–2020 (easing toward ~4% recently); utility figures span ~4% (transmission only) to ~10% (full path to a home). We deliberately do <b>not</b> use ENERGY STAR Portfolio Manager's 2.05 source–site ratio: it also bundles power-plant conversion losses, which our per-kWh-<i>generated</i> grid factor already includes — applying it would double-count.</li>
       </ul>
 
@@ -1482,11 +1497,16 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 const state={
   city:'Ottawa', designLoad:12, balancePoint:10.5, fuel:'gas', eff:92,
   tier:'high', band:'18-30k', backup:'electric',
-  lockout:-8, efBasis:'marginal', weatherYear:'tmy', refrig:'r410a', leakRate:2.0, methane:1.0, methaneGWP:28, lineloss:5.0,
-  belowLockout:'hard', // ASHP behaviour below the published minimum operating temp
+  lockout:-8, efBasis:'marginal', weatherYear:'tmy', refrig:'r410a', leakRate:2.0, methane:1.0, lineloss:5.0,
   plan:null, // null = city's default electricity plan
   hourlyRange:'all', sweepMetric:'ghg',
 };
+// Below-lockout behaviour is a fixed hard-stop assumption by tier (replaces
+// the old per-user hard-stop/continue-derated toggle): the heat pump's own
+// published minimum operating temperature is assumed, not looked up per
+// unit -- low -10 C, mid -20 C, high -25 C. Methane's GWP is likewise fixed
+// (100-yr, AR5 = 28) rather than user-adjustable -- see methodology.
+const TIER_MINOP={low:-10, mid:-20, high:-25};
 // Home-weighted median design heat loss (kW) across a city's 4 archetype
 // vintages -- the default seed for the design-load slider. Deliberately the
 // lightweight 4-point version, not a full ERS population histogram.
@@ -1610,7 +1630,10 @@ function buildInputs(){
     updateDesignLoadRef();
     const p=CITY_PROV[state.city];
     state.weatherYear='tmy'; // reset to typical on city change
-    Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city)]).then(()=>{syncEfSeg();populateWeatherSelector(state.city);recompute();});
+    Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city)]).then(()=>{
+      syncEfSeg();populateWeatherSelector(state.city);recompute();
+      if($('weather-years-section').classList.contains('open'))renderWeatherYearsChart();
+    });
   });
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
   $('in-plan').addEventListener('change',e=>{state.plan=e.target.value;recompute();});
@@ -1618,7 +1641,7 @@ function buildInputs(){
   $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
   $('in-eff').addEventListener('input',e=>{state.eff=+e.target.value;$('eff-val').textContent=state.eff+' %';recompute();});
-  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-hint').textContent=TIER_BLURB[state.tier];recompute();});
+  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];updateLockoutInfo();recompute();});
   $('in-band').addEventListener('change',e=>{state.band=e.target.value;$('band-hint').textContent=cellFor(state.tier,state.band).brand_model;recompute();});
 
   $('in-backup').addEventListener('change',e=>{
@@ -1631,20 +1654,6 @@ function buildInputs(){
     if(b.disabled) return;
     state.efBasis=b.dataset.ef;
     document.querySelectorAll('#ef-seg button').forEach(x=>x.classList.toggle('active',x===b));
-    recompute();
-  }));
-  document.querySelectorAll('#belowlock-seg button').forEach(b=>b.addEventListener('click',()=>{
-    state.belowLockout=b.dataset.bl;
-    document.querySelectorAll('#belowlock-seg button').forEach(x=>x.classList.toggle('active',x===b));
-    updateBelowLockHint();
-    recompute();
-  }));
-  document.querySelectorAll('#gwp-seg button').forEach(b=>b.addEventListener('click',()=>{
-    state.methaneGWP=+b.dataset.gwp;
-    document.querySelectorAll('#gwp-seg button').forEach(x=>x.classList.toggle('active',x===b));
-    $('gwp-hint').textContent=state.methaneGWP>50
-      ? '20-yr GWP 82.5 (fossil methane, AR6). Weights methane’s near-term warming ≈ 3× the 100-yr value.'
-      : '100-yr GWP 28 (AR5) — the inventory-standard horizon. Switch to 20-yr to stress near-term warming.';
     recompute();
   }));
   $('in-refrig').addEventListener('change',e=>{state.refrig=e.target.value;recompute();});
@@ -1668,25 +1677,32 @@ function buildInputs(){
 
   $('arch-info').addEventListener('click',()=>{$('arch-helper').classList.toggle('open');renderArchHelper();});
 
+  $('weather-years-btn').addEventListener('click',()=>{toggleWeatherYearsSection();});
+
   $('in-designload').value=state.designLoad;$('designload-val').textContent=fmt1(state.designLoad)+' kW';
   $('in-balance').value=state.balancePoint;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';
   $('in-tier').value=state.tier;$('in-band').value=state.band;
   applyFuel();
   syncEfSeg();
-  $('tier-hint').textContent=TIER_BLURB[state.tier];
+  $('tier-info').dataset.info=TIER_BLURB[state.tier];
   $('band-hint').textContent=cellFor(state.tier,state.band).brand_model;
   syncBackupControl();
+  updateLockoutInfo();
   $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   $('methane-val').textContent='1.0 %';
   $('lineloss-val').textContent='5.0 %';
-  updateBelowLockHint();
   syncMethanePresets();
 }
 function fmtSigned(n){return (n<0?'−':'')+Math.abs(n);}
-function updateBelowLockHint(){
-  $('belowlock-hint').innerHTML=state.belowLockout==='derate'
-    ? 'Heat pump keeps running below its published minimum — capacity extrapolated on the coldest-segment slope, COP held at the floor. <b>Manufacturer-unspecified</b> below this point.'
-    : 'Heat pump shuts off at the manufacturer’s published minimum operating temperature (current default); backup carries everything colder.';
+// The below-lockout behaviour is now a fixed hard-stop assumption by tier
+// (see TIER_MINOP) rather than a user toggle. This just keeps the
+// switch-over slider's "?" tooltip and hint honest about how the two
+// interact: below the tier's assumed cut-off the heat pump can't run at
+// all, regardless of where the switch-over slider is set.
+function updateLockoutInfo(){
+  const minOp=TIER_MINOP[state.tier];
+  const btn=$('lockout-info');
+  if(btn)btn.dataset.info=`Below this, the heat pump switches off and the backup carries the load. Below ${fmtSigned(minOp)} °C we assume this tier's heat pump physically can't run (a fixed published-minimum assumption by tier — low −10 °C, mid −20 °C, high −25 °C) — the backup covers 100% of the load there regardless of where this slider is set.`;
 }
 function syncMethanePresets(){
   document.querySelectorAll('#methane-presets button').forEach(b=>
@@ -1714,14 +1730,131 @@ function populateWeatherSelector(city){
   updateWeatherHint();
 }
 function updateWeatherHint(){
-  const w=WEATHER_CACHE[weatherSlug(state.city)],hint=$('weather-hint');
-  if(!hint)return;
+  const w=WEATHER_CACHE[weatherSlug(state.city)],btn=$('weather-info');
+  if(!btn)return;
   if(state.weatherYear==='tmy'){
-    hint.textContent=w?`Typical meteorological year. ${w.meta.years.length} real years available (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}).`:'Typical meteorological year.';
+    btn.dataset.info=w?`Typical meteorological year (CWEC2020). ${w.meta.years.length} real years also available (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) — see "All years" for the full spread.`:'Typical meteorological year (CWEC2020).';
   }else if(w&&w.years[state.weatherYear]){
     const y=w.years[state.weatherYear];
-    hint.textContent=`${state.weatherYear}: HDD18 ${fmtI(y.hdd18)}, coldest hour ${fmt1(y.min_C)} °C (TMY HDD18 ${fmtI(w.meta.tmy_hdd18)}).`;
+    btn.dataset.info=`${state.weatherYear}: HDD18 ${fmtI(y.hdd18)}, coldest hour ${fmt1(y.min_C)} °C (TMY HDD18 ${fmtI(w.meta.tmy_hdd18)}).`;
   }
+}
+
+// ==========================================================================
+// Weather-years chart -- collapsed by default, opened from the "All years"
+// button beside the weather-year selector. A temperature-distribution
+// (frequency polygon) view: outdoor temperature on the x-axis, hours
+// occurring at that temperature on the y-axis -- one line per year. This
+// shows how years differ in shape (a colder year's curve shifts and fattens
+// on the left) far better than an 8,760-hour time series, where 20-odd
+// overlapping year-long traces are illegible. Every real year in the
+// multi-decade record is drawn grey, with TMY / representative / coldest /
+// mildest picked out in colour. Rendered lazily (only while open).
+// ==========================================================================
+function toggleWeatherYearsSection(){
+  const sec=$('weather-years-section');
+  const open=!sec.classList.contains('open');
+  sec.classList.toggle('open',open);
+  $('weather-years-btn').setAttribute('aria-expanded',String(open));
+  if(open){
+    renderWeatherYearsChart();
+    sec.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+}
+// Hourly counts per 1 C bin from tmin..tmax (inclusive), as a frequency
+// polygon: bin-centre x, hour-count y. `vals` in whole degrees C.
+function tempHistogram(vals,tmin,tmax){
+  const nb=Math.round(tmax-tmin)+1;
+  const counts=new Array(nb).fill(0);
+  for(let i=0;i<vals.length;i++){
+    const v=vals[i]; if(v==null)continue;
+    let b=Math.round(v-tmin);
+    if(b<0)b=0; if(b>=nb)b=nb-1;
+    counts[b]++;
+  }
+  return counts; // counts[i] = hours at temperature (tmin+i)
+}
+function polylineFrom(counts,tmin,x,y){
+  let d='';
+  for(let i=0;i<counts.length;i++){
+    d+=(d?'L':'M')+x(tmin+i).toFixed(1)+' '+y(counts[i]).toFixed(1)+' ';
+  }
+  return d;
+}
+function renderWeatherYearsChart(){
+  const svg=$('weather-years-chart'),legend=$('wy-legend'),note=$('wy-note');
+  $('wy-city-name').textContent=state.city;
+  if(!svg)return;
+  const w=WEATHER_CACHE[weatherSlug(state.city)];
+  const tmy=TMY&&TMY[state.city];
+  if(!w||!w.years||!Object.keys(w.years).length){
+    svg.innerHTML='';legend.innerHTML='';
+    note.textContent=tmy?`Only the TMY is available for ${state.city} -- no multi-decade hourly record to compare it against.`:'No weather record loaded.';
+    return;
+  }
+  const years=w.meta.years, tags=w.meta.tags||{};
+  const W=920,H=360,m={t:14,r:14,b:26,l:36},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
+  let tmin=Infinity,tmax=-Infinity;
+  years.forEach(y=>{
+    const arr=w.years[String(y)]&&w.years[String(y)].temps_tenthsC;
+    if(!arr)return;
+    for(let i=0;i<arr.length;i++){const v=arr[i]/10;if(v<tmin)tmin=v;if(v>tmax)tmax=v;}
+  });
+  if(tmy)tmy.forEach(v=>{if(v<tmin)tmin=v;if(v>tmax)tmax=v;});
+  tmin=Math.floor(tmin)-1; tmax=Math.ceil(tmax)+1;
+  // Build every series as an hours-per-degree histogram first, so the y
+  // domain (max hours in any single bin) can be sized correctly.
+  const seriesFor=vals=>tempHistogram(vals,tmin,tmax);
+  const otherCounts=[];
+  years.forEach(yy=>{
+    const arr=w.years[String(yy)]&&w.years[String(yy)].temps_tenthsC;
+    if(!arr)return;
+    if(+yy===tags.representative||+yy===tags.coldest||+yy===tags.mildest)return;
+    otherCounts.push(seriesFor(arr.map(v=>v/10)));
+  });
+  const HL=[];
+  if(tmy)HL.push({label:'TMY',counts:seriesFor(tmy),color:css('--navy'),dash:'4 3'});
+  const tagged=[
+    {key:'representative',label:'Typical ('+tags.representative+')',color:css('--blue')},
+    {key:'coldest',label:'Coldest ('+tags.coldest+')',color:css('--red')},
+    {key:'mildest',label:'Mildest ('+tags.mildest+')',color:css('--green')},
+  ];
+  tagged.forEach(t=>{
+    const yy=tags[t.key]; if(yy==null)return;
+    const arr=w.years[String(yy)]&&w.years[String(yy)].temps_tenthsC;
+    if(!arr)return;
+    HL.push({label:t.label,counts:seriesFor(arr.map(v=>v/10)),color:t.color});
+  });
+  let cmax=0;
+  [...otherCounts,...HL.map(h=>h.counts)].forEach(c=>c.forEach(v=>{if(v>cmax)cmax=v;}));
+  cmax=Math.ceil((cmax+2)/10)*10;
+  const x=t=>m.l+plotW*(t-tmin)/(tmax-tmin);
+  const y=v=>m.t+plotH*(1-v/cmax);
+  let s='';
+  // gridlines + y-axis labels (occurrence, hours), every quarter of the max
+  const yStep=Math.max(10,Math.round(cmax/4/5)*5);
+  for(let v=0;v<=cmax;v+=yStep){
+    s+=`<line x1="${m.l}" y1="${y(v).toFixed(1)}" x2="${m.l+plotW}" y2="${y(v).toFixed(1)}" stroke="${css('--border')}" stroke-width="1"/>`;
+    s+=`<text x="${m.l-6}" y="${(y(v)+3).toFixed(1)}" font-size="10" fill="${css('--muted')}" text-anchor="end">${v}</text>`;
+  }
+  // x-axis ticks (outdoor temperature), every 10 C
+  const tTickStart=Math.ceil(tmin/10)*10;
+  for(let t=tTickStart;t<=tmax;t+=10){
+    s+=`<text x="${x(t).toFixed(1)}" y="${H-8}" font-size="10" fill="${css('--light')}" text-anchor="middle">${t}°</text>`;
+  }
+  // every other year, grey, thin, low-opacity -- the backdrop showing spread
+  otherCounts.forEach(c=>{
+    s+=`<path d="${polylineFrom(c,tmin,x,y)}" fill="none" stroke="${css('--border')}" stroke-width="1"/>`;
+  });
+  // highlighted series on top: TMY, then representative/coldest/mildest
+  HL.forEach(h=>{
+    s+=`<path d="${polylineFrom(h.counts,tmin,x,y)}" fill="none" stroke="${h.color}" stroke-width="1.8"${h.dash?` stroke-dasharray="${h.dash}"`:''}/>`;
+  });
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s;
+  legend.innerHTML=[{label:'Other years',color:css('--border')},...HL.map(h=>({label:h.label,color:h.color}))]
+    .map(l=>`<span class="wy-leg"><span class="wy-swatch" style="border-color:${l.color}"></span>${l.label}</span>`).join('');
+  note.textContent=`Hours per 1 °C of outdoor temperature, for ${years.length} real years (${years[0]}–${years[years.length-1]}) from ${w.meta.sources||'the multi-decade station record'}, plus the CWEC2020 TMY used by default. A year shifted left / with a fatter left tail spent more hours in deep cold. Typical/coldest/mildest are the whole-year tags recorded in the weather file's metadata (by HDD18).`;
 }
 
 // Enable/disable EF-basis buttons for the current province and refresh the
@@ -1740,13 +1873,16 @@ function syncEfSeg(){
   // If the active basis is now unavailable, fall back to ECCC yearly.
   if(!hasSurf&&state.efBasis==='average') state.efBasis='annual';
   seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.ef===state.efBasis));
-  const hint=document.getElementById('ef-hint'); if(!hint) return;
+  const btn=document.getElementById('ef-info'); if(!btn) return;
   const ann=annualAvgFor(prov);
+  const base='Marginal (default) prices new load at the generator the grid ramps to meet it — usually gas in ON/AB. Hourly average uses this tool\'s temp×hour×season fleet-average surface. ECCC yearly is the province\'s flat published inventory average.';
+  let dyn='';
   if(!hasSurf){
-    hint.textContent=ann?`${prov.toUpperCase()} has no hourly grid pipeline — showing ECCC's ${ann.year} annual average (${fmt1(ann.value)} g/kWh)`+(ann.marginal!=null&&ann.marginal!==ann.value?` and a flat marginal estimate (${fmt1(ann.marginal)} g/kWh).`:'.'):'';
+    dyn=ann?` ${prov.toUpperCase()} has no hourly grid pipeline — showing ECCC's ${ann.year} annual average (${fmt1(ann.value)} g/kWh)`+(ann.marginal!=null&&ann.marginal!==ann.value?` and a flat marginal estimate (${fmt1(ann.marginal)} g/kWh).`:'.'):'';
   } else {
-    hint.textContent=ann?`ECCC yearly = ${prov.toUpperCase()} ${ann.year} inventory average (${fmt1(ann.value)} g/kWh).`:'';
+    dyn=ann?` ECCC yearly = ${prov.toUpperCase()} ${ann.year} inventory average (${fmt1(ann.value)} g/kWh).`:'';
   }
+  btn.dataset.info=base+dyn;
 }
 
 // Reference hint under the design-load slider: this city's 4 archetype-vintage
@@ -1755,7 +1891,7 @@ function syncEfSeg(){
 function updateDesignLoadRef(){
   const c=ARCH[state.city];
   const parts=ARCH_ORDER.filter(k=>c[k]).map(k=>`${ARCH_LABEL[k]} ${fmt1(c[k].design_heat_loss_kW)} kW`);
-  $('designload-hint').textContent=`For reference, this city's audited-home medians: ${parts.join(' · ')}.`;
+  $('arch-info').title=`For reference, this city's audited-home medians: ${parts.join(' · ')}. Click for the full breakdown.`;
   if($('arch-helper').classList.contains('open'))renderArchHelper();
 }
 function renderArchHelper(){
@@ -1778,8 +1914,8 @@ function applyFuel(){
 // only meaningful -- and only shown -- for the combustion-backup case.
 function syncBackupControl(){
   const isCombustionBackup=state.backup==='gas'||state.backup==='oil';
-  $('lockout-ctrl').style.display=isCombustionBackup?'':'none';
-  $('control-hint').textContent=isCombustionBackup
+  $('lockout-ctrl').classList.toggle('slot-hidden',!isCombustionBackup);
+  $('backup-info').dataset.info=isCombustionBackup
     ?'Below the switch-over temperature the heat pump turns off entirely and the furnace carries 100% of the load; above it, the heat pump leads and the furnace only tops up any shortfall.'
     :'Heat pump runs to its own lockout every hour; electric resistance only makes up the shortfall above its capacity (never a full switchover).';
 }
@@ -1792,9 +1928,13 @@ function syncBackupControl(){
 function cellFor(tier,band){
   return CELL_CURVES.cells[tier+'_'+band];
 }
+// The unit's own published minimum operating temperature (per real
+// datasheet) is overridden with a fixed hard-stop assumption by tier --
+// see TIER_MINOP -- rather than the previous per-unit value + user-chosen
+// hard-stop/continue-derated toggle.
 function hpCurveConfig(){
   const cell=cellFor(state.tier,state.band);
-  return {curve:cell.curve, minOp:cell.min_op_temp_C, ratedCap_kW:cell.rated_cap_47f_btuh/3412};
+  return {curve:cell.curve, minOp:TIER_MINOP[state.tier], ratedCap_kW:cell.rated_cap_47f_btuh/3412};
 }
 function buildOpts(){
   const prov=CITY_PROV[state.city];
@@ -1810,12 +1950,12 @@ function buildOpts(){
     tempSeries:tempSeriesFor(state.city,state.weatherYear),
     archetype:{UA_W_per_K, Tbalance_C:state.balancePoint},
     baseCase:{fuel:state.fuel, efficiency:state.eff/100},
-    hp:{curve:hc.curve, nominalCap_kW:hc.ratedCap_kW, minOpTemp_C:hc.minOp, kind:'ashp', belowLockout:state.belowLockout},
+    hp:{curve:hc.curve, nominalCap_kW:hc.ratedCap_kW, minOpTemp_C:hc.minOp, kind:'ashp'},
     backup:{type:state.backup, efficiency:backupEff},
     control:{strategy, lockoutTemp_C:state.lockout},
     lifecycle:{
       lineLossPct:state.lineloss,
-      methaneLeakPct:state.methane, methaneGWP:state.methaneGWP,
+      methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (28, 100-yr AR5)
       oilUpstreamFrac:0.12,
       charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW,
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
@@ -2779,15 +2919,80 @@ function renderHourlyChart(res){
 }
 
 // ==========================================================================
-// View mode + methodology
+// Methodology
 // ==========================================================================
-function setViewMode(mode){
-  document.body.className=mode==='advanced'?'mode-advanced':'mode-simple';
-  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===mode));
-  // charts need resize after layout shift
-  setTimeout(()=>{Object.values(charts).forEach(c=>c.resize());},60);
-}
 function openMethod(){$('method-details').open=true;}
+// Opens the methodology <details>, scrolls to the named heading and flashes
+// it -- used by "?" info-tip links (data-method) and #methodology anchors.
+function openMethodology(e,id){
+  if(e)e.preventDefault();
+  hideInfoTip();
+  $('method-details').open=true;
+  const el=id&&document.getElementById(id);
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('method-flash');
+  void el.offsetWidth;
+  el.classList.add('method-flash');
+}
+
+// ==========================================================================
+// Info "?" buttons -- one shared floating tip, same pattern as
+// retrofits.html: each button's text lives in data-info, an optional
+// data-method links into the methodology section.
+// ==========================================================================
+let _infoTipEl=null,_infoTipFor=null,_infoHideTimer=null;
+function cancelInfoHide(){if(_infoHideTimer){clearTimeout(_infoHideTimer);_infoHideTimer=null;}}
+function scheduleInfoHide(){cancelInfoHide();_infoHideTimer=setTimeout(hideInfoTip,160);}
+function showInfoTip(btn){
+  cancelInfoHide();
+  if(!_infoTipEl){
+    _infoTipEl=document.createElement('div');_infoTipEl.id='info-tip';document.body.appendChild(_infoTipEl);
+    _infoTipEl.addEventListener('mouseenter',cancelInfoHide);
+    _infoTipEl.addEventListener('mouseleave',scheduleInfoHide);
+  }
+  _infoTipEl.textContent='';
+  const body=document.createElement('span');
+  body.textContent=btn.dataset.info||'';
+  _infoTipEl.appendChild(body);
+  const method=btn.dataset.method;
+  if(method){
+    const a=document.createElement('a');
+    a.className='info-tip-link';a.href='#'+method;
+    a.textContent='Full details in methodology →';
+    a.addEventListener('click',ev=>openMethodology(ev,method));
+    _infoTipEl.appendChild(a);
+  }
+  _infoTipEl.style.display='block';
+  const r=btn.getBoundingClientRect();
+  const tw=_infoTipEl.offsetWidth,th=_infoTipEl.offsetHeight;
+  const x=Math.min(Math.max(8,r.left+r.width/2-tw/2),window.innerWidth-tw-8);
+  let y=r.bottom+8;
+  if(y+th>window.innerHeight-8)y=r.top-th-8;
+  _infoTipEl.style.left=x+'px';_infoTipEl.style.top=y+'px';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  btn.classList.add('open');_infoTipFor=btn;
+}
+function hideInfoTip(){
+  cancelInfoHide();
+  if(_infoTipEl)_infoTipEl.style.display='none';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  _infoTipFor=null;
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#info-tip'))return;
+  const b=e.target.closest('.info-btn');
+  if(b&&b.dataset.info){(_infoTipFor===b)?hideInfoTip():showInfoTip(b);return;}
+  hideInfoTip();
+});
+document.addEventListener('mouseover',e=>{
+  const b=e.target.closest('.info-btn');
+  if(b&&b.dataset.info&&_infoTipFor!==b)showInfoTip(b);
+});
+document.addEventListener('mouseout',e=>{
+  if(e.target.closest&&e.target.closest('.info-btn')&&e.target.closest('.info-btn').dataset.info)scheduleInfoHide();
+});
+window.addEventListener('scroll',hideInfoTip,{passive:true});
 
 // ==========================================================================
 // In-page engine self-test — verifies the inlined engine still reproduces the
