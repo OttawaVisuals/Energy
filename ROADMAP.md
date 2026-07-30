@@ -1,7 +1,12 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-30** (heat-pump **page re-organised** on the retrofit-page
+Updated **2026-07-30** (Retrofit Insights: new section 06 "Cold-climate
+equipment" — AHRI COP-vs-capacity-maintenance scatter + the US DOE CCHP
+Challenge screen, resolving the "where does this go" decision left open
+2026-07-27. New pipeline step `Python/build_hp_equipment_insights.py`; see
+[docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) item
+14.) Prior pass same day (heat-pump **page re-organised** on the retrofit-page
 pattern: outcome-first 7-section flow — 01 The verdict (one consolidated block
 with KPI tiers: Emissions / Cost & energy / Equipment), 02 Where your emissions
 come from (new before→after emissions bar beside the by-category bars), 03 Why:
@@ -239,17 +244,21 @@ lifecycle-update candidates logged — see
   our strongest) or their `skeptic`/`central`/`best` preset naming (advocacy
   framing, fails the two-audience test).
 
-- 🇺🇸 **US DOE CCHP Challenge screen — analysis done 2026-07-27, not yet on any
-  page.** `HeatPump/pipeline/screen_cchp.py` screens all 15,148 models against
+- ✅ **US DOE CCHP Challenge screen — shipped on Retrofit Insights (2026-07-30).**
+  `HeatPump/pipeline/screen_cchp.py` screens all 15,148 models against
   the [Challenge specifications](https://www.energy.gov/cmei/buildings/cchp-technology-challenge-specifications)
   Table II-3. Headline: **4 models, 8 of 439,975 ERS appearances (0.00%)** clear
   every checkable criterion, and three of the four sit *exactly* on the
   threshold. 34.4% of the base is `out_of_scope` (<24,000 Btu/h, which the
-  Challenge deliberately does not address). **Decision outstanding: where and
-  how to surface this** — it does not fit the 3×3 tier grid (no qualifying unit
-  is a cell representative), so it wants its own framing. Method in
-  [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "US DOE Cold Climate Heat
-  Pump Challenge screen"; caveats in
+  Challenge deliberately does not address). Surfaced as its own section
+  (06 — "Cold-climate equipment") on
+  [retrofit-insights.html](retrofit-insights.html), alongside an AHRI
+  COP-vs-capacity-maintenance scatter, rather than folded into the 3×3 tier
+  grid (no qualifying unit is a cell representative). New pipeline step:
+  `Python/build_hp_equipment_insights.py`. Full build note:
+  [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) item 14.
+  Method in [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "US DOE Cold
+  Climate Heat Pump Challenge screen"; caveats in
   [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md) §6.7.
 
 - 🧾 **Reproducibility gap: two Phase 3c inputs cannot be regenerated**
