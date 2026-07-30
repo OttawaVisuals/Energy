@@ -30,7 +30,7 @@
   .filter-sticky.is-compact{padding-bottom:.4rem}
 }
 .filter-match{display:flex;align-items:center;flex-wrap:wrap;gap:8px;align-self:flex-end}
-.filter-bar{background:var(--card);border-radius:var(--r-lg);padding:.55rem 1.25rem;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
+.filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
 .filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .filter-group select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
@@ -72,7 +72,10 @@
    container should collapse to zero height rather than reserving space for
    messages that usually aren't showing. Each hint carries its own padding
    as a block so it only costs space when actually visible. */
-.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);border-radius:0 0 var(--r-lg) var(--r-lg)}
+/* Always-on min-height so the rounded bottom corner shows even when no
+   hint/warning is displayed — otherwise this collapses to zero height and
+   .filter-bar's own square bottom becomes the box's visible edge. */
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);border-radius:0 0 var(--r-lg) var(--r-lg);min-height:8px}
 .filter-count-bar>.filter-count{display:block;padding:.3rem 1.25rem .5rem}
 .filter-count{font-size:13px;color:var(--muted)}
 .filter-count strong{color:var(--text);font-weight:500}

@@ -3807,7 +3807,7 @@ function goToPostal(raw){
       ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
       clearMeasures();
       updateShareUrl();
-      showPcHint(`✓ Showing postal area ${fsa}`,true);
+      showPcHint(''); // area-chip pill already shows the selected FSA
       load(); // syncs the FSA dropdown + map zoom itself once the index re-resolves (cached)
     }).catch(()=>tryNext(i+1));
   })(0);
