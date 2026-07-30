@@ -1075,8 +1075,8 @@ function renderAreaHist(){
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
-              y:{ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
@@ -2660,8 +2660,8 @@ function renderProvinceAreaHist(payload){
     data:{labels,datasets},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label}–${+i[0].label+50} m²`,label:i=>`${i.dataset.label}: ${i.raw.toLocaleString()} homes`}}},
-      scales:{x:{ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
-              y:{ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:PAL.tick,maxRotation:45},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},color:PAL.tick},grid:{color:PAL.track}}}}
   });
 }
 
