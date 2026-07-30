@@ -150,6 +150,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .stat-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:5px;border-radius:50%;border:1px solid var(--light);color:var(--light);font-size:9px;font-style:italic;font-family:Georgia,serif;cursor:help;flex:none;line-height:1;text-transform:none;letter-spacing:0}
 .stat-i:hover{border-color:var(--amber);color:var(--amber)}
 
+/* ── KPI tiers (grouped stat cards, mirrors retrofits.html) ── */
+.kpi-tier{margin-bottom:1rem}
+.kpi-tier:last-child{margin-bottom:0}
+.kpi-tier-label{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--light);margin:0 0 .45rem .1rem}
+
+/* ── Before → after comparison bars ── */
+.beforeafter{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.ba-row{display:grid;grid-template-columns:minmax(84px,auto) 1fr auto;align-items:center;gap:10px}
+.ba-lbl{font-size:12px;color:var(--muted);text-align:right}
+.ba-bar{height:24px;border-radius:var(--r-sm);min-width:2px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+.ba-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
+
 /* ── One-line summary lede ── */
 .summary-lede{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-md);padding:.85rem 1.1rem;margin-bottom:1rem;box-shadow:var(--shadow);font-size:15px;line-height:1.55;color:var(--text)}
 .summary-lede b{color:var(--navy);font-weight:600}
@@ -405,30 +417,46 @@ footer a{color:var(--muted)}
   <div class="loading-msg" id="loading">Loading equipment curves, grid data and weather…</div>
   <div id="results" style="display:none">
 
-    <div class="summary-lede" id="summary"></div>
-
-    <div class="verdict" id="verdict">
-      <div class="verdict-main" id="verdict-main"></div>
-      <div class="verdict-pill" id="verdict-pill"></div>
-    </div>
-
-    <div class="stats-grid" id="stats"></div>
-
-    <!-- ═══ 1 · Verdict + annual GHG breakdown ═══ -->
+    <!-- ═══ 01 · The verdict ═══ -->
     <section class="out-section" id="section-verdict">
       <div class="out-section-head">
         <div class="out-section-eyebrow">01</div>
-        <h2 class="out-section-title">Verdict &amp; the annual GHG breakdown</h2>
-        <p class="out-section-intro">The headline number for your inputs, above, and exactly which categories of emissions make it up.</p>
+        <h2 class="out-section-title">The verdict</h2>
+        <p class="out-section-intro">The bottom line for your inputs — does the switch cut emissions, by how much, and what it does to your bill. The numbers that back it up follow below.</p>
       </div>
-      <div class="card">
-        <div class="card-title-row">
-          <span class="card-title">Annual greenhouse-gas emissions — where they come from</span>
-          <span class="card-sub" id="ghg-basis"></span>
+      <div class="summary-lede" id="summary"></div>
+      <div class="verdict" id="verdict">
+        <div class="verdict-main" id="verdict-main"></div>
+        <div class="verdict-pill" id="verdict-pill"></div>
+      </div>
+      <div id="stats"></div>
+    </section>
+
+    <!-- ═══ 02 · Where your emissions come from ═══ -->
+    <section class="out-section" id="section-emissions">
+      <div class="out-section-head">
+        <div class="out-section-eyebrow">02</div>
+        <h2 class="out-section-title">Where your emissions come from</h2>
+        <p class="out-section-intro">A like-for-like before → after comparison, then exactly which categories make up each total.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title-row">
+            <span class="card-title">Annual emissions — before → after</span>
+            <span class="card-sub" id="ba-ghg-basis"></span>
+          </div>
+          <div class="beforeafter" id="ba-ghg"></div>
+          <div class="note" id="ba-ghg-note"></div>
         </div>
-        <div class="ghgbar-wrap" id="ghgbars"></div>
-        <div class="legend" id="ghg-legend"></div>
-        <div class="note" id="ghg-note"></div>
+        <div class="card">
+          <div class="card-title-row">
+            <span class="card-title">By category — where they come from</span>
+            <span class="card-sub" id="ghg-basis"></span>
+          </div>
+          <div class="ghgbar-wrap" id="ghgbars"></div>
+          <div class="legend" id="ghg-legend"></div>
+          <div class="note" id="ghg-note"></div>
+        </div>
       </div>
 
       <!-- Calculation walkthrough -->
@@ -441,12 +469,12 @@ footer a{color:var(--muted)}
       </div>
     </section>
 
-    <!-- ═══ 2 · How the model works (tabbed) ═══ -->
+    <!-- ═══ 03 · Why: heat needed vs heat delivered (tabbed) ═══ -->
     <section class="out-section" id="section-how">
       <div class="out-section-head">
-        <div class="out-section-eyebrow">02</div>
-        <h2 class="out-section-title">How the model works</h2>
-        <p class="out-section-intro">The load-vs-capacity chart below is the one that explains everything else — switch tabs to see who actually delivers the heat, and how the equipment itself performs across temperature.</p>
+        <div class="out-section-eyebrow">03</div>
+        <h2 class="out-section-title">Why: heat needed vs. heat delivered</h2>
+        <p class="out-section-intro">The one chart that explains the whole model — how much heat the home needs at each outdoor temperature, how much the pump can supply, and where the backup steps in. Switch tabs to see who delivers each hour's heat, and the equipment's own performance curve.</p>
       </div>
 
       <div class="seg" id="how-tabs" role="tablist" aria-label="Model view" style="max-width:640px;margin-bottom:1rem">
@@ -518,10 +546,10 @@ footer a{color:var(--muted)}
       </div>
     </section>
 
-    <!-- ═══ 3 · Across the year ═══ -->
+    <!-- ═══ 04 · Across the year ═══ -->
     <section class="out-section" id="section-year">
       <div class="out-section-head">
-        <div class="out-section-eyebrow">03</div>
+        <div class="out-section-eyebrow">04</div>
         <h2 class="out-section-title">Across the year</h2>
         <p class="out-section-intro">Same simulation, sliced by month and then by hour.</p>
       </div>
@@ -541,26 +569,6 @@ footer a{color:var(--muted)}
       <div class="card">
         <div class="card-title-row"><span class="card-title">Monthly emissions — before vs after</span><span class="card-sub" id="month-ghg-basis"></span></div>
         <div class="cw cw-lg"><canvas id="monthGhgChart"></canvas></div>
-      </div>
-
-      <!-- Annual energy & GHG binned by outdoor temperature -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title-row">
-            <span class="card-title">Annual energy, by outdoor temperature</span>
-            <span class="card-sub">purchased energy per 2 °C band, before vs after</span>
-          </div>
-          <div class="cw cw-md"><canvas id="tempEnergyChart"></canvas></div>
-          <div class="note" id="temp-energy-note"></div>
-        </div>
-        <div class="card">
-          <div class="card-title-row">
-            <span class="card-title">Annual emissions, by outdoor temperature</span>
-            <span class="card-sub" id="temp-ghg-basis"></span>
-          </div>
-          <div class="cw cw-md"><canvas id="tempGhgChart"></canvas></div>
-          <div class="note" id="temp-ghg-note"></div>
-        </div>
       </div>
 
       <!-- Hourly chart -->
@@ -584,11 +592,39 @@ footer a{color:var(--muted)}
       </div>
     </section>
 
-    <!-- ═══ 4 · Sensitivity lenses ═══ -->
+    <!-- ═══ 05 · What it costs to run ═══ -->
+    <section class="out-section" id="section-cost">
+      <div class="out-section-head">
+        <div class="out-section-eyebrow">05</div>
+        <h2 class="out-section-title">What it costs to run</h2>
+        <p class="out-section-intro">What the switch does to the actual power/gas bill at today's provincial rates — running cost only, not equipment or payback.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-title">Annual operating cost</span>
+          <span class="card-sub" id="cost-basis"></span>
+        </div>
+        <div class="cost-plan-row" id="cost-plan-row" style="display:none">
+          <label for="in-plan">Electricity price plan</label>
+          <select id="in-plan"></select>
+          <span class="ctrl-hint" id="plan-hint"></span>
+        </div>
+        <div class="beforeafter" id="ba-cost" style="margin-bottom:1.1rem"></div>
+        <div id="cost-body">
+          <div class="cost-hook">
+            <div class="ch-title">Loading current energy prices…</div>
+            <div class="ch-body">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code>.</div>
+          </div>
+        </div>
+        <div class="note" id="cost-note" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- ═══ 06 · How confident should you be? ═══ -->
     <section class="out-section" id="section-sensitivity">
       <div class="out-section-head">
-        <div class="out-section-eyebrow">04</div>
-        <h2 class="out-section-title">Sensitivity lenses</h2>
+        <div class="out-section-eyebrow">06</div>
+        <h2 class="out-section-title">How confident should you be?</h2>
         <p class="out-section-intro">How much do the headline numbers move if the weather is colder, the equipment is a different size, or the grid's carbon is priced differently?</p>
       </div>
 
@@ -641,33 +677,6 @@ footer a{color:var(--muted)}
       </div>
     </section>
 
-    <!-- ═══ 5 · Operating cost ═══ -->
-    <section class="out-section" id="section-cost">
-      <div class="out-section-head">
-        <div class="out-section-eyebrow">05</div>
-        <h2 class="out-section-title">Operating cost</h2>
-        <p class="out-section-intro">What the switch does to the actual power/gas bill, not just emissions.</p>
-      </div>
-      <div class="card">
-        <div class="card-title-row">
-          <span class="card-title">Annual operating cost</span>
-          <span class="card-sub" id="cost-basis"></span>
-        </div>
-        <div class="cost-plan-row" id="cost-plan-row" style="display:none">
-          <label for="in-plan">Electricity price plan</label>
-          <select id="in-plan"></select>
-          <span class="ctrl-hint" id="plan-hint"></span>
-        </div>
-        <div id="cost-body">
-          <div class="cost-hook">
-            <div class="ch-title">Loading current energy prices…</div>
-            <div class="ch-body">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code>.</div>
-          </div>
-        </div>
-        <div class="note" id="cost-note" style="display:none"></div>
-      </div>
-    </section>
-
   </div>
 </main>
 
@@ -687,7 +696,7 @@ footer a{color:var(--muted)}
 
 <section class="methodology" id="methodology" aria-label="Assumptions and methodology">
   <div class="out-section-head" style="margin-bottom:.75rem">
-    <div class="out-section-eyebrow">06</div>
+    <div class="out-section-eyebrow">07</div>
     <h2 class="out-section-title">Assumptions &amp; methodology</h2>
     <p class="out-section-intro">Every number above is a modelled estimate — here's exactly how it's built, and what to distrust.</p>
   </div>
@@ -2037,15 +2046,19 @@ function render(res,opts){
   const projEnergy=proj.energy.electricity_kWh+proj.energy.backup_fuel_kWh;
   const ePct=baseEnergy>0?(baseEnergy-projEnergy)/baseEnergy*100:0;
   const stats=[
-    {label:'Emissions now',val:fmtGHG(baseT),sub:`${FUEL_LABEL[state.fuel]} heating`,cls:'red',tip:TIP.now},
-    {label:'Emissions with heat pump',val:fmtGHG(projT),sub:`${basisAdj(state.efBasis)} grid basis`,cls:'green',tip:TIP.after},
-    {label:'Change',val:nearZeroBase?(cut>=0?'−':'+')+fmtGHG(Math.abs(cut)):(cut>=0?'−':'+')+Math.abs(Math.round(pct))+'%',sub:nearZeroBase?'grid already ~carbon-free':`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cls:cut>=0?'green':'red',tip:TIP.change},
-    {label:'Energy purchased',val:(ePct>=0?'−':'+')+Math.abs(Math.round(ePct))+'%',sub:`${fmtI(baseEnergy)} → ${fmtI(projEnergy)} kWh/yr`,cls:ePct>=0?'green':'red',tip:TIP.energy},
-    {label:'Operating cost',val:'…',sub:'loading current rates…',cls:'',id:'stat-cost',tip:TIP.cost},
-    {label:'Seasonal COP',val:scop,sub:`${fmtI(proj.energy.electricity_kWh)} kWh electricity/yr`,cls:'accent',tip:TIP.cop},
-    topupStat,
+    {tier:'Emissions',label:'Emissions now',val:fmtGHG(baseT),sub:`${FUEL_LABEL[state.fuel]} heating`,cls:'red',tip:TIP.now},
+    {tier:'Emissions',label:'Emissions with heat pump',val:fmtGHG(projT),sub:`${basisAdj(state.efBasis)} grid basis`,cls:'green',tip:TIP.after},
+    {tier:'Emissions',label:'Change',val:nearZeroBase?(cut>=0?'−':'+')+fmtGHG(Math.abs(cut)):(cut>=0?'−':'+')+Math.abs(Math.round(pct))+'%',sub:nearZeroBase?'grid already ~carbon-free':`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cls:cut>=0?'green':'red',tip:TIP.change},
+    {tier:'Cost & energy',label:'Energy purchased',val:(ePct>=0?'−':'+')+Math.abs(Math.round(ePct))+'%',sub:`${fmtI(baseEnergy)} → ${fmtI(projEnergy)} kWh/yr`,cls:ePct>=0?'green':'red',tip:TIP.energy},
+    {tier:'Cost & energy',label:'Operating cost',val:'…',sub:'loading current rates…',cls:'',id:'stat-cost',tip:TIP.cost},
+    {tier:'Equipment',label:'Seasonal COP',val:scop,sub:`${fmtI(proj.energy.electricity_kWh)} kWh electricity/yr`,cls:'accent',tip:TIP.cop},
+    Object.assign({tier:'Equipment'},topupStat),
   ];
-  $('stats').innerHTML=stats.map(s=>`<div class="stat-card"${s.id?` id="${s.id}"`:''}><div class="stat-label">${statLabelHTML(s.label,s.tip)}</div><div class="stat-value ${s.cls}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+  const tierOrder=['Emissions','Cost & energy','Equipment'];
+  $('stats').innerHTML=tierOrder.map(t=>{
+    const cards=stats.filter(s=>s.tier===t).map(s=>`<div class="stat-card"${s.id?` id="${s.id}"`:''}><div class="stat-label">${statLabelHTML(s.label,s.tip)}</div><div class="stat-value ${s.cls}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+    return `<div class="kpi-tier"><div class="kpi-tier-label">${t}</div><div class="stats-grid">${cards}</div></div>`;
+  }).join('');
 
   // ---- one-line synthesis (energy + carbon + cost); cost clause filled by renderCost ----
   const energyClause=`uses <b>${Math.abs(Math.round(ePct))}% ${ePct>=0?'less':'more'} energy</b>`;
@@ -2062,8 +2075,9 @@ function render(res,opts){
   // ---- calculation walkthrough ----
   renderWalkthrough(res,opts);
 
-  // ---- GHG bars ----
+  // ---- GHG bars + before/after comparison ----
   renderGhgBars(base,proj);
+  renderBeforeAfterGhg(baseT,projT,cut,pct,nearZeroBase);
 
   // ---- key chart ----
   renderKeyChart(opts);
@@ -2076,8 +2090,6 @@ function render(res,opts){
   renderEnergyChart(base,proj);
   renderMonthEnergyChart(proj);
   renderMonthGhgChart(base,proj);
-  renderTempEnergyChart(res);
-  renderTempGhgChart(res);
   renderHourlyChart(res);
   // This preview/renderer does not reliably pump requestAnimationFrame, so
   // Chart.js's first frame can fail to paint. Force a synchronous draw.
@@ -2089,8 +2101,9 @@ function render(res,opts){
   const badj=basisAdj(state.efBasis);
   const yrTag=state.efBasis==='annual'&&annualAvgFor(CITY_PROV[state.city])?` ${annualAvgFor(CITY_PROV[state.city]).year}`:'';
   $('ghg-basis').textContent=`${badj} grid${yrTag} · ${prov} ≈ ${fmt1(lvl)} g CO₂e/kWh`;
+  $('ba-ghg-basis').textContent=`${badj} grid basis`;
+  $('ba-ghg-note').innerHTML=`Whole-home heating emissions for a typical year, before and after — same delivered heat, priced at the <b>${badj}</b> grid intensity. The <b>avoided</b> bar is the difference.`;
   $('month-ghg-basis').textContent=`${badj} grid basis`;
-  $('temp-ghg-basis').textContent=`hourly emissions per 2 °C band · ${badj} grid basis`;
   $('ghg-note').innerHTML=`Bars are stacked by source. On-site combustion is the fuel burned in the home; electricity is grid emissions for the heat pump + any electric backup, priced at the <b>${badj}</b> intensity. Refrigerant and upstream fuel-supply terms are adjustable in Advanced.`;
   $('energy-note').innerHTML=state.fuel==='electric'
     ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
@@ -2229,6 +2242,21 @@ function renderGhgBars(base,proj){
   });
   $('ghgbars').innerHTML=html;
   $('ghg-legend').innerHTML=GHG_CATS.map(c=>`<span class="legend-item"><span class="legend-dot" style="background:${c.color}"></span>${c.name}</span>`).join('');
+}
+
+// Before → after comparison bar: the two annual totals plus the avoided (or
+// added) difference, echoing retrofits.html's before/after + delta idiom.
+function renderBeforeAfterGhg(baseT,projT,cut,pct,nearZeroBase){
+  const el=$('ba-ghg'); if(!el) return;
+  const max=Math.max(baseT,projT,1e-9);
+  const w=v=>Math.max(2,100*Math.abs(v)/max);
+  const saves=cut>=0;
+  const rows=[
+    `<div class="ba-row"><span class="ba-lbl">Now — ${FUEL_LABEL[state.fuel]}</span><span class="ba-bar" style="width:${w(baseT)}%;background:var(--red)"></span><span class="ba-val">${fmtGHG(baseT)}</span></div>`,
+    `<div class="ba-row"><span class="ba-lbl">Heat pump</span><span class="ba-bar" style="width:${w(projT)}%;background:${saves?'var(--green)':'var(--red)'}"></span><span class="ba-val">${fmtGHG(projT)}</span></div>`,
+    `<div class="ba-row"><span class="ba-lbl" style="color:var(--amber)">${saves?'Avoided':'Added'}</span><span class="ba-bar" style="width:${w(cut)}%;background:var(--amber2)"></span><span class="ba-val">${fmtGHG(Math.abs(cut))}${nearZeroBase?'':' · '+(saves?'−':'+')+Math.abs(Math.round(pct))+'%'}</span></div>`,
+  ];
+  el.innerHTML=rows.join('');
 }
 
 // Capacity (kW) and COP at outdoor temperature T for the charts, going through
@@ -2807,63 +2835,6 @@ function renderMonthGhgChart(base,proj){
   }});
 }
 
-// ---- Chart.js: annual energy & GHG binned by outdoor temperature ----
-// Every hour of the TMY year is dropped into the same 2 °C bins the grid-EF
-// surface uses (E.tempBinLeft); each bar is the SUM over that bin's hours, so
-// the charts show where the year's energy and emissions actually accumulate —
-// many mild hours can outweigh a few brutal ones.
-function binByTemp(res){
-  const temps=TMY[state.city], h=res.hourly, map=new Map();
-  for(let i=0;i<temps.length;i++){
-    if(h.load_kW[i]<=0)continue; // above balance point: nothing runs
-    const b=E.tempBinLeft(temps[i]);
-    let r=map.get(b);
-    if(!r){r={load:0,baseE:0,hpE:0,bkE:0,baseG:0,projG:0};map.set(b,r);}
-    r.load+=h.load_kW[i];
-    r.baseE+=h.base_energy_kWh[i]; r.hpE+=h.hp_elec_kWh[i]; r.bkE+=h.backup_energy_kWh[i];
-    r.baseG+=h.base_ghg_kg[i]; r.projG+=h.proj_ghg_kg[i];
-  }
-  const bins=[...map.keys()].sort((a,b)=>a-b);
-  return {bins,rows:bins.map(b=>map.get(b)),labels:bins.map(b=>`${fmtSigned(b)}…${fmtSigned(b+2)}°`)};
-}
-function renderTempEnergyChart(res){
-  destroy('tempEnergy');
-  const {rows,labels}=binByTemp(res);
-  const baseIsFuel=state.fuel!=='electric';
-  const bkIsFuel=state.backup==='gas'||state.backup==='oil';
-  const ds=[
-    {label:`Now — ${FUEL_LABEL[state.fuel]}${baseIsFuel?' fuel':''}`,data:rows.map(r=>r.baseE),backgroundColor:css(baseIsFuel?'--amber':'--purple'),stack:'now'},
-    {label:'HP electricity',data:rows.map(r=>r.hpE),backgroundColor:css('--blue'),stack:'hp'},
-  ];
-  if(state.backup!=='none')
-    ds.push({label:bkIsFuel?'Backup fuel':'Backup electricity',data:rows.map(r=>r.bkE),backgroundColor:css(bkIsFuel?'--amber':'--purple'),stack:'hp'});
-  charts.tempEnergy=new Chart($('tempEnergyChart'),{type:'bar',data:{labels,datasets:ds},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,
-    scales:{x:{stacked:true,ticks:{color:css('--light'),maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},title:{display:true,text:'Outdoor temperature (2 °C bins)',color:css('--muted'),font:{size:11}}},
-      y:{stacked:true,title:{display:true,text:'kWh / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtI(v)},grid:{color:css('--surface')}}},
-    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},
-      tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.y)+' kWh'}}}
-  }});
-  const scop=res.project.diagnostics.seasonal_cop;
-  $('temp-energy-note').innerHTML=`Side-by-side bars: purchased energy for the same heat, now vs with the heat pump, summed per temperature band. The heat pump's bars are shorter everywhere it runs — that gap is the COP (seasonal ${scop?fmt1(scop):'–'}). Where backup appears, the pump alone could not carry the band.`;
-}
-function renderTempGhgChart(res){
-  destroy('tempGhg');
-  const {rows,labels}=binByTemp(res);
-  const ds=[
-    {label:'Now',data:rows.map(r=>r.baseG),backgroundColor:css('--red')},
-    {label:'Heat pump',data:rows.map(r=>r.projG),backgroundColor:css('--green')},
-  ];
-  charts.tempGhg=new Chart($('tempGhgChart'),{type:'bar',data:{labels,datasets:ds},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,
-    scales:{x:{ticks:{color:css('--light'),maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},title:{display:true,text:'Outdoor temperature (2 °C bins)',color:css('--muted'),font:{size:11}}},
-      y:{title:{display:true,text:'kg CO₂e / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}}},
-    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},
-      tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.y)+' kg CO₂e'}}}
-  }});
-  $('temp-ghg-note').innerHTML=`Hour-by-hour heating emissions (combustion + grid electricity at the <b>${basisAdj(state.efBasis)}</b> intensity) summed per temperature band. Annual one-off terms (refrigerant, upstream fuel supply) are not in these bars — see the stacked totals above.`;
-}
-
 // ---- Chart.js: hourly (8760 h) grid EF / heat demand / heating GHG ----
 const DAY0_MONTH=[0,31,59,90,120,151,181,212,243,273,304,334]; // cum. days, non-leap, matches TMY
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3091,6 +3062,7 @@ function setCostStat(val,sub,cls){
 function renderCost(res){
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],body=$('cost-body'),note=$('cost-note');
   $('cost-basis').textContent='current residential rates · pre-tax';
+  {const b=$('ba-cost');if(b)b.innerHTML='';}
   if(!P){
     $('cost-plan-row').style.display='none';
     body.innerHTML='<div class="cost-hook"><div class="ch-title">Current rates unavailable</div><div class="ch-body">The energy-prices file for this province (<code>prices_json/'+prov+'.json</code>) could not be loaded, so this run compares energy and emissions only.</div></div>';
@@ -3139,6 +3111,13 @@ function renderCost(res){
 
   const delta=baseCost-projCost;
   const saves=delta>=0;
+  const baEl=$('ba-cost');
+  if(baEl){
+    const maxC=Math.max(baseCost,projCost,1e-9),wC=v=>Math.max(2,100*v/maxC);
+    baEl.innerHTML=
+      `<div class="ba-row"><span class="ba-lbl">Now — ${FUEL_LABEL[state.fuel]}</span><span class="ba-bar" style="width:${wC(baseCost)}%;background:var(--red)"></span><span class="ba-val">${fmt$(baseCost)}/yr</span></div>`+
+      `<div class="ba-row"><span class="ba-lbl">Heat pump</span><span class="ba-bar" style="width:${wC(projCost)}%;background:${saves?'var(--green)':'var(--red)'}"></span><span class="ba-val">${fmt$(projCost)}/yr</span></div>`;
+  }
   const screening=[elec,state.fuel==='gas'||state.backup==='gas'?gas:null]
     .some(s=>s&&s.confidence==='low');
   setCostStat((saves?'−':'+')+fmt$(Math.abs(delta)),`${fmt$(baseCost)} → ${fmt$(projCost)} per year${screening?' · screening estimate':''}`,saves?'green':'red');

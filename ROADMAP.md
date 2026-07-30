@@ -1,13 +1,22 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-29** (heat-pump engine rebuild **implemented**: design-load +
+Updated **2026-07-30** (heat-pump **page re-organised** on the retrofit-page
+pattern: outcome-first 7-section flow — 01 The verdict (one consolidated block
+with KPI tiers: Emissions / Cost & energy / Equipment), 02 Where your emissions
+come from (new before→after emissions bar beside the by-category bars), 03 Why:
+heat needed vs delivered (was "How the model works"), 04 Across the year (the two
+by-outdoor-temperature charts removed as redundant with §03), 05 What it costs to
+run (new before→after cost bar; promoted above sensitivity), 06 How confident
+should you be? (was "Sensitivity lenses"), 07 methodology. Single-view (no
+Simple/Advanced toggle). Prior pass 2026-07-29 (heat-pump engine rebuild
+**implemented**: design-load +
 balance-point sliders replace archetype auto-sizing, tier × capacity-band
 dropdowns pin one of 9 real AHRI-certified cell curves from the new
 `build_cell_curves.py` pipeline, backup switchover is derived from backup type
 instead of a manual control-strategy dropdown, and the propane
 efficiency/methane-leak engine bugs are fixed in both `engine.js` and the
-inlined copy. `validate_engine.py` passes. Prior pass 2026-07-28 (heat-pump
+inlined copy. `validate_engine.py` passes.) Prior pass 2026-07-28 (heat-pump
 engine rebuild redirected: F280 excludes gains so the ERS design heat loss
 stands, sizing moves to a user-set design load, NRCan archetypes parked,
 selection becomes tier × capacity — tier-selection scatter built). Same day:
@@ -34,7 +43,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
