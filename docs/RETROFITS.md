@@ -90,6 +90,12 @@ address identifier (`HOUSEID`); area is identified by the first three characters
 postal code (`CLIENTPCODE` → `FSA`). These are **modelled** estimates, not metered
 utility consumption.
 
+The source extract carries 433 columns per audit record; this tool reads 48 of them. For
+the full column-by-column picture — every ERS column with its fill rate and cardinality,
+not just the ones this page uses — see [ERS_DATA_DICTIONARY.md](ERS_DATA_DICTIONARY.md).
+`retrofits.html` itself has the used-column breakdown (source column, conversion factor,
+what it feeds) in its own "Data availability" collapsible section.
+
 ---
 
 ## The data pipeline
