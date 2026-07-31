@@ -898,6 +898,77 @@
   </div>
 </section>
 
+<section class="methodology" aria-label="ERS data availability">
+  <details>
+    <summary>Data availability — every ERS column vs. what this page uses</summary>
+    <div class="method-body">
+      <p>The public EnerGuide/ERS extract carries <strong>433 columns</strong> per audit record. This page reads <strong>48</strong> of them. The table below is every one of those 48, grouped in pipeline order, with its % filled (measured across all 4,542,544 raw audit records — see caveat below), the unit conversion applied if any, and exactly what it's used for. The full 433-column reference, with the same fill-rate methodology, is in <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/ERS_DATA_DICTIONARY.md" target="_blank" rel="noopener">ERS_DATA_DICTIONARY.md</a>.</p>
+      <div class="method-table-wrap"><table>
+        <thead><tr><th>ERS source column</th><th>Used as</th><th>% filled</th><th>Conversion</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Identity &amp; pairing</td></tr>
+          <tr><td><code>HOUSEID</code></td><td><code>HOUSEID</code></td><td>100.0%</td><td>&mdash;</td><td>Pairing key: matches one home&#x27;s before (D) and after (E) audits</td></tr>
+          <tr><td><code>CLIENTPCODE</code></td><td><code>FSA</code></td><td>100.0%</td><td>&mdash;</td><td>FSA (postal first 3 chars) -- area selector, map</td></tr>
+          <tr><td><code>PROVINCE</code></td><td><code>PT</code></td><td>100.0%</td><td>&mdash;</td><td>Province selector</td></tr>
+          <tr><td><code>YEARBUILT</code></td><td><code>YearBuilt</code></td><td>100.0%</td><td>&mdash;</td><td>Year-built distribution</td></tr>
+          <tr><td><code>FLOORAREA</code></td><td><code>FloorArea</code></td><td>100.0%</td><td>&mdash;</td><td>Floor-area distribution; same-home match gate (≤10% change pre/post)</td></tr>
+          <tr><td><code>TYPEOFHOUSE</code></td><td><code>BldgType</code></td><td>100.0%</td><td>&mdash;</td><td>Building-type filter/breakdown; same-home match gate (must match pre/post)</td></tr>
+          <tr><td><code>STOREYS</code></td><td><code>Storeys</code></td><td>100.0%</td><td>&mdash;</td><td>Storeys distribution; same-home match gate (must match pre/post)</td></tr>
+          <tr><td><code>FNDTYPE</code></td><td><code>FoundationType</code></td><td>90.3%</td><td>&mdash;</td><td>Foundation type (displayed)</td></tr>
+          <tr><td><code>NUMDWELLINGUNITS</code></td><td><span class="caveats" style="border:none;padding:0">(filter/flag only, not a displayed column)</span></td><td>48.2%</td><td>&mdash;</td><td>Same-home match gate (must match pre/post) -- not shown in table</td></tr>
+          <tr><td><code>EVALTYPE</code></td><td><span class="caveats" style="border:none;padding:0">(filter/flag only, not a displayed column)</span></td><td>100.0%</td><td>&mdash;</td><td>Splits each row into &quot;before&quot; (D) vs &quot;after&quot; (E) audit</td></tr>
+          <tr><td><code>ENTRYDATE</code></td><td><code>Pre_/Post_Date</code></td><td>100.0%</td><td>&mdash;</td><td>Audit date; pairing order gate (E must postdate D); audit-year extraction</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Energy totals, per fuel (whole-house)</td></tr>
+          <tr><td><code>EGHFCONTOTAL</code></td><td><code>Pre_/Post_TotalEnergy</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>% energy saved; retrofit depth (shallow/medium/deep) thresholds</td></tr>
+          <tr><td><code>EGHFURNACEAEC</code></td><td><code>Pre_/Post_HeatEnergy</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>% heating energy saved</td></tr>
+          <tr><td><code>EGHFCONELEC</code></td><td><code>Pre_/Post_Electricity</code></td><td>100.0%</td><td>&mdash;</td><td>Energy-by-fuel chart, fuel Sankey</td></tr>
+          <tr><td><code>EGHFCONNGAS</code></td><td><code>Pre_/Post_NaturalGas</code></td><td>100.0%</td><td>× 10.3611 (m³ → kWh)</td><td>Energy-by-fuel chart, fuel Sankey</td></tr>
+          <tr><td><code>EGHFCONOIL</code></td><td><code>Pre_/Post_Oil</code></td><td>100.0%</td><td>× 10.7778 (L → kWh)</td><td>Energy-by-fuel chart, fuel Sankey</td></tr>
+          <tr><td><code>EGHFCONPROP</code></td><td><code>Pre_/Post_Propane</code></td><td>100.0%</td><td>× 7.0917 (L → kWh)</td><td>Energy-by-fuel chart, fuel Sankey</td></tr>
+          <tr><td><code>EGHFCONWOOD</code></td><td><code>Pre_/Post_Wood</code></td><td>100.0%</td><td>× 3888.89 (tonne → kWh, fallback)</td><td>Energy-by-fuel chart, fuel Sankey (tonnes fallback path)</td></tr>
+          <tr><td><code>EGHFCONWOODGJ</code></td><td><span class="caveats" style="border:none;padding:0">&mdash;</span></td><td>43.4%</td><td>&mdash;</td><td>Preferred wood-energy source when populated (HOT2000 v11.2+)</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Heating-only energy, per fuel</td></tr>
+          <tr><td><code>EGHHEATFCONSE</code></td><td><code>Pre_/Post_HeatElectricity</code></td><td>94.2%</td><td>× 0.27778 (MJ → kWh)</td><td>Heating-only per-fuel breakdown</td></tr>
+          <tr><td><code>EGHHEATFCONSG</code></td><td><code>Pre_/Post_HeatNaturalGas</code></td><td>94.2%</td><td>× 0.27778 (MJ → kWh)</td><td>Heating-only per-fuel breakdown</td></tr>
+          <tr><td><code>EGHHEATFCONSO</code></td><td><code>Pre_/Post_HeatOil</code></td><td>94.2%</td><td>× 0.27778 (MJ → kWh)</td><td>Heating-only per-fuel breakdown</td></tr>
+          <tr><td><code>EGHHEATFCONSP</code></td><td><code>Pre_/Post_HeatPropane</code></td><td>94.2%</td><td>× 0.27778 (MJ → kWh)</td><td>Heating-only per-fuel breakdown</td></tr>
+          <tr><td><code>EGHHEATFCONSW</code></td><td><code>Pre_/Post_HeatWood</code></td><td>94.2%</td><td>× 0.27778 (MJ → kWh)</td><td>Heating-only per-fuel breakdown</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Annual heat loss by component</td></tr>
+          <tr><td><code>EGHHLAIR</code></td><td><code>Pre_/Post_HeatLossAir</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (infiltration)</td></tr>
+          <tr><td><code>EGHHLCEILING</code></td><td><code>Pre_/Post_HeatLossRoof</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (roof)</td></tr>
+          <tr><td><code>EGHHLWALLS</code></td><td><code>Pre_/Post_HeatLossWall</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (wall)</td></tr>
+          <tr><td><code>EGHHLFOUND</code></td><td><code>Pre_/Post_HeatLossFoundation</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (foundation)</td></tr>
+          <tr><td><code>EGHHLEXPOSEDFLR</code></td><td><code>Pre_/Post_HeatLossFloor</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (exposed floor)</td></tr>
+          <tr><td><code>EGHHLWINDOOR</code></td><td><code>Pre_/Post_HeatLossWindowDoor</code></td><td>100.0%</td><td>× 0.27778 (MJ → kWh)</td><td>&quot;Where the heat escapes&quot; component chart (window/door)</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Ventilation</td></tr>
+          <tr><td><code>CENVENTSYSTYPE</code></td><td><code>Pre_/Post_VentType</code></td><td>100.0%</td><td>&mdash;</td><td>Ventilation type (HRV/none/exhaust-only), displayed</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Envelope</td></tr>
+          <tr><td><code>AIR50P</code></td><td><code>Pre_/Post_AirLeakage</code></td><td>100.0%</td><td>&mdash;</td><td>Air_Tightness_Upgrade flag (post &lt;0.90× pre); air-tightness chart</td></tr>
+          <tr><td><code>CEILINS</code></td><td><code>Pre_/Post_RoofInsulation</code></td><td>100.0%</td><td>&mdash;</td><td>Roof_Insulation_Upgrade flag (post &gt;1.10× pre); roof insulation chart</td></tr>
+          <tr><td><code>MAINWALLINS</code></td><td><code>Pre_/Post_WallInsulation</code></td><td>100.0%</td><td>&mdash;</td><td>Wall_Insulation_Upgrade flag (post &gt;1.10× pre); wall insulation chart</td></tr>
+          <tr><td><code>FNDWALLINS</code></td><td><code>Pre_/Post_FoundationInsulation</code></td><td>100.0%</td><td>&mdash;</td><td>Foundation_Insulation_Upgrade flag (post &gt;1.10× pre); foundation chart</td></tr>
+          <tr><td><code>EGHINEXPOSEDFLR</code></td><td><code>Pre_/Post_FloorInsulation</code></td><td>100.0%</td><td>&mdash;</td><td>Floor_Insulation_Upgrade flag (post &gt;1.10× pre); floor insulation chart</td></tr>
+          <tr><td><code>WINDOWCODE</code></td><td><code>Pre_/Post_WindowCode</code></td><td>88.4%</td><td>&mdash;</td><td>Windows_Change flag (code present + different pre/post)</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">HVAC</td></tr>
+          <tr><td><code>FURNACEFUEL</code></td><td><code>Pre_/Post_HeatFuel</code></td><td>100.0%</td><td>&mdash;</td><td>Heating_Change / FuelSwitch flags; fuel breakdown, Sankey</td></tr>
+          <tr><td><code>FURNACETYPE</code></td><td><code>Pre_/Post_HeatType</code></td><td>100.0%</td><td>&mdash;</td><td>Heating_Change flag; equipment-type display</td></tr>
+          <tr><td><code>HEATAFUE</code></td><td><code>Pre_/Post_HeatAFUE</code></td><td>94.2%</td><td>&mdash;</td><td>Equipment efficiency, displayed</td></tr>
+          <tr><td><code>EGHFURSEASEFF</code></td><td><code>Pre_/Post_HeatSeasonalCOP</code></td><td>100.0%</td><td>&mdash;</td><td>Heat pump seasonal COP, displayed</td></tr>
+          <tr><td><code>HPSOURCE</code></td><td><code>Pre_/Post_HPType</code></td><td>100.0%</td><td>&mdash;</td><td>HeatPump_Addition flag (no HP pre, HP present post)</td></tr>
+          <tr><td><code>COP</code></td><td><code>Pre_/Post_HPCOP</code></td><td>100.0%</td><td>&mdash;</td><td>Heat pump COP, displayed</td></tr>
+          <tr><td><code>AHRI</code></td><td><code>Pre_/Post_HPAHRI</code></td><td>36.8%</td><td>&mdash;</td><td>Join key to AHRI certificate lookup (capacity/HSPF2/brand/model)</td></tr>
+          <tr><td><code>AIRCONDTYPE</code></td><td><span class="caveats" style="border:none;padding:0">(filter/flag only, not a displayed column)</span></td><td>94.0%</td><td>&mdash;</td><td>Cooling_Change flag -- not itself shown in table</td></tr>
+          <tr><td colspan="5" style="padding-top:.85rem;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:none">Design heat loss, GHG &amp; solar</td></tr>
+          <tr><td><code>EGHDESHTLOSS</code></td><td><code>Pre_/Post_HeatLoss</code></td><td>100.0%</td><td>× 0.001 (W → kW)</td><td>Design (peak) heat-loss chart; heat-pump sizing-ratio calc</td></tr>
+          <tr><td><code>ERSGHG</code></td><td><code>Pre_/Post_GHG</code></td><td>55.1%</td><td>&mdash;</td><td>GHG emissions chart</td></tr>
+          <tr><td><code>KWPV</code></td><td><code>Pre_/Post_SolarPV</code></td><td>36.8%</td><td>&mdash;</td><td>Solar PV added, KPI + chart</td></tr>
+        </tbody>
+      </table></div>
+      <p class="caveats"><strong>% filled</strong> is measured across all raw D/E audit records, not the smaller before/after-matched sample the charts above use, so it reads a little higher than what a single matched retrofit record has filled in. <code>EVALTYPE</code>, <code>AIRCONDTYPE</code> and <code>NUMDWELLINGUNITS</code> are used only to split before/after records or gate the same-home pairing match (section A above) — they never appear as a displayed value, so they carry no conversion factor and no "used as" name.</p>
+    </div>
+  </details>
+</section>
+
 <footer>
   Data: <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · <span id="footer-province">Canadian home energy audits</span> 2004–2026 · dataset last rebuilt July 2026<br>
   Values are modelled energy estimates, not metered consumption. Retrofit costs not available in source data.<br>
