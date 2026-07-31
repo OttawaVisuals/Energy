@@ -726,6 +726,16 @@ function load(){
   COST_PV=COST_PRICE_CACHE.has(PROVINCE_CODE)?COST_PRICE_CACHE.get(PROVINCE_CODE):null;
   fetchPriceVec(PROVINCE_CODE).then(pv=>{if(myToken!==LOAD_TOKEN)return;COST_PV=pv;refreshCostCard();});
 
+  // Retrofit-cost province/national summary (proof of concept — separate
+  // tree from fsa_json, see docs/RETROFIT_COSTS.md). Warmed the same way as
+  // COST_PV above; the per-FSA per-house data is fetched separately in
+  // loadFsaView(), only once an FSA is actually selected.
+  loadRetroDict();
+  RETRO_PROVINCE_SUMMARY=PROVINCE_CODE==='CA'?RETRO_CANADA_SUMMARY
+    :(RETRO_SUMMARY_CACHE.has(PROVINCE_CODE)?RETRO_SUMMARY_CACHE.get(PROVINCE_CODE):null);
+  const retroSummaryFetch=PROVINCE_CODE==='CA'?fetchRetroCanada():fetchRetroSummary(PROVINCE_CODE);
+  retroSummaryFetch.then(s=>{if(myToken!==LOAD_TOKEN)return;RETRO_PROVINCE_SUMMARY=s;if(MODE==='province')renderRetrofitCost();});
+
   // "All of Canada" is a synthetic aggregate (see aggregate_canada.py) with
   // no per-FSA breakdown — fsa_json has no CA/ folder, so skip straight to
   // the province-wide (here, country-wide) summary view.
@@ -774,6 +784,13 @@ function loadFsaView(myToken){
   const prov=PROVINCES[PROVINCE_CODE];
   setLoading(true);
   $('result-count').textContent='…';
+  // Retrofit-cost companion fetch, in parallel with the row fetch — a
+  // separate file/tree (retrofit_costs_json/), not part of fsa_json (see
+  // docs/RETROFIT_COSTS.md). Joined to ALL rows by HOUSEID once both land;
+  // a 404 (province/FSA not yet priced) resolves to an empty map, not an
+  // error — the retrofit-cost card just stays hidden.
+  RETRO_COST_MAP=new Map();
+  const retroFetch=fetchRetroFsa(PROVINCE_CODE,SELECTED_FSA);
   fetchFsaRows(PROVINCE_CODE,SELECTED_FSA).then(rows=>{
     if(myToken!==LOAD_TOKEN)return;
     ALL=rows;
@@ -785,6 +802,18 @@ function loadFsaView(myToken){
     showFsaFilterControls(true);
     updateAreaChip();
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${SELECTED_FSA} · ${ALL.length.toLocaleString()} matched homes`;
+    retroFetch.then(payload=>{
+      if(myToken!==LOAD_TOKEN)return;
+      const m=new Map();
+      (payload.rows||[]).forEach(row=>m.set(String(row[0]),row));
+      RETRO_COST_MAP=m;
+      // This typically resolves AFTER the applyFilters()->render() call below
+      // (retrofit_costs_json is a separate, independently-timed fetch), so
+      // the initial renderTable() runs with an empty map — re-render both
+      // once the join data actually lands.
+      renderRetrofitCost();
+      if(isAdvancedMode())renderTable();
+    });
     applyFilters(); // re-applies type/fuel/depth on top of the freshly loaded FSA rows; render() -> renderAdvancedSections() covers census
   }).catch(err=>{
     if(myToken!==LOAD_TOKEN)return;
@@ -940,7 +969,7 @@ function render(){
 
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
-  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderCost();
+  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderCost();renderRetrofitCost();
   renderKPI(n,fs);renderInsulDist();renderMeasures(n);
   renderHist(savings);renderHeatLossComponents();
   renderAdvancedSections();
@@ -1637,6 +1666,133 @@ function renderCost(){
   const deltaBins={};
   deltas.forEach(d=>{if(d>0&&d<=COST_DELTA_CAP){const k=Math.floor(d/BINS.cost)*BINS.cost;deltaBins[k]=(deltaBins[k]||0)+1;}});
   drawComboChart('cost-chart','cost',preBins,postBins,deltaBins,'$/yr');
+}
+
+// ── Retrofit cost estimate (proof of concept) ───────────────────────
+// Separate tree (retrofit_costs_json/), NOT part of fsa_json — see
+// docs/RETROFIT_COSTS.md "retrofit_costs_json companion tree". Per-FSA files
+// are the same {columns,rows} array-of-arrays shape fsa_json uses, joined to
+// ALL/FILTERED by HOUSEID (String(r.HOUSEID) === row[0], both normalized the
+// same way — see build_retrofit_costs_json.py's clean_id()).
+const RETRO_COST_JSON_BASE=`${BASE_URL}retrofit_costs_json/`;
+const RETRO_MEASURES=[
+  {key:'Roof',abbr:'Roof',label:'Roof / attic insulation'},
+  {key:'Wall',abbr:'Wall',label:'Wall insulation'},
+  {key:'Foundation',abbr:'Fnd',label:'Foundation insulation'},
+  {key:'Window',abbr:'Win',label:'Windows'},
+  {key:'ASHP',abbr:'ASHP',label:'Air source heat pump'},
+  {key:'AirSeal',abbr:'Seal',label:'Air sealing'},
+  {key:'PV',abbr:'PV',label:'Solar PV'},
+  {key:'HRV',abbr:'HRV',label:'HRV / ERV'},
+];
+const RETRO_COLS=['id'];
+RETRO_MEASURES.forEach(m=>RETRO_COLS.push(`${m.abbr}_l`,`${m.abbr}_m`,`${m.abbr}_h`));
+RETRO_COLS.push('Tot_l','Tot_m','Tot_h','ac','acs','bh','bhs','bsd','wc','wcs','sav','pbY','pbFuel');
+const RETRO_COL_IDX={};RETRO_COLS.forEach((c,i)=>RETRO_COL_IDX[c]=i);
+
+let RETRO_BAND=1; // 0=low(p10), 1=mid(p50), 2=high(p90)
+let RETRO_COST_MAP=new Map();     // FSA mode: HOUSEID string -> row array
+let RETRO_PROVINCE_SUMMARY=null;  // province/national mode: _summary.json / _canada.json payload
+let RETRO_DICT=null,RETRO_DICT_PROMISE=null;
+function loadRetroDict(){
+  if(!RETRO_DICT_PROMISE)RETRO_DICT_PROMISE=fetchJSON(`${RETRO_COST_JSON_BASE}_dictionary.json`).then(d=>{RETRO_DICT=d;return d;}).catch(()=>null);
+  return RETRO_DICT_PROMISE;
+}
+const RETRO_FSA_CACHE=new Map();
+function fetchRetroFsa(prov,fsa){
+  const key=`${prov}|${fsa}`;
+  if(RETRO_FSA_CACHE.has(key))return Promise.resolve(RETRO_FSA_CACHE.get(key));
+  return fetchJSON(`${RETRO_COST_JSON_BASE}${prov}/${fsa}.json`)
+    .then(payload=>{RETRO_FSA_CACHE.set(key,payload);return payload;})
+    .catch(()=>{const empty={columns:RETRO_COLS,rows:[]};RETRO_FSA_CACHE.set(key,empty);return empty;});
+}
+const RETRO_SUMMARY_CACHE=new Map();
+function fetchRetroSummary(prov){
+  if(RETRO_SUMMARY_CACHE.has(prov))return Promise.resolve(RETRO_SUMMARY_CACHE.get(prov));
+  return fetchJSON(`${RETRO_COST_JSON_BASE}${prov}/_summary.json`)
+    .then(d=>{RETRO_SUMMARY_CACHE.set(prov,d);return d;})
+    .catch(()=>{RETRO_SUMMARY_CACHE.set(prov,null);return null;});
+}
+let RETRO_CANADA_SUMMARY=null,RETRO_CANADA_PROMISE=null;
+function fetchRetroCanada(){
+  if(!RETRO_CANADA_PROMISE)RETRO_CANADA_PROMISE=fetchJSON(`${RETRO_COST_JSON_BASE}_canada.json`).then(d=>{RETRO_CANADA_SUMMARY=d;return d;}).catch(()=>null);
+  return RETRO_CANADA_PROMISE;
+}
+function retroRowFor(houseId){return RETRO_COST_MAP.get(String(houseId));}
+function retroVal(row,col){return row?row[RETRO_COL_IDX[col]]:null;}
+
+function setRetroBand(b){
+  RETRO_BAND=b;
+  document.querySelectorAll('#retro-band-seg .sort-btn').forEach(btn=>btn.classList.toggle('active',+btn.dataset.band===b));
+  renderRetrofitCost();
+  if(MODE==='fsa'&&isAdvancedMode())renderTable(); // table's cost/payback column follows the band too
+}
+function setRetroCostCardVisible(show){
+  const el=$('retro-cost-card');if(el)el.style.display=show?'':'none';
+}
+function toggleRetroTableCols(show){
+  const a=$('th-retro-cost'),b=$('th-retro-payback');
+  if(a)a.style.display=show?'':'none';
+  if(b)b.style.display=show?'':'none';
+}
+
+function retroMeasureTable(rows){ // rows: [{label,n,sum}]
+  const body=rows.filter(r=>r.n).map(r=>
+    `<tr><td style="padding:4px 8px;border-top:1px solid var(--border)">${r.label}</td>`+
+    `<td style="text-align:right;padding:4px 8px;border-top:1px solid var(--border)">${r.n.toLocaleString()}</td>`+
+    `<td style="text-align:right;padding:4px 8px;border-top:1px solid var(--border)">${r.sum!=null?fmtMoney(Math.round(r.sum)):'—'}</td></tr>`
+  ).join('');
+  return `<div style="overflow-x:auto"><table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:.6rem">
+    <thead><tr>
+      <th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Measure</th>
+      <th style="text-align:right;padding:4px 8px;color:var(--muted);font-weight:500">Homes priced</th>
+      <th style="text-align:right;padding:4px 8px;color:var(--muted);font-weight:500">Total est. cost</th>
+    </tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderRetrofitCost(){
+  const bandKey=['l','m','h'][RETRO_BAND],bandName=['low','mid','high'][RETRO_BAND];
+  if(MODE==='fsa'){
+    if(!RETRO_COST_MAP.size){setRetroCostCardVisible(false);toggleRetroTableCols(false);return;}
+    const totals=[],paybacks=[];
+    let sumTot=0,nPriced=0;
+    const mSum={};RETRO_MEASURES.forEach(m=>mSum[m.key]={n:0,sum:0});
+    FILTERED.forEach(r=>{
+      const row=retroRowFor(r.HOUSEID);
+      if(!row)return;
+      const tot=retroVal(row,`Tot_${bandKey}`);
+      if(tot!=null){totals.push(tot);sumTot+=tot;nPriced++;}
+      const pb=retroVal(row,'pbY');
+      if(pb!=null&&pb>0&&pb<100)paybacks.push(pb);
+      RETRO_MEASURES.forEach(m=>{
+        const v=retroVal(row,`${m.abbr}_${bandKey}`);
+        if(v!=null){mSum[m.key].n++;mSum[m.key].sum+=v;}
+      });
+    });
+    if(!nPriced){setRetroCostCardVisible(false);toggleRetroTableCols(false);return;}
+    setRetroCostCardVisible(true);toggleRetroTableCols(true);
+    const medTot=median(totals),medPb=median(paybacks);
+    $('retro-cost-kpis').innerHTML=`
+      <div class="eui-stat"><div class="eui-val">${fmtMoney(Math.round(sumTot))}</div><div class="eui-lbl">Total est. cost<br>this view, priced homes</div></div>
+      <div class="eui-stat"><div class="eui-val">${medTot!=null?fmtMoney(Math.round(medTot)):'—'}</div><div class="eui-lbl"><span class="cap-simple">Typical home</span><span class="cap-advanced">Median per home</span></div></div>
+      <div class="eui-stat"><div class="eui-val">${medPb!=null?medPb.toFixed(1)+'y':'—'}</div><div class="eui-lbl"><span class="cap-simple">Typical payback</span><span class="cap-advanced">Median payback</span></div></div>
+      <div style="margin-left:auto;text-align:right;align-self:center"><div style="color:var(--muted);font-size:13px">${nPriced.toLocaleString()} of ${FILTERED.length.toLocaleString()} homes priced (${bandName} band)</div></div>`;
+    $('retro-cost-measures').innerHTML=retroMeasureTable(RETRO_MEASURES.map(m=>({label:m.label,n:mSum[m.key].n,sum:mSum[m.key].sum})));
+  }else if(MODE==='province'){
+    const s=RETRO_PROVINCE_SUMMARY;
+    if(!s||!s.n_priced){setRetroCostCardVisible(false);return;}
+    setRetroCostCardVisible(true);
+    const tot=s.total&&s.total[bandName];
+    $('retro-cost-kpis').innerHTML=`
+      <div class="eui-stat"><div class="eui-val">${tot&&tot.sum!=null?fmtMoney(Math.round(tot.sum)):'—'}</div><div class="eui-lbl">Total est. cost<br>this view, priced homes</div></div>
+      <div class="eui-stat"><div class="eui-val">${tot&&tot.median!=null?fmtMoney(Math.round(tot.median)):'—'}</div><div class="eui-lbl"><span class="cap-simple">Typical home</span><span class="cap-advanced">Median per home</span></div></div>
+      <div class="eui-stat"><div class="eui-val">${s.payback_years_median!=null?s.payback_years_median.toFixed(1)+'y':'—'}</div><div class="eui-lbl"><span class="cap-simple">Typical payback</span><span class="cap-advanced">Median payback</span></div></div>
+      <div style="margin-left:auto;text-align:right;align-self:center"><div style="color:var(--muted);font-size:13px">${s.n_priced.toLocaleString()} homes priced (${bandName} band) · not filtered by house type</div></div>`;
+    $('retro-cost-measures').innerHTML=retroMeasureTable(RETRO_MEASURES.map(m=>{
+      const md=s.measures&&s.measures[m.key];
+      return {label:m.label,n:md?md.n:0,sum:md&&md[bandName]?md[bandName].sum:null};
+    }));
+  }
 }
 
 // ── Design heat loss (kW — see ers_web_pipeline.py: EGHDESHTLOSS W→kW) ──
@@ -2571,6 +2727,7 @@ function renderProvince(payload){
   renderProvinceEUI(slice);
   renderProvinceGHG(slice);
   renderProvinceCost(slice);
+  renderRetrofitCost();
   renderProvinceKPI(slice);
   renderProvinceInsulDist(slice);
   renderProvinceMeasures(slice);
@@ -3238,6 +3395,39 @@ function makeInlineSVG(r){
       </tbody>
     </table></div>
   </div>`;
+
+  // ── Retrofit cost estimate (proof of concept), per-measure — only if this
+  // home has a priced row in the retrofit_costs_json companion tree. ──
+  const retroRow=retroRowFor(r.HOUSEID);
+  if(retroRow){
+    const bandKey=['l','m','h'][RETRO_BAND];
+    const mRows=RETRO_MEASURES.map(m=>{
+      const v=retroVal(retroRow,`${m.abbr}_${bandKey}`);
+      return v!=null?`<tr><td style="padding:3px 10px 3px 0;color:var(--muted)">${m.label}</td><td style="padding:3px 0;color:${v<0?'var(--pos)':'var(--text)'}">${fmtMoney(Math.round(v))}</td></tr>`:'';
+    }).join('');
+    const tot=retroVal(retroRow,`Tot_${bandKey}`);
+    const pbY=retroVal(retroRow,'pbY');
+    const ac=RETRO_DICT&&RETRO_DICT.ac[String(retroVal(retroRow,'ac'))];
+    const bh=RETRO_DICT&&RETRO_DICT.bh[String(retroVal(retroRow,'bh'))];
+    const bhs=retroVal(retroRow,'bhs');
+    html+=`<div class="detail-charts" style="margin-top:.8rem">
+      <div style="min-width:0">
+        <div class="detail-h">Estimated retrofit cost <span class="badge badge-medium" style="margin-left:4px">POC</span></div>
+        <table style="font-size:12px;border-collapse:collapse">${mRows}
+          <tr><td style="padding:5px 10px 3px 0;color:var(--text);font-weight:600;border-top:1px solid var(--border)">Total</td><td style="padding:5px 0 3px;font-weight:600;border-top:1px solid var(--border);color:${tot<0?'var(--pos)':'var(--text)'}">${tot!=null?fmtMoney(Math.round(tot)):'—'}</td></tr>
+        </table>
+      </div>
+      <div style="min-width:0">
+        <div class="detail-h">Payback &amp; classification</div>
+        <table style="font-size:12px;border-collapse:collapse">
+          <tr><td style="padding:3px 10px 3px 0;color:var(--muted)">Payback</td><td style="padding:3px 0;color:var(--text)">${pbY!=null?pbY.toFixed(1)+' years':'—'}</td></tr>
+          ${ac?`<tr><td style="padding:3px 10px 3px 0;color:var(--muted)">ASHP class</td><td style="padding:3px 0;color:var(--text)">${ac}</td></tr>`:''}
+          ${bh?`<tr><td style="padding:3px 10px 3px 0;color:var(--muted)">BAU heating replaced</td><td style="padding:3px 0;color:var(--text)">${bh}${bhs===2?' <span style="color:var(--light);font-size:11px">(assumed)</span>':''}</td></tr>`:''}
+        </table>
+      </div>
+    </div>`;
+  }
+
   return html;
 }
 
@@ -3249,10 +3439,13 @@ function renderTable(){
   else if(SORT==='area')rows.sort((a,b)=>(num(b.FloorArea)||0)-(num(a.FloorArea)||0));
   const shown=rows.slice(0,MAX);
   const tbody=$('tbl-body');
+  const hasRetro=RETRO_COST_MAP.size>0;
+  const colspan=hasRetro?10:8;
   if(!shown.length){
-    tbody.innerHTML=`<tr><td colspan="8"><div class="state-msg"><strong>No matching retrofits</strong></div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="${colspan}"><div class="state-msg"><strong>No matching retrofits</strong></div></td></tr>`;
     $('tbl-footer').textContent='';return;
   }
+  const bandKey=['l','m','h'][RETRO_BAND];
   tbody.innerHTML=shown.map((r,idx)=>{
     const sv=num(r.EnergySavingPct);
     const svCell=sv!==null?`<span class="${sv>=0?'saving-pos':'saving-neg'}">${fmtPct(sv)}</span>`:'—';
@@ -3266,13 +3459,20 @@ function renderTable(){
       :`<span class="fuel-chip">${r.Pre_HeatFuel||'?'}</span>`;
     const preEUI=num(r.Pre_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Pre_TotalEnergy)/num(r.FloorArea)):null;
     const postEUI=num(r.Post_TotalEnergy)&&num(r.FloorArea)?Math.round(num(r.Post_TotalEnergy)/num(r.FloorArea)):null;
+    let retroCells='';
+    if(hasRetro){
+      const rr=retroRowFor(r.HOUSEID);
+      const tot=rr?retroVal(rr,`Tot_${bandKey}`):null;
+      const pbY=rr?retroVal(rr,'pbY'):null;
+      retroCells=`<td>${tot!=null?fmtMoney(Math.round(tot)):'—'}</td><td>${pbY!=null?pbY.toFixed(1)+'y':'—'}</td>`;
+    }
     return `<tr class="data-row" onclick="toggleRow(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleRow(${idx});}" tabindex="0" role="button" aria-expanded="false" id="row-${idx}">
       <td>${r.FSA||'—'}</td><td>${r.BldgType||'—'}</td><td>${r.YearBuilt||'—'}</td>
       <td>${r.FloorArea?Math.round(parseFloat(r.FloorArea)):'—'}</td>
       <td>${makeEUIBar(preEUI,postEUI,window._euiMedianPre,window._euiMedianPost)}</td>
-      <td>${fuelCell}</td><td>${svCell}</td><td>${badge}</td>
+      <td>${fuelCell}</td><td>${svCell}</td><td>${badge}</td>${retroCells}
     </tr>
-    <tr class="detail-row" id="detail-${idx}"><td colspan="8"><div class="detail-inner" id="detail-inner-${idx}"></div></td></tr>`;
+    <tr class="detail-row" id="detail-${idx}"><td colspan="${colspan}"><div class="detail-inner" id="detail-inner-${idx}"></div></td></tr>`;
   }).join('');
   window._tableRows=shown;
   $('tbl-footer').textContent=rows.length>MAX

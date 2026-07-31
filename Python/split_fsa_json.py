@@ -86,6 +86,11 @@ CATEGORICAL_COLS = [
 # If you add a new chart/field reference in retrofits.html, add the matching
 # source column name here too, or the new field will silently be empty.
 KEEP_COLS = [
+    # HOUSEID: re-added 2026-07-31 (previously dropped for size — see the note
+    # above) so retrofits.html can join a row to its retrofit-cost estimate in
+    # the separate retrofit_costs_json/<PROV>/<FSA>.json companion tree (keyed
+    # by HOUSEID). See docs/RETROFIT_COSTS.md.
+    'HOUSEID',
     'FSA', 'BldgType', 'Storeys', 'FoundationType', 'YearBuilt', 'FloorArea',
     'Pre_Year', 'Post_Year',
     'Pre_TotalEnergy', 'Post_TotalEnergy',
