@@ -1,7 +1,42 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-30** (Retrofit Insights: new section 06 "Cold-climate
+Updated **2026-07-31** (**Retrofit Costs**: like-for-like ASHP heating BAU
+(was a uniform gas-furnace assumption — now the home's own pre-audit
+equipment, mapped to REMDB, with two self-derived REMDB rows for Oil Furnace
+and Electric Boiler REMDB never fit); POC moved from session scratchpad to a
+permanent, committed pipeline (`Python/retrofit_cost_extract_fields.py`,
+`retrofit_cost_estimate.py`); scaled to full national coverage, all 12
+provinces + 2 territories (1.42M paired records, 1.24M priced); electricity
+utility-rate source swapped after catching a stale "high confidence"
+Saskatchewan rate (~67% understated, over a year stale) in the prior source —
+new source is a third-party blog, flagged for further verification, not yet
+trusted as settled; natural gas rates found similarly stale (~21 months,
+every province) but left as-is pending a replacement source. Full detail:
+[docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md).) Prior pass 2026-07-30
+(**Retrofit Costs** POC: audited each priced measure's
+REMDB area basis directly against the raw REMDB data sheets (air sealing =
+house floor area, windows = window's own area, wall/roof = surface area —
+all confirmed, not assumed); confirmed REMDB has a real, unused `Air
+Sealing` regression driven by measured leakage reduction, flagged as the
+next measure to add; checked the NRCan open-data dictionary and confirmed
+ERS has no wall-construction-type field (Wood/Steel Stud + Batt stays a
+stated assumption); added window frame-material classification from ERS's
+`UGRWINDOWCODE` (via `Support.xlsx`'s `Frame` sheet) mapped to REMDB's
+Vinyl/Metal classes — 82% of PEI window-change records now get a reported
+class instead of a blanket Vinyl guess. Full methodology:
+[docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md).) Prior pass same day
+(new project **Retrofit Costs** started: a PEI-scoped proof of concept
+pairing ERS retrofit records against PNNL/DOE's REMDB ($/measure cost
+regressions, committed under `retrofits/USCosts/`) to estimate retrofit cost
+per home. Confirmed no per-component envelope area exists anywhere in the
+public NRCan ERS extract, so envelope costing runs on documented
+rectangle-footprint area proxies; `Python/join_hp_capacity.py` extended to
+surface `cooling_capacity_btuh`/`seer2` (already in `lookup/ahri_numbers.json`,
+previously unused) enabling ASHP costing with an explicit reported-vs-assumed
+ductless/ducted classification. 8,535 / 12,554 PEI records (68%) now have at
+least one priced measure.) Prior pass same day
+(Retrofit Insights: new section 06 "Cold-climate
 equipment" — AHRI COP-vs-capacity-maintenance scatter + the US DOE CCHP
 Challenge screen, resolving the "where does this go" decision left open
 2026-07-27. New pipeline step `Python/build_hp_equipment_insights.py`; see
@@ -68,6 +103,7 @@ lifecycle-update candidates logged — see
 | Project | Progress | Next step |
 |---|---|---|
 | 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████░░░` Phases 0–3 of 6 done | **Phase 4:** aggregate to 500 m grid + feeders, apply coincidence factor → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
+| 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 12 provinces + 2 territories) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
 
 ### Queued 🆕
 

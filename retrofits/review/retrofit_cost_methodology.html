@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a retrofit cost is calculated — ERS → REMDB</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161d24; --panel2:#1c242d; --line:#2a3540; --line2:#37454f;
+    --ink:#e6edf3; --muted:#8b9aa8; --dim:#6b7a88;
+    --ers:#4a9eff; --derive:#b98fe0; --remdb:#5fb87a; --formula:#e0a458; --cost:#e8eef4;
+    --warn:#e0a458; --bad:#e06c6c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1360px;margin:0 auto;padding:26px 20px 90px}
+  h1{font-size:23px;margin:0 0 6px;font-weight:650}
+  h2{font-size:16px;margin:34px 0 12px;font-weight:650;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  h3{font-size:13px;margin:0 0 10px;font-weight:650;color:var(--muted);
+     text-transform:uppercase;letter-spacing:.06em}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  code{background:#1c242d;padding:1px 5px;border-radius:3px;font-size:12.5px;
+       color:#9fc8f0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ers);
+        border-radius:5px;padding:13px 15px;margin-bottom:18px;font-size:13px;color:var(--muted)}
+  .note b{color:var(--ink)}
+  .note.warn{border-left-color:var(--warn)}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .tabs button{background:var(--panel);color:var(--muted);border:1px solid var(--line);
+    border-radius:6px;padding:9px 15px;cursor:pointer;font-size:13.5px;font-family:inherit}
+  .tabs button:hover{background:var(--panel2);color:var(--ink)}
+  .tabs button.on{background:var(--ers);border-color:var(--ers);color:#06121f;font-weight:650}
+
+  .bar{position:sticky;top:0;z-index:30;background:var(--bg);padding:11px 0;
+       border-bottom:1px solid var(--line);margin-bottom:20px;display:flex;
+       gap:18px;align-items:flex-end;flex-wrap:wrap}
+  .grp{display:flex;flex-direction:column;gap:5px}
+  .grp label{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .seg button{background:var(--panel);color:var(--muted);border:0;padding:7px 14px;cursor:pointer;
+              font-size:13px;font-family:inherit;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--formula);color:#1a1207;font-weight:650}
+
+  /* ---------- flow ---------- */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin:16px 0 8px;align-items:stretch}
+  @media(max-width:1050px){.flow{grid-template-columns:1fr}}
+  .stage{position:relative;padding:0 15px 0 0}
+  .stage:last-child{padding-right:0}
+  .stage::after{content:'';position:absolute;right:4px;top:34px;width:7px;height:7px;
+    border-top:2px solid var(--line2);border-right:2px solid var(--line2);
+    transform:rotate(45deg)}
+  .stage:last-child::after{display:none}
+  @media(max-width:1050px){
+    .stage{padding:0 0 22px}
+    .stage::after{right:auto;left:50%;top:auto;bottom:8px;transform:rotate(135deg)}
+  }
+  .shead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+         font-weight:700;margin-bottom:9px;padding-bottom:5px;border-bottom:2px solid}
+  .s1 .shead{color:var(--ers);border-color:var(--ers)}
+  .s2 .shead{color:var(--derive);border-color:var(--derive)}
+  .s3 .shead{color:var(--remdb);border-color:var(--remdb)}
+  .s4 .shead{color:var(--formula);border-color:var(--formula)}
+  .s5 .shead{color:var(--cost);border-color:var(--cost)}
+
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+       padding:10px 12px;margin-bottom:8px}
+  .s1 .box{border-left:3px solid var(--ers)}
+  .s2 .box{border-left:3px solid var(--derive)}
+  .s3 .box{border-left:3px solid var(--remdb)}
+  .s4 .box{border-left:3px solid var(--formula)}
+  .s5 .box{border-left:3px solid var(--cost)}
+  .box .code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+             color:#9fc8f0;font-weight:600;word-break:break-all}
+  .box .code.d{color:#cbb0ec}
+  .box .g{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .box .m{font-size:10.5px;color:var(--dim);margin-top:5px}
+  .role{display:inline-block;font-size:9.5px;padding:1px 5px;border-radius:3px;
+        background:#243040;color:#9fb4c9;text-transform:uppercase;letter-spacing:.04em;
+        margin-right:4px;vertical-align:middle}
+  .role.post{background:#1f3a2c;color:#7fc99a}
+  .role.pre{background:#2b3448;color:#a3b0d8}
+  .role.flag{background:#3a2f1f;color:#d9b57a}
+  .asm{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;
+       background:#3a2f1f;color:#d9b57a;margin:3px 3px 0 0;cursor:help;border:1px solid #4d3f28}
+  .asm.hard{background:#3d2325;color:#e79a9a;border-color:#573033}
+  .big{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+  .band{font-size:11.5px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+
+  /* ---------- calculator ---------- */
+  .calc{background:var(--panel);border:1px solid var(--line);border-radius:7px;
+        padding:16px 18px;margin-top:8px}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+  .fld label{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;
+             letter-spacing:.05em;margin-bottom:5px}
+  .fld input[type=number],.fld select{width:100%;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:5px;padding:7px 9px;font-size:13px;font-family:inherit}
+  .fld input[type=range]{width:100%;margin-top:7px;accent-color:var(--formula)}
+  .fld .hint{font-size:11px;color:var(--dim);margin-top:4px}
+  .out{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+       display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}
+  .out .r{font-size:27px;font-weight:700;font-variant-numeric:tabular-nums}
+  .steps{margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+         color:var(--muted);line-height:1.85;white-space:pre-wrap;word-break:break-word}
+  .steps b{color:var(--ink);font-weight:600}
+  .oobmsg{color:var(--warn);font-size:12.5px;margin-top:9px}
+
+  /* ---------- bars ---------- */
+  .bars{margin-top:6px}
+  .brow{display:grid;grid-template-columns:minmax(150px,290px) 1fr 96px;gap:11px;
+        align-items:center;padding:3px 0;font-size:12.5px}
+  .brow .nm{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow.cur .nm{color:var(--ink);font-weight:650}
+  .btrack{background:#141b22;border-radius:3px;height:19px;position:relative;overflow:hidden}
+  .bfill{height:100%;background:linear-gradient(90deg,#2f6a4a,#5fb87a);border-radius:3px}
+  .brow.cur .bfill{background:linear-gradient(90deg,#8a5f1f,#e0a458)}
+  .bval{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .bmark{font-size:10px;color:var(--warn);margin-left:5px}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  table.t th{text-align:left;font-size:10.5px;color:var(--dim);text-transform:uppercase;
+    letter-spacing:.05em;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom}
+  table.t td{padding:8px 10px;border-bottom:1px solid #1e262f;vertical-align:top;color:var(--muted)}
+  table.t td:first-child{color:var(--ink);white-space:nowrap}
+  table.t tr:last-child td{border-bottom:0}
+  .dir{font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap}
+  .dir.up{background:#3d2325;color:#e79a9a}
+  .dir.down{background:#1f3a2c;color:#7fc99a}
+  .dir.both{background:#2b3448;color:#a3b0d8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>How a retrofit cost is calculated</h1>
+<div class="sub" id="sub"></div>
+
+<div class="note">
+  <b>These are <span style="color:var(--formula)">incremental</span> costs</b> — the <i>extra</i> spend
+  over the business-as-usual (BAU) choice a homeowner would have made anyway, not the full invoice.
+  Insulation and air sealing have no BAU equivalent, so incremental = full cost. Windows are the
+  <i>efficient − standard</i> premium. An ASHP is netted against <b>the home's own pre-audit heating
+  system</b> (like-for-like — an oil boiler is credited as an oil boiler, not a generic gas furnace;
+  gas furnace is now only the fallback when REMDB has no row at all for that fuel/type) plus the A/C
+  it replaces (and can come out negative). See the
+  <a href="pei_retrofit_costs_review.html" style="color:var(--accent)">review page</a> for the
+  per-record like-for-like vs. assumed-default breakdown.
+  Read each measure left to right: named ERS columns → a derivation into
+  what the cost regression needs → the priced rows → a dollar figure.
+  <b>Amber chips are assumptions</b> — things ERS does not record and we had to choose. Hover any
+  chip for the reasoning. All figures are <b>2023 USD</b>, unadjusted for Canadian labour or exchange.
+  <br><b>Scope:</b> single-dwelling homes only. Multi-dwelling buildings (apartments, duplexes,
+  triplexes — 311 of the paired PEI records) are <b>excluded from costing</b>: their ERS record
+  describes the whole building, so REMDB's single-family per-ft²/per-window curves do not apply.
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="bar">
+  <div class="grp">
+    <label>Cost level</label>
+    <div class="seg" id="segBand">
+      <button data-v="0">Low (p10)</button>
+      <button data-v="1" class="on">Mid (p50)</button>
+      <button data-v="2">High (p90)</button>
+    </div>
+  </div>
+  <div class="grp">
+    <label>Out-of-range metrics</label>
+    <div class="seg" id="segOob">
+      <button data-v="mid" class="on">REMDB rule (mid only)</button>
+      <button data-v="clamp">Clamp to bound</button>
+    </div>
+  </div>
+</div>
+
+<div id="view"></div>
+
+<h2>Every assumption, in one place</h2>
+<div class="note warn" style="margin-bottom:14px">
+  These are the choices ERS could not make for us. <b>Impact</b> is the direction the estimate
+  moves if the assumption is wrong, and <b>what would settle it</b> is the data that would
+  replace the guess with a measurement.
+</div>
+<table class="t" id="asmTable"></table>
+
+<h2>What ERS cannot tell us at all</h2>
+<div class="note" style="margin-bottom:14px">
+  REMDB can price these, and they are real retrofit costs, but the public NRCan extract carries
+  no field that would drive the regression. They are absent from every total on the review page.
+</div>
+<table class="t" id="gapTable"></table>
+
+</div>
+
+<script id="data" type="application/json">{"n_paired":12544,"coverage":{"Post_FOOTPRINT":{"n":12554,"pct":100.0},"Post_NUMWINDOWS":{"n":12554,"pct":100.0},"Post_NUMDOORS":{"n":12554,"pct":100.0},"Post_BASEMENTFLOORAR":{"n":12554,"pct":100.0},"Post_WINDOWCODE":{"n":6820,"pct":54.3},"Pre_UGRWINDOWCODE":{"n":6909,"pct":55.0},"Post_HPEquipType":{"n":1847,"pct":14.7},"Pre_UGRHPEquipType":{"n":1739,"pct":13.9},"Post_NUMBEROFHEADS":{"n":9378,"pct":74.7},"Post_HEATEDFLOORAREA":{"n":10494,"pct":83.6},"Storeys":{"n":12544,"pct":100.0},"FoundationType":{"n":11774,"pct":93.9},"Pre_RoofInsulation":{"n":12544,"pct":100.0},"Post_RoofInsulation":{"n":12544,"pct":100.0},"Pre_WallInsulation":{"n":12544,"pct":100.0},"Post_WallInsulation":{"n":12544,"pct":100.0},"Pre_FoundationInsulation":{"n":12544,"pct":100.0},"Post_FoundationInsulation":{"n":12544,"pct":100.0},"Pre_AirLeakage":{"n":12544,"pct":100.0},"Post_AirLeakage":{"n":12544,"pct":100.0},"Post_HPCoolingCapacityTons":{"n":7052,"pct":56.2},"Post_HPSEER2":{"n":7052,"pct":56.2},"Post_HPAHRI":{"n":9372,"pct":74.7},"FloorArea":{"n":12544,"pct":100.0},"Pre_SolarPV":{"n":9100,"pct":72.5},"Post_SolarPV":{"n":9372,"pct":74.7},"Pre_VentType":{"n":12544,"pct":100.0},"Post_VentType":{"n":12544,"pct":100.0},"Post_HRVEFF0C":{"n":12554,"pct":100.0},"Post_TOTALVENTSUPPLY":{"n":12554,"pct":100.0},"Post_CENVENTSYSTYPE":{"n":12554,"pct":100.0}},"stats":{"Roof":{"n":4751,"pct":37.9,"median":2063.0,"p10":1082.0,"p90":3188.0,"oob":707,"oob_pct":14.9},"Wall":{"n":966,"pct":7.7,"median":1619.0,"p10":1104.0,"p90":2771.0,"oob":603,"oob_pct":62.4},"Foundation":{"n":4254,"pct":33.9,"median":1082.0,"p10":780.0,"p90":1404.0,"oob":1418,"oob_pct":33.3},"Window":{"n":892,"pct":7.1,"median":6284.0,"p10":0.0,"p90":11670.0,"oob":0,"oob_pct":0.0},"ASHP":{"n":1759,"pct":14.0,"median":5227.0,"p10":3576.0,"p90":10941.0,"oob":459,"oob_pct":26.1},"AirSeal":{"n":5032,"pct":40.1,"median":917.0,"p10":514.0,"p90":1652.0,"oob":1,"oob_pct":0.0},"PV":{"n":3214,"pct":25.6,"median":25744.0,"p10":20722.0,"p90":26837.0,"oob":898,"oob_pct":27.9},"HRV":{"n":211,"pct":1.7,"median":1848.0,"p10":1570.0,"p90":2651.0,"oob":2,"oob_pct":0.9}},"medians":{"roof_area":93.0,"wall_area":121.0,"fnd_area":76.0,"win_area":21.0,"nwin":15.0,"tons":1.25,"seer1":22.6,"storeys_mean":1.39,"airseal_red":0.198,"airseal_area":203.0,"pv_kw":11.05,"hrv_sre":0.68,"hrv_cfm":73.0,"dr_roof":18.5,"dr_wall":5.2,"dr_fnd":9.3},"sensitivity":{"Roof":{"label":"\u0394R-18.5 over 93.0 m\u00b2 (the median priced roof job)","options":[{"component":"Unfinished Attic (Ceiling)","cls":"Loose Fill","label":"Unfinished Attic (Ceiling) / Loose Fill","perSqft":0.842,"cost":[538.0,843.0,1499.0],"bounds":[2.78,49],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Roof","cls":"Loose Fill","label":"Finished Roof / Loose Fill","perSqft":0.844,"cost":[540.0,844.0,1503.0],"bounds":[2.78,49],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Batt","label":"Unfinished Attic (Ceiling) / Batt","perSqft":2.06,"cost":[1748.0,2062.0,3526.0],"bounds":[6,49],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Batt","label":"Unfinished Attic (Roof) / Batt","perSqft":2.06,"cost":[1748.0,2062.0,3526.0],"bounds":[6,49],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Spray Foam (Open Cell)","label":"Unfinished Attic (Ceiling) / Spray Foam (Open Cell)","perSqft":6.43,"cost":[3622.0,6437.0,9950.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Spray Foam (Open Cell)","label":"Unfinished Attic (Roof) / Spray Foam (Open Cell)","perSqft":6.43,"cost":[3622.0,6437.0,9950.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Finished Roof","cls":"Spray Foam (Open Cell)","label":"Finished Roof / Spray Foam (Open Cell)","perSqft":6.43,"cost":[3622.0,6437.0,9950.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Spray Foam (Closed Cell)","label":"Unfinished Attic (Ceiling) / Spray Foam (Closed Cell)","perSqft":7.196,"cost":[4980.0,7204.0,14715.0],"bounds":[5.5,42],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Spray Foam (Closed Cell)","label":"Unfinished Attic (Roof) / Spray Foam (Closed Cell)","perSqft":7.196,"cost":[4980.0,7204.0,14715.0],"bounds":[5.5,42],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Roof","cls":"Spray Foam (Closed Cell)","label":"Finished Roof / Spray Foam (Closed Cell)","perSqft":7.196,"cost":[4980.0,7204.0,14715.0],"bounds":[5.5,42],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"}]},"Wall":{"label":"\u0394R-5.2 over 121.0 m\u00b2 (the median priced wall job)","options":[{"component":"Wood/Steel Stud","cls":"Loose Fill","label":"Wood/Steel Stud / Loose Fill","perSqft":0.571,"cost":[413.0,744.0,2266.0],"bounds":[2.78,38],"oob":false,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Double Wood Stud","cls":"Loose Fill","label":"Double Wood Stud / Loose Fill","perSqft":0.571,"cost":[413.0,744.0,2266.0],"bounds":[2.78,38],"oob":false,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Batt","label":"Wood/Steel Stud / Batt","perSqft":1.245,"cost":[1438.0,1621.0,3420.0],"bounds":[6,49],"oob":true,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Batt","label":"CMU / Batt","perSqft":1.245,"cost":[1438.0,1621.0,3420.0],"bounds":[6,49],"oob":true,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (EPS)","label":"Wood/Steel Stud / Rigid Foam (EPS)","perSqft":1.281,"cost":[1320.0,1669.0,2716.0],"bounds":[1.44,10],"oob":false,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (EPS)","label":"CMU / Rigid Foam (EPS)","perSqft":1.281,"cost":[1320.0,1669.0,2716.0],"bounds":[1.44,10],"oob":false,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (ISO)","label":"Wood/Steel Stud / Rigid Foam (ISO)","perSqft":1.499,"cost":[1504.0,1952.0,2476.0],"bounds":[2.7,31],"oob":false,"rank":"Low SS, High R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (ISO)","label":"CMU / Rigid Foam (ISO)","perSqft":1.499,"cost":[1504.0,1952.0,2476.0],"bounds":[2.7,31],"oob":false,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (XPS)","label":"Wood/Steel Stud / Rigid Foam (XPS)","perSqft":1.539,"cost":[1607.0,2004.0,5758.0],"bounds":[1,20],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (XPS)","label":"CMU / Rigid Foam (XPS)","perSqft":1.539,"cost":[1607.0,2004.0,5758.0],"bounds":[1,20],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Spray Foam (Open Cell)","label":"Wood/Steel Stud / Spray Foam (Open Cell)","perSqft":1.756,"cost":[1453.0,2286.0,3407.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Double Wood Stud","cls":"Spray Foam (Open Cell)","label":"Double Wood Stud / Spray Foam (Open Cell)","perSqft":1.756,"cost":[1453.0,2286.0,3407.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Spray Foam (Closed Cell)","label":"Wood/Steel Stud / Spray Foam (Closed Cell)","perSqft":2.167,"cost":[1926.0,2823.0,5688.0],"bounds":[5.5,42],"oob":true,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Double Wood Stud","cls":"Spray Foam (Closed Cell)","label":"Double Wood Stud / Spray Foam (Closed Cell)","perSqft":2.167,"cost":[1926.0,2823.0,5688.0],"bounds":[5.5,42],"oob":true,"rank":"High SS, Medium R2, High Source Diversity"}]},"Foundation":{"label":"\u0394R-9.3 over 76.0 m\u00b2 (the median priced foundation job)","options":[{"component":"Finished Basement (Wall)","cls":"Loose Fill","label":"Finished Basement (Wall) / Loose Fill","perSqft":0.623,"cost":[281.0,510.0,1429.0],"bounds":[2.78,38],"oob":false,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Batt","label":"Unfinished Basement (Wall) / Batt","perSqft":1.382,"cost":[989.0,1131.0,2281.0],"bounds":[6,49],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Batt","label":"Finished Basement (Wall) / Batt","perSqft":1.772,"cost":[1308.0,1450.0,2600.0],"bounds":[6,49],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (EPS)","label":"Unfinished Basement (Wall) / Rigid Foam (EPS)","perSqft":1.82,"cost":[1060.0,1489.0,2684.0],"bounds":[1.44,10],"oob":false,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (ISO)","label":"Unfinished Basement (Wall) / Rigid Foam (ISO)","perSqft":1.916,"cost":[1035.0,1567.0,2040.0],"bounds":[2.7,31],"oob":false,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (EPS)","label":"Finished Basement (Wall) / Rigid Foam (EPS)","perSqft":2.21,"cost":[1379.0,1808.0,3003.0],"bounds":[1.44,10],"oob":false,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (XPS)","label":"Unfinished Basement (Wall) / Rigid Foam (XPS)","perSqft":2.258,"cost":[1424.0,1848.0,4383.0],"bounds":[1,20],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (ISO)","label":"Finished Basement (Wall) / Rigid Foam (ISO)","perSqft":2.307,"cost":[1355.0,1887.0,2360.0],"bounds":[2.7,31],"oob":false,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (XPS)","label":"Finished Basement (Wall) / Rigid Foam (XPS)","perSqft":2.648,"cost":[1744.0,2167.0,4702.0],"bounds":[1,20],"oob":false,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Spray Foam (Open Cell)","label":"Finished Basement (Wall) / Spray Foam (Open Cell)","perSqft":3.197,"cost":[1544.0,2615.0,3987.0],"bounds":[3.7,25.8],"oob":false,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Spray Foam (Closed Cell)","label":"Finished Basement (Wall) / Spray Foam (Closed Cell)","perSqft":3.637,"cost":[2046.0,2976.0,6043.0],"bounds":[5.5,42],"oob":false,"rank":"High SS, Medium R2, High Source Diversity"}]},"Window":{"label":"21.0 m\u00b2 of window (15 units \u00d7 1.4 m\u00b2)","options":[{"component":"Window","cls":"Storm","label":"Window / Storm","perSqft":25.731,"cost":[2479.0,5816.0,7336.0],"bounds":[0,0],"oob":false,"rank":"No regression ran. Low SS, Low Source Diversity"},{"component":"Window","cls":"Vinyl","label":"Window / Vinyl","perSqft":90.51,"cost":[9435.0,20459.0,42853.0],"bounds":[0,0],"oob":false,"rank":"No regression ran. Medium SS, Low Source Diversity"},{"component":"Window","cls":"Metal","label":"Window / Metal","perSqft":345.5,"cost":[42373.0,78097.0,151798.0],"bounds":[0,0],"oob":false,"rank":"No regression ran. Medium SS, Low Source Diversity"}]},"ASHP":{"label":"1.25 tons at SEER1 22.6 (the median priced heat pump)","options":[{"component":"Air Source Heat Pump","cls":"Non-ducted, single-zone","label":"Non-ducted, single-zone","perSqft":null,"cost":[5575.0,9292.0,13009.0],"bounds":[0.5,1.5],"bounds2":[13,28.4],"oob":false,"rank":"High SS, Medium R2, Medium Source Diversity"},{"component":"Air Source Heat Pump","cls":"Non-ducted, multi-zone","label":"Non-ducted, multi-zone","perSqft":null,"cost":[6279.0,10466.0,14652.0],"bounds":[1.5,5],"bounds2":[16,23],"oob":true,"rank":"High SS, Medium R2, Medium Source Diversity"},{"component":"Air Source Heat Pump","cls":"Centrally ducted","label":"Centrally ducted","perSqft":null,"cost":[11473.0,19122.0,26771.0],"bounds":[1.5,5],"bounds2":[13.8,24],"oob":true,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Air Source Heat Pump","cls":"Centrally ducted, with new circuit","label":"Centrally ducted, with new circuit","perSqft":null,"cost":[11473.0,19122.0,26771.0],"bounds":[1.5,5],"bounds2":[13.8,24],"oob":true,"rank":"Medium SS, High R2, High Source Diversity"}]},"AirSeal":{"label":"19.8% measured leakage reduction over 203 m\u00b2 of conditioned floor area","options":[{"component":"Air Sealing","cls":"<40% Reduction","label":"Air Sealing / <40% Reduction","perSqft":0.404,"cost":[514.0,884.0,1577.0],"bounds":[0.03,0.4],"oob":false,"rank":"Data inflated to 2023. High SS, Low R2"},{"component":"Air Sealing","cls":">40% Reduction","label":"Air Sealing / >40% Reduction","perSqft":0.645,"cost":[645.0,1410.0,2599.0],"bounds":[0.4,0.92],"oob":true,"rank":"Data inflated to 2023. Medium SS, Low R2"}]}},"remdb":[{"component":"Air Conditioner","cls":"Centrally ducted","family":"cooling","units":"2023$","metric1":"Cooling Capacity","unit1":"Tons","lo1":1.5,"hi1":5,"c1":[196.96609519999998,328.2768253333333,459.5875554666666],"metric2":"SEER1","unit2":"Unitless","lo2":13,"hi2":24,"c2":[356.844,594.74,832.636],"intercept":[-3533.3616704148158,-5888.936117358026,-8244.510564301236],"mult":1.5,"adder":0,"lifetime":22.333333333333332,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Air Conditioner","cls":"Room AC (window or through-wall)","family":"cooling","units":"2023$","metric1":"Capacity","unit1":"Tons","lo1":0.4166666666666667,"hi1":2.3333333333333335,"c1":[350.1600000000001,364.33200000000005,311.64],"metric2":"CEER","unit2":"Unitless","lo2":9.4,"hi2":15,"c2":[2.082501,6.069364,25.478424],"intercept":[0.194766,13.27746,2.001877],"mult":1,"adder":352.6076765067651,"lifetime":10,"rank":"Medium SS, High R2, Medium Source Diversity"},{"component":"Air Sealing","cls":"<40% Reduction","family":"airseal","units":"2023$/sqft","metric1":"Leakage Reduction","unit1":"Percent","lo1":0.03,"hi1":0.4,"c1":[0.48045,0.894236,1.333659],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.140081,0.227373,0.457668],"mult":1,"adder":0,"lifetime":999,"rank":"Data inflated to 2023. High SS, Low R2"},{"component":"Air Sealing","cls":">40% Reduction","family":"airseal","units":"2023$/sqft","metric1":"Leakage Reduction","unit1":"Percent","lo1":0.4,"hi1":0.92,"c1":[0.107294,0.867979,0.785978],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.252077,0.297935,0.874814],"mult":1,"adder":0,"lifetime":999,"rank":"Data inflated to 2023. Medium SS, Low R2"},{"component":"Air Source Heat Pump","cls":"Centrally ducted","family":"ashp","units":"2023$","metric1":"Cooling Capacity","unit1":"Tons","lo1":1.5,"hi1":5,"c1":[639.168,1065.28,1491.3919999999998],"metric2":"SEER1","unit2":"Unitless","lo2":13.8,"hi2":24,"c2":[356.844,594.74,832.636],"intercept":[-1374.6,-2291,-3207.3999999999996],"mult":1.5,"adder":-1384,"lifetime":15.633333333333333,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Air Source Heat Pump","cls":"Centrally ducted, with new circuit","family":"ashp","units":"2023$","metric1":"Cooling Capacity","unit1":"Tons","lo1":1.5,"hi1":5,"c1":[639.168,1065.28,1491.3919999999998],"metric2":"SEER1","unit2":"Unitless","lo2":13.8,"hi2":24,"c2":[356.844,594.74,832.636],"intercept":[-1374.6,-2291,-3207.3999999999996],"mult":1.5,"adder":0,"lifetime":15.633333333333333,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Air Source Heat Pump","cls":"Non-ducted, single-zone","family":"ashp","units":"2023$","metric1":"Cooling Capacity","unit1":"Tons","lo1":0.5,"hi1":1.5,"c1":[1878.0479999999998,3130.08,4382.111999999999],"metric2":"SEER1","unit2":"Unitless","lo2":13,"hi2":28.4,"c2":[96.24799999999999,160.41333333333333,224.57866666666663],"intercept":[-805.9999999999999,-1343.3333333333333,-1880.6666666666665],"mult":1.5,"adder":0,"lifetime":15.633333333333333,"rank":"High SS, Medium R2, Medium Source Diversity"},{"component":"Air Source Heat Pump","cls":"Non-ducted, multi-zone","family":"ashp","units":"2023$","metric1":"Cooling Capacity","unit1":"Tons","lo1":1.5,"hi1":5,"c1":[1878.0479999999998,3130.08,4382.111999999999],"metric2":"SEER1","unit2":"Unitless","lo2":16,"hi2":23,"c2":[96.24799999999999,160.41333333333333,224.57866666666663],"intercept":[-805.9999999999999,-1343.3333333333333,-1880.6666666666665],"mult":1.5,"adder":0,"lifetime":15.633333333333333,"rank":"High SS, Medium R2, Medium Source Diversity"},{"component":"Battery","cls":"Electric","family":"battery","units":"2023$","metric1":"Energy Capacity ","unit1":"kWh","lo1":2,"hi1":20,"c1":[587.180778,1017.195523,2515.161289],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[-821.741739,-1180.552986,-2328.225802],"mult":1,"adder":2500,"lifetime":10,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Boiler","cls":"Gas (Non-Condensing)","family":"boiler","units":"2023$","metric1":"Heating Capacity","unit1":"BTU/hr","lo1":27000,"hi1":416000,"c1":[0.013611,0.01747,0.020046],"metric2":"AFUE","unit2":"Unitless","lo2":0.8,"hi2":0.87,"c2":[425.223582,774.643544,986.136071],"intercept":[505.791013,922.194681,1150.273551],"mult":1,"adder":4924.154113737305,"lifetime":24.4,"rank":"High SS, High R2, Medium Source Diversity"},{"component":"Boiler","cls":"Gas (Condensing)","family":"boiler","units":"2023$","metric1":"Heating Capacity","unit1":"BTU/hr","lo1":45000,"hi1":387000,"c1":[0.02039,0.030098,0.027623],"metric2":"AFUE","unit2":"Unitless","lo2":0.91,"hi2":0.97,"c2":[-206.979502,51.953272,1208.113017],"intercept":[721.149564,55.150499,1311.335274],"mult":1,"adder":4234.812296176663,"lifetime":24.4,"rank":"High SS, Medium R2, Medium Source Diversity"},{"component":"Boiler","cls":"Oil","family":"boiler","units":"2023$","metric1":"Heating Capacity","unit1":"BTU/hr","lo1":27000,"hi1":416000,"c1":[0.013617,0.01846,0.020154],"metric2":"AFUE","unit2":"Unitless","lo2":0.8,"hi2":0.95,"c2":[616.573652,-1045.493295,13306.888083],"intercept":[713.308438,2081.539778,-9055.606319],"mult":1,"adder":4040.345404851384,"lifetime":24.4,"rank":"High SS, Medium R2, Low Source Diversity"},{"component":"CMU","cls":"Batt","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":0.75609756097561,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (EPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.525,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (XPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.525,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"CMU","cls":"Rigid Foam (ISO)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.47875,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Crawlspace (Ceiling)","cls":"Batt","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.043,0.052],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158334,0.263004,1.558037],"mult":1,"adder":1.2648928127070842,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Ceiling)","cls":"Spray Foam (Closed Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Ceiling)","cls":"Spray Foam (Open Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.687869,1.360557,3.705401],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Rigid Foam (EPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.6820500460675454,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Batt","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":0.9822788119904255,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Rigid Foam (XPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.6820500460675454,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Spray Foam (Closed Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Spray Foam (Open Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.687869,1.360557,3.705401],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Crawlspace (Wall)","cls":"Rigid Foam (ISO)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.62,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Door","cls":"Exterior Prehung, Fiberglass","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[37.8635,55.491,55.491],"mult":2.6632582560981044,"adder":0,"lifetime":50,"rank":"No regression ran. High SS, Low Source Diversity"},{"component":"Door","cls":"Exterior Prehung, Metal","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[15.88771,41.99423,80.78463],"mult":2.6632582560981044,"adder":0,"lifetime":30,"rank":"No regression ran. High SS, Low Source Diversity"},{"component":"Door","cls":"Exterior Prehung, Wood","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[55.97036,77.2875,119.0682],"mult":2.6632582560981044,"adder":0,"lifetime":70,"rank":"No regression ran. Medium SS, Low Source Diversity"},{"component":"Door","cls":"Sliding Patio, Fiberglass","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[18.82,32.95,46.05],"mult":2.6632582560981044,"adder":0,"lifetime":100,"rank":"No regression ran. Low SS, Low Source Diversity"},{"component":"Door","cls":"Sliding Patio, Vinyl","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[23.77688,62.45,98.89829],"mult":2.6632582560981044,"adder":0,"lifetime":100,"rank":"No regression ran. Low SS, Low Source Diversity"},{"component":"Door","cls":"Sliding Patio, Wood","family":"door","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[47.24416,76.25532,103.2107],"mult":2.6632582560981044,"adder":0,"lifetime":30,"rank":"No regression ran. Low SS, Low Source Diversity"},{"component":"Double Wood Stud","cls":"Loose Fill","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":38,"c1":[0.003619,0.00704,0.001017],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.156253,0.278882,0.955934],"mult":1.8099173553719006,"adder":0,"lifetime":999,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Double Wood Stud","cls":"Spray Foam (Closed Cell)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Double Wood Stud","cls":"Spray Foam (Open Cell)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Duct","cls":"Duct Insulation","family":"duct","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.1,"hi1":8,"c1":[0.250999,0.163885,0.041077],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.156496,1.169445,2.463614],"mult":3.58,"adder":0,"lifetime":999,"rank":"Low SS, Medium R2, Low Source Diversity"},{"component":"Duct","cls":"Duct Sealing","family":"duct","units":"2023$/sqft","metric1":"Leakage Reduction","unit1":"Percent","lo1":0,"hi1":0.97,"c1":[0.151667,0.298588,0.706723],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.195588,0.375685,0.745185],"mult":1,"adder":0,"lifetime":999,"rank":"Data inflated to 2023. High SS, Low R2"},{"component":"Electric Baseboard","cls":null,"family":"furnace","units":"2023$","metric1":"Capacity","unit1":"BTU/Hr","lo1":1194.2,"hi1":416000,"c1":[0.034056176,0.056760293333333336,0.07946441066666667],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0,0,0],"mult":1.5,"adder":0,"lifetime":20,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Electric Panel","cls":"100A","family":"electrical","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[77.44200000000001,114,154.80000000000004],"mult":6.6290575025518885,"adder":0,"lifetime":40,"rank":"Medium SS, Medium R2, No Clear Sources"},{"component":"Electric Panel","cls":"200A","family":"electrical","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[152.20000000000002,225.08999999999997,470.738],"mult":6.6290575025518885,"adder":0,"lifetime":40,"rank":"Medium SS, Medium R2, No Clear Sources"},{"component":"EV Charger","cls":"Electric","family":"electrical","units":"2023$","metric1":"kW","unit1":"kW","lo1":1.65,"hi1":14.4,"c1":[20.265154,53.011574,52.083333],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[38.171808,12.861112,148.999999],"mult":1.86,"adder":0,"lifetime":10,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Exterior Finish","cls":"Aluminum","family":"wall","units":" 2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[1.075,1.125,24.94],"mult":3.5444954128440367,"adder":0,"lifetime":30,"rank":"No regression ran. Medium SS, Medium Source Diversity"},{"component":"Exterior Finish","cls":"Brick Veneer","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4.49,11.40548,15.99733],"mult":2.858808280492353,"adder":0,"lifetime":50,"rank":"No regression ran. Medium SS, High Source Diversity"},{"component":"Exterior Finish","cls":"Cement","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4.864377,11.35688,25.30971],"mult":3.4105602782071096,"adder":0,"lifetime":50,"rank":"No regression ran. Medium SS, Low Source Diversity"},{"component":"Exterior Finish","cls":"Composite","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[3.961615,11.7383,20.61053],"mult":3.1343956893133624,"adder":0,"lifetime":30,"rank":"No regression ran. High SS, Low Source Diversity"},{"component":"Exterior Finish","cls":"Stucco","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[1.7060004347826092,2.2286956521739127,2.613739130434782],"mult":2.948832232496698,"adder":0,"lifetime":65,"rank":"No regression ran. Low SS, Medium Source Diversity"},{"component":"Exterior Finish","cls":"Vinyl","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4.465502,6.976753,14.02597],"mult":4.261254622004909,"adder":0,"lifetime":30,"rank":"No regression ran. Medium SS, Medium Source Diversity"},{"component":"Exterior Finish","cls":"Wood","family":"wall","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[1.815119,8.113636,30.92857],"mult":2.852086871152622,"adder":0,"lifetime":30,"rank":"No regression ran. Medium SS, Medium Source Diversity"},{"component":"Finished Basement (Ceiling)","cls":"Batt","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.043,0.052],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158334,0.263004,1.558037],"mult":1.8060413354531,"adder":1.3636363636363638,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Ceiling)","cls":"Loose Fill","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":49,"c1":[0.008696,0.017857,0.011494],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.136956,0.135715,0.616746],"mult":1.8060413354531,"adder":0,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Ceiling)","cls":"Spray Foam (Closed Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Ceiling)","cls":"Spray Foam (Open Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.136956,0.135715,0.616746],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (EPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.915,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Batt","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":1.14609756097561,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Loose Fill","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":38,"c1":[0.003619,0.00704,0.001017],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.156253,0.278882,0.955934],"mult":1.8099173553719006,"adder":0,"lifetime":999,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (XPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.915,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Spray Foam (Closed Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Spray Foam (Open Cell)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Finished Basement (Wall)","cls":"Rigid Foam (ISO)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.87,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Finished Roof","cls":"Loose Fill","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":49,"c1":[0.008696,0.017857,0.011494],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.136956,0.135715,0.616746],"mult":1.81,"adder":0,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Finished Roof","cls":"Spray Foam (Closed Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Finished Roof","cls":"Spray Foam (Open Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Furnaces","cls":"Gas Furnace","family":"furnace","units":"2023$","metric1":"Heating Capacity","unit1":"BTU/Hr","lo1":30000,"hi1":156250,"c1":[0.004744,0.00645,0.01105],"metric2":"AFUE","unit2":"Unitless","lo2":0.8,"hi2":0.97,"c2":[3309.827024,4325.000025,4862.6875],"intercept":[-2009.224953,-2780.000019,-2910.150001],"mult":1,"adder":2217.753,"lifetime":21.4,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Ground Source Heat Pump","cls":"GSHP","family":"gshp","units":"2023$/ton","metric1":"Cooling Capacity","unit1":"Tons","lo1":3,"hi1":6,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":3.1,"hi2":3.7,"c2":[0,0,0],"intercept":[5922.08,9630.59,13339.1],"mult":1,"adder":1121.81,"lifetime":20,"rank":"Low SS, Medium R2, Medium Source Diversity"},{"component":"ICF","cls":"Insulating Form","family":"wall","units":" 2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4.343,6.3125,12.99],"mult":1.19,"adder":0,"lifetime":999,"rank":"No regression ran. Small SS, Medium Source Diversity"},{"component":"Mechanical Ventilation","cls":"ERV/HRV","family":"vent","units":"2023$","metric1":"Sensible Recovery Efficiency","unit1":"Unitless","lo1":0.54,"hi1":0.88,"c1":[270.135592,-841.455332,-3099.815742],"metric2":"Max Airflow","unit2":"CFM","lo2":35.3,"hi2":700,"c2":[3.537005,5.330356,13.958345],"intercept":[197.213329,1156.434757,2422.855339],"mult":1.8701950388184054,"adder":0,"lifetime":19.4,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Rim Joist","cls":"Rigid Foam (EPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.525,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Rim Joist","cls":"Batt","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":0.75609756097561,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Rim Joist","cls":"Rigid Foam (XPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.525,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Rim Joist","cls":"Rigid Foam (ISO)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.47875,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Slab","cls":"Rigid Foam (EPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.525,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Slab","cls":"Rigid Foam (XPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.525,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Slab","cls":"Rigid Foam (ISO)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.47875,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Solar PV","cls":null,"family":"pv","units":"2023$/Watt","metric1":"Power","unit1":"Wattage","lo1":880,"hi1":14080,"c1":[-1.8e-05,-9.1e-05,-0.000162],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[1.126802,2.200001,3.923317],"mult":2.0220303295194677,"adder":0,"lifetime":30,"rank":"Medium SS, Medium R2, Medium Source Diversity"},{"component":"Thermostat","cls":"Manual","family":"controls","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[25,32,50],"mult":2.2329501915708816,"adder":0,"lifetime":11,"rank":"No regression ran. Low SS, Medium Source Diversity"},{"component":"Thermostat","cls":"Digital Non-Programmable","family":"controls","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[21,44,115],"mult":2.2329501915708816,"adder":0,"lifetime":11,"rank":"No regression ran. Low SS, Medium Source Diversity"},{"component":"Thermostat","cls":"Digital Programmable","family":"controls","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[30,54,158.5],"mult":2.2329501915708816,"adder":0,"lifetime":11,"rank":"No regression ran. Low SS, Medium Source Diversity"},{"component":"Thermostat","cls":"Smart","family":"controls","units":"2023$","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[100,150,252.39999999999998],"mult":2.2329501915708816,"adder":0,"lifetime":11,"rank":"No regression ran. Low SS, Medium Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Batt","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.043,0.052],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158334,0.263004,1.558037],"mult":1,"adder":1.0017875545764061,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Loose Fill","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":49,"c1":[0.008696,0.017857,0.011494],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.136956,0.135715,0.616746],"mult":1.8060413354531,"adder":0,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Spray Foam (Closed Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Ceiling)","cls":"Spray Foam (Open Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Batt","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.043,0.052],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158334,0.263004,1.558037],"mult":1,"adder":1.0017875545764061,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Spray Foam (Closed Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Unfinished Attic (Roof)","cls":"Spray Foam (Open Cell)","family":"roof","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (EPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.525,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Batt","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":0.75609756097561,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (XPS)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.525,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Unfinished Basement (Wall)","cls":"Rigid Foam (ISO)","family":"foundation","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.47875,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Water Heater","cls":"Electric Instantaneous","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":0.84,"hi1":0.998,"c1":[250.000019,353.549649,2133.33333],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[21.499983,103.991708,-1312.999998],"mult":1,"adder":913.1,"lifetime":20,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Water Heater","cls":"Electric Storage","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":0.92,"hi1":0.95,"c1":[571.423485,10549.499565,19231.034497],"metric2":"Nominal volume","unit2":"gallons","lo2":27,"hi2":55,"c2":[12.857143,17.057105,22.275862],"intercept":[-425.281029,-9666.090372,-17743.20691],"mult":1,"adder":864.1150985316847,"lifetime":14.8,"rank":"Medium SS, Medium SS, High Source Diversity"},{"component":"Water Heater","cls":"HP Tank","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":3,"hi1":4.07,"c1":[102.325583,248.326452,888.754967],"metric2":"Nominal volume","unit2":"gallons","lo2":40,"hi2":80,"c2":[28.81362,19.331395,8.390563],"intercept":[5.295732,286.450878,-801.897419],"mult":1,"adder":1018.1920401854715,"lifetime":14.8,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Water Heater","cls":"HP Tank w/ Gas Capping","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":3,"hi1":4.07,"c1":[102.325583,248.326452,888.754967],"metric2":"Nominal volume","unit2":"gallons","lo2":40,"hi2":80,"c2":[28.81362,19.331395,8.390563],"intercept":[155.295732,436.450878,-651.897419],"mult":1,"adder":1018.1920401854715,"lifetime":14.8,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Water Heater","cls":"HP Tank w/ Gas Capping and 240V Wiring","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":3,"hi1":4.07,"c1":[102.325583,248.326452,888.754967],"metric2":"Nominal volume","unit2":"gallons","lo2":40,"hi2":80,"c2":[28.81362,19.331395,8.390563],"intercept":[455.295732,736.450878,-351.897419],"mult":1,"adder":1018.1920401854715,"lifetime":14.8,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Water Heater","cls":"Gas Inst","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":0.81,"hi1":0.99,"c1":[4192.333369,3885.583326,4904.999999],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[-2720.853368,-2098.322494,-2467.37],"mult":1,"adder":847.0100038353082,"lifetime":20,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Water Heater","cls":"Gas Storage","family":"dhw","units":"2023$","metric1":"UEF","unit1":"Unitless","lo1":0.58,"hi1":0.75,"c1":[5190.140327,8799.424875,13355.313398],"metric2":"Nominal volume","unit2":"gallons","lo2":38,"hi2":98,"c2":[13.093509,13.652049,32.710627],"intercept":[-3147.365244,-5066.564344,-8122.796216],"mult":1,"adder":800.929240280585,"lifetime":14,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Window","cls":"Vinyl","family":"window","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[24.954681440443213,54.113275397063234,113.34530109053355],"mult":1.6725950404784211,"adder":0,"lifetime":20,"rank":"No regression ran. Medium SS, Low Source Diversity"},{"component":"Window","cls":"Metal","family":"window","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[112.075,206.565,401.50000000000006],"mult":1.6725950404784211,"adder":0,"lifetime":20,"rank":"No regression ran. Medium SS, Low Source Diversity"},{"component":"Window","cls":"Storm","family":"window","units":"2023$/sqft","metric1":null,"unit1":null,"lo1":0,"hi1":0,"c1":[0,0,0],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[8.97,21.041666666666664,26.54048780487805],"mult":1.2228370223542624,"adder":0,"lifetime":20,"rank":"No regression ran. Low SS, Low Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (EPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1.44,"hi1":10,"c1":[0.068808,0.131428,0.291785],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.130474,0.072906,0.042857],"mult":1,"adder":0.525,"lifetime":999,"rank":"Low SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Batt","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":6,"hi1":49,"c1":[0.031667,0.0416,0.049167],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.158332,0.2392,1.574998],"mult":1,"adder":0.75609756097561,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Loose Fill","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.78,"hi1":38,"c1":[0.003619,0.00704,0.001017],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.156253,0.278882,0.955934],"mult":1.8099173553719006,"adder":0,"lifetime":999,"rank":"Low SS, Low R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (ISO)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":2.7,"hi1":31,"c1":[0.026871,0.101739,0.144589],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.536513,0.490991,0.670235],"mult":1,"adder":0.47875,"lifetime":999,"rank":"Low SS, High R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Rigid Foam (XPS)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":1,"hi1":20,"c1":[0.123717,0.1755,0.2285],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.065725,0.101252,2.7075],"mult":1,"adder":0.525,"lifetime":999,"rank":"Medium SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Spray Foam (Closed Cell)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":5.5,"hi1":42,"c1":[0.209286,0.301055,0.618535],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[4e-06,0.031017,-0.003062],"mult":1.2849420849420852,"adder":0,"lifetime":999,"rank":"High SS, Medium R2, High Source Diversity"},{"component":"Wood/Steel Stud","cls":"Spray Foam (Open Cell)","family":"wall","units":"2023$/sqft","metric1":"R-value","unit1":"ft2\u00b7\u00b0F\u00b7h/BTU","lo1":3.7,"hi1":25.8,"c1":[0.146427,0.27345,0.42841],"metric2":null,"unit2":null,"lo2":0,"hi2":0,"c2":[0,0,0],"intercept":[0.106369,-0.056142,-0.192549],"mult":1.285343880465832,"adder":0,"lifetime":999,"rank":"Medium SS, High R2, High Source Diversity"}]}</script>
+<script>
+(function(){
+var D = JSON.parse(document.getElementById('data').textContent);
+var SPEC = {};
+D.remdb.forEach(function(r){ SPEC[r.component + '||' + r.cls] = r; });
+var BANDS = ['low','mid','high'], M2SQ = 10.76391042;
+var st = {measure:'Roof', band:1, oob:'mid', cls:{}, m1:{}, area:{}};
+
+function money(v){
+  if(v === null || v === undefined || isNaN(v)) return '—';
+  return '$' + Math.round(v).toLocaleString();
+}
+function cv(k){
+  var c = D.coverage[k];
+  return c ? c.pct + '% populated (' + c.n.toLocaleString() + ')' : '';
+}
+
+/* mirrors price_component() in pei_price_audit.py */
+function installedPerUnit(r, bi, m1, m2, rule){
+  var oob = false;
+  if(r.metric1 && m1 !== null && m1 !== undefined && r.hi1 > r.lo1 && (m1 < r.lo1 || m1 > r.hi1)) oob = true;
+  if(r.metric2 && m2 !== null && m2 !== undefined && r.hi2 > r.lo2 && (m2 < r.lo2 || m2 > r.hi2)) oob = true;
+  var use = (oob && rule === 'mid') ? 1 : bi;
+  var tot = r.intercept[use], parts = [];
+  parts.push({label:'intercept', v:r.intercept[use]});
+  if(r.metric1 && m1 !== null && m1 !== undefined){
+    var v1 = (rule === 'mid') ? m1 : Math.min(Math.max(m1, r.lo1), r.hi1);
+    tot += r.c1[use]*v1;
+    parts.push({label:r.metric1, coef:r.c1[use], val:v1, v:r.c1[use]*v1});
+  }
+  if(r.metric2 && m2 !== null && m2 !== undefined){
+    var v2 = (rule === 'mid') ? m2 : Math.min(Math.max(m2, r.lo2), r.hi2);
+    tot += r.c2[use]*v2;
+    parts.push({label:r.metric2, coef:r.c2[use], val:v2, v:r.c2[use]*v2});
+  }
+  var material = tot, mode, factor;
+  if(r.mult && Math.abs(r.mult-1) > 1e-9){ tot = tot*r.mult; mode='multiplier'; factor=r.mult; }
+  else { tot = tot + (r.adder||0); mode='adder'; factor=r.adder||0; }
+  return {value:tot, material:material, parts:parts, oob:oob, mode:mode, factor:factor,
+          usedBand:BANDS[use], alsoAdder:(mode==='multiplier' && r.adder && Math.abs(r.adder)>1e-9) ? r.adder : null};
+}
+
+/* ------------------------------------------------------------------ config */
+var MEAS = {
+ Roof:{
+  name:'Roof / attic insulation', unit:'area',
+  formula:'cost = [ base $/ft² + (R-coefficient × R-value added) + install adder ] × ceiling area in ft²',
+  trigger:{code:'Roof_Insulation_Upgrade', how:'set when <code>CEILINS</code> rises by more than 10% between the pre and post audit'},
+  ers:[
+   {code:'CEILINS', role:'pre', roleTxt:'base case · both audits', gloss:'Ceiling effective insulation RSI value', cov:'Post_RoofInsulation'},
+   {code:'FOOTPRINT', role:'post', roleTxt:'base case · post audit', gloss:'Sum of the areas of all foundations and exposed floors (m²)', cov:'Post_FOOTPRINT'}
+  ],
+  derive:[
+   {out:'ΔR', expr:'(CEILINS_post − CEILINS_pre) × 5.6783', note:'RSI → imperial R, floored at 0. Used as the R-value of the insulation <i>added</i>.', asm:[
+     {t:'ΔR ≈ product R', why:'REMDB’s metric is the nominal R of the material installed. CEILINS is an <i>effective</i> RSI including framing and air films, so the true product R is higher than ΔR. Understates.'}]},
+   {out:'RoofArea_m2', expr:'FOOTPRINT', note:'ceiling area taken as the building footprint', asm:[
+     {t:'ceiling ≈ footprint', why:'Ignores roof pitch (understates a cathedral or steep roof) but FOOTPRINT is the sum of <i>all</i> foundations and exposed floors, so a house with a basement plus a slab addition overstates. Direction depends on the house.'}]}
+  ],
+  remdb:{c:'Unfinished Attic (Ceiling)', k:'Batt'},
+  why:'ERS records no insulation material and no attic geometry, so the most common retrofit product (batt) over an unfinished attic floor is assumed.',
+  asm:[
+   {t:'material = Batt', why:'ERS records no insulation material anywhere. REMDB prices loose fill at roughly a third of batt and closed-cell spray foam at about 3.5× — see the sensitivity bars.'},
+   {t:'attic floor, not roof deck', why:'REMDB splits <code>Unfinished Attic (Ceiling)</code> from <code>(Roof)</code>. <code>Roof_Insulation_Upgrade</code> does not say which was done. The two happen to share coefficients, so no dollar impact today.'}],
+  calc:{m1:'dr_roof', area:'roof_area', m1label:'ΔR-value added', arealabel:'Ceiling area (m²)', m1max:60}
+ },
+ Wall:{
+  name:'Wall insulation', unit:'area',
+  formula:'cost = [ base $/ft² + (R-coefficient × R-value added) + install adder ] × wall area in ft²',
+  trigger:{code:'Wall_Insulation_Upgrade', how:'set when <code>MAINWALLINS</code> rises by more than 10% between the pre and post audit'},
+  ers:[
+   {code:'MAINWALLINS', role:'pre', roleTxt:'base case · both audits', gloss:'Main walls effective insulation RSI value', cov:'Post_WallInsulation'},
+   {code:'FOOTPRINT', role:'post', roleTxt:'base case · post audit', gloss:'Sum of the areas of all foundations and exposed floors (m²)', cov:'Post_FOOTPRINT'},
+   {code:'Storeys', role:'flag', roleTxt:'categorical label', gloss:'"One storey", "Two storeys", "Split level" … a text label, not a number', cov:'Storeys'}
+  ],
+  derive:[
+   {out:'ΔR', expr:'(MAINWALLINS_post − MAINWALLINS_pre) × 5.6783', note:'RSI → imperial R, floored at 0.'},
+   {out:'perimeter', expr:'2 × (√(FOOTPRINT ÷ 0.667) + 0.667 × √(FOOTPRINT ÷ 0.667))', note:'perimeter of a 2:3 rectangle of that area', asm:[
+     {t:'2:3 rectangle', why:'No footprint-shape field exists. A square minimises perimeter for a given area and so understates wall area; 2:3 is a judgment call with no Canadian housing-stock source behind it.'}]},
+   {out:'WallArea_m2', expr:'perimeter × storeys × 2.44 m', note:'storeys mapped from the text label; 2.44 m ≈ 8 ft per storey', asm:[
+     {t:'2.44 m storey height', why:'Assumed 8 ft. Nothing in ERS records wall height. A 9 ft storey understates by ~10%.'},
+     {t:'splits = 1.5 storeys', why:'"Split level" and "Split entry/Raised basement" have no clean storey count; 1.5 is a judgment call covering the above-grade portion.', hard:true}]}
+  ],
+  remdb:{c:'Wood/Steel Stud', k:'Batt'},
+  why:'ERS has no wall-construction field at all — checked the NRCan data dictionary. Wood/steel stud is the dominant Canadian system, batt the dominant retrofit product.',
+  asm:[
+   {t:'cavity fill only — no exterior work', why:'REMDB’s <code>Wood/Steel Stud / Batt</code> row is a bare insulation-install rate (~$1.5/ft²): batt into an open or drilled cavity. It does <b>not</b> include scaffolding, removing and replacing sheathing, siding or cladding, or any structural work. A real deep wall retrofit that adds exterior insulation and re-clads costs far more — REMDB has no line for that at all, so this figure is a floor, not a full job cost.', hard:true},
+   {t:'wall system = wood/steel stud', why:'REMDB prices five wall systems separately. <code>WALLDEF</code>/<code>UGRWALLDEF</code> are free-text descriptions only; nothing distinguishes stud from masonry, ICF or SIP. Resolving it needs the underlying .h2k files, which NRCan does not distribute.', hard:true},
+   {t:'material = Batt', why:'Same gap as the roof. On the median wall job the spread across REMDB materials is roughly 4×.'}],
+  calc:{m1:'dr_wall', area:'wall_area', m1label:'ΔR-value added', arealabel:'Wall area (m²)', m1max:60}
+ },
+ Foundation:{
+  name:'Foundation / basement wall insulation', unit:'area',
+  formula:'cost = [ base $/ft² + (R-coefficient × R-value added) + install adder ] × foundation-wall area in ft²',
+  trigger:{code:'Foundation_Insulation_Upgrade', how:'set when <code>FNDWALLINS</code> rises by more than 10%; priced only for houses whose <code>FoundationType</code> contains a basement code'},
+  ers:[
+   {code:'FNDWALLINS', role:'pre', roleTxt:'base case · both audits', gloss:'Foundation wall effective insulation RSI value', cov:'Post_FoundationInsulation'},
+   {code:'BASEMENTFLOORAR', role:'post', roleTxt:'base case · post audit', gloss:'Basement floor area (m²)', cov:'Post_BASEMENTFLOORAR'},
+   {code:'FoundationType', role:'flag', roleTxt:'derived', gloss:'Foundation code string, e.g. "B1;B2" — screened for a basement', cov:'FoundationType'}
+  ],
+  derive:[
+   {out:'ΔR', expr:'(FNDWALLINS_post − FNDWALLINS_pre) × 5.6783', note:'RSI → imperial R, floored at 0.'},
+   {out:'FoundationWallArea_m2', expr:'perimeter(BASEMENTFLOORAR, 2:3) × 2.0 m', note:'basement perimeter × assumed insulated height', asm:[
+     {t:'2.0 m insulated height', why:'Not the full basement wall height. Interior retrofit insulation is usually stopped short of the slab. Assumed, not recorded.'},
+     {t:'2:3 rectangle', why:'Same footprint-shape assumption as the walls.'}]}
+  ],
+  remdb:{c:'Unfinished Basement (Wall)', k:'Batt'},
+  why:'Interior retrofit insulation on an unfinished basement wall is the typical job. ERS does not record whether the basement is finished.',
+  asm:[
+   {t:'cavity fill only — no framing/finish', why:'Like the wall, REMDB’s <code>Unfinished Basement (Wall) / Batt</code> row (~$1.5/ft²) is a bare insulation-install rate. It excludes framing a stud wall against the foundation, vapour barrier, drywall or any finish, and moisture/waterproofing work — the things that dominate a real basement job. A floor, not a full job cost.', hard:true},
+   {t:'basement is unfinished', why:'REMDB’s <code>Finished Basement (Wall)</code> row costs more (demolition and rebuild of the finish). ERS has no finished/unfinished flag.'},
+   {t:'material = Batt', why:'Same gap as roof and wall.'}],
+  calc:{m1:'dr_fnd', area:'fnd_area', m1label:'ΔR-value added', arealabel:'Foundation wall area (m²)', m1max:60}
+ },
+ Window:{
+  name:'Windows', unit:'area', incremental:true,
+  formula:'incremental = ( efficient-window price at the post-retrofit pane count − standard-window price at the pre-retrofit pane count ) × number of windows. Each window priced at a default 1.4 m² on residential vinyl; floored at $0.',
+  trigger:{code:'Windows_Change', how:'set when <code>WINDOWCODE</code> differs between the pre and post audit — i.e. the code for <i>the windows occupying the greatest area</i> changed. The pipeline compares the code as raw text, so an identical code stored once as <span class="mono">201030.0</span> and once as <span class="mono">201030</span> reads as a change; here those <b>same-code</b> cases are dropped (254 of 1,172 PEI flags, 22%) and only a real numeric difference is priced.'},
+  ers:[
+   {code:'WINDOWCODE', role:'pre', roleTxt:'base case · both audits', gloss:'Window code of the windows occupying the greatest area. 6 digits; <b>digit 1 = glazing / pane count</b> (1 single, 2 double, 3 triple), digits 2–3 = coating & fill (the efficiency features).', cov:'Post_WINDOWCODE'},
+   {code:'NUMWINDOWS', role:'post', roleTxt:'base case · post audit', gloss:'Total number of installed windows', cov:'Post_NUMWINDOWS'}
+  ],
+  derive:[
+   {out:'pre / post pane', expr:'digit 1 of the pre and post WINDOWCODE', note:'the pane count before (BAU) and after (retrofit). double→double, double→triple, etc.'},
+   {out:'standard $/window', expr:'REMDB raw Windows Data · Vinyl · <i>pre</i> pane · Standard glass', note:'the business-as-usual window: trimmed median $/ft² × the default 1.4 m² size'},
+   {out:'efficient $/window', expr:'REMDB raw Windows Data · Vinyl · <i>post</i> pane · Low-E glass', note:'the window actually installed, same size basis'},
+   {out:'incremental', expr:'( efficient − standard ) × NUMWINDOWS, floored at 0', note:'the premium for choosing efficient over a standard replacement', asm:[
+     {t:'priced on vinyl', why:'The increment is a glazing/efficiency premium, not a frame comparison. REMDB’s non-vinyl window rows are sparse and commercial-grade (an aluminum "standard" prices near $3,000/window and would drive the premium negative), so every increment is priced on residential vinyl.', hard:true},
+     {t:'$/ft² × 1.4 m², trimmed', why:'Raw rows mix window sizes, so we take the median $/ft² per (pane, class) with the highest and lowest dropped, then re-multiply by one default 1.4 m² window — removing the size artifact.'},
+     {t:'triple-pane pooled', why:'Strict triple-pane cells are n≤4; a triple-pane window is efficient by construction, so its price pools all triple rows for the frame. The triple figure carries a wider error bar.', hard:true},
+     {t:'every window replaced', why:'<code>Windows_Change</code> only says the dominant-area window code changed. Pricing NUMWINDOWS assumes the whole house was done — the largest overstatement risk in the line.', hard:true}]}
+  ],
+  remdb:{c:'Window', k:'Vinyl'},
+  why:'BAU is a standard window at the pre-retrofit pane count; the retrofit is an efficient (Low-E) window at the post-retrofit pane count. Only the premium between them is charged.',
+  asm:[],
+  calc:{m1:null, area:'win_area', arealabel:'Window area (m²)'}
+ },
+ ASHP:{
+  name:'Air source heat pump', unit:'unit', incremental:true,
+  formula:'incremental = ASHP install − a new gas furnace (sized from the pre-retrofit design heat loss) − a standard-efficiency A/C at the ASHP\'s cooling capacity (central if ducted, room if ductless). Can be negative.',
+  trigger:{code:'HeatPump_Addition', how:'set when <code>HPSOURCE</code> is empty in the pre audit and populated in the post audit'},
+  ers:[
+   {code:'HPEquipType', role:'post', roleTxt:'base case · post audit', gloss:'Type of heat pump (central split, ductless mini/multi-split, compact ducted …)', cov:'Post_HPEquipType'},
+   {code:'NUMBEROFHEADS', role:'post', roleTxt:'base case · post audit', gloss:'Number of heads for mini-split air-source heat pumps', cov:'Post_NUMBEROFHEADS'},
+   {code:'HPAHRI', role:'post', roleTxt:'base case · post audit', gloss:'AHRI certificate number of the installed unit — joined to the AHRI lookup for capacity and efficiency', cov:'Post_HPAHRI'},
+   {code:'cooling_capacity_btuh', role:'flag', roleTxt:'AHRI certificate', gloss:'From lookup/ahri_numbers.json via join_hp_capacity.py', cov:'Post_HPCoolingCapacityTons'},
+   {code:'seer2', role:'flag', roleTxt:'AHRI certificate', gloss:'As certified. REMDB was fitted on the older SEER1 metric.', cov:'Post_HPSEER2'}
+  ],
+  derive:[
+   {out:'ASHPClass', expr:'central → Centrally ducted · ductless + heads ≥ 2 → multi-zone · ductless + heads &lt; 2 → single-zone', note:'from HPEquipType and NUMBEROFHEADS', asm:[
+     {t:'no type → single-zone', why:'<code>HPEquipType</code> is only reliably populated from 2025 on, so most records have no ducted/ductless signal. They default to non-ducted single-zone, PEI’s dominant type by roughly 15:1 in the years it <i>is</i> recorded. Tagged <code>assumed_default</code>.', hard:true},
+     {t:'heads 0 → single-zone', why:'Zero is the most common recorded value for ductless systems, read as under-reporting rather than genuinely zero heads.'}]},
+   {out:'Tons', expr:'cooling_capacity_btuh ÷ 12000', note:'REMDB’s metric 1 is cooling capacity in tons'},
+   {out:'SEER1est', expr:'seer2 ÷ 0.95', note:'REMDB was fitted on SEER1; AHRI has reported only SEER2 since 2023', asm:[
+     {t:'SEER2 → SEER1 ÷ 0.95', why:'A commonly cited approximation for split systems, not derived from Canadian AHRI data. An estimate, flagged separately from the certified SEER2.'}]},
+   {out:'− BAU gas furnace', expr:'REMDB Furnaces / Gas Furnace, sized from Pre_HeatLoss (kW → BTU/hr), assumed AFUE 0.95', note:'the heating appliance the homeowner would otherwise have replaced', asm:[
+     {t:'always a gas furnace', why:'A new gas furnace is assumed for every ASHP regardless of the pre-audit system, the most common heating replacement. On PEI (72% oil) this is a national-convention proxy, not the literal local alternative — flagged as an assumption.', hard:true}]},
+   {out:'− BAU A/C', expr:'REMDB Air Conditioner at the ASHP’s cooling tons — central if ducted, room if ductless', note:'the cooling appliance the ASHP also substitutes for', asm:[
+     {t:'standard-efficiency A/C', why:'The BAU A/C is priced at a basic efficiency (SEER1 13 / CEER 11), not the ASHP’s premium rating — a homeowner’s conventional unit. Matching the ASHP’s SEER would over-credit and understate the increment.'},
+     {t:'no prior-A/C field on PEI', why:'<code>ACCENTESTAR</code> is empty province-wide and window-unit counts are rare, so the central-vs-room choice follows the ASHP being ducted vs ductless rather than the home’s recorded cooling.'}]}
+  ],
+  remdb:{c:'Air Source Heat Pump', k:'Non-ducted, single-zone'},
+  why:'An ASHP heats and cools, so its BAU is both appliances it replaces — a gas furnace plus an A/C. Only the extra over that pair is charged; the result can be negative when the ASHP is the cheaper way to get heating + cooling.',
+  asm:[
+   {t:'heating sizing ignored', why:'REMDB’s ASHP regression needs <i>cooling</i> capacity and SEER. A Canadian heat pump is sized for heating, so the cooling-side figure may not reflect what drove the purchase.'},
+   {t:'can be negative', why:'ASHP − furnace − A/C is shown as-is, never floored: a negative means the heat pump was the cheaper route to heating + cooling. On PEI none actually went negative (median +$5,200).'}],
+  calc:{m1:'tons', m2:'seer1', area:null, m1label:'Cooling capacity (tons)', m2label:'SEER1 (estimated)', m1max:6, m1step:0.25, m2max:30, m2step:0.5}
+ },
+ AirSeal:{
+  name:'Air sealing', unit:'area',
+  formula:'cost = [ base $/ft² + (coefficient × leakage-reduction fraction) + install adder ] × conditioned floor area in ft²',
+  trigger:{code:'Air_Tightness_Upgrade', how:'set when <code>AIR50P</code> falls to below 90% of its pre-retrofit value — i.e. at least a 10% reduction'},
+  ers:[
+   {code:'AIR50P', role:'pre', roleTxt:'base case · both audits', gloss:'Air leakage at 50 pascals — a <b>measured blower-door result</b> at each audit, not a modelled value', cov:'Post_AirLeakage'},
+   {code:'HEATEDFLOORAREA', role:'post', roleTxt:'base case · post audit', gloss:'Heated floor area (m²). Falls back to FLOORAREA where missing.', cov:'Post_HEATEDFLOORAREA'},
+   {code:'FLOORAREA', role:'flag', roleTxt:'fallback', gloss:'Used for the 21% of records with no heated floor area', cov:'FloorArea'}
+  ],
+  derive:[
+   {out:'LeakageReduction', expr:'(AIR50P_pre − AIR50P_post) ÷ AIR50P_pre', note:'A <b>ratio</b>, so it is unit-independent — whatever AIR50P is measured in cancels. The one input in this whole model that is a direct measurement with no proxy, no assumed constant and no unit conversion.'},
+   {out:'REMDB class', expr:'reduction ≤ 40% → &lt;40% · reduction &gt; 40% → &gt;40%', note:'Chosen by the measurement, not assumed. The two regressions are fitted separately, so cost steps at the boundary.'},
+   {out:'Area', expr:'HEATEDFLOORAREA (else FLOORAREA)', note:'REMDB’s raw sheet divides total cost by <span class="mono">sq_ft_home</span>, so the basis is whole-house conditioned floor area — no geometric proxy needed.', asm:[
+     {t:'floor-area fallback', why:'1,092 of 5,179 priced records have no HEATEDFLOORAREA and fall back to FLOORAREA, which may include unconditioned space. Slight overstatement for those.'}]}
+  ],
+  remdb:{c:'Air Sealing', k:'<40% Reduction'},
+  why:'The most defensible measure in the model: a measured input, a real REMDB regression, and an area basis that matches REMDB’s own without inventing geometry.',
+  asm:[
+   {t:'≥10% gate', why:'Gated on the pipeline’s existing <code>Air_Tightness_Upgrade</code> flag for consistency with the other measures. REMDB’s regression is actually fitted from 3% up, so 4,067 records with a smaller measured reduction go unpriced.'},
+   {t:'low R²', why:'REMDB flags both air-sealing regressions as <i>Low R²</i> — the fit explains little of the cost variation even in the source data. The measure is well-sourced on the ERS side and weakly fitted on the REMDB side.', hard:true}],
+  calc:{m1:'airseal_red', area:'airseal_area', m1label:'Leakage reduction (fraction)', arealabel:'Conditioned floor area (m²)', m1max:0.95, m1step:0.01}
+ },
+ PV:{
+  name:'Solar PV', unit:'watt',
+  formula:'cost = [ intercept + (power-coefficient × watts added) ] × watts added ($/W × W)',
+  trigger:{code:'KWPV post &gt; pre', how:'no pipeline flag exists — the signal is simply that nameplate PV capacity increased between the two audits'},
+  ers:[
+   {code:'KWPV', role:'pre', roleTxt:'base case · both audits', gloss:'Nominal capacity of the PV system (kW) entered by the energy advisor', cov:'Post_SolarPV'}
+  ],
+  derive:[
+   {out:'AddedCapacity', expr:'KWPV_post − KWPV_pre', note:'Only the capacity <i>added</i> is priced, not the total installed.', asm:[
+     {t:'>100 kW dropped', why:'KWPV carries a few impossible values (up to 10,800 kW). Three PEI records exceed 100 kW and are excluded and counted, not silently clipped.'}]},
+   {out:'Watts', expr:'AddedCapacity × 1000', note:'REMDB prices Solar PV in <span class="mono">2023$/Watt</span> against a Power metric in watts, so the per-watt rate is multiplied back by the wattage.'}
+  ],
+  remdb:{c:'Solar PV', k:null},
+  why:'One REMDB class, one metric, and ERS records nameplate capacity directly — no material or system assumption at all.',
+  asm:[
+   {t:'nameplate ≠ installed', why:'KWPV is what the advisor entered, not a verified as-built figure, and DC nameplate is not the same as what was contracted.'},
+   {t:'28% above REMDB ceiling', why:'REMDB’s regression is fitted to 880–14,080 W. PEI arrays are large (median 11.1 kW added) so 914 records exceed the ceiling.', hard:true},
+   {t:'cost curve turns over at 12.1 kW', why:'REMDB’s $/W regression is linear with a negative slope, so TOTAL cost peaks at 12.09 kW and falls after it — a 20 kW array prices below an 11 kW one, and the model goes negative above 24.2 kW. 43% of PEI PV records sit past the turning point. This is a REMDB extrapolation failure, not a data problem.', hard:true}],
+  warn:'REMDB’s Solar PV regression is <b>not usable at PEI array sizes without a cap</b>. Total cost peaks at 12.09 kW and declines beyond it — 1,406 of 3,273 priced records (43%) are past that point, and the fitted ceiling is 14.08 kW. Treat every PV figure here as indicative only; a Canadian $/W benchmark would be a better source than extrapolating this curve.',
+  calc:{m1:'pv_kw', area:null, m1label:'Capacity added (kW)', m1max:25, m1step:0.1, kwToWatt:true}
+ },
+ HRV:{
+  name:'HRV / ERV (mechanical ventilation)', unit:'unit',
+  formula:'cost = intercept + (efficiency-coefficient × SRE) + (airflow-coefficient × max airflow CFM) — priced per unit, no area',
+  trigger:{code:'CENVENTSYSTYPE change', how:'no pipeline flag — priced where the post-retrofit ventilation type names heat recovery and the pre-retrofit one does not'},
+  ers:[
+   {code:'CENVENTSYSTYPE', role:'pre', roleTxt:'base case · both audits', gloss:'Ventilation system type installed — carried through the pipeline as Pre/Post_VentType', cov:'Post_VentType'},
+   {code:'HRVEFF0C', role:'post', roleTxt:'base case · post audit', gloss:'HRV effectiveness at 0 °C (%)', cov:'Post_HRVEFF0C'},
+   {code:'TOTALVENTSUPPLY', role:'post', roleTxt:'base case · post audit', gloss:'Total ventilation supply rate (L/s)', cov:'Post_TOTALVENTSUPPLY'}
+  ],
+  derive:[
+   {out:'SRE', expr:'HRVEFF0C ÷ 100', note:'REMDB’s metric is <b>Sensible Recovery Efficiency</b>.', asm:[
+     {t:'HRVEFF0C used as SRE', why:'These are related but not the same measurement. HOT2000’s effectiveness at 0 °C is a single-temperature figure; SRE is a rated test value that accounts for fan power and defrost. Substituting one for the other is a methodological approximation, not a unit conversion.', hard:true}]},
+   {out:'MaxAirflow', expr:'TOTALVENTSUPPLY × 2.1189', note:'L/s → CFM. REMDB’s metric is max airflow; total supply rate is the closest available.', asm:[
+     {t:'supply rate ≠ max airflow', why:'The design supply rate is not necessarily the unit’s rated maximum airflow, which is what REMDB fitted against. Likely understates the unit size.'}]}
+  ],
+  remdb:{c:'Mechanical Ventilation', k:'ERV/HRV'},
+  why:'Both inputs come from the post-retrofit base case, so this is an as-found measure — but each is a proxy for the metric REMDB actually fitted.',
+  asm:[
+   {t:'negative efficiency coefficient', why:'REMDB’s SRE coefficients are +270 (low), −841 (mid), −3,100 (high): at the mid and high quantiles a MORE efficient unit prices LOWER. For efficient units the high estimate can fall below the mid one — 19 PEI records do exactly that. A REMDB regression artifact, left visible rather than reordered.', hard:true},
+   {t:'only 216 records', why:'HRV additions with both an efficiency and an airflow figure are rare — 1.7% of paired records. Treat the median as indicative only.'}],
+  calc:{m1:'hrv_sre', m2:'hrv_cfm', area:null, m1label:'Sensible recovery efficiency', m2label:'Max airflow (CFM)', m1max:1, m1step:0.01, m2max:700, m2step:5}
+ }
+};
+var ORDER = ['Roof','Wall','Foundation','Window','ASHP','AirSeal','PV','HRV'];
+
+/* ------------------------------------------------------------------ render */
+document.getElementById('sub').innerHTML =
+  'Every step from a named ERS column to a dollar figure, for each of the five measures REMDB can price &middot; ' +
+  D.n_paired.toLocaleString() + ' paired PEI records &middot; REMDB 2024.12.23';
+
+document.getElementById('tabs').innerHTML = ORDER.map(function(k){
+  return '<button data-k="'+k+'"'+(k===st.measure?' class="on"':'')+'>'+MEAS[k].name+'</button>';
+}).join('');
+
+function asmChips(list){
+  if(!list || !list.length) return '';
+  return '<div>' + list.map(function(a){
+    return '<span class="asm'+(a.hard?' hard':'')+'" title="'+
+      a.why.replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')+'">'+a.t+'</span>';
+  }).join('') + '</div>';
+}
+
+function curClass(k){
+  var m = MEAS[k];
+  return st.cls[k] || (m.remdb.c + '||' + m.remdb.k);
+}
+
+function render(){
+  var k = st.measure, m = MEAS[k], bi = st.band;
+  var key = curClass(k), row = SPEC[key];
+  if(!row){
+    // never fall through to whatever was rendered before - that silently shows one
+    // measure's numbers under another measure's heading
+    document.getElementById('view').innerHTML =
+      '<div class="note warn"><b>REMDB row not found:</b> <span class="mono">'+key+
+      '</span>. The methodology payload is missing this component, so no cost can be shown.</div>';
+    return;
+  }
+  var sens = D.sensitivity[k];
+
+  var m1 = (st.m1[k] !== undefined) ? st.m1[k]
+         : (m.calc.m1 ? D.medians[m.calc.m1] : null);
+  var m2 = (m.calc.m2) ? ((st.m1[k+'_2'] !== undefined) ? st.m1[k+'_2'] : D.medians[m.calc.m2]) : null;
+  var area = m.calc.area ? ((st.area[k] !== undefined) ? st.area[k] : D.medians[m.calc.area]) : null;
+
+  // PV is entered in kW but REMDB's metric is watts, and its output unit is $/W
+  var metric1 = m.calc.kwToWatt ? m1 * 1000 : m1;
+  var res = installedPerUnit(row, bi, metric1, m2, st.oob);
+  var total = (m.unit === 'area') ? res.value * area * M2SQ
+            : (m.unit === 'watt') ? res.value * metric1
+            : res.value;
+  var stats = D.stats[k];
+
+  /* ---- stage 1: ERS inputs ---- */
+  var s1 = m.ers.map(function(f){
+    return '<div class="box"><div class="code">'+f.code+'</div>'+
+      '<div class="m"><span class="role '+f.role+'">'+f.roleTxt+'</span></div>'+
+      '<div class="g">'+f.gloss+'</div>'+
+      '<div class="m">'+cv(f.cov)+'</div></div>';
+  }).join('') +
+  '<div class="box"><div class="code">'+m.trigger.code+'</div>'+
+   '<div class="m"><span class="role flag">pipeline flag</span></div>'+
+   '<div class="g">'+m.trigger.how+'</div></div>';
+
+  /* ---- stage 2: derivation ---- */
+  var s2 = m.derive.map(function(d){
+    return '<div class="box"><div class="code d">'+d.out+'</div>'+
+      '<div class="g mono" style="color:#cbb0ec;margin-top:5px">'+d.expr+'</div>'+
+      '<div class="g">'+d.note+'</div>'+asmChips(d.asm)+'</div>';
+  }).join('');
+
+  /* ---- stage 3: REMDB row ---- */
+  var alts = sens ? sens.options.length : 0;
+  var s3 = '<div class="box"><div class="code" style="color:#8fd9a8">'+row.component+'</div>'+
+    '<div class="g" style="margin-top:4px">class <b style="color:#e6edf3">'+row.cls+'</b> · output in <span class="mono">'+row.units+'</span></div>'+
+    '<div class="g" style="margin-top:6px">'+m.why+'</div>'+asmChips(m.asm)+'</div>' +
+    '<div class="box"><div class="g"><b style="color:#e6edf3">Inputs this row requires</b></div>'+
+      '<div class="g" style="margin-top:5px">'+
+      (row.metric1 ? '<span class="mono" style="color:#8fd9a8">'+row.metric1+'</span> ('+row.unit1+'), fitted '+row.lo1+'–'+row.hi1 : 'no performance metric — a flat rate') +
+      (row.metric2 ? '<br><span class="mono" style="color:#8fd9a8">'+row.metric2+'</span> ('+row.unit2+'), fitted '+row.lo2+'–'+row.hi2 : '') +
+      '</div><div class="m">REMDB confidence: '+(row.rank||'—')+'</div></div>' +
+    (alts ? '<div class="box"><div class="g">'+alts+' classes in this family price the same job differently — see the bars below.</div></div>' : '');
+
+  /* ---- stage 4: formula ---- */
+  var lines = [];
+  lines.push('<b>material</b> = ' + res.parts.map(function(p){
+    return p.coef !== undefined
+      ? '('+p.coef.toFixed(4)+' × '+(+p.val.toFixed(3))+')'
+      : (+p.v.toFixed(4));
+  }).join(' + ') + ' = <b>' + res.material.toFixed(3) + '</b>');
+  if(res.mode === 'multiplier')
+    lines.push('<b>installed</b> = material × ' + res.factor + ' = <b>' + res.value.toFixed(3) + '</b>');
+  else
+    lines.push('<b>installed</b> = material + ' + (+res.factor.toFixed(4)) + ' = <b>' + res.value.toFixed(3) + '</b>');
+  if(m.unit === 'area')
+    lines.push('<b>cost</b> = ' + res.value.toFixed(3) + ' $/sqft × ' + area + ' m² × 10.764 = <b>' + money(total) + '</b>');
+  else if(m.unit === 'watt')
+    lines.push('<b>cost</b> = ' + res.value.toFixed(4) + ' $/W × ' + metric1.toFixed(0) + ' W = <b>' + money(total) + '</b>');
+  else
+    lines.push('<b>cost</b> = <b>' + money(total) + '</b>');
+
+  var s4 = (m.formula ? '<div class="box"><div class="m" style="text-transform:uppercase;letter-spacing:.05em;font-size:11px;color:var(--dim)">the formula, in words</div>'+
+      '<div class="g" style="color:#e6edf3;margin-top:5px;line-height:1.6">'+m.formula+'</div></div>' : '') +
+    '<div class="box"><div class="g mono" style="line-height:1.9">'+lines.join('<br>')+'</div>'+
+    '<div class="m">band used: '+res.usedBand+(res.oob ? ' · metric outside the fitted range' : '')+'</div></div>' +
+    (res.oob ? '<div class="box" style="border-left-color:var(--warn)"><div class="g" style="color:#e0a458">'+
+       (st.oob === 'mid'
+        ? 'Outside the fitted range, so REMDB says use the Mid coefficients only — low, mid and high collapse to one value.'
+        : 'Outside the fitted range; the metric has been clamped to the bound and the low/high spread kept. This is <i>not</i> what REMDB’s guidance says to do.')+
+       '</div></div>' : '') +
+    (res.alsoAdder ? '<div class="box" style="border-left-color:var(--bad)"><div class="g" style="color:#e79a9a">'+
+       'This row also carries a non-zero retrofit adder ('+res.alsoAdder+') that the multiplier rule discards. '+
+       'It is the only thing distinguishing <span class="mono">Centrally ducted</span> from '+
+       '<span class="mono">Centrally ducted, with new circuit</span>, so today those two price identically.'+
+       '</div></div>' : '');
+
+  /* ---- stage 5: cost ---- */
+  var s5 = '<div class="box"><div class="big">'+money(total)+'</div>'+
+    '<div class="band">'+BANDS[bi]+' band · 2023 USD'+(m.incremental ? ' · one component' : '')+'</div></div>' +
+    (m.incremental ? '<div class="box" style="border-left-color:var(--formula)"><div class="g" style="color:#e0a458">The figure above is one <b>component</b> priced by the calculator. This measure’s reported number is <b>incremental</b> — '+
+      (st.measure==='Window' ? 'the efficient-minus-standard window premium' : 'the ASHP minus the gas furnace and A/C it replaces')+
+      ' — so the PEI median below is what the model actually charges.</div></div>' : '') +
+    '<div class="box"><div class="g"><b style="color:#e6edf3">On the real PEI data</b>'+(m.incremental ? ' — incremental' : '')+'</div>'+
+      '<div class="g" style="margin-top:5px">'+stats.n.toLocaleString()+' records priced ('+stats.pct+'% of paired)<br>'+
+      'median '+money(stats.median)+'<br>p10–p90 '+money(stats.p10)+' – '+money(stats.p90)+'</div>'+
+      (stats.oob ? '<div class="m" style="color:#e0a458">'+stats.oob.toLocaleString()+' ('+stats.oob_pct+'%) fall outside the fitted range</div>' : '')+
+    '</div>';
+
+  var flow =
+    '<div class="flow">'+
+      '<div class="stage s1"><div class="shead">1 · ERS fields</div>'+s1+'</div>'+
+      '<div class="stage s2"><div class="shead">2 · Derivation</div>'+s2+'</div>'+
+      '<div class="stage s3"><div class="shead">3 · REMDB row</div>'+s3+'</div>'+
+      '<div class="stage s4"><div class="shead">4 · Formula</div>'+s4+'</div>'+
+      '<div class="stage s5"><div class="shead">5 · Cost</div>'+s5+'</div>'+
+    '</div>';
+
+  /* ---- calculator ---- */
+  var flds = '';
+  if(m.calc.m1){
+    flds += '<div class="fld"><label>'+m.calc.m1label+'</label>'+
+      '<input type="number" id="i_m1" value="'+m1+'" step="'+(m.calc.m1step||0.5)+'">'+
+      '<input type="range" id="r_m1" min="0" max="'+(m.calc.m1max||60)+'" step="'+(m.calc.m1step||0.5)+'" value="'+m1+'">'+
+      '<div class="hint">REMDB fitted '+row.lo1+'–'+row.hi1+' · PEI median '+D.medians[m.calc.m1]+'</div></div>';
+  }
+  if(m.calc.m2){
+    flds += '<div class="fld"><label>'+m.calc.m2label+'</label>'+
+      '<input type="number" id="i_m2" value="'+m2+'" step="'+(m.calc.m2step||0.5)+'">'+
+      '<input type="range" id="r_m2" min="0" max="'+(m.calc.m2max||30)+'" step="'+(m.calc.m2step||0.5)+'" value="'+m2+'">'+
+      '<div class="hint">REMDB fitted '+row.lo2+'–'+row.hi2+' · PEI median '+D.medians[m.calc.m2]+'</div></div>';
+  }
+  if(m.calc.area){
+    flds += '<div class="fld"><label>'+m.calc.arealabel+'</label>'+
+      '<input type="number" id="i_area" value="'+area+'" step="1">'+
+      '<input type="range" id="r_area" min="1" max="'+Math.round(D.medians[m.calc.area]*4)+'" step="1" value="'+area+'">'+
+      '<div class="hint">PEI median for this measure: '+D.medians[m.calc.area]+' m²</div></div>';
+  }
+  // only offer the class selector where REMDB actually gives a choice
+  if(sens && sens.options.length > 1){
+    flds += '<div class="fld"><label>REMDB class'+(k === 'AirSeal' ? ' (set by the measurement)' : ' (the assumption)')+'</label><select id="i_cls">'+
+      sens.options.map(function(o){
+        var kk = o.component+'||'+o.cls;
+        return '<option value="'+kk+'"'+(kk===key?' selected':'')+'>'+o.label+'</option>';
+      }).join('')+'</select>'+
+      '<div class="hint">'+(k === 'AirSeal'
+        ? 'Chosen by the measured reduction, not assumed — shown so the step at 40% is visible.'
+        : 'Switching this shows what the same physical job costs under a different assumption.')+
+      '</div></div>';
+  } else {
+    flds += '<div class="fld"><label>REMDB class</label>'+
+      '<div style="padding:7px 0;color:var(--muted);font-size:13px">'+
+      row.component+(row.cls ? ' / '+row.cls : '')+' — the only class REMDB offers</div>'+
+      '<div class="hint">No material or system assumption to vary for this measure.</div></div>';
+  }
+
+  var calc = '<div class="calc"><h3>Try it — change any input</h3><div class="cgrid">'+flds+'</div>'+
+    '<div class="out"><div><div class="hint" style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">Estimated cost</div>'+
+    '<div class="r">'+money(total)+'</div></div></div>'+
+    '<div class="steps">'+lines.join('\n')+'</div>'+
+    (res.oob ? '<div class="oobmsg">Metric is outside REMDB’s fitted range.</div>' : '')+
+    '</div>';
+
+  /* ---- sensitivity bars ---- */
+  var bars = '';
+  if(sens && sens.options.length > 1){
+    // computed live from the same inputs and rule as the calculator above, so the
+    // bars always agree with the headline figure and respond to every control
+    var opts = sens.options.map(function(o){
+      var r2 = SPEC[o.component+'||'+o.cls];
+      if(!r2) return null;
+      var e = installedPerUnit(r2, bi, metric1, m2, st.oob);
+      return {kk:o.component+'||'+o.cls, label:o.label, oob:e.oob,
+              v:(m.unit === 'area') ? e.value*area*M2SQ
+               :(m.unit === 'watt') ? e.value*metric1 : e.value};
+    }).filter(Boolean).sort(function(a,b){ return a.v - b.v; });
+    var max = Math.max.apply(null, opts.map(function(o){ return o.v || 0; }));
+    var here = opts.filter(function(o){ return o.kk === key; })[0];
+    var spread = (opts.length && opts[0].v > 0)
+      ? (opts[opts.length-1].v / opts[0].v) : 0;
+    bars = '<h3 style="margin-top:26px">What the assumption is worth — same job, every REMDB class</h3>'+
+      '<div class="note" style="margin-bottom:10px">'+
+        'Priced on the inputs currently set above. Amber is the class this model actually uses'+
+        (here ? ' (<b>'+money(here.v)+'</b>)' : '')+
+        (spread > 1 ? '. Cheapest to dearest spans <b>'+spread.toFixed(1)+'×</b>' : '')+
+        ' — none of which ERS records.</div>'+
+      '<div class="bars">'+opts.map(function(o){
+        return '<div class="brow'+(o.kk===key?' cur':'')+'"><div class="nm">'+o.label+'</div>'+
+          '<div class="btrack"><div class="bfill" style="width:'+(max? (o.v/max*100):0).toFixed(1)+'%"></div></div>'+
+          '<div class="bval">'+money(o.v)+(o.oob?'<span class="bmark">*</span>':'')+'</div></div>';
+      }).join('')+'</div>'+
+      '<div class="hint" style="color:var(--dim);font-size:11.5px;margin-top:7px">* metric falls outside that class’s fitted range</div>';
+  }
+
+  var warn = m.warn
+    ? '<div class="note warn" style="border-left-color:var(--bad);margin:14px 0 0">'+m.warn+'</div>'
+    : '';
+  document.getElementById('view').innerHTML = flow + warn + calc + bars;
+
+  /* wire calculator */
+  function bind(numId, rngId, setter){
+    var a = document.getElementById(numId), b = document.getElementById(rngId);
+    if(!a) return;
+    function upd(v){ if(v === '' || isNaN(+v)) return; setter(+v); render(); }
+    a.onchange = function(){ upd(this.value); };
+    if(b) b.oninput = function(){ upd(this.value); };
+  }
+  bind('i_m1','r_m1', function(v){ st.m1[k] = v; });
+  bind('i_m2','r_m2', function(v){ st.m1[k+'_2'] = v; });
+  bind('i_area','r_area', function(v){ st.area[k] = v; });
+  var sel = document.getElementById('i_cls');
+  if(sel) sel.onchange = function(){ st.cls[k] = this.value; render(); };
+}
+
+/* ------------------------------------------------------------- static tables */
+var ASSUMPTIONS = [
+ ['Footprint is a 2:3 rectangle','wall + foundation area','Perimeter drives both wall and foundation-wall area. A square minimises perimeter, so it would understate; 2:3 is a judgment call with no housing-stock source.','both','A real footprint aspect-ratio distribution — NBC reference-house archetypes or a CMHC housing-stock study.'],
+ ['Storey height 2.44 m (8 ft)','wall area','Nothing in ERS records wall height.','both','Nothing in the public extract; would need .h2k geometry.'],
+ ['Split level / split entry = 1.5 storeys','wall area','These labels have no clean storey count. Affects 567 PEI records.','both','A defensible convention, or excluding splits from wall pricing.'],
+ ['Ceiling area = FOOTPRINT','roof area','FOOTPRINT is the sum of <i>all</i> foundations and exposed floors, not ground-floor area, and ignores roof pitch.','both','Per-component surface areas, which the public extract does not carry.'],
+ ['Window unit = 1.4 m²','window cost','A round-number placeholder. Scales the entire window line proportionally — and windows are the largest single line.','both','A glazing-area distribution, or the .h2k window schedule.'],
+ ['Every window was replaced','window cost','<code>Windows_Change</code> only means the dominant-area window code changed. Could be one window, or an auditor re-coding the same windows.','up','A per-window replacement signal, which ERS does not have. The largest overstatement risk in the model.'],
+ ['Wood frames priced as Vinyl','window cost','REMDB has no wood window class, so wood falls back to the cheaper of the two real classes.','down','A wood-window price source outside REMDB.'],
+ ['Insulation material = Batt','roof + wall + foundation','ERS records no material anywhere. Across REMDB’s materials the same roof job spans roughly 8×.','both','Nothing in the public extract.'],
+ ['Wall system = wood/steel stud','wall cost','REMDB prices five wall systems. The NRCan dictionary has no wall-construction field.','both','The .h2k files, which are not distributed.'],
+ ['Basement is unfinished','foundation cost','REMDB’s finished-basement row costs more. ERS has no finished/unfinished flag.','down','Nothing in the public extract.'],
+ ['Basement insulated height 2.0 m','foundation cost','Not the full wall height; assumes interior insulation stopped short of the slab.','both','Nothing in the public extract.'],
+ ['Heat pump with no type = single-zone','heat pump cost','<code>HPEquipType</code> is only reliably populated from 2025 on. Most records default to PEI’s dominant type.','down','Later ERS vintages, where the field is populated.'],
+ ['SEER1 ≈ SEER2 ÷ 0.95','heat pump cost','A commonly cited approximation, not derived from Canadian AHRI data.','both','A SEER1/SEER2 crosswalk for the specific units.'],
+ ['ΔR of effective RSI ≈ product R','all insulation','ERS insulation fields are effective RSI including framing and air films; REMDB wants the nominal R of the product installed.','down','Nominal product R, which ERS does not record.'],
+ ['HRVEFF0C used as REMDB’s SRE','HRV / ERV cost','HOT2000 records effectiveness at 0 °C; REMDB fitted against Sensible Recovery Efficiency, a different rated test that accounts for fan power and defrost.','both','An SRE figure, or an HVI certificate join like the one used for heat pumps.'],
+ ['Vent supply rate = max airflow','HRV / ERV cost','<code>TOTALVENTSUPPLY</code> is the design supply rate, not the unit’s rated maximum airflow.','down','A rated-airflow source per unit.'],
+ ['PV nameplate = installed capacity','solar PV cost','<code>KWPV</code> is what the advisor entered, and DC nameplate is not what was contracted.','both','As-built system documentation.'],
+ ['REMDB’s PV curve extrapolated','solar PV cost','The $/W regression is linear and negative, so total cost peaks at 12.09 kW and <i>falls</i> beyond it (negative above 24.2 kW). 43% of PEI PV records are past the turning point.','down','A Canadian residential $/W benchmark instead of this regression — the strongest candidate for replacement in the whole model.'],
+ ['Air sealing gated at ≥10%','air sealing cost','Uses the pipeline’s existing flag; REMDB’s regression is fitted from 3% up, so 4,067 records with a smaller measured reduction go unpriced.','down','A decision to price every positive reduction instead.'],
+ ['2023 USD applied unchanged','every measure','No exchange conversion and no Canadian labour adjustment anywhere in the model.','both','A CAD conversion plus a Canadian labour-cost factor.']
+];
+document.getElementById('asmTable').innerHTML =
+  '<tr><th>Assumption</th><th>Affects</th><th>Why it exists</th><th>If wrong</th><th>What would settle it</th></tr>' +
+  ASSUMPTIONS.map(function(a){
+    var d = a[3] === 'up' ? '<span class="dir up">overstates</span>'
+          : a[3] === 'down' ? '<span class="dir down">understates</span>'
+          : '<span class="dir both">either way</span>';
+    return '<tr><td>'+a[0]+'</td><td>'+a[1]+'</td><td>'+a[2]+'</td><td>'+d+'</td><td>'+a[4]+'</td></tr>';
+  }).join('');
+
+var GAPS = [
+ ['Electrical panel upgrade','Electric Panel / 100A, 200A','none (flat rate)','<b>The field exists in the dictionary but not in the data.</b> <code>ElecPanelUpgraded</code> and <code>UGRElecPanelUpgraded</code> are documented (HOT2000 v11.13, base and upgrade case) but appear in <b>none</b> of the 21 public CSVs, 2004–2026 — checked every header for <span class="mono">panel</span>, <span class="mono">ampacity</span> and <span class="mono">breaker</span>. Nothing to join to.'],
+ ['Doors','Door / 6 classes','none (flat $/sqft)','<code>NUMDOORS</code> is a static count with no pre/post change signal — nothing says a door was replaced.'],
+ ['Furnace / boiler','Furnaces, Boiler','Heating capacity (BTU/h) + AFUE','No furnace or boiler capacity survives the pipeline, and the raw fields are pre-retrofit values, not the new equipment’s size.'],
+ ['Exposed floor insulation','Crawlspace (Ceiling)','R-value','RSI delta exists but there is no area proxy at all, and it is rare (193 of 12,554 PEI records).'],
+ ['Ground source heat pump','Ground Source Heat Pump / GSHP','Cooling capacity (tons)','n=1 in PEI — not worth a separate costing path at POC stage.'],
+ ['Ducts','Duct / Insulation, Sealing','R-value; leakage reduction','No duct area, duct R-value or duct leakage field in the public extract.'],
+ ['Water heater','Water Heater / 7 classes','UEF + nominal volume','Efficiency is carried in some vintages; tank volume is not.'],
+ ['Rim joist insulation','Rim Joist / Batt, rigid foam','R-value','REMDB prices it separately and it is a common Canadian retrofit, but ERS has no rim-joist RSI or area field.'],
+ ['Thermostat','Thermostat / Smart, programmable…','none (flat rate)','No thermostat field in the public extract.']
+];
+document.getElementById('gapTable').innerHTML =
+  '<tr><th>Measure</th><th>REMDB row that could price it</th><th>Inputs REMDB needs</th><th>Why we cannot</th></tr>' +
+  GAPS.map(function(g){
+    return '<tr><td>'+g[0]+'</td><td class="mono" style="font-size:12px">'+g[1]+'</td><td>'+g[2]+'</td><td>'+g[3]+'</td></tr>';
+  }).join('');
+
+/* ------------------------------------------------------------------- events */
+document.getElementById('tabs').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  [].forEach.call(this.querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+  b.classList.add('on'); st.measure = b.dataset.k; render();
+});
+function seg(id, key, cast){
+  var el = document.getElementById(id);
+  el.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    [].forEach.call(el.querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); st[key] = cast ? cast(b.dataset.v) : b.dataset.v; render();
+  });
+}
+seg('segBand','band',Number);
+seg('segOob','oob');
+
+render();
+})();
+</script>
+</body>
+</html>
