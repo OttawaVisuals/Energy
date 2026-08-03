@@ -21,9 +21,11 @@ same architecture to the new-construction slice of the same data.
 - [The data pipeline](#the-data-pipeline)
   - [Step 1 — `ers_web_pipeline.py`](#step-1--ers_web_pipelinepy-raw-csvs--per-province-parquet)
   - [Step 1b — `join_hp_capacity.py`](#step-1b--join_hp_capacitypy-parquet--parquet-ahri-certificate-join)
+  - [Step 1c — `compute_ghg_scenarios.py`](#step-1c--compute_ghg_scenariospy-parquet--parquet-ghg-scenario-columns)
   - [Step 2 — `split_fsa_json.py`](#step-2--split_fsa_jsonpy-parquet--per-fsa-json)
   - [Step 3 — `precompute_province_stats.py`](#step-3--precompute_province_statspy-parquet--province-summaries)
 - [Unit conversions](#unit-conversions)
+- [GHG scenarios](#ghg-scenarios)
 - [How each measure is flagged](#how-each-measure-is-flagged)
 - [Data file formats](#data-file-formats)
 - [Front-end architecture](#front-end-architecture)
@@ -68,6 +70,9 @@ Energy/
 Python/
 ├─ ers_web_pipeline.py              # Step 1: raw ERS CSVs -> per-province parquet
 ├─ join_hp_capacity.py              # Step 1b: joins Post_HPAHRI against lookup/ahri_numbers.json
+├─ ers_ghg_factors.py               # derives the ERS-calibrated GHG factor table (feeds Step 1c)
+├─ ghg_factors.py                   # GHG factor constants/lookups (official ECCC/OBPS + ERS-calibrated)
+├─ compute_ghg_scenarios.py         # Step 1c: adds the 6 GHG scenario columns
 ├─ split_fsa_json.py                # Step 2: parquet -> per-FSA JSON
 ├─ precompute_province_stats.py     # Step 3: parquet -> province summaries
 └─ aggregate_canada.py              # Step 4: province summaries -> CA.json rollup
@@ -100,18 +105,27 @@ what it feeds) in its own "Data availability" collapsible section.
 
 ## The data pipeline
 
-Three scripts run in order, plus an optional sidecar (Step 1b) between Steps 1 and 2/3
-that enriches the same parquet in place. Steps 2 and 3 both read the per-province
-parquet that Step 1 (and, if run, Step 1b) produces.
+Three scripts run in order, plus two optional sidecars (Step 1b, Step 1c) between
+Step 1 and Steps 2/3 that enrich the same parquet in place. Steps 2 and 3 both read
+the per-province parquet that Step 1 (and, if run, Step 1b/1c) produces.
 
 ```
 raw yearly ERS CSVs ──[1] ers_web_pipeline.py──▶ ers_web_<PROV>.parquet
                                                    │
                                      [1b] join_hp_capacity.py (overwrites in place)
                                                    │
+                                     [1c] compute_ghg_scenarios.py (overwrites in place)
+                                                   │
                                                    ├─[2] split_fsa_json.py            ──▶ fsa_json/<PROV>/*.json
                                                    └─[3] precompute_province_stats.py ──▶ province_json/<PROV>.json
 ```
+
+### Step 1c — `compute_ghg_scenarios.py` (parquet → parquet, GHG scenario columns)
+
+Adds 6 columns (`Pre_/Post_GHG_current`, `_current_corrected`, `_as_audited`) alongside
+the existing, untouched `Pre_/Post_GHG` (raw `ERSGHG`) — see [GHG scenarios](#ghg-scenarios)
+below. Depends on `Python/ers_ghg_factors.py`'s output
+(`ers_ghg_factors_by_province_year.csv`) being current; re-run that first if it's stale.
 
 ### Step 1 — `ers_web_pipeline.py` (raw CSVs → per-province parquet)
 
@@ -246,6 +260,59 @@ Applied in Step 1 so every fuel is comparable in **kWh** (heat loss in **kW**):
 
 GHG already includes electricity emissions via each province's grid factor, so
 fuel-switching to electricity is reflected correctly.
+
+### GHG scenarios
+
+`Pre_GHG`/`Post_GHG` (raw `ERSGHG`) is only populated for **50.5%** of matched
+pairs nationally (measured 2026-08-02; Quebec ~78%, Ontario ~43%, Saskatchewan
+~9%). Rather than build every GHG chart on half the population, **Step 1c**
+(`Python/compute_ghg_scenarios.py`) calculates GHG for every matched home from
+its own recorded fuel consumption (~100% complete), giving 4 bases — switched
+by the **GHG basis** dropdown above the GHG chart on both retrofits.html and
+retrofit-insights.html:
+
+| Scenario | Electricity factor | Combustion factor |
+|---|---|---|
+| `reported` | — (raw `ERSGHG`, ~50.5% coverage) | — |
+| `current` | flat 2026 official ECCC/OBPS, same for every audit year | fixed official ECCC/OBPS constants |
+| `current_corrected` | same, Alberta/Newfoundland use ERS-calibrated instead | fixed official ECCC/OBPS constants |
+| `as_audited` (default) | ERS-calibrated, matched to each home's own audit year | ERS-calibrated, year-varying |
+
+**Why Alberta/Newfoundland are corrected, and why `as_audited` needs
+year-varying combustion, not the fixed constants:** validated against real
+`ERSGHG`, the official ECCC factors agree with the ERS data almost exactly for
+combustion (gas/oil/propane, within 0.1–3.5%) but electricity is off by
+18–29% (Alberta) and 27–49% (Newfoundland & Labrador), consistently across
+2023–2026 at large sample sizes (40,000+ homes/yr for Alberta) — not noise.
+Checked for FSA-level/regional variation and found none explains it: Newfoundland's
+audited homes are almost all on the island, so the official province-wide
+figure (diluted by Labrador's near-zero-carbon Churchill Falls hydro) doesn't
+represent them; Alberta has only 159 of 85,771 homes that are electric-only
+heated, nowhere near enough to test locally, and its grid has no published
+zonal split. We could not find NRCan documentation of what HOT2000 uses
+internally for this (open question — see
+[ENERGUIDE_QUESTIONS.md §5.4](ENERGUIDE_QUESTIONS.md)), so these two provinces
+substitute the ERS-calibrated factor, which by construction reproduces what
+HOT2000 actually computed for these same audits. Separately, applying a flat
+*modern* combustion factor across all history overstates Ontario's
+pre-2017 gas GHG badly — `ERSNGASGHG` there runs near-zero for 2006–2016
+despite substantial real gas consumption (n=54,967 in 2016 alone) — so
+`as_audited` uses a year-varying ERS-calibrated combustion factor, not the
+flat official constant. **Validated end to end**: `as_audited`'s national
+aggregate lands within **−0.66%** of the real reported total, every
+large-sample province within about ±2% except Quebec (−5.3%, small absolute
+base). Wood is treated as 0 (biogenic-neutral) in every scenario — ECCC has no
+residential wood-combustion factor at all, and the ERS-implied ratio
+(~358 kg CO2e/kg) is not physically plausible.
+
+**Sources & derivation**: `Python/ers_ghg_factors.py` (ERS-calibrated factor
+derivation — fixed 2026-08-02, see its module docstring for the survivorship-bias
+bug this replaced: excluding true-zero-GHG rows from the ratio inflated the
+factor and overstated the national total by +12.8% before the fix, +0.16%
+after), `Python/ghg_factors.py` (constants + lookups, official ECCC/OBPS
+figures cited inline), `Python/compute_ghg_scenarios.py` (writes the 6
+scenario columns). Full year/province factor tables:
+`Python/ers_ghg_factors_by_province_year.csv`.
 
 ---
 
@@ -395,6 +462,14 @@ python scripts/ers_web_pipeline.py
 #     Safe to skip if lookup/ahri_numbers.json hasn't changed since the last run (idempotent).
 python scripts/join_hp_capacity.py
 
+# (only if ers_ghg_factors_by_province_year.csv is stale, e.g. after Step 1 re-ingests
+#  new CSV years) Recompute the ERS-calibrated GHG factor table from the raw yearly CSVs.
+python scripts/ers_ghg_factors.py
+
+# 1c) Add the 6 GHG scenario columns -- overwrites the parquet in place. Depends on
+#     ers_ghg_factors_by_province_year.csv (previous step); idempotent otherwise.
+python scripts/compute_ghg_scenarios.py
+
 # 2) Province parquet -> per-FSA JSON (+ _index.json)
 python scripts/split_fsa_json.py
 
@@ -411,6 +486,9 @@ Then commit the regenerated `Energy/fsa_json/` and `Energy/province_json/` to `m
   hours, hits an undocumented external API at ~1.7s/number), see
   `Python/build_ahri_lookup_full.py`. Step 1b only needs re-running after that lookup
   changes; the CSV-ingest pipeline (Steps 1-3) doesn't depend on its refresh cadence.
+- See [GHG scenarios](#ghg-scenarios) for what Step 1c computes and why; its official
+  ECCC/OBPS constants (`Python/ghg_factors.py`) are a separate, manually-updated citation
+  and don't need re-fetching on every pipeline run.
 
 **Retrofit Insights** (`retrofit-insights.html`, ROADMAP item 13) reads the same
 Step-1 parquets plus `build_fsa_audit_totals.py`'s audit sidecar, via a separate
@@ -530,6 +608,25 @@ page redeploy needed.
 ---
 
 ## Changelog
+
+### 2026-08-02 GHG scenarios — 4 bases replace the raw-ERSGHG-only chart
+- **New Step 1c (`compute_ghg_scenarios.py`)** adds `Pre_/Post_GHG_current`,
+  `_current_corrected`, `_as_audited` alongside the existing, untouched
+  `Pre_/Post_GHG` (raw `ERSGHG`) — see [GHG scenarios](#ghg-scenarios). Fixes the
+  50.5%-coverage gap in every GHG chart/median on this page (raw `ERSGHG` was the
+  only source before this).
+- **Fixed a survivorship bias in `ers_ghg_factors.py`** (the ERS-calibrated factor
+  derivation): excluding true-zero-GHG rows from the ratio inflated the implied
+  factor and overstated the national aggregate by +12.8%; the fix (require GHG
+  *reported*, not *positive*) brings it to +0.16%.
+- **New `GHG basis` dropdown** above the GHG chart (both retrofits.html and
+  retrofit-insights.html), defaulting to `as_audited` (validated to −0.66%
+  national aggregate bias against real `ERSGHG`).
+- Investigated why Alberta/Newfoundland need a correction against the official
+  ECCC factors (not a within-province/FSA effect — see
+  [ENERGUIDE_QUESTIONS.md §5.4](ENERGUIDE_QUESTIONS.md)) and why `as_audited`
+  needs year-varying, not flat, combustion factors (Ontario's `ERSNGASGHG` runs
+  near-zero 2006–2016 despite real gas consumption).
 
 ### 2026-07-24 heat-loss breakdown, asset split, measured pairing gates
 - **New chart: "Where the heat escapes — annual loss by component."** Surfaces the

@@ -35,6 +35,10 @@ OUTPUTS  insights_json/ (compact, ensure_ascii=False, separators=(',',':')):
   opportunity.json   missed-opportunity composite ranking + per-FSA factors.
   timeline.json      national + per-province audits/yr (D and E) + matched
                      retrofits by E-year, with cited program-era annotations.
+  ghg_impact.json    national + per-province avg/total modelled GHG saved
+                     (tCO2e/yr), priced two ways (2024 federal carbon-tax rate,
+                     ECCC 2024 Social Cost of Carbon) — see CARBON_TAX_RATE /
+                     SCC_RATE below for citations.
   meta.json          sources, build date, thresholds, formulas, band defs.
 
 HONESTY RAILS baked into the numbers (each also stated on-page, ROADMAP item
@@ -125,6 +129,9 @@ MEASURE_LABEL = dict(MEASURES)
 READ_COLS = (
     ["FSA", "EnergySavingPct", "FloorArea", "YearBuilt",
      "Pre_TotalEnergy", "Post_TotalEnergy", "Pre_GHG", "Post_GHG",
+     "Pre_GHG_current", "Post_GHG_current",
+     "Pre_GHG_current_corrected", "Post_GHG_current_corrected",
+     "Pre_GHG_as_audited", "Post_GHG_as_audited",
      "Pre_Date", "Post_Date", "Deep_Retrofit", "FuelSwitch"]
     + MEASURE_KEYS
 )
@@ -155,6 +162,20 @@ VINTAGE_BANDS = [
 ]
 
 QUINTILE_LABELS = ["Q1 (lowest)", "Q2", "Q3", "Q4", "Q5 (highest)"]
+
+# §GHG impact — two ways of pricing the same modelled tCO2e/yr saved.
+# CARBON_TAX_RATE: federal fuel charge / OBPS benchmark price for 2024 ($/tCO2e,
+# nominal). The last full year before the federal consumer fuel charge was
+# removed 2025-04-01 — applied as a single flat rate to every matched pair
+# regardless of its own audit year, so this is illustrative, not a
+# reconstruction of the phased $20 (2019) -> $80 (2024) schedule.
+CARBON_TAX_RATE = 80.0
+# SCC_RATE: ECCC's Social Cost of Carbon (SC-CO2), 2024 estimate, C$2021,
+# 2% near-term Ramsey discount rate — the central/recommended rate in
+# ECCC, "Social Cost of Greenhouse Gas Estimates - Interim Updated Guidance"
+# (Table 1): canada.ca/en/environment-climate-change/services/climate-change/
+# science-research-data/social-cost-ghg.html
+SCC_RATE = 266.0
 
 
 # =============================================================================
@@ -295,6 +316,12 @@ def load_province_frame(parquet_path):
     df["post_eui"] = np.where(valid_area & post_e.notna(), post_e / area, np.nan)
     df["ghg_pre"] = num(df["Pre_GHG"])
     df["ghg_post"] = num(df["Post_GHG"])
+    df["ghg_pre_current"] = num(df["Pre_GHG_current"])
+    df["ghg_post_current"] = num(df["Post_GHG_current"])
+    df["ghg_pre_current_corrected"] = num(df["Pre_GHG_current_corrected"])
+    df["ghg_post_current_corrected"] = num(df["Post_GHG_current_corrected"])
+    df["ghg_pre_as_audited"] = num(df["Pre_GHG_as_audited"])
+    df["ghg_post_as_audited"] = num(df["Post_GHG_as_audited"])
 
     for k in MEASURE_KEYS + ["Deep_Retrofit", "FuelSwitch"]:
         df[k] = df[k].astype(bool)
@@ -304,7 +331,11 @@ def load_province_frame(parquet_path):
     df["e_year"] = pd.to_datetime(df["Post_Date"], errors="coerce").dt.year
 
     keep = (["FSA", "PROV", "saving_pct", "pre_eui", "post_eui",
-             "ghg_pre", "ghg_post", "YearBuiltNum", "n_measures",
+             "ghg_pre", "ghg_post",
+             "ghg_pre_current", "ghg_post_current",
+             "ghg_pre_current_corrected", "ghg_post_current_corrected",
+             "ghg_pre_as_audited", "ghg_post_as_audited",
+             "YearBuiltNum", "n_measures",
              "d_year", "e_year", "Deep_Retrofit", "FuelSwitch"] + MEASURE_KEYS)
     return prov, df[keep]
 
@@ -716,6 +747,91 @@ def build_timeline(nat):
     }
 
 
+GHG_SCENARIO_COLS = {
+    "reported": ("ghg_pre", "ghg_post"),
+    "current": ("ghg_pre_current", "ghg_post_current"),
+    "current_corrected": ("ghg_pre_current_corrected", "ghg_post_current_corrected"),
+    "as_audited": ("ghg_pre_as_audited", "ghg_post_as_audited"),
+}
+
+
+def build_ghg_impact(nat):
+    """
+    Average + total GHG (tCO2e/yr) saved, nationally and per province, under
+    4 scenarios (mirrors retrofits.html/precompute_province_stats.py — keep
+    in sync):
+      reported            raw ERSGHG. Only ~50.5% of matched pairs have it
+                           (measured 2026-08-02; Quebec ~78%, Ontario ~43%,
+                           Saskatchewan ~9%) — NOT scaled up to the full
+                           matched count. matched_total/coverage_pct ship
+                           alongside n so this is never hidden.
+      current              flat 2026 official ECCC/OBPS factor, same for
+                           every retrofit regardless of audit year.
+      current_corrected    same, Alberta/Newfoundland use the ERS-calibrated
+                           factor instead (see docs/ENERGUIDE_QUESTIONS.md
+                           SS5.4 for why).
+      as_audited            ERS-calibrated, matched to each home's own audit
+                           year — the historically-accurate one, validated to
+                           -0.66% national aggregate bias against reported
+                           ERSGHG (measured 2026-08-02).
+    current/current_corrected/as_audited are calculated by
+    Python/compute_ghg_scenarios.py from each home's own fuel consumption
+    (~100% coverage) — see that script and Python/ghg_factors.py.
+
+    NET, not clipped: a home whose modelled GHG rose (common with an
+    electric-heat-pump fuel switch in a high-emission-grid province) pulls the
+    total down rather than being dropped — n_increased reports how many, so the
+    total's sign is never a silent assumption.
+
+    Two $ figures are the same tCO2e total priced two different ways — see
+    CARBON_TAX_RATE / SCC_RATE for what each represents and cites.
+    """
+    def stats(grp, pre_col, post_col):
+        matched_total = int(len(grp))
+        d = (num(grp[pre_col]) - num(grp[post_col])).dropna()
+        n = int(d.size)
+        if n == 0:
+            return None
+        total = float(d.sum())
+        return {
+            "n": n,
+            "matched_total": matched_total,
+            "ghg_coverage_pct": r3(n / matched_total) if matched_total else None,
+            "n_increased": int((d < 0).sum()),
+            "avg_ghg_saved_tco2e": r1(total / n),
+            "total_ghg_saved_tco2e": r0(total),
+            "carbon_tax_value_cad": r0(total * CARBON_TAX_RATE),
+            "scc_value_cad": r0(total * SCC_RATE),
+        }
+
+    scenarios = {}
+    for scen, (pre_col, post_col) in GHG_SCENARIO_COLS.items():
+        national = stats(nat, pre_col, post_col)
+        by_province = {}
+        for prov, grp in nat.groupby("PROV"):
+            s = stats(grp, pre_col, post_col)
+            if s:
+                by_province[prov] = s
+        scenarios[scen] = {"national": national, "by_province": by_province}
+
+    return {
+        "carbon_tax_rate": {
+            "value": CARBON_TAX_RATE, "unit": "CAD/tCO2e", "year": 2024,
+            "note": ("Federal fuel charge / OBPS benchmark price for 2024. Applied as a single flat "
+                     "rate to every matched pair's saving regardless of its own audit year — the federal "
+                     "consumer fuel charge was removed 2025-04-01, so this is illustrative, not a live charge "
+                     "or a reconstruction of the phased $20 (2019) to $80 (2024) schedule."),
+        },
+        "scc_rate": {
+            "value": SCC_RATE, "unit": "CAD2021/tCO2e", "year": 2024, "discount_rate": "2% near-term Ramsey",
+            "source": ("ECCC, \"Social Cost of Greenhouse Gas Estimates - Interim Updated Guidance\", Table 1 "
+                       "(SC-CO2, C$2021, 2% discount rate). https://www.canada.ca/en/environment-climate-change/"
+                       "services/climate-change/science-research-data/social-cost-ghg.html"),
+        },
+        "scenarios": scenarios,
+    }
+
+
 # =============================================================================
 # validation printouts
 # =============================================================================
@@ -857,6 +973,7 @@ def main():
     equity = build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad)
     opportunity = build_opportunity(metrics)
     timeline = build_timeline(nat)
+    ghg_impact = build_ghg_impact(nat)
 
     # so the methodology section can state the suppression counts without
     # re-deriving them in the browser
@@ -936,6 +1053,7 @@ def main():
     write("equity.json", equity)
     write("opportunity.json", opportunity)
     write("timeline.json", timeline)
+    write("ghg_impact.json", ghg_impact)
     write("meta.json", meta)
     total_kb = sum(os.path.getsize(OUT_DIR / n) for n in os.listdir(OUT_DIR)
                    if n.endswith(".json")) / 1024
@@ -944,7 +1062,7 @@ def main():
     validate(metrics, nat, prov_totals)
 
     # stash a few numbers for the notes memo
-    return metrics, nat, success, climate_out, equity, opportunity, timeline, income_cuts, dv_cuts
+    return metrics, nat, success, climate_out, equity, opportunity, timeline, ghg_impact, income_cuts, dv_cuts
 
 
 if __name__ == "__main__":

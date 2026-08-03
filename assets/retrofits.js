@@ -111,6 +111,19 @@ const BINS={
   hpSizing:0.1    // heat-pump sizing ratio buckets (capacity ÷ design heat loss)
 };
 
+// ── GHG scenarios (mirrors Python/ghg_factors.py / compute_ghg_scenarios.py —
+// keep in sync) ── 4 ways of computing GHG: "reported" is the raw ERSGHG
+// field (only ~50.5% of matched pairs have it); the other 3 are calculated
+// from each home's own fuel consumption (~100% coverage). See Methodology,
+// "GHG scenarios".
+let GHG_SCENARIO='as_audited';
+const GHG_SCENARIO_FIELDS={
+  reported:['Pre_GHG','Post_GHG'],
+  current:['Pre_GHG_current','Post_GHG_current'],
+  current_corrected:['Pre_GHG_current_corrected','Post_GHG_current_corrected'],
+  as_audited:['Pre_GHG_as_audited','Post_GHG_as_audited'],
+};
+
 // ── Energy-cost pricing (mirrors precompute_province_stats.py — keep in sync) ──
 // Prices each home's per-fuel annual energy (the Pre_/Post_ *_Electricity /
 // NaturalGas / Oil / Propane / Wood kWh columns) against current residential
@@ -953,13 +966,6 @@ function render(){
   window._euiMedianPre=Math.round(median(preEUIs)||0);
   window._euiMedianPost=Math.round(median(postEUIs)||0);
 
-  const ghgDeltas=FILTERED.map(r=>{
-    const g0=num(r.Pre_GHG),g1=num(r.Post_GHG);
-    return(g0!=null&&g1!=null)?(g0-g1):null;
-  }).filter(v=>v!==null);
-  const ghgSave=median(ghgDeltas);
-  $('s-ghg-saving').textContent=ghgSave!=null?ghgSave.toFixed(1):'—';
-
   const solarPost=FILTERED.filter(r=>num(r.Post_SolarPV)>0).length;
   $('s-solar').textContent=solarPost.toLocaleString();
   $('s-solar-sub').innerHTML=n?`${Math.round(solarPost/n*100)}${OF_MATCHED}`:'';
@@ -969,7 +975,7 @@ function render(){
 
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
-  renderEUI(preEUIs,postEUIs,euiSave);renderGHG(ghgSave);renderCost();renderRetrofitCost();
+  renderEUI(preEUIs,postEUIs,euiSave);renderGHG();renderCost();renderRetrofitCost();
   renderKPI(n,fs);renderInsulDist();renderMeasures(n);
   renderHist(savings);renderHeatLossComponents();
   renderAdvancedSections();
@@ -1600,17 +1606,28 @@ function renderEUI(preEUIs,postEUIs,saveMedian){
 // clear comparison. The EUI distribution card above covers pre/post EUI.
 
 // ── GHG emissions ─────────────────────────────────────────────────
-function renderGHG(saveMedian){
-  const ghgPre=FILTERED.map(r=>num(r.Pre_GHG)).filter(v=>v!==null);
-  const ghgPost=FILTERED.map(r=>num(r.Post_GHG)).filter(v=>v!==null);
+// See GHG_SCENARIO / GHG_SCENARIO_FIELDS above: 4 bases, switched by the
+// #ghg-scenario-sel dropdown (redrawGHG()). "reported" = raw ERSGHG (~50.5%
+// coverage nationally); the other 3 are calculated, ~100% coverage.
+function renderGHG(){
+  const [preCol,postCol]=GHG_SCENARIO_FIELDS[GHG_SCENARIO];
+  const ghgPre=FILTERED.map(r=>num(r[preCol])).filter(v=>v!==null);
+  const ghgPost=FILTERED.map(r=>num(r[postCol])).filter(v=>v!==null);
   const preM=median(ghgPre),postM=median(ghgPost);
-  const sv=saveMedian!=null?saveMedian:null;
+  const ghgDeltas=FILTERED.map(r=>{
+    const g0=num(r[preCol]),g1=num(r[postCol]);
+    return(g0!=null&&g1!=null)?(g0-g1):null;
+  }).filter(v=>v!==null);
+  const sv=median(ghgDeltas);
+  $('s-ghg-saving').textContent=sv!=null?sv.toFixed(1):'—';
   const svStr=sv!=null?(sv>=0?`−${sv.toFixed(1)}`:`+${(-sv).toFixed(1)}`):null;
   $('ghg-kpis').innerHTML=`
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!==null?preM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!==null?postM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
+  const covNote=$('ghg-coverage-note');
+  if(covNote)covNote.textContent=GHG_SCENARIO==='reported'?`${ghgPre.length.toLocaleString()} of ${FILTERED.length.toLocaleString()} homes have this field`:'';
   function ghgBins(vals,step=BINS.ghg){
     const b={};
     vals.forEach(v=>{if(v>30)return;const k=Math.floor(v/step)*step;b[k]=(b[k]||0)+1;});
@@ -1619,13 +1636,18 @@ function renderGHG(saveMedian){
   const preBins=ghgBins(ghgPre),postBins=ghgBins(ghgPost);
   const deltaBins={};
   FILTERED.forEach(r=>{
-    const pre=num(r.Pre_GHG),post=num(r.Post_GHG);
+    const pre=num(r[preCol]),post=num(r[postCol]);
     if(pre===null||post===null)return;
     const d=pre-post;
     if(d>0&&d<=30){const k=Math.floor(d/BINS.ghg)*BINS.ghg;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
   drawComboChart('ghg-chart','ghg',preBins,postBins,deltaBins,'tCO2e/yr');
 }
+function redrawGHG(){
+  if(MODE==='fsa')renderGHG();
+  else if(MODE==='province'&&_lastProvinceSlice)renderProvinceGHG(_lastProvinceSlice);
+}
+$('ghg-scenario-sel').addEventListener('change',function(){GHG_SCENARIO=this.value;redrawGHG();});
 
 // ── Energy bill $ (FSA mode — prices raw rows) ──────────────────────
 // Shows/hides the whole card + headline stat based on COST_PV (null for
@@ -2716,8 +2738,6 @@ function renderProvince(payload){
   window._euiMedianPre=Math.round(slice.eui_pre_median||0);
   window._euiMedianPost=Math.round(slice.eui_post_median||0);
 
-  $('s-ghg-saving').textContent=slice.ghg_saving!=null?slice.ghg_saving.toFixed(1):'—';
-
   $('s-solar').textContent=(slice.solar_post_count||0).toLocaleString();
   $('s-solar-sub').innerHTML=n?`${slice.solar_post_pct||0}${OF_MATCHED}`:'';
 
@@ -2955,18 +2975,26 @@ function renderProvinceEUI(slice){
 }
 
 function renderProvinceGHG(slice){
-  const preM=slice.ghg_pre_median,postM=slice.ghg_post_median;
-  const saving=slice.ghg_saving;
+  // slice.ghg_scenarios[GHG_SCENARIO] ships from precompute_province_stats.py
+  // (national CA.json rollup via aggregate_canada.py). Falls back to the
+  // flat ghg_pre_median/etc ("reported") for older cached payloads that
+  // predate ghg_scenarios.
+  const scen=(slice.ghg_scenarios&&slice.ghg_scenarios[GHG_SCENARIO])||{
+    pre_median:slice.ghg_pre_median,post_median:slice.ghg_post_median,saving:slice.ghg_saving,
+    pre_bins:slice.ghg_pre_bins,post_bins:slice.ghg_post_bins,delta_bins:slice.ghg_delta_bins,
+    n:slice.ghg_reported_n,coverage_pct:slice.ghg_reported_coverage_pct,
+  };
+  const preM=scen.pre_median,postM=scen.post_median,saving=scen.saving;
+  $('s-ghg-saving').textContent=saving!=null?saving.toFixed(1):'—';
   $('ghg-kpis').innerHTML=`
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?preM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?postM.toFixed(1):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span></div></div>
     ${saving!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">−${saving.toFixed(1)}</div><div style="font-size:12px;color:var(--muted)"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
-  const preBins=slice.ghg_pre_bins||{},postBins=slice.ghg_post_bins||{};
-  // ghg_delta_bins ships from precompute_province_stats.py at the same
-  // 1 tCO2e step used here; older province files without it just omit the
-  // Improvement bars ({} fallback), same as before the field existed.
-  drawComboChart('ghg-chart','ghg',preBins,postBins,slice.ghg_delta_bins||{},'tCO2e/yr');
+  const covNote=$('ghg-coverage-note');
+  if(covNote)covNote.textContent=(GHG_SCENARIO==='reported'&&scen.n!=null)?`${scen.n.toLocaleString()} homes (${Math.round((scen.coverage_pct||0)*100)}%) have this field`:'';
+  const preBins=scen.pre_bins||{},postBins=scen.post_bins||{};
+  drawComboChart('ghg-chart','ghg',preBins,postBins,scen.delta_bins||{},'tCO2e/yr');
 }
 
 // Energy bill $ — province mode reads precomputed cost bins/medians. Hidden
@@ -3389,7 +3417,7 @@ function makeInlineSVG(r){
         ${fuelBreakdownRows}
         ${numRow('Heating energy',heatPreTotal,heatPostTotal,'kWh',false,0)}
         ${heatFuelBreakdownRows}
-        ${numRow('GHG',num(r.Pre_GHG),num(r.Post_GHG),'tCO2e/yr',false,1)}
+        ${numRow('GHG (as reported)',num(r.Pre_GHG),num(r.Post_GHG),'tCO2e/yr',false,1)}
         ${numRow('Design heat loss',num(r.Pre_HeatLoss),num(r.Post_HeatLoss),'kW',false,1)}
         ${numRow('Solar PV',num(r.Pre_SolarPV),num(r.Post_SolarPV),'kW',true,1)}
       </tbody>

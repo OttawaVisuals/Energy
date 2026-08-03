@@ -337,27 +337,55 @@ def compute_slice(df):
     out['eui_pre_bins'] = bin_counts(pre_euis, step=20, max_val=500)
     out['eui_post_bins'] = bin_counts(post_euis, step=20, max_val=500)
 
-    # ---- GHG (mirrors render() + renderGHG()) ----
-    ghg_pre = num(df.get('Pre_GHG')).dropna().to_numpy()
-    ghg_post = num(df.get('Post_GHG')).dropna().to_numpy()
-    ghg_pre_med = median(ghg_pre)
-    ghg_post_med = median(ghg_post)
-    out['ghg_pre_median'] = ghg_pre_med
-    out['ghg_post_median'] = ghg_post_med
-    out['ghg_saving'] = (round(ghg_pre_med - ghg_post_med, 1)
-                          if ghg_pre_med is not None and ghg_post_med is not None else None)
-    out['ghg_pre_bins'] = bin_counts(ghg_pre, step=1, max_val=30)
-    out['ghg_post_bins'] = bin_counts(ghg_post, step=1, max_val=30)
+    # ---- GHG, 4 scenarios (mirrors render() + renderGHG()) ----
+    # "reported" is raw ERSGHG (only ~50.5% of matched pairs have it -- see
+    # docs/RETROFITS.md); "current"/"current_corrected"/"as_audited" are
+    # calculated from each home's own fuel consumption by
+    # Python/compute_ghg_scenarios.py (~100% coverage) -- see that script and
+    # Python/ghg_factors.py for the 4 scenarios' definitions and citations.
+    # "reported" stays under the original flat keys (ghg_pre_median, etc.) for
+    # backward compatibility with aggregate_canada.py's CA.json rollup and any
+    # other consumer that reads them directly; the other 3 live under
+    # ghg_scenarios. n/coverage_pct ship alongside so the front end can show
+    # how much of the population each scenario actually describes.
+    def ghg_scenario_block(pre_col, post_col):
+        pre = num(df.get(pre_col))
+        post = num(df.get(post_col))
+        pair = pd.DataFrame({'pre': pre, 'post': post}).dropna()
+        pre_v = pair['pre'].to_numpy()
+        post_v = pair['post'].to_numpy()
+        pre_med = median(pre_v)
+        post_med = median(post_v)
+        deltas = (pair['pre'] - pair['post'])
+        deltas = deltas[(deltas > 0) & (deltas <= 30)].to_numpy()
+        return {
+            'n': int(len(pair)),
+            'coverage_pct': round(len(pair) / n, 3) if n else None,
+            'pre_median': pre_med,
+            'post_median': post_med,
+            'saving': (round(pre_med - post_med, 1)
+                       if pre_med is not None and post_med is not None else None),
+            'pre_bins': bin_counts(pre_v, step=1, max_val=30),
+            'post_bins': bin_counts(post_v, step=1, max_val=30),
+            'delta_bins': bin_counts(deltas, step=1),
+        }
 
-    # Per-home GHG improvement histogram (mirrors renderGHG()'s deltaBins:
-    # d = pre - post, kept where 0 < d <= 30, same 1 tCO2e step) — previously
-    # missing, which left the province view without the amber Improvement bars
-    # the FSA view shows on this chart.
-    ghg_pair = pd.DataFrame({'pre': num(df.get('Pre_GHG')),
-                             'post': num(df.get('Post_GHG'))}).dropna()
-    ghg_deltas = (ghg_pair['pre'] - ghg_pair['post'])
-    ghg_deltas = ghg_deltas[(ghg_deltas > 0) & (ghg_deltas <= 30)].to_numpy()
-    out['ghg_delta_bins'] = bin_counts(ghg_deltas, step=1)
+    reported = ghg_scenario_block('Pre_GHG', 'Post_GHG')
+    out['ghg_pre_median'] = reported['pre_median']
+    out['ghg_post_median'] = reported['post_median']
+    out['ghg_saving'] = reported['saving']
+    out['ghg_pre_bins'] = reported['pre_bins']
+    out['ghg_post_bins'] = reported['post_bins']
+    out['ghg_delta_bins'] = reported['delta_bins']
+    out['ghg_reported_n'] = reported['n']
+    out['ghg_reported_coverage_pct'] = reported['coverage_pct']
+
+    out['ghg_scenarios'] = {
+        'reported': reported,
+        'current': ghg_scenario_block('Pre_GHG_current', 'Post_GHG_current'),
+        'current_corrected': ghg_scenario_block('Pre_GHG_current_corrected', 'Post_GHG_current_corrected'),
+        'as_audited': ghg_scenario_block('Pre_GHG_as_audited', 'Post_GHG_as_audited'),
+    }
 
     # ---- Energy cost $ (mirrors renderCost() in retrofits.html) ----
     # Only present when this province was priced (ON/QC/AB); other provinces
