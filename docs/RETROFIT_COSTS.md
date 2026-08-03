@@ -496,7 +496,7 @@ through:
 - `Post_HPSEER1Est` ← `Post_HPSEER2 / 0.95` (see above)
 
 This is additive (3 new columns, `NEW_COLS` extended 7 → 10) and the script remains
-idempotent/safe to rerun, per its existing design. It was re-run for all 12 provinces
+idempotent/safe to rerun, per its existing design. It was re-run for all 12 province/territory codes
 after the change (`ers_web_*.parquet` regenerated in place, `C:\ERS\web\`).
 
 Coverage on PEI: of 12,554 paired records, 7,545 carry a `Post_HPAHRI` code, 7,488 of
@@ -597,7 +597,7 @@ sessions — see the changelog entry below):**
 - `retrofits/data/*.parquet`, `retrofits/data/*_priced.json` — **local-only
   pipeline intermediates, `.gitignore`d, not committed anywhere.** This was
   a reasonable call at PEI scale (a few MB) but not at national scale (657MB
-  for all 12 provinces) — corrected 2026-07-31. Not served directly either:
+  for all 12 province/territory codes) — corrected 2026-07-31. Not served directly either:
   `retrofit_costs_json/` is what `retrofits.html` fetches. Regenerate by
   re-running `retrofit_cost_extract_fields.py` → `retrofit_cost_estimate.py`.
 - `retrofits/review/` — the two standalone review pages, regenerated from the
@@ -664,11 +664,14 @@ flagged, not swapped). New script: `Python/override_electricity_rates.py`. The n
 third-party blog, not a primary/government source, and only SK has been independently
 re-verified — **flagged for further investigation**, not treated as settled.
 
-### 2026-07-31 (6) — full national coverage (all 12 provinces + 2 territories)
+### 2026-07-31 (6) — full national coverage (all 10 provinces + NT and NU)
 Ran the remaining 9 provinces/territories (AB, BC, MB, NB, NF, NS, NT, NU, SK)
 after ON/QC validated clean. `retrofits/data/<PROV>_extra_fields.parquet` and
-`<PROV>_priced.json` now exist for all 12 + NT/NU (NU is n=4 — negligible ERS
-coverage, kept for completeness, not meaningfully priceable).
+`<PROV>_priced.json` now exist for all 12 province/territory codes the ERS data
+carries — the 10 provinces plus NT and NU. **Yukon is absent entirely**: it has no
+ERS records, so there is nothing to price, and `_canada.json`'s
+`provinces_included` lists 12 codes, not 13. NU is n=4 — negligible ERS coverage,
+kept for completeness, not meaningfully priceable.
 
 | Province | Paired | Priced | ASHP records | ASHP class fallback |
 |---|---|---|---|---|
@@ -909,6 +912,6 @@ the original five-measure run).
   and priced roof/wall/foundation insulation + windows against REMDB.
 - Checked `lookup/ahri_numbers.json` and found `cooling_capacity_btuh`/`seer2` already
   present; extended `Python/join_hp_capacity.py` to surface them (production change,
-  rerun across all 12 provinces) and added ASHP costing, including a
+  rerun across all 12 province/territory codes) and added ASHP costing, including a
   ducted-vs-ductless classification with an explicit reported/assumed-default split.
 - PEI POC: 8,535 / 12,554 paired records (68%) now have at least one priced measure.

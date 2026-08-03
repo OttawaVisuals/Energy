@@ -1,7 +1,35 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-02** (**Retrofit Insights + Retrofit Explorer**: GHG
+Updated **2026-08-03** (**Retrofit Explorer + Retrofit Insights**: new
+**pipeline-overview diagram** at the top of `retrofits.html`'s advanced
+methodology — the CSV → parquet → JSON → page flow as hoverable/focusable SVG
+boxes, each tooltip carrying the real numbers, filters and datasets behind that
+stage, including the emission-factor and retrofit-cost branches. Then a
+**documentation and deploy audit across both retrofit pages**, which turned up
+one live-site break and several drifted claims. Fixed: `deploy.sh`'s `PATHS`
+was missing `retrofit_costs_json`, so the next full deploy would have silently
+deleted the entire cost feature from the published site (it was live only via
+an earlier incremental push); Retrofit Insights §06B was **already dead on the
+live site** because `insights_json/hp_ahri_scatter.json` and `cchp_screen.json`
+were never generated into the deployed tree —
+`Python/build_hp_equipment_insights.py` is a separate script from
+`build_insights.py` and had been missed, now re-run and documented as its own
+step; every relative `docs/`/`ROADMAP.md`/`HeatPump/` link on both pages 404'd
+(those paths aren't deployed to `gh-pages`) and now point at the `main` blob;
+Retrofit Insights' NRCan open-data footer link was a dead dataset ID. Corrected
+on the pages: the cost POC's coverage is **10 provinces + NT/NU**, not "12
+provinces + 2 territories"; its 1,420,044-record input is now explained
+(apartments/duplexes/triplexes excluded, 31,389 records) instead of silently
+contradicting the 1,451,433 matched-pair figure beside it; **solar PV and
+HRV/ERV** were priced and rendered but documented in neither methodology
+section; REMDB and the ECCC emission factors added to Sources.
+`docs/RETROFITS.md` corrected in seven places — stale oil/wood conversion
+factors, the superseded exactly-one-D-and-E pairing rule, three sections still
+describing `raw.githubusercontent.com` fetches from `main`, the "no dollar
+figures are possible" caveat, and the audit range. Full detail:
+[docs/RETROFITS.md changelog](docs/RETROFITS.md#changelog).) Prior pass
+2026-08-02 (**Retrofit Insights + Retrofit Explorer**: GHG
 emissions overhaul, in two parts. **Part 1** — new Retrofit Insights section
 02 "The climate impact": national + per-province net tCO2e/yr saved (avg per
 home and total), priced two ways (2024 federal carbon-tax rate $80/tCO2e;
@@ -144,7 +172,7 @@ lifecycle-update candidates logged — see
 | Project | Progress | Next step |
 |---|---|---|
 | 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████▓░░` Phase 4 grid half done, feeder half blocked | **Phase 4 (feeder half):** blocked — `GridCapacity/Hydro.py` + `ottawa_capacity.geojson` both absent from the checkout and `Hydro.py` was never committed to `main`; need to locate the original or approve a from-scratch rewrite before feeder_demand.geojson / the coincidence factor can be built → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
-| 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 12 provinces + 2 territories) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
+| 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 10 provinces + NT/NU; Yukon has no ERS records) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
 
 ### Queued 🆕
 

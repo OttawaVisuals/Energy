@@ -17,7 +17,7 @@ tool, the public front door.
 
 | Tool | What it is | Live page |
 |---|---|---|
-| 🏠 **Retrofit Explorer** | 1.45M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2025) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
+| 🏠 **Retrofit Explorer** | 1.45M real Canadian home-energy retrofits (NRCan EnerGuide audits, 2004–2026) — savings, measures, per-FSA drill-down | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) |
 | 📈 **Retrofit Insights** | National big-picture view of the same 1.45M retrofits — leaderboards, choropleth, what makes a retrofit work, climate/equity linkage, missed-opportunity ranking, program-era timeline | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) |
 | 🏡 **New Homes Explorer** | How efficient new construction actually is — as-designed vs as-built EnerGuide evaluations | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) |
 | 🔥 **Heat Pump Explorer** | Hourly simulation of switching to a cold-climate heat pump in 14 cities: energy, GHG, costs, backup needs | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) |
@@ -35,7 +35,8 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 | Project | Docs |
 |---|---|
 | Retrofit Explorer | [docs/RETROFITS.md](docs/RETROFITS.md) — data pipeline, unit conversions, flag rules, bin-width contract, changelog |
-| Retrofit Insights | [ROADMAP.md](ROADMAP.md) item 13 (archived: [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)) — analysis inventory, honesty rails, `build_insights.py` |
+| Retrofit Insights | [ROADMAP.md](ROADMAP.md) item 13 (archived: [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)) — analysis inventory, honesty rails, `build_insights.py`. *No `docs/RETROFIT_INSIGHTS.md` yet — its methodology lives inline in the page.* |
+| Retrofit Costs (inside Retrofit Explorer) | [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) — REMDB pairing, per-measure formulas, utility-rate sourcing, every assumption |
 | New Homes Explorer | [docs/NEWHOMES.md](docs/NEWHOMES.md) |
 | Heat Pump Explorer | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) (methodology) · [HeatPump/PLAN.md](HeatPump/PLAN.md) (original plan) |
 | Ottawa Geothermal Map | [Geothermal/README.md](Geothermal/README.md) (full methodology) · [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md) (build log) |
@@ -63,10 +64,13 @@ Energy/
 ├─ GridCapacity/             # Hydro Ottawa feeder capacity fetch
 ├─ FSA_Maps/                 # simplified FSA boundary GeoJSONs per province
 ├─ Census/                   # StatCan 2021 census profile source (gitignored)
+├─ retrofits/                # Retrofit Costs inputs: REMDB workbooks (USCosts/),
+│                            #   per-province intermediates, review pages
 │
 │  # generated data — published on the gh-pages branch, gitignored on main
 │  # (present on your disk after running the pipelines; fetched same-origin):
 ├─ province_json/  fsa_json/         # Retrofit Explorer
+├─ retrofit_costs_json/              # Retrofit Costs POC (joined client-side by HOUSEID)
 ├─ insights_json/                    # Retrofit Insights (national)
 ├─ climate_json/                     # per-FSA HDD/CDD (ECCC normals, static)
 ├─ newhomes_json/  newhomes_fsa/     # New Homes Explorer

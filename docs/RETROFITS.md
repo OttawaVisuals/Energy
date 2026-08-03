@@ -2,7 +2,7 @@
 
 An interactive tool for exploring real Canadian home-energy retrofits — built from
 Natural Resources Canada's **EnerGuide / Energy Rating System (ERS)** open audit data
-(audit years **2004–2025**).
+(audit years **2004–2026**).
 
 Pick a province, then optionally drill into a postal-code area (FSA) to see how homes
 *like yours* were upgraded and what energy savings actually resulted.
@@ -57,16 +57,26 @@ For a selected province (or a single FSA within it):
 
 ```
 Energy/
-├─ retrofits.html                  # the entire app (HTML + CSS + JS, single file)
+├─ retrofits.html                  # the page markup
+├─ assets/
+│  ├─ retrofits.css                 # the page's styles (split out 2026-07-24)
+│  └─ retrofits.js                  # every renderer — look here, not in the HTML
 ├─ province_json/
 │  ├─ AB.json                       # one precomputed summary per province
-│  └─ … (BC, MB, NB, NF, NS, ON, PE, QC, SK)
-└─ fsa_json/
-   ├─ AB/
-   │  ├─ _index.json                # list of FSAs in this province + row counts
-   │  ├─ T0A.json                   # raw matched rows for one FSA
-   │  └─ … (one file per FSA)
-   └─ …
+│  ├─ CA.json                       # the national rollup (Step 4)
+│  └─ … (BC, MB, NB, NF, NS, NT, NU, ON, PE, QC, SK)
+├─ fsa_json/
+│  ├─ AB/
+│  │  ├─ _index.json                # FSAs in this province + row counts, median saving, dore_count
+│  │  ├─ T0A.json                   # raw matched rows for one FSA
+│  │  └─ … (one file per FSA)
+│  └─ …
+├─ retrofit_costs_json/             # the cost POC's companion tree, same per-FSA layout,
+│  ├─ _canada.json                  # joined client-side to fsa_json by HOUSEID
+│  ├─ _dictionary.json              # shared categorical dictionary for the coded columns
+│  └─ <PROV>/<FSA>.json
+├─ census_json/ geo_json/ climate_json/   # context layers (census panel, FSA map, HDD/CDD)
+└─ utility_rates_reference.json     # blended per-province rates for the bill card + payback
 Python/
 ├─ ers_web_pipeline.py              # Step 1: raw ERS CSVs -> per-province parquet
 ├─ join_hp_capacity.py              # Step 1b: joins Post_HPAHRI against lookup/ahri_numbers.json
@@ -75,15 +85,24 @@ Python/
 ├─ compute_ghg_scenarios.py         # Step 1c: adds the 6 GHG scenario columns
 ├─ split_fsa_json.py                # Step 2: parquet -> per-FSA JSON
 ├─ precompute_province_stats.py     # Step 3: parquet -> province summaries
-└─ aggregate_canada.py              # Step 4: province summaries -> CA.json rollup
+├─ aggregate_canada.py              # Step 4: province summaries -> CA.json rollup
+├─ build_fsa_audit_totals.py        # independent sidecar: the audited-population denominator
+│                                   # (dore_count) that Step 2 writes into _index.json
+├─ retrofit_cost_extract_fields.py  # cost POC: pulls the ERS fields BASE_MAPPING doesn't carry
+├─ retrofit_cost_estimate.py        # cost POC: the REMDB pricing pass, per province
+└─ build_retrofit_costs_json.py     # cost POC: splits the output into retrofit_costs_json/
 lookup/
-└─ ahri_numbers.json                # AHRI certificate data (brand/model/capacity/HSPF2/…),
-                                     # keyed by AHRI reference number — build-time only,
-                                     # NOT fetched by retrofits.html (see build_ahri_lookup_full.py)
+├─ ahri_numbers.json                # AHRI certificate data (brand/model/capacity/HSPF2/…),
+│                                   # keyed by AHRI reference number (see build_ahri_lookup_full.py).
+│                                   # Joined into the data trees at build time by Step 1b AND
+│                                   # fetched at runtime by assets/retrofits.js for the
+│                                   # equipment-detail cards.
+├─ window_codes.json                # HOT2000 WINDOWCODE digit tables
+└─ window_components.json           # per-digit component labels for the window-change card
 ```
 
-The front-end fetches data from the `main` branch via `raw.githubusercontent.com`
-(see `BASE_URL` near the top of the `<script>` block in `retrofits.html`).
+Data ships on the `gh-pages` branch alongside the pages, so `BASE_URL` is `'./'`
+(see the top of `assets/retrofits.js`) and every fetch is same-origin.
 
 ---
 
@@ -95,7 +114,10 @@ address identifier (`HOUSEID`); area is identified by the first three characters
 postal code (`CLIENTPCODE` → `FSA`). These are **modelled** estimates, not metered
 utility consumption.
 
-The source extract carries 433 columns per audit record; this tool reads 48 of them. For
+The source extract carries 433 columns per audit record; the main pipeline reads 48 of
+them (the cost POC reads a further handful straight from the raw CSVs — footprint,
+window/door counts, ASHP configuration, pre-existing cooling — because Step 1's
+`BASE_MAPPING` doesn't carry them). For
 the full column-by-column picture — every ERS column with its fill rate and cardinality,
 not just the ones this page uses — see [ERS_DATA_DICTIONARY.md](ERS_DATA_DICTIONARY.md).
 `retrofits.html` itself has the used-column breakdown (source column, conversion factor,
@@ -120,13 +142,6 @@ raw yearly ERS CSVs ──[1] ers_web_pipeline.py──▶ ers_web_<PROV>.parque
                                                    └─[3] precompute_province_stats.py ──▶ province_json/<PROV>.json
 ```
 
-### Step 1c — `compute_ghg_scenarios.py` (parquet → parquet, GHG scenario columns)
-
-Adds 6 columns (`Pre_/Post_GHG_current`, `_current_corrected`, `_as_audited`) alongside
-the existing, untouched `Pre_/Post_GHG` (raw `ERSGHG`) — see [GHG scenarios](#ghg-scenarios)
-below. Depends on `Python/ers_ghg_factors.py`'s output
-(`ers_ghg_factors_by_province_year.csv`) being current; re-run that first if it's stale.
-
 ### Step 1 — `ers_web_pipeline.py` (raw CSVs → per-province parquet)
 
 Turns the yearly ERS exports (`2004-2006.csv` … `2025.csv`) into one cleaned parquet per
@@ -135,9 +150,12 @@ province. What it does:
 1. **Split each row by evaluation type.** Every audit record carries an `EVALTYPE`. The
    pipeline treats type **`D`** as the *initial* ("before") evaluation and **`E`** as the
    *follow-up* ("after") evaluation, streaming each into separate intermediates.
-2. **Pair before/after by home.** It keeps only `HOUSEID`s that have **exactly one `D`
-   and exactly one `E`**, then requires the **`E` audit to be dated after the `D` audit**.
-   Each surviving pair becomes one `pre`/`post` row.
+2. **Pair before/after by home.** It keeps every `HOUSEID` with **at least one `D` and at
+   least one `E`**, reduces the home to its **oldest `D` and newest `E`**, then requires
+   the **`E` audit to be dated after the `D` audit**. Each surviving pair becomes one
+   `pre`/`post` row. (Changed 2026-07-24 — the rule was previously *exactly* one of each,
+   which dropped every multi-audit home. See "Gate A — recovered" under
+   [Data notes & caveats](#data-notes--caveats).)
 3. **Reject mismatched pairs** (guards against comparing two different homes): a pair is
    dropped unless floor area changed by **≤ 10%** *and* house type, storeys, and number of
    dwelling units are **identical** pre vs post.
@@ -181,6 +199,13 @@ pump post-retrofit resolve to a usable certificate (a further ~8% resolve to a
 "Delisted" status-only entry with no specs). Coverage is highest for retrofits from
 about 2019 onward — the AHRI reference number is much less consistently recorded by
 auditors in earlier years.
+
+### Step 1c — `compute_ghg_scenarios.py` (parquet → parquet, GHG scenario columns)
+
+Adds 6 columns (`Pre_/Post_GHG_current`, `_current_corrected`, `_as_audited`) alongside
+the existing, untouched `Pre_/Post_GHG` (raw `ERSGHG`) — see [GHG scenarios](#ghg-scenarios)
+below. Depends on `Python/ers_ghg_factors.py`'s output
+(`ers_ghg_factors_by_province_year.csv`) being current; re-run that first if it's stale.
 
 ### Step 2 — `split_fsa_json.py` (parquet → per-FSA JSON)
 
@@ -249,10 +274,10 @@ Applied in Step 1 so every fuel is comparable in **kWh** (heat loss in **kW**):
 | Total energy | MJ | × 0.27778 | kWh |
 | Heating energy | MJ | × 0.27778 | kWh |
 | Electricity | kWh | — (as-is) | kWh |
-| Natural gas | m³ | × 10.361194 | kWh |
-| Oil | L | × 10.2 | kWh |
-| Propane | L | × 7.092 | kWh |
-| Wood | tonne | × 4166.7 | kWh |
+| Natural gas | m³ | × 10.3611 | kWh (37.30 MJ/m³, CER) |
+| Oil | L | × 10.7778 | kWh (38.80 MJ/L light fuel oil, StatCan RESD 57-003-X) |
+| Propane | L | × 7.0917 | kWh (25.53 MJ/L, CER) |
+| Wood | GJ, else MJ, else tonne | × 277.778, else × 0.27778, else × 3888.89 | kWh (see below) |
 | Design heat loss | W | × 0.001 | kW |
 | GHG (`ERSGHG`) | tCO₂e/yr | — (as-is) | tCO₂e/yr |
 | Solar PV (`KWPV`) | kW DC | — (as-is) | kW |
@@ -260,6 +285,17 @@ Applied in Step 1 so every fuel is comparable in **kWh** (heat loss in **kW**):
 
 GHG already includes electricity emissions via each province's grid factor, so
 fuel-switching to electricity is reflected correctly.
+
+**Wood is a three-way fallback chain, not one factor.** Since HOT2000 v11.2 the
+source reports wood energy directly in GJ (`EGHFCONWOODGJ`, 43.4% filled) and that
+is used verbatim — no heating-value assumption at all. Otherwise the pipeline
+prefers `EGHHEATFCONSW`, HOT2000's own per-home heating-fuel split (already MJ,
+also no assumption). Only the remaining ~0.3% of tonnes-only records fall back to
+`EGHFCONWOOD` at a flat 14.0 GJ/t (NRCan Solid Biofuels Bulletin No. 2). The
+earlier flat-factor-only version produced a handful of homes whose computed wood
+energy exceeded their own reported total; preferring `EGHHEATFCONSW` fixed that by
+construction. `retrofits.html`'s Methodology B carries the same table with the
+per-fuel citations.
 
 ### GHG scenarios
 
@@ -418,7 +454,7 @@ payloads are cached so re-selecting a province or FSA is instant.
 Province mode reads **precomputed** histogram bins; FSA mode bins **raw rows live**. They
 must agree on bucket widths or the same data will look different across the two views.
 
-The front-end widths live in one object near the top of the `<script>`:
+The front-end widths live in one object near the top of `assets/retrofits.js`:
 
 ```js
 const BINS = { year:10, area:50, eui:20, ghg:1, heatloss:2, savingsPct:1, cost:250, hpSizing:0.1 };
@@ -477,7 +513,9 @@ python scripts/split_fsa_json.py
 python scripts/precompute_province_stats.py
 ```
 
-Then commit the regenerated `Energy/fsa_json/` and `Energy/province_json/` to `main`.
+Then **publish** the regenerated `fsa_json/` and `province_json/` to `gh-pages` (see
+[Deployment](#deployment)). They are gitignored on `main` — committing them there does
+nothing.
 
 - To process a single province while testing, set `PROVINCE_FILTER` in Step 1.
 - If you add a chart/field to `retrofits.html`, update `KEEP_COLS` in Step 2 **and**, if it
@@ -499,6 +537,23 @@ two inputs, `census_json/fsa_census.json` (2021 Census) and
 `climate_json/fsa_climate.json` (ECCC climate normals), are **static** and do
 not need to be re-run as part of this refresh cadence.
 
+> **`build_insights.py` does not write the whole of `insights_json/`.** Section 06B
+> ("Cold-climate equipment") reads two more files —
+> `insights_json/hp_ahri_scatter.json` and `insights_json/cchp_screen.json` — written
+> by a **separate** script, `Python/build_hp_equipment_insights.py`, from the heat-pump
+> tool's Phase-3c interim CSVs. It has no dependency on the ERS refresh, but it is easy
+> to forget: if those two files are absent from the tree you deploy, section 06B goes
+> dead on the live page with a "CCHP screen unavailable" note and nothing fails
+> locally. (Exactly that happened between 2026-07-30 and 2026-08-03.) Run it whenever
+> you rebuild `insights_json/`, and confirm both files are in the published tree.
+
+**Retrofit Costs** (the proof-of-concept cost/payback layer inside `retrofits.html`)
+is a third independent chain off the same Step-1 parquets:
+`retrofit_cost_extract_fields.py` → `retrofit_cost_estimate.py` →
+`build_retrofit_costs_json.py` → `retrofit_costs_json/`. It is joined to `fsa_json`
+client-side by `HOUSEID`, so it can be re-run and re-published on its own without
+touching Steps 2/3. Full method: [docs/RETROFIT_COSTS.md](RETROFIT_COSTS.md).
+
 **Dependencies:** `pandas`, `numpy`, `pyarrow` (Step 1 also uses `pyarrow.csv`).
 
 ---
@@ -508,27 +563,35 @@ not need to be re-run as part of this refresh cadence.
 No build tooling required:
 
 ```bash
-# Quickest: open it — it loads live data from raw.githubusercontent.com
-open Energy/retrofits.html
-
-# Or serve locally (avoids file:// quirks)
-cd Energy && python -m http.server 8000
-# visit http://localhost:8000/retrofits.html
+# Serve the repo root — every fetch is same-origin and relative
+python -m http.server 8123
+# visit http://localhost:8123/retrofits.html
 ```
 
-When served from `localhost`/`127.0.0.1`, `BASE_URL` automatically switches to relative
-paths, so the page reads the `fsa_json/`, `province_json/`, `geo_json/`, `census_json/`
-and `lookup/` folders sitting next to it — local pipeline output is testable before
-pushing. Any other host reads the published GitHub copy.
+`BASE_URL` is `'./'` unconditionally, so the page reads whatever data trees sit
+beside it — `fsa_json/`, `province_json/`, `retrofit_costs_json/`, `geo_json/`,
+`census_json/`, `lookup/` and `utility_rates_reference.json`. Locally that means
+your own pipeline output; on `gh-pages` it means the published copy. Opening the
+file over `file://` will not work: the fetches are blocked by CORS. There is a
+ready-made static-server entry in `.claude/launch.json` on port 8123.
 
 ---
 
 ## Deployment
 
-Served by **GitHub Pages** from this repo; `retrofits.html` lives under `Energy/` and is
-reached at `…/Ottawa-Visuals/retrofits`. Data is loaded at runtime from `main` via
-`raw.githubusercontent.com`, so **publishing new data is just a commit to `main`** — no
-page redeploy needed.
+Served by **GitHub Pages** from the `gh-pages` branch at
+<https://ottawavisuals.github.io/Energy/retrofits>. Code, pipelines and docs live on
+`main`; `gh-pages` holds the pages *plus every generated data tree*, rebuilt as a
+single force-pushed commit by `./deploy.sh`. **Committing data to `main` publishes
+nothing** — the generated trees are gitignored there by design.
+
+So a data refresh means: re-run the pipeline, then publish. Either `./deploy.sh`
+(needs every tree in its `PATHS` list present on local disk — including
+`retrofit_costs_json` and a complete `lookup/`), or, when only a few paths changed
+and the rest of the trees aren't in your checkout, the incremental
+build-on-top-of-`origin/gh-pages` pattern documented in
+[CLAUDE.md](../CLAUDE.md). `.nojekyll` is mandatory — the trees contain
+`_index.json` and Jekyll drops underscore paths.
 
 ---
 
@@ -588,7 +651,13 @@ page redeploy needed.
   already had panels. This is a source-data characteristic, not a pipeline error.
 - **Saving-% sign is confirmed:** `EnergySavingPct = (pre − post)/pre`, so positive means
   energy was saved, negative means it rose (common with heat-pump fuel switching).
-- **No cost data** in the source — no payback or dollar figures are possible.
+- **No cost data in the source.** ERS has no cost fields at all, so every dollar
+  figure on the page comes from outside it and is labelled as such: the "Energy
+  bill" card prices modelled consumption at current provincial rates
+  (`utility_rates_reference.json`), and the proof-of-concept retrofit cost and
+  payback estimate prices recorded measures against PNNL/DOE's REMDB. Neither is a
+  utility bill or a contractor quote — see
+  [docs/RETROFIT_COSTS.md](RETROFIT_COSTS.md).
 - **`Post_HeatFuel`/`Post_HeatType` is the backup, not the heat pump, for heat-pump
   homes.** HOT2000 models the heat pump as a component separate from the "primary
   heating equipment" these columns actually describe. `retrofits.html` relabels them
@@ -609,6 +678,39 @@ page redeploy needed.
 
 ## Changelog
 
+### 2026-08-03 pipeline diagram, and this document brought back in line with the code
+
+- **New "Pipeline overview" diagram** at the top of the advanced methodology: the
+  full CSV → parquet → JSON → page flow as hoverable/focusable SVG boxes, each
+  tooltip carrying the actual numbers, filters or datasets behind that stage,
+  including the emission-factor and retrofit-cost branches. Electricity-rate source
+  corrected in the tooltips; the unused Climate Normals credit dropped.
+- **Documentation audit.** This file had drifted from the code in seven places, all
+  corrected above: the unit-conversion table still carried pre-2026-07 oil
+  (10.2 → **10.7778**) and wood (flat 4166.7 → the **GJ/MJ/tonne fallback chain**)
+  factors; Step 1 still described the *exactly*-one-D-and-E pairing rule replaced on
+  2026-07-24; the repository layout, Local development and Deployment sections still
+  described fetching from `main` via `raw.githubusercontent.com` (the `gh-pages`
+  split made `BASE_URL` `'./'`); `lookup/ahri_numbers.json` was described as never
+  fetched by the page, which `assets/retrofits.js` has since started doing at
+  runtime for the equipment-detail cards; the "no payback or dollar figures are
+  possible" caveat predated both the bill card and the cost POC; the audit range
+  said 2004–2025; and Step 1c was printed above Step 1.
+- **Page corrections in the same pass.** The cost POC's coverage was stated as "all
+  12 provinces + 2 territories" — it is **10 provinces + NT and NU** (Yukon has no
+  ERS records). Its 1,420,044-record input is now explained rather than left to
+  contradict the 1,451,433 matched-pair figure beside it (apartments, duplexes and
+  triplexes — 31,389 records — are excluded, since REMDB's regressions and the
+  footprint proxies assume single-dwelling geometry). **Solar PV and HRV/ERV** were
+  being priced and rendered but appeared in neither methodology section; both are
+  now documented, including the HRV's fixed-placeholder-metrics caveat. REMDB and
+  the ECCC emission factors were added to the Sources list. Doc links that 404'd on
+  the live site (`docs/` is not deployed to `gh-pages`) now point at the `main`
+  blob, matching how `ERS_DATA_DICTIONARY.md` was already linked.
+- **`deploy.sh` fixed:** `retrofit_costs_json` was missing from `PATHS`, so the next
+  full deploy would have silently dropped the entire cost feature from the live site
+  — it was only present via an earlier incremental push.
+
 ### 2026-08-02 GHG scenarios — 4 bases replace the raw-ERSGHG-only chart
 - **New Step 1c (`compute_ghg_scenarios.py`)** adds `Pre_/Post_GHG_current`,
   `_current_corrected`, `_as_audited` alongside the existing, untouched
@@ -627,6 +729,25 @@ page redeploy needed.
   [ENERGUIDE_QUESTIONS.md §5.4](ENERGUIDE_QUESTIONS.md)) and why `as_audited`
   needs year-varying, not flat, combustion factors (Ontario's `ERSNGASGHG` runs
   near-zero 2006–2016 despite real gas consumption).
+
+### 2026-07-31 Retrofit Costs proof of concept lands in the page
+
+- **A cost and payback estimate, from outside the ERS data.** ERS has no cost fields,
+  so this is a separate model: each home's recorded measures priced against PNNL/DOE's
+  REMDB (2023 USD, vintage 2024.12.23), incremental to the business-as-usual choice,
+  at REMDB's 10th/50th/90th-percentile bands. Eight measures priced — roof, wall and
+  foundation insulation, air sealing, windows, ASHP, solar PV, HRV/ERV.
+- **New independent pipeline chain**, off the same Step-1 parquets and not touching
+  Steps 2/3: `retrofit_cost_extract_fields.py` → `retrofit_cost_estimate.py` →
+  `build_retrofit_costs_json.py` → `retrofit_costs_json/`, joined to `fsa_json`
+  client-side by `HOUSEID` precisely so cost-method changes don't force an
+  `fsa_json` rebuild.
+- **Scope:** 10 provinces + NT and NU; 1,420,044 single-dwelling paired records
+  (multi-unit excluded), 1,237,117 with at least one priced measure (87%).
+- Everything it rests on is flagged on the page: US cost data with no CAD or
+  Canadian-labour adjustment, an assumed rectangle footprint, and utility rates whose
+  electricity source is cross-checked only for Saskatchewan. Full method:
+  [docs/RETROFIT_COSTS.md](RETROFIT_COSTS.md).
 
 ### 2026-07-24 heat-loss breakdown, asset split, measured pairing gates
 - **New chart: "Where the heat escapes — annual loss by component."** Surfaces the
@@ -664,6 +785,7 @@ page redeploy needed.
 - **`lookup/ahri_numbers.json` stays build-time-only.** It's now 4.87MB (up from a few
   KB); `retrofits.html` never fetches it directly — all AHRI-derived fields reach the
   browser pre-joined into `fsa_json`/`province_json` by Steps 1b/2/3.
+  *(Superseded — see 2026-08-03 below: the file is now also fetched at runtime.)*
 
 ### 2026-07 accuracy & UX pass
 - **Heat loss relabelled to its true unit.** `Pre/Post_HeatLoss` is *design heat loss*

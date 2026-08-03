@@ -26,6 +26,7 @@ PATHS=(
   tier-scatter.html
   assets
   fsa_json newhomes_fsa newhomes_json province_json insights_json
+  retrofit_costs_json
   ceud_json construction_json grid_json prices_json geo_json census_json
   lookup FSA_Maps GridCapacity
   HeatPump/data/processed

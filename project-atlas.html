@@ -174,12 +174,13 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="htitle">
       <span class="logo">energy<em>·</em>atlas</span>
       <span class="chip build" style="font-size:.7rem">v2 · expanded methodology</span>
-      <span class="sub">every project, how it was built, what was assumed — updated 2026-07-24</span>
+      <span class="sub">every project, how it was built, what was assumed — updated 2026-08-03</span>
     </div>
     <nav>
       <a href="#overview">Overview</a>
       <a href="#timeline">Timeline</a>
       <a href="#retrofits">🏠 Retrofits</a>
+      <a href="#retrofit-costs">💰 Costs</a>
       <a href="#insights">📈 Insights</a>
       <a href="#newhomes">🏡 New Homes</a>
       <a href="#ceud">📊 CEUD</a>
@@ -314,9 +315,11 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
 
   <h3>Where the data comes from</h3>
   <div class="srcs">
-    <div class="src">NRCan EnerGuide / ERS audits<small>~2004–2025, home energy audits modelled in HOT2000</small></div>
+    <div class="src">NRCan EnerGuide / ERS audits<small>2004–2026, home energy audits modelled in HOT2000</small></div>
     <div class="src">Census population<small>for map tooltips</small></div>
     <div class="src">AHRI directory<small>heat-pump model lookup badges</small></div>
+    <div class="src">ECCC emission factors<small>the calculated GHG bases (see below)</small></div>
+    <div class="src">Utility tariffs + PNNL/DOE REMDB<small>the energy-bill card and the cost POC — no dollars exist in ERS</small></div>
   </div>
 
   <h3>How it was built</h3>
@@ -415,7 +418,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <span class="tag std">standard factor</span><b>All fuels converted to kWh with published factors (gas 10.36 kWh/m³, oil 10.2 kWh/L, wood 4,167 kWh/t…).</b>
         <p>Standard higher-heating-value energy contents.</p>
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
-          <li>Cross-check against NRCan's published conversion-factor tables (natural gas ≈ 37.3 MJ/m³ ÷ 3.6 = 10.36 kWh/m³ ✓; furnace oil ≈ 36.7 MJ/L ÷ 3.6 ≈ 10.2 ✓). Any energy-content reference will do.</li>
+          <li>Cross-check against the published conversion-factor tables (natural gas ≈ 37.30 MJ/m³ ÷ 3.6 = 10.36 kWh/m³ ✓; light fuel oil ≈ 38.80 MJ/L ÷ 3.6 ≈ 10.78 ✓ — StatCan RESD 57-003-X, the same value ECCC's National Inventory Report uses). Any energy-content reference will do.</li>
         </ol></div>
         <div class="where">docs/RETROFITS.md §"Unit conversions" table.</div>
       </div></li>
@@ -436,6 +439,16 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         </ol></div>
         <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Outliers clipped".</div>
       </div></li>
+      <li><input type="checkbox" data-key="rf-ghgbasis"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Emissions default to a calculated basis, not the audit's own reported figure.</b>
+        <p>The audit's <code>ERSGHG</code> field is only filled for 50.5% of matched homes (Quebec ~78%, Saskatchewan ~9%), so building every emissions chart on it would have quietly halved the sample. The page now offers 4 bases and defaults to <b>"corrected, at year of audit"</b> — each home's emissions recomputed from its own recorded fuel use, at factors calibrated against the ERS data for that audit year.</p>
+        <p class="alt"><b>Other options:</b> show only the reported figure (honest but half the data, and biased by which provinces report it); use ECCC's official current factors flat across all years (comparable across eras, but overstates Ontario's historic gas and understates Alberta/Newfoundland electricity by 18–49%); or scale the reported subset up to the full population (assumes the reporting homes are representative, which is exactly what isn't known).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 3 min<ol>
+          <li>Switch the "GHG basis" dropdown to "as reported" and watch the home count under the chart drop — that gap is the coverage problem this exists to solve.</li>
+          <li>The calibrated basis was validated against the reported one where both exist: national aggregate within −0.66%, every large-sample province within ~±2% except Quebec (−5.3% on a small base).</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"GHG scenarios"; retrofits.html Methodology J; open question in docs/ENERGUIDE_QUESTIONS.md §5.4.</div>
+      </div></li>
     </ul>
   </div>
 
@@ -453,6 +466,105 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <li><b>2026-07-19/20:</b> reworked the census card around a coverage gauge, added a Sources section, added a light/dark/colour-blind theme system, reworded the hero and trimmed the heat-pump aside.</li>
       <li><b>2026-07-21:</b> fixed the pre/post combo-chart's bar/area draw order and switched pre/post colours to red/green for clarity.</li>
       <li><b>2026-07-22:</b> the AHRI heat-pump badge lookup (<code>lookup/ahri_numbers.json</code>) is now refreshed automatically every Monday via <code>ahri-refresh.yml</code>, re-checking existing certificates on a rolling basis (catches AHRI amending a certificate after the fact) instead of needing a manual rerun.</li>
+      <li><b>2026-07-31:</b> the <b>Retrofit Costs</b> proof of concept went live inside the page — an estimated retrofit cost and payback per home, priced from outside the ERS data. See its own section below.</li>
+      <li><b>2026-08-02:</b> emissions rebuilt on <b>4 selectable bases</b> instead of the audit's own half-populated figure (assumption card above), and a survivorship-bias bug in the factor derivation fixed — it had been overstating the national total by 12.8%.</li>
+      <li><b>2026-08-03:</b> a hoverable <b>pipeline-overview diagram</b> added at the top of the advanced methodology, so the CSV → parquet → JSON → page path (and its emission-factor and cost branches) can be read at a glance rather than reconstructed from prose.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ RETROFIT COSTS ══════════════════ -->
+<section id="retrofit-costs" class="card">
+  <div class="proj-head">
+    <h2>💰 Retrofit Costs</h2>
+    <span class="chip build">🔨 Proof of concept</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofits" target="_blank">inside the Retrofit Explorer ↗</a>
+  </div>
+  <p><b>In one sentence:</b> what a home's recorded upgrades would have cost, and how long they
+  take to pay back — the one question the audit data itself cannot answer, answered from an
+  outside source and labelled as such everywhere it appears.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">PNNL/DOE REMDB<small>US per-measure cost regressions, vintage 2024.12.23, 2023 USD</small></div>
+    <div class="src">The same ERS audit pairs<small>which measures each home actually did</small></div>
+    <div class="src">Provincial utility tariffs<small>the annual $ saved that payback divides into</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Extra fields</b><span>Pull the ERS columns the main pipeline doesn't carry — footprint, window counts, heat-pump config, existing A/C (retrofit_cost_extract_fields.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Price each measure</b><span>Match to REMDB rows, net against business-as-usual, compute payback (retrofit_cost_estimate.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · Split by area</b><span>A companion JSON tree per postal area (build_retrofit_costs_json.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · Joined in the browser</b><span>retrofits.html merges it onto the audit rows by house ID</span></div>
+  </div>
+
+  <div class="assump-box">
+    <h3>⚠️ What had to be assumed</h3>
+    <p class="small muted">This is the least settled thing on the site. Every item below is a
+    reason the numbers are directional, not quotable.</p>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="rc-us"><div class="a-body">
+        <span class="tag data">source limit</span><b>The cost data is American, unconverted.</b>
+        <p>REMDB is a US database in 2023 USD. No currency conversion and no Canadian-labour adjustment has been applied anywhere — the figures are used as-is. Canadian installed costs differ by trade, region and season in ways a flat multiplier would not capture honestly, so none was invented.</p>
+        <p class="alt"><b>Other options:</b> apply a headline FX rate (cheap, but implies a precision the underlying regression doesn't have); commission or source Canadian per-measure costs (the right answer, no public dataset found); or show ranges only, no point estimates.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 5 min<ol>
+          <li>Compare a mid-band heat-pump figure on the page against any Canadian contractor quote you have. Expect the page to read low — that gap is roughly the size of what's missing.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md; retrofits.html Methodology H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-footprint"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>House shape is assumed, because ERS records no envelope areas.</b>
+        <p>Insulation is priced per square metre, but the public ERS extract carries no wall or roof area anywhere. Areas are derived from the recorded footprint under an assumed <b>2:3 rectangle</b> — a stated judgement call, not a sourced distribution of Canadian house shapes.</p>
+        <p class="alt"><b>Other options:</b> a square footprint (simpler, slightly lower wall area); source a real footprint-aspect distribution from assessment or building-permit data (the intended fix, on the roadmap); or decline to price envelope measures at all.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Measure your own house's footprint and compare its true wall area against a 2:3 rectangle of the same floor area. The error is usually small; on a long narrow or L-shaped house it is not.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Area proxies".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-coverage"><div class="a-body">
+        <span class="tag data">source limit</span><b>Coverage is partial, in three separate ways.</b>
+        <p>Eight measures are priced (roof/wall/foundation insulation, air sealing, windows, heat pump, solar PV, HRV/ERV). Furnaces, boilers, floor insulation and doors are <b>not priced at all</b>. Apartments, duplexes and triplexes are <b>excluded entirely</b> — 31,389 of the 1,451,433 matched pairs — because REMDB's regressions assume single-dwelling geometry. Of the 1,420,044 that remain, 13% end up with no priced measure. Yukon has no ERS records at all.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>In a postal-area view, compare the "homes with a cost estimate" count against the matched-home count. The difference is this gap, not a rendering bug.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Measures explicitly NOT priced"; retrofits.html Methodology H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-rates"><div class="a-body">
+        <span class="tag data">source limit</span><b>The payback denominator rests on utility rates we don't fully trust.</b>
+        <p>Payback = cost ÷ annual dollars saved, so it inherits every weakness of the rate table. The electricity source was replaced in July 2026 after the previous one was caught quoting a Saskatchewan rate ~67% below SaskPower's own schedule while flagged "high confidence"; the replacement has been cross-checked <b>only</b> for Saskatchewan. Natural gas rates are frozen at a 2024-10-01 effective date across every province, ~21 months stale, with no verified replacement found. Oil, propane and wood are single national screening constants. Every affected home carries a machine-readable flag.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Look up your own utility's current residential rate and compare it to what the page uses for your province. Where they diverge, the payback figure moves proportionally.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Utility rates"; retrofits.html Methodology F and H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-hrv"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The HRV/ERV price is a class average, not a per-home fit.</b>
+        <p>REMDB fits ventilation cost on recovery efficiency and airflow. Neither field survives the main pipeline, so every HRV is priced at fixed midpoint metrics (0.70 SRE, 150 CFM) and tagged <code>flat_placeholder_metrics</code> in the data rather than presented as a per-home number.</p>
+        <div class="where">retrofits.html Methodology H.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>Each priced measure's REMDB area basis was audited against the raw REMDB data sheets rather than assumed — air sealing bills on house floor area, windows on the window's own area, wall and roof on surface area, all three confirmed.</li>
+      <li>The heat pump is netted against the home's <em>own</em> pre-audit heating system where ERS records one, not a blanket gas-furnace assumption; two REMDB rows the database never fitted (oil furnace, electric boiler) were derived from its raw line-item workbook instead of guessed.</li>
+      <li>Checked directly against the NRCan data dictionary that ERS carries no wall-construction-type field, so Wood/Steel Stud + Batt stays an explicitly stated assumption rather than an oversight.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>🔨 What's next</h3>
+    <ul>
+      <li>Band-specific payback (currently the mid band only).</li>
+      <li>A better utility-rate source — electricity verified beyond Saskatchewan, and something current for natural gas.</li>
+      <li>A real footprint aspect-ratio dataset to retire the 2:3 assumption.</li>
+      <li>Verify the province-mode UI against deployed data.</li>
     </ul>
   </div>
 </section>
@@ -1392,7 +1504,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   sections and per-assumption verification guides) by reading every project document in the repo
   (<code>ROADMAP.md</code>, <code>HeatPump/PLAN.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
   <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>docs/archive/CONSTRUCTION_PLAN/STATUS.md</code>,
-  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Updated 2026-07-24
+  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Updated 2026-08-03
   (two passes): first added the missing Retrofit Insights and New Homes Explorer sections (both had
   shipped but were only reflected in the overview tiles, not full write-ups), refreshed every status
   line against the current <code>ROADMAP.md</code> and commit history, and added the
