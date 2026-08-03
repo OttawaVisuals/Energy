@@ -28,7 +28,30 @@ section; REMDB and the ECCC emission factors added to Sources.
 factors, the superseded exactly-one-D-and-E pairing rule, three sections still
 describing `raw.githubusercontent.com` fetches from `main`, the "no dollar
 figures are possible" caveat, and the audit range. Full detail:
-[docs/RETROFITS.md changelog](docs/RETROFITS.md#changelog).) Prior pass
+[docs/RETROFITS.md changelog](docs/RETROFITS.md#changelog).
+**Then a local-checkout audit, which found the deploy hazard was far wider
+than the cost tree**: 1,429 of the 4,903 files published on `gh-pages` were
+absent from this working copy — the whole of `newhomes_fsa/` (1,311 files),
+`ceud_json/`, `construction_json/`, `newhomes_json/`, `geo_json/`,
+`FSA_Maps/`, `grid_json/`, `Geothermal/output/index.html` and two `lookup/`
+files. Since `./deploy.sh` builds `gh-pages` from the working tree, running
+it from this machine would have wiped the New Homes Explorer, CEUD, the
+Construction Tracker, the grid dashboard, every FSA map and the geothermal
+page. All 1,429 restored from `origin/gh-pages` (188.7 MB); `deploy.sh`'s
+preflight now passes all 31 paths. **Ottawa Case Study Phase 4's feeder half
+is unblocked as a result** — `GridCapacity/Hydro.py` and
+`ottawa_capacity.geojson` (3,884 feeder polygons with capacity attributes)
+were both recovered intact from the 2026-07-27 deploy snapshot, which was the
+only place `Hydro.py` had ever existed. Root cause: `/GridCapacity/` was
+gitignored wholesale, so unlike every other pipeline script it had no home on
+the decision-record branch. `.gitignore` now excludes the directory's
+*contents* and re-includes `Hydro.py`, which is committed to `main` here; the
+8MB geojson stays ignored. Caveat carried forward: `Hydro.py` is the original
+working script, not a cleaned-up one — its `WHERE` clause still matches every
+LDC whose name contains "Ottawa" (a `# tighten after you see the distinct
+names` note was never actioned) and it writes its output to the current
+directory rather than to `GridCapacity/`. It ran and produced the geojson we
+hold, so it works; it just hasn't been tidied.) Prior pass
 2026-08-02 (**Retrofit Insights + Retrofit Explorer**: GHG
 emissions overhaul, in two parts. **Part 1** — new Retrofit Insights section
 02 "The climate impact": national + per-province net tCO2e/yr saved (avg per
@@ -62,12 +85,9 @@ reconcile against Phase 2.5/Phase 3's already-published numbers with no
 adjustment (6.68 TWh residential exactly; all three electrification policies'
 added GWh/MW match to the reported digit). `build_suitability.py`'s existing
 demand upgrade hook fired automatically once the file existed. Phase 4's
-**feeder half is blocked**, discovered mid-task: `GridCapacity/Hydro.py` (the
-feeder-capacity fetch script) and `GridCapacity/ottawa_capacity.geojson` are
-both absent from this checkout, and `Hydro.py` was never committed to
-`main` — the whole `GridCapacity/` directory is gitignored, unlike every
-other pipeline script in the repo — so `feeder_demand.geojson` and the
-coincidence/diversity factor cannot be built until that's resolved. Full
+feeder half was recorded as **blocked** here — `GridCapacity/Hydro.py` and
+`ottawa_capacity.geojson` both absent from the checkout, `Hydro.py` never
+committed to `main` — **unblocked 2026-08-03**, see the top entry. Full
 detail: [Geothermal/README.md §3.13](Geothermal/README.md),
 [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).) Prior pass same day
 (**Retrofit Costs**: like-for-like ASHP heating BAU
@@ -75,8 +95,8 @@ detail: [Geothermal/README.md §3.13](Geothermal/README.md),
 equipment, mapped to REMDB, with two self-derived REMDB rows for Oil Furnace
 and Electric Boiler REMDB never fit); POC moved from session scratchpad to a
 permanent, committed pipeline (`Python/retrofit_cost_extract_fields.py`,
-`retrofit_cost_estimate.py`); scaled to full national coverage, all 12
-provinces + 2 territories (1.42M paired records, 1.24M priced); electricity
+`retrofit_cost_estimate.py`); scaled to full national coverage, all 10
+provinces + NT/NU (1.42M paired records, 1.24M priced); electricity
 utility-rate source swapped after catching a stale "high confidence"
 Saskatchewan rate (~67% understated, over a year stale) in the prior source —
 new source is a third-party blog, flagged for further verification, not yet
@@ -171,7 +191,7 @@ lifecycle-update candidates logged — see
 
 | Project | Progress | Next step |
 |---|---|---|
-| 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████▓░░` Phase 4 grid half done, feeder half blocked | **Phase 4 (feeder half):** blocked — `GridCapacity/Hydro.py` + `ottawa_capacity.geojson` both absent from the checkout and `Hydro.py` was never committed to `main`; need to locate the original or approve a from-scratch rewrite before feeder_demand.geojson / the coincidence factor can be built → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
+| 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████▓░░` Phase 4 grid half done, feeder half unblocked 2026-08-03 | **Phase 4 (feeder half):** both inputs recovered from the 2026-07-27 `gh-pages` snapshot — `GridCapacity/Hydro.py` (now committed to `main`) and `ottawa_capacity.geojson` (3,884 feeder polygons, `capacity`/`capacityrange`/voltage/`ldc_name`). Next: build `feeder_demand.geojson` by intersecting the Phase 4 grid against those polygons, then derive the coincidence/diversity factor from real feeder loading → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
 | 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 10 provinces + NT/NU; Yukon has no ERS records) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
 
 ### Queued 🆕
@@ -466,7 +486,7 @@ prompts). Build log: [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).
 | 2 | Per-building current heat load + fuel | ✅ 2026-07-16 |
 | 2.5 | Stock reconciliation — implied dwellings 1.005× census, sums defensible over `in_ottawa_cd` | ✅ 2026-07-17 |
 | 3 | Electrified load per building (validated 0.00% vs shipped engine) | ✅ 2026-07-17 |
-| **4** | **Grid half:** ✅ 2026-07-31 — `heat_demand_grid.geojson`, 6,722/13,778 cells, validated exact against Phase 2.5/3's own totals; `build_suitability.py`'s demand upgrade hook now fires for real. **Feeder half: 🚧 blocked** — `GridCapacity/Hydro.py` + `ottawa_capacity.geojson` absent from the checkout and `Hydro.py` was never committed to `main`; feeder_demand.geojson and the coincidence factor are unstarted | 🔨 **feeder half next, pending data** |
+| **4** | **Grid half:** ✅ 2026-07-31 — `heat_demand_grid.geojson`, 6,722/13,778 cells, validated exact against Phase 2.5/3's own totals; `build_suitability.py`'s demand upgrade hook now fires for real. **Feeder half: 🔓 unblocked 2026-08-03** — `Hydro.py` + `ottawa_capacity.geojson` recovered from the 2026-07-27 deploy snapshot (the only place the script had ever existed); `Hydro.py` now committed to `main` and `.gitignore` narrowed so it stays there. feeder_demand.geojson and the coincidence factor are still unstarted | 🔨 **feeder half next** |
 | 5 | New map layers (demand, grid stress, intervention score) | 🆕 |
 | 6 | The case-study page — the narrative deliverable | 🆕 |
 
@@ -476,9 +496,10 @@ is an equipment problem (Tier 1 halves it); the ~90% hybrid target is
 unreachable with that curve (stalls at 81–84%); **the peak columns are
 undiversified** — already-electric stock alone sums to 1,275 MW ≈ 98% of Hydro
 Ottawa's system peak, so Phase 4 must derive a coincidence factor from real
-feeder loading rather than quote raw sums. That derivation is still blocked
-on the missing `GridCapacity/Hydro.py` — see GEOTHERMAL_STATUS.md's
-2026-07-31 entry.
+feeder loading rather than quote raw sums. That derivation was blocked on the
+missing `GridCapacity/Hydro.py`; both it and `ottawa_capacity.geojson` were
+recovered 2026-08-03, so the feeder loading data is now in hand — see
+GEOTHERMAL_STATUS.md's 2026-07-31 and 2026-08-03 entries.
 
 ---
 

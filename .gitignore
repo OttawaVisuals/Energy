@@ -16,7 +16,15 @@
 /census_json/
 /lookup/
 /FSA_Maps/
-/GridCapacity/
+# GridCapacity holds a pipeline script (Hydro.py — the OEB/Hydro Ottawa feeder
+# capacity fetch) next to its 8MB generated geojson. Ignoring the whole
+# directory meant the script existed only inside gh-pages deploy snapshots and
+# was nearly lost — every other pipeline script lives on main. Contents are
+# excluded rather than the directory itself, because git cannot re-include a
+# file inside an excluded directory (same pattern as HeatPump/data below).
+/GridCapacity/**
+!/GridCapacity/
+!/GridCapacity/Hydro.py
 # HeatPump/data is local-only EXCEPT cell_candidates.csv, which carries
 # HAND-ENTERED datasheet findings (Spec sheet / page / note) that no pipeline
 # can regenerate. Directory contents are excluded rather than the directories
