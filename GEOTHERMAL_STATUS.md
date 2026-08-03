@@ -3,9 +3,43 @@
 Companion to [Geothermal/ottawa-geothermal-guide.md](Geothermal/ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-24.*
+*Last session: 2026-07-31.*
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-07-31 session — Heat Demand Phase 4, grid half only
+
+New `Geothermal/scripts/build_heat_demand.py` aggregates
+`buildings_ottawa.parquet` onto the canonical 500 m grid →
+`Data/processed/heat_demand_grid.geojson` (6,722 of 13,778 cells covered).
+Every summed column validated exact against the building-level total, and the
+city-wide totals independently reconcile against both upstream phases'
+already-published numbers with no adjustment needed: 6.68 TWh/yr
+residential-only (Phase 2.5's figure exactly), and the three Phase 3
+electrification policies' added load (+4,613 GWh/+5,264 MW,
++3,410 GWh/+0 MW, +2,515 GWh/+1,482 MW) all match to the reported digit.
+Re-ran `build_suitability.py`: its `demand` upgrade hook (documented since
+Phase D, README §3.9) fired automatically now that the file exists — the
+`district` segment's demand factor switched from the binary
+serviced-area proxy to real per-cell kWh, no code change required.
+
+**Not done — the feeder half of Phase 4 is blocked.**
+`GridCapacity/ottawa_capacity.geojson` (3,884 Hydro Ottawa feeder polygons +
+available MVA) and `GridCapacity/Hydro.py` (the fetch script that produces
+it) are both absent from this checkout, and `Hydro.py` was never committed to
+`main` — the entire `GridCapacity/` directory is gitignored, unlike every
+other pipeline script in the repo, so there is nothing checked in to
+re-run. This also means `build_suitability.py`'s `feeder` factor has been
+silently all-zero on this checkout (`[warn] ottawa_capacity.geojson missing`)
+independent of anything done this session. `feeder_demand.geojson` and the
+coincidence/diversity factor the plan calls for (Phase 3 proved the
+undiversified per-building peaks sum to ~98% of Hydro Ottawa's whole-system
+peak, which cannot be literally true) remain unstarted. Full detail:
+[Geothermal/README.md §3.13](Geothermal/README.md). Before this can proceed,
+someone needs to either locate the original `Hydro.py` / feeder geojson, or
+sign off on writing a new fetch script against the OEB CCIM ArcGIS REST
+endpoint from the README's description (unverified against the original
+3,884-polygon output).
 
 ## 2026-07-24 session — parquet-metadata carry-forward fix (no data change)
 
