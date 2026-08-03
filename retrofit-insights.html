@@ -71,6 +71,18 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .chart-wrap{position:relative;width:100%}
 .note{font-size:12px;color:#5C6E82;margin-top:.6rem;line-height:1.5}
 
+/* ── GHG impact (§02) ── */
+.ghg-kpi-strip{display:flex;gap:12px;flex-wrap:wrap}
+.ghg-kpi{flex:1 1 170px;background:#F7F4EE;border:1px solid var(--border);border-radius:var(--r-sm);padding:.8rem .95rem}
+.ghg-kpi .gv{font-family:'Fraunces',Georgia,serif;font-size:1.55rem;font-weight:300;color:var(--navy);line-height:1.15}
+.ghg-kpi .gl{font-size:11.5px;color:#5C6E82;margin-top:.35rem;line-height:1.4}
+.equiv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.equiv-card{background:#F7F4EE;border:1px solid var(--border);border-radius:var(--r-sm);padding:.85rem .9rem}
+.equiv-card svg{width:28px;height:28px;display:block;margin-bottom:8px}
+.equiv-label{font-size:11.5px;color:#5C6E82;margin-bottom:5px;line-height:1.35;min-height:2.6em}
+.equiv-value{font-size:18px;font-weight:600;color:var(--navy);font-variant-numeric:tabular-nums}
+.equiv-sub{font-size:10.5px;color:#8A9BB0;margin-top:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
 /* ── AHRI scatter + CCHP panel (§06) ── */
 #ahri-scatter-wrap circle.pt{cursor:pointer}
 #ahri-scatter-wrap circle.pt.clamped{stroke:#12202E;stroke-width:1.4;stroke-dasharray:2 2}
@@ -345,10 +357,51 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 02 THE MAP -->
+  <!-- 02 THE CLIMATE IMPACT -->
+  <section id="sec-ghg">
+    <div class="section-head">
+      <div class="section-num">02 — THE CLIMATE IMPACT</div>
+      <h2>What the GHG savings are worth</h2>
+      <p class="intro">The same modelled tCO₂e/yr saved as everywhere else on this page, summed rather than averaged, then priced two ways: what it would cost at the 2024 federal carbon-tax rate, and what ECCC's Social Cost of Carbon says the avoided damage is worth.</p>
+      <div class="sowhat"><b>By the numbers:</b> <span id="ghg-sowhat">Loading…</span></div>
+    </div>
+    <div class="card">
+      <h3>National total</h3>
+      <div class="sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Net across every matched pair — homes whose modelled GHG rose are included, not dropped (see the caveat below).</span>
+        <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <label for="ghg-scenario-sel" style="font-size:12px;color:#5C6E82">GHG basis</label>
+          <select id="ghg-scenario-sel" style="font-size:12.5px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:#1C2B3A">
+            <option value="as_audited">Corrected, at year of audit</option>
+            <option value="current">Current (2026) official</option>
+            <option value="current_corrected">Current (2026) official, corrected</option>
+            <option value="reported">As reported (partial coverage)</option>
+          </select>
+        </span>
+      </div>
+      <div class="ghg-kpi-strip" id="ghg-kpi-strip"></div>
+      <div class="note" id="ghg-national-note"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>By province</h3>
+      <div class="sub">Average per matched home and total, by province — plus how much of each province's matched population this basis actually describes.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="ghg-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat" id="ghg-caveat"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>What that many tonnes looks like</h3>
+      <div class="sub">The national total (<span id="ghg-equiv-n"></span> above), converted into everyday equivalents — factors ported from Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--navy)">GHG Equivalency Calculator</a>.</div>
+      <div class="equiv-grid" id="ghg-equiv-grid"></div>
+      <div class="note">Emission factors: Ford F-150 256.6 gCO₂e/km · Honda Civic 149.6 gCO₂e/km · Hyundai Ioniq (AB) 139.8 gCO₂e/km · Hyundai Ioniq (ON) 6.2 gCO₂e/km · round trip distance St. John's–Vancouver 14,198 km · flight St. John's–Vancouver 75.72 tCO₂e · oil 2.3 tCO₂e/barrel · forest (Central Park, annual absorption) 1,686 tCO₂e · propane cylinder (BBQ) 0.0244 tCO₂e.</div>
+    </div>
+  </section>
+
+  <!-- 03 THE MAP -->
   <section id="sec-map">
     <div class="section-head">
-      <div class="section-num">02 — THE MAP</div>
+      <div class="section-num">03 — THE MAP</div>
       <h2>One country, five ways</h2>
       <p class="intro">Every postal area (FSA) with at least 30 matched retrofits, coloured by the metric you pick. The leaderboards beside it re-rank live. Postal areas below the 30-retrofit threshold, the few condo-dominated downtown cores with no house audits, and — on participation only — areas whose 2021 census dwelling count is too small to divide by, are left grey.</p>
       <div class="sowhat"><b>By the numbers:</b> the highest pre-retrofit intensities are in Winnipeg (R3B 475, R3A 446 kWh/m²/yr); the highest heat-pump adoption is in Quebec and coastal BC (G7T 96.9%, V0V 90.5%); the lowest participation is in downtown Toronto (M5V 0.2%, M4Y 0.3%), where most dwellings are condo units that do not receive house audits.</div>
@@ -384,7 +437,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 03 WHAT WORKS -->
   <section id="sec-success">
     <div class="section-head">
-      <div class="section-num">03 — WHAT WORKS</div>
+      <div class="section-num">04 — WHAT WORKS</div>
       <h2>What makes a retrofit succeed</h2>
       <p class="intro">Built on the 1,326,144 pairs that logged at least one real measure — the zero-measure re-audits are set aside. The pattern is blunt: mechanical change beats shell tweaks, and depth compounds.</p>
       <div class="sowhat"><b>By the numbers:</b> among homes that did exactly one measure, a heat pump returned a <b>25.5%</b> median saving (141,677 homes) and a heating-system change 20.1%, against 7.9% for air sealing alone, 6.6% for roof insulation and <b>6.1%</b> for windows. Median saving rises with each added measure, from 16.2% at one to 68.9% at all eight.</div>
@@ -430,7 +483,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 04 EQUITY -->
   <section id="sec-equity">
     <div class="section-head">
-      <div class="section-num">04 — WHO PARTICIPATES</div>
+      <div class="section-num">05 — WHO PARTICIPATES</div>
       <h2>Who takes part</h2>
       <p class="intro">Postal areas sorted into five equal groups by neighbourhood median household income, lowest to highest.</p>
       <div class="sowhat"><b>By the numbers:</b> participation rises with neighbourhood income, from <b>11.6%</b> in the lowest quintile to <b>16.4%</b> in the highest. Heat-pump rate runs the other way (34.7% down to 19.0%), and median saving is close to flat (22.1% to 19.8%). These are area averages; see the caveat below before reading them as household behaviour.</div>
@@ -452,7 +505,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 05 HEAT-PUMP GEOGRAPHY -->
   <section id="sec-hp">
     <div class="section-head">
-      <div class="section-num">05 — HEAT PUMPS</div>
+      <div class="section-num">06 — HEAT PUMPS</div>
       <h2>The geography of heat pumps</h2>
       <p class="intro">Where the roughly 328,000 heat pumps in this dataset went in, and what got installed.</p>
       <div class="sowhat"><b>By the numbers:</b> heat-pump adoption spans a <b>25×</b> range across provinces, from 50.3% in New Brunswick to 2.0% in Saskatchewan. The same spread reappears inside the income and dwelling-value breakdowns below, because those quintiles differ in provincial composition.</div>
@@ -474,7 +527,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 06 COLD-CLIMATE EQUIPMENT -->
   <section id="sec-hp-equipment">
     <div class="section-head">
-      <div class="section-num">06 — COLD-CLIMATE EQUIPMENT</div>
+      <div class="section-num">07 — COLD-CLIMATE EQUIPMENT</div>
       <h2>What the installed heat pumps can actually do at 5 °F</h2>
       <p class="intro">Every AHRI-certified unit that appears in this data, plotted by cold-climate efficiency and capacity retention, then screened against the specifications of the US DOE Cold Climate Heat Pump (CCHP) Technology Challenge.</p>
       <div class="sowhat"><b>By the numbers:</b> of <b>15,148</b> certified models covering <b>439,975</b> ERS install appearances, <b>4 certificate rows</b> — <b>3 distinct models</b>, <b>8 appearances (0.00%)</b> — clear every checkable Challenge criterion. Three of the four sit <i>exactly</i> on the COP threshold. This is not a critique of the installed base: Challenge-qualifying products only began reaching market in 2024–25, and these are historical ERS audit records.</div>
@@ -496,7 +549,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 07 MISSED OPPORTUNITY -->
   <section id="sec-opp">
     <div class="section-head">
-      <div class="section-num">07 — MISSED OPPORTUNITY</div>
+      <div class="section-num">08 — MISSED OPPORTUNITY</div>
       <h2>Where programs should look next</h2>
       <p class="intro">A composite score combining the worst starting stock with the lowest uptake — the postal areas with the most to gain that have barely participated.</p>
       <div class="sowhat"><b>By the numbers:</b> the highest-scoring postal areas are in the older cores of <b>Winnipeg (R3B, R3C, R3A), Saint John (E2L), Edmonton (T5G, T5B) and Regina (S4P)</b>. Click any row to see the four factor percentiles behind its score.</div>
@@ -535,7 +588,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 07 TIMELINE -->
   <section id="sec-timeline">
     <div class="section-head">
-      <div class="section-num">08 — THE TIMELINE</div>
+      <div class="section-num">09 — THE TIMELINE</div>
       <h2>Twenty years of programs</h2>
       <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
       <div class="sowhat"><b>By the numbers:</b> completed retrofits peaked at <b>205,502 in 2010</b>, during ecoENERGY Retrofit – Homes (2007–2012), and again at <b>150,798 in 2023</b> under the Canada Greener Homes Grant (2021–2024). 2025 recorded 72,870, about half the 2024 total, after the grant closed to new applicants on 31 March 2024. Programme dates and sources are listed under the chart.</div>
@@ -555,7 +608,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 08 OPEN QUESTIONS -->
   <section id="sec-questions">
     <div class="section-head">
-      <div class="section-num">09 — OPEN QUESTIONS</div>
+      <div class="section-num">10 — OPEN QUESTIONS</div>
       <h2>Questions for the EnerGuide team</h2>
       <p class="intro">Things this dataset cannot answer on its own. Each one is a limit we hit while building the page, written down rather than papered over with an assumption.</p>
     </div>
@@ -596,7 +649,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
   <!-- 09 METHODOLOGY -->
   <section id="sec-method">
     <div class="section-head">
-      <div class="section-num">10 — METHODOLOGY</div>
+      <div class="section-num">11 — METHODOLOGY</div>
       <h2>How this was built</h2>
       <p class="intro">Every formula, threshold and honesty rail behind the numbers above.</p>
     </div>
@@ -807,6 +860,83 @@ function renderScorecard(){
     renderScorecard();});
 }
 function sec02(){return ensureMetrics().then(recs=>{SCORE_ROWS=buildScorecard(recs);renderScorecard();});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   02b — GHG IMPACT (carbon tax / SCC value + equivalencies)
+   Vehicle/flight/oil/forest/propane factors ported from Ottawa Visuals'
+   ghg_calculator.html so this page has no cross-repo/iframe dependency.
+   ══════════════════════════════════════════════════════════════════════ */
+const GHG_TRIP_KM=14198; // St. John's <-> Vancouver round trip, matches the calculator
+const GHG_VEHICLES=[
+  {label:"Ford F-150",gco2_per_km:256.6},
+  {label:"Honda Civic",gco2_per_km:149.6},
+  {label:"Hyundai Ioniq (AB)",gco2_per_km:139.8},
+  {label:"Hyundai Ioniq (ON)",gco2_per_km:6.2},
+];
+const GHG_OTHER=[
+  {label:"Flights, St. John's–Vancouver",factor:75.72266667,unit:"flights"},
+  {label:"Barrels of oil burned",factor:2.3,unit:"barrels"},
+  {label:"Central Parks of forest (annual absorption)",factor:1686,unit:"Central Parks"},
+  {label:"Propane cylinders (BBQ)",factor:0.024390244,unit:"cylinders"},
+];
+function renderGhgEquiv(totalTco2e){
+  const parts=GHG_VEHICLES.map(v=>{
+    const perTrip=(v.gco2_per_km*GHG_TRIP_KM)/1e6;
+    const trips=totalTco2e/perTrip,km=(totalTco2e*1e6)/v.gco2_per_km;
+    return`<div class="equiv-card"><div class="equiv-label">${v.label} — round trips St. John's–Vancouver</div><div class="equiv-value">${fmtInt(trips)}</div><div class="equiv-sub">${fmtInt(km)} km driven</div></div>`;
+  }).concat(GHG_OTHER.map(o=>
+    `<div class="equiv-card"><div class="equiv-label">${o.label}</div><div class="equiv-value">${fmtInt(totalTco2e/o.factor)}</div><div class="equiv-sub">${o.unit}</div></div>`
+  ));
+  $('ghg-equiv-grid').innerHTML=parts.join('');
+}
+// 4 GHG bases (mirrors Python/ghg_factors.py / compute_ghg_scenarios.py --
+// keep in sync). "reported" = raw ERSGHG (partial coverage); the other 3 are
+// calculated from each home's own fuel consumption (~100% coverage).
+let GHG_SCENARIO='as_audited';
+const GHG_SCENARIO_LABEL={
+  as_audited:"the ERS-calibrated factor matched to each home's own audit year",
+  current:"a single flat 2026 official ECCC factor, applied to every retrofit regardless of when it happened",
+  current_corrected:"a single flat 2026 official ECCC factor, with Alberta and Newfoundland & Labrador corrected against the ERS data (see Methodology)",
+  reported:"the raw NRCan-reported ERSGHG field, unmodified",
+};
+let _ghgImpactData=null;
+
+function renderGhgImpact(g){
+  _ghgImpactData=g;
+  const scen=g.scenarios[GHG_SCENARIO];
+  const n=scen.national;
+  $('ghg-kpi-strip').innerHTML=`
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_ghg_saved_tco2e)}</div><div class="gl">tCO₂e/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes${GHG_SCENARIO==='reported'?' with a valid GHG reading':''})</div></div>
+    <div class="ghg-kpi"><div class="gv">${n.avg_ghg_saved_tco2e.toFixed(1)}</div><div class="gl">avg tCO₂e/yr saved per home</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.carbon_tax_value_cad)}</div><div class="gl">at the 2024 carbon-tax rate ($${g.carbon_tax_rate.value}/tCO₂e)</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.scc_value_cad)}</div><div class="gl">at ECCC's 2024 Social Cost of Carbon ($${g.scc_rate.value}/tCO₂e)</div></div>`;
+  const covPhrase=GHG_SCENARIO==='reported'
+    ?`Over the ${fmtInt(n.n)} matched pairs (${fmtPct(n.ghg_coverage_pct,0)} of ${fmtInt(n.matched_total)} nationally) with a usable before/after GHG reading`
+    :`Across all ${fmtInt(n.n)} matched pairs nationally (${fmtPct(n.ghg_coverage_pct,0)} coverage)`;
+  $('ghg-sowhat').textContent=`${covPhrase}, retrofits saved a net ${fmtInt(n.total_ghg_saved_tco2e)} tCO₂e/yr — worth $${fmtInt(n.carbon_tax_value_cad)} at the 2024 carbon-tax rate and $${fmtInt(n.scc_value_cad)} under ECCC's Social Cost of Carbon. ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled GHG rise instead of fall, most often from switching to electric heat in a higher-emission-grid province.`;
+  $('ghg-national-note').textContent=`Net = sum(pre GHG − post GHG) over ${fmtInt(n.n)} matched pairs, using ${GHG_SCENARIO_LABEL[GHG_SCENARIO]}. Not clipped at zero — ${fmtInt(n.n_increased)} homes pull the total down.`;
+
+  const rows=Object.entries(scen.by_province).map(([prov,s])=>({prov,...s}))
+    .sort((a,b)=>b.total_ghg_saved_tco2e-a.total_ghg_saved_tco2e);
+  const head=$('ghg-table').tHead,body=$('ghg-table').tBodies[0];
+  head.innerHTML='<tr><th>Province</th><th>Homes</th><th>Coverage</th><th>Avg tCO₂e/home</th><th>Total tCO₂e/yr</th><th>Carbon-tax value</th><th>SCC value</th></tr>';
+  body.innerHTML=rows.map(r=>`<tr><td><span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span></td><td>${fmtInt(r.n)} / ${fmtInt(r.matched_total)}</td><td>${fmtPct(r.ghg_coverage_pct,0)}</td><td>${r.avg_ghg_saved_tco2e.toFixed(1)}</td><td>${fmtInt(r.total_ghg_saved_tco2e)}</td><td>$${fmtInt(r.carbon_tax_value_cad)}</td><td>$${fmtInt(r.scc_value_cad)}</td></tr>`).join('');
+
+  const caveat=$('ghg-caveat');
+  if(GHG_SCENARIO==='reported'){
+    caveat.innerHTML=`<b>Only about half the matched homes have a usable GHG reading, and it varies sharply by province.</b> Nationally ${fmtPct(n.ghg_coverage_pct,1)} of matched pairs (${fmtInt(n.n)} of ${fmtInt(n.matched_total)}) have both a Pre_GHG and a Post_GHG value — ERSGHG is not populated for every audit. Every figure here describes only the homes with GHG data, not the full matched population, and is not scaled up to cover the gap.`;
+  } else {
+    caveat.innerHTML=`<b>Two different prices for the same tonnes.</b> The carbon-tax figure applies a single flat $80/tCO₂e (the 2024 federal rate) to every matched pair regardless of its own audit year — illustrative, not a reconstruction of the phased 2019–2024 schedule, and the federal consumer fuel charge was removed 2025-04-01. The Social Cost of Carbon figure applies ECCC's 2024 central estimate ($266/tCO₂e, C$2021, 2% discount) — an estimate of global avoided damage, not a price anyone pays. Neither is metered.${GHG_SCENARIO!=='current'?' Alberta and Newfoundland & Labrador use a corrected electricity factor here — see Methodology, “GHG scenarios”, for why.':''}`;
+  }
+
+  $('ghg-equiv-n').textContent=`from ${fmtInt(n.n)} homes`;
+  renderGhgEquiv(n.total_ghg_saved_tco2e);
+}
+function secGhg(){return loadJSON(INS+'ghg_impact.json').then(renderGhgImpact);}
+$('ghg-scenario-sel').addEventListener('change',function(){
+  GHG_SCENARIO=this.value;
+  if(_ghgImpactData)renderGhgImpact(_ghgImpactData);
+});
 
 /* ══════════════════════════════════════════════════════════════════════
    03 — NATIONAL MAP + LEADERBOARDS
@@ -1510,6 +1640,22 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
     <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
 
+    <h4>GHG impact: 4 scenarios, carbon tax, and Social Cost of Carbon</h4>
+    <p>Built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other GHG figure on this page. The <b>GHG basis</b> dropdown at the top of this section switches between 4 ways of computing <code>sum(Pre_GHG − Post_GHG)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped:</p>
+    <ul>
+      <li><b>As reported</b> — the raw <code>ERSGHG</code> field, unmodified. Only 733,107 of 1,451,433 matched pairs nationally (50.5%, measured 2026-08-02) have a usable Pre_GHG <i>and</i> Post_GHG value — coverage runs from Quebec (~78%) and PEI (~84%) down to Ontario (~43%) and Saskatchewan (~9%). Every figure under this basis describes only the homes with GHG data, not scaled up to the full matched count — <code>n</code>/<code>matched_total</code>/<code>ghg_coverage_pct</code> ship per province precisely so this isn't hidden.</li>
+      <li><b>Current (2026) official</b> — every home's own fuel consumption (already ~100% complete) × <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" style="color:var(--navy)">ECCC's official 2026 emission factors</a>, applied flat regardless of when the retrofit happened — prices every retrofit as if it happened on today's grid, for comparing retrofits across years on equal footing rather than reconstructing historical emissions.</li>
+      <li><b>Current (2026) official, corrected</b> — the same, except Alberta and Newfoundland &amp; Labrador use a factor calibrated directly against the ERS data instead of ECCC's published one (next paragraph explains why).</li>
+      <li><b>Corrected, at year of audit</b> — each home's own audit year's factor, calibrated directly against the ERS data — the historically-accurate basis and this page's default.</li>
+    </ul>
+    <p><b>Why Alberta and Newfoundland get a correction:</b> applying the official ECCC electricity factors to real ERS consumption and comparing to real reported <code>ERSGHG</code>, every other province agrees within about ±15%, but Alberta runs 18–29% low and Newfoundland &amp; Labrador 27–49% low, consistently across 2023–2026 and at large sample sizes (40,000+ homes/year for Alberta) — not noise. This isn't a within-province effect: Newfoundland's audited homes are almost all on the island, and the official province-wide figure is diluted by Labrador's near-zero-carbon Churchill Falls hydro; Alberta has too few electric-only-heated homes (159 of 85,771) to test locally at all, and its grid has no published zonal split to begin with. We could not find NRCan documentation of what HOT2000 uses internally for this calculation (tracked as an open question — see <a href="ENERGUIDE_QUESTIONS.md" style="color:var(--navy)">docs/ENERGUIDE_QUESTIONS.md</a> §5.4), so these two provinces substitute a factor derived directly from the ERS data's own consumption and GHG columns, which by construction reproduces what HOT2000 actually computed for these same audits. The same issue surfaces for combustion, not just electricity: Ontario's own <code>ERSNGASGHG</code> runs near-zero for 2006–2016 despite substantial real gas consumption, so the "corrected, at year of audit" basis uses a year-varying, ERS-calibrated combustion factor too rather than a flat modern one. Validated end to end, the "corrected, at year of audit" national aggregate lands within <b>−0.66%</b> of the real reported total, and every large-sample province within about ±2% except Quebec (−5.3%, a small absolute base). Full derivation: <code>Python/ghg_factors.py</code>, <code>Python/compute_ghg_scenarios.py</code>, <code>Python/ers_ghg_factors.py</code>. Wood is treated as 0 (biogenic-neutral) in every scenario — ECCC has no residential wood-combustion factor at all, and the ERS-implied ratio is not physically plausible (~358 kg CO2e/kg).</p>
+    <p>Whichever basis is selected, that tCO₂e total is priced two ways, both as flat, single-year rates (not the phased schedules either source actually uses):</p>
+    <ul>
+      <li><b>Carbon tax:</b> $80/tCO₂e, the federal fuel charge / OBPS benchmark price for 2024 — the last full year before the federal consumer fuel charge was removed 2025-04-01. Applied identically to every matched pair regardless of its own audit year, so this is illustrative, not a reconstruction of the 2019 ($20) → 2024 ($80) schedule, and it is not a live policy figure.</li>
+      <li><b>Social Cost of Carbon:</b> $266/tCO₂e (C$2021), ECCC's 2024 central estimate for SC-CO2 at a 2% near-term Ramsey discount rate, from <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/science-research-data/social-cost-ghg.html" style="color:var(--navy)">"Social Cost of Greenhouse Gas Estimates – Interim Updated Guidance"</a> (Table 1). This is an estimate of global avoided climate damage, not a price anyone actually pays — ECCC's own FAQ makes this distinction explicit.</li>
+    </ul>
+    <p>The equivalency cards (vehicles, flights, oil barrels, forest absorption, propane cylinders) convert the selected basis's national total into everyday terms using the same emission factors as Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--navy)">GHG Equivalency Calculator</a>, ported inline (no iframe or cross-repo fetch) to keep this page self-contained.</p>
+
     <h4>Cold-climate equipment: the AHRI scatter and the DOE CCHP screen</h4>
     <p><b>Plain language:</b> the scatter plots every AHRI-certified heat pump that appears in this data by two things — how efficiently it heats at 5 °F (COP), and how much of its warm-weather capacity it keeps at that temperature. Bubble size shows how often that unit was actually installed. The panel below it checks those same certificates against the specification sheet for a US government programme (the DOE Cold Climate Heat Pump Challenge) that only 3 distinct models in this entire dataset clear. That is not a defect in the data — Challenge-qualifying products only started reaching the market in 2024–25, and this dataset is a historical record of past installs.</p>
     <p><b>Advanced:</b> both panels are built by <code>Python/build_hp_equipment_insights.py</code> from the same Phase-3c interim CSVs used by <code>HeatPump/pipeline/build_tier_scatter.py</code> (scatter geometry) and <code>HeatPump/pipeline/screen_cchp.py</code> (the screen). Scatter fields: <code>cm</code> = capacity maintenance = max capacity @5°F ÷ rated capacity @47°F; <code>cop</code> = COP @5°F at max compressor speed; <code>c47</code> = rated heating capacity @47°F, BTU/h, which sets the colour band. A unit is plotted only if all three are present; the chart's own gate note states how many units and appearances were dropped for each missing field. The CCHP screen checks 4 of the DOE Challenge's Table II-3 criteria that AHRI/ENERGY STAR ratings can resolve (capacity ratio, COP @5°F by capacity band, HSPF2 floor, refrigerant GWP) and carries the other 4 through as explicit "not checkable" entries. Denominator for every percentage is the full 15,148-model / 439,975-appearance universe, never a pre-filtered subset. <b>Wording rule:</b> the passing value is named <code>screen_pass</code>; the page must say "screened against the DOE Challenge specifications", never "meets" or "certified for" the Challenge — a screen against published ratings is not the Challenge's own H11/H1N verification test. Full method, thresholds table and all three basis caveats: <a href="HeatPump/METHODOLOGY.md" style="color:var(--navy)">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen" and "Tier-selection scatter". <b>Known gap:</b> <code>hp_units_joined.csv</code>, the 15,148-model universe both panels read, has no producer script in this repo (built ad hoc in an earlier session) — see <a href="ROADMAP.md" style="color:var(--navy)">ROADMAP.md</a>.</p>
@@ -1529,6 +1675,7 @@ document.querySelector('[data-set-mode="advanced"]').addEventListener('click',()
 
 /* ── wire sections lazily ───────────────────────────────────────────── */
 whenVisible('sec-scorecard',sec02);
+whenVisible('sec-ghg',secGhg);
 whenVisible('sec-map',sec03);
 whenVisible('sec-success',sec04);
 whenVisible('sec-equity',sec06);

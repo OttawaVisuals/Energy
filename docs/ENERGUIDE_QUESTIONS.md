@@ -5,7 +5,7 @@ Consolidated open questions arising from building public-facing tools on the
 (`0a7619fd-2ffe-44b5-9027-3dfcec0866fd`, open.canada.ca) and on HOT2000 outputs.
 
 Maintained at [docs/ENERGUIDE_QUESTIONS.md](ENERGUIDE_QUESTIONS.md).
-Last updated **2026-07-27**.
+Last updated **2026-08-02**.
 
 **Context.** We publish free, open-source tools presenting Canadian energy and
 retrofit data to two audiences at once — homeowners and technical practitioners
@@ -153,6 +153,51 @@ scale" (the file was rated on the older EnerGuide 0–100 scale): 96.3% of such
 rows carry a real `EGHRating`, and the share falls from 100% of pre-2015 files
 to ~0.5% from 2023 on. Taken at face value it reads as a net-zero house and
 poisons medians. Confirm — and is there a documented sentinel convention?
+
+### 5.4 `ERSGHG` — what emission factors does HOT2000 use, and at what granularity?
+
+**Question:** is there published documentation of the emission-factor table
+HOT2000 applies internally to compute `ERSGHG` — specifically, is electricity
+priced at one factor per province/territory, or something more granular (a
+utility service territory, a regional grid zone, a postal-code/FSA lookup)?
+We could not find this stated in any public NRCan document (the HOT2000 User
+Guide sections we can access, and the EnerGuide Rating System Technical
+Procedures, do not cover it), so we do not know if `ERSGHG` is even intended
+to be comparable at the province level, let alone finer.
+
+**Why it matters.** `ERSGHG` is only populated for **50.5%** of matched
+retrofit pairs (733,107 of 1,451,433) — see [RETROFITS.md](RETROFITS.md) — so
+we are building a calculated fallback from each home's own fuel consumption
+(already ~100% complete) times an emission factor, to reach full coverage.
+Validated against the 50.5% of pairs that do have a reported `ERSGHG`:
+
+- **Natural gas, oil, propane**: a factor derived from the ERS data itself
+  (ratio of reported per-fuel GHG to reported per-fuel consumption) agrees with
+  ECCC's published Output-Based Pricing System reference values to within
+  0.1–3.5% — no material disagreement.
+- **Wood**: ECCC's OBPS reference values have no residential wood-combustion
+  factor at all (consistent with biogenic CO2 being excluded from official
+  accounting). The ERS-implied ratio, by contrast, comes out to an implausible
+  ~358 kg CO2e/kg — evidence that whatever `ERSWOODGHG` records for wood-heated
+  homes does not correspond to a simple combustion-factor model. We are
+  treating wood as 0 (biogenic-neutral), matching official convention.
+- **Electricity**: this is where a real gap shows up, and only in specific
+  provinces. Most agree with ECCC's published provincial consumption-intensity
+  figures within about ±15%. **Alberta runs 18–29% higher** in the ERS data
+  than ECCC's published figure, consistently across 2023–2026 audit years and
+  at large sample sizes (42,000–50,000 homes/year) — not noise. Newfoundland
+  and Labrador runs 27–49% higher, at smaller sample sizes (292–6,400/year).
+  We checked whether this is FSA-level/regional variation within the province
+  and found: for NL, no — the province's audited homes are almost entirely on
+  the island, and the official province-wide figure is diluted by Labrador's
+  near-zero-carbon Churchill Falls hydro, which the audited population barely
+  represents; for AB, we can't test it at all, since fewer than 200 of 85,771
+  Alberta homes are pure-electric-heated (nowhere near enough per FSA to
+  measure), and Alberta's AESO grid is a single province-wide pool with no
+  published zonal split (unlike Ontario, which does have one). So the
+  Alberta gap remains unexplained by geography, and we suspect it traces back
+  to whatever emission-factor vintage or methodology HOT2000 uses internally —
+  which is exactly what this question is asking about.
 
 ---
 

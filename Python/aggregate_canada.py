@@ -132,6 +132,36 @@ def main():
         if out["ghg_pre_median"] is not None and out["ghg_post_median"] is not None
         else None
     )
+    out["ghg_reported_n"] = sum(s.get("ghg_reported_n", 0) or 0 for s in slices)
+    out["ghg_reported_coverage_pct"] = (
+        round(out["ghg_reported_n"] / n_total, 3) if n_total else None
+    )
+
+    # The 3 calculated GHG scenarios (current / current_corrected / as_audited)
+    # -- same additive-bins-then-weighted-median approach, per scenario. Skips
+    # "reported" (already handled above via the flat keys, for backward
+    # compatibility -- see precompute_province_stats.py's ghg_scenario_block).
+    out["ghg_scenarios"] = {"reported": {
+        "n": out["ghg_reported_n"], "coverage_pct": out["ghg_reported_coverage_pct"],
+        "pre_median": out["ghg_pre_median"], "post_median": out["ghg_post_median"],
+        "saving": out["ghg_saving"], "pre_bins": out["ghg_pre_bins"],
+        "post_bins": out["ghg_post_bins"], "delta_bins": out["ghg_delta_bins"],
+    }}
+    for scen in ("current", "current_corrected", "as_audited"):
+        pre_bins = sum_bins(s.get("ghg_scenarios", {}).get(scen, {}).get("pre_bins", {}) for s in slices)
+        post_bins = sum_bins(s.get("ghg_scenarios", {}).get(scen, {}).get("post_bins", {}) for s in slices)
+        delta_bins = sum_bins(s.get("ghg_scenarios", {}).get(scen, {}).get("delta_bins", {}) for s in slices)
+        pre_med = weighted_median_from_bins(pre_bins)
+        post_med = weighted_median_from_bins(post_bins)
+        scen_n = sum(s.get("ghg_scenarios", {}).get(scen, {}).get("n", 0) or 0 for s in slices)
+        out["ghg_scenarios"][scen] = {
+            "n": scen_n,
+            "coverage_pct": round(scen_n / n_total, 3) if n_total else None,
+            "pre_median": pre_med,
+            "post_median": post_med,
+            "saving": round(pre_med - post_med, 1) if pre_med is not None and post_med is not None else None,
+            "pre_bins": pre_bins, "post_bins": post_bins, "delta_bins": delta_bins,
+        }
     med_pct = weighted_median_from_bins(out["savings_pct_bins"])
     out["median_saving_pct"] = (med_pct / 100) if med_pct is not None else None
 

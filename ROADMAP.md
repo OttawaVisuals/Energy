@@ -1,7 +1,48 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-07-31** (**Retrofit Costs**: like-for-like ASHP heating BAU
+Updated **2026-08-02** (**Retrofit Insights + Retrofit Explorer**: GHG
+emissions overhaul, in two parts. **Part 1** — new Retrofit Insights section
+02 "The climate impact": national + per-province net tCO2e/yr saved (avg per
+home and total), priced two ways (2024 federal carbon-tax rate $80/tCO2e;
+ECCC's 2024 Social Cost of Carbon, $266/tCO2e C$2021 at 2% discount), plus an
+equivalency-card strip (vehicles, flights, oil barrels, forest absorption,
+propane cylinders) ported inline from Ottawa Visuals' `ghg_calculator.html`
+(no iframe/cross-repo dependency). **Part 2** — building it surfaced that
+`Pre_/Post_GHG` (raw `ERSGHG`) is only populated for **50.5%** of matched pairs
+nationally (Quebec ~78%, Ontario ~43%, Saskatchewan ~9%), silently limiting
+every GHG chart/median on **both** retrofit pages to half the data. Fixed with
+a new **GHG basis** dropdown (4 scenarios: `reported` = raw ERSGHG;
+`current`/`current_corrected` = flat 2026 official ECCC factor, corrected for
+Alberta/Newfoundland; `as_audited` (default) = ERS-calibrated, matched to each
+home's own audit year — validated to −0.66% national aggregate bias) on both
+pages. Along the way, fixed a **survivorship-bias bug** in
+`Python/ers_ghg_factors.py` (excluding true-zero-GHG rows from the factor
+derivation had overstated the national aggregate by +12.8%; fixed to +0.16%),
+and found the official ECCC electricity factor diverges 18–29% (Alberta) /
+27–49% (Newfoundland) from what the ERS data itself implies — not a
+within-province effect (see [ENERGUIDE_QUESTIONS.md §5.4](docs/ENERGUIDE_QUESTIONS.md),
+a new open question for NRCan). New: `Python/ghg_factors.py`,
+`Python/compute_ghg_scenarios.py` (Step 1c). Full pipeline rerun and both
+pages verified in-browser this session — not just code-written-untested.
+Full detail: [docs/RETROFITS.md "GHG scenarios"](docs/RETROFITS.md#ghg-scenarios).)
+Prior pass 2026-07-31 (**Ottawa Case Study**: Phase 4's grid half shipped —
+new `Geothermal/scripts/build_heat_demand.py` aggregates the 414k-building
+stock onto the canonical 500 m grid; every summed column validated exact
+against the building-level total, and city-wide totals independently
+reconcile against Phase 2.5/Phase 3's already-published numbers with no
+adjustment (6.68 TWh residential exactly; all three electrification policies'
+added GWh/MW match to the reported digit). `build_suitability.py`'s existing
+demand upgrade hook fired automatically once the file existed. Phase 4's
+**feeder half is blocked**, discovered mid-task: `GridCapacity/Hydro.py` (the
+feeder-capacity fetch script) and `GridCapacity/ottawa_capacity.geojson` are
+both absent from this checkout, and `Hydro.py` was never committed to
+`main` — the whole `GridCapacity/` directory is gitignored, unlike every
+other pipeline script in the repo — so `feeder_demand.geojson` and the
+coincidence/diversity factor cannot be built until that's resolved. Full
+detail: [Geothermal/README.md §3.13](Geothermal/README.md),
+[GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).) Prior pass same day
+(**Retrofit Costs**: like-for-like ASHP heating BAU
 (was a uniform gas-furnace assumption — now the home's own pre-audit
 equipment, mapped to REMDB, with two self-derived REMDB rows for Oil Furnace
 and Electric Boiler REMDB never fit); POC moved from session scratchpad to a
@@ -102,7 +143,7 @@ lifecycle-update candidates logged — see
 
 | Project | Progress | Next step |
 |---|---|---|
-| 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████░░░` Phases 0–3 of 6 done | **Phase 4:** aggregate to 500 m grid + feeders, apply coincidence factor → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
+| 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████▓░░` Phase 4 grid half done, feeder half blocked | **Phase 4 (feeder half):** blocked — `GridCapacity/Hydro.py` + `ottawa_capacity.geojson` both absent from the checkout and `Hydro.py` was never committed to `main`; need to locate the original or approve a from-scratch rewrite before feeder_demand.geojson / the coincidence factor can be built → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
 | 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 12 provinces + 2 territories) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
 
 ### Queued 🆕
@@ -397,7 +438,7 @@ prompts). Build log: [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md).
 | 2 | Per-building current heat load + fuel | ✅ 2026-07-16 |
 | 2.5 | Stock reconciliation — implied dwellings 1.005× census, sums defensible over `in_ottawa_cd` | ✅ 2026-07-17 |
 | 3 | Electrified load per building (validated 0.00% vs shipped engine) | ✅ 2026-07-17 |
-| **4** | **Aggregate → 500 m grid + feeder stress; apply coincidence factor from CCIM feeder loading** | 🔨 **next** |
+| **4** | **Grid half:** ✅ 2026-07-31 — `heat_demand_grid.geojson`, 6,722/13,778 cells, validated exact against Phase 2.5/3's own totals; `build_suitability.py`'s demand upgrade hook now fires for real. **Feeder half: 🚧 blocked** — `GridCapacity/Hydro.py` + `ottawa_capacity.geojson` absent from the checkout and `Hydro.py` was never committed to `main`; feeder_demand.geojson and the coincidence factor are unstarted | 🔨 **feeder half next, pending data** |
 | 5 | New map layers (demand, grid stress, intervention score) | 🆕 |
 | 6 | The case-study page — the narrative deliverable | 🆕 |
 
@@ -407,7 +448,9 @@ is an equipment problem (Tier 1 halves it); the ~90% hybrid target is
 unreachable with that curve (stalls at 81–84%); **the peak columns are
 undiversified** — already-electric stock alone sums to 1,275 MW ≈ 98% of Hydro
 Ottawa's system peak, so Phase 4 must derive a coincidence factor from real
-feeder loading rather than quote raw sums.
+feeder loading rather than quote raw sums. That derivation is still blocked
+on the missing `GridCapacity/Hydro.py` — see GEOTHERMAL_STATUS.md's
+2026-07-31 entry.
 
 ---
 
