@@ -668,9 +668,9 @@
       <p>This section documents the full technical pipeline for readers familiar with the EnerGuide Rating System (ERS) dataset and HOT2000 — including the original source column names, every conversion factor and threshold, and the transformation scripts. Column names in <code>UPPERCASE</code> are the original headers of the ERS public CSVs; mixed-case names (e.g. <code>Pre_TotalEnergy</code>) are the fields this site derives from them.</p>
 
       <div class="card" style="margin:1.2rem 0">
-        <div class="card-title">Pipeline overview — CSVs to interactive charts</div>
+        <div class="card-title">Pipeline overview — CSVs to interactive charts <span style="font-weight:400;color:var(--muted)">(hover any box)</span></div>
         <div style="overflow-x:auto;position:relative">
-          <svg viewBox="0 0 880 450" style="width:100%;min-width:720px" role="img" aria-label="Flow diagram: ERS CSVs are cleaned, paired, checked for a valid same-home match, converted to kWh and reduced to derived fields, then stored as Parquet, transformed into JSON enriched with supplementary datasets, and served as the Canada, province and FSA views of this site.">
+          <svg id="pipeline-svg" viewBox="0 0 900 560" style="width:100%;min-width:760px" role="img" aria-label="Flow diagram: ERS CSVs are cleaned, paired, checked for a valid same-home match, converted to kWh and reduced to derived fields, enriched with emission factors, then stored as Parquet, transformed into JSON enriched with supplementary datasets, and served as the Canada, province and FSA views of this site. A separate proof-of-concept branch prices recorded measures against an external cost database and joins the result back in client-side by house ID.">
             <defs>
               <marker id="pipe-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0,0L10,5L0,10Z" style="fill:var(--muted)"/>
@@ -692,6 +692,7 @@
                 <path d="M113,262 C113,300 293,300 293,330"/>
                 <path d="M293,262 L293,330"/>
                 <path d="M475,262 C475,300 293,300 293,330"/>
+                <path d="M793,36 L793,60"/>
               </g>
               <g style="fill:none;stroke:var(--muted);stroke-width:1.5">
                 <path d="M572,177 L113,177"/>
@@ -713,37 +714,83 @@
                 <rect x="214" y="208" width="158" height="54" rx="8"/>
                 <rect x="396" y="208" width="158" height="54" rx="8"/>
               </g>
-              <g text-anchor="middle" style="fill:var(--text)">
-                <text x="64" y="84" font-size="12" font-weight="600">ERS CSVs</text>
-                <text x="64" y="102" font-size="9.5" style="fill:var(--muted)">Annual extracts</text>
-                <text x="64" y="116" font-size="9.5" style="fill:var(--muted)">2004–2026</text>
-                <text x="201" y="84" font-size="12" font-weight="600">Prepare</text>
-                <text x="201" y="102" font-size="9.5" style="fill:var(--muted)">Clean and normalize</text>
-                <text x="201" y="116" font-size="9.5" style="fill:var(--muted)">data</text>
-                <text x="352" y="84" font-size="12" font-weight="600">Pair audits</text>
-                <text x="352" y="102" font-size="9.5" style="fill:var(--muted)">Group by HOUSEID</text>
-                <text x="352" y="116" font-size="9.5" style="fill:var(--muted)">Earliest D + latest E</text>
-                <text x="635" y="84" font-size="12" font-weight="600">Calculate</text>
-                <text x="635" y="102" font-size="9.5" style="fill:var(--muted)">Convert to kWh,</text>
-                <text x="635" y="116" font-size="9.5" style="fill:var(--muted)">savings &amp; measures</text>
-                <text x="793" y="84" font-size="12" font-weight="600">Store data</text>
-                <text x="793" y="102" font-size="9.5" style="fill:var(--muted)">Store outputs</text>
-                <text x="793" y="116" font-size="9.5" style="fill:var(--muted)">in parquet files</text>
-                <text x="113" y="234" font-size="12" font-weight="600">Canada JSON</text>
-                <text x="113" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
-                <text x="293" y="234" font-size="12" font-weight="600">Province JSON</text>
-                <text x="293" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
-                <text x="475" y="234" font-size="12" font-weight="600">FSA JSON</text>
-                <text x="475" y="250" font-size="9.5" style="fill:var(--muted)">Detailed home-level data</text>
+
+              <g class="flow-tip" tabindex="0" data-tip="Annual public extracts, 2004–2026&#10;4,542,544 raw audit records&#10;All provinces &amp; territories (PROVINCE column)">
+                <rect x="9" y="60" width="110" height="78" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="64" y="84" font-size="12" font-weight="600">ERS CSVs</text>
+                  <text x="64" y="102" font-size="9.5" style="fill:var(--muted)">Annual extracts</text>
+                  <text x="64" y="116" font-size="9.5" style="fill:var(--muted)">2004–2026</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="Stream-read via PyArrow, ~100k-row batches&#10;All columns read as strings; numeric coercion happens per column&#10;Categorical values case-normalized (e.g. &quot;single detached&quot; vs &quot;Single Detached&quot;)">
+                <rect x="146" y="60" width="110" height="78" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="201" y="84" font-size="12" font-weight="600">Prepare</text>
+                  <text x="201" y="102" font-size="9.5" style="fill:var(--muted)">Clean and normalize</text>
+                  <text x="201" y="116" font-size="9.5" style="fill:var(--muted)">data</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="Grouped by HOUSEID across all file years&#10;Earliest D (initial) + latest E (follow-up)&#10;1,451,433 matched homes (was 1,369,305 before the earliest/latest-E fix)">
+                <rect x="289" y="60" width="126" height="78" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="352" y="84" font-size="12" font-weight="600">Pair audits</text>
+                  <text x="352" y="102" font-size="9.5" style="fill:var(--muted)">Group by HOUSEID</text>
+                  <text x="352" y="116" font-size="9.5" style="fill:var(--muted)">Earliest D + latest E</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="Unit conversion to kWh, 6 fuels&#10;48 derived fields: % saved, EUI, retrofit depth, fuel switch, 8 measure flags">
+                <rect x="572" y="60" width="126" height="78" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="635" y="84" font-size="12" font-weight="600">Calculate</text>
+                  <text x="635" y="102" font-size="9.5" style="fill:var(--muted)">Convert to kWh,</text>
+                  <text x="635" y="116" font-size="9.5" style="fill:var(--muted)">savings &amp; measures</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="Per-province Parquet, Snappy compression&#10;~50 columns + 6 GHG-scenario columns added by the emission-factors sidecar step&#10;One file per province/territory">
+                <rect x="730" y="60" width="126" height="78" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="793" y="84" font-size="12" font-weight="600">Store data</text>
+                  <text x="793" y="102" font-size="9.5" style="fill:var(--muted)">Store outputs</text>
+                  <text x="793" y="116" font-size="9.5" style="fill:var(--muted)">in parquet files</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="aggregate_canada.py — additive counts &amp; histogram bins, weighted-median re-derivation over the summed bins (medians are not additive)">
+                <rect x="34" y="208" width="158" height="54" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="113" y="234" font-size="12" font-weight="600">Canada JSON</text>
+                  <text x="113" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="precompute_province_stats.py — one file per province: medians, measure counts, Sankey fuel-flow totals, per-fuel means, all histogram bins, per house-type slice">
+                <rect x="214" y="208" width="158" height="54" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="293" y="234" font-size="12" font-weight="600">Province JSON</text>
+                  <text x="293" y="250" font-size="9.5" style="fill:var(--muted)">Precomputed charts</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="split_fsa_json.py — one file per FSA, raw matched rows&#10;Array-of-arrays layout: ~77% smaller than array-of-objects&#10;Median ≈490 rows per FSA, largest ≈5,800">
+                <rect x="396" y="208" width="158" height="54" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="475" y="234" font-size="12" font-weight="600">FSA JSON</text>
+                  <text x="475" y="250" font-size="9.5" style="fill:var(--muted)">Detailed home-level data</text>
+                </g>
               </g>
 
-              <polygon points="493,52 548,99 493,146 438,99" style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5"/>
-              <text x="493" y="103" text-anchor="middle" font-size="11.5" font-weight="600" style="fill:var(--text)">Valid pair?</text>
-
-              <g style="fill:var(--badge-neg-bg);stroke:var(--red);stroke-width:1.3">
-                <rect x="459" y="10" width="69" height="26" rx="8"/>
+              <g class="flow-tip" tabindex="0" data-tip="Same-home integrity filters — a pair is dropped if:&#10;• FLOORAREA changed &gt;10% vs D&#10;• TYPEOFHOUSE, STOREYS or NUMDWELLINGUNITS changed&#10;  (compared robustly: numeric-equal counts as equal, jointly-blank counts as unchanged)&#10;• E's ENTRYDATE is not strictly after D's">
+                <polygon points="493,52 548,99 493,146 438,99" style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5"/>
+                <text x="493" y="103" text-anchor="middle" font-size="11.5" font-weight="600" style="fill:var(--text)">Valid pair?</text>
               </g>
-              <text x="493" y="27" text-anchor="middle" font-size="10.5" font-weight="600" style="fill:var(--badge-neg-fg)">Exclude</text>
+
+              <g class="flow-tip" tabindex="0" data-tip="Homes failing the same-home checks above.&#10;~831,000 otherwise-valid pairs were wrongly dropped here before the NUMDWELLINGUNITS string-vs-numeric fix (2026-07-18).">
+                <rect x="459" y="10" width="69" height="26" rx="8" style="fill:var(--badge-neg-bg);stroke:var(--red);stroke-width:1.3"/>
+                <text x="493" y="27" text-anchor="middle" font-size="10.5" font-weight="600" style="fill:var(--badge-neg-fg)">Exclude</text>
+              </g>
+
+              <g class="flow-tip" tabindex="0" data-tip="ECCC 2026 official emission factors (electricity by province; gas/oil/propane fixed constants; wood = 0, biogenic-neutral)&#10;ERS-calibrated factors substituted for AB &amp; NL (official ones ran 18–49% low there) and for year-varying combustion (a flat factor understates pre-2016 Ontario gas)&#10;Adds 6 GHG-scenario columns per home, alongside the raw ERSGHG field">
+                <rect x="736" y="8" width="120" height="28" rx="8" style="fill:var(--surface);stroke:var(--purple);stroke-width:1.3"/>
+                <text x="796" y="26" text-anchor="middle" font-size="10" font-weight="600" style="fill:var(--text)">Emission factors</text>
+              </g>
 
               <g style="fill:var(--surface);stroke:var(--border);stroke-width:1.2">
                 <rect x="704" y="256" width="132" height="25" rx="12.5"/>
@@ -751,33 +798,80 @@
                 <rect x="704" y="332" width="132" height="25" rx="12.5"/>
                 <rect x="704" y="371" width="132" height="25" rx="12.5"/>
               </g>
-              <g text-anchor="middle" font-size="10" style="fill:var(--text)">
-                <text x="770" y="273">2021 Census</text>
-                <text x="770" y="311">Energy Rates</text>
-                <text x="770" y="349">FSA map</text>
-                <text x="770" y="388">AHRI directory</text>
+              <g class="flow-tip" tabindex="0" data-tip="2021 Census Profile, FSA geography (98-401-X2021013)&#10;~30 characteristics: population, dwelling counts &amp; type, tenure, period of construction, condition, owner costs &amp; values&#10;Context panel only — never enters the retrofit calculations">
+                <rect x="704" y="256" width="132" height="25" rx="12.5" fill="transparent" stroke="none"/>
+                <text x="770" y="273" text-anchor="middle" font-size="10" style="fill:var(--text)">2021 Census</text>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="Natural gas / oil / propane: MaxPr1me/canada-utility-rates + StatCan 18-10-0001 + NRCan Prices by City&#10;Electricity: offgridsolarsystem.ca (re-sourced 2026-07 after MaxPr1me's Saskatchewan rate was found ~67% stale)&#10;Powers the Energy bill chart and the retrofit-cost payback figure">
+                <rect x="704" y="294" width="132" height="25" rx="12.5" fill="transparent" stroke="none"/>
+                <text x="770" y="311" text-anchor="middle" font-size="10" style="fill:var(--text)">Energy Rates</text>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="StatCan 2021 cartographic boundary file (lfsa000b21a_e)&#10;Reprojected Lambert conformal conic → WGS84, area-scaled simplification">
+                <rect x="704" y="332" width="132" height="25" rx="12.5" fill="transparent" stroke="none"/>
+                <text x="770" y="349" text-anchor="middle" font-size="10" style="fill:var(--text)">FSA map</text>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="AHRI Directory of Certified Product Performance, looked up by AHRI number&#10;Brand, model, capacity @ 47/17/5°F, HSPF2, SEER2/EER2, COP @ 5°F, refrigerant, ENERGY STAR &amp; cold-climate flags, listing status">
+                <rect x="704" y="371" width="132" height="25" rx="12.5" fill="transparent" stroke="none"/>
+                <text x="770" y="388" text-anchor="middle" font-size="10" style="fill:var(--text)">AHRI directory</text>
               </g>
 
-              <g style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5">
-                <rect x="572" y="164" width="283" height="78" rx="8"/>
-              </g>
-              <g text-anchor="middle" style="fill:var(--text)">
-                <text x="714" y="190" font-size="13" font-weight="600">Transform and add data</text>
-                <text x="714" y="210" font-size="10" style="fill:var(--muted)">Transform data into JSON files for web loading</text>
-                <text x="714" y="224" font-size="10" style="fill:var(--muted)">and add supplemental data</text>
+              <g class="flow-tip" tabindex="0" data-tip="3 scripts, Parquet → static JSON&#10;split_fsa_json.py + precompute_province_stats.py + aggregate_canada.py&#10;Enriched with Census, energy-rate, AHRI and boundary data at this stage">
+                <rect x="572" y="164" width="283" height="78" rx="8" style="fill:var(--surface);stroke:var(--d-secondary);stroke-width:1.5"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="714" y="190" font-size="13" font-weight="600">Transform and add data</text>
+                  <text x="714" y="210" font-size="10" style="fill:var(--muted)">Transform data into JSON files for web loading</text>
+                  <text x="714" y="224" font-size="10" style="fill:var(--muted)">and add supplemental data</text>
+                </g>
               </g>
 
-              <g style="fill:var(--navy)">
-                <rect x="112" y="330" width="362" height="101" rx="8"/>
+              <g class="flow-tip" tabindex="0" data-tip="Fetches only the smallest JSON that answers the current selection: one province file with no FSA chosen, or one FSA's raw-row file (median ≈490 rows) when one is">
+                <rect x="112" y="330" width="362" height="101" rx="8" style="fill:var(--navy)"/>
+                <g text-anchor="middle" style="fill:var(--on-navy)">
+                  <text x="293" y="368" font-size="15" font-weight="600">Interactive website</text>
+                  <text x="293" y="392" font-size="11">Canada → Province → FSA</text>
+                </g>
               </g>
-              <g text-anchor="middle" style="fill:var(--on-navy)">
-                <text x="293" y="368" font-size="15" font-weight="600">Interactive website</text>
-                <text x="293" y="392" font-size="11">Canada → Province → FSA</text>
+
+              <g style="fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4,3" marker-end="url(#pipe-arrow)">
+                <path d="M64,138 L64,470"/>
+                <path d="M169,500 L199,500"/>
+                <path d="M369,500 L399,500"/>
+                <path d="M495,470 C495,380 476,380 476,266"/>
               </g>
+              <g style="fill:var(--card);stroke:var(--border);stroke-width:1.3;stroke-dasharray:4,3">
+                <rect x="9" y="470" width="160" height="60" rx="8"/>
+                <rect x="199" y="470" width="170" height="60" rx="8"/>
+                <rect x="399" y="470" width="192" height="60" rx="8"/>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="retrofit_cost_extract_fields.py — pulls fields the main pipeline doesn't carry (footprint, window/door counts, ASHP ducted/ductless config, pre-existing cooling) straight from the raw yearly CSVs">
+                <rect x="9" y="470" width="160" height="60" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="89" y="494" font-size="11.5" font-weight="600">Extract cost fields</text>
+                  <text x="89" y="510" font-size="9" style="fill:var(--muted)">Footprint, windows,</text>
+                  <text x="89" y="522" font-size="9" style="fill:var(--muted)">ASHP config (raw CSVs)</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="retrofit_cost_estimate.py — prices each recorded measure against PNNL/DOE's REMDB (2023 USD, vintage 2024.12.23)&#10;Incremental cost only — full REMDB cost, or netted against the BAU heating/cooling system it replaces&#10;All 12 provinces + 2 territories: 1,420,044 paired records, 1,237,117 priced (87%)">
+                <rect x="199" y="470" width="170" height="60" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="284" y="494" font-size="11.5" font-weight="600">Price vs REMDB</text>
+                  <text x="284" y="510" font-size="9" style="fill:var(--muted)">Low/Mid/High, incremental</text>
+                  <text x="284" y="522" font-size="9" style="fill:var(--muted)">vs business-as-usual</text>
+                </g>
+              </g>
+              <g class="flow-tip" tabindex="0" data-tip="build_retrofit_costs_json.py — companion tree, retrofit_costs_json/&lt;PROV&gt;/&lt;FSA&gt;.json, mirrors fsa_json's own array-of-arrays layout&#10;Deliberately kept separate from fsa_json — cost methodology has changed independently of the ERS row data repeatedly during development&#10;Joined client-side by HOUSEID when an FSA is selected">
+                <rect x="399" y="470" width="192" height="60" rx="8" fill="transparent" stroke="none"/>
+                <g text-anchor="middle" style="fill:var(--text)">
+                  <text x="495" y="494" font-size="11.5" font-weight="600">Retrofit costs JSON</text>
+                  <text x="495" y="510" font-size="9" style="fill:var(--muted)">Per-FSA companion tree</text>
+                  <text x="495" y="522" font-size="9" style="fill:var(--muted)">joined client-side by HOUSEID</text>
+                </g>
+              </g>
+              <text x="89" y="555" text-anchor="middle" font-size="9.5" font-style="italic" style="fill:var(--muted)">Proof-of-concept branch — separate from the main ERS pipeline, priced against an external US cost database (section H)</text>
             </g>
           </svg>
         </div>
-        <p class="note">How an ERS CSV extract becomes a row on this page: cleaned and paired into a before/after home (earliest initial audit, latest follow-up), checked that it's really the same home, converted to common units and reduced to the derived fields below — then stored as Parquet and transformed into the static JSON this page loads, enriched with Census, AHRI, pricing and boundary data, and split into Canada, province and FSA views. Full detail in sections A–F below.</p>
+        <p class="note">How an ERS CSV extract becomes a row on this page: cleaned and paired into a before/after home (earliest initial audit, latest follow-up), checked that it's really the same home, converted to common units and reduced to the derived fields below, enriched with GHG emission factors — then stored as Parquet and transformed into the static JSON this page loads, enriched with Census, AHRI, pricing and boundary data, and split into Canada, province and FSA views. The dashed branch is the retrofit-cost proof of concept (section H): priced separately against an external US cost database and joined back in client-side by house ID. Hover (or focus with Tab) any box for the numbers, filters or data behind it. Full detail in sections A–J below.</p>
       </div>
 
       <h4>A · Source data &amp; record selection</h4>
@@ -858,7 +952,7 @@
       <p><strong>2021 Census join.</strong> <code>extract_fsa_census.py</code> reads the Statistics Canada 2021 Census Profile at forward-sortation-area geography (catalogue 98-401-X2021013, long format: one row per FSA × characteristic) and keeps ~30 housing-stock characteristics by their <code>CHARACTERISTIC_ID</code>: population (1), total private dwellings (4), structural dwelling type (42–49), tenure (1415–1416), period of construction (1441–1448), dwelling condition (1450–1451), and owner-household costs and values (1482–1489). StatCan suppression and quality symbols (<code>x</code>, <code>F</code>, <code>E</code>, <code>r</code>, <code>rE</code>, <code>..</code>, <code>…</code>) become nulls. The result is one ~1 MB JSON keyed by FSA, fetched once and joined in the browser to the selected area via <code>CLIENTPCODE</code>. This is a context panel only — census values never enter the retrofit calculations.</p>
       <p><strong>Heat pump backup identification.</strong> For a home with a heat pump, the heating-equipment fuel and type columns (<code>FURNACEFUEL</code>, <code>FURNACETYPE</code>) describe the <em>companion</em> system HOT2000 models alongside the heat pump — the furnace or boiler that covers load beyond the heat pump's capacity or when it is offline — not the heat pump's own energy source, which is always electricity. That is what the "Heat pump + backup" card counts. The "still burned this fuel" sub-line is the share of homes with that recorded backup fuel whose post-retrofit <em>heating-only</em> consumption in that same fuel is above zero (<code>Post_HeatNaturalGas</code>, <code>Post_HeatOil</code>, <code>Post_HeatPropane</code>). It is computed for combustion fuels only: electric backup shares a meter with the heat pump's own draw, so the figure would be 100% by construction, and the wood species share a single combined consumption field.</p>
       <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. <em>Appendix M</em> and <em>Appendix M1</em> are the two versions of the US Department of Energy's test procedure for rating heat pumps and air conditioners (10 CFR Part 430, Subpart B). M1 took effect for equipment manufactured from 2023 and tests at external static pressures closer to real installed ductwork, so it generally reports lower capacities and efficiencies than M did for the same unit — which is also why its efficiency metrics are renamed (HSPF2, SEER2, EER2). The two are not interchangeable, so where a certificate carries both the M1 figures are used and the M values only fill gaps. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
-      <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Electricity and natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p>
+      <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. <strong>Electricity tariffs no longer come from that repository</strong>: it was caught giving a Saskatchewan rate (9.28¢/kWh, dated 2025-01-01) about 67% below SaskPower's own published schedule (15.476¢/kWh, effective 2026-02-01) despite being flagged "high confidence," and a forced re-download reproduced the same stale figure. Electricity is now sourced from <a href="https://offgridsolarsystem.ca/blog/Canada-electricity-rates.html" target="_blank" rel="noopener">offgridsolarsystem.ca's rate-aggregation page</a> (dated 2026-07-01) instead — a third-party blog, not a utility-primary source, chosen because it was independently verifiable (it matched SaskPower's own PDF exactly) and gives full national coverage in one place. Only the Saskatchewan figure has actually been cross-checked against a utility source; the rest of the country is carried as-is and flagged, not confirmed — see section H below for the full account. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p>
       <p>Reduction rules, applied by <code>rates_etl.py</code> (per-city detail for ON/QC/AB) and <code>utility_rates_reference.py</code> (one blended number per province, all provinces): residential tariffs only; the latest <code>effective_date</code> per (utility, tariff) wins; carbon components are excluded because the federal consumer fuel charge went to zero on 2025-04-01; $/GJ converts to $/m³ at 0.03798 GJ/m³ and $/day fixed charges to monthly at ×365/12; a utility offering several residential plans contributes one, time-of-use blended to a single ¢/kWh on the OEB-typical 63/18/19 off/mid/on split. <strong>Alberta is the weak spot</strong>: it is deregulated, so energy and wires are separate bills that must be summed rather than averaged, and the upstream export omits the electricity transmission volumetric charge and the default gas commodity charge outright — screening-grade constants are substituted for both, flagged low confidence, because omitting them would bias AB electricity ~15% low and make AB gas look nearly free. Propane, oil and wood rates are single-province averages throughout and are lower confidence than the electricity and gas tariff figures; the wood rate is one flat national screening ¢/kWh, since no per-species price breakdown exists.</p>
       <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
       <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
@@ -933,10 +1027,6 @@
       <p>Certified heat-pump performance behind the equipment detail, looked up by AHRI reference number.</p>
     </div>
     <div class="source-item">
-      <a href="https://climate.weather.gc.ca/climate_normals/index_e.html" target="_blank" rel="noopener">ECCC Canadian Climate Normals ↗</a>
-      <p>Heating and cooling degree days (base 18 °C) per FSA, from 1991–2020 normals where published.</p>
-    </div>
-    <div class="source-item">
       <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER / NRCan energy conversion factors ↗</a>
       <p>Fuel energy contents used to put natural gas, oil, propane and wood on one kWh basis. See Methodology B for the exact constants.</p>
     </div>
@@ -946,7 +1036,11 @@
     </div>
     <div class="source-item">
       <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates ↗</a>
-      <p>Community-maintained electricity and natural gas tariffs behind the "Energy bill" chart, re-scraped monthly from official utility and regulator rate pages.</p>
+      <p>Community-maintained natural gas tariffs behind the "Energy bill" chart, re-scraped monthly from official utility and regulator rate pages.</p>
+    </div>
+    <div class="source-item">
+      <a href="https://offgridsolarsystem.ca/blog/Canada-electricity-rates.html" target="_blank" rel="noopener">offgridsolarsystem.ca — Canada electricity rates ↗</a>
+      <p>Electricity tariffs behind the "Energy bill" chart, replacing the prior source after it was caught giving a Saskatchewan rate ~67% below SaskPower's own published schedule. National coverage, but only the Saskatchewan figure has been independently cross-checked.</p>
     </div>
   </div>
 </section>
