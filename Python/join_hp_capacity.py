@@ -26,15 +26,25 @@ pairing story this feeds is about the retrofit's end state, not the baseline.
 
 INPUT:  <OUTPUT_DIR>/ers_web_<PROVINCE>.parquet  (Step 1 output)
         lookup/ahri_numbers.json                  (AHRI certificate data)
-OUTPUT: same parquet, overwritten in place with 7 new Post_-prefixed columns:
+OUTPUT: same parquet, overwritten in place with 9 new Post_-prefixed columns:
         Post_HPCapacity47, Post_HPCapacity5  (kW)
         Post_HPHSPF2, Post_HPCertCOP5        (COP at 5F -- distinct from the
                                                existing auditor-entered Post_HPCOP)
         Post_HPColdClimate                   ("Yes"/"No"/blank)
         Post_HPBrand, Post_HPModel
+        Post_HPCoolingCapacityTons           (from cooling_capacity_btuh, /12000)
+        Post_HPSEER2                         (as certified -- AHRI has reported
+                                               SEER2, not SEER1, since the 2023
+                                               DOE test-procedure change)
+        Post_HPSEER1Est                      (SEER2 / 0.95 -- the commonly used
+                                               approximate SEER2->SEER1 conversion
+                                               for split systems; an ESTIMATE, not
+                                               a certified value -- added because
+                                               REMDB's ASHP cost regressions (see
+                                               retrofits/USCosts/) were fit on SEER1)
 
 Idempotent: safe to re-run after the lookup grows -- recomputes and
-overwrites the 7 columns from Post_HPAHRI each time.
+overwrites the 9 columns from Post_HPAHRI each time.
 """
 
 import glob
@@ -52,11 +62,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOOKUP_PATH = REPO_ROOT / "lookup" / "ahri_numbers.json"
 
 BTUH_TO_KW = 0.00029307107
+BTUH_TO_TONS = 1 / 12000
+SEER2_TO_SEER1_FACTOR = 0.95   # approximate; see module docstring
 
 NEW_COLS = [
     'Post_HPCapacity47', 'Post_HPCapacity5',
     'Post_HPHSPF2', 'Post_HPCertCOP5',
     'Post_HPColdClimate', 'Post_HPBrand', 'Post_HPModel',
+    'Post_HPCoolingCapacityTons', 'Post_HPSEER2', 'Post_HPSEER1Est',
 ]
 
 
@@ -113,6 +126,13 @@ def build_capacity_frame(ahri_series, lookup):
             out['Post_HPBrand'][i] = entry['brand']
         if entry.get('model'):
             out['Post_HPModel'][i] = entry['model']
+        cool_btuh = to_float(entry.get('cooling_capacity_btuh'))
+        if cool_btuh is not None:
+            out['Post_HPCoolingCapacityTons'][i] = round(cool_btuh * BTUH_TO_TONS, 3)
+        seer2 = to_float(entry.get('seer2'))
+        if seer2 is not None:
+            out['Post_HPSEER2'][i] = seer2
+            out['Post_HPSEER1Est'][i] = round(seer2 / SEER2_TO_SEER1_FACTOR, 2)
     return pd.DataFrame(out, index=ahri_series.index)
 
 
