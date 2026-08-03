@@ -4162,3 +4162,46 @@ document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.
 parseDeepLink(); // ?prov=&fsa= override the CA landing default when present
 updateShareUrl(); // canonicalise the params + set the tab title to match
 load();
+
+// ── Pipeline flow diagram tooltips (methodology section E overview) ──
+// The SVG is static markup, not drawn by JS, so this just wires each
+// .flow-tip box's data-tip to one shared floating tooltip -- same visual
+// pattern as ensureFuelTooltip above, kept separate since it's plain text
+// on hover/focus rather than hit-boxes on a canvas.
+let _pipeTipEl=null;
+function ensurePipeTooltip(){
+  if(_pipeTipEl)return _pipeTipEl;
+  const el=document.createElement('div');
+  el.id='pipe-tip';
+  document.body.appendChild(el);
+  return (_pipeTipEl=el);
+}
+function initPipelineTooltips(){
+  const svg=$('pipeline-svg');
+  if(!svg)return;
+  const tip=ensurePipeTooltip();
+  const hide=()=>{tip.style.display='none';};
+  svg.querySelectorAll('.flow-tip[data-tip]').forEach(el=>{
+    const text=el.getAttribute('data-tip');
+    el.addEventListener('mousemove',e=>{
+      tip.textContent=text;
+      tip.style.display='block';
+      const pad=14,tw=280;
+      let left=e.clientX+pad, top=e.clientY+pad;
+      if(left+tw>window.innerWidth-10)left=e.clientX-tw-pad;
+      if(top+140>window.innerHeight-10)top=Math.max(10,e.clientY-140);
+      tip.style.left=left+'px';
+      tip.style.top=top+'px';
+    });
+    el.addEventListener('mouseleave',hide);
+    el.addEventListener('focus',()=>{
+      const r=el.getBoundingClientRect();
+      tip.textContent=text;
+      tip.style.display='block';
+      tip.style.left=Math.min(r.left,window.innerWidth-290)+'px';
+      tip.style.top=(r.bottom+8)+'px';
+    });
+    el.addEventListener('blur',hide);
+  });
+}
+initPipelineTooltips();
