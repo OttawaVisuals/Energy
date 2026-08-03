@@ -3,9 +3,45 @@
 Companion to [Geothermal/ottawa-geothermal-guide.md](Geothermal/ottawa-geothermal-guide.md) (the 8-step
 pipeline plan). This file records what has actually been built and run.
 
-*Last session: 2026-07-31.*
+*Last session: 2026-08-03.*
 
 **Live:** https://ottawavisuals.github.io/Energy/Geothermal/output/
+
+## 2026-08-03 — feeder inputs recovered, Phase 4's feeder half unblocked
+
+Both files the 2026-07-31 entry below records as missing were recovered
+intact from the 2026-07-27 `gh-pages` deploy snapshot, which turned out to be
+the only place `GridCapacity/Hydro.py` had ever existed. Found during a wider
+audit that turned up **1,429 of the 4,903 published files absent from this
+working copy** — running `./deploy.sh` from this machine would have wiped the
+New Homes Explorer, CEUD, the Construction Tracker, the grid dashboard, every
+FSA map and this site's own `Geothermal/output/index.html`. All 1,429
+restored (188.7 MB).
+
+- `GridCapacity/ottawa_capacity.geojson` — 3,884 feeder polygons, WGS84, with
+  `capacity`, `capacityrange`, `feeder_ltl_voltage_3ph`,
+  `feeder_ltn_voltage_1ph`, `configuration`, `ldc_name`, `last_update`.
+  Matches the 3,884-polygon count the README documents, so this is the
+  original output, not a re-fetch.
+- `GridCapacity/Hydro.py` — now **committed to `main`**. Root cause of the
+  near-loss: `/GridCapacity/` was gitignored wholesale, so unlike every other
+  pipeline script it had no home on the decision-record branch. `.gitignore`
+  now excludes the directory's *contents* and re-includes `Hydro.py`; the 8MB
+  geojson stays ignored, per the usual code-on-`main`/data-on-`gh-pages` split.
+
+**Read the script before relying on it.** It is the original working version,
+not a cleaned-up one: `WHERE = "ldc_name LIKE '%Ottawa%'"` still carries a
+`# tighten after you see the distinct names below` note that was never
+actioned, so it pulls every LDC whose name contains "Ottawa" rather than a
+verified list, and it writes `ottawa_capacity.geojson` to the current working
+directory rather than into `GridCapacity/`. It ran and produced the file we
+hold, so it works — it just has not been tidied, and a refresh should confirm
+the LDC filter first.
+
+`build_suitability.py`'s `feeder` factor should stop warning and start
+scoring now that the geojson is present; re-run it to pick that up.
+`feeder_demand.geojson` and the coincidence/diversity factor are still
+unstarted — that is now ordinary work rather than a blocker.
 
 ## 2026-07-31 session — Heat Demand Phase 4, grid half only
 
@@ -23,23 +59,20 @@ Phase D, README §3.9) fired automatically now that the file exists — the
 `district` segment's demand factor switched from the binary
 serviced-area proxy to real per-cell kWh, no code change required.
 
-**Not done — the feeder half of Phase 4 is blocked.**
+**Not done — the feeder half of Phase 4 was blocked here; unblocked
+2026-08-03, see that entry above.**
 `GridCapacity/ottawa_capacity.geojson` (3,884 Hydro Ottawa feeder polygons +
 available MVA) and `GridCapacity/Hydro.py` (the fetch script that produces
-it) are both absent from this checkout, and `Hydro.py` was never committed to
-`main` — the entire `GridCapacity/` directory is gitignored, unlike every
-other pipeline script in the repo, so there is nothing checked in to
-re-run. This also means `build_suitability.py`'s `feeder` factor has been
-silently all-zero on this checkout (`[warn] ottawa_capacity.geojson missing`)
-independent of anything done this session. `feeder_demand.geojson` and the
-coincidence/diversity factor the plan calls for (Phase 3 proved the
+it) were both absent from this checkout, and `Hydro.py` had never been
+committed to `main` — the entire `GridCapacity/` directory was gitignored,
+unlike every other pipeline script in the repo, so there was nothing checked
+in to re-run. This also meant `build_suitability.py`'s `feeder` factor had
+been silently all-zero on this checkout (`[warn] ottawa_capacity.geojson
+missing`) independent of anything done this session. `feeder_demand.geojson`
+and the coincidence/diversity factor the plan calls for (Phase 3 proved the
 undiversified per-building peaks sum to ~98% of Hydro Ottawa's whole-system
 peak, which cannot be literally true) remain unstarted. Full detail:
-[Geothermal/README.md §3.13](Geothermal/README.md). Before this can proceed,
-someone needs to either locate the original `Hydro.py` / feeder geojson, or
-sign off on writing a new fetch script against the OEB CCIM ArcGIS REST
-endpoint from the README's description (unverified against the original
-3,884-polygon output).
+[Geothermal/README.md §3.13](Geothermal/README.md).
 
 ## 2026-07-24 session — parquet-metadata carry-forward fix (no data change)
 
