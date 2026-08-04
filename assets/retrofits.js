@@ -26,7 +26,29 @@ let PROVINCE_CODE='CA'; // landing default — see #province-sel's selected opti
 let SELECTED_FSA='';          // '' = province-wide view, else FSA-view
 let SELECTED_TYPE='';         // house-type filter, used by BOTH views (province dropdown
                                // drives the precomputed slice; FSA view filters FILTERED as before)
+let SELECTED_ERA='';          // program-era filter ('' | 'ecoenergy' | 'none' | 'greener'), used
+                               // by ALL THREE views (province/Canada dropdown looks up the
+                               // precomputed by_era sub-slice; FSA view filters FILTERED as before)
 let MODE='none';              // 'none' | 'province' | 'fsa'
+
+// Program-era boundaries: classified by each home's INITIAL (Pre_Year / D)
+// audit year, not the follow-up year -- a home that started under a program
+// but didn't complete its follow-up until after the program closed still
+// counts as that program's era (measured: ~46,000 Greener Homes starts
+// finished in 2025-26, after the grant closed to new applicants 2024-03-31).
+// Boundaries mirror the eras drawn on retrofit-insights.html's timeline chart
+// and MUST match precompute_province_stats.py's ERA_DEFS exactly, or the FSA
+// (client-filtered) and province/Canada (precomputed) views will disagree.
+const ERA_DEFS=[
+  {key:'ecoenergy',label:'ecoENERGY (2007–2012)',min:2007,max:2012},
+  {key:'greener',label:'Greener Homes (2021–2024)',min:2021,max:2024},
+];
+function eraOf(year){
+  const y=parseInt(year);
+  if(!y)return null;
+  for(const e of ERA_DEFS){if(y>=e.min&&y<=e.max)return e.key;}
+  return 'none';
+}
 
 // Fixed hex per fuel so a given fuel always reads the same colour across the
 // heating-fuel Sankey, the waterfall and the fuel-breakdown chart. Colours are
@@ -904,20 +926,22 @@ function applyFilters(){
   if(MODE!=='fsa'){return;}
   const type=$('type-sel').value,
         fuel=$('fuel-sel').value,depth=$('depth-sel').value,
+        era=$('era-sel').value,
         meas=selectedMeasures(); // AND semantics: home did at least all checked measures
   FILTERED=ALL.filter(r=>
     (!type||r.BldgType===type)&&
     (!fuel||r.Pre_HeatFuel===fuel)&&(!depth||flag(r,depth))&&
+    (!era||eraOf(r.Pre_Year)===era)&&
     meas.every(m=>flag(r,m)));
   render();
 }
 function resetFilters(){
-  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  ['type-sel','fuel-sel','depth-sel','era-sel'].forEach(id=>$(id).value='');
   clearMeasures();
   if(MODE==='fsa'){
     FILTERED=[...ALL];render();
   }else if(MODE==='province'){
-    SELECTED_TYPE='';
+    SELECTED_TYPE='';SELECTED_ERA='';
     loadProvinceView(++LOAD_TOKEN);
   }
 }
@@ -2709,11 +2733,19 @@ function renderHist(savings){
 // ════════════════════════════════════════════════════════════════
 
 function renderProvince(payload){
-  const slice=payload.by_type[SELECTED_TYPE||'All types'];
-  if(!slice){
+  const baseSlice=payload.by_type[SELECTED_TYPE||'All types'];
+  if(!baseSlice){
     $('result-count').textContent='0';
     return;
   }
+  // Program-era sub-slice, precomputed alongside each house-type slice by
+  // precompute_province_stats.py (by_type[type].by_era[era]). Falls back to
+  // the unfiltered type slice if this province's JSON predates the by_era
+  // field, rather than crashing — a stale-cache safety net, not a real "no
+  // program-era data" state (every rebuilt province file has it).
+  const eraSlice=SELECTED_ERA&&baseSlice.by_era?baseSlice.by_era[SELECTED_ERA]:null;
+  if(SELECTED_ERA&&!eraSlice)console.warn(`No by_era.${SELECTED_ERA} in this province payload — showing unfiltered. Re-run precompute_province_stats.py + aggregate_canada.py to pick up program-era slices.`);
+  const slice=eraSlice||baseSlice;
   _lastProvinceSlice=slice;
   _lastProvincePayload=payload;
   const n=slice.row_count||0;
@@ -4030,9 +4062,9 @@ function goToPostal(raw){
       if(!idx.some(e=>e.fsa===fsa)){tryNext(i+1);return;}
       PROVINCE_CODE=provs[i];
       SELECTED_FSA=fsa;
-      SELECTED_TYPE='';
+      SELECTED_TYPE='';SELECTED_ERA='';
       $('province-sel').value=PROVINCE_CODE;
-      ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+      ['type-sel','fuel-sel','depth-sel','era-sel'].forEach(id=>$(id).value='');
       clearMeasures();
       updateShareUrl();
       showPcHint(''); // area-chip pill already shows the selected FSA
@@ -4048,8 +4080,8 @@ $('province-sel').addEventListener('change',function(){
   PROVINCE_CODE=this.value;
   if(!PROVINCE_CODE)return;
   // Reset filters when province changes
-  SELECTED_FSA='';SELECTED_TYPE='';
-  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  SELECTED_FSA='';SELECTED_TYPE='';SELECTED_ERA='';
+  ['type-sel','fuel-sel','depth-sel','era-sel'].forEach(id=>$(id).value='');
   clearMeasures();
   $('fsa-sel').value='';
   $('pc-input').value='';showPcHint('');
@@ -4066,7 +4098,7 @@ $('fsa-sel').addEventListener('change',function(){
   // invalidates a lingering "✓ Showing postal area …" hint.
   showPcHint('');
   if(!PROVINCE_CODE)return;
-  ['type-sel','fuel-sel','depth-sel'].forEach(id=>$(id).value='');
+  ['type-sel','fuel-sel','depth-sel','era-sel'].forEach(id=>$(id).value='');
   clearMeasures();
   updateShareUrl();
   // Mint a fresh token so a slow fetch from a previously-selected FSA that
@@ -4093,6 +4125,19 @@ $('type-sel').addEventListener('change',function(){
 });
 $('fuel-sel').addEventListener('change',applyFilters);
 $('depth-sel').addEventListener('change',applyFilters);
+
+// Program-era dropdown: same dual behaviour as house type (works in all
+// three modes — FSA, province, and Canada, the last two sharing the
+// province-summary code path).
+$('era-sel').addEventListener('change',function(){
+  SELECTED_ERA=this.value;
+  if(MODE==='fsa'){
+    applyFilters();
+  }else if(MODE==='province'){
+    const payload=PROVINCE_SUMMARY_CACHE.get(PROVINCE_CODE);
+    if(payload)renderProvince(payload);
+  }
+});
 
 // ── Measures multi-select (FSA view only, like fuel/depth) ──────────
 // Checkboxes over the MEASURES list; a home matches when it did ALL the

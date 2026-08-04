@@ -409,9 +409,13 @@ Boolean-ish flag columns may arrive as `true`/`false` or `1`/`0`; the front-end'
 {
   "province": "AB",
   "total_rows": 70348,
+  "era_labels": {"ecoenergy": "ecoENERGY (2007–2012)", "none": "No program",
+                 "greener": "Greener Homes (2021–2024)"},
   "by_type": {
-    "All types":      { "row_count": 70348, "median_saving_pct": 0.128, "...": "…" },
-    "Single Detached":{ "row_count": 63700, "...": "same shape, this house type" }
+    "All types":      { "row_count": 70348, "median_saving_pct": 0.128, "...": "…",
+                         "by_era": { "ecoenergy": { "...": "same shape, this era" },
+                                     "none": { "...": "…" }, "greener": { "...": "…" } } },
+    "Single Detached":{ "row_count": 63700, "...": "same shape, this house type", "by_era": { "...": "…" } }
   }
 }
 ```
@@ -420,6 +424,18 @@ Each `by_type` slice contains the medians, counts, and pre-binned histograms for
 chart (`eui_pre_bins`, `ghg_post_bins`, `sankey_flows`, `waterfall`, `insulation_kpis`,
 `insulation_histograms`, `measures`, etc.). The house-type dropdown in province mode is
 populated from these keys.
+
+Each `by_type` slice also nests a **`by_era`** sub-object — the same shape again, one
+level down, for each of the 3 program eras (`ecoenergy` / `none` / `greener`), so the
+"Program era" filter can combine with the house-type filter in province/Canada mode.
+Rows are classified by their **initial (D / Pre_Date) audit year**, not the follow-up
+year — a home can start under a program and not complete its follow-up until after the
+program closed (measured: ~46,000 Greener Homes starts finished in 2025-26, after the
+grant closed to new applicants 2024-03-31). `CA.json` (`aggregate_canada.py`) carries
+the same `by_era` under its one `"All types"` slice.
+Boundaries are defined in three places that must stay in sync: `ERA_DEFS` in
+`precompute_province_stats.py`, `ERA_DEFS`/`ERA_KEYS` in `aggregate_canada.py` and
+`Python/build_insights.py`, and `ERA_DEFS` in `assets/retrofits.js`.
 
 ---
 
@@ -677,6 +693,35 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-08-04 Program-era filter (ecoENERGY / no program / Greener Homes)
+
+- **New "Program era" dropdown**, same filter-bar row as house type, in all three
+  modes: FSA (client-filtered on `Pre_Year`), province, and Canada (both reading a
+  new `by_era` sub-slice nested under every `by_type` slice — see the
+  `province_json/<PROV>.json` shape above). Classified by each pair's **initial (D)**
+  audit year, not the follow-up year, because a home can start under a program and
+  not finish its follow-up until after the program closed — measured against the
+  real data: ~46,000 Greener Homes starts (about 10% of that era's starts) completed
+  their follow-up in 2025-26, after the grant closed to new applicants 2024-03-31.
+- **`retrofit-insights.html`** gained a companion national chart ("What did each era
+  build?", in the Timeline section): the 8 tracked measures as a share of that era's
+  matched retrofits, from a new `insights_json/program_era.json`
+  (`build_program_era()` in `Python/build_insights.py`). Fetched independently of
+  `timeline.json` so a pre-refresh `insights_json/` degrades by hiding the new card,
+  not by breaking the existing timeline chart.
+- Era boundaries (ecoENERGY 2007–2012, Greener Homes 2021–2024) mirror the eras
+  already drawn on the Retrofit Insights timeline chart and must be kept in sync
+  across four places: `ERA_DEFS` in `precompute_province_stats.py`, `ERA_DEFS`/
+  `ERA_KEYS` in `aggregate_canada.py`, `ERA_DEFS` in `Python/build_insights.py`, and
+  `ERA_DEFS` in `assets/retrofits.js`.
+- `aggregate_canada.py`'s national-recombination logic was refactored into a reusable
+  `aggregate_slices()` function so it could run once for the totals and once more per
+  era; fixed a latent bug in the same pass (`solar_median_kw` can be explicitly
+  `None`, not just absent, for a slice with matched pairs but zero solar adopters —
+  `.get(key, 0)`'s default only covers a *missing* key, not present-and-`None`. Was
+  always theoretically possible for a small province, but era sub-slicing made a
+  nonzero-n/zero-adopter bucket common enough to hit on the very first run).
 
 ### 2026-08-03 pipeline diagram, and this document brought back in line with the code
 

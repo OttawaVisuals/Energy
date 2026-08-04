@@ -35,6 +35,9 @@ OUTPUTS  insights_json/ (compact, ensure_ascii=False, separators=(',',':')):
   opportunity.json   missed-opportunity composite ranking + per-FSA factors.
   timeline.json      national + per-province audits/yr (D and E) + matched
                      retrofits by E-year, with cited program-era annotations.
+  program_era.json   measure mix + outcomes (median saving, HP/deep/fuel-switch
+                     rates) by program era (ecoENERGY / no program / Greener
+                     Homes), classified by each pair's INITIAL audit year.
   ghg_impact.json    national + per-province avg/total modelled GHG saved
                      (tCO2e/yr), priced two ways (2024 federal carbon-tax rate,
                      ECCC 2024 Social Cost of Carbon) — see CARBON_TAX_RATE /
@@ -747,6 +750,80 @@ def build_timeline(nat):
     }
 
 
+# =============================================================================
+# program_era.json — measure mix + outcomes by program era (ecoENERGY / no
+# program / Greener Homes)
+# =============================================================================
+
+# Classified by each pair's INITIAL (D / Pre_Date) audit year, not the
+# follow-up year -- a home that started under a program can still complete
+# its follow-up after the program closed (measured: ~46,000 Greener Homes
+# starts, 10% of that era's starts, finished their follow-up in 2025-26,
+# after the grant closed to new applicants 2024-03-31; a smaller version of
+# the same lag exists for ecoENERGY too). MUST match assets/retrofits.js's
+# ERA_DEFS and precompute_province_stats.py's ERA_DEFS exactly, or the three
+# tools will classify the same home into different eras. Dates mirror
+# PROGRAM_ANNOTATIONS above.
+ERA_DEFS = [
+    ("ecoenergy", "ecoENERGY (2007–2012)", 2007, 2012),
+    ("greener", "Greener Homes (2021–2024)", 2021, 2024),
+]
+
+
+def era_of_year(y):
+    if y is None or (isinstance(y, float) and math.isnan(y)):
+        return None
+    y = int(y)
+    for key, _label, lo, hi in ERA_DEFS:
+        if lo <= y <= hi:
+            return key
+    return "none"
+
+
+def build_program_era(nat):
+    """
+    One row per era: matched-pair count, median saving %, heat-pump/deep-
+    retrofit/fuel-switch rates, and the 8 measure-prevalence shares --
+    answers "did the two programs drive different kinds of work", not just
+    different volumes (that's timeline.json's job).
+    """
+    tmp = nat.copy()
+    tmp["_era"] = tmp["d_year"].map(era_of_year)
+    era_order = [("ecoenergy", "ecoENERGY (2007–2012)"),
+                 ("none", "No program"),
+                 ("greener", "Greener Homes (2021–2024)")]
+    rows = []
+    for key, label in era_order:
+        sub = tmp[tmp["_era"] == key]
+        n = len(sub)
+        # median_saving_pct / measure_shares over nonzero-measure pairs only,
+        # matching build_success()/build_climate()'s convention -- zero-measure
+        # pairs are audit noise, not "no measures worked", and would otherwise
+        # drag the era median toward its own noise share rather than its work.
+        nz = sub[sub["n_measures"] > 0]
+        rows.append({
+            "era": key,
+            "label": label,
+            "n": int(n),
+            "median_saving_pct": r1(med(nz["saving_pct"])) if n else None,
+            "deep_rate": r3(float(sub["Deep_Retrofit"].mean())) if n else None,
+            "hp_rate": r3(float(sub["HeatPump_Addition"].mean())) if n else None,
+            "fuel_switch_rate": r3(float(sub["FuelSwitch"].mean())) if n else None,
+            "zero_measure_share": r3(float((sub["n_measures"] == 0).mean())) if n else None,
+            "measure_shares": ({MEASURE_LABEL[k]: r3(float(sub[k].mean())) for k in MEASURE_KEYS}
+                                if n else {MEASURE_LABEL[k]: None for k in MEASURE_KEYS}),
+        })
+    return {
+        "note": ("Classified by each matched pair's INITIAL (D / Pre_Date) audit year, "
+                 "not the follow-up year -- see the module comment above ERA_DEFS for why. "
+                 "median_saving_pct and measure_shares are over matched pairs with at least "
+                 "one tracked measure (nonzero n_measures), matching success.json's convention; "
+                 "zero_measure_share reports the audit-noise share separately rather than "
+                 "folding it into the median."),
+        "eras": rows,
+    }
+
+
 GHG_SCENARIO_COLS = {
     "reported": ("ghg_pre", "ghg_post"),
     "current": ("ghg_pre_current", "ghg_post_current"),
@@ -974,6 +1051,7 @@ def main():
     opportunity = build_opportunity(metrics)
     timeline = build_timeline(nat)
     ghg_impact = build_ghg_impact(nat)
+    program_era = build_program_era(nat)
 
     # so the methodology section can state the suppression counts without
     # re-deriving them in the browser
@@ -1054,6 +1132,7 @@ def main():
     write("opportunity.json", opportunity)
     write("timeline.json", timeline)
     write("ghg_impact.json", ghg_impact)
+    write("program_era.json", program_era)
     write("meta.json", meta)
     total_kb = sum(os.path.getsize(OUT_DIR / n) for n in os.listdir(OUT_DIR)
                    if n.endswith(".json")) / 1024
