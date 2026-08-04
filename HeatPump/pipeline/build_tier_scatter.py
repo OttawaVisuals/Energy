@@ -56,6 +56,11 @@ import numpy as np
 import pandas as pd
 
 from build_tier_curves import CURVES_HTML
+from build_cell_curves import UNITS as CELL_UNITS
+
+# AHRI numbers of the 9 tier-cell picks (build_cell_curves.py), so the scatter
+# can mark which bubbles those curves/table actually came from.
+SELECTED_AHRI = {int(u["ahri"]) for u in CELL_UNITS.values()}
 
 HERE = Path(__file__).resolve().parent
 INTERIM = HERE.parent / "data" / "interim"
@@ -157,6 +162,7 @@ def main():
             "cop": round(float(r.cop), 2), "c47": int(r.c47),
             "k": int(r.k), "n": name or f"AHRI {int(r.k)}",
             "cl": 1 if clamped else 0,
+            "sel": 1 if int(r.k) in SELECTED_AHRI else 0,
         })
 
     # per-band appearance share, for the legend
@@ -272,6 +278,12 @@ def render(pts, bands, meta, grid, sx, sy):
           background:#12202E; color:#fff; padding:8px 11px; border-radius:7px;
           font-size:12.5px; line-height:1.5; z-index:9; max-width:280px }}
   #tip b {{ font-size:13px }}
+  #selpts {{ pointer-events:none }}
+  path.selstar {{ fill:none; stroke:#12202E; stroke-width:1.6; opacity:.85 }}
+  #dimBtn {{ font:inherit; font-size:12.5px; padding:4px 10px; margin-left:8px;
+             border:1px solid var(--line); border-radius:6px; background:#fff;
+             color:var(--ink); cursor:pointer }}
+  #dimBtn.active {{ background:#12202E; color:#fff; border-color:#12202E }}
   table {{ border-collapse:collapse; font-size:13px }}
   th, td {{ border:1px solid var(--line); padding:7px 12px; text-align:center }}
   thead th, tbody th {{ background:#EDF2F7; font-weight:600; text-align:left;
@@ -298,6 +310,7 @@ Use it to place <b>3 performance tiers × 3–4 nominal capacities</b> by eye �
           fill="#fff" stroke="#D9E1EA"/>
     {xticks}{yticks}{guides}
     <g id="pts"></g>
+    <g id="selpts"></g>
     <text x="{PAD_L+(W-PAD_L-PAD_R)/2}" y="{H-16}" class="ax" text-anchor="middle">
       Capacity maintenance — max capacity @ 5 °F ÷ rated capacity @ 47 °F</text>
     <text x="18" y="{PAD_T+(H-PAD_T-PAD_B)/2}" class="ax" text-anchor="middle"
@@ -305,7 +318,9 @@ Use it to place <b>3 performance tiers × 3–4 nominal capacities</b> by eye �
   </svg>
   <div class="legend">{legend}</div>
   <p class="ctl">Bubble <b>area</b> ∝ ERS appearances. Dashed-outline bubbles sit outside the
-  plot window and are clamped to the edge, not dropped. Hover any bubble for its identity.</p>
+  plot window and are clamped to the edge, not dropped. Hover any bubble for its identity.
+  <b>★</b> marks the 9 units picked for the tier-cell curves and spec table below.
+  <button id="dimBtn" type="button">Dim non-selected units</button></p>
   <p class="gate"><b>Gate:</b> {meta['kept_units']:,} of {meta['total_units']:,} units plotted,
   covering {meta['kept_app']:,} of {meta['total_app']:,} ERS appearances
   (<b>{meta['app_pct']}%</b>). Dropped: units missing any of the three plotted metrics —
@@ -326,13 +341,29 @@ question in table form; the COP splits are the appearance-weighted terciles draw
 <script>
 const PTS = {json.dumps(pts, separators=(",", ":"))};
 const COL = {json.dumps([b["colour"] for b in bands])};
-const g = document.getElementById('pts'), tip = document.getElementById('tip');
+const g = document.getElementById('pts'), selG = document.getElementById('selpts'),
+      tip = document.getElementById('tip'), dimBtn = document.getElementById('dimBtn');
 const on = new Set(COL.map((_, i) => i));
+let dimOn = false;
+
+function starPath(cx, cy, r) {{
+  const spikes = 5, outer = r * 1.7, inner = outer * 0.42;
+  let rot = -Math.PI / 2, path = '', step = Math.PI / spikes;
+  for (let i = 0; i < spikes; i++) {{
+    path += `${{i === 0 ? 'M' : 'L'}} ${{(cx + Math.cos(rot) * outer).toFixed(1)}} ${{(cy + Math.sin(rot) * outer).toFixed(1)}} `;
+    rot += step;
+    path += `L ${{(cx + Math.cos(rot) * inner).toFixed(1)}} ${{(cy + Math.sin(rot) * inner).toFixed(1)}} `;
+    rot += step;
+  }}
+  return path + 'Z';
+}}
 
 function draw() {{
   g.innerHTML = PTS.map((p, i) => on.has(p.b) ?
     `<circle class="pt${{p.cl ? ' clamped' : ''}}" cx="${{p.x}}" cy="${{p.y}}" r="${{p.r}}"
-      fill="${{COL[p.b]}}" fill-opacity=".55" data-i="${{i}}"/>` : '').join('');
+      fill="${{COL[p.b]}}" fill-opacity="${{dimOn && !p.sel ? 0.12 : 0.55}}" data-i="${{i}}"/>` : '').join('');
+  selG.innerHTML = PTS.map(p => (p.sel && on.has(p.b)) ?
+    `<path class="selstar" d="${{starPath(p.x, p.y, Math.max(p.r, 6))}}"/>` : '').join('');
 }}
 draw();
 
@@ -341,6 +372,12 @@ document.querySelectorAll('.lg input').forEach(cb => cb.onchange = () => {{
   cb.checked ? on.add(b) : on.delete(b);
   draw();
 }});
+
+dimBtn.onclick = () => {{
+  dimOn = !dimOn;
+  dimBtn.classList.toggle('active', dimOn);
+  draw();
+}};
 
 g.addEventListener('mouseover', e => {{
   if (e.target.tagName !== 'circle') return;
