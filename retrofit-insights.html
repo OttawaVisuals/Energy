@@ -434,7 +434,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 03 WHAT WORKS -->
+  <!-- 04 WHAT WORKS -->
   <section id="sec-success">
     <div class="section-head">
       <div class="section-num">04 — WHAT WORKS</div>
@@ -466,7 +466,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       </div>
     </div>
     <div class="card" data-mode="advanced" style="margin-top:1rem">
-      <h3>03c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
+      <h3>04c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
       <div class="sub">Top-decile savers (≥ 40.6% saved) versus everyone else — measure prevalence and starting conditions.</div>
       <div class="legend">
         <span class="lg"><span class="sw" style="background:#C8881A"></span>Top-decile savers</span>
@@ -1609,7 +1609,8 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p>Built <b>${m.build_date}</b> from <b>${m.national_matched_total.toLocaleString()}</b> matched before/after EnerGuide audit pairs across <b>${m.n_fsas_matched.toLocaleString()}</b> forward sortation areas (FSAs) — the same row-level data the <a href="retrofits.html" style="color:var(--navy)">Retrofit Explorer</a> serves.</p>
 
     <h4>What counts as a retrofit here</h4>
-    <p>Every figure on this page comes from a <b>matched pair</b>: one initial (D) audit of a home and one follow-up (E) audit of the same home after work was done. A home with only an initial audit is counted in <code>audited</code> but produces no saving, no measure and no pair. "Saving" is always the modelled difference between those two audits — a HOT2000 model of the house before and after, never a metered bill. Weather, occupancy and behaviour are held constant by the model, which is why these numbers are comparable across the country but do not predict any individual household's bill.</p>
+    <p><b>Plain language:</b> every number on this page compares one home's energy-audit report from before it was upgraded to a second report from after — never a utility bill or a meter reading. If a home was only ever audited once, it isn't included anywhere on this page.</p>
+    <p><b>Advanced:</b> every figure on this page comes from a <b>matched pair</b>: one initial (D) audit of a home and one follow-up (E) audit of the same home after work was done. A home with only an initial audit is counted in <code>audited</code> but produces no saving, no measure and no pair. "Saving" is always the modelled difference between those two audits — a HOT2000 model of the house before and after, never a metered bill. Weather, occupancy and behaviour are held constant by the model, which is why these numbers are comparable across the country but do not predict any individual household's bill.</p>
 
     <h4>Sources</h4>
     <ul>
@@ -1619,7 +1620,8 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     </ul>
 
     <h4>The eight tracked measures</h4>
-    <p>Air sealing · roof insulation · foundation insulation · wall insulation · heat pump · heating system · windows · floor insulation. A home's "measure count" is how many of these eight changed between its two audits. Work outside this list — new appliances, solar, anything not modelled — does not appear, which is one reason a pair can show a saving with zero tracked measures.</p>
+    <p><b>Plain language:</b> we only track eight kinds of upgrade — the ones an energy audit can clearly measure a before/after difference on, like insulation or a heat pump. Things like solar panels or new appliances aren't counted, which is one reason a home can show energy savings with none of these eight measures ticked.</p>
+    <p><b>Advanced:</b> air sealing · roof insulation · foundation insulation · wall insulation · heat pump · heating system · windows · floor insulation. A home's "measure count" is how many of these eight changed between its two audits. Work outside this list — new appliances, solar, anything not modelled — does not appear, which is one reason a pair can show a saving with zero tracked measures.</p>
 
     <h4>Key definitions</h4>
     <ul>
@@ -1631,17 +1633,20 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     </ul>
 
     <h4>Thresholds &amp; suppression</h4>
-    <p>Leaderboards and the opportunity ranking require <code>n ≥ ${th.min_n_leaderboard_and_opportunity}</code> matched retrofits per FSA. Top-decile savers = the ${th.top_decile_percentile}th percentile of saving and above.</p>
+    <p><b>Plain language:</b> postal areas with too few matched retrofits, or whose boundaries changed too much since the 2021 census, are left grey on the map rather than shown with an unreliable number.</p>
+    <p><b>Advanced:</b> leaderboards and the opportunity ranking require <code>n ≥ ${th.min_n_leaderboard_and_opportunity}</code> matched retrofits per FSA. Top-decile savers = the ${th.top_decile_percentile}th percentile of saving and above.</p>
     <p><b>Participation is reported for ${(pc.reported||0).toLocaleString()} of ${m.n_fsas_matched.toLocaleString()} postal areas</b> and suppressed for ${supTotal.toLocaleString()}: ${(pc.suppressed_no_census||0).toLocaleString()} have no 2021 census record for their FSA code, and ${(pc.suppressed_tiny_area||0).toLocaleString()} have fewer than ${(th.min_dwellings_for_participation||0).toLocaleString()} census dwellings. The reason: the numerator is ~20 years of audits carrying the FSA code in force at audit time, while the denominator is a single 2021 snapshot. Where Canada Post redrew or retired an FSA, audits accumulate against a present-day remnant that cannot carry them — one area reported 1,400% before this rule. Suppressed areas are left grey on the map and drop out of the opportunity ranking rather than being scored on a denominator we do not trust.</p>
 
     <h4>The opportunity score</h4>
-    <p><code>${m.opportunity_formula}</code></p>
+    <p><b>Plain language:</b> this is a ranked "where to look next" list, built by combining five factors like a neighbourhood's older housing stock and how few residents have already done a retrofit. It's a judgement call about priorities, not a measurement — you can drag the sliders below to weight the factors your own way.</p>
+    <p><b>Advanced:</b> <code>${m.opportunity_formula}</code></p>
     <p>Each input is percentile-ranked across eligible areas first, so every factor shares a 0–1 scale before weighting. The shipped default is pre-EUI <b>${W.pre_eui??'—'}</b>, pre-GHG <b>${W.pre_ghg??'—'}</b>, pre-1980 share <b>${W.pre_1980_share??'—'}</b>, low participation <b>${W.low_participation??'—'}</b>, lower-income area <b>${W.low_income??0}</b>.</p>
     <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
     <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
 
     <h4>GHG impact: 4 scenarios, carbon tax, and Social Cost of Carbon</h4>
-    <p>Built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other GHG figure on this page. The <b>GHG basis</b> dropdown at the top of this section switches between 4 ways of computing <code>sum(Pre_GHG − Post_GHG)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped:</p>
+    <p><b>Plain language:</b> this section turns energy savings into greenhouse-gas terms. Because most audits didn't originally record an emissions figure, we offer four different ways to calculate one — pick whichever basis you trust most from the dropdown above the chart.</p>
+    <p><b>Advanced:</b> built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other GHG figure on this page. The <b>GHG basis</b> dropdown at the top of this section switches between 4 ways of computing <code>sum(Pre_GHG − Post_GHG)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped:</p>
     <ul>
       <li><b>As reported</b> — the raw <code>ERSGHG</code> field, unmodified. Only 733,107 of 1,451,433 matched pairs nationally (50.5%, measured 2026-08-02) have a usable Pre_GHG <i>and</i> Post_GHG value — coverage runs from Quebec (~78%) and PEI (~84%) down to Ontario (~43%) and Saskatchewan (~9%). Every figure under this basis describes only the homes with GHG data, not scaled up to the full matched count — <code>n</code>/<code>matched_total</code>/<code>ghg_coverage_pct</code> ship per province precisely so this isn't hidden.</li>
       <li><b>Current (2026) official</b> — every home's own fuel consumption (already ~100% complete) × <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" style="color:var(--navy)">ECCC's official 2026 emission factors</a>, applied flat regardless of when the retrofit happened — prices every retrofit as if it happened on today's grid, for comparing retrofits across years on equal footing rather than reconstructing historical emissions.</li>
@@ -1661,8 +1666,9 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p><b>Advanced:</b> both panels are built by <code>Python/build_hp_equipment_insights.py</code> from the same Phase-3c interim CSVs used by <code>HeatPump/pipeline/build_tier_scatter.py</code> (scatter geometry) and <code>HeatPump/pipeline/screen_cchp.py</code> (the screen). Scatter fields: <code>cm</code> = capacity maintenance = max capacity @5°F ÷ rated capacity @47°F; <code>cop</code> = COP @5°F at max compressor speed; <code>c47</code> = rated heating capacity @47°F, BTU/h, which sets the colour band. A unit is plotted only if all three are present; the chart's own gate note states how many units and appearances were dropped for each missing field. The CCHP screen checks 4 of the DOE Challenge's Table II-3 criteria that AHRI/ENERGY STAR ratings can resolve (capacity ratio, COP @5°F by capacity band, HSPF2 floor, refrigerant GWP) and carries the other 4 through as explicit "not checkable" entries. Denominator for every percentage is the full 15,148-model / 439,975-appearance universe, never a pre-filtered subset. <b>Wording rule:</b> the passing value is named <code>screen_pass</code>; the page must say "screened against the DOE Challenge specifications", never "meets" or "certified for" the Challenge — a screen against published ratings is not the Challenge's own H11/H1N verification test. Full method, thresholds table and all three basis caveats: <a href="https://github.com/OttawaVisuals/Energy/blob/main/HeatPump/METHODOLOGY.md" style="color:var(--navy)" target="_blank" rel="noopener">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen" and "Tier-selection scatter". <b>Known gap:</b> <code>hp_units_joined.csv</code>, the 15,148-model universe both panels read, has no producer script in this repo (built ad hoc in an earlier session) — see <a href="https://github.com/OttawaVisuals/Energy/blob/main/ROADMAP.md" style="color:var(--navy)" target="_blank" rel="noopener">ROADMAP.md</a>.</p>
 
     <h4>What this page will not tell you</h4>
+    <p><b>Plain language:</b> two big caveats: everyone in this data chose to get an audit (usually for a rebate), so it isn't a random sample of Canadian homes — and any link you see between a postal area's income and its retrofit activity describes that neighbourhood, not any specific household in it.</p>
     <div class="rail"><ul>${railList}</ul></div>
-    <p>Two limits are worth stating plainly. <b>Self-selection:</b> every home here chose to get an audit, usually to claim a rebate, so this is not a sample of Canadian housing and cannot support statements about the housing stock as a whole. <b>Ecology:</b> income and dwelling value are attributes of a postal area, never of the household that did the work, so an association between an area's income and its retrofit behaviour says nothing about individual households.</p>
+    <p><b>Advanced:</b> two limits are worth stating plainly. <b>Self-selection:</b> every home here chose to get an audit, usually to claim a rebate, so this is not a sample of Canadian housing and cannot support statements about the housing stock as a whole. <b>Ecology:</b> income and dwelling value are attributes of a postal area, never of the household that did the work, so an association between an area's income and its retrofit behaviour says nothing about individual households.</p>
     <p style="color:#5C6E82;font-size:12px;margin-top:.8rem">Every energy, EUI and GHG figure on this page is a modelled HOT2000/EnerGuide estimate, never a metered bill. Rebuilt by <code>Python/build_insights.py</code>; census and climate inputs are static and do not join the audit-data refresh.</p>`;
 });}
 
