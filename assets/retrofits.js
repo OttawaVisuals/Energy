@@ -938,11 +938,20 @@ function applyFilters(){
 function resetFilters(){
   ['type-sel','fuel-sel','depth-sel','era-sel'].forEach(id=>$(id).value='');
   clearMeasures();
-  if(MODE==='fsa'){
-    FILTERED=[...ALL];render();
-  }else if(MODE==='province'){
+  if(SELECTED_FSA){
+    // An area is selected: reset means "back to this area, no filters" —
+    // stay on the FSA, just clear whatever's layered on top of it.
     SELECTED_TYPE='';SELECTED_ERA='';
-    loadProvinceView(++LOAD_TOKEN);
+    if(MODE==='fsa'){FILTERED=[...ALL];render();}
+  }else{
+    // No area selected: reset means "start over" — all the way back to the
+    // All-of-Canada landing view, not just clearing filters on whichever
+    // province happened to be showing.
+    PROVINCE_CODE='CA';SELECTED_TYPE='';SELECTED_ERA='';
+    $('province-sel').value='CA';
+    $('pc-input').value='';showPcHint('');
+    updateShareUrl();
+    load();
   }
 }
 

@@ -6,6 +6,30 @@
 # decision history; this branch is a disposable snapshot of the current bytes.
 #
 # Usage:  ./deploy.sh ["optional commit note"]
+#
+# IMPLEMENTATION NOTE (2026-08-04): this used to build the snapshot with
+# `git checkout --orphan gh-pages-tmp` IN THIS WORKING DIRECTORY, commit, push,
+# then `git checkout -f "$START_BRANCH"` to switch back. That last checkout is
+# destructive: every path in PATHS becomes "tracked" the moment it's committed
+# to gh-pages-tmp, and switching back to main -- where those same paths are
+# gitignored/untracked -- makes git DELETE them from disk (a file tracked in
+# the branch you're leaving but absent from the branch you're entering is
+# removed, not merely unstaged). This deleted fsa_json, province_json,
+# insights_json, lookup and every other generated tree from local disk the
+# first time this ran end-to-end. Recovered that time only because the data
+# had just been force-pushed to origin/gh-pages moments before
+# (`git checkout origin/gh-pages -- <paths>`) -- not guaranteed in general
+# (e.g. a deploy note typo caught by the PATHS-exist check above would still
+# have run this far in an earlier version of the script).
+#
+# Fixed by never touching the working tree's branch/HEAD at all: the orphan
+# commit is built with plumbing (git add -f against a throwaway
+# GIT_INDEX_FILE, then write-tree/commit-tree/push-by-hash), the same
+# technique CLAUDE.md documents for the incremental single-file gh-pages
+# update. `git add -f` still reads file CONTENT from this working directory
+# (so PATHS must exist here, same as before), but it never runs `git
+# checkout`, so nothing in the working directory or on the current branch is
+# ever added, removed or switched.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -42,19 +66,23 @@ for p in "${PATHS[@]}"; do
   [[ -e "$p" ]] || { echo "deploy: missing $p — run its pipeline first" >&2; exit 1; }
 done
 
-START_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-trap 'git checkout -f "$START_BRANCH" >/dev/null 2>&1 || true' EXIT
+# Build the orphan snapshot entirely via plumbing, against a throwaway index
+# file -- current branch/HEAD/working tree are never touched, so there is
+# nothing for a later `git checkout` to disturb (see note above; this script
+# intentionally contains no `git checkout` at all anymore).
+IDX="$(mktemp)"
+trap 'rm -f "$IDX"' EXIT
+export GIT_INDEX_FILE="$IDX"
 
-git checkout -q --orphan gh-pages-tmp
-git reset -q
 git add -f "${PATHS[@]}"
-git commit -q -m "Deploy site + data ($STAMP)${NOTE:+ — $NOTE}
+TREE="$(git write-tree)"
+COMMIT="$(git commit-tree "$TREE" -m "Deploy site + data ($STAMP)${NOTE:+ — $NOTE}
 
 Rebuilt and force-pushed as a single commit; this branch intentionally has
-no history. Source, pipelines and decision history live on main."
+no history. Source, pipelines and decision history live on main.")"
 
-git push -f origin gh-pages-tmp:gh-pages
-git checkout -f "$START_BRANCH" >/dev/null
-git branch -D gh-pages-tmp >/dev/null
+unset GIT_INDEX_FILE
+
+git push -f origin "$COMMIT:refs/heads/gh-pages"
 
 echo "deploy: published to gh-pages — https://ottawavisuals.github.io/Energy/"

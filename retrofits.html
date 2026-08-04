@@ -250,9 +250,9 @@
     <div class="kpi-tier-label">Outcomes</div>
     <div class="stats-grid stats-grid-outcomes">
       <div class="stat-card"><div class="stat-label"><span class="cap-simple">Typical energy saving</span><span class="cap-advanced">Median energy saving</span></div><div class="stat-value green" id="s-median">—</div><div class="stat-sub" id="s-median-sub">loading…</div></div>
-      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Emissions saved</span><span class="cap-advanced">Median GHG saving</span></div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
-      <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label"><span class="cap-simple">Typical bill saving</span><span class="cap-advanced">Median bill saving</span><button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
       <div class="stat-card" data-mode="advanced"><div class="stat-label"><span class="cap-simple">Energy saved per m²</span><span class="cap-advanced">Median EUI saving</span></div><div class="stat-value green" id="s-eui-saving">—</div><div class="stat-sub">kWh/m² · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+      <div class="stat-card" id="s-cost-card" style="display:none"><div class="stat-label"><span class="cap-simple">Estimated typical bill saving</span><span class="cap-advanced">Estimated median bill saving</span><button type="button" class="info-btn" aria-label="How is the bill saving estimated?" data-info="Each home's yearly energy use, before and after, priced at today's provincial rates. Running cost only, at current prices." data-method="m-caveats">?</button></div><div class="stat-value green" id="s-cost-saving">—</div><div class="stat-sub">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
+      <div class="stat-card"><div class="stat-label"><span class="cap-simple">Emissions saved</span><span class="cap-advanced">Median GHG saving</span></div><div class="stat-value green" id="s-ghg-saving">—</div><div class="stat-sub"><span class="cap-simple">tonnes CO₂/yr</span><span class="cap-advanced">tCO2e/yr</span> · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>
     </div>
   </div>
 
@@ -336,25 +336,6 @@
     <p class="note"><span class="cap-simple">Estimated yearly energy bill before and after, at today's rates — lower is cheaper to run.</span><span class="cap-advanced">Each home's modelled annual energy, by fuel, priced at its province's current residential rates. Volumetric energy only — fixed monthly service charges are excluded. Today's rates are applied to audits from 2004–2026, so read this as “what a home like this would save at current prices,” not a historical bill. A home that switches to electricity can see its bill rise even when energy and emissions fall. Bills above $8,000/yr are clipped for scale. <a href="#m-prices" onclick="openMethodology(event,'m-prices')">Where the prices come from, and their limits →</a></span></p>
   </div>
 
-<!-- Retrofit cost estimate — REMDB-priced incremental cost per measure, plus
-     a payback estimate against the bill-saving figure above. Separate
-     tree (retrofit_costs_json/), not part of fsa_json — see
-     docs/RETROFIT_COSTS.md. Hidden by setRetroCostCardVisible() when no
-     priced data exists for the current province/FSA (rollout in progress,
-     not every area is covered by every province run yet). -->
-  <div class="card" id="retro-cost-card" style="display:none">
-    <div class="card-title-row">
-      <div class="card-title">Estimated retrofit cost<span class="badge badge-medium" style="margin-left:8px">Proof of concept</span><button type="button" class="info-btn" aria-label="How is retrofit cost estimated?" data-info="Priced against PNNL/DOE's REMDB cost-per-measure database (2023 USD, no CAD conversion). Insulation/air sealing/windows are full material+install cost; an ASHP is netted against the pre-audit heating system it replaced, and can be negative. Not every measure or every home is priced — see the methodology page." data-method="m-retrocost">?</button></div>
-      <div id="retro-band-seg" role="group" aria-label="Cost estimate band" style="display:flex;gap:6px">
-        <button type="button" class="sort-btn" data-band="0" onclick="setRetroBand(0)">Low (p10)</button>
-        <button type="button" class="sort-btn active" data-band="1" onclick="setRetroBand(1)">Mid (p50)</button>
-        <button type="button" class="sort-btn" data-band="2" onclick="setRetroBand(2)">High (p90)</button>
-      </div>
-    </div>
-    <div class="eui-row" id="retro-cost-kpis"></div>
-    <div id="retro-cost-measures"></div>
-    <p class="note" id="retro-cost-note"><span class="cap-simple">Estimated extra cost of the efficient choice over what a homeowner would likely have done anyway, priced against a US cost database (2023 USD, no CAD conversion) — a proof-of-concept estimate, not a quote.</span><span class="cap-advanced">Incremental cost: insulation/air sealing have no business-as-usual (BAU) equivalent, so their figure is the full REMDB cost; windows are the efficient-minus-standard premium; an ASHP is netted against the home's own pre-audit heating system (like-for-like where ERS records it) plus the A/C it replaces, and can be negative. REMDB is 2023 USD from US retail/contractor data — no CAD conversion or Canadian-labour adjustment applied. Payback = incremental cost ÷ this home's annual $ saved (see the Energy bill card above) — flagged low-confidence for Alberta, and for any home whose main pre-retrofit fuel is oil, propane or wood (screening-rate pricing, not per-province data). Not every measure or every home is priced. <a href="#m-retrocost" onclick="openMethodology(event,'m-retrocost')">Full methodology →</a></span></p>
-  </div>
 
 
 
@@ -587,6 +568,30 @@
   </div>
 
   
+
+<!-- Retrofit cost estimate — REMDB-priced incremental cost per measure, plus
+     a payback estimate against the bill-saving figure above. Separate
+     tree (retrofit_costs_json/), not part of fsa_json — see
+     docs/RETROFIT_COSTS.md. Hidden by setRetroCostCardVisible() when no
+     priced data exists for the current province/FSA (rollout in progress,
+     not every area is covered by every province run yet). Collapsed by
+     default (no `open` attribute) — it's a proof-of-concept side estimate,
+     not the headline outcome, so it shouldn't compete with the KPIs/charts
+     above for attention on first load. -->
+  <details class="card intro-details" id="retro-cost-card" style="display:none">
+    <summary class="card-title"><span>Estimated retrofit cost<span class="badge badge-medium" style="margin-left:8px">Proof of concept</span></span></summary>
+    <div class="card-title-row" style="justify-content:flex-end">
+      <button type="button" class="info-btn" aria-label="How is retrofit cost estimated?" data-info="Priced against PNNL/DOE's REMDB cost-per-measure database (2023 USD, no CAD conversion). Insulation/air sealing/windows are full material+install cost; an ASHP is netted against the pre-audit heating system it replaced, and can be negative. Not every measure or every home is priced — see the methodology page." data-method="m-retrocost">?</button>
+      <div id="retro-band-seg" role="group" aria-label="Cost estimate band" style="display:flex;gap:6px">
+        <button type="button" class="sort-btn" data-band="0" onclick="setRetroBand(0)">Low (p10)</button>
+        <button type="button" class="sort-btn active" data-band="1" onclick="setRetroBand(1)">Mid (p50)</button>
+        <button type="button" class="sort-btn" data-band="2" onclick="setRetroBand(2)">High (p90)</button>
+      </div>
+    </div>
+    <div class="eui-row" id="retro-cost-kpis"></div>
+    <div id="retro-cost-measures"></div>
+    <p class="note" id="retro-cost-note"><span class="cap-simple">Estimated extra cost of the efficient choice over what a homeowner would likely have done anyway, priced against a US cost database (2023 USD, no CAD conversion) — a proof-of-concept estimate, not a quote.</span><span class="cap-advanced">Incremental cost: insulation/air sealing have no business-as-usual (BAU) equivalent, so their figure is the full REMDB cost; windows are the efficient-minus-standard premium; an ASHP is netted against the home's own pre-audit heating system (like-for-like where ERS records it) plus the A/C it replaces, and can be negative. REMDB is 2023 USD from US retail/contractor data — no CAD conversion or Canadian-labour adjustment applied. Payback = incremental cost ÷ this home's annual $ saved (see the Energy bill card above) — flagged low-confidence for Alberta, and for any home whose main pre-retrofit fuel is oil, propane or wood (screening-rate pricing, not per-province data). Not every measure or every home is priced. <a href="#m-retrocost" onclick="openMethodology(event,'m-retrocost')">Full methodology →</a></span></p>
+  </details>
 
   <div class="section-head" id="sec-individual" data-mode="advanced">
     <h2 data-icon="individual">Individual retrofits</h2>
@@ -962,7 +967,8 @@
       <p><strong>AHRI directory enrichment.</strong> The ERS <code>AHRI</code> column carries the AHRI certification number of an installed heat pump but no product details. Every number surfaced on the site is looked up against the AHRI Directory's public search endpoints; current (Appendix M1) rating fields are preferred, with legacy Appendix M values as fallback: brand, model, heating capacities at 47 °F / 17 °F / 5 °F, HSPF2, SEER2/EER2, COP at 5 °F, refrigerant, ENERGY STAR and cold-climate designations, and listing status. <em>Appendix M</em> and <em>Appendix M1</em> are the two versions of the US Department of Energy's test procedure for rating heat pumps and air conditioners (10 CFR Part 430, Subpart B). M1 took effect for equipment manufactured from 2023 and tests at external static pressures closer to real installed ductwork, so it generally reports lower capacities and efficiencies than M did for the same unit — which is also why its efficiency metrics are renamed (HSPF2, SEER2, EER2). The two are not interchangeable, so where a certificate carries both the M1 figures are used and the M values only fill gaps. Numbers that no longer resolve are flagged "Delisted" rather than dropped. The page renders these beside each AHRI number and deep-links to the directory entry.</p>
       <p id="m-prices"><strong>Energy prices (the bill card).</strong> The "Energy bill — $ per year" chart prices each home's modelled energy at current residential rates; no price data comes from the ERS dataset itself. Natural gas tariffs come from the community-maintained <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates</a> repository, which aggregates official utility and regulator rate pages and is re-scraped monthly; each rate we keep carries the originating <code>source_url</code>, so any number can be traced back to the utility that published it. <strong>Electricity tariffs no longer come from that repository</strong>: it was caught giving a Saskatchewan rate (9.28¢/kWh, dated 2025-01-01) about 67% below SaskPower's own published schedule (15.476¢/kWh, effective 2026-02-01) despite being flagged "high confidence," and a forced re-download reproduced the same stale figure. Electricity is now sourced from <a href="https://offgridsolarsystem.ca/blog/Canada-electricity-rates.html" target="_blank" rel="noopener">offgridsolarsystem.ca's rate-aggregation page</a> (dated 2026-07-01) instead — a third-party blog, not a utility-primary source, chosen because it was independently verifiable (it matched SaskPower's own PDF exactly) and gives full national coverage in one place. Only the Saskatchewan figure has actually been cross-checked against a utility source; the rest of the country is carried as-is and flagged, not confirmed — see section H below for the full account. Heating oil comes from <strong>StatCan table 18-10-0001</strong> (monthly average retail price of household heating fuel, ¢/L by city), and heating oil and propane also come from NRCan's <a href="https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm" target="_blank" rel="noopener">Prices by City</a> exports (Furnace Oil and Auto Propane) — that page has no machine-readable endpoint, so those two are a manual re-download step rather than an automated fetch.</p>
       <p>Reduction rules, applied by <code>rates_etl.py</code> (per-city detail for ON/QC/AB) and <code>utility_rates_reference.py</code> (one blended number per province, all provinces): residential tariffs only; the latest <code>effective_date</code> per (utility, tariff) wins; carbon components are excluded because the federal consumer fuel charge went to zero on 2025-04-01; $/GJ converts to $/m³ at 0.03798 GJ/m³ and $/day fixed charges to monthly at ×365/12; a utility offering several residential plans contributes one, time-of-use blended to a single ¢/kWh on the OEB-typical 63/18/19 off/mid/on split. <strong>Alberta is the weak spot</strong>: it is deregulated, so energy and wires are separate bills that must be summed rather than averaged, and the upstream export omits the electricity transmission volumetric charge and the default gas commodity charge outright — screening-grade constants are substituted for both, flagged low confidence, because omitting them would bias AB electricity ~15% low and make AB gas look nearly free. Propane, oil and wood rates are single-province averages throughout and are lower confidence than the electricity and gas tariff figures; the wood rate is one flat national screening ¢/kWh, since no per-species price breakdown exists.</p>
-      <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison.</p>
+      <p><strong>Window-code decoding.</strong> <code>WINDOWCODE</code> is the 6-digit HOT2000 window characterization code; each digit position indexes a lookup table — glazing, coating/tint, gas fill, spacer, window type, frame material. The digit tables are used both to render a readable description and to compare pre vs post codes attribute-by-attribute for the "most common window changes" card. User-defined codes (digits outside the standard tables) are shown raw and excluded from the attribute comparison. The 6 tables, from NRCan's <code>Support.xlsx</code> reference workbook (<code>Python/build_window_lookup.py</code>):</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 14px;margin:.6rem 0 1rem;font-size:12px;line-height:1.6"><div><div style="font-weight:600;margin-bottom:4px">1 — Glazing</div><div><code>1</code> Single (SG)</div><div><code>2</code> Double/double with 1 coat</div><div><code>3</code> Triple/triple with 1 coat</div><div><code>4</code> TG with 2 coatings</div><div><code>5</code> Double Acrylic</div><div><code>6</code> DG + 1 Heat Mirror 66</div><div><code>7</code> DG + 1 Heat Mirror 88</div><div><code>8</code> DG + 12Heat Mirror 88</div></div><div><div style="font-weight:600;margin-bottom:4px">2 — Coating/tint</div><div><code>0</code> Clear</div><div><code>1</code> Low-E .04 (soft)</div><div><code>2</code> Low-E .10 (soft)</div><div><code>3</code> Low-E .20 (hard1)</div><div><code>4</code> Low-E .35 (hard2)</div><div><code>5</code> Tint</div><div><code>6</code> Tint + Low-E .04</div><div><code>7</code> Tint + Low-E .10</div><div><code>8</code> Tint + Low-E .20</div><div><code>9</code> Tint + Low-E .35</div><div><code>A</code> Reflective</div><div><code>B</code> Reflective + tint</div></div><div><div style="font-weight:600;margin-bottom:4px">3 — Fill</div><div><code>0</code> 13 mm air</div><div><code>1</code> 9 mm air</div><div><code>2</code> 6 mm air</div><div><code>3</code> 13 mm Argon</div><div><code>4</code> 9 mm Argon</div><div><code>5</code> 6 mm Argon</div><div><code>6</code> 9 mm Krypton</div></div><div><div style="font-weight:600;margin-bottom:4px">4 — Spacer</div><div><code>0</code> Metal</div><div><code>1</code> Fused Glass</div><div><code>2</code> Insulating</div></div><div><div style="font-weight:600;margin-bottom:4px">5 — Window type</div><div><code>0</code> Picture</div><div><code>1</code> Hinged</div><div><code>2</code> Slider with sash</div><div><code>3</code> Semi-sash slider</div><div><code>4</code> Patio door</div><div><code>5</code> Skylight</div></div><div><div style="font-weight:600;margin-bottom:4px">6 — Frame</div><div><code>0</code> Aluminum</div><div><code>1</code> Aluminum Thermal Break</div><div><code>2</code> Wood</div><div><code>3</code> Aluminum Clad Wood</div><div><code>4</code> Vinyl</div><div><code>5</code> Reinforced Vinyl</div></div></div>
       <p><strong>Map boundaries.</strong> FSA polygons come from Statistics Canada's 2021 cartographic boundary file (<code>lfsa000b21a_e</code>), inverse-projected from the Statistics Canada Lambert conformal conic to WGS84 geographic coordinates and simplified with an area-scaled tolerance (small urban FSAs keep near-full detail; very large rural FSAs are simplified aggressively) into one GeoJSON per province.</p>
       <p><strong>Map colour scale.</strong> Shapes are filled on a diverging scale centred on 0% median saving (green = saved energy, red = used more), or a sequential navy scale by audited-home count when no FSA in view has a saving figure. Both use a gamma-corrected mix (<code>t^0.55</code> rather than a straight linear blend from the pale base colour) so low-magnitude areas — most of a typical province's range — separate visually instead of bunching near-white; the legend bar is sampled from the same function so it matches the fill exactly. Each shape additionally prints its own median saving % at its bounding-box centre, sized off that shape's own footprint (small FSAs below a legibility floor are left unlabelled rather than showing an unreadable smudge).</p>
 
@@ -1020,43 +1026,43 @@
   <div class="sources-grid">
     <div class="source-item">
       <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a>
-      <p>Every retrofit on this page. Anonymised household evaluations (type <code>D</code> initial and <code>E</code> follow-up), matched into before/after pairs.</p>
+      <p title="Every retrofit on this page. Anonymised household evaluations (type D initial and E follow-up), matched into before/after pairs.">Every retrofit on this page. Anonymised household evaluations (type <code>D</code> initial and <code>E</code> follow-up), matched into before/after pairs.</p>
     </div>
     <div class="source-item">
       <a href="https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/index.cfm?Lang=E" target="_blank" rel="noopener">Statistics Canada 2021 Census Profile ↗</a>
-      <p>Neighbourhood housing stock at FSA geography (catalogue 98-401-X2021013): dwelling counts, type, tenure, condition, period of construction.</p>
+      <p title="Neighbourhood housing stock at FSA geography (catalogue 98-401-X2021013): dwelling counts, type, tenure, condition, period of construction.">Neighbourhood housing stock at FSA geography (catalogue 98-401-X2021013): dwelling counts, type, tenure, condition, period of construction.</p>
     </div>
     <div class="source-item">
       <a href="https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index-eng.cfm" target="_blank" rel="noopener">StatCan FSA boundary files ↗</a>
-      <p>The shapes behind the map — 2021 cartographic boundary file <code>lfsa000b21a_e</code>, reprojected from Statistics Canada Lambert to lat/lon.</p>
+      <p title="The shapes behind the map — 2021 cartographic boundary file lfsa000b21a_e, reprojected from Statistics Canada Lambert to lat/lon.">The shapes behind the map — 2021 cartographic boundary file <code>lfsa000b21a_e</code>, reprojected from Statistics Canada Lambert to lat/lon.</p>
     </div>
     <div class="source-item">
       <a href="https://www.ahridirectory.org/" target="_blank" rel="noopener">AHRI Directory of Certified Product Performance ↗</a>
-      <p>Certified heat-pump performance behind the equipment detail, looked up by AHRI reference number.</p>
+      <p title="Certified heat-pump performance behind the equipment detail, looked up by AHRI reference number.">Certified heat-pump performance behind the equipment detail, looked up by AHRI reference number.</p>
     </div>
     <div class="source-item">
       <a href="https://apps.cer-rec.gc.ca/Conversion/conversion-tables.aspx" target="_blank" rel="noopener">CER / NRCan energy conversion factors ↗</a>
-      <p>Fuel energy contents used to put natural gas, oil, propane and wood on one kWh basis. See Methodology B for the exact constants.</p>
+      <p title="Fuel energy contents used to put natural gas, oil, propane and wood on one kWh basis. See Methodology B for the exact constants.">Fuel energy contents used to put natural gas, oil, propane and wood on one kWh basis. See Methodology B for the exact constants.</p>
     </div>
     <div class="source-item">
       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap ↗</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO ↗</a>
-      <p>Basemap tiles under the map.</p>
+      <p title="Basemap tiles under the map.">Basemap tiles under the map.</p>
     </div>
     <div class="source-item">
       <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">MaxPr1me/canada-utility-rates ↗</a>
-      <p>Community-maintained natural gas tariffs behind the "Energy bill" chart, re-scraped monthly from official utility and regulator rate pages.</p>
+      <p title="Community-maintained natural gas tariffs behind the &quot;Energy bill&quot; chart, re-scraped monthly from official utility and regulator rate pages.">Community-maintained natural gas tariffs behind the "Energy bill" chart, re-scraped monthly from official utility and regulator rate pages.</p>
     </div>
     <div class="source-item">
       <a href="https://offgridsolarsystem.ca/blog/Canada-electricity-rates.html" target="_blank" rel="noopener">offgridsolarsystem.ca — Canada electricity rates ↗</a>
-      <p>Electricity tariffs behind the "Energy bill" chart, replacing the prior source after it was caught giving a Saskatchewan rate ~67% below SaskPower's own published schedule. National coverage, but only the Saskatchewan figure has been independently cross-checked.</p>
+      <p title="Electricity tariffs behind the &quot;Energy bill&quot; chart, replacing the prior source after it was caught giving a Saskatchewan rate ~67% below SaskPower's own published schedule. National coverage, but only the Saskatchewan figure has been independently cross-checked.">Electricity tariffs behind the "Energy bill" chart, replacing the prior source after it was caught giving a Saskatchewan rate ~67% below SaskPower's own published schedule. National coverage, but only the Saskatchewan figure has been independently cross-checked.</p>
     </div>
     <div class="source-item">
       <a href="https://www.nrel.gov/buildings/remdb" target="_blank" rel="noopener">PNNL/DOE National Residential Efficiency Measures Database ↗</a>
-      <p>Per-measure cost regressions behind the proof-of-concept retrofit-cost and payback estimate (vintage 2024.12.23, 2023 USD, US data). See Methodology H.</p>
+      <p title="Per-measure cost regressions behind the proof-of-concept retrofit-cost and payback estimate (vintage 2024.12.23, 2023 USD, US data). See Methodology H.">Per-measure cost regressions behind the proof-of-concept retrofit-cost and payback estimate (vintage 2024.12.23, 2023 USD, US data). See Methodology H.</p>
     </div>
     <div class="source-item">
       <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" target="_blank" rel="noopener">ECCC emission factors &amp; reference values ↗</a>
-      <p>The official 2026 electricity and combustion factors behind the calculated GHG bases. See Methodology J.</p>
+      <p title="The official 2026 electricity and combustion factors behind the calculated GHG bases. See Methodology J.">The official 2026 electricity and combustion factors behind the calculated GHG bases. See Methodology J.</p>
     </div>
   </div>
 </section>
