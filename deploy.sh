@@ -70,7 +70,10 @@ done
 # file -- current branch/HEAD/working tree are never touched, so there is
 # nothing for a later `git checkout` to disturb (see note above; this script
 # intentionally contains no `git checkout` at all anymore).
-IDX="$(mktemp)"
+# `mktemp -u` only reserves a NAME, not a file: git initializes a fresh index
+# the first time GIT_INDEX_FILE is written to, and chokes ("index file
+# smaller than expected") if the path already exists as an empty file.
+IDX="$(mktemp -u)"
 trap 'rm -f "$IDX"' EXIT
 export GIT_INDEX_FILE="$IDX"
 
