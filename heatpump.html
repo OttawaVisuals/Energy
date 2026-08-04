@@ -246,6 +246,54 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px;margin:.4rem 0 .8rem}
 .method-body a{color:var(--blue)}
 
+/* ── Heat-pump selection: the underlying data (nested collapsible) ── */
+.method-sub{background:var(--cream);border:1px solid var(--border);border-radius:var(--r-md);margin:.9rem 0 1.1rem;overflow:hidden}
+.method-sub summary{cursor:pointer;list-style:none;padding:.7rem .95rem;font-size:13.5px;font-weight:600;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.method-sub summary::-webkit-details-marker{display:none}
+.method-sub summary::after{content:'+';font-size:19px;color:var(--amber);font-weight:400;line-height:1}
+.method-sub[open]>summary::after{content:'\2013'}
+.method-sub summary:hover{color:var(--amber)}
+.method-sub-body{padding:.2rem .95rem 1rem;font-size:13.5px;line-height:1.6;color:var(--text)}
+.method-sub .method-sub{background:var(--white);margin:.8rem 0 0}
+.tv-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem 1rem;margin:.7rem 0}
+.tv-cw{position:relative;width:100%;height:340px}
+.tv-cw.tv-cw-tall{height:260px}
+.tv-legend{display:flex;flex-wrap:wrap;gap:5px 16px;margin-top:10px;font-size:12px}
+.tv-lg{display:flex;align-items:flex-start;gap:6px;cursor:pointer;user-select:none;max-width:340px}
+.tv-lg input{margin-top:3px}
+.tv-sw{width:11px;height:11px;border-radius:3px;flex:none;margin-top:2px}
+.tv-lg em{display:block;color:var(--muted);font-style:normal;font-size:11px}
+.tv-lg .tv-src{display:block;color:var(--light);font-size:10.5px}
+.tv-lg .tv-flags{margin:2px 0 0;padding-left:14px;color:#9A6B2E;font-size:10.5px;line-height:1.5}
+.tv-ctl{font-size:12.5px;color:var(--muted);margin-top:8px}
+.tv-btn{font:inherit;font-size:12.5px;padding:4px 10px;margin-left:6px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer}
+.tv-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tv-band-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12.5px}
+.tv-band{display:flex;align-items:center;gap:6px;cursor:pointer}
+.tv-band input{margin:0}
+.tv-band em{color:var(--muted);font-style:normal}
+.tv-band .tv-sw{border-radius:50%}
+.tv-tblwrap{overflow-x:auto;margin-top:.6rem}
+#tv-spec-tbl{border-collapse:collapse;font-size:12px;white-space:nowrap}
+#tv-spec-tbl th,#tv-spec-tbl td{border:1px solid var(--border);padding:3px 8px;text-align:right}
+#tv-spec-tbl thead th{background:var(--surface);text-align:center}
+#tv-spec-tbl td:first-child,#tv-spec-tbl th:first-child{text-align:center;background:var(--surface);font-weight:600}
+#tv-spec-tbl td.pub{background:#FFF4D6;font-weight:600}
+#tv-spec-tbl td.src{background:#E7F1FC;font-weight:600}
+#tv-spec-tbl td.blank{color:#C3CCD4}
+.tv-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:3px}
+.tv-swatch.pub{background:#FFF4D6;border:1px solid #E8C86A}
+.tv-swatch.src{background:#E7F1FC;border:1px solid #A9CBEA}
+.custom-hp-card{margin-top:.5rem}
+#custom-hp-rows{border-collapse:collapse;font-size:12.5px;width:100%}
+#custom-hp-rows th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;padding:2px 4px}
+#custom-hp-rows td{padding:2px 3px}
+#custom-hp-rows input{width:100%;font:inherit;font-size:12.5px;padding:.25rem .35rem;border:1px solid var(--border);border-radius:5px;box-sizing:border-box}
+#custom-hp-rows button{font-size:12px;padding:.15rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--white);cursor:pointer;color:var(--muted)}
+.custom-hp-add{font-size:12px;margin-top:5px;padding:.25rem .55rem;border:1px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--muted)}
+.custom-hp-fit{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+.custom-hp-err{font-size:11.5px;color:var(--red);margin-top:5px}
+
 footer{max-width:1280px;margin:1.25rem auto 0;padding:1rem 1.25rem 2rem;font-size:12px;color:var(--light);line-height:1.6}
 footer a{color:var(--muted)}
 .loading-msg{text-align:center;color:var(--muted);padding:2.5rem 1rem;font-size:14px}
@@ -334,9 +382,10 @@ footer a{color:var(--muted)}
         <option value="high">Premium cold-climate</option>
         <option value="mid">Mid-range</option>
         <option value="low">Value</option>
+        <option value="custom">My own data</option>
       </select>
     </div>
-    <div class="ctrl">
+    <div class="ctrl" id="band-ctrl">
       <label for="in-band">Heat pump size</label>
       <select id="in-band">
         <option value="&lt;18k">&lt;18,000 Btu/h (≈&lt;5.3 kW)</option>
@@ -344,6 +393,17 @@ footer a{color:var(--muted)}
         <option value="30-42k">30,000–42,000 Btu/h (≈8.8–12.3 kW)</option>
       </select>
       <span class="ctrl-hint" id="band-hint"></span>
+    </div>
+
+    <div class="ctrl custom-hp-card" id="custom-hp-card" style="display:none;grid-column:1/-1">
+      <label>Your heat pump's capacity &amp; COP curve <button type="button" class="info-btn" id="custom-hp-info" aria-label="How is this used?" data-info="At least 3 points, colder to warmer. The warmest point's capacity becomes the rated (47°F) basis; the coldest point becomes the lockout temperature (hard stop below it, same as the tier cutoffs). Values are linearly interpolated between your points and held flat beyond them — the same rule every other curve on this page uses. This is a screening input, not a substitute for your unit's real datasheet.">?</button></label>
+      <table id="custom-hp-rows">
+        <thead><tr><th style="width:30%">Outdoor temp (°C)</th><th style="width:32%">Capacity (Btu/h)</th><th style="width:24%">COP</th><th></th></tr></thead>
+        <tbody id="custom-hp-rows-body"></tbody>
+      </table>
+      <button type="button" class="custom-hp-add" id="custom-hp-add">+ add a point</button>
+      <div class="custom-hp-fit" id="custom-hp-fit"></div>
+      <div class="custom-hp-err" id="custom-hp-err"></div>
     </div>
 
     <div class="helper-panel" id="arch-helper"></div>
@@ -713,7 +773,7 @@ footer a{color:var(--muted)}
 
       <h4 id="m-equip">Heat-pump performance</h4>
       <p>Tier × size selects exactly one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands — &lt;18k, 18–30k, 30–42k Btu/h) — no scaling, no averaging, no interpolation between models. Capacity and COP versus outdoor temperature are digitized from that unit's own <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output, converted to SI and normalized on its AHRI-certified rated (47 °F) capacity. The equipment-curve chart and the calculation walkthrough name the exact brand/model and AHRI number in play.</p>
-      <div class="caveats"><b>Below-lockout is now a fixed, assumed hard-stop by tier — not the unit's own published minimum.</b> Real published minimums for the 9 certified units span −15 to −30 °C, scattered by model rather than cleanly by tier. Rather than expose a per-unit lockout plus a hard-stop/continue-derated toggle (the previous version's approach), this tool now <b>assumes</b> a single round number per tier — low −10 °C, mid −20 °C, high −25 °C — and hard-stops there: output is zero below it, no derating. This is a simplification in the spirit of the tiers themselves (see “Don't overcomplicate” in the project's working notes): easier to state and defend than a per-unit figure, at the cost of not reflecting the specific selected model's own real cold-weather floor. The <b>switch-over temperature</b> control (Advanced → Backup heat) is separate: it decides when a dual-fuel system <i>chooses</i> to hand off to its furnace, and can be set warmer than the tier cut-off; below the tier cut-off the heat pump can't run regardless of that setting.</div>
+      <div class="caveats"><b>Below-lockout is now a fixed, assumed hard-stop by tier — not the unit's own published minimum.</b> Real published minimums for the 9 certified units span −15 to −30 °C, scattered by model rather than cleanly by tier. Rather than expose a per-unit lockout plus a hard-stop/continue-derated toggle (the previous version's approach), this tool now <b>assumes</b> a single round number per tier — low −15 °C, mid −20 °C, high −25 °C — and hard-stops there: output is zero below it, no derating. This is a simplification in the spirit of the tiers themselves (see “Don't overcomplicate” in the project's working notes): easier to state and defend than a per-unit figure, at the cost of not reflecting the specific selected model's own real cold-weather floor. <b>Open question, not a settled result:</b> is −15/−20/−25 °C the right set of cutoffs? These are round-number placeholders chosen to sit inside each tier's real published range, not fitted to it — the scatter/curve data in “Heat-pump selection: the underlying data” below is what any revision of these numbers would be argued from. The <b>switch-over temperature</b> control (Advanced → Backup heat) is separate: it decides when a dual-fuel system <i>chooses</i> to hand off to its furnace, and can be set warmer than the tier cut-off; below the tier cut-off the heat pump can't run regardless of that setting.</div>
       <div class="caveats">A <b>sizing sweep</b> card re-runs the whole year at 40–160% of your design load, synthetically scaling the selected unit's own capacity curve — a hypothetical resizing for sensitivity, not a menu of purchasable sizes (real units come only in the 9 discrete tier × band combinations above). It has <b>no short-cycling model</b>, so it <i>understates</i> the penalty of oversizing (short-cycling and worse part-load efficiency) — oversizing looks nearly free on that chart but isn't in a real home. A quick check of ERS retrofit records (installed-capacity vs. audited design heat loss for homes with a certified heat pump) found real installs scattered widely around design load — median ratio ≈0.66, only 24% within ±20% — so no single "correctly sized" ratio is implied or suggested by this tool.</div>
       <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — premium-tier units tend to hold capacity better and lock out colder than value-tier units, but this varies unit to unit; check the specific model named for your selection rather than assuming tier behaviour in general.</div>
 
@@ -730,6 +790,46 @@ footer a{color:var(--muted)}
       <div class="caveats"><b>Ratings are measured on two different bases, and this matters.</b> The 5 °F figures are taken at <i>maximum</i> compressor output; the 47 °F and 17 °F figures are <i>rated</i> (full-load) points. That is why nearly half of all certified models report a 5 °F capacity <i>above</i> their 17 °F capacity — it is correct, not an error, and filtering it out would discard roughly 180,000 records of valid data. Because both bucketing numbers come from that same maximum-output test, an optimistically reported unit moves on both axes at once.</div>
       <div class="caveats"><b>What the certificate cannot tell us.</b> AHRI publishes capacity at three temperatures but COP at only one, and no compressor lock-out temperature — not enough to simulate a heating season. So certification is used only to <i>choose</i> the representative units; their actual capacity-and-power curves come from each unit's <b>published manufacturer datasheet</b>. The better submittals carry a full <i>extended ratings</i> table — for the most-installed unit in this dataset (GREE GUD36W/A-D(U)) that is <b>23 operating points from −30 °C to +24 °C, each giving capacity, COP and electrical power draw</b>, plus the published heating lock-out of −30 °C. Where a manufacturer publishes no such table, the <b>NEEP cold-climate listing</b> is used as the fallback, cited per model. Where a datasheet and its certificate disagree — for that GREE unit, 0.79 vs 0.80 capacity maintenance and COP 1.83 vs 1.80 — the certificate governs which bucket a unit sits in and the datasheet governs the simulation, so units cannot silently drift between buckets when better data arrives.</div>
       <div class="caveats"><b>Coverage.</b> About 28% of records are for models with no certified 5 °F rating at all and cannot be bucketed. That group is <b>99% discontinued or delisted</b> and none of it carries a cold-climate designation — it is genuinely older equipment that predates the rating, not missing data we could go and find. Counts throughout are <b>EnerGuide record appearances, not installed units</b>: a home audited twice counts twice, and retrofit and new-construction records are pooled. It is a sound measure of popularity and a poor headcount.</div>
+
+      <details class="method-sub" id="tv-details">
+        <summary>Heat-pump selection: the underlying data — tier scatter, equipment curves &amp; spec-sheet table</summary>
+        <div class="method-sub-body" id="tv-body">
+          <p>Every AHRI-certified unit that appears in the EnerGuide/ERS retrofit data, positioned by cold-climate efficiency (COP at 5 °F) and capacity retention (capacity maintenance), sized by how often it was actually installed — the same view used to place the <b>3 performance tiers × 3 capacity bands</b> above. <b>★</b> marks the 9 cells actually simulated by this tool.</p>
+          <div class="tv-card">
+            <div class="tv-cw"><canvas id="tv-scatter"></canvas></div>
+            <div class="tv-band-legend" id="tv-band-legend"></div>
+            <p class="tv-ctl" id="tv-gate"></p>
+            <p class="tv-ctl">Bubble area ∝ ERS appearances. <button type="button" class="tv-btn" id="tv-dim">Dim non-selected units</button></p>
+          </div>
+
+          <p>Capacity and COP versus outdoor temperature for the 9 simulated units, digitized from each one's own manufacturer datasheet (mostly the <i>maximum</i>-output column — see the spec table below for where that diverges from AHRI's <i>rated</i> figure). Solid = interpolated between published points; dashed = extrapolated. Toggle units in the legend below both charts.</p>
+          <div class="tv-card">
+            <div class="tv-cw tv-cw-tall"><canvas id="tv-cap-chart"></canvas></div>
+          </div>
+          <div class="tv-card">
+            <div class="tv-cw tv-cw-tall"><canvas id="tv-cop-chart"></canvas></div>
+            <div class="tv-legend" id="tv-unit-legend"></div>
+          </div>
+
+          <details class="method-sub">
+            <summary>Spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−30 °C to 20 °C)</summary>
+            <div class="method-sub-body">
+              <p>One row per whole-degree C. <b>Calc.</b> is the digitized curve above — shaded cells are temperatures where a real datasheet point (not interpolation/extrapolation) rounds to that degree. <b>AHRI</b> is the certificate's two anchors (COP+capacity at max compressor speed, 5 °F; rated capacity, 47 °F). <b>NEEP</b> republishes AHRI's own Min/Rated/Max Heating table at more temperatures — same certificate, not a third-party estimate. Blank cells are not zero — no source publishes a value there.</p>
+              <label class="tv-ctl" style="display:block;margin:.3rem 0 .6rem">Unit: <select id="tv-unit-sel"></select></label>
+              <div class="tv-tblwrap">
+                <table id="tv-spec-tbl">
+                  <thead>
+                    <tr><th rowspan="2">T (°C)</th><th colspan="5">COP</th><th colspan="5">Capacity (Btu/h)</th></tr>
+                    <tr><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th></tr>
+                  </thead>
+                  <tbody id="tv-spec-tbl-body"></tbody>
+                </table>
+              </div>
+              <p class="tv-ctl"><span class="tv-swatch pub"></span> from a digitized datasheet point &middot; <span class="tv-swatch src"></span> from AHRI/NEEP certified data</p>
+            </div>
+          </details>
+        </div>
+      </details>
 
       <h4 id="m-grid">Grid emissions — the biggest choice</h4>
       <p>Hourly grid intensity comes from a temperature × hour-of-day × season "surface" built from 2019–2026 IESO / AESO / Hydro-Québec generation, calibrated against published provincial intensities (within ±6%). It is decomposed as <code>EF = annual_level × shape</code>, so the shape (weather/time pattern) is applied on top of the most recent complete year's level (the current grid).</p>
@@ -1402,13 +1502,15 @@ const ARCH_LABEL={
   post_2005_detached:'Post-2005 detached',
   townhouse_row:'Townhouse / row',
 };
-const TIER_LABEL={high:'Premium cold-climate',mid:'Mid-range',low:'Value'};
+const TIER_LABEL={high:'Premium cold-climate',mid:'Mid-range',low:'Value',custom:'My own data'};
 const TIER_BLURB={
   high:'Holds capacity best through deep cold and locks out the coldest — the closest thing to "backup rarely needed" in this data.',
   mid:'Middle of the pack on cold-weather capacity retention and lock-out temperature.',
   low:'Capacity fades fastest through the cold and locks out warmest of the three tiers.',
+  custom:'Enter at least 3 outdoor-temperature points (capacity + COP) below and this tool simulates your own equipment instead of one of the 9 tier cells.',
 };
 const BAND_LABEL={'<18k':'<18,000 Btu/h','18-30k':'18,000–30,000 Btu/h','30-42k':'30,000–42,000 Btu/h'};
+function bandLabelText(){return state.tier==='custom'?'your entered curve':BAND_LABEL[state.band];}
 const FUEL_LABEL={gas:'natural gas',oil:'oil',electric:'electricity',propane:'propane'};
 const EFF_DEFAULT={gas:92,oil:83,electric:100,propane:90};
 const EFF_RANGE={gas:[70,98],oil:[60,90],electric:[95,100],propane:[75,96]};
@@ -1509,13 +1611,20 @@ const state={
   lockout:-8, efBasis:'marginal', weatherYear:'tmy', refrig:'r410a', leakRate:2.0, methane:1.0, lineloss:5.0,
   plan:null, // null = city's default electricity plan
   hourlyRange:'all', sweepMetric:'ghg',
+  // "My own data" tier: user-entered (outdoor °C, capacity Btu/h, COP) points,
+  // colder to warmer. Starter values are a plausible mid-tier shape, not a
+  // recommendation -- see buildCustomCell().
+  customPoints:[{t:-15,cap:9000,cop:1.8},{t:-8,cap:11000,cop:2.3},{t:8,cap:12000,cop:3.4}],
 };
+let CUSTOM_CELL=null;
+const CUSTOM_CELL_PLACEHOLDER={brand_model:'Custom (no valid curve yet)',ahri:null,source:'user-entered',flags:[],w:null,rank:null,
+  rated_cap_47f_btuh:10000,min_op_temp_C:-15,curve:{T_C:[-15,20],cap_frac_of_rated47:[0.5,0.5],COP:[2.0,2.0]}};
 // Below-lockout behaviour is a fixed hard-stop assumption by tier (replaces
 // the old per-user hard-stop/continue-derated toggle): the heat pump's own
 // published minimum operating temperature is assumed, not looked up per
-// unit -- low -10 C, mid -20 C, high -25 C. Methane's GWP is likewise fixed
+// unit -- low -15 C, mid -20 C, high -25 C. Methane's GWP is likewise fixed
 // (100-yr, AR5 = 28) rather than user-adjustable -- see methodology.
-const TIER_MINOP={low:-10, mid:-20, high:-25};
+const TIER_MINOP={low:-15, mid:-20, high:-25};
 // Home-weighted median design heat loss (kW) across a city's 4 archetype
 // vintages -- the default seed for the design-load slider. Deliberately the
 // lightweight 4-point version, not a full ERS population histogram.
@@ -1650,7 +1759,7 @@ function buildInputs(){
   $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
   $('in-eff').addEventListener('input',e=>{state.eff=+e.target.value;$('eff-val').textContent=state.eff+' %';recompute();});
-  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];updateLockoutInfo();recompute();});
+  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];syncCustomTierUI();$('band-hint').textContent=state.tier==='custom'?'':cellFor(state.tier,state.band).brand_model;updateLockoutInfo();recompute();});
   $('in-band').addEventListener('change',e=>{state.band=e.target.value;$('band-hint').textContent=cellFor(state.tier,state.band).brand_model;recompute();});
 
   $('in-backup').addEventListener('change',e=>{
@@ -1694,7 +1803,8 @@ function buildInputs(){
   applyFuel();
   syncEfSeg();
   $('tier-info').dataset.info=TIER_BLURB[state.tier];
-  $('band-hint').textContent=cellFor(state.tier,state.band).brand_model;
+  syncCustomTierUI();
+  $('band-hint').textContent=state.tier==='custom'?'':cellFor(state.tier,state.band).brand_model;
   syncBackupControl();
   updateLockoutInfo();
   $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
@@ -1709,9 +1819,12 @@ function fmtSigned(n){return (n<0?'−':'')+Math.abs(n);}
 // interact: below the tier's assumed cut-off the heat pump can't run at
 // all, regardless of where the switch-over slider is set.
 function updateLockoutInfo(){
-  const minOp=TIER_MINOP[state.tier];
+  const minOp=tierMinOp();
   const btn=$('lockout-info');
-  if(btn)btn.dataset.info=`Below this, the heat pump switches off and the backup carries the load. Below ${fmtSigned(minOp)} °C we assume this tier's heat pump physically can't run (a fixed published-minimum assumption by tier — low −10 °C, mid −20 °C, high −25 °C) — the backup covers 100% of the load there regardless of where this slider is set.`;
+  const basis=state.tier==='custom'
+    ? `the coldest point in your own entered curve`
+    : `a fixed published-minimum assumption by tier — low −15 °C, mid −20 °C, high −25 °C`;
+  if(btn)btn.dataset.info=`Below this, the heat pump switches off and the backup carries the load. Below ${fmtSigned(minOp)} °C we assume this tier's heat pump physically can't run (${basis}) — the backup covers 100% of the load there regardless of where this slider is set.`;
 }
 function syncMethanePresets(){
   document.querySelectorAll('#methane-presets button').forEach(b=>
@@ -1933,18 +2046,141 @@ function syncBackupControl(){
 // Build engine opts + run
 // ==========================================================================
 // Tier x size band always pins exactly one of the 9 real cell curves --
-// no scaling, no interpolation.
+// no scaling, no interpolation. tier==='custom' returns the synthesized
+// curve built from the user's own entered points (buildCustomCell()),
+// or a flat placeholder if the user hasn't entered a valid curve yet.
 function cellFor(tier,band){
+  if(tier==='custom')return CUSTOM_CELL||CUSTOM_CELL_PLACEHOLDER;
   return CELL_CURVES.cells[tier+'_'+band];
 }
 // The unit's own published minimum operating temperature (per real
 // datasheet) is overridden with a fixed hard-stop assumption by tier --
 // see TIER_MINOP -- rather than the previous per-unit value + user-chosen
-// hard-stop/continue-derated toggle.
+// hard-stop/continue-derated toggle. For tier==='custom' the lockout is the
+// coldest point the user entered (there's no published minimum to assume).
+function tierMinOp(){
+  return state.tier==='custom' ? cellFor('custom').min_op_temp_C : TIER_MINOP[state.tier];
+}
 function hpCurveConfig(){
   const cell=cellFor(state.tier,state.band);
-  return {curve:cell.curve, minOp:TIER_MINOP[state.tier], ratedCap_kW:cell.rated_cap_47f_btuh/3412};
+  return {curve:cell.curve, minOp:tierMinOp(), ratedCap_kW:cell.rated_cap_47f_btuh/3412};
 }
+
+// ==========================================================================
+// "My own data": build a tier-cell-shaped curve object from user-entered
+// (T, capacity, COP) points -- same interface every other cell in
+// hp_cell_curves.json has (curve.T_C / cap_frac_of_rated47 / COP), so it
+// plugs into hpCurveConfig()/cellFor() with no other engine changes.
+//   - warmest point's capacity -> the rated-47F normalization basis
+//   - coldest point -> the lockout (min_op_temp_C): hard stop below it,
+//     same rule as the tier cutoffs -- there is no published minimum to
+//     fall back on for equipment we don't know.
+//   - interp() (used everywhere else) already clamps flat at both ends,
+//     so no extra extrapolation logic is needed here.
+// ==========================================================================
+function quadR2(xs,ys){
+  // Least-squares quadratic fit y=a+bx+cx^2, then R^2 of that fit against
+  // the points -- a DIAGNOSTIC only (is a smooth curve consistent with what
+  // you entered?), not what's simulated. Needs >=4 points for a meaningful
+  // residual (3 points + 3 coefficients fits exactly, R^2 trivially 1).
+  const n=xs.length;
+  if(n<4)return null;
+  // normal equations for [1,x,x^2] basis
+  let Sx=0,Sx2=0,Sx3=0,Sx4=0,Sy=0,Sxy=0,Sx2y=0;
+  for(let i=0;i<n;i++){
+    const x=xs[i],y=ys[i],x2=x*x;
+    Sx+=x;Sx2+=x2;Sx3+=x2*x;Sx4+=x2*x2;Sy+=y;Sxy+=x*y;Sx2y+=x2*y;
+  }
+  const A=[[n,Sx,Sx2],[Sx,Sx2,Sx3],[Sx2,Sx3,Sx4]], b=[Sy,Sxy,Sx2y];
+  // 3x3 Gaussian elimination with partial pivoting
+  for(let col=0;col<3;col++){
+    let piv=col;
+    for(let r=col+1;r<3;r++)if(Math.abs(A[r][col])>Math.abs(A[piv][col]))piv=r;
+    if(Math.abs(A[piv][col])<1e-12)return null;
+    [A[col],A[piv]]=[A[piv],A[col]]; [b[col],b[piv]]=[b[piv],b[col]];
+    for(let r=col+1;r<3;r++){
+      const f=A[r][col]/A[col][col];
+      for(let c=col;c<3;c++)A[r][c]-=f*A[col][c];
+      b[r]-=f*b[col];
+    }
+  }
+  const coef=[0,0,0];
+  for(let r=2;r>=0;r--){
+    let s=b[r];
+    for(let c=r+1;c<3;c++)s-=A[r][c]*coef[c];
+    coef[r]=s/A[r][r];
+  }
+  const meanY=Sy/n;
+  let ssRes=0,ssTot=0;
+  for(let i=0;i<n;i++){
+    const x=xs[i],pred=coef[0]+coef[1]*x+coef[2]*x*x;
+    ssRes+=(ys[i]-pred)**2; ssTot+=(ys[i]-meanY)**2;
+  }
+  return ssTot<1e-9?null:Math.max(0,1-ssRes/ssTot);
+}
+function buildCustomCell(){
+  const rows=state.customPoints
+    .filter(r=>Number.isFinite(r.t)&&Number.isFinite(r.cap)&&Number.isFinite(r.cop)&&r.cap>0&&r.cop>0)
+    .sort((a,b)=>a.t-b.t);
+  const errEl=$('custom-hp-err'), fitEl=$('custom-hp-fit');
+  // dedupe equal T (keep the last entered)
+  const dedup=[];
+  for(const r of rows){
+    if(dedup.length&&dedup[dedup.length-1].t===r.t)dedup[dedup.length-1]=r;
+    else dedup.push(r);
+  }
+  if(dedup.length<3){
+    if(errEl)errEl.textContent=`Enter at least 3 valid points (currently ${dedup.length}) to build a curve.`;
+    if(fitEl)fitEl.textContent='';
+    CUSTOM_CELL=null;
+    return;
+  }
+  if(errEl)errEl.textContent='';
+  const ratedCap=dedup[dedup.length-1].cap; // warmest point = rated-47F basis
+  CUSTOM_CELL={
+    brand_model:'Custom (user-entered)', ahri:null, source:'user-entered', flags:[], w:null, rank:null,
+    rated_cap_47f_btuh:ratedCap, min_op_temp_C:dedup[0].t,
+    curve:{T_C:dedup.map(r=>r.t), cap_frac_of_rated47:dedup.map(r=>r.cap/ratedCap), COP:dedup.map(r=>r.cop)},
+  };
+  const r2cap=quadR2(dedup.map(r=>r.t),dedup.map(r=>r.cap));
+  const r2cop=quadR2(dedup.map(r=>r.t),dedup.map(r=>r.cop));
+  if(fitEl){
+    fitEl.textContent = r2cap===null
+      ? 'Add a 4th point to see a fit-quality (R²) check.'
+      : `Fit-quality check (diagnostic only — the simulation itself uses straight-line interpolation between your points, not this fitted curve): a smooth quadratic through your points explains capacity R² = ${r2cap.toFixed(2)}, COP R² = ${r2cop.toFixed(2)}. Well below 1 suggests a likely data-entry issue or a genuinely non-smooth unit.`;
+  }
+}
+function renderCustomRows(){
+  const body=$('custom-hp-rows-body');
+  body.innerHTML=state.customPoints.map((r,i)=>`<tr>
+    <td><input type="number" step="1" value="${r.t}" data-i="${i}" data-f="t"></td>
+    <td><input type="number" step="100" min="1" value="${r.cap}" data-i="${i}" data-f="cap"></td>
+    <td><input type="number" step="0.1" min="0.1" value="${r.cop}" data-i="${i}" data-f="cop"></td>
+    <td><button type="button" data-rm="${i}" aria-label="Remove point">✕</button></td>
+  </tr>`).join('');
+  body.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{
+    const i=+inp.dataset.i, f=inp.dataset.f, v=+inp.value;
+    state.customPoints[i][f]=Number.isFinite(v)?v:NaN;
+    buildCustomCell(); updateLockoutInfo(); recompute();
+  });
+  body.querySelectorAll('[data-rm]').forEach(btn=>btn.onclick=()=>{
+    if(state.customPoints.length<=1)return;
+    state.customPoints.splice(+btn.dataset.rm,1);
+    renderCustomRows(); buildCustomCell(); updateLockoutInfo(); recompute();
+  });
+}
+function syncCustomTierUI(){
+  const isCustom=state.tier==='custom';
+  $('band-ctrl').style.display=isCustom?'none':'';
+  $('custom-hp-card').style.display=isCustom?'':'none';
+  if(isCustom&&!CUSTOM_CELL)buildCustomCell();
+}
+$('custom-hp-add').addEventListener('click',()=>{
+  const last=state.customPoints[state.customPoints.length-1];
+  state.customPoints.push({t:(last?last.t:0)+5, cap:last?last.cap:10000, cop:last?last.cop:2.5});
+  renderCustomRows(); buildCustomCell(); updateLockoutInfo(); recompute();
+});
+renderCustomRows();
 function buildOpts(){
   const prov=CITY_PROV[state.city];
   const hc=hpCurveConfig();
@@ -2109,7 +2345,7 @@ function render(res,opts){
     ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
     : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`;
 }
-function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':'value';}
+function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':state.tier==='low'?'value':'custom-data';}
 
 // ---- Calculation walkthrough: the whole chain, live, with numbers plugged in.
 // "Show your work" so the tool can be explained to anyone by hand. Each step's
@@ -2165,7 +2401,7 @@ function renderWalkthrough(res,opts){
     ? `The pump carries <b>${Math.round(hpPct)}%</b> of the year's heat; on the coldest <b>${fmtI(d.backup_hours)}</b> hours the ${hasBackup?FUEL_LABEL[state.backup]+' backup':'unmet portion'} covers the other ${Math.round(bkPct)}%.`
     : `The pump carries the entire load on its own — no backup needed in a typical year.`;
   steps.push(calcStep(2,'How efficiently the heat pump makes that heat',
-    `You picked the <b>${info.label.toLowerCase()}</b> tier at ${BAND_LABEL[state.band]}, modelled on a real certified unit: <b>${info.brand_model}</b> (AHRI ${info.ahri}). A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
+    `${state.tier==='custom'?`You entered your own heat-pump curve: <b>${info.brand_model}</b>.`:`You picked the <b>${info.label.toLowerCase()}</b> tier at ${bandLabelText()}, modelled on a real certified unit: <b>${info.brand_model}</b> (AHRI ${info.ahri}).`} A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
     `electricity = heat ÷ COP\n(each hour uses that hour's COP; ${fmt1(scop)} is the season average)`,
     bkLine));
 
@@ -2541,7 +2777,7 @@ function renderEqChart(opts){
   attachEqHover();
 
   const info=tierCurveInfo();
-  $('eq-sub').textContent=`${info.label} · ${BAND_LABEL[state.band]}`;
+  $('eq-sub').textContent=`${info.label} · ${bandLabelText()}`;
   const cop47=cop[T.findIndex(t=>Math.abs(t-8.33)<0.3)];
   const cop17=cop[T.findIndex(t=>Math.abs(t-(-8.33))<0.3)];
   const flagsHtml=info.flags.length?`<br><b>Caveats from the source datasheet:</b> ${info.flags.join(' · ')}`:'';
@@ -3176,6 +3412,205 @@ function runSelfTest(){
   ck('derate hpDeliv',r.project.diagnostics.hp_delivered_kWh,3.0);ck('derate hpElec',r.project.energy.hp_electricity_kWh,1.5);
   if(fails)console.error('%c[engine self-test] '+fails+'/'+total+' vector(s) FAILED','color:#B33A2E;font-weight:bold');
   else console.log('%c[engine self-test] all '+total+' vectors reproduced ✓ (incl. 2 derated below-lock-out)','color:#1A7A55;font-weight:bold');
+}
+
+// ==========================================================================
+// "Heat-pump selection: the underlying data" -- lazy-loaded scatter/curve/
+// spec-table view inside the assumptions section. Fetches
+// hp_tier_selection.json only when the <details> is first opened, so it
+// costs nothing on a normal page load. See build_hp_tier_selection.py.
+// ==========================================================================
+let TV_DATA=null, TV_LOADED=false, TV_UNIT_IDS=null;
+function tvHexA(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function tvLoad(){
+  if(TV_LOADED)return Promise.resolve(TV_DATA);
+  return fetch(DATA+'hp_tier_selection.json').then(r=>r.json()).then(d=>{
+    TV_DATA=d; TV_UNIT_IDS=Object.keys(d.curves); TV_LOADED=true; return d;
+  });
+}
+document.getElementById('tv-details').addEventListener('toggle',function(){
+  if(this.open && !TV_LOADED){
+    const body=document.getElementById('tv-body');
+    const msg=document.createElement('p');
+    msg.className='tv-ctl'; msg.id='tv-loading'; msg.textContent='Loading…';
+    body.insertBefore(msg,body.firstChild);
+    tvLoad().then(()=>{
+      const el=document.getElementById('tv-loading'); if(el)el.remove();
+      tvRenderScatter(); tvRenderCurves(); tvRenderSpecTable();
+    }).catch(()=>{
+      const el=document.getElementById('tv-loading');
+      if(el)el.textContent='Could not load the underlying data (hp_tier_selection.json).';
+    });
+  }
+});
+
+// ---- scatter (bubble chart: capacity maintenance x COP@5F, r ~ sqrt(appearances)) ----
+let tvScatterChart=null, tvDim=false, tvBandOn=null;
+function tvRenderScatter(){
+  const sc=TV_DATA.scatter;
+  const maxW=Math.max(...sc.pts.map(p=>p.w));
+  const R_MIN=2.2, R_MAX=17;
+  const r=w=>R_MIN+(R_MAX-R_MIN)*Math.sqrt(w/maxW);
+  tvBandOn=new Set(sc.bands.map((_,i)=>i));
+
+  function bandData(i){
+    return sc.pts.filter(p=>p.b===i).map(p=>({x:p.cm,y:p.cop,r:r(p.w),_p:p}));
+  }
+  function bandColors(i){
+    const col=sc.bands[i].colour;
+    return bandData(i).map(d=>tvHexA(col, tvDim && !d._p.sel ? 0.10 : 0.55));
+  }
+  const bandDatasets=sc.bands.map((b,i)=>({
+    label:b.label, data:bandData(i), backgroundColor:bandColors(i),
+    borderWidth:0, _tvBand:i,
+  }));
+  const selData=sc.pts.filter(p=>p.sel).map(p=>({x:p.cm,y:p.cop,r:Math.max(r(p.w),7),_p:p}));
+  const selDataset={
+    label:'★ Selected (9 simulated cells)', data:selData, pointStyle:'star',
+    backgroundColor:'rgba(0,0,0,0)', borderColor:'#12202E', borderWidth:1.6, _tvSel:true,
+  };
+  const cmT=sc.cm_terciles, copT=sc.cop_terciles;
+  const guideDatasets=[
+    ...cmT.map(v=>({type:'line',label:'_guide',data:[{x:v,y:sc.bounds.y_min},{x:v,y:sc.bounds.y_max}],
+      borderColor:'#B9C6D4',borderWidth:1,borderDash:[5,4],pointRadius:0,_tvGuide:true})),
+    ...copT.map(v=>({type:'line',label:'_guide',data:[{x:sc.bounds.x_min,y:v},{x:sc.bounds.x_max,y:v}],
+      borderColor:'#B9C6D4',borderWidth:1,borderDash:[5,4],pointRadius:0,_tvGuide:true})),
+  ];
+
+  if(tvScatterChart)tvScatterChart.destroy();
+  tvScatterChart=new Chart(document.getElementById('tv-scatter'),{
+    type:'bubble',
+    data:{datasets:[...guideDatasets,...bandDatasets,selDataset]},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      scales:{
+        x:{min:sc.bounds.x_min,max:sc.bounds.x_max,title:{display:true,text:'Capacity maintenance — max cap. @5°F ÷ rated cap. @47°F',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>Math.round(v*100)+'%'},grid:{color:css('--surface')}},
+        y:{min:sc.bounds.y_min,max:sc.bounds.y_max,title:{display:true,text:'COP @5°F (−15°C)',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}},
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const p=ctx.raw._p; if(!p)return '';
+          return `${p.n} — COP ${p.cop}, cap. maint. ${Math.round(p.cm*100)}%, ${p.w.toLocaleString()} appearance${p.w===1?'':'s'}${p.sel?' ★':''}`;
+        }}},
+      },
+    },
+  });
+  try{tvScatterChart.resize();tvScatterChart.draw();}catch(e){}
+
+  const bl=document.getElementById('tv-band-legend');
+  bl.innerHTML=sc.bands.map((b,i)=>
+    `<label class="tv-band"><input type="checkbox" data-band="${i}" checked>`+
+    `<span class="tv-sw" style="background:${b.colour}"></span>${b.label} `+
+    `<em>${b.pct}% of installs · ${b.units.toLocaleString()} units</em></label>`).join('');
+  bl.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{
+    const i=+cb.dataset.band;
+    cb.checked?tvBandOn.add(i):tvBandOn.delete(i);
+    tvScatterChart.data.datasets.forEach(ds=>{if(ds._tvBand!==undefined)ds.hidden=!tvBandOn.has(ds._tvBand);});
+    tvScatterChart.update();
+  });
+
+  document.getElementById('tv-dim').onclick=function(){
+    tvDim=!tvDim; this.classList.toggle('active',tvDim);
+    tvScatterChart.data.datasets.forEach(ds=>{if(ds._tvBand!==undefined)ds.backgroundColor=bandColors(ds._tvBand);});
+    tvScatterChart.update();
+  };
+
+  const g=sc.gate;
+  document.getElementById('tv-gate').innerHTML=
+    `<b>Gate:</b> ${g.kept_units.toLocaleString()} of ${g.total_units.toLocaleString()} units plotted, `+
+    `covering ${g.kept_app.toLocaleString()} of ${g.total_app.toLocaleString()} ERS appearances (<b>${g.app_pct}%</b>). Nothing is imputed.`;
+}
+
+// ---- capacity & COP line charts (precomputed solid/dashed segments) ----
+function tvSegmentsToPoints(segs){
+  const pts=[{x:segs[0][0],y:segs[0][1]}];
+  for(const s of segs)pts.push({x:s[2],y:s[3],solid:s[4]});
+  pts[0].pub=segs[0][4]===true;
+  for(let i=1;i<pts.length-1;i++)pts[i].pub=true;
+  pts[pts.length-1].pub=segs[segs.length-1][4]===true;
+  return pts;
+}
+let tvCapChart=null, tvCopChart=null;
+function tvRenderCurves(){
+  const curves=TV_DATA.curves;
+  function dataset(uid,key){
+    const u=curves[uid];
+    const pts=tvSegmentsToPoints(u[key]);
+    return {
+      label:uid, data:pts, borderColor:u.colour, backgroundColor:u.colour,
+      borderWidth:2.2, pointRadius:ctx=>ctx.raw&&ctx.raw.pub?3:0,
+      pointBackgroundColor:u.colour, tension:0,
+      segment:{borderDash:ctx=>ctx.p1.raw.solid?undefined:[5,4]},
+    };
+  }
+  const commonOpts=(yTitle,yFmt)=>({
+    responsive:true, maintainAspectRatio:false, animation:false,
+    scales:{
+      x:{type:'linear',min:-30,max:20,title:{display:true,text:'Outdoor temperature (°C)',color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}},
+      y:{min:0,title:{display:true,text:yTitle,color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:yFmt},grid:{color:css('--surface')}},
+    },
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.formattedValue}`}}},
+  });
+  if(tvCapChart)tvCapChart.destroy();
+  if(tvCopChart)tvCopChart.destroy();
+  tvCapChart=new Chart(document.getElementById('tv-cap-chart'),{type:'line',
+    data:{datasets:TV_UNIT_IDS.map(uid=>dataset(uid,'cap_segments'))},
+    options:commonOpts('Heating capacity (Btu/h)',v=>(v/1000)+'k')});
+  tvCopChart=new Chart(document.getElementById('tv-cop-chart'),{type:'line',
+    data:{datasets:TV_UNIT_IDS.map(uid=>dataset(uid,'cop_segments'))},
+    options:commonOpts('COP',v=>v)});
+  // This preview/renderer does not reliably pump requestAnimationFrame (see
+  // the hourly/monthly charts above) -- force a synchronous draw.
+  [tvCapChart,tvCopChart].forEach(c=>{try{c.resize();c.draw();}catch(e){}});
+
+  const leg=document.getElementById('tv-unit-legend');
+  leg.innerHTML=TV_UNIT_IDS.map((uid,i)=>{
+    const u=curves[uid];
+    const label=uid.replace(/_/g,' ').replace('<','&lt;');
+    const flags=u.flags&&u.flags.length?`<ul class="tv-flags">${u.flags.map(f=>`<li>${f}</li>`).join('')}</ul>`:'';
+    return `<label class="tv-lg"><input type="checkbox" data-i="${i}" checked>`+
+      `<span class="tv-sw" style="background:${u.colour}"></span>`+
+      `<span><b>${label}</b> — ${u.brand_model}<em>AHRI ${u.ahri} · ${u.w.toLocaleString()} appearances</em>`+
+      `<span class="tv-src">${u.source}</span>${flags}</span></label>`;
+  }).join('');
+  leg.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{
+    const i=+cb.dataset.i, on=cb.checked;
+    tvCapChart.setDatasetVisibility(i,on); tvCapChart.update();
+    tvCopChart.setDatasetVisibility(i,on); tvCopChart.update();
+  });
+}
+
+// ---- spec-sheet table ----
+function tvRenderSpecTable(){
+  const sel=document.getElementById('tv-unit-sel');
+  sel.innerHTML=TV_UNIT_IDS.map(uid=>{
+    const u=TV_DATA.curves[uid];
+    return `<option value="${uid}">${uid.replace(/_/g,' ').replace('<','&lt;')} — ${u.brand_model}</option>`;
+  }).join('');
+  const fmtCOP=v=>v===null||v===undefined?'–':v.toFixed(2);
+  const fmtCap=v=>v===null||v===undefined?'–':Math.round(v).toLocaleString();
+  function render(uid){
+    document.getElementById('tv-spec-tbl-body').innerHTML=TV_DATA.table[uid].map(r=>`<tr>
+      <td>${r.t}</td>
+      <td class="${r.ccp?'pub':(r.cc===null?'blank':'')}">${fmtCOP(r.cc)}</td>
+      <td class="${r.ac===null?'blank':'src'}">${fmtCOP(r.ac)}</td>
+      <td class="${r.nmc===null?'blank':'src'}">${fmtCOP(r.nmc)}</td>
+      <td class="${r.nrc===null?'blank':'src'}">${fmtCOP(r.nrc)}</td>
+      <td class="${r.nxc===null?'blank':'src'}">${fmtCOP(r.nxc)}</td>
+      <td class="${r.cap?'pub':(r.ca===null?'blank':'')}">${fmtCap(r.ca)}</td>
+      <td class="${r.aa===null?'blank':'src'}">${fmtCap(r.aa)}</td>
+      <td class="${r.nma===null?'blank':'src'}">${fmtCap(r.nma)}</td>
+      <td class="${r.nra===null?'blank':'src'}">${fmtCap(r.nra)}</td>
+      <td class="${r.nxa===null?'blank':'src'}">${fmtCap(r.nxa)}</td>
+    </tr>`).join('');
+  }
+  sel.value=TV_UNIT_IDS[0];
+  sel.onchange=e=>render(e.target.value);
+  render(TV_UNIT_IDS[0]);
 }
 </script>
 </body>
