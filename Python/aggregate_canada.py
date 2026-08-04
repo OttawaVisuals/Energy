@@ -9,6 +9,15 @@ Unit"), so merging type-level data confidently isn't possible without
 normalizing that taxonomy upstream. The Canada view therefore only offers
 "All types" — its type filter dropdown will just have that one option.
 
+Program era (ecoENERGY / no program / Greener Homes) IS fully aggregated,
+unlike house type: it's a fixed 3-bucket classification defined here (ERA_KEYS/
+ERA_LABELS, mirroring precompute_province_stats.py's ERA_DEFS), not a
+province-supplied taxonomy that can drift, so there's no cross-province
+labelling risk the way there is for house type. Each province's
+by_type["All types"]["by_era"][era] slice is combined the same way as the
+top-level slice (aggregate_slices(), called once per era) and shipped as
+by_type["All types"]["by_era"] in CA.json.
+
 No raw row-level data is available here, only each province's own
 precomputed bins/medians/counts, so:
   - counts and histogram bins are additive -> summed directly (exact).
@@ -45,6 +54,14 @@ INSULATION_KPI_MAP = [
     ("Air leakage", "air", "ACH50", False),
 ]
 
+# Program-era keys, MUST match precompute_province_stats.py's ERA_DEFS/
+# ERA_LABELS exactly -- duplicated here (not imported) because this script
+# only reads the province JSONs those constants already shaped, not the
+# Python module itself.
+ERA_KEYS = ['ecoenergy', 'none', 'greener']
+ERA_LABELS = {'ecoenergy': 'ecoENERGY (2007–2012)', 'none': 'No program',
+              'greener': 'Greener Homes (2021–2024)'}
+
 
 def sum_bins(dicts):
     out = defaultdict(float)
@@ -68,21 +85,16 @@ def weighted_median_from_bins(bins):
     return items[-1][0]
 
 
-def main():
-    if not PROVINCE_FILES:
-        print(f"!! no province JSONs found in {PROVINCE_JSON_DIR} — run precompute_province_stats.py first")
-        return
-
-    slices = []
-    funnels = []
-    total_rows = 0
-    for path in PROVINCE_FILES:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        total_rows += data["total_rows"]
-        slices.append(data["by_type"]["All types"])
-        funnels.append(data.get("funnel"))
-
+def aggregate_slices(slices):
+    """
+    Combine a list of per-province compute_slice() payloads -- all the same
+    house-type/program-era bucket, one entry per province -- into one
+    national slice, via the additive-bins-then-weighted-median approach this
+    module's docstring describes. Returns a dict shaped exactly like
+    compute_slice()'s own output (no "funnel" key -- that's assembled
+    separately in main(), only at the top level, since by_era sub-slices
+    don't carry their own audit-funnel breakdown).
+    """
     n_total = sum(s.get("row_count", 0) for s in slices)
 
     out = {}
@@ -267,10 +279,45 @@ def main():
     out["solar_pre_pct"] = round(pre_adopters / n_total * 100) if n_total else 0
     out["solar_post_pct"] = round(out["solar_post_count"] / n_total * 100) if n_total else 0
     kw_weight = sum(s.get("solar_post_count", 0) for s in slices)
+    # solar_median_kw is explicitly None (not just absent) whenever a slice has
+    # n>0 but zero solar adopters -- .get(..., 0)'s default only covers the key
+    # being MISSING, not present-and-None, so `or 0` is needed too. This was
+    # always possible for a small province/type slice; era sub-slices make a
+    # zero-adopter-but-nonzero-n bucket common enough to hit routinely.
     out["solar_median_kw"] = (
-        round(sum(s.get("solar_median_kw", 0) * s.get("solar_post_count", 0) for s in slices) / kw_weight, 1)
+        round(sum((s.get("solar_median_kw") or 0) * s.get("solar_post_count", 0) for s in slices) / kw_weight, 1)
         if kw_weight else None
     )
+
+    return out
+
+
+def main():
+    if not PROVINCE_FILES:
+        print(f"!! no province JSONs found in {PROVINCE_JSON_DIR} — run precompute_province_stats.py first")
+        return
+
+    slices = []
+    funnels = []
+    era_slices = {k: [] for k in ERA_KEYS}
+    total_rows = 0
+    for path in PROVINCE_FILES:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        total_rows += data["total_rows"]
+        base = data["by_type"]["All types"]
+        slices.append(base)
+        funnels.append(data.get("funnel"))
+        # Program-era sub-slices (precompute_province_stats.py). A province
+        # JSON built before the by_era field existed contributes an empty
+        # (row_count 0) slice for each era rather than breaking the run --
+        # the national by_era total would just under-count until that
+        # province is rebuilt.
+        by_era = base.get("by_era", {})
+        for k in ERA_KEYS:
+            era_slices[k].append(by_era.get(k, {"row_count": 0}))
+
+    out = aggregate_slices(slices)
 
     # Audit-funnel: sum province composition + matched counts (all additive).
     # Provinces with a null funnel (sidecar not built when they were generated)
@@ -281,8 +328,15 @@ def main():
         if present else None
     )
 
+    # Same national-recombination logic, once per program era, so the
+    # Canada view's "All of Canada" + a program-era filter reads from a real
+    # cross-province aggregate rather than falling back to the unfiltered
+    # total (see assets/retrofits.js renderProvince()'s by_era lookup).
+    out["by_era"] = {k: aggregate_slices(v) for k, v in era_slices.items()}
+
     payload = {"province": "CA", "total_rows": total_rows,
-               "funnel": out_funnel, "by_type": {"All types": out}}
+               "funnel": out_funnel, "era_labels": ERA_LABELS,
+               "by_type": {"All types": out}}
     with open(CA_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
     print(f"Wrote {CA_JSON_PATH} — {total_rows:,} total rows across {len(PROVINCE_FILES)} provinces/territories")

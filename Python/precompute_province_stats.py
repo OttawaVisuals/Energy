@@ -19,8 +19,18 @@ OUTPUT: <OUTPUT_DIR>/province_json/<PROVINCE>.json
         {
           "province": "ON",
           "total_rows": 600123,
+          "era_labels": {"ecoenergy": "ecoENERGY (2007–2012)", "none": "No program",
+                         "greener": "Greener Homes (2021–2024)"},
           "by_type": {
-            "All types": { ...precomputed chart payload... },
+            "All types": {
+              ...precomputed chart payload...,
+              "by_era": {
+                "ecoenergy": { ...same chart payload, rows classified by INITIAL
+                                (Pre_Date) audit year 2007-2012... },
+                "none": { ... },
+                "greener": { ... }
+              }
+            },
             "Single Detached": { ... },
             ...
           }
@@ -151,6 +161,32 @@ WATERFALL_FUELS = [
     ('Propane',     'Propane'),
     ('Wood',        'Wood'),
 ]
+
+# Program-era boundaries, classified by each home's INITIAL (Pre_Date / D)
+# audit year -- not the follow-up year, since a home can start under a
+# program and not complete its follow-up until after the program closed
+# (measured: ~46,000 Greener Homes starts finished in 2025-26, after the
+# grant closed to new applicants 2024-03-31; a smaller ecoENERGY-era version
+# of the same lag exists too). MUST match assets/retrofits.js's ERA_DEFS
+# exactly, or the FSA (client-filtered) and province/Canada (precomputed)
+# views will disagree for the same home. Mirrors the eras drawn on
+# retrofit-insights.html's timeline chart.
+ERA_DEFS = [
+    ('ecoenergy', 'ecoENERGY (2007–2012)', 2007, 2012),
+    ('greener', 'Greener Homes (2021–2024)', 2021, 2024),
+]
+ERA_LABELS = {'ecoenergy': ERA_DEFS[0][1], 'none': 'No program', 'greener': ERA_DEFS[1][1]}
+
+
+def era_of_year(y):
+    """Mirrors eraOf(year) in assets/retrofits.js. None (no Pre_Date) stays None."""
+    if y is None or (isinstance(y, float) and math.isnan(y)):
+        return None
+    y = int(y)
+    for key, _label, lo, hi in ERA_DEFS:
+        if lo <= y <= hi:
+            return key
+    return 'none'
 
 
 # =============================================================================
@@ -783,10 +819,29 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
     types = sorted(t for t in df['BldgType'].dropna().unique() if t)
     print(f"  house types: {types}")
 
-    by_type = {'All types': compute_slice(df)}
+    # Program-era column, from the INITIAL (Pre_Date) audit year -- see
+    # ERA_DEFS/era_of_year() above. None where Pre_Date didn't parse.
+    pre_year = pd.to_datetime(df['Pre_Date'], errors='coerce').dt.year
+    df['_Era'] = pre_year.apply(era_of_year)
+    era_counts = df['_Era'].value_counts(dropna=False).to_dict()
+    print(f"  program eras (by initial-audit year): {era_counts}")
+
+    def with_era_breakdown(sub):
+        """compute_slice(sub) plus a nested by_era: {key: compute_slice(era subset)}
+        for the 3 non-null era buckets. Mirrors the front end's
+        SELECTED_TYPE + SELECTED_ERA combining (province_json[type].by_era[era])."""
+        slice_out = compute_slice(sub)
+        slice_out['by_era'] = {
+            key: compute_slice(sub[sub['_Era'] == key])
+            for key, _label, _lo, _hi in ERA_DEFS
+        }
+        slice_out['by_era']['none'] = compute_slice(sub[sub['_Era'] == 'none'])
+        return slice_out
+
+    by_type = {'All types': with_era_breakdown(df)}
     for t in types:
         sub = df[df['BldgType'] == t]
-        by_type[t] = compute_slice(sub)
+        by_type[t] = with_era_breakdown(sub)
         print(f"    {t}: {len(sub):,} rows")
 
     # Audit-funnel fixed stages: composition of the province's audited population
@@ -803,6 +858,7 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
         'province': province,
         'total_rows': len(df),
         'funnel': funnel,
+        'era_labels': ERA_LABELS,
         'by_type': by_type,
     }
 

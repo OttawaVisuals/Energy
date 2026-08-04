@@ -603,6 +603,13 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="chart-wrap" style="height:360px"><canvas id="ch-timeline"></canvas></div>
       <div class="note" id="timeline-note"></div>
     </div>
+    <div class="card">
+      <h3>What did each era build?</h3>
+      <div class="sub">The 8 tracked measures, as a share of that era's matched retrofits — same question as the timeline above (which era), split by what kind of work happened. Each home is classified by its <b>initial</b> audit year, not its completion year, so a retrofit that started under a program but finished after it closed still counts toward that program.</div>
+      <div class="legend" id="era-legend"></div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-program-era"></canvas></div>
+      <div class="note" id="program-era-note"></div>
+    </div>
   </section>
 
   <!-- 08 OPEN QUESTIONS -->
@@ -1578,7 +1585,13 @@ const eraBand={id:'eraBand',beforeDatasetsDraw(chart,args,opts){
     ctx.fillStyle='#5C6E82';ctx.font='600 10px Inter,sans-serif';ctx.textAlign='center';
     ctx.fillText(er.short,(x0+x1)/2,ca.top+11);
   });ctx.restore();}};
-function sec09(){return loadJSON(INS+'timeline.json').then(t=>{
+function sec09(){
+  // program_era.json is fetched separately (own .catch), not Promise.all'd
+  // with timeline.json — a page still on a pre-refresh insights_json/ (built
+  // before build_program_era() existed) would otherwise lose the WORKING
+  // timeline chart too, since Promise.all rejects whole on one 404.
+  const peFetch=loadJSON(INS+'program_era.json').catch(()=>null);
+  return loadJSON(INS+'timeline.json').then(t=>{
   const nat=t.national,years=[];for(let y=2005;y<=2026;y++)years.push(y);
   const d=years.map(y=>nat.d_year[y]||0),e=years.map(y=>nat.matched_by_e_year[y]||0);
   const eras=[
@@ -1595,7 +1608,34 @@ function sec09(){return loadJSON(INS+'timeline.json').then(t=>{
       scales:{x:{...AXcat,ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{...AX,ticks:{...AX.ticks,callback:v=>v>=1000?(v/1000)+'k':v}}}}});
   const a=t.annotations;
   $('timeline-note').innerHTML='Program eras: '+a.map(x=>`<a href="${x.source_url}" target="_blank" rel="noopener" style="color:var(--navy)">${x.label.split(' (')[0].split(' — ')[0]}</a>`).join(' · ')+'. Matched-pair audits only.';
-});}
+
+  // Measure mix by program era — same 3-way split as the FSA/province
+  // "Program era" filter in Retrofit Explorer, but classified once nationally
+  // here rather than left to per-area exploration. ecoENERGY/Greener Homes
+  // colours match the era-band shading on the chart above (amber/green).
+  peFetch.then(pe=>{
+    const card=$('ch-program-era').closest('.card');
+    if(!pe){card.style.display='none';return;} // pre-refresh insights_json/ — no program_era.json yet
+    card.style.display='';
+    const ERA_COLORS={ecoenergy:AMBER,none:MUTED,greener:GREEN};
+    const measureLabels=Object.keys(pe.eras[0].measure_shares);
+    mkChart('ch-program-era',{type:'bar',
+      data:{labels:measureLabels,datasets:pe.eras.map(er=>({
+        label:er.label,
+        data:measureLabels.map(m=>(er.measure_shares[m]||0)*100),
+        backgroundColor:ERA_COLORS[er.era],borderRadius:3,borderSkipped:false}))},
+      options:{plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>measureLabels[i[0].dataIndex],label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}% of that era's matched retrofits`}}},
+        scales:{x:{...AXcat,ticks:{...AXcat.ticks,maxRotation:30,minRotation:30}},
+          y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},grace:'8%'}}}});
+    $('era-legend').innerHTML=pe.eras.map(er=>
+      `<span class="lg"><span class="sw" style="background:${ERA_COLORS[er.era]}"></span>${er.label} <em>${fmtInt(er.n)} homes</em></span>`).join('');
+    $('program-era-note').innerHTML=pe.eras.map(er=>
+      `<b>${er.label}</b>: median saving ${er.median_saving_pct!=null?er.median_saving_pct+'%':'—'} · heat pump ${er.hp_rate!=null?fmtPct(er.hp_rate):'—'} · deep retrofit ${er.deep_rate!=null?fmtPct(er.deep_rate):'—'} · ${er.zero_measure_share!=null?fmtPct(er.zero_measure_share):'—'} recorded no tracked measure`
+    ).join('<br>')+'<br>Classified by each pair\'s <b>initial</b> (D) audit year — a retrofit that started under a program but finished its follow-up after the program closed is still counted toward that program. Saving % and measure shares exclude zero-measure pairs (audit noise), reported separately above.';
+  });
+  });
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    10 — METHODOLOGY
