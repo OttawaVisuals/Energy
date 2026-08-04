@@ -1157,8 +1157,9 @@ characteristics per FSA; income is in there, just not extracted).
 
 **Honesty rails (bake into every phase):** savings are modeled EnerGuide
 estimates, not measured bills; negative savings are dominated by audit noise
-(74% of negative-savers logged zero tracked measures — see retrofits.html
-methodology); participation mixes ~20 years of cumulative audits over a 2021
+(56% of negative-savers logged zero tracked measures, down from an earlier
+74% pre-pairing-fix figure — see retrofits.html methodology); participation
+mixes ~20 years of cumulative audits over a 2021
 dwelling snapshot; FSA-level income correlations are ecological, not
 household-level ("rich FSAs" ≠ "rich participants"); ERS is self-selected, not
 a random sample. Each section states its caveat on-page.
