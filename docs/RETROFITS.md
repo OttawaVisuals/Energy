@@ -361,7 +361,7 @@ All thresholds are computed per home in Step 1:
 | `Roof_/Wall_/Foundation_/Floor_Insulation_Upgrade` | post insulation RSI **> 1.10 ×** pre (more than 10% higher) |
 | `Air_Tightness_Upgrade` | post air leakage (ACH50) **< 0.90 ×** pre (more than 10% tighter) |
 | `Windows_Change` | window code present in both audits and different |
-| `Heating_Change` | heating **fuel** or **equipment type** differs |
+| `Heating_Change` | heating **fuel** or **equipment type** differs, raw ERS diff (row-level table, FSA mode). Aggregate charts (province mode, `retrofit-insights.html`) override this downstream to `Heating_Change & ~HeatPump_Addition` — see the note below the table. |
 | `Cooling_Change` | air-conditioner type differs |
 | `HeatPump_Addition` | no heat pump pre, heat pump present post |
 | `Shallow_Retrofit` | post total energy is **90–100%** of pre (0–10% saved) |
@@ -369,6 +369,8 @@ All thresholds are computed per home in Step 1:
 | `Deep_Retrofit` | post total energy is **≤ 50%** of pre (≥ 50% saved) |
 | `FuelSwitch` | primary heating fuel differs pre vs post |
 | `EnergySavingPct` | `(pre − post) / pre`, where pre > 0. **Positive = energy saved.** |
+
+**"Heating system changed" excludes heat pump additions, in aggregate charts only.** `Heating_Change` is a raw `FURNACEFUEL`/`FURNACETYPE` diff, and adding a heat pump *is* a furnace type/fuel change — so without an exclusion, "Heating system changed" and "Heat pump added" double-counted the same homes, and a measure-mix bundle like "Heat pump + Heating system" read as little more than "heat pump, plus the paperwork that comes with it". `Python/precompute_province_stats.py` (province mode, both pages) and `Python/build_insights.py` (`retrofit-insights.html`) both override `Heating_Change = Heating_Change & ~HeatPump_Addition` immediately after loading each province parquet, before any measure-mix/bundle/share is computed. This is a downstream, display-only categorization choice, not a data correction — the raw `Heating_Change` column in the parquets (and in the per-home table shown in FSA mode, sourced from `fsa_json`) is untouched and can still be `true` alongside `HeatPump_Addition`. A home that replaced a gas furnace with a heat pump now counts only toward "Heat pump added" in every aggregate chart on both pages.
 
 ---
 
@@ -693,6 +695,46 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-08-05 Energy impact card, cumulative-audits timeline line, scorecard fix, Heating_Change redefinition
+
+- **New "energy impact" card** on Retrofit Insights (section 03, beside the existing GHG
+  impact card): total kWh/GWh saved net across matched pairs, priced at today's
+  per-province rates (reuses `precompute_province_stats.price_vec_for()`/
+  `add_cost_columns()` verbatim — no separate pricing logic), and converted into a
+  "homes powered for a year" equivalent using NRCan **CEUD**'s own residential
+  "Total Energy Use" ÷ "Total Households" figures (`ceud_json/res_<region>.json`,
+  already scraped by `Python/ceud_etl.py` — no live CEUD site dependency). New
+  `Python/build_insights.py::build_energy_impact()` → `insights_json/energy_impact.json`.
+  CEUD reports a **grand-total** record alongside per-end-use/fuel/building-type
+  *breakdowns of that same total* — summing every record naively inflates the total
+  ~6x; only the no-dimension record is the real total (caught before shipping).
+  Equivalency grid also gets a GWh figure, an illustrative EV-km distance (19 kWh/100km,
+  not a specific model), and icons ported from Ottawa Visuals' `ghg_calculator.html`
+  (SVG paths, `currentColor` fill so they follow this page's theme toggle) for both the
+  GHG and energy equivalency cards — plus a new hand-drawn plug icon (the source
+  calculator has no EV/plug icon of its own) and house/bolt/money icons for the energy
+  card, none of which existed there before.
+- **Retrofit Insights timeline chart** gets a second, dashed line: cumulative share of
+  housing stock ever audited (running total of initial-D audits since 2000 ÷ that
+  year's CEUD household count), stopping at 2023 (CEUD's latest year) rather than
+  extrapolating. New `cum_pct_of_stock` in `timeline.json`, sourced the same way as the
+  energy card above.
+- **Scorecard table fix**: a bar at its column's max value (100% width) used to run
+  edge-to-edge with no gap, visually blending into the next column's value. Bars now
+  cap at `max-width:calc(100% - 6px)` and every bar cell gets a fixed 2px white
+  right-border, cutting a clean line through the fill regardless of theme.
+- **`Heating_Change` redefined, in aggregate charts only, to exclude heat pump
+  additions.** `Heating_Change` is a raw `FURNACEFUEL`/`FURNACETYPE` diff, and adding a
+  heat pump *is* a furnace type/fuel change — so "Heating system changed" and "Heat
+  pump added" were double-counting the same homes, and the "Heat pump + Heating
+  system" bundle on Retrofit Insights' measure-bundles chart read as little more than
+  "heat pump, plus the paperwork". `Python/build_insights.py` and
+  `Python/precompute_province_stats.py` (i.e. every aggregate chart on **both** pages)
+  now override `Heating_Change = Heating_Change & ~HeatPump_Addition` immediately after
+  loading each province parquet. Downstream-only — no ERS pipeline rerun, no `fsa_json`
+  regen; the raw per-home `Heating_Change` in FSA mode's live table is unchanged and can
+  still be `true` alongside `HeatPump_Addition`. See the flag table above.
 
 ### 2026-08-04 Program-era filter (ecoENERGY / no program / Greener Homes)
 

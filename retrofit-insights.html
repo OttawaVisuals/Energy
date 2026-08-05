@@ -78,7 +78,7 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .ghg-kpi .gl{font-size:11.5px;color:#5C6E82;margin-top:.35rem;line-height:1.4}
 .equiv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
 .equiv-card{background:#F7F4EE;border:1px solid var(--border);border-radius:var(--r-sm);padding:.85rem .9rem}
-.equiv-card svg{width:28px;height:28px;display:block;margin-bottom:8px}
+.equiv-card svg{width:28px;height:28px;display:block;margin-bottom:8px;color:var(--navy)}
 .equiv-label{font-size:11.5px;color:#5C6E82;margin-bottom:5px;line-height:1.35;min-height:2.6em}
 .equiv-value{font-size:18px;font-weight:600;color:var(--navy);font-variant-numeric:tabular-nums}
 .equiv-sub{font-size:10.5px;color:#8A9BB0;margin-top:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -108,8 +108,8 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .scorecard td:first-child,.scorecard th:first-child{text-align:left}
 .scorecard tbody tr:hover td{background:#F7F4EE}
 .scorecard .prov-name{font-weight:500;color:var(--navy)}
-.bar-cell{position:relative}
-.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;border-radius:2px;z-index:0}
+.bar-cell{position:relative;border-right:2px solid #fff}
+.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;border-radius:2px;z-index:0;max-width:calc(100% - 6px)}
 .bar-cell .bar.cat-program{background:rgba(11,37,69,.30)}
 .bar-cell .bar.cat-energy{background:rgba(200,136,26,.42)}
 .bar-cell .bar.cat-fuel{background:rgba(22,107,74,.35)}
@@ -433,6 +433,14 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="sub">The national total (<span id="ghg-equiv-n"></span> above), converted into everyday equivalents — factors ported from Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--navy)">GHG Equivalency Calculator</a>.</div>
       <div class="equiv-grid" id="ghg-equiv-grid"></div>
       <div class="note">Emission factors: Ford F-150 256.6 gCO₂e/km · Honda Civic 149.6 gCO₂e/km · Hyundai Ioniq (AB) 139.8 gCO₂e/km · Hyundai Ioniq (ON) 6.2 gCO₂e/km · round trip distance St. John's–Vancouver 14,198 km · flight St. John's–Vancouver 75.72 tCO₂e · oil 2.3 tCO₂e/barrel · forest (Central Park, annual absorption) 1,686 tCO₂e · propane cylinder (BBQ) 0.0244 tCO₂e.</div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>The same retrofits, in energy terms</h3>
+      <div class="sub">Total household energy saved (kWh, modelled) — same matched-pair population as above, priced and converted separately from the GHG figures.</div>
+      <div class="ghg-kpi-strip" id="energy-kpi-strip"></div>
+      <div class="note" id="energy-national-note"></div>
+      <div class="equiv-grid" id="energy-equiv-grid" style="margin-top:.8rem"></div>
+      <div class="caveat" id="energy-caveat"></div>
     </div>
   </section>
 
@@ -839,25 +847,39 @@ function sec02(){return ensureMetrics().then(recs=>{SCORE_ROWS=buildScorecard(re
    ghg_calculator.html so this page has no cross-repo/iframe dependency.
    ══════════════════════════════════════════════════════════════════════ */
 const GHG_TRIP_KM=14198; // St. John's <-> Vancouver round trip, matches the calculator
+// icon paths ported verbatim from Ottawa Visuals' ghg_calculator.html (hardcoded
+// fills swapped for currentColor so they follow this page's light/dark/cb themes)
+const ICON_TRUCK='<svg viewBox="-5 -10 110 110"><path fill="currentColor" d="m25.914 52.742c-4.582 0-8.3125 3.7305-8.3125 8.3125 0 4.5859 3.7305 8.3125 8.3125 8.3125 4.5859 0 8.3125-3.7305 8.3125-8.3125 0-4.582-3.7305-8.3125-8.3125-8.3125zm0 13.09c-2.6328 0-4.7773-2.1445-4.7773-4.7773 0-2.6328 2.1445-4.7773 4.7773-4.7773 2.6328 0 4.7773 2.1445 4.7773 4.7773 0 2.6367-2.1445 4.7773-4.7773 4.7773z"/><path fill="currentColor" d="m78.363 52.742c-4.582 0-8.3125 3.7305-8.3125 8.3125 0 4.5859 3.7305 8.3125 8.3125 8.3125 4.5859 0 8.3125-3.7305 8.3125-8.3125 0-4.582-3.7266-8.3125-8.3125-8.3125zm0 13.09c-2.6328 0-4.7773-2.1445-4.7773-4.7773 0-2.6328 2.1445-4.7773 4.7773-4.7773 2.6328 0 4.7773 2.1445 4.7773 4.7773 0 2.6367-2.1406 4.7773-4.7773 4.7773z"/><path fill="currentColor" d="m94.359 52.621h-0.52344l-2.4219-7.6211c-0.26562-0.83203-1.0352-1.3945-1.9062-1.3945h-11.109c-0.29688 0-0.58203-0.13281-0.76953-0.36328l-10.023-12.117c-0.27344-0.32812-0.67188-0.51562-1.0938-0.51562h-24.453c-0.78516 0-1.4219 0.63672-1.4219 1.4219v11.574h-31.859c-1.0469 0-1.8945 0.84766-1.8945 1.8945v9.9609h-0.62891c-0.52344 0-0.94922 0.42578-0.94922 0.94922v2.75c0 1.0469 0.84766 1.8945 1.8945 1.8945h7.7109c0.47266 0 0.88672-0.34766 0.9375-0.82031 0.50391-4.793 4.2148-8.8086 9.0898-9.2656 5.7344-0.53906 10.617 3.7305 11.074 9.2383 0.039062 0.48438 0.45312 0.84766 0.9375 0.84766h30.414c0.47266 0 0.88672-0.34766 0.9375-0.82031 0.50391-4.793 4.2148-8.8086 9.0898-9.2656 5.7344-0.53906 10.617 3.7305 11.074 9.2383 0.039062 0.48438 0.45312 0.84766 0.9375 0.84766h4.0117c1.0469 0 1.8945-0.84766 1.8945-1.8945v-5.5938c-0.003906-0.52344-0.42578-0.94531-0.94922-0.94531zm-50.48-17.473c0-0.55078 0.44922-1 1-1h7.457c0.55078 0 1 0.44922 1 1v7.457c0 0.55078-0.44922 1-1 1h-7.457c-0.55078 0-1-0.44922-1-1zm21.711 23.961h-26.902c-0.42969 0-0.77734-0.34766-0.77734-0.77734 0-0.42969 0.34766-0.77734 0.77734-0.77734h26.902c0.42969 0 0.77734 0.34766 0.77734 0.77734 0 0.42969-0.34766 0.77734-0.77734 0.77734zm5.4609-15.504h-13.695c-0.55078 0-1-0.44922-1-1v-7.457c0-0.55078 0.44922-1 1-1h7.6875c0.28906 0 0.5625 0.13281 0.74219 0.35937l6.0078 7.5625c0.49219 0.62109 0.050781 1.5352-0.74219 1.5352z"/></svg>';
+const ICON_CAR='<svg viewBox="0 0 96 96"><g transform="translate(-252 -94)"><path fill="currentColor" d="M284 156C284 160.418 280.418 164 276 164 271.582 164 268 160.418 268 156 268 151.582 271.582 148 276 148 280.418 148 284 151.582 284 156Z"/><path fill="currentColor" d="M332 156C332 160.418 328.418 164 324 164 319.582 164 316 160.418 316 156 316 151.582 319.582 148 324 148 328.418 148 332 151.582 332 156Z"/><path fill="currentColor" d="M291 136 291 124 304.7 124C305.8 124 306.8 124.4 307.5 125.2L318.3 136 291 136ZM287 136 261.7 136 272.5 125.2C273.3 124.4 274.3 124 275.3 124L287 124 287 136ZM334 136 325.7 136C324.6 136 323.6 135.6 322.9 134.8L310.3 122.3C308.8 120.8 306.8 120 304.6 120L275.3 120C273.2 120 271.1 120.8 269.6 122.3L257.2 134.8C256.4 135.6 256 136.6 256 137.7L256 148C256 152.4 259.6 156 264 156L265 156C265 149.9 269.9 145 276 145 282.1 145 287 149.9 287 156L313 156C313 149.9 317.9 145 324 145 330.1 145 335 149.9 335 156L340 156C342.2 156 344 154.2 344 152L344 146C344 140.5 339.5 136 334 136Z"/></g></svg>';
+const ICON_PLANE='<svg viewBox="0 0 96 96"><g transform="translate(-584 -85)"><path fill="currentColor" d="M590 157 674 157 674 161 590 161Z"/><path fill="currentColor" d="M599.929 131.205C598.932 131.127 598.036 130.567 597.529 129.705L591.1 118.769C590.892 118.401 591.022 117.935 591.389 117.727 591.458 117.688 591.531 117.66 591.608 117.644L593.97 117.144C594.667 116.997 595.393 117.182 595.935 117.644L604.605 125.07 621.075 121.614 604.3 107.651C603.976 107.38 603.932 106.896 604.204 106.572 604.314 106.44 604.465 106.35 604.633 106.314L608.101 105.587C608.733 105.453 609.392 105.523 609.982 105.787L637.544 118.165 660.752 113.3C663.746 112.671 672.018 114.843 672.489 117.089 673.275 120.832 665.789 122.403 665.789 122.403L627.029 130.537C620.645 131.877 614.104 132.302 607.6 131.8Z"/></g></svg>';
+const ICON_OIL='<svg viewBox="0 0 96 96"><g transform="translate(-418 -109)"><path fill="currentColor" d="M442 149 442 167C440.343 167 439 168.343 439 170 439 171.657 440.343 173 442 173L489 173C490.657 173 492 171.657 492 170 492 168.343 490.657 167 489 167L489 149Z"/><path fill="currentColor" d="M440 129 442 129 442 139C440.343 139 439 140.343 439 142 439 143.657 440.343 145 442 145L489 145C490.657 145 492 143.657 492 142 492 140.343 490.657 139 489 139L489 129 491 129C492.657 129 494 127.657 494 126 494 124.343 492.657 123 491 123L483 123 483 120 472 120 472 123 440 123C438.343 123 437 124.343 437 126 437 127.657 438.343 129 440 129Z"/><path fill="currentColor" d="M491 189 489 189 489 177 442 177 442 189 440 189C438.343 189 437 190.343 437 192 437 193.657 438.343 195 440 195L491 195C492.657 195 494 193.657 494 192 494 190.343 492.657 189 491 189Z"/></g></svg>';
+const ICON_TREE='<svg viewBox="0 0 96 96"><g transform="translate(-774 -122)"><path fill="currentColor" d="M851.94 196.61 851.94 188.61 863.69 189.61 855.85 177.55 860.65 178.84 855 170.22 858.49 170.66 850.19 158.59 845.93 164.81 837.45 151.81 842.87 152.49 830 133.48 817.13 152.48 822.55 151.8 813.74 165.32 821.19 163.32 809 182.26 827 178.87 827 191.18C821.08 191.31 815.56 192.6 811.25 195.36 815.25 197.44 819.48 201.01 823.34 207L866 207C862.78 202.91 857.77 199.33 851.94 196.61ZM845.68 165.17 842.76 169.44 838.76 163.29ZM842.46 180.74 836.69 189.61 848 188.61 848 195C842.86 193.057 837.475 191.836 832 191.37L832 178.87Z"/><path fill="currentColor" d="M806.19 196.46 806 196.46 806 193 811 194 807.34 187.26 810 188 806.85 183.21 808.79 183.45 804 177 799.6 183.43 801.53 183.19 799.83 185.78 796.08 179.78 800.2 180.89 795.33 173.48 798.33 173.85 791.21 163.46 784.09 173.83 787.09 173.46 782.22 180.87 786.34 179.76 779.6 190.14 789 189 789 199C784.834 200.903 781.094 203.623 778 207L819.72 207C815.19 200.65 810.29 197.73 806.19 196.46ZM792 197.83 792 189 799.85 189.9 798 194 803 193 803 196.21C799.267 196.107 795.545 196.655 792 197.83Z"/></g></svg>';
+const ICON_PROPANE='<svg viewBox="0 0 100 100"><path fill="currentColor" d="M20,70C20,75.551,26.036,80.394,35,82.988L35,90L65,90L65,82.988C73.964,80.394,80,75.551,80,70L80,55L20,55L20,70Z"/><path fill="currentColor" d="M80,40C80,34.449,73.964,29.606,65,27.012L65,15C66.381,15,67.5,13.881,67.5,12.5C67.5,11.119,66.381,10,65,10L35,10C33.619,10,32.5,11.119,32.5,12.5C32.5,13.881,33.619,15,35,15L35,27.012C26.036,29.606,20,34.449,20,40L20,50L80,50L80,40ZM60,25.857C57.623,25.437,55.109,25.164,52.5,25.056L52.5,20L55,20L56.667,15L60,15L60,25.857ZM40,15L43.333,15L45,20L47.5,20L47.5,25.056C44.891,25.164,42.377,25.437,40,25.857L40,15Z"/></svg>';
+// new icons (this page only, no ghg_calculator equivalent) — same single-path,
+// currentColor style so they theme identically to the ported ones above
+const ICON_HOUSE='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M48 10 L90 46 L80 46 L80 88 L54 88 L54 60 L42 60 L42 88 L16 88 L16 46 L6 46 Z"/></svg>';
+const ICON_BOLT='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M54 6 L18 54 L44 54 L38 90 L80 40 L52 40 Z"/></svg>';
+const ICON_PLUG='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M36 8H44V30H36Z"/><path fill="currentColor" d="M52 8H60V30H52Z"/><path fill="currentColor" d="M26 30H70V58A6 6 0 0 1 64 64H32A6 6 0 0 1 26 58Z"/><path fill="currentColor" d="M44 64H52V86H44Z"/></svg>';
+const ICON_MONEY='<svg viewBox="0 0 96 96"><path fill="currentColor" fill-rule="evenodd" d="M6 26 H90 V70 H6 Z M10 30 H86 V66 H10 Z"/><path fill="currentColor" d="M48,37 A11,11 0 1,1 47.99,37 Z"/></svg>';
 const GHG_VEHICLES=[
-  {label:"Ford F-150",gco2_per_km:256.6},
-  {label:"Honda Civic",gco2_per_km:149.6},
-  {label:"Hyundai Ioniq (AB)",gco2_per_km:139.8},
-  {label:"Hyundai Ioniq (ON)",gco2_per_km:6.2},
+  {label:"Ford F-150",gco2_per_km:256.6,icon:ICON_TRUCK},
+  {label:"Honda Civic",gco2_per_km:149.6,icon:ICON_CAR},
+  {label:"Hyundai Ioniq (AB)",gco2_per_km:139.8,icon:ICON_CAR},
+  {label:"Hyundai Ioniq (ON)",gco2_per_km:6.2,icon:ICON_CAR},
 ];
 const GHG_OTHER=[
-  {label:"Flights, St. John's–Vancouver",factor:75.72266667,unit:"flights"},
-  {label:"Barrels of oil burned",factor:2.3,unit:"barrels"},
-  {label:"Central Parks of forest (annual absorption)",factor:1686,unit:"Central Parks"},
-  {label:"Propane cylinders (BBQ)",factor:0.024390244,unit:"cylinders"},
+  {label:"Flights, St. John's–Vancouver",factor:75.72266667,unit:"flights",icon:ICON_PLANE},
+  {label:"Barrels of oil burned",factor:2.3,unit:"barrels",icon:ICON_OIL},
+  {label:"Central Parks of forest (annual absorption)",factor:1686,unit:"Central Parks",icon:ICON_TREE},
+  {label:"Propane cylinders (BBQ)",factor:0.024390244,unit:"cylinders",icon:ICON_PROPANE},
 ];
 function renderGhgEquiv(totalTco2e){
   const parts=GHG_VEHICLES.map(v=>{
     const perTrip=(v.gco2_per_km*GHG_TRIP_KM)/1e6;
     const trips=totalTco2e/perTrip,km=(totalTco2e*1e6)/v.gco2_per_km;
-    return`<div class="equiv-card"><div class="equiv-label">${v.label} — round trips St. John's–Vancouver</div><div class="equiv-value">${fmtInt(trips)}</div><div class="equiv-sub">${fmtInt(km)} km driven</div></div>`;
+    return`<div class="equiv-card">${v.icon}<div class="equiv-label">${v.label} — round trips St. John's–Vancouver</div><div class="equiv-value">${fmtInt(trips)}</div><div class="equiv-sub">${fmtInt(km)} km driven</div></div>`;
   }).concat(GHG_OTHER.map(o=>
-    `<div class="equiv-card"><div class="equiv-label">${o.label}</div><div class="equiv-value">${fmtInt(totalTco2e/o.factor)}</div><div class="equiv-sub">${o.unit}</div></div>`
+    `<div class="equiv-card">${o.icon}<div class="equiv-label">${o.label}</div><div class="equiv-value">${fmtInt(totalTco2e/o.factor)}</div><div class="equiv-sub">${o.unit}</div></div>`
   ));
   $('ghg-equiv-grid').innerHTML=parts.join('');
 }
@@ -909,6 +931,31 @@ $('ghg-scenario-sel').addEventListener('change',function(){
   GHG_SCENARIO=this.value;
   if(_ghgImpactData)renderGhgImpact(_ghgImpactData);
 });
+
+// energy impact — kWh saved, priced $ + homes-powered + EV-km equivalents
+// (parallel to the GHG card above, but a single basis, no scenario picker:
+// Pre/Post_TotalEnergy is one measured-unit-converted quantity, not a
+// grid-factor choice like GHG is)
+function renderEnergyImpact(g){
+  const n=g.national;
+  $('energy-kpi-strip').innerHTML=`
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_gwh_saved)}</div><div class="gl">GWh/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes)</div></div>
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.avg_kwh_saved)}</div><div class="gl">avg kWh/yr saved per home</div></div>
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.homes_powered_equivalent)}</div><div class="gl">homes' worth of annual energy use (CEUD ${n.ceud_avg_household_kwh.year} avg, ${fmtInt(n.ceud_avg_household_kwh.avg_kwh_per_household)} kWh/home)</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.cost_cad_saved)}</div><div class="gl">at today's utility rates (${fmtPct(n.cost_coverage_pct,0)} of matched homes priced)</div></div>`;
+  $('energy-national-note').textContent=`Net = sum(pre kWh − post kWh) over ${fmtInt(n.n)} matched pairs. Not clipped at zero — ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled energy use rise, pulling the total down.`;
+  const parts=[
+    {icon:ICON_HOUSE,label:'Equivalent to powering this many homes for a year',value:fmtInt(n.homes_powered_equivalent),sub:`vs a CEUD avg home (${n.ceud_avg_household_kwh.year})`},
+    {icon:ICON_BOLT,label:'Total energy saved',value:fmtInt(n.total_gwh_saved)+' GWh/yr',sub:(n.total_kwh_saved/1e9).toFixed(2)+' TWh/yr'},
+    {icon:ICON_MONEY,label:'Avoided energy cost',value:'$'+fmtInt(n.cost_cad_saved)+'/yr',sub:`${fmtPct(n.cost_coverage_pct,0)} of homes priced`},
+    {icon:ICON_PLUG,label:'Equivalent EV driving distance',value:(n.ev_km_equivalent/1e9).toFixed(2)+' billion km',sub:`at ${(g.ev_kwh_per_km*100).toFixed(0)} kWh/100km, illustrative`},
+  ];
+  $('energy-equiv-grid').innerHTML=parts.map(p=>
+    `<div class="equiv-card">${p.icon}<div class="equiv-label">${p.label}</div><div class="equiv-value">${p.value}</div><div class="equiv-sub">${p.sub}</div></div>`
+  ).join('');
+  $('energy-caveat').innerHTML=`<b>Homes-powered is an energy-volume comparison, not a claim about these specific homes.</b> It divides the national kWh total by NRCan CEUD's own average household energy use (residential "Total Energy Use" ÷ "Total Households", ${n.ceud_avg_household_kwh.year} — CEUD's latest year) — it does not mean this many unique Canadian homes are now fully powered by the savings. $ saved uses the same volumetric, today's-rates methodology as the retrofit $-saved feature elsewhere on this site (<a href="retrofits" style="color:var(--navy)">Retrofit Explorer</a>) — historical bills aren't reconstructed. The EV-km figure uses one illustrative consumption rate, not a specific vehicle.`;
+}
+function secEnergy(){return loadJSON(INS+'energy_impact.json').then(renderEnergyImpact);}
 
 /* ══════════════════════════════════════════════════════════════════════
    03 — NATIONAL MAP + LEADERBOARDS
@@ -1599,6 +1646,7 @@ function sec09(){
   return loadJSON(INS+'timeline.json').then(t=>{
   const nat=t.national,years=[];for(let y=2005;y<=2026;y++)years.push(y);
   const d=years.map(y=>nat.d_year[y]||0),e=years.map(y=>nat.matched_by_e_year[y]||0);
+  const pct=years.map(y=>nat.cum_pct_of_stock[y]??null);
   const eras=[
     {year_start:2007,year_end:2012,short:'ecoENERGY',fill:'rgba(200,136,26,.10)'},
     {year_start:2021,year_end:2024,short:'Greener Homes',fill:'rgba(26,122,85,.10)'}];
@@ -1606,13 +1654,19 @@ function sec09(){
   mkChart('ch-timeline',{type:'line',
     data:{labels:years.map(String),datasets:[
       {label:'Initial audits',data:d,borderColor:NAVY,backgroundColor:'rgba(11,37,69,.06)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2},
-      {label:'Completed retrofits',data:e,borderColor:AMBER,backgroundColor:'rgba(200,136,26,.05)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2}]},
+      {label:'Completed retrofits',data:e,borderColor:AMBER,backgroundColor:'rgba(200,136,26,.05)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2},
+      {label:'Cumulative % of housing stock audited',data:pct,yAxisID:'y1',borderColor:'#1A7A55',backgroundColor:'#1A7A55',fill:false,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2,borderDash:[4,3],spanGaps:false}]},
     options:{interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:false},eraBand:{eras,min:2005,max:2026},
-        tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${fmtInt(i.raw)}`}}},
-      scales:{x:{...AXcat,ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{...AX,ticks:{...AX.ticks,callback:v=>v>=1000?(v/1000)+'k':v}}}}});
+        tooltip:{callbacks:{label:i=>i.datasetIndex===2?`${i.dataset.label}: ${i.raw==null?'no CEUD data':i.raw.toFixed(2)+'%'}`:`${i.dataset.label}: ${fmtInt(i.raw)}`}}},
+      scales:{x:{...AXcat,ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},
+        y:{...AX,ticks:{...AX.ticks,callback:v=>v>=1000?(v/1000)+'k':v}},
+        y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},
+          ticks:{color:MUTED,font:{size:10},callback:v=>v+'%'},
+          title:{display:true,text:'% of housing stock',color:MUTED,font:{size:11}}}}}});
   const a=t.annotations;
-  $('timeline-note').innerHTML='Program eras: '+a.map(x=>`<a href="${x.source_url}" target="_blank" rel="noopener" style="color:var(--navy)">${x.label.split(' (')[0].split(' — ')[0]}</a>`).join(' · ')+'. Matched-pair audits only.';
+  $('timeline-note').innerHTML='Program eras: '+a.map(x=>`<a href="${x.source_url}" target="_blank" rel="noopener" style="color:var(--navy)">${x.label.split(' (')[0].split(' — ')[0]}</a>`).join(' · ')+
+    '. Matched-pair audits only. Green dashed line: running total of initial audits since 2000, divided by that year\'s <a href="ceud" style="color:var(--navy)">NRCan CEUD</a> household count — a cumulative audit-count-vs-stock ratio (not unique homes; a home audited twice counts twice), stopping at 2023 (CEUD\'s latest year).';
 
   // Measure mix by program era — same 3-way split as the FSA/province
   // "Program era" filter in Retrofit Explorer, but classified once nationally
@@ -1764,7 +1818,7 @@ document.querySelector('[data-set-mode="advanced"]').addEventListener('click',()
 
 /* ── wire sections lazily ───────────────────────────────────────────── */
 whenVisible('sec-scorecard',sec02);
-whenVisible('sec-ghg',secGhg);
+whenVisible('sec-ghg',()=>Promise.all([secGhg(),secEnergy()]));
 whenVisible('sec-map',sec03);
 whenVisible('sec-success',sec04);
 whenVisible('sec-equity',sec06);
