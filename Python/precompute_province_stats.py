@@ -118,6 +118,10 @@ def normalize_categoricals(df):
 
 # Measures shown in the measures bar + spider chart.
 # Mirrors the MEASURES array in retrofits.html — keep label/order in sync.
+# NOTE: Heating_Change is overridden above (in build_province_json) to
+# exclude homes where HeatPump_Addition also fired — see that override's
+# comment for why. So 'Heating system changed' here means "heating
+# equipment changed, to something other than a heat pump addition".
 MEASURES = [
     ('Air_Tightness_Upgrade',        'Air sealing'),
     ('Roof_Insulation_Upgrade',      'Roof insulation'),
@@ -804,6 +808,18 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
     df = pd.read_parquet(parquet_path)
     df = normalize_categoricals(df)
     print(f"  loaded {len(df):,} rows")
+
+    # Redefine Heating_Change to exclude heat pump additions: raw ERS
+    # Heating_Change is a FURNACEFUEL/FURNACETYPE diff and fires whenever a
+    # heat pump is added too (a heat pump addition IS a furnace type/fuel
+    # change), which made "Heating system changed" and "Heat pump added"
+    # double-count the same homes and made bundles like "Heat pump + Heating
+    # system" hard to read as anything other than "heat pump, with some
+    # ancillary paperwork". Downstream-only fix (matches build_insights.py's
+    # identical override) — the raw per-home flag in fsa_json is untouched,
+    # since it's a true statement about that field; this is a categorization
+    # choice for aggregate "what kind of measure" reporting, not a data fix.
+    df['Heating_Change'] = flag_series(df, 'Heating_Change') & ~flag_series(df, 'HeatPump_Addition')
 
     # Price per-fuel energy against current rates (utility_rates_reference.json
     # covers all provinces/territories now). Adds _CostPre/_CostPost, which

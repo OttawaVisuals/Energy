@@ -42,6 +42,11 @@ OUTPUTS  insights_json/ (compact, ensure_ascii=False, separators=(',',':')):
                      (tCO2e/yr), priced two ways (2024 federal carbon-tax rate,
                      ECCC 2024 Social Cost of Carbon) — see CARBON_TAX_RATE /
                      SCC_RATE below for citations.
+  energy_impact.json national + per-province total kWh/GWh saved, $ saved
+                     (utility_rates_reference.json rates, provinces with
+                     coverage only), homes-powered-for-a-year equivalent
+                     (CEUD residential Total Energy Use / Total Households),
+                     and an illustrative EV-km equivalent.
   meta.json          sources, build date, thresholds, formulas, band defs.
 
 HONESTY RAILS baked into the numbers (each also stated on-page, ROADMAP item
@@ -85,8 +90,16 @@ AUDIT_TOTALS_PATH = os.path.join(ERS_DIR, "fsa_audit_totals.json")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CENSUS_PATH = REPO_ROOT / "census_json" / "fsa_census.json"
 CLIMATE_PATH = REPO_ROOT / "climate_json" / "fsa_climate.json"
+CEUD_DIR = REPO_ROOT / "ceud_json"
 FSA_INDEX_DIR = os.path.join(ERS_DIR, "fsa_json")       # for validation only
 OUT_DIR = REPO_ROOT / "insights_json"
+
+# ERS PROV code -> CEUD res_<region>.json region code. NT and NU both fall
+# under CEUD's combined "Territories" table (no YT audits in the ERS data).
+PROV_TO_CEUD_REGION = {
+    "AB": "ab", "BC": "bc", "MB": "mb", "NB": "nb", "NF": "nl", "NS": "ns",
+    "NT": "tr", "NU": "tr", "ON": "on", "PE": "pe", "QC": "qc", "SK": "sk",
+}
 
 BUILD_DATE = datetime.date.today().isoformat()
 
@@ -114,6 +127,10 @@ MIN_DWELLINGS_FOR_PARTICIPATION = 1000
 
 # The 8 measure flags (same set + order as precompute_province_stats.MEASURES).
 # key -> short label used in bundle strings and the success payload.
+# NOTE: Heating_Change is overridden below (in load_province_frame) to
+# exclude homes where HeatPump_Addition also fired — see that override's
+# comment for why. So "Heating system" here means "heating equipment
+# changed, to something other than a heat pump addition".
 MEASURES = [
     ("Air_Tightness_Upgrade",         "Air sealing"),
     ("Roof_Insulation_Upgrade",       "Roof"),
@@ -135,7 +152,11 @@ READ_COLS = (
      "Pre_GHG_current", "Post_GHG_current",
      "Pre_GHG_current_corrected", "Post_GHG_current_corrected",
      "Pre_GHG_as_audited", "Post_GHG_as_audited",
-     "Pre_Date", "Post_Date", "Deep_Retrofit", "FuelSwitch"]
+     "Pre_Date", "Post_Date", "Deep_Retrofit", "FuelSwitch",
+     # per-fuel kWh, kept raw (unconverted) so build_energy_impact() can
+     # reuse precompute_province_stats.add_cost_columns() verbatim
+     "Pre_Electricity", "Post_Electricity", "Pre_NaturalGas", "Post_NaturalGas",
+     "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood"]
     + MEASURE_KEYS
 )
 
@@ -317,6 +338,8 @@ def load_province_frame(parquet_path):
     valid_area = area.notna() & (area > 0)
     df["pre_eui"] = np.where(valid_area & pre_e.notna(), pre_e / area, np.nan)
     df["post_eui"] = np.where(valid_area & post_e.notna(), post_e / area, np.nan)
+    df["energy_pre_kwh"] = pre_e
+    df["energy_post_kwh"] = post_e
     df["ghg_pre"] = num(df["Pre_GHG"])
     df["ghg_post"] = num(df["Post_GHG"])
     df["ghg_pre_current"] = num(df["Pre_GHG_current"])
@@ -328,6 +351,18 @@ def load_province_frame(parquet_path):
 
     for k in MEASURE_KEYS + ["Deep_Retrofit", "FuelSwitch"]:
         df[k] = df[k].astype(bool)
+    # Redefine Heating_Change to exclude heat pump additions: raw ERS
+    # Heating_Change is a FURNACEFUEL/FURNACETYPE diff and fires whenever a
+    # heat pump is added too (adding a heat pump IS a furnace type/fuel
+    # change), which made "Heating system" and "Heat pump" double-count the
+    # same homes and made the "Heat pump + Heating system" bundle read as
+    # little more than "heat pump, plus the paperwork that comes with it".
+    # Downstream-only override (mirrors precompute_province_stats.py's
+    # identical fix for Retrofit Explorer) — the raw per-home flag shipped
+    # in fsa_json is untouched, since it's a true statement about that ERS
+    # field; this is a categorization choice for aggregate "what kind of
+    # measure" reporting, not a data correction.
+    df["Heating_Change"] = df["Heating_Change"] & ~df["HeatPump_Addition"]
     df["n_measures"] = df[MEASURE_KEYS].sum(axis=1).astype(int)
 
     df["d_year"] = pd.to_datetime(df["Pre_Date"], errors="coerce").dt.year
@@ -339,7 +374,11 @@ def load_province_frame(parquet_path):
              "ghg_pre_current_corrected", "ghg_post_current_corrected",
              "ghg_pre_as_audited", "ghg_post_as_audited",
              "YearBuiltNum", "n_measures",
-             "d_year", "e_year", "Deep_Retrofit", "FuelSwitch"] + MEASURE_KEYS)
+             "d_year", "e_year", "Deep_Retrofit", "FuelSwitch",
+             "energy_pre_kwh", "energy_post_kwh",
+             "Pre_Electricity", "Post_Electricity", "Pre_NaturalGas", "Post_NaturalGas",
+             "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood"]
+            + MEASURE_KEYS)
     return prov, df[keep]
 
 
@@ -721,29 +760,77 @@ PROGRAM_ANNOTATIONS = [
 ]
 
 
+def load_ceud_households(region_code):
+    """households (thousands) by year, from ceud_json/res_<region>.json's
+    explanatory block. Returns {} if the file/segment is missing."""
+    path = CEUD_DIR / f"res_{region_code}.json"
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    out = {}
+    for r in data.get("explanatory", []):
+        if r.get("variable") == "households" and r.get("segment") == "all":
+            out[int(r["year"])] = float(r["value"]) * 1000  # thousands -> units
+    return out
+
+
+def cumulative_share_of_stock(d_year_hist, households_by_year):
+    """Cumulative matched-pair initial audits (running total since the first
+    year in d_year_hist) as % of housing stock, one point per CEUD year
+    (households data stops at 2023; audits continuing past that aren't
+    plotted since there's no stock figure to divide by yet)."""
+    if not households_by_year:
+        return {}
+    last_ceud_year = max(households_by_year)
+    running = 0
+    out = {}
+    for year in sorted(d_year_hist):
+        if year > last_ceud_year:
+            break
+        running += d_year_hist[year]
+        stock = households_by_year.get(year)
+        if stock:
+            out[year] = round(100 * running / stock, 3)
+    return out
+
+
 def build_timeline(nat):
     def year_hist(series):
         s = series.dropna().astype(int)
         s = s[(s >= 1990) & (s <= 2035)]
         return {int(k): int(v) for k, v in sorted(Counter(s).items())}
 
+    nat_d_year = year_hist(nat["d_year"])
+    nat_households = load_ceud_households("ca")
     national = {
-        "d_year": year_hist(nat["d_year"]),          # initial (pre) audits
+        "d_year": nat_d_year,          # initial (pre) audits
         "e_year": year_hist(nat["e_year"]),          # follow-up (post) audits
         "matched_by_e_year": year_hist(nat["e_year"]),  # matched retrofits dated by E
+        "cum_pct_of_stock": cumulative_share_of_stock(nat_d_year, nat_households),
     }
     per_prov = {}
     for prov, grp in nat.groupby("PROV"):
+        prov_d_year = year_hist(grp["d_year"])
+        region = PROV_TO_CEUD_REGION.get(prov)
+        prov_households = load_ceud_households(region) if region else {}
         per_prov[prov] = {
-            "d_year": year_hist(grp["d_year"]),
+            "d_year": prov_d_year,
             "e_year": year_hist(grp["e_year"]),
             "matched_by_e_year": year_hist(grp["e_year"]),
+            "cum_pct_of_stock": cumulative_share_of_stock(prov_d_year, prov_households),
         }
     return {
         "note": ("Matched-pair audits only (unmatched D-only / E-only homes are "
                  "not in the row-level data). Each matched pair contributes one "
                  "initial-D year and one follow-up-E year; matched_by_e_year "
-                 "dates the completed retrofit by its post-audit."),
+                 "dates the completed retrofit by its post-audit. cum_pct_of_stock "
+                 "is the running total of initial audits since the first audit "
+                 "year, divided by that year's NRCan CEUD household count "
+                 "(residential 'Total Households' table) — it is a cumulative "
+                 "audit-count-vs-stock ratio, not a unique-homes-touched figure "
+                 "(a home audited more than once is counted each time), and it "
+                 "stops at 2023, CEUD's latest available year."),
         "national": national,
         "by_province": per_prov,
         "annotations": PROGRAM_ANNOTATIONS,
@@ -910,6 +997,133 @@ def build_ghg_impact(nat):
 
 
 # =============================================================================
+# energy_impact.json — total energy saved, priced $ saved, and everyday
+# equivalents (mirrors build_ghg_impact's structure/spirit for energy instead
+# of GHG)
+# =============================================================================
+
+# Representative BEV consumption for the "km driven" equivalent — NRCan's
+# Fuel Consumption Guide lists most current BEVs in the 17-22 kWh/100km
+# range combined city/highway; 19 is a round, illustrative midpoint, same
+# spirit as the GHG section's car-km equivalents (not a specific model).
+EV_KWH_PER_KM = 0.19
+
+
+def avg_household_kwh(region_code):
+    """Latest CEUD year's avg annual household energy use (kWh) for a region,
+    from the grand-total residential energy_PJ record (records with no
+    end_use/energy_source/building_type dims — CEUD's own breakdowns of that
+    same total, by end-use/fuel/building-type, must NOT also be summed in or
+    the total inflates ~6x) divided by that year's household count."""
+    path = CEUD_DIR / f"res_{region_code}.json"
+    if not path.exists():
+        return None
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    energy_pj = {int(r["year"]): float(r["energy_PJ"]) for r in data.get("records", [])
+                 if "end_use" not in r and "energy_source" not in r and "building_type" not in r}
+    households = load_ceud_households(region_code)
+    if not energy_pj or not households:
+        return None
+    year = min(max(energy_pj), max(households))
+    if year not in households or not households[year]:
+        return None
+    kwh_total = energy_pj[year] * 1e6 * 277.778  # PJ -> GJ -> kWh
+    return {"year": year, "avg_kwh_per_household": round(kwh_total / households[year], 1)}
+
+
+def build_energy_impact(nat):
+    """
+    Total energy (kWh) saved across matched pairs, nationally and per
+    province, plus three everyday-scale conversions:
+      - homes powered for a year (total kWh saved / CEUD's own average
+        household kWh/yr, from the residential 'Total Energy Use' table —
+        same source as timeline.json's cum_pct_of_stock)
+      - $ saved, priced with the exact per-fuel volumetric rates and formula
+        precompute_province_stats.py uses for the retrofit $-saved feature
+        (utility_rates_reference.json; today's rates applied to audits
+        spanning 2004-2026, not a historical bill) — only provinces present
+        in that rate table are priced, coverage reported explicitly
+      - representative EV-km equivalent (see EV_KWH_PER_KM)
+    NET, not clipped, same convention as build_ghg_impact: a home whose
+    modelled energy use rose still counts, pulling the total down.
+    """
+    from precompute_province_stats import price_vec_for, add_cost_columns
+
+    def energy_stats(grp):
+        matched_total = int(len(grp))
+        d = (grp["energy_pre_kwh"] - grp["energy_post_kwh"]).dropna()
+        n = int(d.size)
+        if n == 0:
+            return None
+        total = float(d.sum())
+        cost_total, cost_n = 0.0, 0
+        priced = []
+        for prov, pgrp in grp.groupby("PROV"):
+            pv = price_vec_for(prov)
+            if not pv:
+                continue
+            priced.append(prov)
+            g = add_cost_columns(pgrp, pv)
+            cd = (g["_CostPre"] - g["_CostPost"]).dropna()
+            cost_total += float(cd.sum())
+            cost_n += int(cd.size)
+        return {
+            "n": n,
+            "matched_total": matched_total,
+            "energy_coverage_pct": r3(n / matched_total) if matched_total else None,
+            "n_increased": int((d < 0).sum()),
+            "avg_kwh_saved": r1(total / n),
+            "total_kwh_saved": r0(total),
+            "total_gwh_saved": round(total / 1e6, 3),
+            "cost_cad_saved": r0(cost_total),
+            "cost_coverage_pct": r3(cost_n / matched_total) if matched_total else None,
+            "cost_priced_provinces": sorted(priced),
+            "ev_km_equivalent": r0(total / EV_KWH_PER_KM),
+        }
+
+    national = energy_stats(nat)
+    by_province = {}
+    for prov, grp in nat.groupby("PROV"):
+        s = energy_stats(grp)
+        if s:
+            by_province[prov] = s
+
+    ceud_avg = avg_household_kwh("ca")
+    national["ceud_avg_household_kwh"] = ceud_avg
+    national["homes_powered_equivalent"] = (
+        r0(national["total_kwh_saved"] / ceud_avg["avg_kwh_per_household"]) if ceud_avg else None
+    )
+    for prov, s in by_province.items():
+        region = PROV_TO_CEUD_REGION.get(prov)
+        avg = avg_household_kwh(region) if region else None
+        s["ceud_avg_household_kwh"] = avg
+        s["homes_powered_equivalent"] = (
+            r0(s["total_kwh_saved"] / avg["avg_kwh_per_household"]) if avg else None
+        )
+
+    return {
+        "note": ("Matched-pair audits only, same population as every other figure on this page. "
+                 "energy_pre_kwh/energy_post_kwh are Pre/Post_TotalEnergy straight from the ERS "
+                 "data (already HOT2000-unit-converted to kWh), summed net — a home whose modelled "
+                 "energy use rose (n_increased) still counts, pulling the total down rather than "
+                 "being dropped. homes_powered_equivalent divides that total by CEUD's own average "
+                 "household energy use (residential 'Total Energy Use' grand total / 'Total "
+                 "Households', latest common year — 2023 nationally); it's an energy-volume "
+                 "comparison, not a claim that these specific homes match the average CEUD "
+                 "household. cost_cad_saved is priced only for provinces in "
+                 "utility_rates_reference.json (see cost_priced_provinces / cost_coverage_pct) "
+                 "using the same volumetric, today's-rates methodology as retrofits.html's "
+                 "$-saved feature — territories some fuels aren't broken out for get $0 for that "
+                 "fuel, not an error. ev_km_equivalent uses a single illustrative BEV consumption "
+                 f"figure ({EV_KWH_PER_KM * 100:.0f} kWh/100km), not a specific model."),
+        "ev_kwh_per_km": EV_KWH_PER_KM,
+        "national": national,
+        "by_province": by_province,
+    }
+
+
+# =============================================================================
 # validation printouts
 # =============================================================================
 
@@ -1051,6 +1265,7 @@ def main():
     opportunity = build_opportunity(metrics)
     timeline = build_timeline(nat)
     ghg_impact = build_ghg_impact(nat)
+    energy_impact = build_energy_impact(nat)
     program_era = build_program_era(nat)
 
     # so the methodology section can state the suppression counts without
@@ -1132,6 +1347,7 @@ def main():
     write("opportunity.json", opportunity)
     write("timeline.json", timeline)
     write("ghg_impact.json", ghg_impact)
+    write("energy_impact.json", energy_impact)
     write("program_era.json", program_era)
     write("meta.json", meta)
     total_kb = sum(os.path.getsize(OUT_DIR / n) for n in os.listdir(OUT_DIR)
@@ -1141,7 +1357,7 @@ def main():
     validate(metrics, nat, prov_totals)
 
     # stash a few numbers for the notes memo
-    return metrics, nat, success, climate_out, equity, opportunity, timeline, ghg_impact, income_cuts, dv_cuts
+    return metrics, nat, success, climate_out, equity, opportunity, timeline, ghg_impact, energy_impact, income_cuts, dv_cuts
 
 
 if __name__ == "__main__":

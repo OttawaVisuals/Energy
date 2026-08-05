@@ -1,7 +1,17 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-04** (**Retrofit Explorer + Retrofit Insights**: new
+Updated **2026-08-05** (**Retrofit Insights + Retrofit Explorer**: new CEUD-sourced
+**energy impact KPI card** — kWh/GWh saved, priced $ saved, a "homes powered for a
+year" equivalent, and an EV-km equivalent, plus icons on both the GHG and energy
+equivalency grids — and a **cumulative-audits-vs-housing-stock line** on the Retrofit
+Insights timeline chart. Also fixed: the scorecard table's max-value bars used to run
+edge-to-edge and blend into the next column; and `Heating_Change`/`HeatPump_Addition`
+were double-counting the same homes in every aggregate measure-mix chart on **both**
+pages (a heat pump addition is itself a furnace type/fuel change) — `Heating_Change`
+now excludes heat pump additions downstream, no ERS pipeline rerun needed. See
+`docs/RETROFITS.md`'s 2026-08-05 changelog entry.
+Then, on 2026-08-04: new
 **"Program era" filter** — ecoENERGY (2007–2012) / no program / Greener Homes
 (2021–2024), classified by each home's initial audit year — in Retrofit Explorer's
 FSA, province and Canada views, plus a companion "what did each era build" measure-mix
@@ -171,8 +181,8 @@ lifecycle-update candidates logged — see
 
 | Tool | Live | Docs | Notes |
 |---|---|---|---|
-| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04) |
-| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04 |
+| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05) |
+| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced) and scorecard/`Heating_Change` fixes added 2026-08-05 |
 | 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
