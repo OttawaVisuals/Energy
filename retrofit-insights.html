@@ -986,6 +986,46 @@ const MMETRICS={
     fmt:v=>fmtPct(v,0),accent:[200,136,26],seq:true,
     top:'Highest adoption',bot:'Lowest adoption',
     tip:'share of matched pairs that added a heat pump'},
+  air_sealing:{label:'Air sealing',lb:'Share doing air sealing',
+    get:r=>r.measure_shares['Air sealing'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Air sealing']!=null,
+    fmt:v=>fmtPct(v,0),accent:[58,102,90],seq:true,
+    top:'Highest air-sealing rate',bot:'Lowest air-sealing rate',
+    tip:'share of matched pairs that did air sealing'},
+  roof:{label:'Roof insulation',lb:'Share upgrading roof insulation',
+    get:r=>r.measure_shares['Roof'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Roof']!=null,
+    fmt:v=>fmtPct(v,0),accent:[46,74,133],seq:true,
+    top:'Highest roof-insulation rate',bot:'Lowest roof-insulation rate',
+    tip:'share of matched pairs that upgraded roof insulation'},
+  foundation:{label:'Foundation insulation',lb:'Share upgrading foundation insulation',
+    get:r=>r.measure_shares['Foundation'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Foundation']!=null,
+    fmt:v=>fmtPct(v,0),accent:[107,76,38],seq:true,
+    top:'Highest foundation-insulation rate',bot:'Lowest foundation-insulation rate',
+    tip:'share of matched pairs that upgraded foundation insulation'},
+  wall:{label:'Wall insulation',lb:'Share upgrading wall insulation',
+    get:r=>r.measure_shares['Wall'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Wall']!=null,
+    fmt:v=>fmtPct(v,0),accent:[123,63,140],seq:true,
+    top:'Highest wall-insulation rate',bot:'Lowest wall-insulation rate',
+    tip:'share of matched pairs that upgraded wall insulation'},
+  heating_change:{label:'Heating system change',lb:'Share changing the heating system',
+    get:r=>r.measure_shares['Heating system'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Heating system']!=null,
+    fmt:v=>fmtPct(v,0),accent:[180,90,40],seq:true,
+    top:'Highest heating-change rate',bot:'Lowest heating-change rate',
+    tip:'share of matched pairs that changed the heating system'},
+  windows:{label:'Window upgrades',lb:'Share upgrading windows',
+    get:r=>r.measure_shares['Windows'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Windows']!=null,
+    fmt:v=>fmtPct(v,0),accent:[40,120,150],seq:true,
+    top:'Highest window-upgrade rate',bot:'Lowest window-upgrade rate',
+    tip:'share of matched pairs that upgraded windows'},
+  floor:{label:'Floor insulation',lb:'Share upgrading floor insulation',
+    get:r=>r.measure_shares['Floor'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Floor']!=null,
+    fmt:v=>fmtPct(v,0),accent:[90,110,40],seq:true,
+    top:'Highest floor-insulation rate',bot:'Lowest floor-insulation rate',
+    tip:'share of matched pairs that upgraded floor insulation'},
+  deep_rate:{label:'Deep retrofit rate',lb:'Share of deep retrofits',
+    get:r=>r.deep_rate,ok:r=>r.n>=MIN_N&&r.deep_rate!=null,
+    fmt:v=>fmtPct(v,0),accent:[15,90,60],seq:true,
+    top:'Highest deep-retrofit rate',bot:'Lowest deep-retrofit rate',
+    tip:'share of matched pairs classed as a deep retrofit'},
   opportunity:{label:'Opportunity score',lb:'Missed-opportunity composite (0–100)',
     get:r=>r.opp_score,ok:r=>r.opp_score!=null,
     fmt:v=>v.toFixed(1),accent:[176,42,30],seq:true,
@@ -1654,9 +1694,13 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
 
     <h4>Sources</h4>
     <ul>
-      <li><b>Retrofits:</b> NRCan EnerGuide matched before/after audit pairs, 2004–2026.</li>
-      <li><b>Income &amp; dwellings:</b> 2021 Census Profile (FSA level) — static, does not refresh with the audit data.</li>
-      <li><b>Heat-pump models:</b> AHRI certificate directory, joined on the certificate number recorded in the audit.</li>
+      <li><b>Retrofits:</b> <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a> — matched before/after audit pairs, 2004–2026.</li>
+      <li><b>Income &amp; dwellings:</b> <a href="https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/index.cfm?Lang=E" target="_blank" rel="noopener">Statistics Canada 2021 Census Profile ↗</a> (FSA level) — static, does not refresh with the audit data.</li>
+      <li><b>Heat-pump models:</b> <a href="https://www.ahridirectory.org/" target="_blank" rel="noopener">AHRI Directory of Certified Product Performance ↗</a>, joined on the certificate number recorded in the audit.</li>
+      <li><b>GHG factors &amp; Social Cost of Carbon:</b> <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" target="_blank" rel="noopener">ECCC emission factors &amp; reference values ↗</a>.</li>
+      <li><b>Climate normals (HDD/CDD):</b> ECCC 1991–2020 Canadian Climate Normals.</li>
+      <li><b>Cold-climate equipment screen:</b> <a href="https://www.energy.gov/cmei/buildings/cchp-technology-challenge-specifications" target="_blank" rel="noopener">US DOE Cold Climate Heat Pump (CCHP) Technology Challenge ↗</a> specifications, Table II-3.</li>
+      <li><b>Retrofit pairing methodology:</b> <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/RETROFITS.md" target="_blank" rel="noopener">RETROFITS.md ↗</a> on the underlying <a href="retrofits.html" style="color:var(--navy)">Retrofit Explorer</a>.</li>
     </ul>
 
     <h4>The eight tracked measures</h4>
