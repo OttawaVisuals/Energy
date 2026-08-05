@@ -814,19 +814,15 @@ footer a{color:var(--muted)}
           <span class="card-sub" id="weather-sub">how cold this city really gets — and how much it varies</span>
         </div>
         <div class="stats-grid" id="weather-kpis"></div>
+        <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view" style="max-width:420px;margin-bottom:.75rem">
+          <button type="button" data-view="temp" class="active">By temperature</button>
+          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        </div>
         <div class="keychart-wrap">
-          <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Monthly mean temperature range across years with design temperatures"></svg>
+          <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
           <div class="kc-tip" id="weather-tip"></div>
         </div>
-        <div class="kc-legend">
-          <span class="kc-leg"><span class="kc-swatch fill" style="background:rgba(90,120,180,.18)"></span>Range across years</span>
-          <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy);border-top-width:3px"></span>Selected (bold)</span>
-          <span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--purple)"></span>TMY</span>
-          <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--blue)"></span>Typical yr</span>
-          <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--red)"></span>Coldest yr</span>
-          <span class="kc-leg"><span class="kc-swatch" style="border-color:var(--green)"></span>Mildest yr</span>
-          <span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>
-        </div>
+        <div class="kc-legend" id="weather-legend"></div>
         <div class="note" id="weather-note"></div>
       </div>
 
@@ -1713,7 +1709,7 @@ const state={
   tier:'high', band:'18-30k', backup:'electric',
   lockout:-8, lockoutAuto:true, efBasis:'marginal', weatherYear:'tmy', refrig:'r410a', leakRate:2.0, methane:1.0, lineloss:5.0,
   plan:null, // null = city's default electricity plan
-  hourlyRange:'all',
+  hourlyRange:'all', weatherView:'temp', // weather-card chart: 'temp' histogram or 'hourly' 8760-hour line
   // "My own data" tier: user-entered (outdoor °C, capacity Btu/h, COP) points,
   // colder to warmer. Starter values are a plausible mid-tier shape, not a
   // recommendation -- see buildCustomCell().
@@ -1857,6 +1853,11 @@ function buildInputs(){
     });
   });
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
+  document.querySelectorAll('#weather-view-seg button').forEach(b=>b.addEventListener('click',()=>{
+    state.weatherView=b.dataset.view;
+    document.querySelectorAll('#weather-view-seg button').forEach(x=>x.classList.toggle('active',x===b));
+    renderWeatherChart(); // re-render only; the underlying simulation hasn't changed
+  }));
   $('in-plan').addEventListener('change',e=>{state.plan=e.target.value;recompute();});
   $('in-designload').addEventListener('input',e=>{state.designLoad=+e.target.value;$('designload-val').textContent=fmt1(state.designLoad)+' kW';recompute();});
   $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
@@ -3249,99 +3250,184 @@ function monthlyMeans(tempsC){
   return out;
 }
 
-// Weather-lens chart: grey band = min–max monthly-mean temperature across all
-// years; blue line = the selected series (TMY or a chosen year); dashed markers
-// = the computed 2.5%-ile and NBC 2020 design temperatures.
+// Weather-lens chart: two views toggled by state.weatherView.
+//  'temp'   — hours-per-1°C histogram: how often each temperature occurs.
+//  'hourly' — the full 8,760-hour temperature trace across the year.
+// Both share the same KPI strip (computed on the selected hourly series).
 function renderWeatherChart(){
   const svg=$('weatherchart'),card=$('weather-card');if(!svg)return;
   const w=WEATHER_CACHE[weatherSlug(state.city)];
   if(!w||!w.years){card.style.display='none';return;}
   card.style.display='';
-  const W=740,H=380,m={l:52,r:16,t:16,b:42},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
-
-  // per-year monthly means (cache on the object)
-  if(!w._mm){w._mm={};w.meta.years.forEach(y=>{w._mm[y]=monthlyMeans(w.years[y].temps_tenthsC.map(t=>t/10));});}
-  const band=[];for(let mo=0;mo<12;mo++){let lo=Infinity,hi=-Infinity;w.meta.years.forEach(y=>{const v=w._mm[y][mo];if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}});band.push([lo,hi]);}
-  const sel = state.weatherYear==='tmy' ? monthlyMeans(TMY[state.city]) : w._mm[state.weatherYear];
-
-  // reference series: TMY (synthetic typical), plus the representative/coldest/
-  // mildest real years tagged in the record. Each carries its own colour so the
-  // hover readout can name every one at the pointed-to month.
-  const tags=w.meta.tags||{};
-  const tmyMeans = TMY&&TMY[state.city] ? monthlyMeans(TMY[state.city]) : null;
-  const refs=[
-    {id:'tmy', label:'TMY', means:tmyMeans, color:css('--purple'), dash:'4 3'},
-    {id:String(tags.representative), label:`Typical (${tags.representative})`, means:w._mm[tags.representative], color:css('--blue')},
-    {id:String(tags.coldest), label:`Coldest (${tags.coldest})`, means:w._mm[tags.coldest], color:css('--red')},
-    {id:String(tags.mildest), label:`Mildest (${tags.mildest})`, means:w._mm[tags.mildest], color:css('--green')},
-  ].filter(r=>r.means);
   const selId = state.weatherYear==='tmy' ? 'tmy' : String(state.weatherYear);
   const selLabel = state.weatherYear==='tmy' ? 'TMY' : String(state.weatherYear);
+  const selSeries = tempSeriesFor(state.city,state.weatherYear); // hourly °C, length ~8760
+  const ctx={w,selId,selLabel,selSeries};
 
-  const design=w.meta.design_temp_computed_2p5_C, nbc=w.meta.nbc_2020_table_c2&&w.meta.nbc_2020_table_c2.jan_2p5;
-  const allVals=[...band.map(b=>b[0]),...band.map(b=>b[1]),...refs.flatMap(r=>r.means.filter(v=>v!=null))];
-  let lo=Math.min(design!=null?design:0, nbc!=null?nbc:0, ...allVals)-2;
-  let hi=Math.max(...allVals)+2;
-  const x=mo=>m.l+(mo+0.5)/12*plotW, y=v=>m.t+plotH-(v-lo)/(hi-lo)*plotH;
-  const muted=css('--muted'),light=css('--light'),navy=css('--navy'),amber2=css('--amber2');
-  const MON=['J','F','M','A','M','J','J','A','S','O','N','D'];
-  const path=means=>means.map((v,mo)=>v==null?null:[x(mo),y(v)]).filter(Boolean).map(p=>p.join(',')).join(' ');
-  let s='';
-  // y grid
-  niceTicksSigned(lo,hi,6).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
-    s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtSigned(Math.round(v))}</text>`;});
-  s+=`<text x="14" y="${m.t+plotH/2}" transform="rotate(-90 14 ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">°C</text>`;
-  for(let mo=0;mo<12;mo++)s+=`<text x="${x(mo)}" y="${H-m.b+18}" text-anchor="middle" font-size="11" fill="${light}">${MON[mo]}</text>`;
-  s+=`<text x="${m.l+plotW/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${muted}">Month (monthly mean temperature)</text>`;
-  // band polygon
-  let top='',bot='';for(let mo=0;mo<12;mo++){top+=`${x(mo)},${y(band[mo][1])} `;bot=`${x(mo)},${y(band[mo][0])} `+bot;}
-  s+=`<polygon points="${top}${bot}" fill="rgba(90,120,180,.18)"/>`;
-  // design-temp markers
-  if(design!=null){s+=`<line x1="${m.l}" y1="${y(design)}" x2="${W-m.r}" y2="${y(design)}" stroke="${amber2}" stroke-width="1.4" stroke-dasharray="5 4"/>`;
-    s+=`<text x="${W-m.r}" y="${y(design)-4}" text-anchor="end" font-size="10.5" fill="${amber2}">computed 2.5% design ${fmt1(design)}°</text>`;}
-  if(nbc!=null&&Math.abs(nbc-(design||nbc))>0.6){s+=`<line x1="${m.l}" y1="${y(nbc)}" x2="${W-m.r}" y2="${y(nbc)}" stroke="${muted}" stroke-width="1.1" stroke-dasharray="2 4"/>`;
-    s+=`<text x="${W-m.r}" y="${y(nbc)+12}" text-anchor="end" font-size="10.5" fill="${muted}">NBC 2020 ${fmtSigned(nbc)}°</text>`;}
-  // reference lines (thin) — skip the one that IS the selected series (drawn bold below)
-  refs.forEach(r=>{ if(r.id===selId)return;
-    s+=`<polyline points="${path(r.means)}" fill="none" stroke="${r.color}" stroke-width="1.4" opacity="0.65"${r.dash?` stroke-dasharray="${r.dash}"`:''}/>`;});
-  // selected series — bold, on top, with a halo + markers so it reads as the driver
-  const selMeans = selId==='tmy' ? tmyMeans : w._mm[state.weatherYear];
-  const selPts=selMeans.map((v,mo)=>[x(mo),y(v)]);
-  const selLine=selPts.map(p=>p.join(',')).join(' ');
-  s+=`<polyline points="${selLine}" fill="none" stroke="${navy}" stroke-width="7" opacity="0.14" stroke-linejoin="round"/>`;
-  s+=`<polyline points="${selLine}" fill="none" stroke="${navy}" stroke-width="3" stroke-linejoin="round"/>`;
-  selPts.forEach(p=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${navy}" stroke="#fff" stroke-width="1"/>`;});
-  s+=`<rect id="wx-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
-  svg.innerHTML=s;
-  WX_MODEL={W,m,plotW,plotH,x,y,refs,selMeans,selLabel,selId,MON};
-  attachWeatherHover();
+  if(state.weatherView==='hourly'){ renderWeatherChartHourly(ctx); }
+  else { renderWeatherChartTemp(ctx); }
 
   // KPI facts — computed on the SELECTED hourly series so they track the year picker
   renderWeatherKpis(w);
+}
+let WX_MODEL=null;
 
-  // cross-year band note (min–max GHG reduction across all years)
+// ---- 'temp' view: hours-per-1°C histogram, all years as backdrop + TMY/
+// typical/coldest/mildest reference lines + the selected series bold. ----
+function renderWeatherChartTemp(ctx){
+  const {w,selId,selLabel,selSeries}=ctx;
+  const svg=$('weatherchart');
+  const W=740,H=380,m={l:52,r:16,t:16,b:42},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
+  const tags=w.meta.tags||{};
+  const tmySeries=TMY&&TMY[state.city];
+
+  // temperature domain across the whole record + TMY
+  let tmin=Infinity,tmax=-Infinity;
+  w.meta.years.forEach(y=>{const arr=w.years[String(y)]&&w.years[String(y)].temps_tenthsC;
+    if(!arr)return; for(let i=0;i<arr.length;i++){const v=arr[i]/10;if(v<tmin)tmin=v;if(v>tmax)tmax=v;}});
+  if(tmySeries)tmySeries.forEach(v=>{if(v<tmin)tmin=v;if(v>tmax)tmax=v;});
+  tmin=Math.floor(tmin)-1; tmax=Math.ceil(tmax)+1;
+
+  const refs=[
+    {id:'tmy', label:'TMY', series:tmySeries, color:css('--purple'), dash:'4 3'},
+    {id:String(tags.representative), label:`Typical (${tags.representative})`, series:w.years[tags.representative]&&w.years[tags.representative].temps_tenthsC.map(t=>t/10), color:css('--blue')},
+    {id:String(tags.coldest), label:`Coldest (${tags.coldest})`, series:w.years[tags.coldest]&&w.years[tags.coldest].temps_tenthsC.map(t=>t/10), color:css('--red')},
+    {id:String(tags.mildest), label:`Mildest (${tags.mildest})`, series:w.years[tags.mildest]&&w.years[tags.mildest].temps_tenthsC.map(t=>t/10), color:css('--green')},
+  ].filter(r=>r.series);
+
+  // backdrop: every non-tagged year, thin grey, for context on the spread
+  const otherCounts=[];
+  w.meta.years.forEach(yy=>{
+    if(+yy===tags.representative||+yy===tags.coldest||+yy===tags.mildest)return;
+    const arr=w.years[String(yy)]&&w.years[String(yy)].temps_tenthsC;
+    if(arr)otherCounts.push(tempHistogram(arr.map(v=>v/10),tmin,tmax));
+  });
+
+  const selCounts=tempHistogram(selSeries,tmin,tmax);
+  const refCounts=refs.map(r=>({...r,counts:tempHistogram(r.series,tmin,tmax)}));
+  let cmax=0; [...otherCounts,...refCounts.map(r=>r.counts),selCounts].forEach(c=>c.forEach(v=>{if(v>cmax)cmax=v;}));
+  cmax=Math.ceil((cmax+2)/10)*10;
+
+  const design=w.meta.design_temp_computed_2p5_C;
+  const x=t=>m.l+(t-tmin)/(tmax-tmin)*plotW, y=v=>m.t+plotH-(v/cmax)*plotH;
+  const muted=css('--muted'),light=css('--light'),navy=css('--navy'),amber2=css('--amber2');
+  let s='';
+  niceTicks(cmax,5).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
+  s+=`<text x="14" y="${m.t+plotH/2}" transform="rotate(-90 14 ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">Hours / year</text>`;
+  const tTickStart=Math.ceil(tmin/10)*10;
+  for(let t=tTickStart;t<=tmax;t+=10)s+=`<text x="${x(t)}" y="${H-m.b+18}" text-anchor="middle" font-size="11" fill="${light}">${fmtSigned(t)}°</text>`;
+  s+=`<text x="${m.l+plotW/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${muted}">Outdoor temperature (°C) — hours per 1 °C bin</text>`;
+  // design-temp marker
+  if(design!=null){s+=`<line x1="${x(design)}" y1="${m.t}" x2="${x(design)}" y2="${m.t+plotH}" stroke="${amber2}" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    s+=`<text x="${x(design)+4}" y="${m.t+12}" font-size="10.5" fill="${amber2}">computed 2.5% design ${fmt1(design)}°</text>`;}
+  // backdrop years
+  otherCounts.forEach(c=>{s+=`<path d="${polylineFrom(c,tmin,x,y)}" fill="none" stroke="${css('--border')}" stroke-width="1"/>`;});
+  // reference lines — skip the one that IS the selected series (drawn bold below)
+  refCounts.forEach(r=>{ if(r.id===selId)return;
+    s+=`<path d="${polylineFrom(r.counts,tmin,x,y)}" fill="none" stroke="${r.color}" stroke-width="1.6" opacity="0.75"${r.dash?` stroke-dasharray="${r.dash}"`:''}/>`;});
+  // selected — bold navy with a halo
+  const selPath=polylineFrom(selCounts,tmin,x,y);
+  s+=`<path d="${selPath}" fill="none" stroke="${navy}" stroke-width="6.5" opacity="0.14" stroke-linejoin="round"/>`;
+  s+=`<path d="${selPath}" fill="none" stroke="${navy}" stroke-width="2.6" stroke-linejoin="round"/>`;
+  s+=`<rect id="wx-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s;
+  WX_MODEL={mode:'temp',W,m,plotW,plotH,x,y,tmin,tmax,refs:refCounts,selCounts,selLabel,selId};
+  attachWeatherHoverTemp();
+
+  $('weather-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${css('--border')}"></span>Other years</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy);border-top-width:3px"></span>Selected (bold)</span>`,
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--purple)"></span>TMY</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--blue)"></span>Typical yr</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--red)"></span>Coldest yr</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--green)"></span>Mildest yr</span>`,
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>`,
+  ].join('');
+
   const b2=weatherBand();
-  const label=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
-  let note=`Showing <b>${label}</b> bold; the thin lines are the TMY and the record's typical / coldest / mildest years. The shaded band spans the coldest and mildest monthly means across ${w.meta.years.length} real years (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}); 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is <b>${fmt1(design)} °C</b> (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C).`;
+  const nbc=w.meta.nbc_2020_table_c2&&w.meta.nbc_2020_table_c2.jan_2p5;
+  const label=state.weatherYear==='tmy'?'The typical year (TMY)':state.weatherYear;
+  let note=`Hours per 1 °C of outdoor temperature. <b>${label}</b> is bold; the thin colored lines are the TMY and the record's typical / coldest / mildest years, with every other year of the ${w.meta.years.length}-year record (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) as grey backdrop; 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is <b>${fmt1(design)} °C</b>${nbc!=null?` (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C)`:''}.`;
   if(b2)note+=` Across those years, this heat pump's emissions change ranges <b>${b2.txt}</b> (coldest year ${b2.coldYear}: ${b2.coldTxt}; mildest ${b2.mildYear}: ${b2.mildTxt}) — the weather-sensitivity of the result.`;
   $('weather-note').innerHTML=note;
 }
-let WX_MODEL=null;
-function attachWeatherHover(){
-  const svg=$('weatherchart'),tip=$('weather-tip'),over=$('wx-over'),M=WX_MODEL;if(!over)return;
+function attachWeatherHoverTemp(){
+  const svg=$('weatherchart'),tip=$('weather-tip'),over=$('wx-over'),M=WX_MODEL;if(!over||M.mode!=='temp')return;
   function move(evt){
     const pt=svg.getBoundingClientRect(),scale=M.W/pt.width;
     const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
-    let mo=Math.round((cx*scale-M.m.l)/M.plotW*12-0.5);
-    mo=Math.max(0,Math.min(11,mo));
-    const fmtv=v=>v==null?'–':fmt1(v)+'°';
-    // rows: every reference at this month, then the selected if it's a separate year
-    let rows=M.refs.map(r=>{const sel=r.id===M.selId; const t=`${r.label}: ${fmtv(r.means[mo])}`; return sel?`<b>▸ ${t}</b>`:t;});
-    if(!M.refs.some(r=>r.id===M.selId)) rows.unshift(`<b>▸ Selected (${M.selLabel}): ${fmtv(M.selMeans[mo])}</b>`);
-    tip.style.left=(M.x(mo)/scale)+'px';
-    tip.style.top=(M.y(M.selMeans[mo])/scale)+'px';
+    let t=Math.round(M.tmin+(cx*scale-M.m.l)/M.plotW*(M.tmax-M.tmin));
+    t=Math.max(M.tmin,Math.min(M.tmax,t));
+    const bi=t-M.tmin;
+    const selV=M.selCounts[bi]||0;
+    let rows=M.refs.map(r=>{const sel=r.id===M.selId; const v=r.counts[bi]||0; const line=`${r.label}: ${fmtI(v)} h`; return sel?`<b>▸ ${line}</b>`:line;});
+    if(!M.refs.some(r=>r.id===M.selId)) rows.unshift(`<b>▸ Selected (${M.selLabel}): ${fmtI(selV)} h</b>`);
+    tip.style.left=(M.x(t)/scale)+'px';
+    tip.style.top=(M.y(Math.max(selV,...M.refs.map(r=>r.counts[bi]||0)))/scale)+'px';
     tip.style.opacity='1';
-    tip.innerHTML=`<b>${M.MON[mo]==null?'':['January','February','March','April','May','June','July','August','September','October','November','December'][mo]}</b><br>${rows.join('<br>')}`;
+    tip.innerHTML=`<b>${fmtSigned(t)} °C</b><br>${rows.join('<br>')}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+
+// ---- 'hourly' view: the full 8,760-hour temperature trace for the selected
+// series only (multi-line would be unreadable at this resolution). ----
+function renderWeatherChartHourly(ctx){
+  const {w,selSeries,selLabel}=ctx;
+  const svg=$('weatherchart');
+  const N=selSeries.length;
+  const W=920,H=380,m={l:52,r:16,t:16,b:34},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
+  const design=w.meta.design_temp_computed_2p5_C;
+  let lo=Math.min(design!=null?design:0,...selSeries)-2, hi=Math.max(...selSeries)+2;
+  const x=i=>m.l+(i/(N-1))*plotW, y=v=>m.t+plotH-(v-lo)/(hi-lo)*plotH;
+  const muted=css('--muted'),light=css('--light'),navy=css('--navy'),amber2=css('--amber2');
+  let s='';
+  niceTicksSigned(lo,hi,6).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtSigned(Math.round(v))}</text>`;});
+  s+=`<text x="14" y="${m.t+plotH/2}" transform="rotate(-90 14 ${m.t+plotH/2})" text-anchor="middle" font-size="11" fill="${muted}">°C</text>`;
+  const bnd=monthStartHours(N), MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for(let mo=0;mo<12;mo++){const mid=(bnd[mo]+Math.min(bnd[mo+1],N))/2;
+    s+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MON[mo]}</text>`;
+    if(mo>0)s+=`<line x1="${x(bnd[mo])}" y1="${m.t}" x2="${x(bnd[mo])}" y2="${m.t+plotH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
+  s+=`<text x="${m.l+plotW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Hour of year (8,760 h)</text>`;
+  if(design!=null){s+=`<line x1="${m.l}" y1="${y(design)}" x2="${W-m.r}" y2="${y(design)}" stroke="${amber2}" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    s+=`<text x="${W-m.r}" y="${y(design)-4}" text-anchor="end" font-size="10.5" fill="${amber2}">computed 2.5% design ${fmt1(design)}°</text>`;}
+  // zero-heat / balance temperature — above this, no heating needed
+  s+=`<line x1="${m.l}" y1="${y(state.balancePoint)}" x2="${W-m.r}" y2="${y(state.balancePoint)}" stroke="${muted}" stroke-width="1.1" stroke-dasharray="2 4"/>`;
+  s+=`<text x="${W-m.r}" y="${y(state.balancePoint)+12}" text-anchor="end" font-size="10.5" fill="${muted}">zero-heat ${fmt1(state.balancePoint)}°</text>`;
+  // full-resolution hourly trace
+  let pts=''; for(let i=0;i<N;i++)pts+=(i?'L':'M')+x(i).toFixed(1)+' '+y(selSeries[i]).toFixed(1)+' ';
+  s+=`<path d="${pts}" fill="none" stroke="${navy}" stroke-width="1"/>`;
+  s+=`<rect id="wx-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s;
+  WX_MODEL={mode:'hourly',W,m,plotW,plotH,x,y,N,selSeries,selLabel,bnd,MON};
+  attachWeatherHoverHourly();
+
+  $('weather-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy)"></span>Selected (${selLabel})</span>`,
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>`,
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--muted)"></span>Zero-heat temp</span>`,
+  ].join('');
+  $('weather-note').innerHTML=`Every hour of <b>${selLabel}</b>, in order across the year — the raw series the simulation actually runs on. Switch the year above to see a different one hour-by-hour, or back to "By temperature" for the distribution across the whole record.`;
+}
+function attachWeatherHoverHourly(){
+  const svg=$('weatherchart'),tip=$('weather-tip'),over=$('wx-over'),M=WX_MODEL;if(!over||M.mode!=='hourly')return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect(),scale=M.W/pt.width;
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    let i=Math.round((cx*scale-M.m.l)/M.plotW*(M.N-1));
+    i=Math.max(0,Math.min(M.N-1,i));
+    const day=Math.floor(i/24), hr=i%24;
+    tip.style.left=(M.x(i)/scale)+'px';
+    tip.style.top=(M.y(M.selSeries[i])/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${dayLabel(day)} ${String(hr).padStart(2,'0')}:00</b><br>${fmt1(M.selSeries[i])} °C`;
   }
   over.addEventListener('mousemove',move);
   over.addEventListener('mouseleave',()=>tip.style.opacity='0');
