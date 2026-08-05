@@ -495,10 +495,37 @@ footer a{color:var(--muted)}
     </section>
 
     <!-- ══════════════════════════════════════════════════════════════════
-         NEW STEP-BY-STEP CALCULATION CHAIN (②–⑥). Built for the reorg; the
-         old sections below remain until the final assembly pass reorders and
-         removes the now-duplicated ones. ① Weather lives in §06 for now.
+         STEP-BY-STEP CALCULATION CHAIN (①–⑥). Old sections 02–06 below still
+         remain pending a final cleanup pass; some charts are duplicated.
          ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ═══ ① · Weather ═══ -->
+    <section class="out-section" id="step-weather">
+      <div class="out-section-head">
+        <div class="out-section-eyebrow">① Step</div>
+        <h2 class="out-section-title">The weather driving everything</h2>
+        <p class="out-section-intro">Everything below starts here — how cold this city gets, and how often. Compared against the typical (TMY), coldest and mildest years on record.</p>
+      </div>
+
+      <!-- Weather lens: multi-decade temperature record -->
+      <div class="card" id="weather-card">
+        <div class="card-title-row">
+          <span class="card-title">The weather, across the years</span>
+          <span class="card-sub" id="weather-sub">how cold this city really gets — and how much it varies</span>
+        </div>
+        <div class="stats-grid" id="weather-kpis"></div>
+        <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view" style="max-width:420px;margin-bottom:.75rem">
+          <button type="button" data-view="temp" class="active">By temperature</button>
+          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        </div>
+        <div class="keychart-wrap">
+          <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
+          <div class="kc-tip" id="weather-tip"></div>
+        </div>
+        <div class="kc-legend" id="weather-legend"></div>
+        <div class="note" id="weather-note"></div>
+      </div>
+    </section>
 
     <!-- ═══ ② · Heating load ═══ -->
     <section class="out-section" id="step-load">
@@ -804,26 +831,7 @@ footer a{color:var(--muted)}
       <div class="out-section-head">
         <div class="out-section-eyebrow">06</div>
         <h2 class="out-section-title">How confident should you be?</h2>
-        <p class="out-section-intro">How much do the headline numbers move if the weather is colder, the equipment is a different size, or the grid's carbon is priced differently?</p>
-      </div>
-
-      <!-- Weather lens: multi-decade temperature record -->
-      <div class="card" id="weather-card">
-        <div class="card-title-row">
-          <span class="card-title">The weather, across the years</span>
-          <span class="card-sub" id="weather-sub">how cold this city really gets — and how much it varies</span>
-        </div>
-        <div class="stats-grid" id="weather-kpis"></div>
-        <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view" style="max-width:420px;margin-bottom:.75rem">
-          <button type="button" data-view="temp" class="active">By temperature</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
-        </div>
-        <div class="keychart-wrap">
-          <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
-          <div class="kc-tip" id="weather-tip"></div>
-        </div>
-        <div class="kc-legend" id="weather-legend"></div>
-        <div class="note" id="weather-note"></div>
+        <p class="out-section-intro">How much do the headline numbers move depending on which grid emissions basis you price electricity at?</p>
       </div>
 
       <!-- EF basis: no new chart — points at the existing control, which every chart above already reacts to -->
@@ -3273,7 +3281,10 @@ function renderWeatherChart(){
 let WX_MODEL=null;
 
 // ---- 'temp' view: hours-per-1°C histogram, all years as backdrop + TMY/
-// typical/coldest/mildest reference lines + the selected series bold. ----
+// coldest/mildest reference lines. Whichever one is selected is drawn bold
+// dashed in its own colour and called out in the legend; if the selection is
+// some other year entirely, it gets its own black bold-dashed line. ----
+const WX_BLACK='#000';
 function renderWeatherChartTemp(ctx){
   const {w,selId,selLabel,selSeries}=ctx;
   const svg=$('weatherchart');
@@ -3289,16 +3300,18 @@ function renderWeatherChartTemp(ctx){
   tmin=Math.floor(tmin)-1; tmax=Math.ceil(tmax)+1;
 
   const refs=[
-    {id:'tmy', label:'TMY', series:tmySeries, color:css('--purple'), dash:'4 3'},
-    {id:String(tags.representative), label:`Typical (${tags.representative})`, series:w.years[tags.representative]&&w.years[tags.representative].temps_tenthsC.map(t=>t/10), color:css('--blue')},
-    {id:String(tags.coldest), label:`Coldest (${tags.coldest})`, series:w.years[tags.coldest]&&w.years[tags.coldest].temps_tenthsC.map(t=>t/10), color:css('--red')},
-    {id:String(tags.mildest), label:`Mildest (${tags.mildest})`, series:w.years[tags.mildest]&&w.years[tags.mildest].temps_tenthsC.map(t=>t/10), color:css('--green')},
+    {id:'tmy', label:'TMY', series:tmySeries, color:css('--green')},
+    {id:String(tags.coldest), label:`Coldest (${tags.coldest})`, series:w.years[tags.coldest]&&w.years[tags.coldest].temps_tenthsC.map(t=>t/10), color:css('--blue')},
+    {id:String(tags.mildest), label:`Mildest (${tags.mildest})`, series:w.years[tags.mildest]&&w.years[tags.mildest].temps_tenthsC.map(t=>t/10), color:css('--amber')},
   ].filter(r=>r.series);
+  const selMatchesRef = refs.some(r=>r.id===selId);
 
-  // backdrop: every non-tagged year, thin grey, for context on the spread
+  // backdrop: every year not already drawn as a coloured reference (coldest/
+  // mildest), thin grey, for context on the spread. TMY isn't a real year so
+  // it's never in this pool.
   const otherCounts=[];
   w.meta.years.forEach(yy=>{
-    if(+yy===tags.representative||+yy===tags.coldest||+yy===tags.mildest)return;
+    if(+yy===tags.coldest||+yy===tags.mildest)return;
     const arr=w.years[String(yy)]&&w.years[String(yy)].temps_tenthsC;
     if(arr)otherCounts.push(tempHistogram(arr.map(v=>v/10),tmin,tmax));
   });
@@ -3310,7 +3323,7 @@ function renderWeatherChartTemp(ctx){
 
   const design=w.meta.design_temp_computed_2p5_C;
   const x=t=>m.l+(t-tmin)/(tmax-tmin)*plotW, y=v=>m.t+plotH-(v/cmax)*plotH;
-  const muted=css('--muted'),light=css('--light'),navy=css('--navy'),amber2=css('--amber2');
+  const muted=css('--muted'),light=css('--light'),amber2=css('--amber2');
   let s='';
   niceTicks(cmax,5).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
@@ -3323,33 +3336,41 @@ function renderWeatherChartTemp(ctx){
     s+=`<text x="${x(design)+4}" y="${m.t+12}" font-size="10.5" fill="${amber2}">computed 2.5% design ${fmt1(design)}°</text>`;}
   // backdrop years
   otherCounts.forEach(c=>{s+=`<path d="${polylineFrom(c,tmin,x,y)}" fill="none" stroke="${css('--border')}" stroke-width="1"/>`;});
-  // reference lines — skip the one that IS the selected series (drawn bold below)
-  refCounts.forEach(r=>{ if(r.id===selId)return;
-    s+=`<path d="${polylineFrom(r.counts,tmin,x,y)}" fill="none" stroke="${r.color}" stroke-width="1.6" opacity="0.75"${r.dash?` stroke-dasharray="${r.dash}"`:''}/>`;});
-  // selected — bold navy with a halo
-  const selPath=polylineFrom(selCounts,tmin,x,y);
-  s+=`<path d="${selPath}" fill="none" stroke="${navy}" stroke-width="6.5" opacity="0.14" stroke-linejoin="round"/>`;
-  s+=`<path d="${selPath}" fill="none" stroke="${navy}" stroke-width="2.6" stroke-linejoin="round"/>`;
+  // reference lines: thin solid normally; the selected one (if it's TMY/
+  // coldest/mildest) gets a halo + bold dashes in its own colour instead.
+  refCounts.forEach(r=>{
+    if(r.id===selId){
+      s+=`<path d="${polylineFrom(r.counts,tmin,x,y)}" fill="none" stroke="${r.color}" stroke-width="6.5" opacity="0.16" stroke-linejoin="round"/>`;
+      s+=`<path d="${polylineFrom(r.counts,tmin,x,y)}" fill="none" stroke="${r.color}" stroke-width="3" stroke-dasharray="7 4" stroke-linejoin="round"/>`;
+    } else {
+      s+=`<path d="${polylineFrom(r.counts,tmin,x,y)}" fill="none" stroke="${r.color}" stroke-width="1.6" opacity="0.75"/>`;
+    }
+  });
+  // selected is some other year entirely (not TMY/coldest/mildest) — its own black bold-dashed line
+  if(!selMatchesRef){
+    const selPath=polylineFrom(selCounts,tmin,x,y);
+    s+=`<path d="${selPath}" fill="none" stroke="${WX_BLACK}" stroke-width="6.5" opacity="0.12" stroke-linejoin="round"/>`;
+    s+=`<path d="${selPath}" fill="none" stroke="${WX_BLACK}" stroke-width="3" stroke-dasharray="7 4" stroke-linejoin="round"/>`;
+  }
   s+=`<rect id="wx-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.innerHTML=s;
   WX_MODEL={mode:'temp',W,m,plotW,plotH,x,y,tmin,tmax,refs:refCounts,selCounts,selLabel,selId};
   attachWeatherHoverTemp();
 
-  $('weather-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${css('--border')}"></span>Other years</span>`,
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy);border-top-width:3px"></span>Selected (bold)</span>`,
-    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--purple)"></span>TMY</span>`,
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--blue)"></span>Typical yr</span>`,
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--red)"></span>Coldest yr</span>`,
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--green)"></span>Mildest yr</span>`,
-    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>`,
-  ].join('');
+  const leg=[`<span class="kc-leg"><span class="kc-swatch" style="border-color:${css('--border')}"></span>Other years</span>`];
+  refCounts.forEach(r=>{
+    const sel=r.id===selId;
+    leg.push(`<span class="kc-leg"><span class="kc-swatch${sel?' dash':''}" style="border-color:${r.color};${sel?'border-top-width:3px':''}"></span>${sel?`<b>${r.label} — selected</b>`:r.label}</span>`);
+  });
+  if(!selMatchesRef) leg.push(`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${WX_BLACK};border-top-width:3px"></span><b>Selected (${selLabel})</b></span>`);
+  leg.push(`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>`);
+  $('weather-legend').innerHTML=leg.join('');
 
   const b2=weatherBand();
   const nbc=w.meta.nbc_2020_table_c2&&w.meta.nbc_2020_table_c2.jan_2p5;
   const label=state.weatherYear==='tmy'?'The typical year (TMY)':state.weatherYear;
-  let note=`Hours per 1 °C of outdoor temperature. <b>${label}</b> is bold; the thin colored lines are the TMY and the record's typical / coldest / mildest years, with every other year of the ${w.meta.years.length}-year record (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) as grey backdrop; 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is <b>${fmt1(design)} °C</b>${nbc!=null?` (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C)`:''}.`;
+  let note=`Hours per 1 °C of outdoor temperature. TMY (green), the coldest (blue) and mildest (orange) years on record are always shown; <b>${label}</b> is highlighted bold-dashed in its own colour${selMatchesRef?'':' (black, since it isn\'t one of those three)'}. Every other year of the ${w.meta.years.length}-year record (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) sits as grey backdrop; 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is <b>${fmt1(design)} °C</b>${nbc!=null?` (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C)`:''}.`;
   if(b2)note+=` Across those years, this heat pump's emissions change ranges <b>${b2.txt}</b> (coldest year ${b2.coldYear}: ${b2.coldTxt}; mildest ${b2.mildYear}: ${b2.mildTxt}) — the weather-sensitivity of the result.`;
   $('weather-note').innerHTML=note;
 }
@@ -3434,24 +3455,40 @@ function attachWeatherHoverHourly(){
   over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
   over.addEventListener('touchstart',move,{passive:true});
 }
-// Hours-below-threshold + coldest-hour + HDD facts for the selected weather series.
-function renderWeatherKpis(w){
-  const el=$('weather-kpis');if(!el)return;
-  const series=tempSeriesFor(state.city,state.weatherYear); // hourly °C
+// Hours-below-threshold + coldest-hour + HDD facts for the selected weather
+// series, always shown alongside the same facts for TMY so the KPI strip
+// itself carries the comparison, not just the chart.
+function weatherFacts(series){
   let coldest=Infinity, b10=0,b15=0,b20=0;
   for(let i=0;i<series.length;i++){const t=series[i];
     if(t<coldest)coldest=t;
     if(t<-10)b10++; if(t<-15)b15++; if(t<-20)b20++;}
-  const yr = state.weatherYear!=='tmy' && w.years[state.weatherYear];
+  return {coldest,b10,b15,b20};
+}
+function renderWeatherKpis(w){
+  const el=$('weather-kpis');if(!el)return;
+  const isTmy = state.weatherYear==='tmy';
+  const series=tempSeriesFor(state.city,state.weatherYear); // hourly °C
+  const sel=weatherFacts(series);
+  const tmySeries=TMY&&TMY[state.city];
+  const tmy=tmySeries?weatherFacts(tmySeries):null;
+  const yr = !isTmy && w.years[state.weatherYear];
   const hdd = yr ? yr.hdd18 : w.meta.tmy_hdd18;
-  const label = state.weatherYear==='tmy' ? 'the typical year (TMY)' : state.weatherYear;
+  const tmyHdd = w.meta.tmy_hdd18;
+  const label = isTmy ? 'the typical year (TMY)' : state.weatherYear;
   const card=(lbl,val,sub,cls)=>`<div class="stat-card"><div class="stat-label">${lbl}</div><div class="stat-value ${cls||''}">${val}</div><div class="stat-sub">${sub}</div></div>`;
+  // Signed delta clause vs TMY, or '' when the selection IS TMY (nothing to compare).
+  const vsTmy=(selVal,tmyVal,fmt)=>{
+    if(isTmy||tmyVal==null||selVal==null)return '';
+    const d=selVal-tmyVal;
+    return ` · TMY ${fmt(tmyVal)} (${d>=0?'+':'−'}${fmt(Math.abs(d))})`;
+  };
   el.innerHTML=[
-    card('Coldest hour',`${fmt1(coldest)}°`,`lowest hour in ${label}`,'red'),
-    card('Heating degree-days',hdd!=null?fmtI(hdd):'–','HDD, base 18 °C'),
-    card('Hours below −10 °C',fmtI(b10),`of 8,760 h (${(b10/87.6).toFixed(1).replace(/\.0$/,'')}%)`),
-    card('Hours below −15 °C',fmtI(b15),`of 8,760 h (${(b15/87.6).toFixed(1).replace(/\.0$/,'')}%)`,'accent'),
-    card('Hours below −20 °C',fmtI(b20),`of 8,760 h (${(b20/87.6).toFixed(1).replace(/\.0$/,'')}%)`),
+    card('Coldest hour',`${fmt1(sel.coldest)}°`,`lowest hour in ${label}`+(tmy?vsTmy(sel.coldest,tmy.coldest,v=>fmt1(v)+'°'):''),'red'),
+    card('Heating degree-days',hdd!=null?fmtI(hdd):'–','HDD, base 18 °C'+vsTmy(hdd,tmyHdd,fmtI)),
+    card('Hours below −10 °C',fmtI(sel.b10),`of 8,760 h (${(sel.b10/87.6).toFixed(1).replace(/\.0$/,'')}%)`+(tmy?vsTmy(sel.b10,tmy.b10,v=>fmtI(v)+' h'):'')),
+    card('Hours below −15 °C',fmtI(sel.b15),`of 8,760 h (${(sel.b15/87.6).toFixed(1).replace(/\.0$/,'')}%)`+(tmy?vsTmy(sel.b15,tmy.b15,v=>fmtI(v)+' h'):''),'accent'),
+    card('Hours below −20 °C',fmtI(sel.b20),`of 8,760 h (${(sel.b20/87.6).toFixed(1).replace(/\.0$/,'')}%)`+(tmy?vsTmy(sel.b20,tmy.b20,v=>fmtI(v)+' h'):'')),
   ].join('');
 }
 
