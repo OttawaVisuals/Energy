@@ -735,6 +735,23 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   loading each province parquet. Downstream-only — no ERS pipeline rerun, no `fsa_json`
   regen; the raw per-home `Heating_Change` in FSA mode's live table is unchanged and can
   still be `true` alongside `HeatPump_Addition`. See the flag table above.
+- **New "peak demand" card**, same section: design/peak heat-loss (HOT2000's
+  `EGHDESHTLOSS`, already used as a peak-heating-demand proxy elsewhere) pre vs post,
+  for matched pairs that were **electrically heated pre-retrofit** (`Pre_HeatFuel ==
+  "Electricity"`) — 388,842 of 1.45M matched pairs (27%). National total: 732,283 kW
+  decrease; 163,919 of those homes (42%) added a heat pump. New
+  `Python/build_insights.py::build_peak_reduction()` → `insights_json/peak_reduction.json`,
+  national + by-province. A dropdown prices the avoided kW against any of the 12
+  resources in IESO's "2024 Annual Planning Outlook: Resource Costs and Trends" (March
+  2024) Table 1 — capital $/kW and fixed O&M $/kW-yr, embedded as
+  `IESO_RESOURCE_COSTS_2024`. Two caveats stated on-page: (1) this is a **thermal**
+  design-load figure, not metered electrical demand — solid for homes still on
+  electric-resistance heat (COP≈1), but understates the true electric-peak drop for
+  the 42% that added a heat pump, since the field can't see the heat source's COP, only
+  the building's own heat-loss change; (2) the IESO cost table is Ontario grid-planning
+  data, applied here as an illustrative national benchmark for "what a kW of avoided
+  peak is worth in new-generation terms," not a claim that any specific province would
+  have built exactly that resource.
 
 ### 2026-08-04 Program-era filter (ecoENERGY / no program / Greener Homes)
 

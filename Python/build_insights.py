@@ -47,6 +47,10 @@ OUTPUTS  insights_json/ (compact, ensure_ascii=False, separators=(',',':')):
                      coverage only), homes-powered-for-a-year equivalent
                      (CEUD residential Total Energy Use / Total Households),
                      and an illustrative EV-km equivalent.
+  peak_reduction.json national + per-province design/peak heat-loss (kW)
+                     decrease for homes electrically heated pre-retrofit
+                     (Pre_HeatFuel == "Electricity"), plus IESO's 2024
+                     generation resource-cost table for pricing it.
   meta.json          sources, build date, thresholds, formulas, band defs.
 
 HONESTY RAILS baked into the numbers (each also stated on-page, ROADMAP item
@@ -156,7 +160,9 @@ READ_COLS = (
      # per-fuel kWh, kept raw (unconverted) so build_energy_impact() can
      # reuse precompute_province_stats.add_cost_columns() verbatim
      "Pre_Electricity", "Post_Electricity", "Pre_NaturalGas", "Post_NaturalGas",
-     "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood"]
+     "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood",
+     # peak/design heat loss (kW) + pre-retrofit heating fuel, for build_peak_reduction()
+     "Pre_HeatFuel", "Pre_HeatLoss", "Post_HeatLoss"]
     + MEASURE_KEYS
 )
 
@@ -340,6 +346,9 @@ def load_province_frame(parquet_path):
     df["post_eui"] = np.where(valid_area & post_e.notna(), post_e / area, np.nan)
     df["energy_pre_kwh"] = pre_e
     df["energy_post_kwh"] = post_e
+    df["pre_heat_fuel"] = df["Pre_HeatFuel"].astype(str).str.strip()
+    df["pre_heatloss_kw"] = num(df["Pre_HeatLoss"])
+    df["post_heatloss_kw"] = num(df["Post_HeatLoss"])
     df["ghg_pre"] = num(df["Pre_GHG"])
     df["ghg_post"] = num(df["Post_GHG"])
     df["ghg_pre_current"] = num(df["Pre_GHG_current"])
@@ -377,7 +386,8 @@ def load_province_frame(parquet_path):
              "d_year", "e_year", "Deep_Retrofit", "FuelSwitch",
              "energy_pre_kwh", "energy_post_kwh",
              "Pre_Electricity", "Post_Electricity", "Pre_NaturalGas", "Post_NaturalGas",
-             "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood"]
+             "Pre_Oil", "Post_Oil", "Pre_Propane", "Post_Propane", "Pre_Wood", "Post_Wood",
+             "pre_heat_fuel", "pre_heatloss_kw", "post_heatloss_kw"]
             + MEASURE_KEYS)
     return prov, df[keep]
 
@@ -1124,6 +1134,90 @@ def build_energy_impact(nat):
 
 
 # =============================================================================
+# peak_reduction.json — design/peak heat-loss (kW) decrease for homes that
+# were electrically heated pre-retrofit, national + by province, priced
+# against IESO's 2024 generation resource-cost table.
+# =============================================================================
+
+# IESO, "2024 Annual Planning Outlook: Resource Costs and Trends" (March
+# 2024), Table 1 "Upfront, Operating and Levelized Costs of Resources, 2024".
+# Capital cost = $/kW of new-build nameplate capacity; fixed O&M = $/kW-year
+# ongoing. This is an ONTARIO grid-planning table applied here as an
+# illustrative national benchmark for "what a kW of avoided peak is worth in
+# new-generation terms" — not a claim that any specific province's utility
+# would have built exactly this resource mix. Battery Storage rows have no
+# LCOE (N/A in the source; storage doesn't generate energy, it shifts it) but
+# do have real capital/O&M costs, so they're still valid entries here.
+IESO_RESOURCE_COSTS_2024 = {
+    "wind":            {"label": "Wind",                       "capital_per_kw": 1824,  "fixed_om_per_kw_yr": 43},
+    "solar_utility":   {"label": "Solar — utility-scale PV",    "capital_per_kw": 1866,  "fixed_om_per_kw_yr": 31},
+    "solar_dist":      {"label": "Solar — distributed PV",      "capital_per_kw": 2588,  "fixed_om_per_kw_yr": 27},
+    "battery_utility": {"label": "Battery storage — utility, 4hr", "capital_per_kw": 2457, "fixed_om_per_kw_yr": 61},
+    "battery_dist":    {"label": "Battery storage — distributed, 4hr", "capital_per_kw": 3051, "fixed_om_per_kw_yr": 76},
+    "gas_scgt":        {"label": "Natural gas — simple cycle",  "capital_per_kw": 1480,  "fixed_om_per_kw_yr": 36},
+    "gas_ccgt":        {"label": "Natural gas — combined cycle", "capital_per_kw": 1645, "fixed_om_per_kw_yr": 46},
+    "nuclear":         {"label": "Nuclear",                     "capital_per_kw": 11542, "fixed_om_per_kw_yr": 228},
+    "nuclear_smr":     {"label": "Nuclear — SMR",                "capital_per_kw": 13821, "fixed_om_per_kw_yr": 178},
+    "hydro_large":     {"label": "Large hydro",                  "capital_per_kw": 17203, "fixed_om_per_kw_yr": 60},
+    "hydro_small":     {"label": "Small hydro",                  "capital_per_kw": 15600, "fixed_om_per_kw_yr": 99},
+    "biomass":         {"label": "Biomass",                      "capital_per_kw": 6475,  "fixed_om_per_kw_yr": 235},
+}
+IESO_RESOURCE_COSTS_SOURCE = (
+    "IESO, \"2024 Annual Planning Outlook: Resource Costs and Trends\" (March 2024), Table 1 "
+    "(2024 costs). https://ieso.ca/-/media/Files/IESO/Document-Library/planning-forecasts/"
+    "APO/Resource-Costs-and-Trends.pdf"
+)
+
+
+def build_peak_reduction(nat):
+    """
+    Design/peak heat loss (Pre/Post_HeatLoss, HOT2000's EGHDESHTLOSS, kW —
+    the same field the HeatPump project treats as a peak-heating-demand
+    proxy) for matched pairs that were ELECTRICALLY HEATED pre-retrofit
+    (Pre_HeatFuel == "Electricity"). For a home still on electric-resistance
+    heat pre-retrofit, this thermal kW is a reasonable stand-in for actual
+    electric peak draw (COP ~= 1); it is NOT adjusted for heat-pump COP on
+    the post side, so it understates the true electric-peak drop for the
+    subset of these homes that added a heat pump (see energy_impact.json's
+    sibling caveats) — kept simple deliberately (see CLAUDE.md "don't
+    overcomplicate"), and n_with_heat_pump is reported per row so that
+    can't be missed.
+    """
+    elec = nat[nat["pre_heat_fuel"] == "Electricity"].copy()
+    d = (elec["pre_heatloss_kw"] - elec["post_heatloss_kw"]).dropna()
+
+    def row(sub, decrease):
+        return {
+            "n": int(len(sub)),
+            "n_with_heat_pump": int(sub["HeatPump_Addition"].sum()),
+            "pre_kw": r0(float(sub.loc[decrease.index, "pre_heatloss_kw"].sum())),
+            "post_kw": r0(float(sub.loc[decrease.index, "post_heatloss_kw"].sum())),
+            "decrease_kw": r0(float(decrease.sum())),
+        }
+
+    national = row(elec, d)
+    by_province = {}
+    for prov, grp in elec.groupby("PROV"):
+        gd = (grp["pre_heatloss_kw"] - grp["post_heatloss_kw"]).dropna()
+        by_province[prov] = row(grp, gd)
+
+    return {
+        "note": ("Homes electrically heated pre-retrofit only (Pre_HeatFuel == 'Electricity'), "
+                 "matched pairs. pre_kw/post_kw/decrease_kw are HOT2000's design/peak heat-loss "
+                 "field (EGHDESHTLOSS) summed across homes with both a pre and post value — a "
+                 "THERMAL design-load figure, not a metered electrical-demand figure. n_with_heat_pump "
+                 "is how many of that row's homes added a heat pump; for those homes this number is a "
+                 "poor stand-in for the true electric-peak drop, since it doesn't account for the "
+                 "heat pump's COP (the heat source got more efficient, which this field can't see — "
+                 "only the building's own heat loss)."),
+        "resource_costs": IESO_RESOURCE_COSTS_2024,
+        "resource_costs_source": IESO_RESOURCE_COSTS_SOURCE,
+        "national": national,
+        "by_province": by_province,
+    }
+
+
+# =============================================================================
 # validation printouts
 # =============================================================================
 
@@ -1266,6 +1360,7 @@ def main():
     timeline = build_timeline(nat)
     ghg_impact = build_ghg_impact(nat)
     energy_impact = build_energy_impact(nat)
+    peak_reduction = build_peak_reduction(nat)
     program_era = build_program_era(nat)
 
     # so the methodology section can state the suppression counts without
@@ -1348,6 +1443,7 @@ def main():
     write("timeline.json", timeline)
     write("ghg_impact.json", ghg_impact)
     write("energy_impact.json", energy_impact)
+    write("peak_reduction.json", peak_reduction)
     write("program_era.json", program_era)
     write("meta.json", meta)
     total_kb = sum(os.path.getsize(OUT_DIR / n) for n in os.listdir(OUT_DIR)
@@ -1357,7 +1453,7 @@ def main():
     validate(metrics, nat, prov_totals)
 
     # stash a few numbers for the notes memo
-    return metrics, nat, success, climate_out, equity, opportunity, timeline, ghg_impact, energy_impact, income_cuts, dv_cuts
+    return metrics, nat, success, climate_out, equity, opportunity, timeline, ghg_impact, energy_impact, peak_reduction, income_cuts, dv_cuts
 
 
 if __name__ == "__main__":

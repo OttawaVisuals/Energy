@@ -442,6 +442,22 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="equiv-grid" id="energy-equiv-grid" style="margin-top:.8rem"></div>
       <div class="caveat" id="energy-caveat"></div>
     </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Peak demand: homes that were electrically heated</h3>
+      <div class="sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Design/peak heat-loss (HOT2000's own peak-heating-demand field), pre vs post, for matched pairs that were electrically heated <b>before</b> the retrofit.</span>
+        <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <label for="peak-resource-sel" style="font-size:12px;color:#5C6E82">Price the avoided kW as</label>
+          <select id="peak-resource-sel" style="font-size:12.5px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:#1C2B3A"></select>
+        </span>
+      </div>
+      <div class="ghg-kpi-strip" id="peak-kpi-strip"></div>
+      <div class="note" id="peak-national-note"></div>
+      <div class="scroll-x" style="margin-top:.8rem">
+        <table class="scorecard" id="peak-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat" id="peak-caveat"></div>
+    </div>
   </section>
 
   <!-- 04 THE MAP -->
@@ -956,6 +972,43 @@ function renderEnergyImpact(g){
   $('energy-caveat').innerHTML=`<b>Homes-powered is an energy-volume comparison, not a claim about these specific homes.</b> It divides the national kWh total by NRCan CEUD's own average household energy use (residential "Total Energy Use" ÷ "Total Households", ${n.ceud_avg_household_kwh.year} — CEUD's latest year) — it does not mean this many unique Canadian homes are now fully powered by the savings. $ saved uses the same volumetric, today's-rates methodology as the retrofit $-saved feature elsewhere on this site (<a href="retrofits" style="color:var(--navy)">Retrofit Explorer</a>) — historical bills aren't reconstructed. The EV-km figure uses one illustrative consumption rate, not a specific vehicle.`;
 }
 function secEnergy(){return loadJSON(INS+'energy_impact.json').then(renderEnergyImpact);}
+
+// peak demand — design/peak heat-loss decrease for electrically-heated-pre
+// homes, priced against IESO's 2024 resource-cost table (user-selectable)
+let _peakData=null,PEAK_RESOURCE=null;
+function renderPeakReduction(g){
+  _peakData=g;
+  const costs=g.resource_costs;
+  if(!PEAK_RESOURCE)PEAK_RESOURCE='gas_scgt';
+  const sel=$('peak-resource-sel');
+  if(!sel.options.length){
+    sel.innerHTML=Object.entries(costs).map(([k,c])=>`<option value="${k}">${c.label}</option>`).join('');
+    sel.value=PEAK_RESOURCE;
+  }
+  const rc=costs[PEAK_RESOURCE];
+  const n=g.national;
+  const capCost=n.decrease_kw*rc.capital_per_kw;
+  const omCost=n.decrease_kw*rc.fixed_om_per_kw_yr;
+  $('peak-kpi-strip').innerHTML=`
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.decrease_kw)}</div><div class="gl">kW decrease, net (${fmtInt(n.n)} electrically-heated-pre homes)</div></div>
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.n_with_heat_pump)}</div><div class="gl">of those added a heat pump (${fmtPct(n.n_with_heat_pump/n.n,0)})</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(capCost)}</div><div class="gl">avoided ${rc.label.toLowerCase()} capital cost ($${fmtInt(rc.capital_per_kw)}/kW)</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(omCost)}</div><div class="gl">avoided fixed O&amp;M, per year ($${fmtInt(rc.fixed_om_per_kw_yr)}/kW-yr)</div></div>`;
+  $('peak-national-note').textContent=`Net = sum(pre kW − post kW) of HOT2000's design/peak heat-loss field, over ${fmtInt(n.n)} matched pairs that were electrically heated before the retrofit.`;
+
+  const rows=Object.entries(g.by_province).map(([prov,s])=>({prov,...s}))
+    .sort((a,b)=>b.decrease_kw-a.decrease_kw);
+  const head=$('peak-table').tHead,body=$('peak-table').tBodies[0];
+  head.innerHTML='<tr><th>Province</th><th>Homes</th><th>w/ heat pump</th><th>Pre kW</th><th>Post kW</th><th>Decrease kW</th><th>Avoided capital cost</th></tr>';
+  body.innerHTML=rows.map(r=>`<tr><td><span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span></td><td>${fmtInt(r.n)}</td><td>${fmtInt(r.n_with_heat_pump)}</td><td>${fmtInt(r.pre_kw)}</td><td>${fmtInt(r.post_kw)}</td><td>${fmtInt(r.decrease_kw)}</td><td>$${fmtInt(r.decrease_kw*rc.capital_per_kw)}</td></tr>`).join('');
+
+  $('peak-caveat').innerHTML=`<b>This is a thermal design-load figure, not a metered electrical-demand figure.</b> For homes still on electric resistance heat, thermal kW is a reasonable stand-in for electric peak draw (COP≈1). For the ${fmtInt(n.n_with_heat_pump)} homes above that added a heat pump, this number understates the true drop in electric peak demand — it doesn't account for the heat pump's COP, only the building's own heat-loss change. Resource costs are ${g.resource_costs_source.split(',')[0]}'s 2024 generation-cost table (Ontario grid planning), applied here as an illustrative national benchmark for "what a kW of avoided peak is worth in new-generation terms" — not a claim that any specific province would have built exactly this resource. <a href="https://ieso.ca/-/media/Files/IESO/Document-Library/planning-forecasts/APO/Resource-Costs-and-Trends.pdf" target="_blank" rel="noopener" style="color:var(--navy)">Source (PDF) ↗</a>`;
+}
+function secPeak(){return loadJSON(INS+'peak_reduction.json').then(renderPeakReduction);}
+$('peak-resource-sel').addEventListener('change',function(){
+  PEAK_RESOURCE=this.value;
+  if(_peakData)renderPeakReduction(_peakData);
+});
 
 /* ══════════════════════════════════════════════════════════════════════
    03 — NATIONAL MAP + LEADERBOARDS
@@ -1818,7 +1871,7 @@ document.querySelector('[data-set-mode="advanced"]').addEventListener('click',()
 
 /* ── wire sections lazily ───────────────────────────────────────────── */
 whenVisible('sec-scorecard',sec02);
-whenVisible('sec-ghg',()=>Promise.all([secGhg(),secEnergy()]));
+whenVisible('sec-ghg',()=>Promise.all([secGhg(),secEnergy(),secPeak()]));
 whenVisible('sec-map',sec03);
 whenVisible('sec-success',sec04);
 whenVisible('sec-equity',sec06);
