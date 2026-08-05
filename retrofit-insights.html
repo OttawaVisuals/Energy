@@ -76,7 +76,10 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .ghg-kpi{flex:1 1 170px;background:#F7F4EE;border:1px solid var(--border);border-radius:var(--r-sm);padding:.8rem .95rem}
 .ghg-kpi .gv{font-family:'Fraunces',Georgia,serif;font-size:1.55rem;font-weight:300;color:var(--navy);line-height:1.15}
 .ghg-kpi .gl{font-size:11.5px;color:#5C6E82;margin-top:.35rem;line-height:1.4}
-.equiv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.equiv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.equiv-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:820px){.equiv-grid.cols-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.equiv-grid.cols-4{grid-template-columns:1fr}}
 .equiv-card{background:#F7F4EE;border:1px solid var(--border);border-radius:var(--r-sm);padding:.85rem .9rem}
 .equiv-card svg{width:28px;height:28px;display:block;margin-bottom:8px;color:var(--navy)}
 .equiv-label{font-size:11.5px;color:#5C6E82;margin-bottom:5px;line-height:1.35;min-height:2.6em}
@@ -364,7 +367,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="scroll-x">
         <table class="scorecard" id="scorecard-table"><thead></thead><tbody></tbody></table>
       </div>
-      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute). Bars are scaled within each column (its own max = full width), so they compare provinces, not columns.</div>
+      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute). For the % columns (Particip., Med. saving, Heat pump, Fuel switch, Deep), the bar fill is that percentage itself. Retrofits and Pre-EUI aren't percentages, so their bars are scaled within the column (its own max = full width) to compare provinces.</div>
     </div>
   </section>
 
@@ -431,13 +434,12 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     <div class="card" style="margin-top:1rem">
       <h3>What that many tonnes looks like</h3>
       <div class="sub">The national total (<span id="ghg-equiv-n"></span> above), converted into everyday equivalents — factors ported from Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--navy)">GHG Equivalency Calculator</a>.</div>
-      <div class="equiv-grid" id="ghg-equiv-grid"></div>
+      <div class="equiv-grid cols-4" id="ghg-equiv-grid"></div>
       <div class="note">Emission factors: Ford F-150 256.6 gCO₂e/km · Honda Civic 149.6 gCO₂e/km · Hyundai Ioniq (AB) 139.8 gCO₂e/km · Hyundai Ioniq (ON) 6.2 gCO₂e/km · round trip distance St. John's–Vancouver 14,198 km · flight St. John's–Vancouver 75.72 tCO₂e · oil 2.3 tCO₂e/barrel · forest (Central Park, annual absorption) 1,686 tCO₂e · propane cylinder (BBQ) 0.0244 tCO₂e.</div>
     </div>
     <div class="card" style="margin-top:1rem">
       <h3>The same retrofits, in energy terms</h3>
       <div class="sub">Total household energy saved (kWh, modelled) — same matched-pair population as above, priced and converted separately from the GHG figures.</div>
-      <div class="ghg-kpi-strip" id="energy-kpi-strip"></div>
       <div class="note" id="energy-national-note"></div>
       <div class="equiv-grid" id="energy-equiv-grid" style="margin-top:.8rem"></div>
       <div class="caveat" id="energy-caveat"></div>
@@ -814,11 +816,11 @@ let SCORE_ROWS=null,SCORE_SORT={key:'matched',dir:-1};
 const SCORE_COLS=[
   {key:'prov',label:'Province',fmt:r=>`<span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span>`,num:false},
   {key:'matched',label:'Retrofits',fmt:r=>fmtInt(r.matched),bar:true,cat:'program'},
-  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1),bar:true,cat:'program'},
-  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%',bar:true,cat:'energy'},
-  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:true,cat:'fuel'},
-  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0),bar:true,cat:'fuel'},
-  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1),bar:true,cat:'energy'},
+  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1),bar:true,cat:'program',pct:100},
+  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%',bar:true,cat:'energy',pct:1},
+  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:true,cat:'fuel',pct:100},
+  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0),bar:true,cat:'fuel',pct:100},
+  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1),bar:true,cat:'energy',pct:100},
   {key:'eui',label:'Pre-EUI',fmt:r=>Math.round(r.eui),bar:true,cat:'energy'},
 ];
 function buildScorecard(records){
@@ -847,7 +849,7 @@ function renderScorecard(){
     if(k==='prov')return SCORE_SORT.dir*(PROV_NAME[a.prov]||'').localeCompare(PROV_NAME[b.prov]||'');
     return SCORE_SORT.dir*(a[k]-b[k]);});
   body.innerHTML=sorted.map(r=>'<tr>'+SCORE_COLS.map(c=>{
-    if(c.bar){const pct=Math.round(100*r[c.key]/maxes[c.key]);
+    if(c.bar){const pct=c.pct?Math.min(100,Math.round(r[c.key]*c.pct)):Math.round(100*r[c.key]/maxes[c.key]);
       return`<td class="bar-cell"><span class="bar cat-${c.cat}" style="width:${pct}%"></span><span>${c.fmt(r)}</span></td>`;}
     return`<td>${c.fmt(r)}</td>`;
   }).join('')+'</tr>').join('');
@@ -954,15 +956,11 @@ $('ghg-scenario-sel').addEventListener('change',function(){
 // grid-factor choice like GHG is)
 function renderEnergyImpact(g){
   const n=g.national;
-  $('energy-kpi-strip').innerHTML=`
-    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_gwh_saved)}</div><div class="gl">GWh/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes)</div></div>
-    <div class="ghg-kpi"><div class="gv">${fmtInt(n.avg_kwh_saved)}</div><div class="gl">avg kWh/yr saved per home</div></div>
-    <div class="ghg-kpi"><div class="gv">${fmtInt(n.homes_powered_equivalent)}</div><div class="gl">homes' worth of annual energy use (CEUD ${n.ceud_avg_household_kwh.year} avg, ${fmtInt(n.ceud_avg_household_kwh.avg_kwh_per_household)} kWh/home)</div></div>
-    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.cost_cad_saved)}</div><div class="gl">at today's utility rates (${fmtPct(n.cost_coverage_pct,0)} of matched homes priced)</div></div>`;
-  $('energy-national-note').textContent=`Net = sum(pre kWh − post kWh) over ${fmtInt(n.n)} matched pairs. Not clipped at zero — ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled energy use rise, pulling the total down.`;
+  $('energy-national-note').textContent=`Net = sum(pre kWh − post kWh) over ${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched pairs. Not clipped at zero — ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled energy use rise, pulling the total down.`;
   const parts=[
+    {icon:ICON_BOLT,label:'Total energy saved, net',value:fmtInt(n.total_gwh_saved)+' GWh/yr',sub:(n.total_kwh_saved/1e9).toFixed(2)+' TWh/yr'},
+    {icon:ICON_BOLT,label:'Avg energy saved per home',value:fmtInt(n.avg_kwh_saved)+' kWh/yr',sub:`${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes`},
     {icon:ICON_HOUSE,label:'Equivalent to powering this many homes for a year',value:fmtInt(n.homes_powered_equivalent),sub:`vs a CEUD avg home (${n.ceud_avg_household_kwh.year})`},
-    {icon:ICON_BOLT,label:'Total energy saved',value:fmtInt(n.total_gwh_saved)+' GWh/yr',sub:(n.total_kwh_saved/1e9).toFixed(2)+' TWh/yr'},
     {icon:ICON_MONEY,label:'Avoided energy cost',value:'$'+fmtInt(n.cost_cad_saved)+'/yr',sub:`${fmtPct(n.cost_coverage_pct,0)} of homes priced`},
     {icon:ICON_PLUG,label:'Equivalent EV driving distance',value:(n.ev_km_equivalent/1e9).toFixed(2)+' billion km',sub:`at ${(g.ev_kwh_per_km*100).toFixed(0)} kWh/100km, illustrative`},
   ];
