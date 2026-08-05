@@ -57,7 +57,7 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 :root[data-theme="dark"] .section-num{color:var(--amber)}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.15;margin-top:2px}
 .section-head .intro{font-size:14.5px;color:var(--text);max-width:760px;margin-top:.5rem}
-.sowhat{border-left:3px solid var(--amber);background:rgba(200,136,26,.06);padding:.7rem .95rem;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;color:var(--text);max-width:820px;margin-top:.75rem}
+.sowhat{border-left:3px solid var(--amber);background:rgba(200,136,26,.06);padding:.7rem .95rem;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;color:var(--text);max-width:820px;margin-top:.75rem;display:none}
 .sowhat b{color:var(--ink)}
 
 .card{background:#fff;color:#1C2B3A;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);padding:1.15rem 1.25rem;min-width:0}
@@ -109,7 +109,10 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .scorecard tbody tr:hover td{background:#F7F4EE}
 .scorecard .prov-name{font-weight:500;color:var(--navy)}
 .bar-cell{position:relative}
-.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;background:rgba(200,136,26,.42);border-radius:2px;z-index:0}
+.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;border-radius:2px;z-index:0}
+.bar-cell .bar.cat-program{background:rgba(11,37,69,.30)}
+.bar-cell .bar.cat-energy{background:rgba(200,136,26,.42)}
+.bar-cell .bar.cat-fuel{background:rgba(22,107,74,.35)}
 .bar-cell span{position:relative;z-index:1}
 .scroll-x{overflow-x:auto}
 
@@ -252,12 +255,15 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .tree-leaf-detail a:hover{color:#9C6812;border-color:#9C6812}
 .tree-leaf-count{margin-left:auto;flex:none;font-size:11px;color:#8A9BB0;font-variant-numeric:tabular-nums;padding-left:8px}
 
-/* ── methodology accordion ── */
-.methodology{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
+/* ── methodology accordion — a plain, unnumbered box sitting outside
+   <main>, at the bottom of the page (same pattern as retrofits.html's
+   .methodology / assets/retrofits.css) ── */
+.methodology{max-width:1180px;margin:2.4rem auto 3rem;padding:0 1.5rem}
+.methodology details{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.15rem;font-family:'Fraunces',Georgia,serif;font-size:1.2rem;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:#9C6812;transition:transform .2s}
-.methodology[open] summary::after{content:'–'}
+.methodology details[open] summary::after{content:'–'}
 .methodology summary:hover{background:#F7F4EE}
 .method-body{padding:.4rem 1.15rem 1.15rem;font-size:13.5px;color:#1C2B3A;line-height:1.6}
 .method-body h4{font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#9C6812;font-weight:600;margin:1rem 0 .35rem}
@@ -350,17 +356,49 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="sowhat"><b>By the numbers:</b> heat-pump adoption ranges from <b>50.3%</b> of matched retrofits in New Brunswick and 45.3% in Quebec down to <b>3.4%</b> in Alberta and 2.0% in Saskatchewan, with Ontario at 14.5%. Prince Edward Island (17.0%) sits outside the wider Atlantic pattern. What drives the spread is not established here.</div>
     </div>
     <div class="card">
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:rgba(11,37,69,.55)"></span>program (retrofits, participation)</span>
+        <span class="lg"><span class="sw" style="background:rgba(200,136,26,.7)"></span>energy (saving, deep, pre-EUI)</span>
+        <span class="lg"><span class="sw" style="background:rgba(22,107,74,.6)"></span>fuel (heat pump, fuel switch)</span>
+      </div>
       <div class="scroll-x">
         <table class="scorecard" id="scorecard-table"><thead></thead><tbody></tbody></table>
       </div>
-      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute).</div>
+      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute). Bars are scaled within each column (its own max = full width), so they compare provinces, not columns.</div>
     </div>
   </section>
 
-  <!-- 02 THE CLIMATE IMPACT -->
+  <!-- 02 THE TIMELINE -->
+  <section id="sec-timeline">
+    <div class="section-head">
+      <div class="section-num">02 — THE TIMELINE</div>
+      <h2>Twenty years of programs</h2>
+      <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
+      <div class="sowhat"><b>By the numbers:</b> completed retrofits peaked at <b>205,502 in 2010</b>, during ecoENERGY Retrofit – Homes (2007–2012), and again at <b>150,798 in 2023</b> under the Canada Greener Homes Grant (2021–2024). 2025 recorded 72,870, about half the 2024 total, after the grant closed to new applicants on 31 March 2024. Programme dates and sources are listed under the chart.</div>
+    </div>
+    <div class="card">
+      <h3>Matched audits per year, with program eras</h3>
+      <div class="sub">Initial audits by their year; completed retrofits by their follow-up audit year.</div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:#0B2545"></span>Initial (pre-retrofit) audits</span>
+        <span class="lg"><span class="sw" style="background:#C8881A"></span>Completed retrofits</span>
+      </div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-timeline"></canvas></div>
+      <div class="note" id="timeline-note"></div>
+    </div>
+    <div class="card">
+      <h3>What did each era build?</h3>
+      <div class="sub">The 8 tracked measures, as a share of that era's matched retrofits — same question as the timeline above (which era), split by what kind of work happened. Each home is classified by its <b>initial</b> audit year, not its completion year, so a retrofit that started under a program but finished after it closed still counts toward that program.</div>
+      <div class="legend" id="era-legend"></div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-program-era"></canvas></div>
+      <div class="note" id="program-era-note"></div>
+    </div>
+  </section>
+
+  <!-- 03 THE CLIMATE IMPACT -->
   <section id="sec-ghg">
     <div class="section-head">
-      <div class="section-num">02 — THE CLIMATE IMPACT</div>
+      <div class="section-num">03 — THE CLIMATE IMPACT</div>
       <h2>What the GHG savings are worth</h2>
       <p class="intro">The same modelled tCO₂e/yr saved as everywhere else on this page, summed rather than averaged, then priced two ways: what it would cost at the 2024 federal carbon-tax rate, and what ECCC's Social Cost of Carbon says the avoided damage is worth.</p>
       <div class="sowhat"><b>By the numbers:</b> <span id="ghg-sowhat">Loading…</span></div>
@@ -398,12 +436,12 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 03 THE MAP -->
+  <!-- 04 THE MAP -->
   <section id="sec-map">
     <div class="section-head">
-      <div class="section-num">03 — THE MAP</div>
-      <h2>One country, five ways</h2>
-      <p class="intro">Every postal area (FSA) with at least 30 matched retrofits, coloured by the metric you pick. The leaderboards beside it re-rank live. Postal areas below the 30-retrofit threshold, the few condo-dominated downtown cores with no house audits, and — on participation only — areas whose 2021 census dwelling count is too small to divide by, are left grey.</p>
+      <div class="section-num">04 — THE MAP</div>
+      <h2>One country, thirteen ways</h2>
+      <p class="intro">Every postal area (FSA) with at least 30 matched retrofits, coloured by the metric you pick — participation, savings, pre-retrofit stock, heat-pump adoption, each of the eight tracked measures, or the deep-retrofit rate. The leaderboards beside it re-rank live. Postal areas below the 30-retrofit threshold, the few condo-dominated downtown cores with no house audits, and — on participation only — areas whose 2021 census dwelling count is too small to divide by, are left grey.</p>
       <div class="sowhat"><b>By the numbers:</b> the highest pre-retrofit intensities are in Winnipeg (R3B 475, R3A 446 kWh/m²/yr); the highest heat-pump adoption is in Quebec and coastal BC (G7T 96.9%, V0V 90.5%); the lowest participation is in downtown Toronto (M5V 0.2%, M4Y 0.3%), where most dwellings are condo units that do not receive house audits.</div>
     </div>
     <div class="card">
@@ -434,12 +472,12 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 04 WHAT WORKS -->
+  <!-- 05 WHAT WORKS -->
   <section id="sec-success">
     <div class="section-head">
-      <div class="section-num">04 — WHAT WORKS</div>
+      <div class="section-num">05 — WHAT WORKS</div>
       <h2>What makes a retrofit succeed</h2>
-      <p class="intro">Built on the 1,326,144 pairs that logged at least one real measure — the zero-measure re-audits are set aside. The pattern is blunt: mechanical change beats shell tweaks, and depth compounds.</p>
+      <p class="intro">Built on the 1,326,144 pairs that logged at least one real measure — the zero-measure re-audits are set aside.</p>
       <div class="sowhat"><b>By the numbers:</b> among homes that did exactly one measure, a heat pump returned a <b>25.5%</b> median saving (141,677 homes) and a heating-system change 20.1%, against 7.9% for air sealing alone, 6.6% for roof insulation and <b>6.1%</b> for windows. Median saving rises with each added measure, from 16.2% at one to 68.9% at all eight.</div>
     </div>
     <div class="grid2">
@@ -466,7 +504,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       </div>
     </div>
     <div class="card" data-mode="advanced" style="margin-top:1rem">
-      <h3>04c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
+      <h3>05c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
       <div class="sub">Top-decile savers (≥ 40.6% saved) versus everyone else — measure prevalence and starting conditions.</div>
       <div class="legend">
         <span class="lg"><span class="sw" style="background:#C8881A"></span>Top-decile savers</span>
@@ -480,29 +518,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 04 EQUITY -->
-  <section id="sec-equity">
-    <div class="section-head">
-      <div class="section-num">05 — WHO PARTICIPATES</div>
-      <h2>Who takes part</h2>
-      <p class="intro">Postal areas sorted into five equal groups by neighbourhood median household income, lowest to highest.</p>
-      <div class="sowhat"><b>By the numbers:</b> participation rises with neighbourhood income, from <b>11.6%</b> in the lowest quintile to <b>16.4%</b> in the highest. Heat-pump rate runs the other way (34.7% down to 19.0%), and median saving is close to flat (22.1% to 19.8%). These are area averages; see the caveat below before reading them as household behaviour.</div>
-    </div>
-    <div class="card">
-      <h3>By neighbourhood income quintile</h3>
-      <div class="sub">Q1 = lowest-income neighbourhoods, Q5 = highest. Participation, heat-pump rate and typical saving.</div>
-      <div class="chart-wrap" style="height:330px"><canvas id="ch-income"></canvas></div>
-      <div class="caveat" style="border-left-color:var(--amber)"><b>These are area averages, not household measurements.</b> A quintile describes the postal area a home sits in, not the income of the household that retrofitted it. The lower-income quintiles here contain a higher share of Atlantic and Quebec postal areas, which also have the highest heat-pump rates province-wide, so the income gradient and the provincial gradient cannot be separated in this data. Read the chart as a description of areas; it does not support a claim about what lower-income households do.</div>
-    </div>
-    <div class="card" data-mode="advanced" style="margin-top:1rem">
-      <h3>By dwelling value quintile</h3>
-      <div class="sub">The secondary axis: postal areas grouped by median dwelling value instead of income.</div>
-      <div class="chart-wrap" style="height:300px"><canvas id="ch-value"></canvas></div>
-      <div class="caveat">The same composition applies here: the lowest dwelling-value quintile contains a higher share of Atlantic and Quebec postal areas, so its heat-pump rate cannot be attributed to dwelling value on this evidence.</div>
-    </div>
-  </section>
-
-  <!-- 05 HEAT-PUMP GEOGRAPHY -->
+  <!-- 06 HEAT-PUMP GEOGRAPHY -->
   <section id="sec-hp">
     <div class="section-head">
       <div class="section-num">06 — HEAT PUMPS</div>
@@ -585,88 +601,36 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
     </div>
   </section>
 
-  <!-- 07 TIMELINE -->
-  <section id="sec-timeline">
+  <!-- 09 WHO PARTICIPATES -->
+  <section id="sec-equity">
     <div class="section-head">
-      <div class="section-num">09 — THE TIMELINE</div>
-      <h2>Twenty years of programs</h2>
-      <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
-      <div class="sowhat"><b>By the numbers:</b> completed retrofits peaked at <b>205,502 in 2010</b>, during ecoENERGY Retrofit – Homes (2007–2012), and again at <b>150,798 in 2023</b> under the Canada Greener Homes Grant (2021–2024). 2025 recorded 72,870, about half the 2024 total, after the grant closed to new applicants on 31 March 2024. Programme dates and sources are listed under the chart.</div>
+      <div class="section-num">09 — WHO PARTICIPATES</div>
+      <h2>Who takes part</h2>
+      <p class="intro">Postal areas sorted into five equal groups by neighbourhood median household income, lowest to highest.</p>
+      <div class="sowhat"><b>By the numbers:</b> participation rises with neighbourhood income, from <b>11.6%</b> in the lowest quintile to <b>16.4%</b> in the highest. Heat-pump rate runs the other way (34.7% down to 19.0%), and median saving is close to flat (22.1% to 19.8%). These are area averages; see the caveat below before reading them as household behaviour.</div>
     </div>
     <div class="card">
-      <h3>Matched audits per year, with program eras</h3>
-      <div class="sub">Initial audits by their year; completed retrofits by their follow-up audit year.</div>
-      <div class="legend">
-        <span class="lg"><span class="sw" style="background:#0B2545"></span>Initial (pre-retrofit) audits</span>
-        <span class="lg"><span class="sw" style="background:#C8881A"></span>Completed retrofits</span>
-      </div>
-      <div class="chart-wrap" style="height:360px"><canvas id="ch-timeline"></canvas></div>
-      <div class="note" id="timeline-note"></div>
+      <h3>By neighbourhood income quintile</h3>
+      <div class="sub">Q1 = lowest-income neighbourhoods, Q5 = highest. Participation, heat-pump rate and typical saving.</div>
+      <div class="chart-wrap" style="height:330px"><canvas id="ch-income"></canvas></div>
+      <div class="caveat" style="border-left-color:var(--amber)"><b>These are area averages, not household measurements.</b> A quintile describes the postal area a home sits in, not the income of the household that retrofitted it. The lower-income quintiles here contain a higher share of Atlantic and Quebec postal areas, which also have the highest heat-pump rates province-wide, so the income gradient and the provincial gradient cannot be separated in this data. Read the chart as a description of areas; it does not support a claim about what lower-income households do.</div>
     </div>
-    <div class="card">
-      <h3>What did each era build?</h3>
-      <div class="sub">The 8 tracked measures, as a share of that era's matched retrofits — same question as the timeline above (which era), split by what kind of work happened. Each home is classified by its <b>initial</b> audit year, not its completion year, so a retrofit that started under a program but finished after it closed still counts toward that program.</div>
-      <div class="legend" id="era-legend"></div>
-      <div class="chart-wrap" style="height:360px"><canvas id="ch-program-era"></canvas></div>
-      <div class="note" id="program-era-note"></div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>By dwelling value quintile</h3>
+      <div class="sub">The secondary axis: postal areas grouped by median dwelling value instead of income.</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="ch-value"></canvas></div>
+      <div class="caveat">The same composition applies here: the lowest dwelling-value quintile contains a higher share of Atlantic and Quebec postal areas, so its heat-pump rate cannot be attributed to dwelling value on this evidence.</div>
     </div>
-  </section>
-
-  <!-- 08 OPEN QUESTIONS -->
-  <section id="sec-questions">
-    <div class="section-head">
-      <div class="section-num">10 — OPEN QUESTIONS</div>
-      <h2>Questions for the EnerGuide team</h2>
-      <p class="intro">Things this dataset cannot answer on its own. Each one is a limit we hit while building the page, written down rather than papered over with an assumption.</p>
-    </div>
-    <div class="card">
-      <ol class="qlist">
-        <li>
-          <b>Which FSA vintage do audit records carry?</b>
-          <span>Participation divides ~20 years of audits by a single 2021 census snapshot. If a record stores the postal code as captured at audit time, then areas Canada Post later redrew accumulate audits their present-day dwelling count cannot carry — we measured this and suppressed 80 postal areas because of it, plus 62 more whose FSA code has no 2021 census record at all. Confirming the vintage would tell us whether these can be recovered by remapping rather than dropped.</span>
-        </li>
-        <li>
-          <b>Is there a participation denominator you would prefer?</b>
-          <span>Audited homes ÷ census dwellings counts condo units that never receive a house audit, which pushes downtown high-rise areas near zero. A house-only or eligible-stock denominator would make participation comparable between urban cores and suburbs. Does one exist?</span>
-        </li>
-        <li>
-          <b>What explains the provincial spread in heat-pump adoption?</b>
-          <span>Adoption runs from 50.3% of matched retrofits in New Brunswick to 2.0% in Saskatchewan. The pattern is stable and reappears inside every climate and income breakdown we tried, but this data contains no programme, rebate or contractor-availability variable, so we can describe the spread and not attribute it. Is there a rebate-history dataset that could be joined?</span>
-        </li>
-        <li>
-          <b>Does climate add anything beyond province?</b>
-          <span>Grouping homes by heating-degree-days produced a heat-pump gradient that turned out to track provincial composition rather than temperature, so we removed the section rather than publish a climate finding we could not separate from province. Is there a within-province comparison you would consider sound?</span>
-        </li>
-        <li>
-          <b>Is earliest-D-to-latest-E the right way to pair a re-audited home?</b>
-          <span>Changed 2026-07-24: homes with more than one initial or follow-up audit (149,145 nationally, ~9% of homes holding both) used to be excluded entirely; they are now reduced to their earliest initial audit and latest follow-up, which lifted every figure on this page to a 1,451,433-pair base from 1,369,305. About 55% of those homes have two of each, so their single row may span two separate retrofit projects. We chose this because it captures the home's whole change rather than an arbitrary half, and because the headline results barely moved when the homes were added — but if the intended reading is one row per project, pairing each initial audit with the next follow-up would be the correct treatment instead. Which matches how EnerGuide records these?</span>
-        </li>
-        <li>
-          <b>How should zero-measure pairs be treated?</b>
-          <span>125,289 matched pairs (8.6%) record no tracked upgrade between the two audits, with a median saving of 3.2%. We report them as a count and exclude them from every "what worked" statistic. Are these re-audits, data-entry gaps, or measures outside the eight tracked flags?</span>
-        </li>
-        <li>
-          <b>Are the opportunity-score weights defensible?</b>
-          <span>The 0.30 / 0.25 / 0.20 / 0.25 split across pre-EUI, pre-GHG, pre-1980 share and low participation is our judgement, not an estimate from data. The ranking moves if the weights move. If the programme has a view on relative priority, we would rather encode yours.</span>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- 09 METHODOLOGY -->
-  <section id="sec-method">
-    <div class="section-head">
-      <div class="section-num">11 — METHODOLOGY</div>
-      <h2>How this was built</h2>
-      <p class="intro">Every formula, threshold and honesty rail behind the numbers above.</p>
-    </div>
-    <details class="methodology">
-      <summary>Sources, formulas &amp; the honesty rails</summary>
-      <div class="method-body" id="method-body"></div>
-    </details>
   </section>
 
 </main>
+
+<section class="methodology" id="sec-method" aria-label="Methodology">
+  <details>
+    <summary>How this was built — sources, formulas &amp; the honesty rails</summary>
+    <div class="method-body" id="method-body"></div>
+  </details>
+</section>
 
 <div class="map-tip" id="map-tip"></div>
 <div id="info-tip"></div>
@@ -825,13 +789,13 @@ addEventListener('resize',()=>{checkPending();setTimeout(()=>Object.values(CHART
 let SCORE_ROWS=null,SCORE_SORT={key:'matched',dir:-1};
 const SCORE_COLS=[
   {key:'prov',label:'Province',fmt:r=>`<span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span>`,num:false},
-  {key:'matched',label:'Retrofits',fmt:r=>fmtInt(r.matched),bar:'matched'},
-  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1)},
-  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%'},
-  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:'hp'},
-  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0)},
-  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1)},
-  {key:'eui',label:'Pre-EUI',fmt:r=>Math.round(r.eui)},
+  {key:'matched',label:'Retrofits',fmt:r=>fmtInt(r.matched),bar:true,cat:'program'},
+  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1),bar:true,cat:'program'},
+  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%',bar:true,cat:'energy'},
+  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:true,cat:'fuel'},
+  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0),bar:true,cat:'fuel'},
+  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1),bar:true,cat:'energy'},
+  {key:'eui',label:'Pre-EUI',fmt:r=>Math.round(r.eui),bar:true,cat:'energy'},
 ];
 function buildScorecard(records){
   const g={};
@@ -852,14 +816,15 @@ function buildScorecard(records){
 }
 function renderScorecard(){
   const rows=SCORE_ROWS,head=$('scorecard-table').tHead,body=$('scorecard-table').tBodies[0];
-  const maxes={matched:Math.max(...rows.map(r=>r.matched)),hp:Math.max(...rows.map(r=>r.hp))};
+  const maxes={};
+  SCORE_COLS.forEach(c=>{if(c.bar)maxes[c.key]=Math.max(...rows.map(r=>r[c.key]));});
   head.innerHTML='<tr>'+SCORE_COLS.map(c=>`<th data-key="${c.key}" class="${SCORE_SORT.key===c.key?'arrow-active':''}">${c.label}${SCORE_SORT.key===c.key?(SCORE_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
   const sorted=[...rows].sort((a,b)=>{const k=SCORE_SORT.key;
     if(k==='prov')return SCORE_SORT.dir*(PROV_NAME[a.prov]||'').localeCompare(PROV_NAME[b.prov]||'');
     return SCORE_SORT.dir*(a[k]-b[k]);});
   body.innerHTML=sorted.map(r=>'<tr>'+SCORE_COLS.map(c=>{
-    if(c.bar){const pct=Math.round(100*r[c.key]/maxes[c.bar]);
-      return`<td class="bar-cell"><span class="bar" style="width:${pct}%"></span><span>${c.fmt(r)}</span></td>`;}
+    if(c.bar){const pct=Math.round(100*r[c.key]/maxes[c.key]);
+      return`<td class="bar-cell"><span class="bar cat-${c.cat}" style="width:${pct}%"></span><span>${c.fmt(r)}</span></td>`;}
     return`<td>${c.fmt(r)}</td>`;
   }).join('')+'</tr>').join('');
   head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
@@ -1753,6 +1718,40 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p><b>Plain language:</b> two big caveats: everyone in this data chose to get an audit (usually for a rebate), so it isn't a random sample of Canadian homes — and any link you see between a postal area's income and its retrofit activity describes that neighbourhood, not any specific household in it.</p>
     <div class="rail"><ul>${railList}</ul></div>
     <p><b>Advanced:</b> two limits are worth stating plainly. <b>Self-selection:</b> every home here chose to get an audit, usually to claim a rebate, so this is not a sample of Canadian housing and cannot support statements about the housing stock as a whole. <b>Ecology:</b> income and dwelling value are attributes of a postal area, never of the household that did the work, so an association between an area's income and its retrofit behaviour says nothing about individual households.</p>
+
+    <h4>Questions for the EnerGuide team</h4>
+    <p>Things this dataset cannot answer on its own. Each one is a limit we hit while building the page, written down rather than papered over with an assumption.</p>
+    <ol class="qlist">
+      <li>
+        <b>Which FSA vintage do audit records carry?</b>
+        <span>Participation divides ~20 years of audits by a single 2021 census snapshot. If a record stores the postal code as captured at audit time, then areas Canada Post later redrew accumulate audits their present-day dwelling count cannot carry — we measured this and suppressed 80 postal areas because of it, plus 62 more whose FSA code has no 2021 census record at all. Confirming the vintage would tell us whether these can be recovered by remapping rather than dropped.</span>
+      </li>
+      <li>
+        <b>Is there a participation denominator you would prefer?</b>
+        <span>Audited homes ÷ census dwellings counts condo units that never receive a house audit, which pushes downtown high-rise areas near zero. A house-only or eligible-stock denominator would make participation comparable between urban cores and suburbs. Does one exist?</span>
+      </li>
+      <li>
+        <b>What explains the provincial spread in heat-pump adoption?</b>
+        <span>Adoption runs from 50.3% of matched retrofits in New Brunswick to 2.0% in Saskatchewan. The pattern is stable and reappears inside every climate and income breakdown we tried, but this data contains no programme, rebate or contractor-availability variable, so we can describe the spread and not attribute it. Is there a rebate-history dataset that could be joined?</span>
+      </li>
+      <li>
+        <b>Does climate add anything beyond province?</b>
+        <span>Grouping homes by heating-degree-days produced a heat-pump gradient that turned out to track provincial composition rather than temperature, so we removed the section rather than publish a climate finding we could not separate from province. Is there a within-province comparison you would consider sound?</span>
+      </li>
+      <li>
+        <b>Is earliest-D-to-latest-E the right way to pair a re-audited home?</b>
+        <span>Changed 2026-07-24: homes with more than one initial or follow-up audit (149,145 nationally, ~9% of homes holding both) used to be excluded entirely; they are now reduced to their earliest initial audit and latest follow-up, which lifted every figure on this page to a 1,451,433-pair base from 1,369,305. About 55% of those homes have two of each, so their single row may span two separate retrofit projects. We chose this because it captures the home's whole change rather than an arbitrary half, and because the headline results barely moved when the homes were added — but if the intended reading is one row per project, pairing each initial audit with the next follow-up would be the correct treatment instead. Which matches how EnerGuide records these?</span>
+      </li>
+      <li>
+        <b>How should zero-measure pairs be treated?</b>
+        <span>125,289 matched pairs (8.6%) record no tracked upgrade between the two audits, with a median saving of 3.2%. We report them as a count and exclude them from every "what worked" statistic. Are these re-audits, data-entry gaps, or measures outside the eight tracked flags?</span>
+      </li>
+      <li>
+        <b>Are the opportunity-score weights defensible?</b>
+        <span>The 0.30 / 0.25 / 0.20 / 0.25 split across pre-EUI, pre-GHG, pre-1980 share and low participation is our judgement, not an estimate from data. The ranking moves if the weights move. If the programme has a view on relative priority, we would rather encode yours.</span>
+      </li>
+    </ol>
+
     <p style="color:#5C6E82;font-size:12px;margin-top:.8rem">Every energy, EUI and GHG figure on this page is a modelled HOT2000/EnerGuide estimate, never a metered bill. Rebuilt by <code>Python/build_insights.py</code>; census and climate inputs are static and do not join the audit-data refresh.</p>`;
 });}
 
