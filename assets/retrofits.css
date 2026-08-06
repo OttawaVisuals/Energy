@@ -299,15 +299,12 @@ tr.detail-row.open .detail-inner{display:block}
 .sources{max-width:1280px;margin:0 auto;padding:.5rem 1.5rem 2rem}
 .sources h2{font-family:'Fraunces',Georgia,serif;font-size:1.35rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;margin-bottom:.85rem}
 .sources-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr));gap:.85rem}
-/* Fixed height so every card in the grid matches regardless of how long its
-   description runs — long ones clip to 3 lines with an ellipsis; the full
-   text is still there as a native `title` tooltip on hover (set inline per
-   source-item's <p>, see retrofits.html). */
-.source-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.75rem .9rem;box-shadow:var(--shadow);min-width:0;height:112px;overflow:hidden;cursor:default}
+/* One-line row: title + a ? button whose data-info tooltip (shared .info-btn
+   mechanism) carries the description that used to sit below as clipped text. */
+.source-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.65rem .9rem;box-shadow:var(--shadow);min-width:0;display:flex;align-items:baseline;gap:6px}
 .source-item a{color:var(--ink);font-weight:500;font-size:13.5px;text-decoration:none;overflow-wrap:anywhere}
 .source-item a:hover{color:var(--amber)}
-.source-item p{font-size:12.5px;color:var(--muted);margin-top:.3rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.source-item code{font-size:11.5px;background:var(--surface);padding:1px 4px;border-radius:3px}
+.source-item .info-btn{margin-left:auto}
 
 /* footer base styling now lives in assets/site-theme.css */
 @media(max-width:900px){
