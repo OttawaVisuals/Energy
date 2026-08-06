@@ -2041,7 +2041,7 @@ function renderAhriWindowProvince(slice){
 // backup system (see join_hp_capacity.py / docs/RETROFITS.md). Sizing uses
 // AHRI-certificate-verified capacity (Post_HPCapacity47/5), not the raw
 // auditor-entered HPCAP field, which was validated against real certificates
-// and runs a median 1.55x high.
+// and runs a median 1.6x high (see docs/RETROFITS.md Step 1b).
 function hasHeatPump(r){
   const t=r.Post_HPType;
   return !!(t&&String(t).trim()&&!String(t).toLowerCase().startsWith('n/a'));

@@ -662,7 +662,7 @@ def compute_slice(df):
     if n_hp:
         # Sizing = AHRI-certificate-verified capacity (join_hp_capacity.py) ÷
         # design heat loss. NOT the raw auditor-entered HPCAP field -- that
-        # was validated against real certificates and runs a median 1.55x
+        # was validated against real certificates and runs a median 1.6x
         # high, unreliable for a sizing claim. 47F = mild-day rated capacity;
         # 5F (~-15C) is a Canadian design-day proxy for whether the heat
         # pump alone can carry the full load or is deliberately undersized

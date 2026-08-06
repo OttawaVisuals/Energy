@@ -1,7 +1,29 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-05** (**Retrofit Insights + Retrofit Explorer**: new CEUD-sourced
+Updated **2026-08-06** (**Retrofit Explorer**: re-measured the `HPCAP`-vs-AHRI
+sizing claim and resolved the `COP` rating-condition question raised while prepping
+the NRCan/EnerGuide demo. `HPCAP` (auditor-entered capacity) still runs unreliable —
+median 1.6× the certified 47°F capacity over 318,585 rows, 1×/2×/4× clustering, 63%
+of repeated AHRI codes inconsistent row-to-row — but the generic `COP` field turned
+out not to be an error at all: a NEEP performance-table cross-check for the site's
+most common installed unit (AHRI 211644151) shows the ERS `COP` median (2.99)
+matches NEEP's **47°F**-rated COP (3.00), not the certificate's 5°F COP (1.80) it was
+being compared against. AHRI's own search API has no 47°F COP field to validate
+against directly (confirmed by enumerating all 40 fields it returns). The
+cold-climate-ASHP-only fields `CCASHPCOP` and `CCASHPCAPACITYMAINTENANCE` already
+carry a same-condition comparison and track the certificate closely (median 0.0pp
+difference on capacity maintenance, 85% within ±10pp) — not yet used on the page.
+Removed the old "1.55×" figure from `retrofits.html`'s sizing-chart note and added
+a full writeup to the AHRI-enrichment methodology section. Also added, to the
+pairing-gates methodology note: a full gate-by-gate breakdown of the ~177,880
+nationally-dropped D&E pairs (roughly two-fifths Gate B date-order, one-fifth Gate C
+floor-area, one-third Gate D structural), extending the existing Gate A/B
+measurement to Gates C/D. New diagnostics: `Python/diagnose_hpcap_vs_ahri.py`,
+`Python/diagnose_ccashp_vs_ahri.py`; `Python/diagnose_pairing_drops.py` updated to
+match the shipped pipeline (it had gone stale after the 2026-07-18/-24 gate fixes
+below). See `docs/RETROFITS.md`'s 2026-08-06 changelog entry.
+Then, on 2026-08-05: new CEUD-sourced
 **energy impact KPI card** — kWh/GWh saved, priced $ saved, a "homes powered for a
 year" equivalent, and an EV-km equivalent, plus icons on both the GHG and energy
 equivalency grids — and a **cumulative-audits-vs-housing-stock line** on the Retrofit
@@ -185,7 +207,7 @@ lifecycle-update candidates logged — see
 
 | Tool | Live | Docs | Notes |
 |---|---|---|---|
-| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05) |
+| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05), HPCAP/COP/CCASHP validated against AHRI+NEEP + full pairing-gate breakdown (2026-08-06) |
 | 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05 |
 | 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
