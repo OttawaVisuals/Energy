@@ -2554,6 +2554,14 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   // postBins=null means "single-series mode" (e.g. hpsizing's one-temperature
   // view) -- omit the second line entirely rather than drawing a flat zero.
   const allKeys=[...new Set([...Object.keys(preBins||{}),...Object.keys(postBins||{}),...Object.keys(deltaBins||{})])].map(Number).sort((a,b)=>a-b);
+  // Bins are floor-bucketed (a key of 20 holds [20,20+step)) but were only
+  // ever labelled by their left edge, so a reader had no way to tell a 20
+  // kWh/m² step from a 2 kW one just by looking at the axis. Infer the step
+  // from the smallest gap between adjacent bucket edges and label each tick
+  // as the full "left–right" range instead.
+  const step=(()=>{const d=allKeys.slice(1).map((k,i)=>k-allKeys[i]).filter(x=>x>0);return d.length?Math.min(...d):1;})();
+  const r2=v=>Math.round(v*100)/100; // strips float noise like 0.1+0.2
+  const bracketLabels=allKeys.map(k=>`${r2(k)}–${r2(k+step)}`);
   const datasets=[];
   // Chart.js draws LOWER order values on top — bars need order:1 (front) so
   // they paint over the area fills, and the lines order:2 (behind). Verified
@@ -2574,7 +2582,7 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   }
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
-    data:{labels:allKeys,datasets},
+    data:{labels:bracketLabels,datasets},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'top',labels:{font:{size:12},boxWidth:12,usePointStyle:true,pointStyleWidth:24,
         generateLabels:c=>c.data.datasets.map((ds,i)=>({text:ds.label,datasetIndex:i,hidden:!c.isDatasetVisible(i),pointStyle:legendLineIcon(ds),fillStyle:ds.borderColor,strokeStyle:ds.borderColor,lineWidth:1,fontColor:PAL.axis}))}},
@@ -2721,7 +2729,12 @@ function renderHist(savings){
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
       scales:{
         x:{title:{display:true,text:'Energy saving %',font:{size:11},color:PAL.axis},
-          ticks:{font:{size:9},color:PAL.tick,maxTicksLimit:30,
+          // autoSkip:false is required here: with autoSkip on, Chart.js first
+          // picks which of the ~150+ 1%-wide categories get a tick slot, THEN
+          // this callback filters those down to multiples of 10 — two
+          // independent samplings that rarely agree, so almost every "×10"
+          // label gets dropped and only one or two survive by coincidence.
+          ticks:{font:{size:9},color:PAL.tick,autoSkip:false,maxRotation:0,
             callback:function(v,i){const l=labels[i];return l%10===0?`${l}%`:''}},
           grid:{display:false}},
         y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}
@@ -3175,7 +3188,9 @@ function renderProvinceHist(slice){
       plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].label} saving`,label:i=>`${i.raw.toLocaleString()} homes`}}},
       scales:{
         x:{title:{display:true,text:'Energy saving %',font:{size:11},color:PAL.axis},
-          ticks:{font:{size:9},color:PAL.tick,maxTicksLimit:30,
+          // autoSkip:false — see renderHist() above for why autoSkip+this
+          // callback's ×10 filter can't be combined safely.
+          ticks:{font:{size:9},color:PAL.tick,autoSkip:false,maxRotation:0,
             callback:function(v,i){const l=keys[i];return l%10===0?`${l}%`:''}},
           grid:{display:false}},
         y:{title:{display:true,text:'Homes',font:{size:11},color:PAL.axis},ticks:{font:{size:11},color:PAL.tick},grid:{color:PAL.track}}
