@@ -14,7 +14,7 @@ already puts build_fsa_audit_totals.py outside that pipeline as an
 independent sidecar feeding Steps 2/3.
 
 Why join on Post_HPAHRI, not the raw auditor-entered HPCAP: validated against
-real AHRI certificates (see docs/RETROFITS.md), HPCAP runs a median 1.55x
+real AHRI certificates (see docs/RETROFITS.md), HPCAP runs a median 1.6x
 high and the same AHRI number produces inconsistent (1x/2x/4x) values across
 different audit rows. The certificate's own heating_capacity_47f_btuh /
 heating_capacity_5f_btuh fields are the trustworthy source. 5F (~-15C) is

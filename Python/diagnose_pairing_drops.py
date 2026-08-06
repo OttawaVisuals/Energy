@@ -3,20 +3,30 @@ DIAGNOSTIC (not part of the production pipeline).
 
 Where do the D&E homes that DON'T become matched pairs get dropped?
 
-The Retrofit Explorer's audit funnel shows ~1.6M homes nationally with both a D
-(initial) and an E (follow-up) evaluation, but only ~0.54M become matched pairs —
-~1.1M are dropped. This script reproduces ers_web_pipeline.py's pairing gates,
-in the SAME order, and attributes each dropped home to the FIRST gate it fails,
-so the drop counts form a clean funnel that sums exactly.
+The national funnel (province_json/CA.json) reports de=1,629,313 candidates and
+matched=1,451,433 survivors -- a drop of 177,880. This script reproduces
+ers_web_pipeline.py's pairing gates, in the SAME order, and attributes each
+dropped home to the FIRST gate it fails, so the drop counts form a clean funnel
+that sums exactly.
 
-Gates (ers_web_pipeline.py order):
-  A  Multiple audits   — a home must have EXACTLY one D and one E; homes with a
-                         re-audit (>1 D or >1 E) are dropped (build_pairs_index).
-  B  Date order        — the E must be dated strictly after the D (build_pairs_index).
-  C  Floor-area change — |E area - D area| / D area must be <= 10%, D area > 0
-                         (_join_and_write floor-area filter).
-  D  Structural change — TYPEOFHOUSE, STOREYS and NUMDWELLINGUNITS must all match
-                         between the D and the E (_join_and_write structural filter).
+Gates (ers_web_pipeline.py order, current as of the 2026-07-18/19 fixes --
+see build_pairs_index/_join_and_write):
+  A  Reduce to ONE pair    — each home is reduced to its OLDEST D + NEWEST E
+                             record (not dropped for having extra audits;
+                             see diagnose_gates_ab.py, which measured that
+                             99.6% of multi-audit homes yield a correctly-
+                             ordered pair under this rule -- the pipeline used
+                             to drop all 149,145 of them outright).
+  B  Date order            — the (newest) E must be dated strictly after the
+                             (oldest) D (build_pairs_index).
+  C  Floor-area change     — |E area - D area| / D area must be <= 10%, D area
+                             > 0 (_join_and_write floor-area filter).
+  D  Structural change     — TYPEOFHOUSE, STOREYS and NUMDWELLINGUNITS must all
+                             match between the D and the E, via same_categorical/
+                             same_numeric: both-missing counts as unchanged,
+                             text-format differences ('1.0' vs '1') are ignored,
+                             one-side-missing or a genuine difference drops the
+                             pair (_join_and_write structural filter).
 
 Universe note: this matches ers_web_pipeline.py (PROVINCE_FILTER=None), which does
 NOT require a province, so the candidate count here can be slightly higher than the
@@ -47,8 +57,12 @@ CSV_FILES = [
 NEEDED = ['HOUSEID', 'EVALTYPE', 'ENTRYDATE', 'FLOORAREA',
           'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS']
 
-# home[hid] = [nD, nE, dtuple, etuple]
-#   tuple = (entrydate, floorarea, typeofhouse, storeys, numdwellingunits)
+# home[hid] = [nD, nE, d_best, e_best]
+#   d_best = (entrydate, area, typeofhouse, storeys, numdwellingunits) of the
+#            OLDEST D seen so far; e_best = same shape for the NEWEST E seen.
+#   Matches build_pairs_index's dropna(ENTRYDATE) + sort + drop_duplicates
+#   (oldest D, newest E) -- rows with no ENTRYDATE never win a slot, same as
+#   the pipeline dropping them before the sort.
 # Low-cardinality categoricals are interned to keep the ~2M-home dict small.
 def rec(entrydate, area, htype, storeys, dwell):
     return (entrydate, area,
@@ -87,15 +101,19 @@ def scan_file(csv_path, home):
         dts  = col(tbl, 'ENTRYDATE'); fas = col(tbl, 'FLOORAREA')
         tys  = col(tbl, 'TYPEOFHOUSE'); sts = col(tbl, 'STOREYS'); dws = col(tbl, 'NUMDWELLINGUNITS')
         for hid, et_v, dt, fa, ty, st, dw in zip(hids, ets, dts, fas, tys, sts, dws):
-            if not hid:
+            if not hid or not dt:
                 continue
             r = home.get(hid)
             if r is None:
                 r = home[hid] = [0, 0, None, None]
             if et_v == 'D':
-                r[0] += 1; r[2] = rec(dt, fa, ty, st, dw)
+                r[0] += 1
+                if r[2] is None or dt < r[2][0]:
+                    r[2] = rec(dt, fa, ty, st, dw)
             else:
-                r[1] += 1; r[3] = rec(dt, fa, ty, st, dw)
+                r[1] += 1
+                if r[3] is None or dt > r[3][0]:
+                    r[3] = rec(dt, fa, ty, st, dw)
             n += 1
     return n
 
@@ -113,24 +131,19 @@ def main():
         c = scan_file(path, home)
         print(f"  {name}: {c:,} D/E rows  (unique homes so far: {len(home):,})")
 
-    # ---- Gate A: candidates (>=1 D and >=1 E) then exactly-1+1 ----
-    candidates = multiple = 0
+    # ---- Gate A: reduce each home to oldest-D + newest-E (matches build_pairs_index) ----
+    candidates = 0
     d_dates, e_dates, d_areas, e_areas = [], [], [], []
     d_ty, e_ty, d_st, e_st, d_dw, e_dw = [], [], [], [], [], []
     for nD, nE, dtup, etup in home.values():
-        if nD >= 1 and nE >= 1:
+        if dtup is not None and etup is not None:
             candidates += 1
-            if nD > 1 or nE > 1:
-                multiple += 1
-            else:
-                d_dates.append(dtup[0]); e_dates.append(etup[0])
-                d_areas.append(dtup[1]); e_areas.append(etup[1])
-                d_ty.append(dtup[2]);    e_ty.append(etup[2])
-                d_st.append(dtup[3]);    e_st.append(etup[3])
-                d_dw.append(dtup[4]);    e_dw.append(etup[4])
+            d_dates.append(dtup[0]); e_dates.append(etup[0])
+            d_areas.append(dtup[1]); e_areas.append(etup[1])
+            d_ty.append(dtup[2]);    e_ty.append(etup[2])
+            d_st.append(dtup[3]);    e_st.append(etup[3])
+            d_dw.append(dtup[4]);    e_dw.append(etup[4])
     del home
-
-    exact = len(d_dates)
 
     # ---- Gate B: E dated strictly after D (NaT -> fails, as in the pipeline) ----
     dd = pd.to_datetime(pd.Series(d_dates), errors='coerce')
@@ -141,11 +154,27 @@ def main():
     fad = to_float(d_areas); fae = to_float(e_areas)
     pass_c = ((fad > 0) & ((fae - fad).abs() / fad <= 0.10)).fillna(False).to_numpy()
 
-    # ---- Gate D: type / storeys / dwellings unchanged (str compare, like pipeline) ----
-    s = lambda lst: pd.Series(lst).astype(str)
-    ty_same = (s(d_ty) == s(e_ty)).to_numpy()
-    st_same = (s(d_st) == s(e_st)).to_numpy()
-    dw_same = (s(d_dw) == s(e_dw)).to_numpy()
+    # ---- Gate D: type / storeys / dwellings unchanged ----
+    # Matches ers_web_pipeline.py's same_categorical/same_numeric (fix applied
+    # 2026-07-18): both-missing counts as unchanged; NUMDWELLINGUNITS tolerates
+    # text-format differences ('1.0' vs '1'). A raw str-equality compare (the
+    # old version of this script) over-drops on both-blank and .0-suffix pairs.
+    def _same_categorical(lst_d, lst_e):
+        a = pd.Series(lst_d).astype(str).str.strip()
+        b = pd.Series(lst_e).astype(str).str.strip()
+        a = a.mask(a.isin(['', 'nan', 'None']))
+        b = b.mask(b.isin(['', 'nan', 'None']))
+        both_na = a.isna() & b.isna()
+        return (both_na | (a == b)).fillna(False).to_numpy()
+
+    def _same_numeric(lst_d, lst_e):
+        an = to_float(lst_d); bn = to_float(lst_e)
+        both_na = an.isna() & bn.isna()
+        return (both_na | (an == bn)).fillna(False).to_numpy()
+
+    ty_same = _same_categorical(d_ty, e_ty)
+    st_same = _same_categorical(d_st, e_st)
+    dw_same = _same_numeric(d_dw, e_dw)
     pass_d = ty_same & st_same & dw_same
 
     # ---- First-failing-gate attribution (sequential, sums exactly) ----
@@ -172,10 +201,8 @@ def main():
     print("\n" + "=" * 64)
     print("D&E PAIRING DROP FUNNEL  (first-failing gate, pipeline order)")
     print("=" * 64)
-    line("Candidates (>=1 D and >=1 E)", candidates, candidates)
+    line("Candidates (oldest-D + newest-E per home)", candidates, candidates)
     print("  " + "-" * 60)
-    line("A  dropped: multiple audits (>1 D or >1 E)", multiple, candidates)
-    line("   -> exactly one D + one E", exact, candidates)
     line("B  dropped: E not dated after D", drop_date, candidates)
     line("C  dropped: floor area changed >10%", drop_area, candidates)
     line("D  dropped: type/storeys/dwellings changed", drop_struct, candidates)
@@ -188,7 +215,7 @@ def main():
         d = int(among.sum())
         print(f"    {k:<26} {v:>10,}  {v/d*100:5.1f}%" if d else f"    {k}: -")
 
-    drops = multiple + drop_date + drop_area + drop_struct
+    drops = drop_date + drop_area + drop_struct
     print(f"\n  check: survivors + drops = {survivors + drops:,}"
           f"  (candidates = {candidates:,})")
 

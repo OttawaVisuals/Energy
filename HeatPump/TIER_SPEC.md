@@ -367,8 +367,10 @@ suggest a default?
 Of 311,535 ERS homes that added a heat pump this retrofit (7 provinces),
 178,263 (57.2%) have both a post-retrofit design heat loss (`Post_HeatLoss`)
 and an AHRI-certified installed capacity at 47F (`Post_HPCapacity47` —
-the validated field; the auditor-entered `HPCAP` runs ~1.55x high and is not
-used here). Capacity/design-load ratio: **median 0.66**, IQR [0.50, 0.86],
+the validated field; the auditor-entered `HPCAP` runs a median ~1.6x high and
+is not used here — see docs/RETROFITS.md's Step 1b for the full validation,
+including the finding that the ERS `COP` field is rated at 47F rather than
+5F). Capacity/design-load ratio: **median 0.66**, IQR [0.50, 0.86],
 10–90th percentile [0.37, 1.11].
 
 - **68.7%** of installs are undersized (ratio < 0.8) against the home's own

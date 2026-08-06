@@ -8,7 +8,7 @@ with a tier x capacity-band dropdown pair that the user picks directly. Before
 writing UI copy/defaults around that dropdown, this is a quick sanity check on
 real installs: how does the AHRI-certified installed capacity
 (`Post_HPCapacity47`, kW at rated 47F -- see Python/join_hp_capacity.py, the
-validated field, not the unreliable auditor-entered HPCAP which runs 1.55x
+validated field, not the unreliable auditor-entered HPCAP which runs 1.6x
 high) compare to the home's own design heat loss (`Post_HeatLoss`, kW,
 EGHDESHTLOSS post-retrofit)? If real installs cluster near ratio 1.0, a
 "default to ~100% of design load" suggestion is defensible; if they're

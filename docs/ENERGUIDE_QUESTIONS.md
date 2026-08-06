@@ -5,7 +5,7 @@ Consolidated open questions arising from building public-facing tools on the
 (`0a7619fd-2ffe-44b5-9027-3dfcec0866fd`, open.canada.ca) and on HOT2000 outputs.
 
 Maintained at [docs/ENERGUIDE_QUESTIONS.md](ENERGUIDE_QUESTIONS.md).
-Last updated **2026-08-02**.
+Last updated **2026-08-06**.
 
 **Context.** We publish free, open-source tools presenting Canadian energy and
 retrofit data to two audiences at once — homeowners and technical practitioners
@@ -131,15 +131,42 @@ system, excluding supplementary heating, and convert to delivered heat with
 `EGHFURSEASEFF`. Correct? Where a home has a significant wood stove or basement
 baseboards, is that load absent from this field?
 
-### 5.2 Heat-pump capacity fields
+### 5.2 Heat-pump capacity & performance fields
 - **`HPCAP` (W) appears unreliable for sizing.** Validated against AHRI
-  certificates, median `HPCAP` = **1.55×** the certified heating capacity at
-  47 °F, and the *same* AHRI number yields 1×/2×/4× values. Is it intended as a
-  system total across multiple indoor heads, or is this data-entry noise?
+  certificates over 318,585 rows nationally, median `HPCAP` = **1.6×** the
+  certified heating capacity at 47 °F, values cluster near 1×/2×/4× of the
+  true value, and 63% of AHRI codes appearing more than once carry
+  *inconsistent* `HPCAP` values across different audit rows for the same
+  certified unit. Is it intended as a system total across multiple indoor
+  heads, or is this data-entry noise?
 - **`CCASHPCAP` (kW) matches AHRI certificates almost exactly** (median ratio
   1.000) but is populated only when `CCASHP` is true and only for 2021+. Is
   there any path to equivalent capacity data for non-cold-climate units or
   earlier years?
+- **`COP` appears to be rated at 47 °F, not 5 °F — can this be confirmed?**
+  Compared directly against the AHRI certificate's `Heating_COP_at_5F_M1`,
+  `COP` reads systematically higher, which first looked like the same kind of
+  auditor-entry error as `HPCAP`. A spot-check against NEEP's published
+  performance table for the site's most common installed unit (AHRI
+  211644151) resolved it: NEEP lists that unit at COP 3.00 at the AHRI 47 °F
+  rated point and 1.80 at 5 °F, and the ERS `COP` field's median for that
+  exact unit is 2.99 — matching 47 °F, not 5 °F. We could not verify this
+  across the rest of the dataset because AHRI's own search API (the one this
+  project scrapes) has no 47 °F COP field at all — confirmed by enumerating
+  all 40 fields the detail endpoint returns for one certificate; only a 5 °F
+  COP is exposed. Does NRCan/HOT2000 document `COP`'s intended rating
+  condition, and does AHRI publish a machine-readable 47 °F (or other
+  multi-point) COP anywhere we haven't found?
+- **`CCASHPCOP` matches the AHRI 5 °F certificate almost exactly** (same
+  spot-check as above, across the site's most frequent AHRI codes) — it looks
+  populated from the AHRI number directly rather than entered by hand, unlike
+  the generic `COP` field. **`CCASHPCAPACITYMAINTENANCE`** (the 5F/47F
+  capacity ratio, as a %) also tracks the certified equivalent closely: median
+  difference 0.0 percentage points across 210,243 rows nationally, 85% within
+  ±10pp. Neither field is used on the page yet, but both look more trustworthy
+  than their generic-field counterparts once compared at the right AHRI
+  rating condition — is that intentional (e.g. HOT2000 auto-populating the
+  cold-climate-ASHP fields from the AHRI lookup, but not the generic ones)?
 - **`FURNACETYPE` / `FURNACEFUEL`** never take a heat-pump value; for a
   heat-pump home they describe the companion/backup system. Is that intended?
   It makes "primary heating fuel" misleading for heat-pump homes.

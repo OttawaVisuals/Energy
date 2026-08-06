@@ -185,11 +185,38 @@ role `build_fsa_audit_totals.py` already plays as an independent sidecar feeding
 Steps 2/3.
 
 **Why join on the AHRI certificate, not the raw auditor-entered `HPCAP` field:**
-validated against real AHRI certificates, `HPCAP` (Watts) runs a median **1.55×**
-high, and the same AHRI number produces inconsistent (1×/2×/4×) values across
-different audit rows — unusable for a sizing claim. The certificate's own
-`heating_capacity_47f_btuh`/`heating_capacity_5f_btuh` fields are the trustworthy
-source; 5°F (≈ −15°C) is used as a Canadian design-day proxy.
+validated against real AHRI certificates across 318,585 rows nationally,
+`HPCAP` (Watts) runs a median **1.6×** the certified 47°F capacity, clusters
+visibly near 1×/2×/4× of the true value (consistent with a unit-entry error),
+and 63% of AHRI codes appearing more than once show inconsistent `HPCAP`
+values across different audit rows for the same certified unit — unusable for
+a sizing claim. The certificate's own `heating_capacity_47f_btuh`/
+`heating_capacity_5f_btuh` fields are the trustworthy source; 5°F (≈ −15°C) is
+used as a Canadian design-day proxy.
+
+**What about the raw `COP` and `CCASHP*` fields?** Not joined here (this step only
+adds capacity/HSPF/COP-at-5F from the certificate), but validated the same way:
+the generic `COP` field looked unreliable at first — it runs systematically
+higher than the certificate's 5°F COP — until a spot-check against NEEP's
+published performance table for the site's most common installed unit (AHRI
+211644151) showed why: NEEP lists that unit at COP 3.00 at the AHRI 47°F rated
+point and 1.80 at 5°F, and the ERS `COP` field's median for that exact unit is
+**2.99** — matching 47°F, not 5°F. So `COP` isn't unreliable, it's rated at a
+different, warmer condition than the certificate field it was being compared
+against. The AHRI Directory's search API only exposes a certified COP at 5°F
+(confirmed by listing all 40 fields it returns for one certificate — no 47°F
+COP field exists), so this can't be validated at 47°F across the full dataset
+yet. The cold-climate-ASHP-specific fields, by contrast, already carry a
+same-condition comparison: `CCASHPCOP` (present when `CCASHP` = "T") matches
+the certificate's 5°F COP almost exactly — HOT2000 most likely populates it
+from the AHRI number directly — and `CCASHPCAPACITYMAINTENANCE` (the
+auditor-recorded 5F/47F capacity ratio, as a %) tracks the certified
+equivalent closely: across 210,243 rows nationally, the median difference is
+0.0 percentage points, and 85% of homes land within ±10pp. None of
+`CCASHPCAP`/`CCASHPCAPACITYMAINTENANCE`/`CCASHPCOP` are currently used on the
+page — noted here as the fields to prefer if that changes. Diagnostics:
+[`diagnose_hpcap_vs_ahri.py`](../Python/diagnose_hpcap_vs_ahri.py),
+[`diagnose_ccashp_vs_ahri.py`](../Python/diagnose_ccashp_vs_ahri.py).
 
 **Post-only:** pre-existing heat pumps are rare (~1.6% of homes), and the sizing/
 backup-pairing story this feeds is about the retrofit's end state.
@@ -653,6 +680,19 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   source cannot tell us which audit is the "before". Admitting them would mean assuming
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
+
+  **Full gate breakdown of the current drop (`diagnose_pairing_drops.py`, updated
+  to match the pipeline post-2026-07-24/-18 fixes).** Of 1,629,313 homes nationally
+  carrying both a D and an E, 1,451,433 (89.1%) survive; the remaining ~177,880 split
+  roughly two-fifths Gate B (date order — see above), one-fifth Gate C (floor area
+  changed >10%), and just over one-third Gate D (structural mismatch), within which a
+  `NUMDWELLINGUNITS` difference is still the largest single reason but is now split
+  roughly 4-to-1 between "recorded in one audit, blank in the other" (a real change,
+  by the both-missing-is-unchanged rule above) and a genuine change in unit count —
+  not the formatting/both-blank artifact the earlier fix already absorbed. This is a
+  reconstruction run outside the pipeline over the full raw dataset, so shares are
+  approximate (same-day date ties can be attributed slightly differently gate-to-gate
+  than in the streaming pipeline); it is not itself part of the production pipeline.
 - **The sample is self-selected.** Requiring a matched before/after audit pair means the
   data is dominated by incentive-program participants who completed their retrofit and
   booked the follow-up audit. Savings shown likely run higher than for a randomly chosen
@@ -688,13 +728,48 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   reference number), not a pipeline bug; the sizing chart's home count will be
   noticeably smaller than the "Heat pumps added" KPI's.
 - **The raw auditor-entered `HPCAP` field is unreliable for sizing claims** — validated
-  against real AHRI certificates, it runs a median 1.55× high, and the same AHRI
-  number produces inconsistent values across different audit rows. Not used anywhere
-  on the page; Step 1b's certificate join is the trustworthy source instead.
+  against real AHRI certificates, it runs a median 1.6× the certified value, and the
+  same AHRI number produces inconsistent values across different audit rows. Not used
+  anywhere on the page; Step 1b's certificate join is the trustworthy source instead.
+  The generic `COP` field looks unreliable the same way at first, but a NEEP
+  cross-check shows it's actually rated at 47°F rather than the certificate's 5°F —
+  see Step 1b above. `CCASHPCOP`/`CCASHPCAPACITYMAINTENANCE` (cold-climate-ASHP-only
+  fields) track the certificate closely and are not currently used on the page.
 
 ---
 
 ## Changelog
+
+### 2026-08-06 HPCAP/COP/CCASHP validation against AHRI+NEEP, full pairing-gate breakdown
+
+- **Corrected the `1.55×` HPCAP finding and resolved the `COP` rating-condition
+  question.** Re-measured `HPCAP` vs the AHRI certificate over 318,585 rows
+  nationally (median 1.6×, 1×/2×/4× clustering, 63% of repeated AHRI codes
+  inconsistent across rows — new diagnostic:
+  [`diagnose_hpcap_vs_ahri.py`](../Python/diagnose_hpcap_vs_ahri.py)). The generic
+  `COP` field looked similarly unreliable against the certificate's 5°F COP, until
+  a NEEP performance-table cross-check for the site's most common installed unit
+  (AHRI 211644151) showed the ERS `COP` median (2.99) matches NEEP's **47°F**-rated
+  COP (3.00), not the 5°F one (1.80) — `COP` is rated at 47°F, not 5°F as assumed.
+  Confirmed AHRI's own search API has no 47°F COP field to validate against directly
+  (all 40 fields the detail endpoint returns were enumerated live). The
+  cold-climate-ASHP-specific fields `CCASHPCOP` and `CCASHPCAPACITYMAINTENANCE`
+  (new diagnostic: [`diagnose_ccashp_vs_ahri.py`](../Python/diagnose_ccashp_vs_ahri.py))
+  track the certificate closely instead — `CCASHPCOP` matches the certified 5°F COP
+  almost exactly (HOT2000 most likely populates it from the AHRI number directly),
+  and `CCASHPCAPACITYMAINTENANCE` (5F/47F capacity ratio, %) has a median difference
+  of 0.0pp from the certified equivalent across 210,243 rows, 85% within ±10pp.
+  Updated Step 1b above, the two limitations bullets, and `retrofits.html`'s
+  sizing-chart note and AHRI-enrichment methodology section to match; none of the
+  three CCASHP fields are used on the page yet.
+- **Full gate-by-gate breakdown of the pairing drop**, extending the existing
+  Gate A/B measurement above to Gates C (floor area) and D (structural): of the
+  ~177,880 D&E homes nationally that don't reach the matched sample, roughly
+  two-fifths fail Gate B, one-fifth Gate C, and just over one-third Gate D — added
+  to `retrofits.html` section A and the Gate A/B note above.
+  [`diagnose_pairing_drops.py`](../Python/diagnose_pairing_drops.py) was itself
+  stale (it still modelled the pre-2026-07-18/-24 gate logic) and has been updated
+  to match the shipped pipeline before this measurement was taken.
 
 ### 2026-08-05 Energy impact card, cumulative-audits timeline line, scorecard fix, Heating_Change redefinition
 
