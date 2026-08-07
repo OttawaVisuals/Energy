@@ -1,7 +1,22 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-06** (**Retrofit Explorer**: re-measured the `HPCAP`-vs-AHRI
+Updated **2026-08-07** (**Heat Pump Explorer**: Step 1's weather chart now marks
+the zero-heat and switch-off temperatures on both the by-temperature and
+hour-by-hour views, with collision-avoiding label placement so the two don't
+overlap when they land close together (common with an electric-backup tier,
+where the switch-off temperature is the tier hard-stop rather than a fuel
+switchover). Controls box condensed: now sticky below the header on scroll
+(same pattern as `retrofits.html`'s filter bar, labels drop once scrolled),
+grid widened to 5 columns, "Grid emissions basis" converted from a 3-button
+segmented control to a dropdown, and "Methane leak" + "Line losses" collapsed
+into a single "Upstream & grid losses" Yes/No toggle (Yes = methane 1.5%, line
+loss 5% — fixed representative values, not independently adjustable; **flagged
+as a to-do** below to reinstate per-term control). The old "All years" weather
+comparison button and its chart section were removed — fully superseded by
+the new Step 1 chart, which already overlays every year as backdrop with
+TMY/coldest/mildest/selected highlighted.) Then, on 2026-08-06: (**Retrofit
+Explorer**: re-measured the `HPCAP`-vs-AHRI
 sizing claim and resolved the `COP` rating-condition question raised while prepping
 the NRCan/EnerGuide demo. `HPCAP` (auditor-entered capacity) still runs unreliable —
 median 1.6× the certified 47°F capacity over 318,585 rows, 1×/2×/4× clustering, 63%
@@ -213,7 +228,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars) |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky 5-col bar (2026-08-07) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
@@ -236,6 +251,17 @@ lifecycle-update candidates logged — see
 | 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 10 provinces + NT/NU; Yukon has no ERS records) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
 
 ### Queued 🆕
+
+- 🔀 **Heat pump tool — reinstate adjustable upstream methane / line-loss
+  rates** (added 2026-08-07). The "Upstream & grid losses" Yes/No toggle on
+  `heatpump.html` collapsed two previously-independent sliders (methane leak
+  0–5%, line loss 0–12%) into one switch that applies a single fixed value to
+  each when on (methane 1.5%, line loss 5%) — done to fit the condensed
+  controls box, at the cost of losing the ability to reason about the two
+  independently (e.g. a high-leakage gas region on an average-loss grid).
+  **Next step:** either bring back per-term adjustability in a more compact
+  form (e.g. one combined low/mid/high preset instead of two full sliders),
+  or confirm the fixed values are an acceptable permanent simplification.
 
 - ♨️ **Heat pump tool — Phase 3c bucket rework** (spec done, curves outstanding).
   Equipment selection rebuilt on **AHRI as sampling frame / manufacturer
