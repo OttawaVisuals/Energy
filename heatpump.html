@@ -2884,8 +2884,14 @@ function renderEnergyChartHourly(svg,H){
   let hpPts='';for(let i=0;i<N;i++)hpPts+=(i?'L':'M')+x(i).toFixed(1)+' '+y(hp[i]).toFixed(1)+' ';
   s.v+=`<path d="M${x(0).toFixed(1)} ${y(0).toFixed(1)} ${hpPts.slice(1)} L${x(N-1).toFixed(1)} ${y(0).toFixed(1)} Z" fill="${amber}" opacity="0.85"/>`;
   if(hasBackup){
-    let totPts='';for(let i=0;i<N;i++)totPts+=(i?'L':'M')+x(i).toFixed(1)+' '+y(tot[i]).toFixed(1)+' ';
-    s.v+=`<path d="M${x(0).toFixed(1)} ${y(hp[0]).toFixed(1)} ${totPts.slice(1)} L${x(N-1).toFixed(1)} ${y(hp[N-1]).toFixed(1)} Z" fill="${purple}" opacity="0.85"/>`;
+    // Same fix as the Step 3 equip-chart hourly view: close the polygon by
+    // tracing hp back across every hour (bottom edge), not a single straight
+    // line between the first and last hour's hp value -- that diagonal
+    // crossed the tot (top edge) curve in summer and painted spurious
+    // backup-input slivers with no real backup energy behind them.
+    let top='';for(let i=0;i<N;i++)top+=(i?'L':'M')+x(i).toFixed(1)+' '+y(tot[i]).toFixed(1)+' ';
+    let bot='';for(let i=N-1;i>=0;i--)bot+='L'+x(i).toFixed(1)+' '+y(hp[i]).toFixed(1)+' ';
+    s.v+=`<path d="${top}${bot}Z" fill="${purple}" opacity="0.85"/>`;
   }
   svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
   svg.innerHTML=s.v;
