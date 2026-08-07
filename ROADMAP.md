@@ -15,7 +15,14 @@ loss 5% — fixed representative values, not independently adjustable; **flagged
 as a to-do** below to reinstate per-term control). The old "All years" weather
 comparison button and its chart section were removed — fully superseded by
 the new Step 1 chart, which already overlays every year as backdrop with
-TMY/coldest/mildest/selected highlighted.) Then, on 2026-08-06: (**Retrofit
+TMY/coldest/mildest/selected highlighted. Controls condensed further same day:
+grid widened again to 7 columns (2 tidy rows), several labels shortened to
+fit ("Zero-heat temp.", "Emissions basis", "Upstream losses") with a
+nowrap+ellipsis safety net so a too-long label clips instead of wrapping and
+throwing sibling controls out of vertical alignment, the switch-over
+auto-reset button shrunk to an icon, and the "Selected heat pump" model-name
+readout removed again — it only existed to fill a slot that's no longer
+free.) Then, on 2026-08-06: (**Retrofit
 Explorer**: re-measured the `HPCAP`-vs-AHRI
 sizing claim and resolved the `COP` rating-condition question raised while prepping
 the NRCan/EnerGuide demo. `HPCAP` (auditor-entered capacity) still runs unreliable —
@@ -228,7 +235,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky 5-col bar (2026-08-07) |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |

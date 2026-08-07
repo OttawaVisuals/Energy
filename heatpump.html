@@ -68,13 +68,17 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
    every width -- auto-fit's per-row column count can differ between rows
    at in-between viewport widths (e.g. 5 cols then 3), scattering labels
    out of their logical groups. */
-.ctrl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 14px;align-items:start}
-@media(max-width:1100px){.ctrl-grid{grid-template-columns:repeat(3,1fr)}}
+.ctrl-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px 10px;align-items:start}
+@media(max-width:1100px){.ctrl-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:900px){.ctrl-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.ctrl-grid{grid-template-columns:1fr}}
 .ctrl{display:flex;flex-direction:column;gap:4px;min-width:0}
-.ctrl label{font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
-.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%}
+/* Single-line labels always -- at 7 columns a wrapped label would push that
+   column's control down out of line with its row-mates (grid items aren't
+   height-stretched), so overflow is clipped rather than wrapped. Paired with
+   keeping label text short enough to fit ~150px in practice. */
+.ctrl label{font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ctrl input[type=number]{background-image:none;padding:0 9px;cursor:text}
 .ctrl select:hover,.ctrl input:hover{border-color:var(--navy)}
 .ctrl select:focus,.ctrl input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
@@ -364,7 +368,7 @@ footer a{color:var(--muted)}
       </div>
     </div>
     <div class="ctrl">
-      <label for="in-balance">Zero-heat temperature <button type="button" class="info-btn" aria-label="What is the zero-heat temperature?" data-info="Outdoor temperature above which the home needs no heating — sun, people and appliances already cover it.">?</button></label>
+      <label for="in-balance">Zero-heat temp. <button type="button" class="info-btn" aria-label="What is the zero-heat temperature?" data-info="Outdoor temperature above which the home needs no heating — sun, people and appliances already cover it.">?</button></label>
       <div class="range-row">
         <input type="range" id="in-balance" min="8" max="16" step="0.5">
         <span class="range-val" id="balance-val"></span>
@@ -413,7 +417,7 @@ footer a{color:var(--muted)}
       </select>
     </div>
     <div class="ctrl" id="lockout-ctrl">
-      <label for="in-lockout">Switch-over temp. <button type="button" class="info-btn" id="lockout-info" aria-label="How does this interact with the tier cut-off?">?</button> <button type="button" id="lockout-auto" class="auto-reset" hidden title="Snap back to the crossover (auto)">↺ auto</button></label>
+      <label for="in-lockout">Switch-over temp. <button type="button" class="info-btn" id="lockout-info" aria-label="How does this interact with the tier cut-off?">?</button> <button type="button" id="lockout-auto" class="auto-reset" hidden title="Snap back to the crossover (auto)" aria-label="Reset to auto">↺</button></label>
       <div class="range-row">
         <input type="range" id="in-lockout" min="-25" max="5" step="1" value="-8">
         <span class="range-val" id="lockout-val">−8 °C</span>
@@ -437,7 +441,7 @@ footer a{color:var(--muted)}
     <div class="ctrl-divider"></div>
 
     <div class="ctrl">
-      <label for="in-ef">Grid emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
+      <label for="in-ef">Emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
       <select id="in-ef">
         <option value="marginal">Marginal</option>
         <option value="average">Hourly average</option>
@@ -462,15 +466,11 @@ footer a{color:var(--muted)}
       </div>
     </div>
     <div class="ctrl">
-      <label>Upstream &amp; grid losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: methane leaked well-to-meter before it burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value (methane 1.5% — the 'adjusted' estimate between NIR ~1% and full-chain ~3%; line loss 5%) rather than exposed as its own adjustable rate. Weighted at the 100-year methane GWP (28, IPCC AR5) — fixed, not user-adjustable; see methodology." data-method="m-lifecycle">?</button></label>
+      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: methane leaked well-to-meter before it burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value (methane 1.5% — the 'adjusted' estimate between NIR ~1% and full-chain ~3%; line loss 5%) rather than exposed as its own adjustable rate. Weighted at the 100-year methane GWP (28, IPCC AR5) — fixed, not user-adjustable; see methodology." data-method="m-lifecycle">?</button></label>
       <div class="seg" id="upstream-seg" role="group" aria-label="Include upstream and grid losses">
         <button type="button" data-val="yes" class="active">Yes</button>
         <button type="button" data-val="no">No</button>
       </div>
-    </div>
-    <div class="ctrl">
-      <label>Selected heat pump</label>
-      <div class="ctrl-hint" id="band-hint" style="margin-top:9px"></div>
     </div>
   </div>
 </section>
@@ -1763,8 +1763,8 @@ function buildInputs(){
   $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
   $('in-eff').addEventListener('input',e=>{state.eff=+e.target.value;$('eff-val').textContent=state.eff+' %';recompute();});
-  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];syncCustomTierUI();$('band-hint').textContent=state.tier==='custom'?'':cellFor(state.tier,state.band).brand_model;updateLockoutInfo();recompute();});
-  $('in-band').addEventListener('change',e=>{state.band=e.target.value;$('band-hint').textContent=cellFor(state.tier,state.band).brand_model;recompute();});
+  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];syncCustomTierUI();updateLockoutInfo();recompute();});
+  $('in-band').addEventListener('change',e=>{state.band=e.target.value;recompute();});
 
   $('in-backup').addEventListener('change',e=>{
     state.backup=e.target.value;
@@ -1793,7 +1793,6 @@ function buildInputs(){
   syncEfSeg();
   $('tier-info').dataset.info=TIER_BLURB[state.tier];
   syncCustomTierUI();
-  $('band-hint').textContent=state.tier==='custom'?'':cellFor(state.tier,state.band).brand_model;
   syncBackupControl();
   updateLockoutInfo();
   $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
