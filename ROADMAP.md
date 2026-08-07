@@ -1,7 +1,24 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-07** (**Heat Pump Explorer**: Step 1's weather chart now marks
+Updated **2026-08-07** (**Heat Pump Explorer**, later same day: extended the
+Step 1 KPI-rail/toggle-in-title-row layout to every step (2 through 7),
+flattened the top verdict KPI row from 3 tier-grouped rows to one 7-column
+row, and reworked several steps' KPIs and chart content while auditing them
+— Step 1's set changed to HDD/hours-below-zero-heat/hours-below-switch-off/
+hours-below-−20°C/hours-below-−10°C; Step 2 lost the redundant "By month"
+toggle, gained design-temp/switch-off reference lines and an average-load
+KPI, and fixed a mislabeled "Heat delivered" legend that should have read
+"Heat needed"; Step 3 dropped COP (now redundant with Step 4's dedicated
+chart) and gained a "Hours it could run" upper-bound KPI. That Step 3 audit
+surfaced two real rendering bugs, now fixed: the by-temperature chart's
+delivered-heat line sloped across the last 0.5°C step at the cutoff instead
+of dropping vertically (implied output that wasn't real), and the full-year
+hourly chart's backup-heat polygon closed with a single straight line
+between the year's first and last hour instead of tracing every hour
+in between, self-intersecting with the load curve and painting spurious
+backup-heat slivers in summer months with zero heating load.) Earlier that
+day: Step 1's weather chart now marks
 the zero-heat and switch-off temperatures on both the by-temperature and
 hour-by-hour views, with collision-avoiding label placement so the two don't
 overlap when they land close together (common with an electric-backup tier,
