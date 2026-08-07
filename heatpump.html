@@ -166,6 +166,23 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .stat-value.accent{color:var(--amber)}
 .stat-value.green{color:var(--green)}
 .stat-value.red{color:var(--red)}
+
+/* ── Step card: chart + a narrow vertical KPI rail beside it (prototype,
+   Step 1 first) instead of a full-width KPI row above -- lets the chart and
+   its numbers fit together without as much scrolling. Stacks back to KPIs
+   above the chart on narrow screens where a side rail would starve the
+   chart of width. ── */
+.step-body{display:flex;gap:1rem;align-items:flex-start}
+.step-chart-col{flex:1;min-width:0}
+.step-kpi-col{display:flex;flex-direction:column;gap:8px;width:172px;flex:none}
+.step-kpi-col .stat-card{padding:.65rem .8rem}
+.step-kpi-col .stat-value{font-size:1.5rem}
+.step-kpi-col .stat-label{min-height:0;margin-bottom:3px}
+@media(max-width:860px){
+  .step-body{flex-direction:column}
+  .step-kpi-col{flex-direction:row;flex-wrap:wrap;width:auto}
+  .step-kpi-col .stat-card{flex:1 1 130px}
+}
 .stat-sub{font-size:12px;color:var(--light);margin-top:5px}
 .stat-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:5px;border-radius:50%;border:1px solid var(--light);color:var(--light);font-size:9px;font-style:italic;font-family:Georgia,serif;cursor:help;flex:none;line-height:1;text-transform:none;letter-spacing:0}
 .stat-i:hover{border-color:var(--amber);color:var(--amber)}
@@ -509,19 +526,22 @@ footer a{color:var(--muted)}
       <div class="card" id="weather-card">
         <div class="card-title-row">
           <span class="card-title">The weather, across the years</span>
-          <span class="card-sub" id="weather-sub">how cold this city really gets — and how much it varies</span>
+          <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view">
+            <button type="button" data-view="temp" class="active">By temperature</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
-        <div class="stats-grid" id="weather-kpis"></div>
-        <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view" style="max-width:420px;margin-bottom:.75rem">
-          <button type="button" data-view="temp" class="active">By temperature</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap">
+              <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
+              <div class="kc-tip" id="weather-tip"></div>
+            </div>
+            <div class="kc-legend" id="weather-legend"></div>
+            <p class="note"><span id="weather-note"></span> <button type="button" class="info-btn" id="weather-note-info" aria-label="More about this chart">?</button></p>
+          </div>
+          <div class="step-kpi-col" id="weather-kpis"></div>
         </div>
-        <div class="keychart-wrap">
-          <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
-          <div class="kc-tip" id="weather-tip"></div>
-        </div>
-        <div class="kc-legend" id="weather-legend"></div>
-        <div class="note" id="weather-note"></div>
       </div>
     </section>
 
@@ -531,21 +551,24 @@ footer a{color:var(--muted)}
         <h2 class="out-section-title">Step 2 — How much heat the home needs</h2>
         <p class="out-section-intro">Turn the weather into demand: the colder it is outside, the more heat the home loses. Each hour's load is <code>UA × (zero-heat temp − outdoor)</code>.</p>
       </div>
-      <div class="stats-grid" id="ld-kpis"></div>
       <div class="card">
         <div class="card-title-row">
           <span class="card-title">Heating load vs outdoor temperature</span>
-          <span class="card-sub">demand rises as it gets colder — the weather sets how often each temperature happens</span>
+          <div class="seg" id="ld-view-seg" role="group" aria-label="Load chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="month">By month</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
-        <div class="seg" id="ld-view-seg" role="group" aria-label="Load chart view" style="max-width:620px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="month">By month</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap"><svg id="ld-temp" viewBox="0 0 740 340" role="img" aria-label="Heating load versus outdoor temperature"></svg></div>
+            <div class="kc-legend" id="ld-legend"></div>
+            <div class="note" id="ld-note"></div>
+          </div>
+          <div class="step-kpi-col" id="ld-kpis"></div>
         </div>
-        <div class="keychart-wrap"><svg id="ld-temp" viewBox="0 0 740 340" role="img" aria-label="Heating load versus outdoor temperature"></svg></div>
-        <div class="kc-legend" id="ld-legend"></div>
-        <div class="note" id="ld-note"></div>
       </div>
     </section>
 
@@ -555,23 +578,26 @@ footer a{color:var(--muted)}
         <h2 class="out-section-title">Step 3 — What the heat pump can deliver</h2>
         <p class="out-section-intro">The selected unit's capacity and COP both fall as it gets colder. Capacity, COP and the heat it actually delivers — with the switch-over to backup — on one chart.</p>
       </div>
-      <div class="stats-grid" id="eq2-kpis"></div>
       <div class="card">
         <div class="card-title-row">
           <span class="card-title">Capacity, COP &amp; heat delivered</span>
-          <span class="card-sub">across outdoor temperature, for the selected tier and size</span>
+          <div class="seg" id="equip-view-seg" role="group" aria-label="Equipment chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
-        <div class="seg" id="equip-view-seg" role="group" aria-label="Equipment chart view" style="max-width:520px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap">
+              <svg id="equip-chart" viewBox="0 0 740 360" role="img" aria-label="Heat-pump capacity, COP and delivered heat versus outdoor temperature"></svg>
+              <div class="kc-tip" id="equip-tip"></div>
+            </div>
+            <div class="kc-legend" id="equip-legend"></div>
+            <div class="note" id="equip-note"></div>
+          </div>
+          <div class="step-kpi-col" id="eq2-kpis"></div>
         </div>
-        <div class="keychart-wrap">
-          <svg id="equip-chart" viewBox="0 0 740 360" role="img" aria-label="Heat-pump capacity, COP and delivered heat versus outdoor temperature"></svg>
-          <div class="kc-tip" id="equip-tip"></div>
-        </div>
-        <div class="kc-legend" id="equip-legend"></div>
-        <div class="note" id="equip-note"></div>
       </div>
     </section>
 
@@ -581,23 +607,26 @@ footer a{color:var(--muted)}
         <h2 class="out-section-title">Step 4 — Capacity, COP and the energy it takes to run</h2>
         <p class="out-section-intro">Heat delivered ÷ COP gives the electricity the pump draws; the backup covers the rest. This is the purchased energy the grid has to supply.</p>
       </div>
-      <div class="stats-grid" id="en2-kpis"></div>
       <div class="card">
         <div class="card-title-row">
           <span class="card-title">COP &amp; energy vs outdoor temperature</span>
-          <span class="card-sub">how many units of heat per unit bought, and what that costs in energy</span>
+          <div class="seg" id="ecop-view-seg" role="group" aria-label="Energy chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
-        <div class="seg" id="ecop-view-seg" role="group" aria-label="Energy chart view" style="max-width:520px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap">
+              <svg id="ecop-chart" viewBox="0 0 740 340" role="img" aria-label="COP and energy input versus outdoor temperature"></svg>
+              <div class="kc-tip" id="ecop-tip"></div>
+            </div>
+            <div class="kc-legend" id="ecop-legend"></div>
+            <div class="note" id="ecop-note"></div>
+          </div>
+          <div class="step-kpi-col" id="en2-kpis"></div>
         </div>
-        <div class="keychart-wrap">
-          <svg id="ecop-chart" viewBox="0 0 740 340" role="img" aria-label="COP and energy input versus outdoor temperature"></svg>
-          <div class="kc-tip" id="ecop-tip"></div>
-        </div>
-        <div class="kc-legend" id="ecop-legend"></div>
-        <div class="note" id="ecop-note"></div>
       </div>
       <div class="card">
         <div class="card-title-row"><span class="card-title">Purchased energy by month</span><span class="card-sub">heat-pump electricity and backup input</span></div>
@@ -618,23 +647,26 @@ footer a{color:var(--muted)}
         <h2 class="out-section-title">Step 5 — How dirty each kilowatt-hour is</h2>
         <p class="out-section-intro">The grid's carbon intensity is the multiplier on step 4's electricity. It can shift with temperature — and whether it rises in the cold changes the verdict.</p>
       </div>
-      <div class="stats-grid" id="gg-kpis"></div>
       <div class="card">
         <div class="card-title-row">
           <span class="card-title">Grid carbon intensity vs outdoor temperature</span>
-          <span class="card-sub" id="gg-sub">g CO₂e per kWh at each temperature</span>
+          <div class="seg" id="gg-view-seg" role="group" aria-label="Grid chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
-        <div class="seg" id="gg-view-seg" role="group" aria-label="Grid chart view" style="max-width:520px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap">
+              <svg id="gg-chart" viewBox="0 0 740 320" role="img" aria-label="Grid carbon intensity versus outdoor temperature"></svg>
+              <div class="kc-tip" id="gg-tip"></div>
+            </div>
+            <div class="kc-legend" id="gg-legend"></div>
+            <div class="note" id="gg-note"></div>
+          </div>
+          <div class="step-kpi-col" id="gg-kpis"></div>
         </div>
-        <div class="keychart-wrap">
-          <svg id="gg-chart" viewBox="0 0 740 320" role="img" aria-label="Grid carbon intensity versus outdoor temperature"></svg>
-          <div class="kc-tip" id="gg-tip"></div>
-        </div>
-        <div class="kc-legend" id="gg-legend"></div>
-        <div class="note" id="gg-note"></div>
       </div>
     </section>
 
@@ -644,22 +676,25 @@ footer a{color:var(--muted)}
         <h2 class="out-section-title">Step 6 — The emissions, before and after</h2>
         <p class="out-section-intro">Energy (step 4) × grid intensity (step 5), plus any furnace combustion, summed over the year — versus the home's current heating. The bottom line.</p>
       </div>
-      <div class="stats-grid" id="em2-kpis"></div>
       <div class="card">
         <div class="card-title-row"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
-        <div class="beforeafter" id="em2-bars"></div>
-        <div class="kc-legend" id="em2-legend"></div>
-        <div class="note" id="em2-note"></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="beforeafter" id="em2-bars"></div>
+            <div class="kc-legend" id="em2-legend"></div>
+            <div class="note" id="em2-note"></div>
+          </div>
+          <div class="step-kpi-col" id="em2-kpis"></div>
+        </div>
       </div>
       <div class="card">
         <div class="card-title-row">
           <span class="card-title">Emissions vs outdoor temperature</span>
-          <span class="card-sub">now vs heat pump, by how cold it is</span>
-        </div>
-        <div class="seg" id="em-view-seg" role="group" aria-label="Emissions chart view" style="max-width:520px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg" id="em-view-seg" role="group" aria-label="Emissions chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
         <div class="keychart-wrap"><svg id="em-chart" viewBox="0 0 740 320" role="img" aria-label="Emissions versus outdoor temperature, now versus heat pump"></svg></div>
         <div class="kc-legend" id="em-legend"></div>
@@ -703,12 +738,11 @@ footer a{color:var(--muted)}
       <div class="card" id="cost-chart-card" style="display:none">
         <div class="card-title-row">
           <span class="card-title">Cost vs outdoor temperature</span>
-          <span class="card-sub">now vs heat pump, by how cold it is — volumetric energy charges only</span>
-        </div>
-        <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view" style="max-width:520px;margin-bottom:.75rem">
-          <button type="button" data-view="plain" class="active">By temperature</button>
-          <button type="button" data-view="freq">Weighted by hours</button>
-          <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
         </div>
         <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost versus outdoor temperature, now versus heat pump"></svg></div>
         <div class="kc-legend" id="cost-chart-legend"></div>
@@ -3172,9 +3206,15 @@ function renderWeatherChartTemp(ctx){
   const b2=weatherBand();
   const nbc=w.meta.nbc_2020_table_c2&&w.meta.nbc_2020_table_c2.jan_2p5;
   const label=state.weatherYear==='tmy'?'The typical year (TMY)':state.weatherYear;
-  let note=`Hours per 1 °C of outdoor temperature. TMY (green), the coldest (blue) and mildest (orange) years on record are always shown; <b>${label}</b> is highlighted bold-dashed in its own colour${selMatchesRef?'':' (black, since it isn\'t one of those three)'}. Every other year of the ${w.meta.years.length}-year record (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) sits as grey backdrop; 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is <b>${fmt1(design)} °C</b>${nbc!=null?` (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C)`:''}. Above the <b>zero-heat temperature (${fmt1(zh)} °C)</b> the home needs no heating at all; below the <b>switch-off temperature (${fmt1(so)} °C)</b> the heat pump contributes nothing and the backup carries the full load.`;
-  if(b2)note+=` Across those years, this heat pump's emissions change ranges <b>${b2.txt}</b> (coldest year ${b2.coldYear}: ${b2.coldTxt}; mildest ${b2.mildYear}: ${b2.mildTxt}) — the weather-sensitivity of the result.`;
-  $('weather-note').innerHTML=note;
+  // Brief: the one number worth reading without a click -- how much the
+  // weather-year choice actually moves the verdict. Falls back to a plain
+  // orientation line when there's no heat-pump result yet to compare.
+  $('weather-note').innerHTML = b2
+    ? `Across ${w.meta.years.length} years on record, this heat pump's emissions change ranges <b>${b2.txt}</b> (coldest ${b2.coldYear}: ${b2.coldTxt}; mildest ${b2.mildYear}: ${b2.mildTxt}).`
+    : `Hours per 1 °C of outdoor temperature, ${w.meta.years.length} years on record.`;
+  // Detail: legend/colour explanation, design-temp derivation, zero-heat and
+  // switch-off definitions -- plain text (the info-tip renders textContent).
+  $('weather-note-info').dataset.info=`Hours per 1°C of outdoor temperature. TMY (green), the coldest (blue) and mildest (orange) years on record are always shown; ${label} is highlighted bold-dashed in its own colour${selMatchesRef?'':" (black, since it isn't one of those three)"}. Every other year of the ${w.meta.years.length}-year record (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}) sits as grey backdrop; 2018 is a gap between data sources. The city's 2.5%-percentile January design temperature computed from this record is ${fmt1(design)} °C${nbc!=null?` (NBC 2020 Table C-2 lists ${fmtSigned(nbc)} °C)`:''}. Above the zero-heat temperature (${fmt1(zh)} °C) the home needs no heating at all; below the switch-off temperature (${fmt1(so)} °C) the heat pump contributes nothing and the backup carries the full load.`;
 }
 function attachWeatherHoverTemp(){
   const svg=$('weatherchart'),tip=$('weather-tip'),over=$('wx-over'),M=WX_MODEL;if(!over||M.mode!=='temp')return;
@@ -3246,7 +3286,8 @@ function renderWeatherChartHourly(ctx){
     `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy)"></span>Selected (${selLabel})</span>`,
     `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:var(--amber2)"></span>Design temp</span>`,
   ].join('');
-  $('weather-note').innerHTML=`Every hour of <b>${selLabel}</b>, in order across the year — the raw series the simulation actually runs on. Above the zero-heat temperature (${fmt1(state.balancePoint)} °C) the home needs no heating; below the switch-off temperature (${fmt1(so)} °C) the heat pump delivers nothing and the backup carries the full load. Switch the year above to see a different one hour-by-hour, or back to "By temperature" for the distribution across the whole record.`;
+  $('weather-note').innerHTML=`Every hour of <b>${selLabel}</b>, in order across the year — the raw series the simulation actually runs on.`;
+  $('weather-note-info').dataset.info=`Above the zero-heat temperature (${fmt1(state.balancePoint)} °C) the home needs no heating; below the switch-off temperature (${fmt1(so)} °C) the heat pump delivers nothing and the backup carries the full load. Switch the year above to see a different one hour-by-hour, or back to "By temperature" for the distribution across the whole record.`;
 }
 function attachWeatherHoverHourly(){
   const svg=$('weatherchart'),tip=$('weather-tip'),over=$('wx-over'),M=WX_MODEL;if(!over||M.mode!=='hourly')return;
