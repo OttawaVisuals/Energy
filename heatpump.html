@@ -98,7 +98,10 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 /* Match select/input height (34px) so the slider's visual centre lines up
    with the vertical middle of the dropdowns sharing its grid row. */
 .range-row{display:flex;align-items:center;gap:10px;height:34px}
-.range-row input[type=range]{flex:1;accent-color:var(--amber);height:4px}
+/* min-width:0 lets the track actually shrink to fit -- range inputs have a
+   browser-default intrinsic min-width (~129px) that flex:1 alone can't
+   override, so at 7 columns the value text was pushed past the column edge. */
+.range-row input[type=range]{flex:1;min-width:0;accent-color:var(--amber);height:4px}
 .range-val{font-size:13px;color:var(--text);min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
 .seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:2px;gap:2px}
 .seg button{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;padding:7px 6px;border:none;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -116,13 +119,8 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 /* Sits under the simple-mode field grid, inside the same white controls
    box, and expands in place (pushes the page down) rather than floating
    over it -- a plain inline disclosure, not a popover. */
-/* Thin rule marking the boundary between the core simple-mode fields and
-   the equipment/lifecycle fields below, now that everything lives in one
-   flat, always-visible grid (no more simple/advanced split). */
-.ctrl-divider{grid-column:1/-1;border-top:1px solid var(--border);margin:2px 0}
-/* Reserves its grid slot even when hidden (backup=electric/none), so
-   Grid emissions basis -- placed right after it -- doesn't jump columns
-   as the backup type changes. */
+/* Reserves its grid slot even when hidden (backup=electric/none), so later
+   fields don't jump columns as the backup type changes. */
 .ctrl.slot-hidden{visibility:hidden}
 
 /* ── Shared info tooltip (mirrors retrofits.html's floating #info-tip) ── */
@@ -437,8 +435,6 @@ footer a{color:var(--muted)}
     </div>
 
     <div class="helper-panel" id="arch-helper"></div>
-
-    <div class="ctrl-divider"></div>
 
     <div class="ctrl">
       <label for="in-ef">Emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
