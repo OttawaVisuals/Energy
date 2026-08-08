@@ -208,19 +208,11 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .summary-lede b{color:var(--navy);font-weight:600}
 .lede-eyebrow{display:block;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:.35rem}
 
-/* ── Calculation walkthrough ── */
-.calc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.calc summary::-webkit-details-marker{display:none}
-.calc summary::before{content:'ƒ';font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:16px;color:var(--amber);line-height:1}
-.calc summary::after{content:'+';margin-left:auto;font-size:20px;color:var(--amber);font-weight:400;line-height:1}
-.calc[open] summary::after{content:'\2013'}
-.calc summary:hover{color:var(--navy)}
-.calc-intro{font-size:13px;color:var(--muted);margin:.85rem 0 .35rem;line-height:1.6}
+/* ── Calculation chain (methodology) ── */
 .calc-step{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:.95rem 0;border-top:1px solid var(--surface)}
 .calc-num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
 .calc-h{font-size:13.5px;font-weight:600;color:var(--navy);margin-bottom:.3rem}
-.calc-p{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:.55rem}
-.calc-p b,.calc-res b{color:var(--navy);font-weight:600}
+.calc-res b{color:var(--navy);font-weight:600}
 .calc-math{font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:12.5px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:.55rem .75rem;color:var(--muted);line-height:1.75;overflow-x:auto;white-space:pre}
 .calc-math .r{color:var(--green);font-weight:600}
 .calc-res{font-size:12.5px;color:var(--muted);margin-top:.5rem;line-height:1.55}
@@ -669,17 +661,6 @@ footer a{color:var(--muted)}
         <p class="out-section-intro">Energy (step 4) × grid intensity (step 5), plus any furnace combustion, summed over the year — versus the home's current heating. The bottom line.</p>
       </div>
       <div class="card">
-        <div class="card-title-row"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
-        <div class="step-body">
-          <div class="step-chart-col">
-            <div class="beforeafter" id="em2-bars"></div>
-            <div class="kc-legend" id="em2-legend"></div>
-            <div class="note" id="em2-note"></div>
-          </div>
-          <div class="step-kpi-col" id="em2-kpis"></div>
-        </div>
-      </div>
-      <div class="card">
         <div class="card-title-row">
           <span class="card-title">Emissions vs outdoor temperature</span>
           <div class="seg" id="em-view-seg" role="group" aria-label="Emissions chart view">
@@ -692,25 +673,17 @@ footer a{color:var(--muted)}
         <div class="kc-legend" id="em-legend"></div>
         <div class="note" id="em-note"></div>
       </div>
-      <!-- Calculation walkthrough -->
-      <div class="card">
-        <details class="calc" id="calc">
-          <summary>Show the calculation, step by step</summary>
-          <div class="calc-intro" id="calc-intro"></div>
-          <div id="calc-steps"></div>
-        </details>
-      </div>
     </section>
 
     <!-- ═══ Step 7 · What it costs to run ═══ -->
     <section class="out-section" id="section-cost">
       <div class="out-section-head">
         <h2 class="out-section-title">Step 7 — What it costs to run</h2>
-        <p class="out-section-intro">What the switch does to the actual power/gas bill at today's provincial rates — running cost only, not equipment or payback.</p>
+        <p class="out-section-intro">What the switch does to the actual power/gas bill at today's provincial rates — running cost only, not equipment or payback. The dollar totals are in Final numbers below.</p>
       </div>
       <div class="card">
         <div class="card-title-row">
-          <span class="card-title">Annual operating cost</span>
+          <span class="card-title">Electricity price plan</span>
           <span class="card-sub" id="cost-basis"></span>
         </div>
         <div class="cost-plan-row" id="cost-plan-row" style="display:none">
@@ -718,14 +691,7 @@ footer a{color:var(--muted)}
           <select id="in-plan"></select>
           <span class="ctrl-hint" id="plan-hint"></span>
         </div>
-        <div class="beforeafter" id="ba-cost" style="margin-bottom:1.1rem"></div>
-        <div id="cost-body">
-          <div class="cost-hook">
-            <div class="ch-title">Loading current energy prices…</div>
-            <div class="ch-body">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code>.</div>
-          </div>
-        </div>
-        <div class="note" id="cost-note" style="display:none"></div>
+        <p class="ctrl-hint" style="font-size:12.5px;color:var(--muted)" id="cost-plan-static-hint">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code> — the dollar totals are in Final numbers below.</p>
       </div>
       <div class="card" id="cost-chart-card" style="display:none">
         <div class="card-title-row">
@@ -746,12 +712,34 @@ footer a{color:var(--muted)}
     <section class="out-section" id="section-final">
       <div class="out-section-head">
         <h2 class="out-section-title">Final numbers</h2>
-        <p class="out-section-intro">Everything above, added up — the full year's energy, by source, now versus with the heat pump.</p>
+        <p class="out-section-intro">Everything above, added up — the full year's energy, emissions and cost, now versus with the heat pump.</p>
       </div>
       <div class="card">
         <div class="card-title-row"><span class="card-title">Annual energy by source</span><span class="card-sub">now vs heat pump, totals for the year</span></div>
         <div class="cw cw-md"><canvas id="energyChart"></canvas></div>
         <div class="note" id="energy-note"></div>
+      </div>
+      <div class="card">
+        <div class="card-title-row"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="beforeafter" id="em2-bars"></div>
+            <div class="kc-legend" id="em2-legend"></div>
+            <div class="note" id="em2-note"></div>
+          </div>
+          <div class="step-kpi-col" id="em2-kpis"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title-row"><span class="card-title">Annual operating cost</span><span class="card-sub">now vs heat pump, current rates</span></div>
+        <div class="beforeafter" id="ba-cost" style="margin-bottom:1.1rem"></div>
+        <div id="cost-body">
+          <div class="cost-hook">
+            <div class="ch-title">Loading current energy prices…</div>
+            <div class="ch-body">Per-scenario operating costs use each province's current residential rates from <code>prices_json/</code>.</div>
+          </div>
+        </div>
+        <div class="note" id="cost-note" style="display:none"></div>
       </div>
     </section>
 
@@ -768,6 +756,44 @@ footer a{color:var(--muted)}
     <summary>Show assumptions — how this is calculated, and what to distrust</summary>
     <div class="method-body">
       <p>This tool runs a transparent, dependency-free hour-by-hour simulation (8,760 hours) of a single typical year, entirely in your browser. It is a <b>screening tool</b>: good for understanding direction and rough magnitude, not a substitute for a heat-loss assessment or a quote. Full derivations, factors and validation live in <code>HeatPump/METHODOLOGY.md</code> in the repository.</p>
+
+      <h4>The calculation chain, step by step</h4>
+      <p>Steps 1–7 above walk through this same chain live, with your actual numbers plugged in at every stage. Here is the arithmetic itself, in general form.</p>
+      <div class="calc-step"><div class="calc-num">1</div><div>
+        <div class="calc-h">How much heat the home needs</div>
+        <div class="calc-math">heat(hour) = UA × (balance − outdoor)</div>
+        <div class="calc-res">Summed over every hour below the zero-heat (balance) temperature, this gives the year's total heat demand in kWh.</div>
+      </div></div>
+      <div class="calc-step"><div class="calc-num">2</div><div>
+        <div class="calc-h">How efficiently the heat pump makes that heat</div>
+        <div class="calc-math">electricity = heat ÷ COP</div>
+        <div class="calc-res">COP is read off the selected unit's curve at that hour's outdoor temperature; below the tier's lockout the backup (if any) carries the load instead.</div>
+      </div></div>
+      <div class="calc-step"><div class="calc-num">3</div><div>
+        <div class="calc-h">Energy bought, before and after</div>
+        <div class="calc-math">now:        heat ÷ furnace efficiency  (or heat ÷ 1.0 for baseboard)
+heat pump:  (heat pump kWh ÷ COP) + backup kWh</div>
+        <div class="calc-res">The same heat, delivered two ways — burning fuel at the furnace's rated efficiency versus running the heat pump at its (varying) COP.</div>
+      </div></div>
+      <div class="calc-step"><div class="calc-num">4</div><div>
+        <div class="calc-h">Emissions today</div>
+        <div class="calc-math">electric baseboard:  electricity kWh × grid intensity (g/kWh) × (1 + line losses)
+fuel furnace:        fuel kWh × combustion factor (g/kWh)</div>
+        <div class="calc-res">Fuel burned in the home emits directly; electricity is priced at the grid's carbon intensity.</div>
+      </div></div>
+      <div class="calc-step"><div class="calc-num">5</div><div>
+        <div class="calc-h">Emissions with the heat pump</div>
+        <div class="calc-math">grid electricity:  HP kWh × grid intensity × (1 + line losses)
++ backup fuel:     backup kWh × combustion factor  (if dual-fuel)
++ refrigerant:     leak + end-of-life charge, amortized annually</div>
+        <div class="calc-res">The grid intensity is varied hour by hour on the chosen basis (marginal / hourly average / annual) and weighted to the hours when the pump actually runs.</div>
+      </div></div>
+      <div class="calc-step"><div class="calc-num">6</div><div>
+        <div class="calc-h">What it costs to run</div>
+        <div class="calc-math">now:        (fuel or electricity) × current rate + fixed charges
+heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div>
+        <div class="calc-res">Each scenario's yearly energy is priced at the province's current residential rates. The number to trust is the <b>difference</b> between the two — charges identical in both (like the electricity service charge) cancel out.</div>
+      </div></div>
 
       <h4>Heating load</h4>
       <p>Each hour's heat demand is <code>Load = UA × max(0, T_balance − T_outdoor)</code>. <b>Design heat load</b> (kW, at the city's design temperature) and <b>zero-heat temperature</b> (°C) are direct inputs you set — <code>UA = design_load_kW × 1000 / (T_balance − T_design_city)</code>, where the city's design temperature comes from NRCan/HOT2000 weather-station records (see <code>HeatPump/data/processed/city_design_temps.json</code>). There is no auto-sizing: earlier versions of this tool inferred a design load from an archetype label (home vintage/type); that inference step has been removed in favour of letting you enter your own EnerGuide/HOT2000 design heat loss, or a number calibrated against the 4 audited-home reference medians shown beside the slider. Domestic hot water is excluded.</p>
@@ -2233,9 +2259,6 @@ function render(res,opts){
   const conj=(ePct>=0&&(nearZeroBase||pct<=-2))?'but':'and';
   $('summary').innerHTML=`<span class="lede-eyebrow">The short version</span>A <b>${bucketShort()}</b> heat pump in a ${fmt1(state.designLoad)}-kW design-load home in ${state.city} ${energyClause} ${conj} ${carbonClause}<span id="summary-cost">.</span>`;
 
-  // ---- calculation walkthrough ----
-  renderWalkthrough(res,opts);
-
   renderWeatherChart();
 
   // ---- calculation-chain steps ②–⑥ ----
@@ -2257,119 +2280,6 @@ function render(res,opts){
     : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`;
 }
 function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':state.tier==='low'?'value':'custom-data';}
-
-// ---- Calculation walkthrough: the whole chain, live, with numbers plugged in.
-// "Show your work" so the tool can be explained to anyone by hand. Each step's
-// arithmetic reconciles exactly with the headline results above.
-function calcStep(n,h,p,math,resLine){
-  return `<div class="calc-step"><div class="calc-num">${n}</div><div>`+
-    `<div class="calc-h">${h}</div>`+
-    (p?`<div class="calc-p">${p}</div>`:'')+
-    (math?`<div class="calc-math">${math}</div>`:'')+
-    (resLine?`<div class="calc-res">${resLine}</div>`:'')+
-    `</div></div>`;
-}
-function renderWalkthrough(res,opts){
-  const d=res.project.diagnostics;
-  const base=res.base, proj=res.project;
-  const UA=opts.archetype.UA_W_per_K, Tbal=opts.archetype.Tbalance_C;
-  const load=d.load_kWh, scop=d.seasonal_cop||0;
-  const info=tierCurveInfo();
-  const efLevel=opts.ef.reference_level_g_per_kWh[opts.efMode==='marginal'?1:0];
-  const lineloss=1+state.lineloss/100;
-  const combEF=E.COMBUSTION_EF_G_PER_KWH[state.fuel];
-  const baseFuelName=FUEL_LABEL[state.fuel];
-  const isElec=state.fuel==='electric';
-  const hasBackup=state.backup!=='none';
-  const bkFuel=proj.energy.backup_fuel_kWh, bkElec=proj.energy.backup_electricity_kWh;
-  const bkEnergy=bkFuel+bkElec;
-  const projEnergy=proj.energy.electricity_kWh+proj.energy.backup_fuel_kWh;
-  const baseEnergy=base.energy.fuel_kWh+base.energy.electricity_kWh;
-  const ePct=baseEnergy>0?(baseEnergy-projEnergy)/baseEnergy*100:0;
-  // Effective grid intensity actually applied (season-weighted over the hourly
-  // surface) -- shown so the arithmetic reconciles exactly with the totals.
-  const effEFproj=proj.energy.electricity_kWh>0
-    ? proj.ghg.electricity/(proj.energy.electricity_kWh*lineloss)*1000 : 0;
-  const effEFbase=base.energy.electricity_kWh>0
-    ? base.ghg.electricity/(base.energy.electricity_kWh*lineloss)*1000 : 0;
-  const hpPct=100*d.hp_delivered_kWh/Math.max(1e-9,load);
-  const bkPct=100*d.backup_delivered_kWh/Math.max(1e-9,load);
-  const baseT=base.ghg.total, projT=proj.ghg.total, cut=baseT-projT;
-  const M3=n=>fmtI(n/E.GAS_KWH_PER_M3);
-
-  $('calc-intro').innerHTML=`Every number above comes from an hour-by-hour run of one typical weather year. Here is the whole chain for your current choices — <b>${state.city}</b>, ${fmt1(state.designLoad)} kW design load, ${info.label.toLowerCase()} heat pump — with the actual figures plugged in. These are the same steps you'd walk someone through by hand.`;
-
-  const steps=[];
-
-  // 1 — heat demand
-  steps.push(calcStep(1,'How much heat your home needs',
-    `You've set a design heat load of <b>${fmt1(state.designLoad)} kW</b> at ${state.city}'s design temperature (${fmt1(designTempFor(state.city))} °C), and a zero-heat temperature of <b>${fmt1(Tbal)} °C</b> (below that, people, appliances and sunlight can no longer cover the loss). Together those two numbers fix how fast the home loses heat — <b>${fmtI(UA)} watts per °C</b> of indoor–outdoor difference.`,
-    `heat(hour) = UA × (balance − outdoor)\n           = ${fmtI(UA)} W/°C × (${fmt1(Tbal)} − outdoor) °C`,
-    `Added up over the <b>${fmtI(d.heating_hours)}</b> hours of the year below that zero-heat temperature: <b class="r">${fmtI(load)} kWh</b> of heat delivered.`));
-
-  // 2 — heat pump efficiency
-  const bkLine=bkPct>0.5
-    ? `The pump carries <b>${Math.round(hpPct)}%</b> of the year's heat; on the coldest <b>${fmtI(d.backup_hours)}</b> hours the ${hasBackup?FUEL_LABEL[state.backup]+' backup':'unmet portion'} covers the other ${Math.round(bkPct)}%.`
-    : `The pump carries the entire load on its own — no backup needed in a typical year.`;
-  steps.push(calcStep(2,'How efficiently the heat pump makes that heat',
-    `${state.tier==='custom'?`You entered your own heat-pump curve: <b>${info.brand_model}</b>.`:`You picked the <b>${info.label.toLowerCase()}</b> tier at ${bandLabelText()}, modelled on a real certified unit: <b>${info.brand_model}</b> (AHRI ${info.ahri}).`} A heat pump moves several units of heat per unit of electricity — its COP — but that ratio drops as it gets colder. Weighted across every heating hour, this unit averages a <b>seasonal COP of ${fmt1(scop)}</b>.`,
-    `electricity = heat ÷ COP\n(each hour uses that hour's COP; ${fmt1(scop)} is the season average)`,
-    bkLine));
-
-  // 3 — energy purchased
-  let e3base,e3proj;
-  if(isElec){
-    e3base=`now (baseboard):  ${fmtI(load)} kWh heat ÷ 1.0 = ${fmtI(base.energy.electricity_kWh)} kWh electricity`;
-  }else{
-    e3base=`now (${baseFuelName}):  heat ÷ efficiency = ${fmtI(load)} ÷ ${(state.eff/100).toFixed(2)} = ${fmtI(base.energy.fuel_kWh)} kWh${state.fuel==='gas'?`  (${M3(base.energy.fuel_kWh)} m³)`:''}`;
-  }
-  e3proj=`heat pump:         ${fmtI(proj.energy.hp_electricity_kWh)} kWh electricity`+
-    (hasBackup&&bkEnergy>0?`\n                 + ${fmtI(bkEnergy)} kWh ${bkFuel>0?FUEL_LABEL[state.backup]+' backup':'backup electricity'}`:'')+
-    `\n                 = ${fmtI(projEnergy)} kWh purchased`;
-  steps.push(calcStep(3,'Energy you buy, before and after',
-    `The same heat, delivered two ways: burning fuel (at the furnace's efficiency) versus running the heat pump (at its COP).`,
-    e3base+'\n'+e3proj,
-    `That is <b class="r">${ePct>=0?'−':'+'}${Math.abs(Math.round(ePct))}%</b> energy — from ${fmtI(baseEnergy)} to ${fmtI(projEnergy)} kWh a year.`));
-
-  // 4 — emissions now
-  let m4,r4;
-  if(isElec){
-    m4=`${fmtI(base.energy.electricity_kWh)} kWh × ${Math.round(effEFbase)} g/kWh × ${lineloss.toFixed(2)} losses = ${fmtGHG(base.ghg.electricity)}`;
-    r4=`Grid electricity is the only source → <b class="r">${fmtGHG(baseT)} CO₂e/yr</b>.`;
-  }else{
-    m4=`combustion:  ${fmtI(base.energy.fuel_kWh)} kWh × ${Math.round(combEF)} g/kWh = ${fmtGHG(base.ghg.combustion)}`+
-      (base.ghg.upstream_methane>0?`\nupstream CH₄: ${fmtGHG(base.ghg.upstream_methane)}`:'')+
-      (base.ghg.upstream_oil>0?`\nupstream oil: ${fmtGHG(base.ghg.upstream_oil)}`:'');
-    r4=`Total burning ${baseFuelName} → <b class="r">${fmtGHG(baseT)} CO₂e/yr</b>.`;
-  }
-  steps.push(calcStep(4,'Emissions today',
-    `Fuel burned in the home emits directly (${Math.round(combEF)} g CO₂e per kWh for ${baseFuelName}); electricity emits at the grid's intensity.`,
-    m4,r4));
-
-  // 5 — emissions after
-  let m5=`grid elec:   ${fmtI(proj.energy.electricity_kWh)} kWh × ${Math.round(effEFproj)} g/kWh (${basisAdj(state.efBasis)}) × ${lineloss.toFixed(2)} = ${fmtGHG(proj.ghg.electricity)}`;
-  if(proj.ghg.combustion>0) m5+=`\nbackup fuel: ${fmtGHG(proj.ghg.combustion)}${proj.ghg.upstream_methane>0?`\nupstream CH₄: ${fmtGHG(proj.ghg.upstream_methane)}`:''}`;
-  m5+=`\nrefrigerant: ${fmtGHG(proj.ghg.refrigerant)}  (leak + end-of-life, amortized)`;
-  const dirPhrase=cut>=0?'a cut of':'an increase of';
-  // Same near-zero-base guard as the verdict: a % change divides by ~0 and
-  // explodes when the incumbent grid is already carbon-free (e.g. QC baseboard).
-  const r5 = baseT<1
-    ? `Total with the heat pump → <b class="r">${fmtGHG(projT)} CO₂e/yr</b>. The grid here is essentially carbon-free, so this is almost all refrigerant — the switch trades near-zero carbon for a small refrigerant footprint. The real win is energy and cost, not carbon.`
-    : `Total with the heat pump → <b class="r">${fmtGHG(projT)} CO₂e/yr</b> — ${dirPhrase} <b>${fmtGHG(Math.abs(cut))}</b> versus today (${Math.abs(Math.round(cut/baseT*100))}%).`;
-  steps.push(calcStep(5,'Emissions with the heat pump',
-    `The pump's electricity is priced at the <b>${basisAdj(state.efBasis)}</b> grid intensity (${state.efBasis==='marginal'?'the gas plant that ramps up to serve new load':state.efBasis==='annual'?"the province's published annual-inventory average":'the fleet average'}), varied hour by hour and weighted to the cold hours when you actually heat. Refrigerant leakage is added as an annual amortized term.`,
-    m5,
-    r5));
-
-  // 6 — cost (filled asynchronously by renderCost)
-  steps.push(`<div class="calc-step"><div class="calc-num">6</div><div>`+
-    `<div class="calc-h">What it costs to run</div>`+
-    `<div id="calc-cost-body"><div class="calc-res">Loading current energy rates…</div></div>`+
-    `</div></div>`);
-
-  $('calc-steps').innerHTML=steps.join('');
-}
-function setCalcCost(html){const el=$('calc-cost-body');if(el)el.innerHTML=html;}
 
 // Capacity (kW) and COP at outdoor temperature T for the charts, going through
 // the SAME engine path as the simulation (E.hpPerformance) so the "continue
@@ -3185,9 +3095,11 @@ function renderEmisChartTemp(svg,temps,H,weighted){
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">${weighted?'kg CO₂e / year, per 1 °C bin':'kg CO₂e / hour (average at that temp)'}</text>`;
   stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
   if(weighted){
-    const bw=(pW/(Tmax-Tmin)-1)/2-0.5;
-    binsBase.forEach((b,i)=>{if(b.sum>0)s.v+=`<rect x="${x(b.T)-bw-0.5}" y="${y(b.sum)}" width="${bw}" height="${m.t+pH-y(b.sum)}" fill="${red}" opacity="0.8"/>`;
-      const p=binsProj[i]; if(p.sum>0)s.v+=`<rect x="${x(b.T)+0.5}" y="${y(p.sum)}" width="${bw}" height="${m.t+pH-y(p.sum)}" fill="${green}" opacity="0.8"/>`;});
+    const bw=pW/(Tmax-Tmin)-1;
+    binsProj.forEach(p=>{if(p.sum>0)s.v+=`<rect x="${x(p.T)-bw/2}" y="${y(p.sum)}" width="${bw}" height="${m.t+pH-y(p.sum)}" fill="${green}" opacity="0.8"/>`;});
+    const baseLine=binsBase.filter(b=>b.cnt>0).map(b=>[b.T,b.sum]);
+    s.v+=polyline(baseLine,x,y,red,2.4);
+    baseLine.forEach(([t,v])=>s.v+=`<circle cx="${x(t)}" cy="${y(v)}" r="2.2" fill="${red}"/>`);
   } else {
     s.v+=polyline(binsBase.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,red,2.4);
     s.v+=polyline(binsProj.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,green,2.4);
@@ -3202,11 +3114,11 @@ function renderEmisChartTemp(svg,temps,H,weighted){
     {label:'Heat pump',color:green,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsProj,t);return b?b[field]:null;}},
   ]});
   $('em-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
     `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${green}"></span>Heat pump</span>`,
   ].join('');
   $('em-note').innerHTML=weighted
-    ?`Each pair of bars is the actual kg CO₂e emitted that year while it was that outdoor temperature — the full-year totals above, broken down by temperature instead of summed into one number.`
+    ?`The green bars are the actual kg CO₂e emitted that year while it was that outdoor temperature; the red line is the same for today's heating — the full-year totals above, broken down by temperature instead of summed into one number.`
     :`The average emissions rate (kg CO₂e per hour) at each outdoor temperature — before "Weighted by hours" folds in how often each temperature actually occurs.`;
 }
 // Full year, chronologically: emissions now vs heat pump, hour by hour.
@@ -3770,7 +3682,6 @@ function renderCost(res){
     note.style.display='none';
     setCostStat('–','rates unavailable','');
     setSummaryCost(null);
-    setCalcCost(`<div class="calc-res">Current energy rates for this province could not be loaded, so cost is not shown for this run.</div>`);
     return;
   }
   const ck=CITY_KEY[state.city];
@@ -3824,11 +3735,6 @@ function renderCost(res){
     .some(s=>s&&s.confidence==='low');
   setCostStat((saves?'−':'+')+fmt$(Math.abs(delta)),`${fmt$(baseCost)} → ${fmt$(projCost)} per year${screening?' · screening estimate':''}`,saves?'green':'red');
   setSummaryCost(delta);
-  // walkthrough step 6 — the two annual bills and their difference
-  setCalcCost(
-    `<div class="calc-p">Each scenario's yearly energy is priced at ${prov.toUpperCase()}'s current residential rates. The number to trust is the <b>difference</b> — charges identical in both (like the electricity service charge) cancel out.</div>`+
-    `<div class="calc-math">now (${FUEL_LABEL[state.fuel]}):  ${fmt$(baseCost)}/yr   — ${baseSub}\nheat pump:  ${fmt$(projCost)}/yr — ${projSub}</div>`+
-    `<div class="calc-res">The heat pump <b class="r">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr</b> to run${screening?' (screening estimate)':''}. This is running cost only — it excludes what the equipment and install cost to buy.</div>`);
   body.innerHTML=
     `<div class="cost-delta ${saves?'save':'more'}">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr${screening?' <span style="font-size:.55em;font-weight:600;vertical-align:middle;color:var(--muted)">(screening estimate)</span>':''}</div>`+
     `<div class="cost-delta-sub">the cost <b>difference</b> is the number to trust — absolute bills exclude charges that are identical in both scenarios</div>`+
@@ -3900,32 +3806,37 @@ function buildHourlyCostSeries(res,elec,gas,oil,planKey){
   const rateAt=(mo,hr,tiered)=>tiered?tiered[mo]:(planEnergyPrice(plan,mo,hr)+elec.volumetric_adders_cad_per_kwh);
   const gasRate=gas?gas.marginal_cad_per_m3/E.GAS_KWH_PER_M3:0;
   const oilRate=oil?oil.cad_per_litre/OIL_KWH_PER_L:0;
-  const baseCost=new Array(N),projCost=new Array(N);
+  const baseCost=new Array(N),hpCost=new Array(N),bkCost=new Array(N),projCost=new Array(N);
   for(let i=0;i<N;i++){
     const mo=moOf[i],hr=i%24;
     baseCost[i]=state.fuel==='electric'?H.base_energy_kWh[i]*rateAt(mo,hr,baseTiered)
       :state.fuel==='gas'?H.base_energy_kWh[i]*gasRate
       :H.base_energy_kWh[i]*oilRate;
-    let pc=H.hp_elec_kWh[i]*rateAt(mo,hr,projTiered);
-    if(state.backup==='electric')pc+=H.backup_energy_kWh[i]*rateAt(mo,hr,projTiered);
-    else if(state.backup==='gas')pc+=H.backup_energy_kWh[i]*gasRate;
-    else if(state.backup==='oil')pc+=H.backup_energy_kWh[i]*oilRate;
-    projCost[i]=pc;
+    hpCost[i]=H.hp_elec_kWh[i]*rateAt(mo,hr,projTiered);
+    let bk=0;
+    if(state.backup==='electric')bk=H.backup_energy_kWh[i]*rateAt(mo,hr,projTiered);
+    else if(state.backup==='gas')bk=H.backup_energy_kWh[i]*gasRate;
+    else if(state.backup==='oil')bk=H.backup_energy_kWh[i]*oilRate;
+    bkCost[i]=bk;
+    projCost[i]=hpCost[i]+bk;
   }
-  return {baseCost,projCost};
+  return {baseCost,hpCost,bkCost,projCost};
 }
 // Cost vs temperature: 'plain' = average $/hr at each temp; 'freq' = actual $
 // attributable to each 1°C bin over the year (already hours-weighted, same as
 // the emissions chart — summing per-hour $ over a bin's hours is load × hours).
 function renderCostChartTemp(svg,temps,series,weighted){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
+  const hasBackup=series.bkCost.some(v=>v>0);
   const binsBase=binByTemp(temps,series.baseCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
+  const binsHp=binByTemp(temps,series.hpCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
+  const binsBk=binByTemp(temps,series.bkCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsProj=binByTemp(temps,series.projCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
   const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
-  const red=css('--red'),green=css('--green'),light=css('--light'),muted=css('--muted');
+  const red=css('--red'),green=css('--green'),brown=css('--brown'),light=css('--light'),muted=css('--muted');
   const fmtTick=weighted?fmt$:(v=>'$'+v.toFixed(2));
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
@@ -3933,12 +3844,19 @@ function renderCostChartTemp(svg,temps,series,weighted){
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">${weighted?'$ / year, per 1 °C bin':'$ / hour (average at that temp)'}</text>`;
   stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
   if(weighted){
-    const bw=(pW/(Tmax-Tmin)-1)/2-0.5;
-    binsBase.forEach((b,i)=>{if(b.sum>0)s.v+=`<rect x="${x(b.T)-bw-0.5}" y="${y(b.sum)}" width="${bw}" height="${m.t+pH-y(b.sum)}" fill="${red}" opacity="0.8"/>`;
-      const p=binsProj[i]; if(p.sum>0)s.v+=`<rect x="${x(b.T)+0.5}" y="${y(p.sum)}" width="${bw}" height="${m.t+pH-y(p.sum)}" fill="${green}" opacity="0.8"/>`;});
+    const bw=pW/(Tmax-Tmin)-1;
+    binsHp.forEach((b,i)=>{
+      let y0=y(0);
+      if(b.sum>0){s.v+=`<rect x="${x(b.T)-bw/2}" y="${y(b.sum)}" width="${bw}" height="${y0-y(b.sum)}" fill="${green}" opacity="0.85"/>`;y0=y(b.sum);}
+      const bk=binsBk[i]; if(hasBackup&&bk.sum>0){const top=y(b.sum+bk.sum);s.v+=`<rect x="${x(b.T)-bw/2}" y="${top}" width="${bw}" height="${y0-top}" fill="${brown}" opacity="0.85"/>`;}
+    });
+    const baseLine=binsBase.filter(b=>b.cnt>0).map(b=>[b.T,b.sum]);
+    s.v+=polyline(baseLine,x,y,red,2.4);
+    baseLine.forEach(([t,v])=>s.v+=`<circle cx="${x(t)}" cy="${y(v)}" r="2.2" fill="${red}"/>`);
   } else {
     s.v+=polyline(binsBase.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,red,2.4);
     s.v+=polyline(binsProj.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,green,2.4);
+    if(hasBackup)s.v+=polyline(binsBk.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,brown,1.8);
   }
   s.v+=`<rect id="cost-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
   svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
@@ -3947,44 +3865,53 @@ function renderCostChartTemp(svg,temps,series,weighted){
   const fmtRow=weighted?fmt$:(v=>'$'+v.toFixed(2)+'/hr');
   attachTempHover({svgId:'cost-chart',tipId:'cost-tip',overId:'cost-over',W,m,pW,Tmin,Tmax,x,series:[
     {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y:v=>y(Math.max(v,0)),fmt:fmtRow,get:t=>{const b=findBin(binsBase,t);return b?b[field]:null;}},
-    {label:'Heat pump',color:green,y:v=>y(Math.max(v,0)),fmt:fmtRow,get:t=>{const b=findBin(binsProj,t);return b?b[field]:null;}},
+    {label:'Heat pump electricity',color:green,y:v=>y(Math.max(v,0)),fmt:fmtRow,get:t=>{const b=findBin(binsHp,t);return b?b[field]:null;}},
+    ...(hasBackup?[{label:`Backup — ${FUEL_LABEL[state.backup]}`,color:brown,y:v=>y(Math.max(v,0)),fmt:fmtRow,get:t=>{const b=findBin(binsBk,t);return b?b[field]:null;}}]:[]),
   ]});
   $('cost-chart-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
-    `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${green}"></span>Heat pump</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
+    `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${green}"></span>Heat pump electricity</span>`,
+    hasBackup?`<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${brown}"></span>Backup — ${FUEL_LABEL[state.backup]}</span>`:'',
   ].join('');
   $('cost-chart-note').innerHTML=weighted
-    ?`Each pair of bars is the actual dollars spent that year while it was that outdoor temperature — volumetric energy charges only, no fixed monthly service charges.`
+    ?`The green/brown bars are the actual dollars spent that year while it was that outdoor temperature, split between heat-pump electricity and backup fuel; the red line is the same for today's heating — volumetric energy charges only, no fixed monthly service charges.`
     :`The average cost rate ($ per hour) at each outdoor temperature. Electricity plans that vary by time of day (not just temperature) make this noisier than the emissions equivalent — "Weighted by hours" is the more reliable read.`;
 }
 // Full year, chronologically: cost now vs heat pump, hour by hour.
 function renderCostChartHourly(svg,series){
-  const base=series.baseCost,proj=series.projCost,N=base.length;
+  const base=series.baseCost,hp=series.hpCost,bk=series.bkCost,N=base.length;
+  const hasBackup=bk.some(v=>v>0);
   const W=920,Hh=320,m={l:56,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
-  const maxV=Math.max(0.01,...base,...proj)*1.1;
+  const maxV=Math.max(0.01,...base,...series.projCost)*1.1;
   const x=i=>m.l+(i/(N-1))*pW, y=v=>m.t+pH-(v/maxV)*pH;
-  const red=css('--red'),green=css('--green'),light=css('--light'),muted=css('--muted');
+  const red=css('--red'),green=css('--green'),brown=css('--brown'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">$${v.toFixed(2)}</text>`;});
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">$ / hour</text>`;
   hourlyMonthAxis(s,x,N,m,W,Hh,pW,pH);
   let bp='';for(let i=0;i<N;i++)bp+=(i?'L':'M')+x(i).toFixed(1)+' '+y(base[i]).toFixed(1)+' ';
-  let pp='';for(let i=0;i<N;i++)pp+=(i?'L':'M')+x(i).toFixed(1)+' '+y(proj[i]).toFixed(1)+' ';
+  let hp2='';for(let i=0;i<N;i++)hp2+=(i?'L':'M')+x(i).toFixed(1)+' '+y(hp[i]).toFixed(1)+' ';
   s.v+=`<path d="${bp}" fill="none" stroke="${red}" stroke-width="1"/>`;
-  s.v+=`<path d="${pp}" fill="none" stroke="${green}" stroke-width="1"/>`;
+  s.v+=`<path d="${hp2}" fill="none" stroke="${green}" stroke-width="1"/>`;
+  if(hasBackup){
+    let bkp='';for(let i=0;i<N;i++)bkp+=(i?'L':'M')+x(i).toFixed(1)+' '+y(bk[i]).toFixed(1)+' ';
+    s.v+=`<path d="${bkp}" fill="none" stroke="${brown}" stroke-width="1"/>`;
+  }
   s.v+=`<rect id="cost-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
   svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
   svg.innerHTML=s.v;
   attachHourlyHover({svgId:'cost-chart',tipId:'cost-tip',overId:'cost-over',W,m,pW,N,x,series:[
     {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y,fmt:v=>'$'+v.toFixed(2)+'/hr',arr:base},
-    {label:'Heat pump',color:green,y,fmt:v=>'$'+v.toFixed(2)+'/hr',arr:proj},
+    {label:'Heat pump electricity',color:green,y,fmt:v=>'$'+v.toFixed(2)+'/hr',arr:hp},
+    ...(hasBackup?[{label:`Backup — ${FUEL_LABEL[state.backup]}`,color:brown,y,fmt:v=>'$'+v.toFixed(2)+'/hr',arr:bk}]:[]),
   ]});
   $('cost-chart-legend').innerHTML=[
     `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${green}"></span>Heat pump</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${green}"></span>Heat pump electricity</span>`,
+    hasBackup?`<span class="kc-leg"><span class="kc-swatch" style="border-color:${brown}"></span>Backup — ${FUEL_LABEL[state.backup]}</span>`:'',
   ].join('');
-  $('cost-chart-note').innerHTML=`Every hour of the year's cost rate, now vs heat pump, in order.`;
+  $('cost-chart-note').innerHTML=`Every hour of the year's cost rate, now vs heat pump (electricity and backup fuel shown separately), in order.`;
 }
 
 function runSelfTest(){
