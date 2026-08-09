@@ -21,40 +21,30 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<!-- Shared chrome + the light/dark/colour-blind theme system. Reset, theme
+     variables (all three themes), header, hero, mode/theme toggles, info
+     tooltip and footer all live here now — see assets/site-theme.css. This
+     page keeps only its own page-specific rules below. -->
+<link rel="stylesheet" href="assets/site-theme.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
-  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;--brown:#8A5A2B;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
-  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
-  --r-sm:6px;--r-md:10px;--r-lg:16px;
-  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
-}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+/* Page-specific colour vars site-theme.css doesn't carry. --brown is used by
+   the wood/propane series on the tier scatter; themed to stay legible on both
+   the light and the dark card background. */
+:root,:root[data-theme="light"],:root[data-theme="cb"]{--brown:#8A5A2B}
+:root[data-theme="dark"]{--brown:#9C7A55}
 
-/* ── Header ── */
-header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em}
-.logo span{color:var(--amber2);font-style:italic}
-.header-right{display:flex;align-items:center;gap:14px}
-.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
-.sibling-link:hover{color:var(--amber2)}
-@media(max-width:600px){.sibling-link{display:none}}
-
-/* ── Hero ── */
-.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
+/* Hero eyebrow (site-theme's shared hero uses `.eyebrow`; this page's markup
+   uses `.hero-eyebrow`). */
 .hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:.5rem}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:760px;margin:0 auto .6rem}
-.hero h1 em{font-style:italic;color:var(--amber2)}
-.hero-sub{font-size:14px;color:rgba(255,255,255,.6);max-width:760px;margin:0 auto;line-height:1.55}
+/* Four sibling links crowd the 48px bar on phones — hide them there, the
+   theme toggle and logo stay. */
+@media(max-width:600px){.sibling-link{display:none}}
 
 /* ── Inputs ── */
 /* Sticky, same pattern as retrofits.html's .filter-sticky: stays pinned
    below the 48px header once scrolled past the hero, so the controls are
    always reachable without scrolling back up. */
-.controls{position:sticky;top:48px;z-index:90;max-width:1280px;margin:-1px auto 0;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.9rem 1.25rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+.controls{position:sticky;top:48px;z-index:90;max-width:1280px;margin:-1px auto 0;background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.9rem 1.25rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
 /* Compact state: once scrolled past the hero, drop field labels to reclaim
    vertical space -- desktop/laptop only, mobile already stacks fields. */
 @media(min-width:900px){
@@ -78,15 +68,16 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
    height-stretched), so overflow is clipped rather than wrapped. Paired with
    keeping label text short enough to fit ~150px in practice. */
 .ctrl label{font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
-.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ctrl input[type=number]{background-image:none;padding:0 9px;cursor:text}
 .ctrl select:hover,.ctrl input:hover{border-color:var(--navy)}
 .ctrl select:focus,.ctrl input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .ctrl-hint{font-size:10.5px;color:var(--light);line-height:1.35}
-.info-btn{width:15px;height:15px;border-radius:50%;border:1px solid var(--light);color:var(--light);background:transparent;font-size:10px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none;font-style:italic;font-family:Georgia,serif}
+/* .info-btn + #info-tip base look come from assets/site-theme.css (the shared
+   circular "?" used on every page). This page keeps only .auto-reset and the
+   info-tip's link/flash helpers below. */
 .auto-reset{border:1px solid var(--light);border-radius:9px;background:transparent;color:var(--light);font-size:10.5px;line-height:1;padding:1px 6px;cursor:pointer}
 .auto-reset:hover{color:var(--text);border-color:var(--text)}
-.info-btn:hover,.info-btn.open{border-color:var(--amber);color:var(--amber)}
 .weather-row{display:flex;align-items:center;gap:6px}
 .weather-row select{flex:1}
 .weather-btn{height:34px;padding:0 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;white-space:nowrap;transition:all .15s;flex:none}
@@ -105,11 +96,11 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 .range-val{font-size:13px;color:var(--text);min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
 .seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:2px;gap:2px}
 .seg button{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;padding:7px 6px;border:none;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
-.seg button.active{background:var(--white);color:var(--navy);font-weight:500;box-shadow:var(--shadow)}
+.seg button.active{background:var(--card);color:var(--navy);font-weight:500;box-shadow:var(--shadow)}
 .preset-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
-.preset-row button{font-family:'Inter',sans-serif;font-size:11px;padding:4px 9px;border:1px solid var(--surface);border-radius:999px;background:var(--white);color:var(--muted);cursor:pointer;transition:all .15s}
+.preset-row button{font-family:'Inter',sans-serif;font-size:11px;padding:4px 9px;border:1px solid var(--surface);border-radius:999px;background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
 .preset-row button:hover{border-color:var(--blue);color:var(--navy)}
-.preset-row button.active{background:var(--navy);border-color:var(--navy);color:var(--white);font-weight:500}
+.preset-row button.active{background:var(--navy);border-color:var(--navy);color:var(--on-navy);font-weight:500}
 .controls-foot{max-width:1280px;margin:0 auto;padding:.35rem 1.25rem 0;font-size:12px;color:var(--light)}
 
 /* ── Advanced-settings dropdown ── */
@@ -134,7 +125,7 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
 @media(max-width:720px){.grid-2{grid-template-columns:1fr}}
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.85rem}
 .card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .card-sub{font-size:12px;color:var(--light)}
@@ -154,7 +145,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .tab-panel.active{display:block}
 
 /* ── Verdict / stats ── */
-.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:linear-gradient(180deg,#0d2a52,#0B2545);color:var(--white);border-radius:var(--r-lg);padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:linear-gradient(180deg,#0d2a52,#0B2545);color:var(--on-navy);border-radius:var(--r-lg);padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .verdict-main{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(1.15rem,3.2vw,1.6rem);line-height:1.25;flex:1;min-width:240px}
 .verdict-main b{color:var(--amber2);font-weight:400;font-style:italic}
 .verdict-pill{font-size:12px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);white-space:nowrap}
@@ -169,7 +160,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 @media(max-width:1100px){#stats .stats-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:700px){#stats .stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:420px){#stats .stats-grid{grid-template-columns:1fr}}
-.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:1.9rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
 .stat-value.accent{color:var(--amber)}
@@ -204,7 +195,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .ba-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
 
 /* ── One-line summary lede ── */
-.summary-lede{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-md);padding:.85rem 1.1rem;margin-bottom:1rem;box-shadow:var(--shadow);font-size:15px;line-height:1.55;color:var(--text)}
+.summary-lede{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-md);padding:.85rem 1.1rem;margin-bottom:1rem;box-shadow:var(--shadow);font-size:15px;line-height:1.55;color:var(--text)}
 .summary-lede b{color:var(--navy);font-weight:600}
 .lede-eyebrow{display:block;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:.35rem}
 
@@ -225,7 +216,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .ghgbar-head .gh-tot{font-variant-numeric:tabular-nums;color:var(--muted)}
 .ghgbar-track{display:flex;height:30px;width:100%;border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
 .ghgbar-seg{height:100%;transition:width .45s cubic-bezier(.4,0,.2,1);position:relative}
-.ghgbar-seg+.ghgbar-seg{box-shadow:-2px 0 0 var(--white)}
+.ghgbar-seg+.ghgbar-seg{box-shadow:-2px 0 0 var(--card)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .legend-dot{width:10px;height:10px;border-radius:3px;flex:none}
@@ -233,7 +224,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 /* ── Key chart (SVG) ── */
 .keychart-wrap{position:relative;width:100%}
 #keychart{width:100%;height:auto;display:block;touch-action:none;cursor:crosshair}
-.kc-tip{position:absolute;pointer-events:none;background:var(--navy);color:var(--white);font-size:11.5px;line-height:1.5;padding:7px 9px;border-radius:6px;box-shadow:var(--shadow);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;transform:translate(-50%,calc(-100% - 10px))}
+.kc-tip{position:absolute;pointer-events:none;background:var(--navy);color:var(--on-navy);font-size:11.5px;line-height:1.5;padding:7px 9px;border-radius:6px;box-shadow:var(--shadow);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;transform:translate(-50%,calc(-100% - 10px))}
 .kc-tip b{color:var(--amber2);font-weight:500}
 .kc-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
 .kc-leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -252,19 +243,19 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .cost-hook .ch-body{font-size:12.5px;color:var(--light);line-height:1.55}
 .cost-plan-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.1rem 0 .8rem}
 .cost-plan-row label{font-size:12.5px;font-weight:600;color:var(--muted)}
-.cost-plan-row select{font:inherit;font-size:13px;padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text)}
+.cost-plan-row select{font:inherit;font-size:13px;padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)}
 .cost-delta{font-size:1.5rem;font-weight:700;margin:.1rem 0 .15rem;font-variant-numeric:tabular-nums}
 .cost-delta.save{color:var(--green)} .cost-delta.more{color:var(--red)}
 .cost-delta-sub{font-size:12.5px;color:var(--muted);margin-bottom:.7rem}
 .cost-rows{display:flex;flex-direction:column;gap:7px;max-width:560px}
-.cost-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.5rem .8rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--white)}
+.cost-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.5rem .8rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card)}
 .cost-row .cr-name{font-size:13px;color:var(--text)}
 .cost-row .cr-name small{color:var(--light);display:block;font-size:11.5px}
 .cost-row .cr-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* ── Methodology ── */
 .methodology{max-width:1280px;margin:1rem auto 0;padding:0 1.25rem}
-.methodology details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .methodology summary::-webkit-details-marker{display:none}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
@@ -287,8 +278,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .method-sub[open]>summary::after{content:'\2013'}
 .method-sub summary:hover{color:var(--amber)}
 .method-sub-body{padding:.2rem .95rem 1rem;font-size:13.5px;line-height:1.6;color:var(--text)}
-.method-sub .method-sub{background:var(--white);margin:.8rem 0 0}
-.tv-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem 1rem;margin:.7rem 0}
+.method-sub .method-sub{background:var(--card);margin:.8rem 0 0}
+.tv-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem 1rem;margin:.7rem 0}
 .tv-cw{position:relative;width:100%;height:340px}
 .tv-cw.tv-cw-tall{height:260px}
 .tv-legend{display:flex;flex-wrap:wrap;gap:5px 16px;margin-top:10px;font-size:12px}
@@ -299,7 +290,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .tv-lg .tv-src{display:block;color:var(--light);font-size:10.5px}
 .tv-lg .tv-flags{margin:2px 0 0;padding-left:14px;color:#9A6B2E;font-size:10.5px;line-height:1.5}
 .tv-ctl{font-size:12.5px;color:var(--muted);margin-top:8px}
-.tv-btn{font:inherit;font-size:12.5px;padding:4px 10px;margin-left:6px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer}
+.tv-btn{font:inherit;font-size:12.5px;padding:4px 10px;margin-left:6px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer}
 .tv-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .tv-band-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12.5px}
 .tv-band{display:flex;align-items:center;gap:6px;cursor:pointer}
@@ -311,9 +302,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 #tv-spec-tbl th,#tv-spec-tbl td{border:1px solid var(--border);padding:3px 8px;text-align:right}
 #tv-spec-tbl thead th{background:var(--surface);text-align:center}
 #tv-spec-tbl td:first-child,#tv-spec-tbl th:first-child{text-align:center;background:var(--surface);font-weight:600}
-#tv-spec-tbl td.pub{background:#FFF4D6;font-weight:600}
-#tv-spec-tbl td.src{background:#E7F1FC;font-weight:600}
-#tv-spec-tbl td.blank{color:#C3CCD4}
+/* pub/src cells carry a fixed pale legend colour, so pin their text dark too —
+   otherwise the themed --text goes light in dark mode and vanishes on the pale
+   fill. */
+#tv-spec-tbl td.pub{background:#FFF4D6;color:#5B4A1E;font-weight:600}
+#tv-spec-tbl td.src{background:#E7F1FC;color:#1A3A5C;font-weight:600}
+#tv-spec-tbl td.blank{color:#B4BCC6}
 .tv-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:3px}
 .tv-swatch.pub{background:#FFF4D6;border:1px solid #E8C86A}
 .tv-swatch.src{background:#E7F1FC;border:1px solid #A9CBEA}
@@ -322,15 +316,15 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 #custom-hp-rows th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;padding:2px 4px}
 #custom-hp-rows td{padding:2px 3px}
 #custom-hp-rows input{width:100%;font:inherit;font-size:12.5px;padding:.25rem .35rem;border:1px solid var(--border);border-radius:5px;box-sizing:border-box}
-#custom-hp-rows button{font-size:12px;padding:.15rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--white);cursor:pointer;color:var(--muted)}
+#custom-hp-rows button{font-size:12px;padding:.15rem .4rem;border:1px solid var(--border);border-radius:5px;background:var(--card);cursor:pointer;color:var(--muted)}
 .custom-hp-add{font-size:12px;margin-top:5px;padding:.25rem .55rem;border:1px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--muted)}
 .custom-hp-fit{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
 .custom-hp-err{font-size:11.5px;color:var(--red);margin-top:5px}
 
-footer{max-width:1280px;margin:1.25rem auto 0;padding:1rem 1.25rem 2rem;font-size:12px;color:var(--light);line-height:1.6}
-footer a{color:var(--muted)}
+/* footer look (navy, full-width, centred) comes from assets/site-theme.css —
+   same as every other page. */
 .loading-msg{text-align:center;color:var(--muted);padding:2.5rem 1rem;font-size:14px}
-.err-msg{max-width:1280px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:var(--red);font-size:13px}
+.err-msg{max-width:1280px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:#B33A2E;font-size:13px}
 
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
@@ -342,14 +336,43 @@ footer a{color:var(--muted)}
 </script>
 </head>
 <body>
+<script>
+// Resolve the colour theme before any markup paints, so a dark-mode reader
+// never sees a cream flash. Saved choice wins; otherwise follow the OS. Same
+// pattern as retrofits.html / newhomes.html (this page has no view-mode
+// toggle — its Advanced settings are a separate in-page disclosure).
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
 
 <header>
-  <div class="logo">heat<span>pump</span></div>
-  <div class="header-right">
+  <div class="header-left">
+    <div class="logo">heat<span>pump</span></div>
+    <div class="header-title">Energy &amp; emissions of a heat-pump upgrade</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
     <a class="sibling-link" href="index.html">⌂ All tools</a>
     <a class="sibling-link" href="grid.html">↳ Grid Dashboard</a>
     <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
-    <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
+    <!-- Theme switch (light / dark / colour-blind), same three-icon pill as
+         retrofits.html and newhomes.html. aria-pressed carries the state. -->
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -1624,6 +1647,34 @@ function fmtGHG(kg){ // kg → friendly
   return fmtI(kg)+' kg';
 }
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// ── Colour theme (light / dark / colour-blind) ──────────────────────────
+// Variables come from assets/site-theme.css; every chart reads them through
+// css() at draw time, so switching theme just means rebuilding the charts.
+const THEMES=['light','dark','cb'];
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  syncThemeButtons(t);
+  redrawAllCharts();
+}
+// Charts bake their colours in at construction time, so a theme change has to
+// rebuild them from data already in hand — never re-fetch.
+function redrawAllCharts(){
+  try{ if(lastRes) recompute(); }catch(e){}   // SVG steps + KPI rail + energy bar
+  // The tier-viz canvases in the methodology panel are built lazily; rebuild
+  // them only if the reader has already opened that section.
+  try{ if(typeof tvScatterChart!=='undefined'&&tvScatterChart){tvRenderScatter();tvRenderCurves();tvRenderSpecTable();} }catch(e){}
+}
+syncThemeButtons(document.documentElement.dataset.theme||'light');
 
 // Fixed representative values applied when "Upstream & grid losses" is Yes --
 // methane at the "Adjusted" preset (between NIR ~1% and full-chain ~3%), line

@@ -1,7 +1,26 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-07** (**Heat Pump Explorer**, later same day: extended the
+Updated **2026-08-09** (**Heat Pump Explorer** — theme parity: brought the
+page onto the shared `assets/site-theme.css` system so it finally carries the
+light/dark/colour-blind toggle every other advanced page already had. Deleted
+its duplicated, drifted light-only chrome (reset, `:root`, header, hero,
+`.info-btn`, footer) in favour of the shared file; reclassified every legacy
+`var(--white)` to `--card` (surfaces that must invert) or `--on-navy` (text on
+navy), added a themed `--brown`, and pinned the spec-table's fixed-pale legend
+cells to dark text so dark mode stays legible; restructured the header to the
+shared `.header-left`/`.header-title` pattern plus the 3-icon theme pill; and
+added the pre-paint theme script + `setTheme`/`syncThemeButtons`/
+`redrawAllCharts` (charts already read colours through a `css()` helper, so a
+toggle just rebuilds them). The bespoke "Advanced settings" disclosure was kept
+as an intentional exception rather than swapped for the shared Simple/Advanced
+pill. Verified in-browser across all three themes — chrome inverts, the SVG
+charts re-theme (surface `#E8EDF4`↔`#1B2735`), the lazy tier-viz canvases
+rebuild without error, and there were zero console errors; the "CEUD Explorer"
+header link was dropped to make room for the theme pill (still reachable via
+"All tools"). CSS/markup only — no pipeline or data change. This was the last
+interactive tool still off the shared theme.) Prior pass **2026-08-07**
+(**Heat Pump Explorer**, later same day: extended the
 Step 1 KPI-rail/toggle-in-title-row layout to every step (2 through 7),
 flattened the top verdict KPI row from 3 tier-grouped rows to one 7-column
 row, and reworked several steps' KPIs and chart content while auditing them
@@ -252,7 +271,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07) |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
