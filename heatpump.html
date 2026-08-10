@@ -692,9 +692,14 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
         </div>
-        <div class="keychart-wrap"><svg id="em-chart" viewBox="0 0 740 320" role="img" aria-label="Emissions versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="em-tip"></div></div>
-        <div class="kc-legend" id="em-legend"></div>
-        <div class="note" id="em-note"></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap"><svg id="em-chart" viewBox="0 0 740 320" role="img" aria-label="Emissions versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="em-tip"></div></div>
+            <div class="kc-legend" id="em-legend"></div>
+            <div class="note" id="em-note"></div>
+          </div>
+          <div class="step-kpi-col" id="em-kpis"></div>
+        </div>
       </div>
     </section>
 
@@ -725,9 +730,14 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
         </div>
-        <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="cost-tip"></div></div>
-        <div class="kc-legend" id="cost-chart-legend"></div>
-        <div class="note" id="cost-chart-note"></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="cost-tip"></div></div>
+            <div class="kc-legend" id="cost-chart-legend"></div>
+            <div class="note" id="cost-chart-note"></div>
+          </div>
+          <div class="step-kpi-col" id="cost-kpis"></div>
+        </div>
       </div>
     </section>
 
@@ -3110,11 +3120,13 @@ function renderEmissionsStep(res,opts){
     row(`Now — ${FUEL_LABEL[state.fuel]}`,base,baseT,'')+
     row(`Heat pump${state.backup!=='none'?' + '+FUEL_LABEL[state.backup]+' backup':''}`,proj,projT,'')+
     `<div class="ba-row"><span class="ba-lbl">${cut>=0?'Avoided':'Added'}</span><span class="ba-bar" style="width:${Math.abs(cut)/maxT*100}%;background:${cut>=0?'var(--green)':'var(--red)'}"></span><span class="ba-val">${cut>=0?'−':'+'}${fmtGHG(Math.abs(cut))} · ${cut>=0?'−':'+'}${Math.abs(Math.round(pctc))}%</span></div>`;
-  $('em2-kpis').innerHTML=[
+  const emKpiHtml=[
     stepCard('Emissions now',fmtGHG(baseT),`${FUEL_LABEL[state.fuel]} heating`,'red'),
     stepCard('With heat pump',fmtGHG(projT),`${basisAdj(state.efBasis)} grid basis`,'green'),
     stepCard('Change',`${cut>=0?'−':'+'}${Math.abs(Math.round(pctc))}%`,`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cut>=0?'green':'red'),
   ].join('');
+  $('em2-kpis').innerHTML=emKpiHtml;
+  if($('em-kpis'))$('em-kpis').innerHTML=emKpiHtml;
   const legc=cats.map(c=>`<span class="kc-leg"><span class="kc-swatch fill" style="background:${c.color}"></span>${c.label}</span>`).join('');
   $('em2-legend').innerHTML=legc;
   $('em2-basis').textContent=`${basisAdj(state.efBasis)} grid basis`;
@@ -3786,6 +3798,11 @@ function renderCost(res){
     .some(s=>s&&s.confidence==='low');
   setCostStat((saves?'−':'+')+fmt$(Math.abs(delta)),`${fmt$(baseCost)} → ${fmt$(projCost)} per year${screening?' · screening estimate':''}`,saves?'green':'red');
   setSummaryCost(delta);
+  if($('cost-kpis'))$('cost-kpis').innerHTML=[
+    stepCard('Cost now',`${fmt$(baseCost)}/yr`,baseSub,'red'),
+    stepCard('With heat pump',`${fmt$(projCost)}/yr`,projSub,'green'),
+    stepCard('Change',`${saves?'−':'+'}${fmt$(Math.abs(delta))}/yr`,screening?'screening estimate':`${saves?'saves':'costs'} vs current`,saves?'green':'red'),
+  ].join('');
   body.innerHTML=
     `<div class="cost-delta ${saves?'save':'more'}">${saves?'saves':'costs'} ${fmt$(Math.abs(delta))}/yr${screening?' <span style="font-size:.55em;font-weight:600;vertical-align:middle;color:var(--muted)">(screening estimate)</span>':''}</div>`+
     `<div class="cost-delta-sub">the cost <b>difference</b> is the number to trust — absolute bills exclude charges that are identical in both scenarios</div>`+
