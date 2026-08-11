@@ -24,6 +24,40 @@ Changes from full pipeline:
     existing Pre/Post_HeatLoss (peak/design-day, EGHDESHTLOSS)
   - Added: Pre/Post_VentType — central ventilation system type (HRV/none/
     exhaust-only), from CENVENTSYSTYPE
+  - Added 2026-08-11: Plan_* columns — the auditor's recommended-upgrade
+    ("UGR*") case from the D record, i.e. what the advisor proposed at the
+    pre-retrofit audit, alongside the existing Pre_/Post_ actuals. Lets the
+    web explorer compare "recommended" vs "achieved". D-only (no E-side
+    equivalent — the plan is made once, at the pre-audit). Field selection:
+    the ~18 UGR* columns with >=87% fill that pair with an existing Pre_/
+    Post_ field (see docs/ERS_DATA_DICTIONARY.md); the ~99 other UGR*
+    columns (per-component marginal-ERS-rating fields at 29-38% fill, MURB-
+    only fields, secondary-DHW, ventilation/cooling/renewables detail) were
+    scoped out as sparser or duplicative of what's below — see chat log
+    2026-08-11 for the full column-by-column pass.
+      Plan_TotalEnergy   <- UGRFCONTOTAL   (MJ -> kWh, matches Pre/Post_TotalEnergy)
+      Plan_Electricity   <- UGRFCONELEC
+      Plan_NaturalGas    <- UGRFCONNGAS    (m3 -> kWh, same factor as Pre/Post_NaturalGas)
+      Plan_Oil           <- UGRFCONOIL     (L -> kWh, same factor as Pre/Post_Oil)
+      Plan_Propane       <- UGRFCONPROP    (L -> kWh, same factor as Pre/Post_Propane)
+      Plan_HeatElectricity/NaturalGas/Oil/Propane/Wood <- UGRHEATFCONS{E,G,O,P,W}
+        (MJ -> kWh, same 0.27778 factor as Pre/Post_Heat*; no wood-tonnes
+        fallback needed here, matching the existing Pre/Post_HeatWood note —
+        whole-house Plan_Wood was left out: UGRFCONWOOD is tonnes-only with
+        no UGRFCONWOODGJ counterpart, so it would need the same corroboration
+        logic as wood_kwh() for a field far less central to ideas 1-4 than
+        the heating-only figure already added)
+      Plan_HeatLoss      <- UGRDESHTLOSS   (W -> kW, matches Pre/Post_HeatLoss)
+      Plan_AirLeakage           <- UGRAIR50PA
+      Plan_RoofInsulation       <- UGRCEILINS
+      Plan_WallInsulation       <- UGRWALLINS
+      Plan_FoundationInsulation <- UGRFNDINS
+      Plan_FloorInsulation      <- UGRINEXPOSEDFLR
+      Plan_WindowCode    <- UGRWINDOWCODE
+      Plan_HeatFuel      <- UGRFURNACEFUEL
+      Plan_HeatType      <- UGRFURNACETYP
+      Plan_HPType        <- UGRHPTYPE
+      Plan_CCASHP        <- UGRCCASHP
   - Derived columns added at write time:
       EnergySavingPct  = (Pre_TotalEnergy - Post_TotalEnergy) / Pre_TotalEnergy
       HeatEnergySavingPct = same for heating energy only
@@ -234,6 +268,31 @@ BASE_MAPPING = [
     # --- Solar PV ---
     ('Pre_SolarPV',             'KWPV',            'D', None),     # kW DC capacity
     ('Post_SolarPV',            'KWPV',            'E', None),
+
+    # --- Plan: the auditor's recommended-upgrade case (D-record UGR* fields) ---
+    # No E-side counterpart -- the recommendation is made once, at the D audit.
+    # See the module docstring "Added 2026-08-11" note for field selection.
+    ('Plan_TotalEnergy',         'UGRFCONTOTAL',   'D', 0.27778),
+    ('Plan_Electricity',         'UGRFCONELEC',    'D', None),
+    ('Plan_NaturalGas',          'UGRFCONNGAS',    'D', 10.3611),
+    ('Plan_Oil',                 'UGRFCONOIL',     'D', 10.7778),
+    ('Plan_Propane',             'UGRFCONPROP',    'D', 7.0917),
+    ('Plan_HeatElectricity',     'UGRHEATFCONSE',  'D', 0.27778),
+    ('Plan_HeatNaturalGas',      'UGRHEATFCONSG',  'D', 0.27778),
+    ('Plan_HeatOil',             'UGRHEATFCONSO',  'D', 0.27778),
+    ('Plan_HeatPropane',         'UGRHEATFCONSP',  'D', 0.27778),
+    ('Plan_HeatWood',            'UGRHEATFCONSW',  'D', 0.27778),
+    ('Plan_HeatLoss',            'UGRDESHTLOSS',   'D', 0.001),
+    ('Plan_AirLeakage',          'UGRAIR50PA',     'D', None),
+    ('Plan_RoofInsulation',      'UGRCEILINS',     'D', None),
+    ('Plan_WallInsulation',      'UGRWALLINS',     'D', None),
+    ('Plan_FoundationInsulation','UGRFNDINS',      'D', None),
+    ('Plan_FloorInsulation',     'UGRINEXPOSEDFLR','D', None),
+    ('Plan_WindowCode',          'UGRWINDOWCODE',  'D', None),
+    ('Plan_HeatFuel',            'UGRFURNACEFUEL', 'D', None),
+    ('Plan_HeatType',            'UGRFURNACETYP',  'D', None),
+    ('Plan_HPType',              'UGRHPTYPE',      'D', None),
+    ('Plan_CCASHP',              'UGRCCASHP',      'D', None),
 ]
 
 # Columns needed for filtering (not all go to output)
