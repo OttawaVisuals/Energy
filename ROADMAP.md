@@ -306,15 +306,22 @@ lifecycle-update candidates logged — see
   form (e.g. one combined low/mid/high preset instead of two full sliders),
   or confirm the fixed values are an acceptable permanent simplification.
 
-- ♨️ **Heat pump tool — Phase 3c bucket rework** (spec done, curves outstanding).
-  Equipment selection rebuilt on **AHRI as sampling frame / manufacturer
-  datasheets as measurement**: a 3×3 grid of COP @ 5 °F × capacity maintenance,
-  36 representatives chosen by real Canadian installation frequency from
-  439,975 EnerGuide record appearances. Spec:
-  [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md). **Next step:** hand-fetch the
-  6 priority units' performance data (datasheets give capacity + lockout; NEEP
-  needed for power/COP), then rebuild `hp_curves.json` and rewire
-  `heatpump.html`'s tier selector.
+- ♨️ **Heat pump tool — Phase 3c bucket rework, 36-cell candidate table**
+  (spec done, curves outstanding; **superseded as the user-facing priority**
+  by the engine rebuild below, which shipped 2026-07-29 with 9 real cells
+  wired into `heatpump.html` — see that bullet). Equipment selection rebuilt
+  on **AHRI as sampling frame / manufacturer datasheets as measurement**: a
+  3×3 grid of COP @ 5 °F × capacity maintenance, 36 representatives chosen by
+  real Canadian installation frequency from 439,975 EnerGuide record
+  appearances. Spec: [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md). The live
+  tool already selects one of 9 real, individually AHRI-certified units (3
+  tiers × 3 capacity bands) with datasheet-sourced curves — no scaling, no
+  interpolation — so this bullet now tracks only the **full 36-cell
+  candidate table** (for future tier/band boundary decisions and the CCHP
+  screen), which remains gated on the `hp_units_joined.csv` reproducibility
+  gap below. **Next step, if picked up:** hand-fetch the remaining priority
+  units' performance data (datasheets give capacity + lockout; NEEP needed
+  for power/COP), then extend `hp_curves.json`.
 
 - 🌡️ **Heat pump tool — heating-load model rebuild** (started 2026-07-27,
   step 1 shipped). The load model is being rebuilt from scratch so the design
@@ -373,8 +380,14 @@ lifecycle-update candidates logged — see
      `archetypes.json` / 14 cities until the rebuild lands.
      `build_archetypes_nrcan.py` is committed, so the analysis is reproducible
      if it is ever wanted.
-  2. **Commit an explicit peak-load field on a stated percentile** (1% or 2.5%
-     coldest hour) rather than the single coldest TMY hour.
+  2. ~~**Commit an explicit peak-load field on a stated percentile**~~ —
+     **superseded 2026-07-29.** Moot once sizing moved to a user-set design
+     load + balance point (decision 2 in the engine rebuild below): there is
+     no computed peak-load field to pin a percentile to anymore, since the
+     number comes from the user's own EnerGuide/HOT2000 figure rather than
+     a fitted TMY statistic. The 4-point reference display beside the slider
+     still uses archetype-vintage medians, not a stated percentile — leave
+     as-is unless it causes confusion in practice.
   3. **Decide whether to credit the night setback when sizing.** ERS SOC drops
      to 18 °C for 8 h and the sizing hour falls inside it; CSA F280 takes no
      setback credit because the system must recover. Simulate with, size without,
