@@ -512,7 +512,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </div>
     <div class="ctrl">
-      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: methane leaked well-to-meter before it burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value (methane 1.5% — the 'adjusted' estimate between NIR ~1% and full-chain ~3%; line loss 5%) rather than exposed as its own adjustable rate. Weighted at the 100-year methane GWP (28, IPCC AR5) — fixed, not user-adjustable; see methodology." data-method="m-lifecycle">?</button></label>
+      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: an upstream 'methane-equivalent' term before the gas burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value: the upstream term at 2.14% (weighted at the 20-year methane GWP of 85) is calibrated so this tool's single leak x GWP lever reproduces The Atmospheric Fund's published +65% carbon-intensity increase for a single-home gas-to-heat-pump project — TAF attributes that +65% to both fugitive methane leakage and non-methane extraction 'process emissions' this tool can't model separately, so 2.14% is a bundled proxy, not a literal leak-rate reading; line loss 5%. Neither is exposed as its own adjustable rate. See methodology." data-method="m-lifecycle">?</button></label>
       <div class="seg" id="upstream-seg" role="group" aria-label="Include upstream and grid losses">
         <button type="button" data-val="yes" class="active">Yes</button>
         <button type="button" data-val="no">No</button>
@@ -960,7 +960,7 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
       <ul>
         <li><b>Combustion:</b> natural gas 181, oil 275, propane 214 g CO₂e/kWh of fuel input (ECCC National Inventory Report).</li>
         <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × global-warming potential of the selected refrigerant.</li>
-        <li><b>Upstream &amp; grid losses (Yes/No):</b> a single switch now stands in for two previously independent sliders — upstream methane leaked well-to-meter before combustion, and grid transmission/distribution line losses added to delivered electricity. When set to <b>Yes</b> (default) it applies one fixed value for each rather than a range: methane at <b>1.5%</b> (the "adjusted" estimate — between Canada's National Inventory Report figure of ~1% and full-chain measurement studies of up to ~3%, which include post-meter building leakage at 2.0–2.5× the inventory end-use factor), weighted at the methane <b>100-year global-warming potential of 28</b> (IPCC AR5, fixed, not user-adjustable); and line loss at <b>5%</b> (World Bank/IEA Canada transmission-and-distribution losses were ~5% in 2019–2020, easing toward ~4% recently; utility figures span ~4% transmission-only to ~10% full path to a home — we deliberately don't use ENERGY STAR Portfolio Manager's 2.05 source–site ratio, since it also bundles power-plant conversion losses our per-kWh-<i>generated</i> grid factor already includes). Setting it to <b>No</b> zeroes both terms. <b>Open to-do, not a settled simplification:</b> collapsing two independently-evidenced rates into one on/off switch loses the ability to reason about them separately (e.g. a high-leakage gas region with average grid losses) — reinstating them as adjustable rates, or at least a low/mid/high preset per term, is tracked in <code>ROADMAP.md</code>.</li>
+        <li><b>Upstream &amp; grid losses (Yes/No):</b> a single switch now stands in for two previously independent sliders — an upstream "methane-equivalent" term before combustion, and grid transmission/distribution line losses added to delivered electricity. When set to <b>Yes</b> (default) it applies one fixed value for each rather than a range. The upstream term is calibrated to <a href="https://taf.ca/publications/fugitive-methane/" target="_blank" rel="noopener">The Atmospheric Fund's Fugitive Methane guideline</a> (May 2022): TAF publishes <b>+65%</b> as the carbon-intensity increase over combustion-only for a single home's gas-to-heat-pump project (their "no pipeline infrastructure change" scenario — the right match for this tool, vs. their higher +92% "infrastructure change" scenario for neighbourhood-scale conversions), using the 20-year methane GWP (85) per TAF's own guidance that "modelling activities that impact natural gas consumption" should use GWP20, not the 100-year GWP appropriate for emissions inventories. <b>TAF attributes that +65% to two effects this engine can't represent separately</b> — fugitive methane leakage (+10 points) and non-methane extraction "process emissions" like flaring and venting (+55 points) — so rather than pick one, the engine's single methane-leak lever is set to <b>2.14%</b> (at GWP 85), a calibrated value chosen so <code>leak% × GWP</code> reproduces TAF's +65% ratio in aggregate. This is a bundled proxy, not a literal reading of how much gas physically leaks. Line loss is set at <b>5%</b> (World Bank/IEA Canada transmission-and-distribution losses were ~5% in 2019–2020, easing toward ~4% in 2021–2023 before ticking back up to ~4.2% in 2024; utility figures span ~4% transmission-only to ~10% full path to a home — we deliberately don't use ENERGY STAR Portfolio Manager's <b>1.83</b> source–site ratio for Canadian grid electricity, since it also bundles power-plant conversion losses our per-kWh-<i>generated</i> grid factor already includes). Setting it to <b>No</b> zeroes both terms. <b>Open to-do, not a settled simplification:</b> collapsing two independently-evidenced rates into one on/off switch loses the ability to reason about them separately (e.g. a high-leakage gas region with average grid losses), and the methane/process-emissions bundling means the upstream term can't be read as a leak rate on its own — reinstating adjustable rates, or at least a low/mid/high preset per term (and ideally separating process emissions from methane), is tracked in <code>ROADMAP.md</code>.</li>
       </ul>
 
       <h4>How accurate is this? — validation</h4>
@@ -1057,7 +1057,12 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
   var GAS_KWH_PER_M3 = 10.55; // HHV energy content
   var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
 
-  var CH4_GWP_DEFAULT = 28.0; // AR5, 100-yr (methane); AR6 ~29.8
+  // GWP20 (20-yr), not GWP100 -- TAF's Fugitive Methane guideline (May 2022)
+  // specifies GWP20 for "modelling activities that impact natural gas
+  // consumption" (their own words), which is exactly what this tool does;
+  // GWP100 (~28-30) is TAF's recommendation for emissions INVENTORIES only.
+  // Was 28 (AR5, 100-yr) before this correction -- see METHODOLOGY.md.
+  var CH4_GWP_DEFAULT = 85.0; // TAF Fugitive Methane guideline, Figure 2
 
   var SEASON_BY_MONTH = {
     1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring",
@@ -1907,13 +1912,23 @@ function redrawAllCharts(){
 }
 syncThemeButtons(document.documentElement.dataset.theme||'light');
 
-// Fixed representative values applied when "Upstream & grid losses" is Yes --
-// methane at the "Adjusted" preset (between NIR ~1% and full-chain ~3%), line
-// loss at a typical Canadian T&D figure. TODO: these used to be independently
-// adjustable sliders; the single Yes/No toggle assumes one number per
-// component rather than exposing a range -- see the methodology caveat and
-// ROADMAP.md for reinstating adjustable rates (or a low/mid/high preset).
-const UPSTREAM_METHANE_PCT=1.5, UPSTREAM_LINELOSS_PCT=5.0;
+// Fixed representative values applied when "Upstream & grid losses" is Yes.
+// Methane: this engine has ONE lever (leak% x GWP) for everything upstream
+// of combustion, but TAF's Fugitive Methane guideline (May 2022) attributes
+// its published +65% headline (single-home, no-pipeline-infrastructure-
+// change scenario) to TWO effects -- fugitive methane leakage (+10 points)
+// AND non-methane "process emissions" from extraction, e.g. flaring/venting
+// (+55 points) -- which this engine cannot represent separately. 2.14% is
+// therefore a CALIBRATED "methane-equivalent" rate, chosen so leak% x GWP85
+// reproduces TAF's +65% ratio in aggregate; it is not a literal claim that
+// 2.14% of the gas physically leaks. See METHODOLOGY.md for the arithmetic.
+// Line loss is a typical Canadian T&D figure (World Bank/IEA, unrelated to
+// the TAF figure above).
+// TODO: these used to be independently adjustable sliders; the single
+// Yes/No toggle assumes one number per component rather than exposing a
+// range -- see the methodology caveat and ROADMAP.md for reinstating
+// adjustable rates (or a low/mid/high preset).
+const UPSTREAM_METHANE_PCT=2.14, UPSTREAM_LINELOSS_PCT=5.0;
 
 // ---- state ----
 const state={
@@ -1936,7 +1951,8 @@ const CUSTOM_CELL_PLACEHOLDER={brand_model:'Custom (no valid curve yet)',ahri:nu
 // the old per-user hard-stop/continue-derated toggle): the heat pump's own
 // published minimum operating temperature is assumed, not looked up per
 // unit -- low -15 C, mid -20 C, high -25 C. Methane's GWP is likewise fixed
-// (100-yr, AR5 = 28) rather than user-adjustable -- see methodology.
+// (20-yr, TAF Fugitive Methane guideline = 85) rather than user-adjustable
+// -- see methodology.
 const TIER_MINOP={low:-15, mid:-20, high:-25};
 // Home-weighted median design heat loss (kW) across a city's 4 archetype
 // vintages -- the default seed for the design-load slider. Deliberately the
@@ -2446,7 +2462,7 @@ function buildOpts(){
     control:{strategy, lockoutTemp_C:isFuelBackup?effectiveLockoutTemp():state.lockout},
     lifecycle:{
       lineLossPct:state.lineloss,
-      methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (28, 100-yr AR5)
+      methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (85, 20-yr, TAF)
       oilUpstreamFrac:0.12,
       charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW,
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
