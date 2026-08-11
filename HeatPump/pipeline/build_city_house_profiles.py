@@ -14,6 +14,25 @@ wants, per city: every home's peak load (kW) + annual heating energy (kWh)
 the page so worst/best/representative selection can run client-side on
 whatever subset the user's filters narrow down to.
 
+CONSUMED vs. DELIVERED ENERGY (fixed 2026-08-11 -- see below)
+----------------------------------------------------------------
+Pre_HeatEnergy (EGHFURNACEAEC) is fuel/electricity CONSUMED by the primary
+heating system, not heat DELIVERED to the building -- those only match for
+electric-resistance heat (COP 1). The first version of this script used
+Pre_HeatEnergy directly, which is thermally inconsistent with Pre_HeatLoss
+(a delivered-heat quantity) for any home whose pre-retrofit system already
+has a COP or AFUE away from 1. Caught when an Ottawa home with a
+pre-retrofit ground-source heat pump (Pre_HPCOP 3.0) ranked as the city's
+"best" home purely because its 10,587 kWh consumed looked tiny next to its
+19.1 kW peak -- the model-implied heat actually delivered is ~3x that.
+Fixed using the exact conversion already validated in build_archetypes.py:
+`Pre_HeatDelivered = Pre_HeatEnergy * (Pre_HeatSeasonalCOP / 100)`
+(EGHFURSEASEFF: an AFUE-style seasonal efficiency percentage for combustion
+equipment, and >100 for heat pumps), screened to the same plausible 30-400
+range that script uses. Below 30 is missing/junk data; above 400 is a
+mis-scaled record. All balance-point solving and the annual-energy field
+shipped to the page now use Pre_HeatDelivered, not raw Pre_HeatEnergy.
+
 METHOD -- vectorized balance-point solve
 ------------------------------------------
 A per-house scipy.brentq loop (as in check_balance_point_k1s.py) does not
@@ -170,7 +189,7 @@ def process_city(city, ers_cache):
 
     if prov not in ers_cache:
         cols = ["HOUSEID", "FSA", "YearBuilt", "FloorArea", "BldgType", "Storeys",
-                "Pre_HeatLoss", "Pre_HeatEnergy"]
+                "Pre_HeatLoss", "Pre_HeatEnergy", "Pre_HeatSeasonalCOP"]
         ers_cache[prov] = pd.read_parquet(ERS_WEB_DIR / f"ers_web_{prov}.parquet", columns=cols)
     df = ers_cache[prov]
     sub = df[df["FSA"].isin(fsas)].copy()
@@ -179,9 +198,28 @@ def process_city(city, ers_cache):
 
     sub["Pre_HeatLoss"] = pd.to_numeric(sub["Pre_HeatLoss"], errors="coerce")
     sub["Pre_HeatEnergy"] = pd.to_numeric(sub["Pre_HeatEnergy"], errors="coerce")
+    sub["Pre_HeatSeasonalCOP"] = pd.to_numeric(sub["Pre_HeatSeasonalCOP"], errors="coerce")
     sub["FloorArea"] = pd.to_numeric(sub["FloorArea"], errors="coerce")
-    valid = sub[(sub["Pre_HeatLoss"] > 0) & (sub["Pre_HeatEnergy"] > 0) & (sub["FloorArea"] > 0)].copy()
-    n_dropped_invalid = n_city - len(valid)
+
+    # Pre_HeatEnergy (EGHFURNACEAEC) is fuel/electricity CONSUMED by the primary
+    # heating system, not heat delivered -- for a home whose pre-retrofit system
+    # is itself a heat pump (Pre_HeatSeasonalCOP well above 100), treating
+    # consumed kWh as delivered kWh understates its true thermal load and can
+    # make an ordinary envelope look like the most efficient home in the city
+    # (confirmed 2026-08-11 on an Ottawa GSHP home, Pre_HPCOP 3.0: consumed
+    # 10,587 kWh read as "best in the city" by peak+energy, when the model-
+    # implied delivered figure is closer to 3x that). Same conversion already
+    # validated in build_archetypes.py: delivered = consumed x (seasonal
+    # efficiency / 100). Screened to the same plausible range (30-400) that
+    # script uses -- below is missing/junk, above is a mis-scaled record.
+    n_before_cop_screen = len(sub)
+    sub = sub[sub["Pre_HeatSeasonalCOP"].between(30, 400)]
+    n_dropped_bad_cop = n_before_cop_screen - len(sub)
+    sub["Pre_HeatDelivered"] = sub["Pre_HeatEnergy"] * (sub["Pre_HeatSeasonalCOP"] / 100.0)
+
+    valid = sub[(sub["Pre_HeatLoss"] > 0) & (sub["Pre_HeatDelivered"] > 0) & (sub["FloorArea"] > 0)].copy()
+    n_dropped_invalid = n_city - n_dropped_bad_cop - len(valid)
+    print(f"dropped (no plausible seasonal efficiency, 30-400%): {n_dropped_bad_cop:,}")
 
     grid = np.arange(t_design + 0.02, T0_MAX, 0.02)
     ddh = np.clip(grid[:, None] - tmy[None, :], 0, None).sum(axis=1)
@@ -193,7 +231,7 @@ def process_city(city, ers_cache):
     assert np.all(np.diff(mono_h) >= -1e-6), f"{city}: h(T0) not monotonic past the dip"
     h_min, h_max = mono_h[0], mono_h[-1]
 
-    target = valid["Pre_HeatEnergy"].values / valid["Pre_HeatLoss"].values
+    target = valid["Pre_HeatDelivered"].values / valid["Pre_HeatLoss"].values
     too_low = target < h_min
     too_high = target > h_max
     solvable = ~too_low & ~too_high
@@ -230,7 +268,7 @@ def process_city(city, ers_cache):
             r.decade if r.decade is not None else None,
             round(float(r.FloorArea), 1),
             round(float(r.Pre_HeatLoss), 2),
-            round(float(r.Pre_HeatEnergy), 0),
+            round(float(r.Pre_HeatDelivered), 0),
             round(float(r.T0), 2),
         ]
         for r in ok.itertuples(index=False)
@@ -241,14 +279,16 @@ def process_city(city, ers_cache):
             "city": city, "province": prov, "design_temp_C": t_design,
             "n_homes": len(rows),
             "columns": ["houseid", "bldg_code", "storeys_code", "decade_built",
-                        "floor_area_m2", "design_heat_loss_kW", "annual_heat_energy_kWh",
+                        "floor_area_m2", "design_heat_loss_kW", "annual_heat_delivered_kWh",
                         "balance_point_T0_C"],
             "bldg_codes": BLDG_CODES,
             "storeys_codes": STOREYS_CODES,
             "method": "no-gains linear load model anchored on Pre_HeatLoss "
-                      "(EGHDESHTLOSS, design/peak) and Pre_HeatEnergy "
-                      "(EGHFURNACEAEC, annual) -- see check_balance_point_k1s.py "
-                      "and this script's docstring",
+                      "(EGHDESHTLOSS, design/peak) and Pre_HeatDelivered "
+                      "(EGHFURNACEAEC consumed x EGHFURSEASEFF/100 seasonal "
+                      "efficiency, converting consumed to delivered heat) "
+                      "-- see check_balance_point_k1s.py and this script's docstring",
+            "n_dropped_bad_efficiency": int(n_dropped_bad_cop),
             "n_dropped_missing_fields": int(n_dropped_invalid),
             "n_dropped_too_low": n_too_low,
             "n_dropped_too_high": n_too_high,
