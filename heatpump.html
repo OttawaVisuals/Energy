@@ -138,15 +138,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .ht-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:.9rem}
 @media(max-width:720px){.ht-filters{grid-template-columns:1fr 1fr}}
 .ht-filters select{width:100%;padding:.45rem .55rem;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px}
-.ht-spectrum{margin:1.1rem 0 1.4rem}
-.ht-spectrum-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
-.ht-track{position:relative;height:4px;border-radius:2px;background:var(--border);margin:0 9px}
-.ht-dot{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--navy);transform:translate(-50%,-50%)}
-.ht-dot.ht-avg{border-color:var(--amber);background:var(--amber)}
-.ht-marks{position:relative;height:38px;margin-top:8px}
-.ht-mark{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:10.5px;color:var(--muted);white-space:nowrap}
-.ht-mark b{display:block;color:var(--navy);font-size:12.5px;font-weight:600}
-.ht-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:.4rem}
+.ht-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:.9rem}
 .ht-table th{text-align:left;font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
 .ht-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text)}
 .ht-table tr:last-child td{border-bottom:none}
@@ -814,7 +806,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     <section class="out-section" id="section-housetypes">
       <div class="out-section-head">
         <h2 class="out-section-title">What real homes in <span id="ht-city-name"></span> look like</h2>
-        <p class="out-section-intro">Every ERS-audited home in <span id="ht-city-name2"></span>, before any retrofit — filter by house type and see the range of peak heating demand and annual heating energy across real, audited homes. Proof of concept.</p>
+        <p class="out-section-intro">Every ERS-audited home in <span id="ht-city-name2"></span>, before any retrofit — filter by house type and see how load varies with outdoor temperature for the worst, best and typical homes in that filter, real audited homes. Proof of concept.</p>
       </div>
       <div class="card">
         <div class="card-title-row"><span class="card-title">Filter homes</span><span class="card-sub" id="ht-count"></span></div>
@@ -1735,12 +1727,6 @@ const HT_STOREYS_LABEL={'1':'One storey','1.5':'One and a half','2':'Two storeys
 const HT_COL={HOUSEID:0,BLDG:1,STOREYS:2,DECADE:3,AREA:4,PEAK:5,ENERGY:6,T0:7};
 let htFiltersBuilt=null; // city slug the <select> options were last built for
 
-function htPercentile(sortedArr,p){ // sortedArr ascending, p in [0,1]
-  if(!sortedArr.length) return NaN;
-  const idx=Math.min(sortedArr.length-1,Math.max(0,Math.round(p*(sortedArr.length-1))));
-  return sortedArr[idx];
-}
-
 function buildHouseTypeFilters(city,data){
   const slug=houseProfileSlug(city);
   if(htFiltersBuilt===slug) return;
@@ -1811,30 +1797,13 @@ function renderHouseTypes(){
     const mean=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
     const avg={peak:mean(peaks),energy:mean(energies),t0:mean(rows.map(r=>r[HT_COL.T0])),area:mean(rows.map(r=>r[HT_COL.AREA]))};
 
-    const sortedPeaks=[...peaks].sort((a,b)=>a-b), sortedEnergies=[...energies].sort((a,b)=>a-b);
-    const peakTrackMin=htPercentile(sortedPeaks,0.01), peakTrackMax=htPercentile(sortedPeaks,0.99);
-    const energyTrackMin=htPercentile(sortedEnergies,0.01), energyTrackMax=htPercentile(sortedEnergies,0.99);
-    const clampPos=(v,lo,hi)=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
-
     const points=[
-      {label:'Best',sub:'1st pct',v:best,cls:''},
-      {label:'25th',sub:'percentile',v:p25,cls:''},
-      {label:'Average',sub:'mean',v:avg,cls:'ht-avg',isAvg:true},
-      {label:'75th',sub:'percentile',v:p75,cls:''},
-      {label:'Worst',sub:'99th pct',v:worst,cls:''},
-    ];
-
-    function spectrum(metricKey,trackMin,trackMax,unit,fmt){
-      const dots=points.map(p=>{
-        const val=p.isAvg?p.v[metricKey]:p.v[metricKey==='peak'?HT_COL.PEAK:HT_COL.ENERGY];
-        return `<div class="ht-dot ${p.cls}" style="left:${clampPos(val,trackMin,trackMax)}%" title="${p.label}: ${fmt(val)} ${unit}"></div>`;
-      }).join('');
-      const marks=points.map(p=>{
-        const val=p.isAvg?p.v[metricKey]:p.v[metricKey==='peak'?HT_COL.PEAK:HT_COL.ENERGY];
-        return `<div class="ht-mark" style="left:${clampPos(val,trackMin,trackMax)}%"><b>${fmt(val)}</b>${p.label}</div>`;
-      }).join('');
-      return `<div class="ht-track">${dots}</div><div class="ht-marks">${marks}</div>`;
-    }
+      {label:'Best (1st pct)',v:best,color:css('--green'),w:2},
+      {label:'25th percentile',v:p25,color:css('--blue'),w:2},
+      {label:'Average',v:avg,color:css('--navy'),w:3,isAvg:true},
+      {label:'75th percentile',v:p75,color:css('--purple'),w:2},
+      {label:'Worst (99th pct)',v:worst,color:css('--red'),w:2},
+    ].map(p=>({...p,peak:p.isAvg?p.v.peak:p.v[HT_COL.PEAK],t0:p.isAvg?p.v.t0:p.v[HT_COL.T0]}));
 
     const tableRows=points.map(p=>{
       if(p.isAvg){
@@ -1854,19 +1823,50 @@ function renderHouseTypes(){
     }).join('');
 
     body.innerHTML=`
-      <div class="ht-spectrum">
-        <div class="ht-spectrum-label">Peak heating demand (kW)</div>
-        ${spectrum('peak',peakTrackMin,peakTrackMax,'kW',v=>fmt1(v))}
-      </div>
-      <div class="ht-spectrum">
-        <div class="ht-spectrum-label">Annual heating energy (kWh)</div>
-        ${spectrum('energy',energyTrackMin,energyTrackMax,'kWh',v=>fmtI(v))}
-      </div>
+      <div class="keychart-wrap"><svg id="ht-chart" viewBox="0 0 740 340" role="img" aria-label="Heating load versus outdoor temperature for the selected homes"></svg></div>
+      <div class="kc-legend" id="ht-chart-legend"></div>
       <table class="ht-table">
         <thead><tr><th></th><th>Type</th><th>Storeys</th><th>Built</th><th>Floor area (m²)</th><th>Peak (kW)</th><th>Annual energy (kWh)</th><th>Balance pt (°C)</th></tr></thead>
         <tbody>${tableRows}</tbody>
       </table>`;
+
+    const tDesign=designTempFor(city);
+    $('ht-chart-legend').innerHTML=renderHouseTypesChart($('ht-chart'),points,tDesign);
   });
+}
+
+// Load-vs-outdoor-temperature line per selected home (Best/25th/Average/75th/
+// Worst) -- same straight-line no-gains model as Step 2's chart, anchored on
+// each point's own (design temp, peak kW) and (balance point T0, 0 kW).
+// Reuses the engine's inline-SVG chart helpers (polyline/niceTicks/stepAxes)
+// for visual consistency rather than pulling in Chart.js for one more chart.
+function renderHouseTypesChart(svg,points,tDesign){
+  if(!svg) return '';
+  const allT0=points.map(p=>p.t0);
+  const Tmin=Math.floor(Math.min(tDesign,...allT0)/5)*5-2;
+  const Tmax=Math.ceil(Math.max(...allT0)/5)*5+2;
+  const maxKW=Math.max(1,...points.map(p=>p.peak))*1.1;
+  const W=740,Hh=340,m={l:52,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxKW)*pH;
+  const light=css('--light'),muted=css('--muted');
+  const s={v:''};
+  niceTicks(maxKW,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
+  s.v+=`<text x="14" y="${m.t+pH/2}" transform="rotate(-90 14 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">Load (kW)</text>`;
+  stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
+  points.forEach(p=>{
+    const slope=p.peak/(p.t0-tDesign);
+    const pts=[];
+    for(let t=Tmin;t<=Tmax+1e-9;t+=1) pts.push([t,Math.max(0,slope*(p.t0-t))]);
+    s.v+=polyline(pts,x,y,p.color,p.w||2);
+  });
+  if(tDesign>=Tmin&&tDesign<=Tmax){
+    s.v+=`<line x1="${x(tDesign)}" y1="${m.t}" x2="${x(tDesign)}" y2="${m.t+pH}" stroke="${css('--amber2')}" stroke-width="1.2" stroke-dasharray="3 4"/>`;
+    s.v+=`<text x="${x(tDesign)+4}" y="${m.t+12}" font-size="10.5" fill="${css('--amber2')}">design ${fmt1(tDesign)}°</text>`;
+  }
+  svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
+  svg.innerHTML=s.v;
+  return points.map(p=>`<span class="kc-leg"><span class="kc-swatch" style="border-color:${p.color};border-top-width:${p.w||2}px"></span>${p.label} — ${fmt1(p.peak)} kW, balance ${fmt1(p.t0)}°</span>`).join('');
 }
 
 const $=id=>document.getElementById(id);
