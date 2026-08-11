@@ -1773,10 +1773,13 @@ Lifecycle terms are user sliders (PLAN.md §6), not baked in:
 - **Refrigerant** (annual, amortized, PROJECT only):
   `charge_kg × (leakRate_frac + eolLossFrac/lifetimeYears) × GWP`.
 - **Upstream methane**: `methaneLeakPct%` of gas throughput (mass, via
-  10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. In v2 the leak slider
-  spans **0–5 %** (was 0–3 %) with labelled presets and `methaneGWP` is a
-  **toggle**: 28 (AR5 100-yr, default) or 82.5 (AR6 fossil-methane 20-yr). Sources
-  and the full-chain arithmetic are in **§Lifecycle sourcing** below.
+  10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. The engine still
+  accepts both as independent parameters, but the live page currently exposes
+  only a single "Upstream & grid losses: Yes/No" switch (not a slider) that
+  applies fixed defaults when Yes: `methaneLeakPct` = **2.14** (a calibrated
+  methane-equivalent rate, not a literal leak reading — see **§Lifecycle
+  sourcing**) and `methaneGWP` = **85** (20-yr, per TAF's Fugitive Methane
+  guideline). Sources and the arithmetic are in **§Lifecycle sourcing** below.
 - **Upstream oil**: optional adder `oilUpstreamFrac` × oil combustion.
 - **Line losses**: default 5 % on delivered electricity (sourced in
   **§Lifecycle sourcing**).
@@ -1881,110 +1884,151 @@ caveat inline.
 
 ---
 
-## Lifecycle sourcing — methane, GWP20, line losses (v2, ROADMAP item 9 workstream E)
+## Lifecycle sourcing — methane, GWP20, line losses (v3, corrected 2026-08-11)
 
-> **Open items (2026-07-28):** a review of BDA's *Heat Pump Lifecycle Emissions
-> Explorer* found our refrigerant GWPs are AR4/AR5-era and inconsistent with the
-> engine test vector, and that we have no AC counterfactual, no per-refrigerant
-> charge mass, and no forward grid trajectory. Nothing changed yet — see
+> **Superseded (2026-08-11):** the v2 methane defaults below (1 % leak, GWP 28)
+> were reconstructed from a remembered "×1.9 report" claim without the source
+> document in hand. User supplied the actual source — The Atmospheric Fund's
+> [*Fugitive Methane*](https://taf.ca/publications/fugitive-methane/) guideline
+> (May 2022) — which gives real, citable numbers for exactly this tool's use
+> case. First pass at applying it (same day) used TAF's headline "2.7 % full
+> life-cycle leak" figure directly through the engine's leak%×GWP formula —
+> **wrong**, because that 2.7 % is TAF's full-chain leak rate for their
+> *infrastructure-change* scenario, and running it through our formula
+> overshoots to ≈+82%, past even TAF's own +92% upper scenario. Corrected
+> below: the engine's single leak-rate lever is **calibrated** to reproduce
+> TAF's actual **+65%** headline (`CH4_GWP_DEFAULT` = 85, `methaneLeakPct`
+> default = 2.14, not 2.7) — see "The arithmetic" below for why a literal
+> reading of TAF's 2.7% doesn't work here.
+>
+> **Still open:** a review of BDA's *Heat Pump Lifecycle Emissions Explorer*
+> found our refrigerant GWPs are AR4/AR5-era and inconsistent with the engine
+> test vector, and that we have no AC counterfactual, no per-refrigerant charge
+> mass, and no forward grid trajectory. Nothing changed there yet — see
 > [BDA_COMPARISON.md](BDA_COMPARISON.md) and the ROADMAP entry.
 
-The lifecycle sliders were always adjustable defaults; v2 sources their ranges
-from the primary literature and widens two of them. Nothing here is baked into a
-headline — the defaults (1 % methane leak, GWP 28, 5 % line loss) are unchanged;
-v2 adds the **GWP-horizon toggle**, widens the **methane leak slider to 0–5 %**
-with labelled presets, and documents the line-loss figure.
+### The source: TAF's *Fugitive Methane* guideline (May 2022)
+
+TAF (The Atmospheric Fund, a Toronto-Hamilton regional climate agency)
+publishes life-cycle natural-gas emissions factors for Ontario, built by
+reconciling Canada's National Inventory Report (NIR, ~1.3 % leak) against
+top-down atmospheric-measurement studies. Their headline: **a 2.7 % full
+life-cycle leak rate — roughly double the NIR figure** — split across four
+life-cycle stages (extraction 1.8 %, upstream transmission 0.3 %, local
+transmission/distribution 0.2 %, post-metering 0.4 %). Their published
+emissions factors combine that leak rate with a separate, non-disaggregable
+**"process emissions"** term (extraction-related CO₂ from flaring, venting,
+compressor combustion — footnote 4 of the guideline: *"process emissions
+cannot be disaggregated between extraction, transmission, and distribution
+with current data sources"*) into one headline ratio per scenario:
+
+| TAF scenario | GWP | EF (kg CO₂e/m³) | vs. combustion-only (1.90) | of which: process / fugitive methane |
+|---|---|---:|---:|---|
+| Project, **no** pipeline infrastructure change (a single home switching fuels) | 20-yr | 3.13 | **+65 %** | +55 pts process, **+10 pts methane** |
+| Project **that changes** pipeline infrastructure (neighbourhood-scale conversion) | 20-yr | 3.65 | **+92 %** | +82 pts process, +10 pts methane |
+| Emissions inventory (Scope 1+3) | 100-yr | 2.45 | +29 % | — |
+
+TAF's own guidance (p.7) specifies which GWP horizon applies to which use:
+*"Modelling activities that impact natural gas consumption: use GWP20"* vs.
+*"Reporting greenhouse gas emission inventories: use GWP100."* This tool
+models a single home's fuel-switch decision, not an inventory — so the
+correct row is the **first one**: no pipeline infrastructure change, GWP20,
++65 % over combustion-only. The **+92 % row is the right citation for a
+future neighbourhood/city-scale conversion tool** (relevant to the Ottawa
+`HEATDEMAND_PLAN` work), not this single-home tool.
+
+**Why this engine can't just plug in TAF's numbers directly.** TAF's +65%
+is *mostly* non-methane "process emissions" (+55 of the 65 points) that our
+engine has no separate model for — it has exactly one upstream lever,
+`methaneLeakPct × methaneGWP`. Feeding that lever TAF's headline 2.7% full
+lifecycle leak rate (as the first pass at this fix did) implicitly claims
+*all* of TAF's +65% is methane, which isn't what TAF says, and produces a
+ratio well past what TAF actually published. The defensible fix, given a
+single lever: calibrate `methaneLeakPct` so the engine's own formula
+reproduces TAF's **published +65% ratio** in aggregate, and document plainly
+that the resulting percentage is a bundled stand-in for both effects, not a
+literal methane leak-rate reading.
 
 ### Methane global-warming potential — the 100-yr / 20-yr toggle
 
 Methane is a short-lived but potent greenhouse gas, so its CO₂-equivalent
 depends strongly on the time horizon chosen:
 
-- **100-yr, GWP 28** (default). IPCC **AR5** (2013), WG1 Ch. 8, Table 8.7 —
-  CH₄ GWP-100 = 28 without climate–carbon feedbacks (34 with). This is the
-  inventory-standard horizon and the engine's original `CH4_GWP_DEFAULT`.
-- **20-yr, GWP 82.5.** IPCC **AR6** (2021), WG1 Ch. 7, Table 7.15 — **fossil**
-  methane GWP-20 = 82.5 (GWP-100 = 29.8). We use the *fossil* value because
-  pipeline gas is fossil-origin (its oxidation adds new CO₂ to the active
-  carbon cycle). The 20-yr horizon weights methane's near-term warming ≈ 3× the
-  100-yr value and is the honest lens for a decision about *near-term* climate
-  forcing. (Note the small edition mix: 28 is the AR5 100-yr figure the tool has
-  always used; 82.5 is the AR6 fossil 20-yr figure. AR5's own 20-yr value is 84 /
-  86 fossil — within rounding of 82.5, so the toggle's story is unaffected.)
+- **20-yr, GWP 85** (default, per TAF's Figure 2 — the tool's `CH4_GWP_DEFAULT`).
+  Matches IPCC AR6 fossil-methane GWP-20 (82.5) within rounding; we use TAF's
+  own stated figure since it's the number their EFs above are built on.
+- **100-yr, GWP ≈ 28–30.** IPCC AR5 Ch. 8 gives 28 (AR6 fossil gives 29.8);
+  TAF's own inventory-scope figure (+29 %, table above) implicitly uses a
+  100-yr horizon. This is the inventory-standard horizon, not the one this
+  tool defaults to, since the tool models a consumption decision, not an
+  inventory.
 
-### How much methane actually leaks — three evidence tiers
+The 20-yr horizon weights methane's near-term warming roughly 3× the 100-yr
+value — the honest lens for a decision about *near-term* climate forcing,
+per TAF's own reasoning.
 
-The leak slider's presets bracket the real uncertainty in the *full-chain*
-(well-to-meter, plus post-meter) leakage rate:
+### The arithmetic — calibrating the single leak-rate lever to TAF's +65%
 
-1. **NIR-implied (~1 %)** — Canada's **National Inventory Report** (ECCC)
-   accounts upstream oil-and-gas fugitive + vented methane; the production-
-   normalized rate implied for the gas supplied to buildings is on the order of
-   ~1 %. This is the bottom-up, inventory figure.
-2. **Measurement-adjusted (~1.5× → ~1.5 %)** — top-down **atmospheric
-   measurement** studies consistently find inventories *understate* oil-and-gas
-   methane. Alvarez et al. (2018, *Science*) put the US supply chain at **2.3 %**,
-   ≈ 1.6× the EPA GHGI; "Closing the methane gap" (Nature Communications, 2021)
-   and a Canadian oil-and-gas value-chain synthesis (Environ. Sci. Technol. /
-   PMC, 2024) put Canada at **~1.5–2.0× its NIR**. Applying ~1.5× to the
-   NIR-implied ~1 % gives the ~1.5 % preset.
-3. **High / full-chain (~3 %)** — adds the **post-meter** (behind-the-meter,
-   inside-the-building) leakage the upstream inventory misses. A 2026 Canadian
-   study of natural-gas end use in residential, commercial and institutional
-   buildings (Environ. Res.: Infrastructure & Sustainability / IOPscience;
-   chamber measurements of 49 appliances, mean 913 mg/hr per appliance, 98 % of
-   it from associated piping rather than the appliances) found post-meter
-   emission factors **2.0–2.5× the NIR end-use factor**. Stacking upstream
-   measurement-adjusted (~1.5–2 %) and a post-meter contribution reaches a
-   full-chain figure around **~3 %**.
-
-### The ×1.9 arithmetic (3 % full-chain leak at GWP-20)
-
-Reproducing the user's remembered "×1.9 report" claim from the tool's own
-constants. Natural gas combustion is **181 g CO₂e/kWh** (HHV). One kWh of gas
-(HHV) is `1 / 10.55 = 0.094787 m³`; at 0.68 kg/m³ (≈ 100 % CH₄ for the leak) that
-is **0.064455 kg** of gas per kWh delivered to the meter. A **3 %** full-chain
-leak is `0.03 × 0.064455 = 0.0019337 kg CH₄` per kWh; at **GWP-20 = 82.5**:
+Natural gas combustion is **181 g CO₂e/kWh** (HHV). One kWh of gas (HHV) is
+`1 / 10.55 = 0.094787 m³`; at 0.68 kg/m³ (≈ 100 % CH₄ for the leak) that is
+**0.064455 kg** of gas per kWh delivered to the meter. Solving for the leak
+rate that makes `combustion × (1 + leak% × 0.064455 × GWP85 / combustion)`
+equal TAF's own **3.13 / 1.90 = 1.6474** ratio gives **leak% = 2.14%**:
 
 ```
-0.0019337 kg CH₄ × 82.5  = 0.15953 kg CO₂e  = 159.5 g CO₂e per kWh gas
-combustion + upstream    = 181 + 159.5      = 340.5 g CO₂e per kWh gas
-ratio to combustion only = 340.5 / 181      = 1.88  ≈ ×1.9
+0.02140 × 0.064455    = 0.0013793 kg CH4-equivalent per kWh
+0.0013793 kg × 85      = 0.11724 kg CO2e    = 117.2 g CO2e per kWh gas
+combustion + upstream  = 181 + 117.2        = 298.2 g CO2e per kWh gas
+ratio to combustion only = 298.2 / 181      = 1.647  = +64.7 %  ≈ TAF's +65 %
 ```
 
-So a **3 % full-chain leak priced at the 20-yr GWP nearly doubles the effective
-carbon intensity of gas heating** — the ×1.9 figure. For contrast: the same 3 %
-at GWP-100 (28) is ×1.30, and the tool's *default* (1 % at GWP 28) is ×1.10.
-The slider + toggle let a user reproduce any of these; only the combustion
-term (181) is fixed.
+**2.14%, not TAF's headline 2.7%, is the calibrated value** — using the
+literal 2.7% full-lifecycle rate in this same formula gives `+82%` (shown
+by mistake in the first pass at this fix, now corrected), because 2.7% is
+TAF's *leak-only* rate for a different scenario (infrastructure change,
+full chain), not a number meant to be multiplied straight through a
+methane-only formula to reproduce the no-infrastructure-change +65%. 2.14%
+is a bundled proxy standing in for TAF's process-emissions term as well as
+its fugitive-methane term — call it a "methane-equivalent" rate, not a
+literal leak-rate reading.
 
-### Grid line losses — 5 % default, and why not Portfolio Manager's 2.05
+### Grid line losses — 5 % default, and why not Portfolio Manager's 1.83
 
 The line-loss slider (default **5 %**) grosses up delivered electricity to
 generated electricity, because the grid EF is expressed per **kWh generated**.
 
 - **World Bank / IEA** electricity transmission-and-distribution losses for
-  Canada (indicator `EG.ELC.LOSS.ZS`) run **~5.1 % (2019), ~5.0 % (2020)**,
-  easing to **~4.0 % (2021–2024)** on the current IEA-sourced series. Our 5 %
-  default sits at the recent high end — mildly conservative.
+  Canada (indicator `EG.ELC.LOSS.ZS`, World Development Indicators, sourced
+  from the IEA Energy Statistics Data Browser) — live-queried 2026-08-11
+  against the World Bank API (`api.worldbank.org/v2/country/CA/indicator/
+  EG.ELC.LOSS.ZS`): **5.14% (2019), 5.04% (2020), 4.02% (2021), 4.01% (2022),
+  4.00% (2023), 4.15% (2024)**. Our 5% default sits at the recent high end —
+  mildly conservative.
 - **Utility figures** vary by system: transmission-only losses (e.g. AESO's
   Alberta transmission grid) are ~4 % while a full transmission+distribution
   path to a home (e.g. BC Hydro) can reach ~10 %. 5 % is a reasonable
   province-agnostic midpoint for a residential connection.
 
-**Why ENERGY STAR Portfolio Manager's source–site ratio (2.05 for Canadian grid
-electricity) is *not* used here.** Portfolio Manager's 2.05 (Portfolio Manager
-Technical Reference, *Source Energy*, Aug 2023; NRCan's site-vs-source page)
-converts **site** electricity to **primary source energy** — it bundles the
-**thermal-generation conversion losses at the power plant** (the ~2× penalty of
-burning fuel to make electricity) *together with* the few-percent T&D losses.
+**Why ENERGY STAR Portfolio Manager's source–site ratio (1.83 for Canadian grid
+electricity — corrected 2026-08-11; a prior version of this doc misstated it
+as 2.05) is *not* used here.** Portfolio Manager's 1.83 (Portfolio Manager
+Technical Reference, *Source Energy*, Aug 2023, Figure 1/Figure 12 — user
+supplied and directly verified against the source PDF) converts **site**
+electricity to **primary source energy** — it bundles the
+**thermal-generation conversion losses at the power plant** (the ~1.8×
+penalty of burning fuel to make electricity, given Canada's largely
+hydro/nuclear grid) *together with* the few-percent T&D losses. Figure 12 of
+that same document computes the ratio as (fuel consumed for generation +
+renewables) ÷ (electricity **sold to customers** + net exports) — i.e. the
+denominator is already net of T&D losses, confirming the ratio bundles both
+effects rather than being a T&D-only figure.
 Our grid emission factor is already **grams CO₂e per kWh *generated*** — it has
 the generation mix and its conversion losses fully baked in. Multiplying
-delivered kWh by 2.05 would **double-count** the generation-side losses (once in
+delivered kWh by 1.83 would **double-count** the generation-side losses (once in
 the EF, once in the ratio) and roughly double every electricity emission. The
 only quantity we still need to add on top of a per-kWh-generated EF is the
 **delivery loss between the plant busbar and the meter** — i.e. T&D only — which
-is the ~5 % line-loss slider, *not* the 2.05 source–site ratio.
+is the ~5 % line-loss slider, *not* the 1.83 source–site ratio.
 
 ---
 
