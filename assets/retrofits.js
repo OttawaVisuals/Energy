@@ -1631,7 +1631,13 @@ function renderEUI(preEUIs,postEUIs,saveMedian){
     const d=(pre-post)/area;
     if(d>0&&d<=500){const k=Math.floor(d/BINS.eui)*BINS.eui;deltaBins[k]=(deltaBins[k]||0)+1;}
   });
-  drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²');
+  // Recommended-upgrade EUI, from the auditor's plan (Plan_TotalEnergy --
+  // see Python/ers_web_pipeline.py's "Added 2026-08-11" note). FSA mode
+  // only: province_json's precomputed stats don't carry a plan distribution
+  // yet, so renderProvinceEUI below doesn't pass this.
+  const planEUIs=FILTERED.map(r=>{const e=num(r.Plan_TotalEnergy),a=num(r.FloorArea);return(e&&a&&a>0)?e/a:null;}).filter(v=>v!==null);
+  const planBins=planEUIs.length?euiBins(planEUIs):null;
+  drawComboChart('eui-chart','eui',preBins,postBins,deltaBins,'kWh/m²','Before retrofit','After retrofit','Improvement',planBins,'Recommended by advisor');
 }
 
 // ── (removed) EUI slopegraph "Every home, pre → post EUI" ──
@@ -2549,11 +2555,14 @@ function legendLineIcon(ds){
 // as bars — all on the same axis, so no value/reduction toggle is needed.
 // The Improvement dataset is simply omitted when deltaBins is empty (some
 // province-precomputed measures don't ship a delta histogram).
-function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLabel='Before retrofit',postLabel='After retrofit',deltaLabel='Improvement'){
+function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLabel='Before retrofit',postLabel='After retrofit',deltaLabel='Improvement',planBins=null,planLabel='Recommended by advisor'){
   dc(chartKey);
   // postBins=null means "single-series mode" (e.g. hpsizing's one-temperature
   // view) -- omit the second line entirely rather than drawing a flat zero.
-  const allKeys=[...new Set([...Object.keys(preBins||{}),...Object.keys(postBins||{}),...Object.keys(deltaBins||{})])].map(Number).sort((a,b)=>a-b);
+  // planBins is optional (only EUI passes it so far, from Plan_TotalEnergy --
+  // see [[Plan_* note]]); appended last so every other drawComboChart call
+  // site keeps working unmodified.
+  const allKeys=[...new Set([...Object.keys(preBins||{}),...Object.keys(postBins||{}),...Object.keys(deltaBins||{}),...Object.keys(planBins||{})])].map(Number).sort((a,b)=>a-b);
   // Bins are floor-bucketed (a key of 20 holds [20,20+step)) but were only
   // ever labelled by their left edge, so a reader had no way to tell a 20
   // kWh/m² step from a 2 kW one just by looking at the axis. Infer the step
@@ -2579,6 +2588,13 @@ function drawComboChart(canvasId,chartKey,preBins,postBins,deltaBins,unit,preLab
   );
   if(postBins){
     datasets.push({type:'line',label:postLabel,data:allKeys.map(k=>postBins[k]||0),borderColor:POST_LINE,pointRadius:3,pointStyle:'circle',borderWidth:2.5,tension:0.25,fill:false,order:2});
+  }
+  // Third line, distinct colour AND point shape (triangle) from pre/post --
+  // same "not colour alone" rule as above, since this can share the chart
+  // with a colour-blind palette where pre/post/plan must still be tellable
+  // apart by shape.
+  if(planBins){
+    datasets.push({type:'line',label:planLabel,data:allKeys.map(k=>planBins[k]||0),borderColor:PAL.purple,pointRadius:3,pointStyle:'triangle',borderWidth:2,borderDash:[2,2],tension:0.25,fill:false,order:2});
   }
   charts[chartKey]=new Chart($(canvasId).getContext('2d'),{
     type:'bar',
