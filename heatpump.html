@@ -134,6 +134,25 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .card .caveats b{color:var(--text);font-weight:600}
 .note b{color:var(--muted);font-weight:500}
 
+/* ── House-types explorer (proof of concept) ── */
+.ht-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:.9rem}
+@media(max-width:720px){.ht-filters{grid-template-columns:1fr 1fr}}
+.ht-filters select{width:100%;padding:.45rem .55rem;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px}
+.ht-spectrum{margin:1.1rem 0 1.4rem}
+.ht-spectrum-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.ht-track{position:relative;height:4px;border-radius:2px;background:var(--border);margin:0 9px}
+.ht-dot{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--navy);transform:translate(-50%,-50%)}
+.ht-dot.ht-avg{border-color:var(--amber);background:var(--amber)}
+.ht-marks{position:relative;height:38px;margin-top:8px}
+.ht-mark{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.ht-mark b{display:block;color:var(--navy);font-size:12.5px;font-weight:600}
+.ht-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:.4rem}
+.ht-table th{text-align:left;font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
+.ht-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+.ht-table tr:last-child td{border-bottom:none}
+.ht-table td.ht-num{text-align:right;font-variant-numeric:tabular-nums}
+.ht-table tr.ht-row-avg td{color:var(--muted);font-style:italic}
+
 /* ── Output sections ── */
 .out-section{margin:0 0 2.1rem}
 .out-section:last-of-type{margin-bottom:1rem}
@@ -791,6 +810,33 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
+    <!-- ═══ Real homes explorer (proof of concept) ═══ -->
+    <section class="out-section" id="section-housetypes">
+      <div class="out-section-head">
+        <h2 class="out-section-title">What real homes in <span id="ht-city-name"></span> look like</h2>
+        <p class="out-section-intro">Every ERS-audited home in <span id="ht-city-name2"></span>, before any retrofit — filter by house type and see the range of peak heating demand and annual heating energy across real, audited homes. Proof of concept.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row"><span class="card-title">Filter homes</span><span class="card-sub" id="ht-count"></span></div>
+        <div class="ht-filters">
+          <select id="ht-type"><option value="">All types</option></select>
+          <select id="ht-storeys"><option value="">All storeys</option></select>
+          <select id="ht-vintage"><option value="">All vintages</option></select>
+          <select id="ht-size">
+            <option value="">All sizes</option>
+            <option value="0-100">&lt;100 m²</option>
+            <option value="100-150">100–150 m²</option>
+            <option value="150-200">150–200 m²</option>
+            <option value="200-250">200–250 m²</option>
+            <option value="250-300">250–300 m²</option>
+            <option value="300-99999">300 m²+</option>
+          </select>
+        </div>
+        <div id="ht-body"></div>
+        <div class="note">Peak = pre-retrofit design heat loss (kW, EGHDESHTLOSS). Annual energy = pre-retrofit heating energy (kWh, EGHFURNACEAEC). Balance point = the no-internal/solar-gains implied temperature above which the home needs no heat — see <a href="#" id="ht-method-link">methodology</a>. "Worst"/"Best" are the 99th/1st percentile of a combined severity score (the lower of each home's peak-load and annual-energy percentile within the filtered set), not the literal extreme — a single mis-entered ERS record shouldn't stretch the displayed range. "Average" is the arithmetic mean, not a real home.</div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -933,6 +979,10 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
         <li><b>Baseboard → heat pump:</b> ≈ 50–58% less (Ontario/Alberta), inside the published 49–77% range; in Quebec the grid is already ~carbon-free, so there's essentially nothing to cut.</li>
       </ul>
       <div class="caveats">The single biggest reason our numbers can look lower than a headline you've read elsewhere is the <b>marginal</b> grid basis (our default). Most published studies price heat-pump electricity at the grid <i>average</i>; we default to the <i>marginal</i> gas generator because that's what actually runs to meet new demand — an honest but more demanding test. Flip the toggle to “Average” in Advanced to compare like-for-like. Two further gaps are deliberate: our grid is calibrated to the current <b>2025</b> mix (Ontario's has roughly tripled in carbon intensity since 2020, when older studies were written), and our homes are the <b>median</b> audited house of each type (larger, and higher-emitting in absolute terms, than the single reference house those studies model — though the percentage change is barely affected). Full validation tables are in <code>HeatPump/METHODOLOGY.md</code>.</div>
+
+      <h4 id="m-housetypes">Real homes explorer — how the balance point is derived</h4>
+      <p>The "real homes" section above plots <b>every ERS-audited home</b> in the selected city (pre-retrofit condition), not a sample or a model archetype — up to ~290,000 homes per city. Two fields come straight from each home's own audit: <b>peak load</b> (design heat loss at the city's design temperature, EGHDESHTLOSS) and <b>annual heating energy</b> (EGHFURNACEAEC). The <b>balance point</b> is derived, not measured: assuming a straight-line relationship between outdoor temperature and heating load with <b>no internal or solar gains</b>, it is the outdoor temperature at which that home's own peak-load line, integrated over a full TMY year, would reproduce its own measured annual energy. Because real gains are ignored by construction, this "balance point" is best read as <i>effective</i> — it absorbs real internal/solar gains, occupant behaviour and TMY-vs-actual-year weather deviation into one number, not a physical measurement of any one of them.</p>
+      <p><b>Worst/best</b> avoid a single miskeyed ERS row stretching the display: each home is ranked on the lower of its own peak-load percentile and annual-energy percentile within the filtered set (so a home has to be extreme on <i>both</i> axes to rank as bad), and "Worst"/"Best" are the 99th/1st percentile of that ranking — not the literal maximum/minimum. "Average" is the arithmetic mean of the filtered set and is not any single real home.</p>
 
       <h4>What this does not do</h4>
       <p>No equipment or installation costs — the cost card compares annual <i>operating</i> cost only, not payback; no solar gains or thermostat setbacks (the zero-heat temperature absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
@@ -1663,6 +1713,162 @@ function ensurePrices(prov){
     .catch(()=>{PRICES_CACHE[prov]=null;return null;});
 }
 
+// ── Real-homes explorer (proof of concept) — HeatPump/data/processed/house_profiles_<slug>.json ──
+// One row per ERS-audited home in the city (pre-retrofit), full population
+// per city, not a sample. See build_city_house_profiles.py for how
+// peak/energy/balance-point are derived and HeatPump/pipeline for the
+// underlying FSA-per-city join (Canada Post schematic, not CLIENTCITY text).
+const HOUSE_PROFILES_CACHE={};
+const houseProfileSlug=c=>c.toLowerCase().replace(/ /g,'_');
+function ensureHouseProfiles(city){
+  const s=houseProfileSlug(city);
+  if(HOUSE_PROFILES_CACHE[s]!==undefined) return Promise.resolve(HOUSE_PROFILES_CACHE[s]);
+  return fetch(DATA+'house_profiles_'+s+'.json')
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{HOUSE_PROFILES_CACHE[s]=j;return j;})
+    .catch(()=>{HOUSE_PROFILES_CACHE[s]=null;return null;});
+}
+const HT_BLDG_LABEL={detached:'Detached',semi_duplex:'Semi-detached / duplex',row_end:'Row house (end unit)',
+  row_middle:'Row house (middle unit)',apartment:'Apartment',mobile:'Mobile home',triplex:'Triplex',other:'Other'};
+const HT_STOREYS_LABEL={'1':'One storey','1.5':'One and a half','2':'Two storeys','2.5':'Two and a half',
+  '3':'Three storeys',split:'Split level',split_entry:'Split entry / raised basement'};
+const HT_COL={HOUSEID:0,BLDG:1,STOREYS:2,DECADE:3,AREA:4,PEAK:5,ENERGY:6,T0:7};
+let htFiltersBuilt=null; // city slug the <select> options were last built for
+
+function htPercentile(sortedArr,p){ // sortedArr ascending, p in [0,1]
+  if(!sortedArr.length) return NaN;
+  const idx=Math.min(sortedArr.length-1,Math.max(0,Math.round(p*(sortedArr.length-1))));
+  return sortedArr[idx];
+}
+
+function buildHouseTypeFilters(city,data){
+  const slug=houseProfileSlug(city);
+  if(htFiltersBuilt===slug) return;
+  htFiltersBuilt=slug;
+  const typeSel=$('ht-type'),storeysSel=$('ht-storeys'),vintageSel=$('ht-vintage');
+  typeSel.innerHTML='<option value="">All types</option>';
+  storeysSel.innerHTML='<option value="">All storeys</option>';
+  vintageSel.innerHTML='<option value="">All vintages</option>';
+  if(!data) return;
+  data.meta.bldg_codes.forEach(c=>{
+    const o=document.createElement('option');o.value=c;o.textContent=HT_BLDG_LABEL[c]||c;typeSel.appendChild(o);
+  });
+  data.meta.storeys_codes.forEach(c=>{
+    const o=document.createElement('option');o.value=c;o.textContent=HT_STOREYS_LABEL[c]||c;storeysSel.appendChild(o);
+  });
+  const decades=[...new Set(data.rows.map(r=>r[HT_COL.DECADE]))].filter(d=>d!==null);
+  decades.sort((a,b)=>{
+    if(a==='pre1946')return -1; if(b==='pre1946')return 1; return a-b;
+  });
+  decades.forEach(d=>{
+    const o=document.createElement('option');o.value=d;
+    o.textContent=d==='pre1946'?'Before 1946':d+'s';
+    vintageSel.appendChild(o);
+  });
+}
+
+function renderHouseTypes(){
+  const city=state.city;
+  $('ht-city-name').textContent=city;$('ht-city-name2').textContent=city;
+  ensureHouseProfiles(city).then(data=>{
+    buildHouseTypeFilters(city,data);
+    const body=$('ht-body');
+    if(!data){body.innerHTML='<p class="note">House-level data not available for '+city+'.</p>';$('ht-count').textContent='';return;}
+
+    const typeV=$('ht-type').value, storeysV=$('ht-storeys').value, vintageV=$('ht-vintage').value, sizeV=$('ht-size').value;
+    const typeIdx=typeV===''?null:data.meta.bldg_codes.indexOf(typeV);
+    const storeysIdx=storeysV===''?null:data.meta.storeys_codes.indexOf(storeysV);
+    const vintageVal=vintageV===''?null:(vintageV==='pre1946'?'pre1946':Number(vintageV));
+    let sizeMin=null,sizeMax=null;
+    if(sizeV){const parts=sizeV.split('-');sizeMin=Number(parts[0]);sizeMax=Number(parts[1]);}
+
+    let rows=data.rows;
+    if(typeIdx!==null) rows=rows.filter(r=>r[HT_COL.BLDG]===typeIdx);
+    if(storeysIdx!==null) rows=rows.filter(r=>r[HT_COL.STOREYS]===storeysIdx);
+    if(vintageVal!==null) rows=rows.filter(r=>r[HT_COL.DECADE]===vintageVal);
+    if(sizeMin!==null) rows=rows.filter(r=>r[HT_COL.AREA]>=sizeMin&&r[HT_COL.AREA]<sizeMax);
+
+    $('ht-count').textContent=rows.length.toLocaleString('en-CA')+' of '+data.meta.n_homes.toLocaleString('en-CA')+' homes';
+
+    if(rows.length<5){
+      body.innerHTML='<p class="note">Too few homes match this filter ('+rows.length+') to show a meaningful range. Try a broader filter.</p>';
+      return;
+    }
+
+    const peaks=rows.map(r=>r[HT_COL.PEAK]), energies=rows.map(r=>r[HT_COL.ENERGY]);
+    const rank=arr=>{ // percentile rank (0..1) of each element, ties averaged via simple sort-index
+      const idx=arr.map((v,i)=>i).sort((a,b)=>arr[a]-arr[b]);
+      const pct=new Array(arr.length);
+      idx.forEach((origIdx,rankPos)=>{pct[origIdx]=rankPos/(arr.length-1);});
+      return pct;
+    };
+    const peakPct=rank(peaks), energyPct=rank(energies);
+    const score=rows.map((r,i)=>Math.min(peakPct[i],energyPct[i]));
+    const order=rows.map((r,i)=>i).sort((a,b)=>score[a]-score[b]);
+
+    const pick=p=>{const i=order[Math.min(order.length-1,Math.max(0,Math.round(p*(order.length-1))))];return rows[i];};
+    const best=pick(0.01), p25=pick(0.25), p75=pick(0.75), worst=pick(0.99);
+    const mean=arr=>arr.reduce((a,b)=>a+b,0)/arr.length;
+    const avg={peak:mean(peaks),energy:mean(energies),t0:mean(rows.map(r=>r[HT_COL.T0])),area:mean(rows.map(r=>r[HT_COL.AREA]))};
+
+    const sortedPeaks=[...peaks].sort((a,b)=>a-b), sortedEnergies=[...energies].sort((a,b)=>a-b);
+    const peakTrackMin=htPercentile(sortedPeaks,0.01), peakTrackMax=htPercentile(sortedPeaks,0.99);
+    const energyTrackMin=htPercentile(sortedEnergies,0.01), energyTrackMax=htPercentile(sortedEnergies,0.99);
+    const clampPos=(v,lo,hi)=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+
+    const points=[
+      {label:'Best',sub:'1st pct',v:best,cls:''},
+      {label:'25th',sub:'percentile',v:p25,cls:''},
+      {label:'Average',sub:'mean',v:avg,cls:'ht-avg',isAvg:true},
+      {label:'75th',sub:'percentile',v:p75,cls:''},
+      {label:'Worst',sub:'99th pct',v:worst,cls:''},
+    ];
+
+    function spectrum(metricKey,trackMin,trackMax,unit,fmt){
+      const dots=points.map(p=>{
+        const val=p.isAvg?p.v[metricKey]:p.v[metricKey==='peak'?HT_COL.PEAK:HT_COL.ENERGY];
+        return `<div class="ht-dot ${p.cls}" style="left:${clampPos(val,trackMin,trackMax)}%" title="${p.label}: ${fmt(val)} ${unit}"></div>`;
+      }).join('');
+      const marks=points.map(p=>{
+        const val=p.isAvg?p.v[metricKey]:p.v[metricKey==='peak'?HT_COL.PEAK:HT_COL.ENERGY];
+        return `<div class="ht-mark" style="left:${clampPos(val,trackMin,trackMax)}%"><b>${fmt(val)}</b>${p.label}</div>`;
+      }).join('');
+      return `<div class="ht-track">${dots}</div><div class="ht-marks">${marks}</div>`;
+    }
+
+    const tableRows=points.map(p=>{
+      if(p.isAvg){
+        return `<tr class="ht-row-avg"><td>${p.label}</td><td>—</td><td>—</td><td>—</td>
+          <td class="ht-num">${fmt1(p.v.area)}</td><td class="ht-num">${fmt1(p.v.peak)}</td>
+          <td class="ht-num">${fmtI(p.v.energy)}</td><td class="ht-num">${fmt1(p.v.t0)}</td></tr>`;
+      }
+      const r=p.v;
+      return `<tr><td>${p.label}</td>
+        <td>${HT_BLDG_LABEL[data.meta.bldg_codes[r[HT_COL.BLDG]]]||'—'}</td>
+        <td>${HT_STOREYS_LABEL[data.meta.storeys_codes[r[HT_COL.STOREYS]]]||'—'}</td>
+        <td>${r[HT_COL.DECADE]==='pre1946'?'Before 1946':r[HT_COL.DECADE]+'s'}</td>
+        <td class="ht-num">${fmt1(r[HT_COL.AREA])}</td>
+        <td class="ht-num">${fmt1(r[HT_COL.PEAK])}</td>
+        <td class="ht-num">${fmtI(r[HT_COL.ENERGY])}</td>
+        <td class="ht-num">${fmt1(r[HT_COL.T0])}</td></tr>`;
+    }).join('');
+
+    body.innerHTML=`
+      <div class="ht-spectrum">
+        <div class="ht-spectrum-label">Peak heating demand (kW)</div>
+        ${spectrum('peak',peakTrackMin,peakTrackMax,'kW',v=>fmt1(v))}
+      </div>
+      <div class="ht-spectrum">
+        <div class="ht-spectrum-label">Annual heating energy (kWh)</div>
+        ${spectrum('energy',energyTrackMin,energyTrackMax,'kWh',v=>fmtI(v))}
+      </div>
+      <table class="ht-table">
+        <thead><tr><th></th><th>Type</th><th>Storeys</th><th>Built</th><th>Floor area (m²)</th><th>Peak (kW)</th><th>Annual energy (kWh)</th><th>Balance pt (°C)</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
+  });
+}
+
 const $=id=>document.getElementById(id);
 const fmtI=n=>Math.round(n).toLocaleString('en-CA');
 const fmt1=n=>n.toLocaleString('en-CA',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -1773,6 +1979,7 @@ Promise.all([
   $('loading').style.display='none';
   $('results').style.display='';
   recompute();
+  renderHouseTypes();
 }).catch(err=>{
   console.error(err);
   $('loading').style.display='none';
@@ -1856,8 +2063,12 @@ function buildInputs(){
     Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city)]).then(()=>{
       syncEfSeg();populateWeatherSelector(state.city);recompute();
     });
+    $('ht-type').value='';$('ht-storeys').value='';$('ht-vintage').value='';$('ht-size').value='';
+    renderHouseTypes();
   });
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
+  ['ht-type','ht-storeys','ht-vintage','ht-size'].forEach(id=>$(id).addEventListener('change',renderHouseTypes));
+  $('ht-method-link').addEventListener('click',e=>openMethodology(e,'m-housetypes'));
   document.querySelectorAll('#weather-view-seg button').forEach(b=>b.addEventListener('click',()=>{
     state.weatherView=b.dataset.view;
     document.querySelectorAll('#weather-view-seg button').forEach(x=>x.classList.toggle('active',x===b));
