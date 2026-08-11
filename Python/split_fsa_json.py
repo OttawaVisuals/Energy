@@ -73,6 +73,7 @@ CATEGORICAL_COLS = [
     'FSA', 'BldgType', 'Storeys', 'FoundationType',
     'Pre_HeatFuel', 'Post_HeatFuel', 'Pre_HeatType', 'Post_HeatType',
     'Pre_HPType', 'Post_HPType', 'Pre_VentType', 'Post_VentType',
+    'Plan_HeatFuel', 'Plan_HeatType', 'Plan_HPType',
 ]
 
 # Only columns retrofits.html's JS actually reads (verified against every
@@ -102,6 +103,11 @@ KEEP_COLS = [
     'Pre_RoofInsulation', 'Post_RoofInsulation',
     'Pre_WallInsulation', 'Post_WallInsulation',
     'Pre_FoundationInsulation', 'Post_FoundationInsulation',
+    # Pre/Post_FloorInsulation: already computed by ers_web_pipeline.py
+    # (EGHINEXPOSEDFLR) but previously dropped here — re-added 2026-08-11
+    # alongside Plan_FloorInsulation so the exposed-floor triplet
+    # (recommended/before/after) is complete like the other components.
+    'Pre_FloorInsulation', 'Post_FloorInsulation',
     'Pre_GHG', 'Post_GHG',
     'Pre_GHG_current', 'Post_GHG_current',
     'Pre_GHG_current_corrected', 'Post_GHG_current_corrected',
@@ -142,6 +148,22 @@ KEEP_COLS = [
     'Post_HPCapacity47', 'Post_HPCapacity5',
     'Post_HPHSPF2', 'Post_HPCertCOP5',
     'Post_HPColdClimate', 'Post_HPBrand', 'Post_HPModel',
+
+    # Plan_*: the auditor's recommended-upgrade case (added 2026-08-11, see
+    # ers_web_pipeline.py's "Added 2026-08-11" docstring note for sourcing).
+    # Staged ahead of the retrofits.html chart work (planned-vs-achieved
+    # energy, per-component follow-through) -- not yet read by any current
+    # chart, so no existing-JS-reference check applies to these like it does
+    # to the rest of KEEP_COLS.
+    'Plan_TotalEnergy', 'Plan_Electricity', 'Plan_NaturalGas',
+    'Plan_Oil', 'Plan_Propane',
+    'Plan_HeatElectricity', 'Plan_HeatNaturalGas', 'Plan_HeatOil',
+    'Plan_HeatPropane', 'Plan_HeatWood',
+    'Plan_HeatLoss', 'Plan_AirLeakage',
+    'Plan_RoofInsulation', 'Plan_WallInsulation',
+    'Plan_FoundationInsulation', 'Plan_FloorInsulation',
+    'Plan_WindowCode', 'Plan_HeatFuel', 'Plan_HeatType',
+    'Plan_HPType', 'Plan_CCASHP',
 ]
 
 
