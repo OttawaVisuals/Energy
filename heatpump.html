@@ -873,7 +873,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div id="methane-map-tip" class="methane-map-tip" style="display:none"></div>
           </div>
           <div class="methane-legend" id="methane-map-legend"></div>
-          <div class="note">2016 is the most recent year this inventory covers — there is no newer equivalent at this scope, which is why the rest of this tool doesn't rely on it for a live number. Native 0.1° grid (~110m N–S per cell), cropped to a Canada land-boundary polygon (the thin outline on the map) — the source grid extends into the US along the border, dropped here so nothing south of the line shows up. Colour = emission density (Mg CH₄/yr/km², log scale) — darker means more methane leaking per km² of that cell, not more total gas produced there. Map is drawn with a sinusoidal projection (each row narrowed by its own latitude's cosine, matched to the true 0.1° grid) rather than a flat rectangle, so the north doesn't read wider than it is. <b>Gray cells</b> are flagged "background": GFEI spreads one shared modelled rate across an area it can't spatially resolve (in Canada, 78% of nonzero <i>gas</i> cells, vs. ~1% of oil cells) — those are a regional average, not a location-specific estimate; hidden by default above, toggle back on to see them. This bundles all oil/gas/coal fugitive sources (wells, pipelines, compressors, storage, processing, refineries) together — it is <b>not</b> a pipeline-only layer. See <a href="#" id="methane-map-method-link">methodology</a>.</div>
+          <div class="note">2016 is the most recent year this inventory covers — there is no newer equivalent at this scope, which is why the rest of this tool doesn't rely on it for a live number. Native 0.1° grid (~110m N–S per cell), cropped to a Canada land-boundary polygon (the thin outline on the map) — the source grid extends into the US along the border, dropped here so nothing south of the line shows up. Colour = emission density (Mg CH₄/yr/km², log scale) — darker means more methane leaking per km² of that cell, not more total gas produced there. Map is drawn with an Albers equal-area conic projection (the standard for Canadian thematic maps) rather than a flat rectangle — chosen specifically because it's <i>equal-area</i>: a patch that looks twice as big on screen really is twice the land area, which matters when colour encodes emissions per km². <b>Gray cells</b> are flagged "background": GFEI spreads one shared modelled rate across an area it can't spatially resolve (in Canada, 78% of nonzero <i>gas</i> cells, vs. ~1% of oil cells) — those are a regional average, not a location-specific estimate; hidden by default above, toggle back on to see them. This bundles all oil/gas/coal fugitive sources (wells, pipelines, compressors, storage, processing, refineries) together — it is <b>not</b> a pipeline-only layer. See <a href="#" id="methane-map-method-link">methodology</a>.</div>
         </div>
       </details>
     </section>
@@ -1944,15 +1944,23 @@ function renderHouseTypesChart(svg,points,tDesign){
 }
 
 // ── Methane leakage map (GFEI 2016, Canada subset, native 0.1deg grid) ───
-// Rendered to a canvas at native grid resolution (one pixel per cell) then
-// CSS-scaled up -- at ~115k nonzero cells, drawing individual SVG <rect>
-// elements (the original approach) would mean 115k DOM nodes; a canvas
-// pixel buffer builds and repaints in milliseconds instead. No basemap or
-// coastline data; the populated cells themselves (clustering around AB/BC
-// gas fields, the ON/QC corridor, etc.) read as a recognizable map of
-// Canada without needing separate boundary geometry. Hover uses a plain
-// lookup table (row*ncols+col -> cell) rather than per-shape <title>s.
-let METHANE_MAP_DATA=null, METHANE_MAP_INDEX=null, METHANE_MAP_DIMS=null;
+// Rendered to a canvas via an Albers Equal-Area Conic projection (std
+// parallels 50N/70N, origin 40N, central meridian 96W -- the same
+// parameters as Esri's "Canada Albers Equal Area Conic", chosen over the
+// more famous Lambert Conformal Conic because this map's colour encodes
+// emission *density per km2*: an equal-area projection keeps on-screen
+// area proportional to real land area, so a visually bigger patch always
+// means more actual km2, not a projection artifact. Lambert (conformal,
+// not equal-area) would silently distort that reading.
+//
+// Because the projection genuinely curves (unlike the previous sinusoidal
+// version's simple per-row horizontal scale), each destination pixel is
+// built by INVERSE-projecting it back to lon/lat and sampling the nearest
+// source grid cell -- computed once as an integer lookup table
+// (METHANE_MAP_DEST2CELL) when the data loads, then reused on every
+// re-render (metric/background toggles) and by hover, so the (relatively)
+// expensive trig only runs once per page visit, not once per interaction.
+let METHANE_MAP_DATA=null, METHANE_MAP_DIMS=null, METHANE_MAP_PROJ=null, METHANE_MAP_DEST2CELL=null;
 const METHANE_MAP_COL={oil:2,gas:3,coal:4,total:5};
 const METHANE_MAP_LABEL={oil:'oil',gas:'gas',coal:'coal',total:'all sources'};
 // Perceptually-ordered, single-hue (amber) sequential ramp: pale -> deep
@@ -1978,64 +1986,102 @@ function loadMethaneMap(){
   fetch(DATA+'gfei_ch4_canada_2016.json').then(r=>r.json()).then(d=>{
     METHANE_MAP_DATA=d;
     let maxRow=0,maxCol=0;
-    METHANE_MAP_INDEX=new Map();
-    d.cells.forEach(c=>{
-      if(c[0]>maxRow)maxRow=c[0]; if(c[1]>maxCol)maxCol=c[1];
-      METHANE_MAP_INDEX.set(c[0]+','+c[1],c);
-    });
+    d.cells.forEach(c=>{ if(c[0]>maxRow)maxRow=c[0]; if(c[1]>maxCol)maxCol=c[1]; });
     METHANE_MAP_DIMS={nrows:maxRow+1,ncols:maxCol+1};
+    buildMethaneMapProjection();
     drawMethaneMapOutline();
     bindMethaneMapHover();
     renderMethaneMap('gas');
   }).catch(err=>{console.error('methane map',err);const c=$('methane-map-canvas');if(c)c.outerHTML='<p class="note">Methane map data not available.</p>';});
 }
-// Sinusoidal (Sanson-Flamsteed) projection: each row is horizontally
-// scaled by cos(lat)/cos(lat0) about the grid's own centre column, lat0
-// being the bbox's southmost row (so the south stays full width and rows
-// narrow going north) -- a real, named equal-area projection, not an ad
-// hoc squeeze, and it's what makes the north stop reading as a flat wide
-// rectangle it geographically isn't. y (latitude) is untouched throughout.
-function methaneRowScale(lat,d){return Math.cos(lat*Math.PI/180)/Math.cos(d.lat0*Math.PI/180);}
+// ── Albers Equal-Area Conic (spherical form, Snyder "Map Projections: A
+// Working Manual" eq. 14-1..14-4/24-1..24-3) -- Canada standard parameters.
+const ALBERS_PHI1=50*Math.PI/180, ALBERS_PHI2=70*Math.PI/180, ALBERS_PHI0=40*Math.PI/180, ALBERS_LAM0=-96*Math.PI/180;
+const ALBERS_N=(Math.sin(ALBERS_PHI1)+Math.sin(ALBERS_PHI2))/2;
+const ALBERS_C=Math.cos(ALBERS_PHI1)**2+2*ALBERS_N*Math.sin(ALBERS_PHI1);
+const ALBERS_RHO0=Math.sqrt(ALBERS_C-2*ALBERS_N*Math.sin(ALBERS_PHI0))/ALBERS_N;
+function albersForward(lonDeg,latDeg){
+  const lam=lonDeg*Math.PI/180, phi=latDeg*Math.PI/180;
+  const rho=Math.sqrt(Math.max(0,ALBERS_C-2*ALBERS_N*Math.sin(phi)))/ALBERS_N;
+  const theta=ALBERS_N*(lam-ALBERS_LAM0);
+  return [rho*Math.sin(theta), ALBERS_RHO0-rho*Math.cos(theta)];
+}
+function albersInverse(x,y){
+  const rho=Math.sqrt(x*x+(ALBERS_RHO0-y)*(ALBERS_RHO0-y));
+  const theta=Math.atan2(x,ALBERS_RHO0-y);
+  const phi=Math.asin(Math.max(-1,Math.min(1,(ALBERS_C-(rho*ALBERS_N)**2)/(2*ALBERS_N))));
+  const lam=ALBERS_LAM0+theta/ALBERS_N;
+  return [lam*180/Math.PI, phi*180/Math.PI];
+}
+// Builds the destination raster's pixel dimensions/scale (by projecting
+// the data bbox's edges) and the dest-pixel -> source-cell-index lookup
+// table, once per data load.
+function buildMethaneMapProjection(){
+  const d=METHANE_MAP_DATA, {nrows,ncols}=METHANE_MAP_DIMS;
+  const lonMin=d.lon0, lonMax=d.lon0+(ncols-1)*d.cell_size_deg;
+  const latMin=d.lat0, latMax=d.lat0+(nrows-1)*d.cell_size_deg;
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+  const N=24;
+  for(let i=0;i<=N;i++){
+    const lon=lonMin+(lonMax-lonMin)*i/N, lat=latMin+(latMax-latMin)*i/N;
+    [[lon,latMin],[lon,latMax],[lonMin,lat],[lonMax,lat]].forEach(([lo,la])=>{
+      const [x,y]=albersForward(lo,la);
+      x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);
+    });
+  }
+  const destW=900, destH=Math.round(destW*(y1-y0)/(x1-x0));
+  const sx=destW/(x1-x0), sy=destH/(y1-y0);
+  const proj={x0,x1,y0,y1,destW,destH,sx,sy};
+  const cellIdxByRC=new Int32Array(nrows*ncols).fill(-1);
+  d.cells.forEach((c,i)=>{cellIdxByRC[c[0]*ncols+c[1]]=i;});
+  const dest2cell=new Int32Array(destW*destH).fill(-1);
+  for(let py=0;py<destH;py++){
+    const y=y1-py/sy;
+    for(let px=0;px<destW;px++){
+      const x=x0+px/sx;
+      const [lon,lat]=albersInverse(x,y);
+      const col=Math.round((lon-d.lon0)/d.cell_size_deg);
+      const row=Math.round((lat-d.lat0)/d.cell_size_deg);
+      if(row<0||row>=nrows||col<0||col>=ncols)continue;
+      dest2cell[py*destW+px]=cellIdxByRC[row*ncols+col];
+    }
+  }
+  METHANE_MAP_PROJ=proj;
+  METHANE_MAP_DEST2CELL=dest2cell;
+}
 function renderMethaneMap(metric){
-  const d=METHANE_MAP_DATA; if(!d)return;
-  const {nrows,ncols}=METHANE_MAP_DIMS;
+  const d=METHANE_MAP_DATA; if(!d||!METHANE_MAP_PROJ)return;
+  const {destW,destH}=METHANE_MAP_PROJ;
   const col=METHANE_MAP_COL[metric], bgBit=d.bg_bits[metric];
   const hideBg=$('methane-map-hide-bg').checked;
+  // Counts/domain come from the real cell list, not the raster -- a
+  // destination pixel can cover zero, one or several source cells
+  // depending on local projection scale, so raster-pixel counts wouldn't
+  // be a meaningful "how many cells have data" statistic.
   const resolvedVals=[];
-  d.cells.forEach(c=>{
-    const v=c[col]; if(!(v>0))return;
-    if(!(c[6]&bgBit)) resolvedVals.push(v);
-  });
-  const vmin=Math.min(...resolvedVals), vmax=Math.max(...resolvedVals);
-  const logMin=Math.log10(vmin), logMax=Math.log10(vmax);
-  // Build the raw (unprojected) raster off-screen first...
-  const src=document.createElement('canvas'); src.width=ncols; src.height=nrows;
-  const sctx=src.getContext('2d');
-  const img=sctx.createImageData(ncols,nrows);
   let shownResolved=0, shownBg=0;
   d.cells.forEach(c=>{
     const v=c[col]; if(!(v>0))return;
     const isBg=!!(c[6]&bgBit);
     if(isBg&&hideBg)return;
-    let rgb;
-    if(isBg){ rgb=METHANE_BG_RGB; shownBg++; }
-    else { const t=logMax>logMin?(Math.log10(v)-logMin)/(logMax-logMin):1; rgb=methaneRampColor(t); shownResolved++; }
-    // canvas row 0 = north (highest lat); data row 0 = southernmost (lat0) -> flip
-    const py=(nrows-1-c[0]), px=c[1];
-    const idx=(py*ncols+px)*4;
-    img.data[idx]=rgb[0]; img.data[idx+1]=rgb[1]; img.data[idx+2]=rgb[2]; img.data[idx+3]=255;
+    if(isBg) shownBg++; else { resolvedVals.push(v); shownResolved++; }
   });
-  sctx.putImageData(img,0,0);
-  // ...then warp it onto the visible canvas one row at a time.
+  const vmin=Math.min(...resolvedVals), vmax=Math.max(...resolvedVals);
+  const logMin=Math.log10(vmin), logMax=Math.log10(vmax);
   const canvas=$('methane-map-canvas');
-  canvas.width=ncols; canvas.height=nrows;
+  canvas.width=destW; canvas.height=destH;
   const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,ncols,nrows);
-  for(let py=0;py<nrows;py++){
-    const row=nrows-1-py, lat=d.lat0+row*d.cell_size_deg;
-    const scale=methaneRowScale(lat,d), destW=ncols*scale, destX=(ncols-destW)/2;
-    ctx.drawImage(src,0,py,ncols,1,destX,py,destW,1);
+  const img=ctx.createImageData(destW,destH);
+  for(let i=0;i<METHANE_MAP_DEST2CELL.length;i++){
+    const cellIdx=METHANE_MAP_DEST2CELL[i]; if(cellIdx<0)continue;
+    const c=d.cells[cellIdx], v=c[col]; if(!(v>0))continue;
+    const isBg=!!(c[6]&bgBit);
+    if(isBg&&hideBg)continue;
+    const rgb=isBg?METHANE_BG_RGB:methaneRampColor(logMax>logMin?(Math.log10(v)-logMin)/(logMax-logMin):1);
+    const idx=i*4;
+    img.data[idx]=rgb[0]; img.data[idx+1]=rgb[1]; img.data[idx+2]=rgb[2]; img.data[idx+3]=255;
   }
+  ctx.putImageData(img,0,0);
   const label=METHANE_MAP_LABEL[metric];
   $('methane-map-count').textContent=shownResolved.toLocaleString('en-CA')+' resolved + '+shownBg.toLocaleString('en-CA')+' background cells ('+label+')';
   const stops=METHANE_RAMP.map((rgb,i)=>`rgb(${rgb.join(',')}) ${(i/(METHANE_RAMP.length-1)*100).toFixed(0)}%`).join(',');
@@ -2044,43 +2090,39 @@ function renderMethaneMap(metric){
   METHANE_MAP_STATE={metric,col,bgBit};
 }
 let METHANE_MAP_STATE=null;
-// Decorative Canada outline, drawn once as an SVG overlay in the same
-// row/col pixel space as the canvas (viewBox = ncols x nrows, so 1 SVG
-// unit = 1 grid cell) -- projected with the same per-row sinusoidal
-// scaling as the raster so the outline still traces the warped coastline.
+// Decorative Canada outline, drawn once as an SVG overlay sharing the
+// canvas's own pixel space (viewBox = destW x destH), forward-projected
+// with the same Albers formula and scale/offset as the raster.
 function drawMethaneMapOutline(){
-  const d=METHANE_MAP_DATA, rings=d.canada_outline; if(!rings||!rings.length)return;
-  const {nrows,ncols}=METHANE_MAP_DIMS;
-  const centerCol=ncols/2;
-  const px=(lon,lat)=>centerCol+((lon-d.lon0)/d.cell_size_deg-centerCol)*methaneRowScale(lat,d);
-  const py=lat=>(nrows-1)-(lat-d.lat0)/d.cell_size_deg;
+  const d=METHANE_MAP_DATA, rings=d.canada_outline, proj=METHANE_MAP_PROJ;
+  if(!rings||!rings.length||!proj)return;
+  const toPx=(lon,lat)=>{ const [x,y]=albersForward(lon,lat); return [(x-proj.x0)*proj.sx,(proj.y1-y)*proj.sy]; };
   const paths=rings.map(ring=>{
-    const pts=ring.map(([lon,lat])=>`${px(lon,lat).toFixed(1)},${py(lat).toFixed(1)}`).join(' L');
+    const pts=ring.map(([lon,lat])=>{ const [px,py]=toPx(lon,lat); return `${px.toFixed(1)},${py.toFixed(1)}`; }).join(' L');
     return `<path d="M${pts} Z"/>`;
   }).join('');
   const svg=$('methane-map-outline');
-  svg.setAttribute('viewBox',`0 0 ${ncols} ${nrows}`);
+  svg.setAttribute('viewBox',`0 0 ${proj.destW} ${proj.destH}`);
   svg.innerHTML=paths;
 }
+// Hover reuses the same METHANE_MAP_DEST2CELL lookup built for rendering
+// -- no per-mousemove trig, just an array index.
 function bindMethaneMapHover(){
   const canvas=$('methane-map-canvas'), tip=$('methane-map-tip');
   canvas.addEventListener('mousemove',e=>{
-    if(!METHANE_MAP_DATA||!METHANE_MAP_STATE)return;
-    const {nrows,ncols}=METHANE_MAP_DIMS;
-    const d=METHANE_MAP_DATA;
+    if(!METHANE_MAP_DATA||!METHANE_MAP_STATE||!METHANE_MAP_PROJ)return;
+    const {destW,destH}=METHANE_MAP_PROJ;
     const rect=canvas.getBoundingClientRect();
-    const dispX=(e.clientX-rect.left)/rect.width*ncols;
-    const dispY=(e.clientY-rect.top)/rect.height*nrows;
-    const py=Math.floor(dispY), row=nrows-1-py;
-    const lat=d.lat0+row*d.cell_size_deg;
-    const scale=methaneRowScale(lat,d), centerCol=ncols/2;
-    const col2=Math.floor(centerCol+(dispX-centerCol)/scale);
-    const c=METHANE_MAP_INDEX.get(row+','+col2);
+    const px=Math.floor((e.clientX-rect.left)/rect.width*destW);
+    const py=Math.floor((e.clientY-rect.top)/rect.height*destH);
+    if(px<0||px>=destW||py<0||py>=destH){tip.style.display='none';return;}
+    const cellIdx=METHANE_MAP_DEST2CELL[py*destW+px];
+    const d=METHANE_MAP_DATA, c=cellIdx>=0?d.cells[cellIdx]:null;
     const v=c?c[METHANE_MAP_STATE.col]:0;
     if(!c||!(v>0)){tip.style.display='none';return;}
-    const latTxt=lat.toFixed(2), lon=(d.lon0+col2*d.cell_size_deg).toFixed(2);
+    const lat=(d.lat0+c[0]*d.cell_size_deg).toFixed(2), lon=(d.lon0+c[1]*d.cell_size_deg).toFixed(2);
     const isBg=!!(c[6]&METHANE_MAP_STATE.bgBit);
-    tip.innerHTML=`${latTxt}°N, ${lon}°E<br>${v.toFixed(4)} Mg CH₄/yr/km²${isBg?' <i>(background)</i>':''}`;
+    tip.innerHTML=`${lat}°N, ${lon}°E<br>${v.toFixed(4)} Mg CH₄/yr/km²${isBg?' <i>(background)</i>':''}`;
     tip.style.left=(e.clientX-rect.left)+'px';
     tip.style.top=(e.clientY-rect.top)+'px';
     tip.style.display='';

@@ -2229,6 +2229,44 @@ all of the background/shared-rate problem lives (see above), so hiding it
 by default shows the most legible view first; readers can switch either
 back on.
 
+**Sinusoidal → Albers Equal-Area Conic (same day, third follow-up pass).**
+Compared six candidate projections side by side (Plate Carrée, Sinusoidal,
+Lambert Conformal Conic, Albers Equal-Area Conic, oblique Stereographic,
+Orthographic) rendered from the same `canada_outline` data via `pyproj`,
+as a one-off comparison script, not part of the shipped pipeline. Landed
+on **Albers Equal-Area Conic** (standard parallels 50°N/70°N, origin 40°N,
+central meridian 96°W — the same parameters as Esri's "Canada Albers Equal
+Area Conic", a standard choice for Canadian thematic maps) over the more
+visually familiar Lambert Conformal Conic for one specific reason: **this
+map's colour encodes emission density per km².** Lambert is conformal
+(preserves local angles/shape) but not equal-area, so it can quietly
+distort the apparent size of a patch relative to its real land area —
+exactly the wrong property for a map where "the coloured patch looks big"
+is meant to mean "this covers a lot of km²," not "the projection stretched
+it here." Sinusoidal was already equal-area (Snyder's pseudocylindrical
+family), so the change is really "equal-area, but shaped like the country
+people actually recognize" rather than a correctness fix.
+
+Implementation is a step up from Sinusoidal's per-row horizontal scale,
+because a conic projection genuinely curves in two dimensions — there's no
+single per-row scale factor that reproduces it. Standard spherical Albers
+forward/inverse formulas (Snyder eq. 14-1..14-4 / 24-1..24-3) are
+implemented directly in `heatpump.html` (`albersForward`/`albersInverse`).
+Rendering builds a **destination-pixel → source-cell lookup table** once
+per data load (`buildMethaneMapProjection`): for every pixel in the output
+canvas, inverse-project it back to lon/lat and nearest-neighbour-sample the
+source grid (native cell spacing is small enough that nearest-neighbour is
+indistinguishable from any smarter resampling at this map's display size).
+That table — an `Int32Array`, one entry per destination pixel, pointing at
+an index into `d.cells` or `-1` — is then reused by every subsequent
+render (metric/background toggles) and by hover, so the relatively
+expensive inverse-trig only runs once per page visit (~60ms for the
+~450,000-pixel canvas, measured in-browser), not once per interaction
+(~15-20ms per re-render, reading the lookup table). The `canada_outline`
+overlay uses the plain forward projection (vector data doesn't need the
+inverse/lookup machinery); hover looks up the same table used for
+rendering rather than repeating any trig at all.
+
 ---
 
 ## Validation against published benchmarks (Phase 7)
