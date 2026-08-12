@@ -17,10 +17,19 @@ boundary polygon (built from the existing FSA choropleth geometry plus
 Yukon, which was missing from it) instead of a raw bbox that bled into the
 US, with a simplified version of the same polygon drawn as a reference
 outline; and a sinusoidal (Sanson-Flamsteed) projection replacing the flat,
-unnaturally-wide-at-the-north raw grid. Section (and "What real homes in
-\<city\> look like") now `<details>`-collapsed by default, with the map's
-~3MB JSON fetch deferred to first expand; default view is gas + background
-hidden, the most legible combination. New `Python/gfei_ch4_extract.py` +
+unnaturally-wide-at-the-north raw grid, itself swapped same day for an
+**Albers Equal-Area Conic** projection (Canada's standard thematic-map
+parameters) after comparing six candidates side by side — Albers over the
+more familiar Lambert Conformal Conic specifically because this map's
+colour encodes emissions *per km²*, and Albers (unlike Lambert) keeps
+on-screen area proportional to real land area. A conic projection needs a
+real per-pixel inverse-project-and-sample remap rather than Sinusoidal's
+per-row scale; that lookup table is built once per data load and reused by
+every re-render and by hover (~60ms build, ~15-20ms per toggle, measured
+in-browser). Section (and "What real homes in \<city\> look like") now
+`<details>`-collapsed by default, with the map's ~3MB JSON fetch deferred
+to first expand; default view is gas + background hidden, the most
+legible combination. New `Python/gfei_ch4_extract.py` +
 `Python/canada_boundary.py` pipeline steps. Explicitly labelled as a bundled
 oil+gas+coal fugitive-emissions layer, not a pipeline-only one, despite
 starting as "pipeline GIS data" in an earlier session — see
