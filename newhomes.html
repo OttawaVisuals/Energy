@@ -583,19 +583,47 @@ footer a:hover{color:var(--amber2)}
 
 </main>
 
-<section class="methodology" aria-label="Methodology">
+<section class="methodology" aria-label="Simple methodology">
+  <details open>
+    <summary>How this works, in plain language</summary>
+    <div class="method-body">
+      <p>This tool uses Natural Resources Canada's open <strong>EnerGuide</strong> home-energy-evaluation data, filtered to new-construction homes rather than the renovations shown on the <a href="retrofits.html">Retrofit Explorer</a>. Each row is one real, finished house that was tested after it was built. Where the same house also has a design-stage evaluation on file, that's shown alongside so you can see whether the house performed as designed.</p>
+      <p>The energy figures are <strong>modelled estimates</strong> from the evaluation software, not a utility bill — actual use varies with weather and how a house is lived in. Some charts (EnerGuide rating, building-code performance tier) only exist for homes evaluated in the last few years, because those measures are newer; older charts (airtightness, heating fuel, floor area) go back to 2004. There's no cost data in the source, so no dollar figures are shown anywhere on this page. New construction is a much smaller program than retrofits — about 223,000 homes here versus 500,000+ retrofits — and participation is voluntary and uneven across provinces, with Alberta, B.C. and Ontario making up most of it. Small postal areas can look noisy for that reason; read them as an indication, not a precise measurement.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Advanced methodology">
   <details>
-    <summary>How this works &amp; what the data is</summary>
+    <summary>Advanced methodology — fields, evaluation types &amp; caveats</summary>
     <div class="method-body">
       <h4>The source</h4>
-      <p>This tool uses Natural Resources Canada's <strong>EnerGuide Rating System</strong> open data — the same dataset behind the <a href="retrofits.html">Retrofit Explorer</a>, but a different slice of it. Every evaluation carries a type code: <code>D</code>/<code>E</code> are existing-home pre/post-retrofit audits (the Retrofit Explorer's subject), while <code>P</code> and <code>N</code> are new construction. <code>P</code> ("plan") is the home modelled from its architectural plans; <code>N</code> is the finished house, evaluated and blower-door tested after construction.</p>
+      <p>Natural Resources Canada's <strong>EnerGuide Rating System</strong> open data — the same dataset behind the <a href="retrofits.html">Retrofit Explorer</a>, but a different slice of it. Every evaluation carries a type code: <code>D</code>/<code>E</code> are existing-home pre/post-retrofit audits (the Retrofit Explorer's subject), while <code>P</code> and <code>N</code> are new construction. <code>P</code> ("plan") is the home modelled from its architectural plans; <code>N</code> is the finished house, evaluated and blower-door tested after construction.</p>
       <h4>What a "home" is here</h4>
-      <p>Each row is one <strong>as-built (N)</strong> home — a real, finished, tested house. Where the matching plan file (<code>P</code>) exists for the same home, its as-designed figures are joined on so the two can be compared ("Do they perform as designed?"). Homes with only a plan file — designed but not yet built or tested — are excluded.</p>
+      <p>Each row is one <strong>as-built (N)</strong> home. Where the matching plan file (<code>P</code>) exists for the same home, its as-designed figures are joined on so the two can be compared ("Do they perform as designed?"). Homes with only a plan file — designed but not yet built or tested — are excluded.</p>
       <h4>Designed vs as-built</h4>
       <p>Three figures are carried on both audits, so the plan model and the finished house can be compared directly: the EnerGuide rating, the NBC energy-performance tier (<code>ENERGYPERFORMANCETIER</code>, recorded on P and N files alike) and airtightness (<code>AIR50P</code>). The tier comparison is a true before/after — both numbers are the software's own verdict on each model. The airtightness comparison is not symmetric: the as-built value is a real blower-door measurement, while most plan files carry a <strong>round assumed value</strong> (3.6, 4.5 and 2.5 ACH₅₀ between them cover most of the dataset) rather than a per-house design target. Treat it as assumption versus measurement.</p>
       <h4>The numbers</h4>
-      <p>Energy figures are <strong>modelled</strong> estimates from the audit software (HOT2000), not metered utility bills — actual use varies with weather and occupants. The EnerGuide rating and NBC tier were only introduced in recent software versions, so those charts start in 2019 (rating) and 2024 (tiers); airtightness, fuel and floor area go back to 2004. Province-wide charts are pre-computed in Python; the postal-area view bins the raw records in your browser using the same bucket widths, so the two agree. Geography is postal-area (FSA) only — the public dataset carries just the first three characters of each postal code. The source contains no cost data, so no dollar figures are shown.</p>
+      <p>Energy figures are <strong>modelled</strong> estimates from the audit software (HOT2000), not metered utility bills. The EnerGuide rating and NBC tier were only introduced in recent software versions, so those charts start in 2019 (rating) and 2024 (tiers); airtightness, fuel and floor area go back to 2004. Province-wide charts are pre-computed in Python; the postal-area view bins the raw records in your browser using the same bucket widths, so the two agree. Geography is postal-area (FSA) only — the public dataset carries just the first three characters of each postal code. The source contains no cost data, so no dollar figures are shown.</p>
+      <h4>NBC tier coverage varies by province</h4>
+      <p>Tier coverage is effectively zero in Ontario and Québec — ON has 0 tiered evaluations out of 70,568, QC 1 out of 2,577, versus 25% in Alberta and 22% in B.C. Both provinces regulate new-construction energy performance under their own codes rather than the NBC tier ladder, so <code>ENERGYPERFORMANCETIER</code> arrives blank there. This is a source gap, not a pipeline fault. Below a minimum count of tiered evaluations, the tier charts are suppressed and replaced with an explanation rather than showing a misleading one- or two-bar distribution.</p>
       <p class="caveats">New construction is a smaller programme than retrofits (~223,000 as-built homes vs 500,000+ retrofits), and participation is voluntary and uneven across provinces — Alberta, BC and Ontario dominate. Small postal areas can be noisy; read them as indications, not precise measurements.</p>
+      <p>Full pipeline, field list and change log: <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/NEWHOMES.md" target="_blank" rel="noopener">NEWHOMES.md ↗</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Sources">
+  <details>
+    <summary>Sources</summary>
+    <div class="method-body">
+      <ul>
+        <li><a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a> — every home on this page: new-construction (P/N) evaluations, 2004–2026.</li>
+        <li><a href="https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index-eng.cfm" target="_blank" rel="noopener">StatCan FSA boundary files ↗</a> — the postal-area shapes behind the map, shared with the Retrofit Explorer.</li>
+        <li><a href="https://www.ahridirectory.org/" target="_blank" rel="noopener">AHRI Directory of Certified Product Performance ↗</a> — heat-pump equipment detail, looked up by AHRI reference number.</li>
+        <li>Matched before/after retrofit pairs from <a href="retrofits.html">Retrofit Explorer</a> — cross-read only for the "new build vs. existing home" EUI comparison; not otherwise part of this page.</li>
+        <li><a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/NEWHOMES.md" target="_blank" rel="noopener">NEWHOMES.md — full methodology &amp; pipeline ↗</a>.</li>
+      </ul>
     </div>
   </details>
 </section>

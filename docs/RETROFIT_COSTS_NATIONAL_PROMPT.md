@@ -1,5 +1,17 @@
 # Build brief — national incremental retrofit-cost pipeline
 
+> **Status: historical — superseded.** This was the build brief handed to the
+> coding agent to take the PEI proof-of-concept national. That work is
+> **done**: national coverage shipped 2026-07-31 (all 10 provinces + NT/NU)
+> and the result is now wired live into `retrofits.html`. See
+> [`docs/RETROFIT_COSTS.md`](RETROFIT_COSTS.md)'s Changelog, entries
+> **2026-07-31 (6) "full national coverage"** and **2026-07-31 (8) "wired
+> into retrofits.html"**, for what actually shipped and how the "Decisions to
+> confirm" below were resolved. Kept here for the record, not as a live task
+> — `RETROFIT_COSTS.md` is the current source of truth.
+
+---
+
 *A prompt for a Claude Sonnet coding agent. Hand this whole file to the agent as
 its task. It is written to be self-contained, but the authoritative methodology
 is [`docs/RETROFIT_COSTS.md`](RETROFIT_COSTS.md) — read that first and treat it as
