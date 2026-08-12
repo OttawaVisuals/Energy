@@ -114,6 +114,17 @@ capacity operation"; 47/17 °F in the "Rated" reporting column, 5 °F in
 17 °F capacity** — correct and expected. A monotonicity filter would silently
 discard ~180,000 appearances of valid data. **Do not filter on `cap5F ≤ cap17F`.**
 
+This isn't just NEEP's convention — it's how AHRI 210/240 itself names test points.
+DOE's *Determining Heat Pump Performance at 5°F Outdoor Temperature* guidance
+(issued 2022-11-22, describing the Appendix M1 test method) spells out the
+`H<temperature-letter><stage-subscript>` scheme: `H1` = 47 °F, `H3` = 17 °F,
+`H4` = 5 °F, and the subscript distinguishes stage — `N` = nominal/rated speed,
+`2` = full/max speed. Critically, **the optional 5 °F test is only ever run at
+full stage (`H4₂`)** — the standard defines no nominal/rated 5 °F test point for
+variable-speed or two-capacity units at all. So `Heating_Capacity_at_5F_M1` (the
+AHRI Directory API field feeding our `cm` numerator) is "maximum" by construction
+of the test protocol, not by an assumption we're layering on top.
+
 Using datasheets for the actual curves dissolves this problem at simulation
 time: datasheets publish capacity *and* power at both rated and maximum speed.
 

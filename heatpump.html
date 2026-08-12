@@ -134,6 +134,21 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .card .caveats b{color:var(--text);font-weight:600}
 .note b{color:var(--muted);font-weight:500}
 
+/* ── Methane leakage map ── */
+.methane-map-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:.85rem}
+#methane-map-seg{max-width:340px}
+.methane-map-bg-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.methane-map-bg-toggle input{cursor:pointer}
+.methane-map-canvas-wrap{position:relative;background:var(--surface);border-radius:var(--r-sm);line-height:0}
+#methane-map-canvas{width:100%;height:auto;display:block;border-radius:var(--r-sm);image-rendering:pixelated;cursor:crosshair}
+.methane-map-outline-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.methane-map-outline-svg path{fill:none;stroke:var(--text);stroke-width:1;stroke-opacity:.55;vector-effect:non-scaling-stroke}
+.methane-map-tip{position:absolute;pointer-events:none;background:var(--navy);color:var(--on-navy);font-size:11.5px;padding:6px 9px;border-radius:6px;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-100%);margin-top:-8px;z-index:5}
+.methane-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--light);flex-wrap:wrap}
+.methane-legend .ramp{flex:1;max-width:260px;height:10px;border-radius:5px;min-width:80px}
+.methane-legend .bg-swatch{display:inline-block;width:14px;height:10px;border-radius:3px;background:#8A8F98;vertical-align:middle;margin-right:4px}
+.method-jump{color:var(--blue)}
+
 /* ── House-types explorer (proof of concept) ── */
 .ht-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:.9rem}
 @media(max-width:720px){.ht-filters{grid-template-columns:1fr 1fr}}
@@ -496,12 +511,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     </div>
 
     <div class="ctrl">
-      <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential." data-method="m-lifecycle">?</button></label>
+      <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential. Both the GWP and the factory charge mass are specific to the refrigerant selected — a low-GWP option like R-290 also carries a much smaller charge by design." data-method="m-lifecycle">?</button></label>
       <select id="in-refrig">
-        <option value="r410a">R-410A (GWP 2088)</option>
-        <option value="r32">R-32 (GWP 675)</option>
-        <option value="r454b">R-454B (GWP 467)</option>
-        <option value="r290">R-290 propane (GWP 3)</option>
+        <option value="r410a">R-410A (GWP 2256)</option>
+        <option value="r32">R-32 (GWP 771)</option>
+        <option value="r454b">R-454B (GWP 531)</option>
+        <option value="r290">R-290 propane (GWP 0.02)</option>
       </select>
     </div>
     <div class="ctrl">
@@ -829,6 +844,33 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
+    <!-- ═══ Methane leakage map ═══ -->
+    <section class="out-section" id="section-methane-map">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Where upstream methane comes from</h2>
+        <p class="out-section-intro">The "Upstream losses" toggle above adds a methane-equivalent leak rate onto gas heating's emissions. That rate isn't abstract — it comes from real fugitive emissions across the oil and gas sector. This map shows where, using the most recent inventory of its kind. <button type="button" class="info-btn" aria-label="What is this map showing?" data-info="Gridded fugitive methane emissions from oil, gas and coal fuel exploitation across Canada (NASA's Global Fuel Exploitation Inventory, 2016) -- wells, pipelines, compressor stations, storage, processing and refineries all bundled together, not a pipeline-only layer, and not a live or recent measurement." data-method="m-methane-map">?</button></p>
+      </div>
+      <div class="card">
+        <div class="card-title-row"><span class="card-title">Fugitive methane emissions, 2016</span><span class="card-sub" id="methane-map-count"></span></div>
+        <div class="methane-map-controls">
+          <div class="seg" id="methane-map-seg" role="group" aria-label="Choose emission source">
+            <button type="button" data-val="total" class="active">All sources</button>
+            <button type="button" data-val="gas">Gas</button>
+            <button type="button" data-val="oil">Oil</button>
+            <button type="button" data-val="coal">Coal</button>
+          </div>
+          <label class="methane-map-bg-toggle"><input type="checkbox" id="methane-map-hide-bg">Hide background (shared regional rate)</label>
+        </div>
+        <div class="methane-map-canvas-wrap">
+          <canvas id="methane-map-canvas" role="img" aria-label="Map of fugitive methane emission intensity across Canada, 2016, by grid cell"></canvas>
+          <svg id="methane-map-outline" class="methane-map-outline-svg" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div id="methane-map-tip" class="methane-map-tip" style="display:none"></div>
+        </div>
+        <div class="methane-legend" id="methane-map-legend"></div>
+        <div class="note">2016 is the most recent year this inventory covers — there is no newer equivalent at this scope, which is why the rest of this tool doesn't rely on it for a live number. Native 0.1° grid (~110m N–S per cell), cropped to a Canada land-boundary polygon (the thin outline on the map) — the source grid extends into the US along the border, dropped here so nothing south of the line shows up. Colour = emission density (Mg CH₄/yr/km², log scale) — darker means more methane leaking per km² of that cell, not more total gas produced there. <b>Gray cells</b> are flagged "background": GFEI spreads one shared modelled rate across an area it can't spatially resolve (in Canada, 78% of nonzero <i>gas</i> cells, vs. ~1% of oil cells) — those are a regional average, not a location-specific estimate; toggle them off above to see only the independently-resolved signal. This bundles all oil/gas/coal fugitive sources (wells, pipelines, compressors, storage, processing, refineries) together — it is <b>not</b> a pipeline-only layer. See <a href="#" id="methane-map-method-link">methodology</a>.</div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -959,11 +1001,14 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
       <h4 id="m-lifecycle">Lifecycle terms (adjustable)</h4>
       <ul>
         <li><b>Combustion:</b> natural gas 181, oil 275, propane 214 g CO₂e/kWh of fuel input (ECCC National Inventory Report).</li>
-        <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × global-warming potential of the selected refrigerant.</li>
+        <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × <b>global-warming potential</b> and <b>factory charge mass</b>, both now per-refrigerant (corrected 2026-08-12 — previously a single GWP set and a flat charge-per-kW ratio applied to all four options regardless of which was selected). GWP100: <b>R-410A 2256, R-32 771, R-454B 531, R-290 0.02</b> (IPCC AR6 WG1 Ch.7 Table 7.SM.7, blend-weighted from constituent molecules — e.g. R-410A = 50% R-32 + 50% R-125). Charge mass: <b>0.250 kg/kW (R-410A) · 0.236 (R-454B) · 0.160 (R-32) · 0.035 (R-290)</b> — R-410A's figure is this tool's own original per-kW baseline; the other three scale it by the charge-mass *ratio* a peer tool (Building Decarbonization Alliance's Heat Pump Lifecycle Emissions Explorer) reports for a fixed reference unit (R-410A 3.6kg : R-454B 3.4kg : R-32 2.3kg : R-290 0.5kg) — since that reference unit's own capacity isn't stated, only the ratio between refrigerants carries over, not the absolute kg figures. R-290 (propane)'s low ratio matches reality: flammability limits cap its allowable charge by code, not just its lower density. <b>Uncertainty:</b> this ratio-scaling is an approximation, not an independently-sourced per-refrigerant charge curve — see <code>HeatPump/BDA_COMPARISON.md</code> and <code>METHODOLOGY.md</code>.</li>
         <li><b>Upstream &amp; grid losses (Yes/No):</b> a single switch now stands in for two previously independent sliders — an upstream "methane-equivalent" term before combustion, and grid transmission/distribution line losses added to delivered electricity. When set to <b>Yes</b> (default) it applies one fixed value for each rather than a range. The upstream term is calibrated to <a href="https://taf.ca/publications/fugitive-methane/" target="_blank" rel="noopener">The Atmospheric Fund's Fugitive Methane guideline</a> (May 2022): TAF publishes <b>+65%</b> as the carbon-intensity increase over combustion-only for a single home's gas-to-heat-pump project (their "no pipeline infrastructure change" scenario — the right match for this tool, vs. their higher +92% "infrastructure change" scenario for neighbourhood-scale conversions), using the 20-year methane GWP (85) per TAF's own guidance that "modelling activities that impact natural gas consumption" should use GWP20, not the 100-year GWP appropriate for emissions inventories. <b>TAF attributes that +65% to two effects this engine can't represent separately</b> — fugitive methane leakage (+10 points) and non-methane extraction "process emissions" like flaring and venting (+55 points) — so rather than pick one, the engine's single methane-leak lever is set to <b>2.14%</b> (at GWP 85), a calibrated value chosen so <code>leak% × GWP</code> reproduces TAF's +65% ratio in aggregate. This is a bundled proxy, not a literal reading of how much gas physically leaks. Line loss is set at <b>5%</b> (World Bank/IEA Canada transmission-and-distribution losses were ~5% in 2019–2020, easing toward ~4% in 2021–2023 before ticking back up to ~4.2% in 2024; utility figures span ~4% transmission-only to ~10% full path to a home — we deliberately don't use ENERGY STAR Portfolio Manager's <b>1.83</b> source–site ratio for Canadian grid electricity, since it also bundles power-plant conversion losses our per-kWh-<i>generated</i> grid factor already includes). Setting it to <b>No</b> zeroes both terms. <b>Open to-do, not a settled simplification:</b> collapsing two independently-evidenced rates into one on/off switch loses the ability to reason about them separately (e.g. a high-leakage gas region with average grid losses), and the methane/process-emissions bundling means the upstream term can't be read as a leak rate on its own — reinstating adjustable rates, or at least a low/mid/high preset per term (and ideally separating process emissions from methane), is tracked in <code>ROADMAP.md</code>.</li>
       </ul>
 
-      <h4>How accurate is this? — validation</h4>
+      <h4 id="m-methane-map">Where upstream methane comes from — the map</h4>
+      <p>Source: NASA GES DISC's <b>Global Fuel Exploitation Inventory (GFEI) CH₄, v1, 2016</b> (Scarpelli et al. 2020, <a href="https://doi.org/10.5194/essd-12-563-2020" target="_blank" rel="noopener">essd-12-563-2020</a>; DOI <a href="https://doi.org/10.5067/Q28GFYJYFZ7H" target="_blank" rel="noopener">10.5067/Q28GFYJYFZ7H</a>). A global 0.1° × 0.1° grid of fugitive methane emissions (IPCC 2006 category 1B2 — fuel exploitation, not combustion) built from countries' own UNFCCC-reported totals where available, IPCC 2006 default methods elsewhere, spatially allocated to known infrastructure locations: mines, wells, pipelines, compressor stations, storage facilities, processing plants and refineries. <b>All of those are summed into one number per fuel type</b> — the map cannot and does not isolate pipeline transmission losses specifically, despite "pipeline" being one of the infrastructure classes it draws on.</p>
+      <p>The page's own extract (<code>Python/gfei_ch4_extract.py</code>) subsets the global grid to Canada and block-averages it to a coarser 0.5° grid (mean of the 5×5 source cells per output cell — density is an intensive quantity, so no area-weighting is needed) purely to keep the shipped JSON small (~5,200 nonzero cells, ~180 KB); it changes resolution, not values. The map's colour scale is <b>log-scaled per selected layer</b> (all-sources / gas / oil / coal), since raw emission density is extremely right-skewed — most cells are near zero with a small number of intense clusters (Alberta and BC gas fields chief among them for Canada).</p>
+      <div class="caveats"><b>2016 is the newest vintage available at this scope</b> — we looked for a more recent equivalent and didn't find one; this map should be read as "the last time this was measured this way," not current-year reality. It is a <b>gridded estimate</b>, not a direct measurement or a Canadian regulatory inventory — treat it as illustrative of <i>where</i> fugitive methane clusters, not a precise current-day number for any one facility or region. NASA/US-federal data products are public-domain and freely redistributable, which is why this map (unlike some other third-party sources this project has had to avoid) can be shipped directly rather than only linked.</div>
       <p>We checked the tool's annual results against published Canadian studies — <b>NRCan / CanmetENERGY</b>'s cold-climate heat-pump report (2022), the <b>Canadian Climate Institute</b>'s <i>Heat Pumps Pay Off</i> (2023), and <b>Efficiency Canada</b>'s <i>Heat Pump Myth Buster</i> (2023). The tool lands in the same territory on every headline number:</p>
       <ul>
         <li><b>Seasonal efficiency:</b> the tool's seasonal COP of ≈ 2.3–2.5 (Ottawa, Toronto, Montreal, Calgary; premium unit) matches NRCan/field values of ≈ 2.4.</li>
@@ -978,7 +1023,7 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
 
       <h4>What this does not do</h4>
       <p>No equipment or installation costs — the cost card compares annual <i>operating</i> cost only, not payback; no solar gains or thermostat setbacks (the zero-heat temperature absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
-      <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · manufacturer datasheets (Mitsubishi, Carrier, Daikin, WaterFurnace) · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors.</p>
+      <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · manufacturer datasheets (Mitsubishi, Carrier, Daikin, WaterFurnace) · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors · NASA GES DISC Global Fuel Exploitation Inventory (methane map).</p>
     </div>
   </details>
 </section>
@@ -1638,10 +1683,27 @@ function bandLabelText(){return state.tier==='custom'?'your entered curve':BAND_
 const FUEL_LABEL={gas:'natural gas',oil:'oil',electric:'electricity',propane:'propane'};
 const EFF_DEFAULT={gas:80,oil:83,electric:100,propane:90};
 const EFF_RANGE={gas:[70,98],oil:[60,90],electric:[95,100],propane:[75,96]};
-// Refrigerant GWP (AR6 / AR5 100-yr; a single representative value each).
-const REFRIG_GWP={r410a:2088,r32:675,r454b:467,r290:3};
-// Typical factory charge ~0.25 kg per rated kW; end-of-life loss amortized.
-const CHARGE_KG_PER_KW=0.25;
+// Refrigerant GWP100, IPCC AR6 WG1 Ch.7 Table 7.SM.7, blend-weighted from
+// constituent molecules (e.g. R-410A = 50% R-32 + 50% R-125 -> 2256). Was
+// AR4/AR5-era (2088/675/467/3) and internally inconsistent with this
+// engine's own self-test vector (which already used 2256) before this fix
+// -- see METHODOLOGY.md "Refrigerant GWP and charge mass" and
+// BDA_COMPARISON.md (peer-tool review, 2026-07-28) for how this was caught.
+const REFRIG_GWP={r410a:2256,r32:771,r454b:531,r290:0.02};
+// Factory charge per rated kW, per refrigerant -- was a single flat 0.25
+// kg/kW applied regardless of refrigerant (so e.g. the R-290 option carried
+// an R-410A-sized charge, overstating its refrigerant-leak emissions).
+// R-410A's 0.25 kg/kW is this engine's own original baseline (kept as the
+// anchor, not independently re-sourced); the other three are that baseline
+// scaled by the CHARGE MASS RATIO a peer tool (BDA's Heat Pump Lifecycle
+// Emissions Explorer) reports for a consistent reference unit -- R-410A
+// 3.6kg : R-454B 3.4kg : R-32 2.3kg : R-290 0.5kg -- since BDA doesn't state
+// that reference unit's capacity, only the RATIO between refrigerants
+// carries over, not their absolute kg figures. R-290 (propane)'s low ratio
+// is consistent with real systems: flammability limits cap allowable charge
+// by code, not just a smaller molar mass. See METHODOLOGY.md for the
+// derivation and its uncertainty.
+const CHARGE_KG_PER_KW={r410a:0.250,r454b:0.236,r32:0.160,r290:0.035};
 
 // ---- operating-cost constants (Phase 2; see METHODOLOGY.md §Operating cost) ----
 // Maps each city to the rate entry in prices_json/<prov>.json. New same-province
@@ -1874,6 +1936,121 @@ function renderHouseTypesChart(svg,points,tDesign){
   return points.map(p=>`<span class="kc-leg"><span class="kc-swatch" style="border-color:${p.color};border-top-width:${p.w||2}px"></span>${p.label} — ${fmt1(p.peak)} kW, balance ${fmt1(p.t0)}°</span>`).join('');
 }
 
+// ── Methane leakage map (GFEI 2016, Canada subset, native 0.1deg grid) ───
+// Rendered to a canvas at native grid resolution (one pixel per cell) then
+// CSS-scaled up -- at ~115k nonzero cells, drawing individual SVG <rect>
+// elements (the original approach) would mean 115k DOM nodes; a canvas
+// pixel buffer builds and repaints in milliseconds instead. No basemap or
+// coastline data; the populated cells themselves (clustering around AB/BC
+// gas fields, the ON/QC corridor, etc.) read as a recognizable map of
+// Canada without needing separate boundary geometry. Hover uses a plain
+// lookup table (row*ncols+col -> cell) rather than per-shape <title>s.
+let METHANE_MAP_DATA=null, METHANE_MAP_INDEX=null, METHANE_MAP_DIMS=null;
+const METHANE_MAP_COL={oil:2,gas:3,coal:4,total:5};
+const METHANE_MAP_LABEL={oil:'oil',gas:'gas',coal:'coal',total:'all sources'};
+// Perceptually-ordered, single-hue (amber) sequential ramp: pale -> deep
+// brown, light to dark, per the dataviz skill's "sequential = one hue" rule.
+const METHANE_RAMP=['#FFF5DE','#FCE2A3','#F7C463','#EFA233','#C8791C','#96530F','#653408','#3D1D04'].map(hexToRgb);
+const METHANE_BG_RGB=[138,143,152]; // flat gray for "background/shared rate" cells
+function methaneRampColor(t){
+  t=Math.max(0,Math.min(1,t));
+  const n=METHANE_RAMP.length-1, i=Math.min(n-1,Math.floor(t*n)), f=t*n-i;
+  const a=METHANE_RAMP[i], b=METHANE_RAMP[i+1];
+  return [Math.round(a[0]+(b[0]-a[0])*f), Math.round(a[1]+(b[1]-a[1])*f), Math.round(a[2]+(b[2]-a[2])*f)];
+}
+function hexToRgb(h){const n=parseInt(h.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255];}
+function loadMethaneMap(){
+  fetch(DATA+'gfei_ch4_canada_2016.json').then(r=>r.json()).then(d=>{
+    METHANE_MAP_DATA=d;
+    let maxRow=0,maxCol=0;
+    METHANE_MAP_INDEX=new Map();
+    d.cells.forEach(c=>{
+      if(c[0]>maxRow)maxRow=c[0]; if(c[1]>maxCol)maxCol=c[1];
+      METHANE_MAP_INDEX.set(c[0]+','+c[1],c);
+    });
+    METHANE_MAP_DIMS={nrows:maxRow+1,ncols:maxCol+1};
+    drawMethaneMapOutline();
+    bindMethaneMapHover();
+    renderMethaneMap('total');
+  }).catch(err=>{console.error('methane map',err);const c=$('methane-map-canvas');if(c)c.outerHTML='<p class="note">Methane map data not available.</p>';});
+}
+function renderMethaneMap(metric){
+  const d=METHANE_MAP_DATA; if(!d)return;
+  const {nrows,ncols}=METHANE_MAP_DIMS;
+  const col=METHANE_MAP_COL[metric], bgBit=d.bg_bits[metric];
+  const hideBg=$('methane-map-hide-bg').checked;
+  const resolvedVals=[];
+  d.cells.forEach(c=>{
+    const v=c[col]; if(!(v>0))return;
+    if(!(c[6]&bgBit)) resolvedVals.push(v);
+  });
+  const vmin=Math.min(...resolvedVals), vmax=Math.max(...resolvedVals);
+  const logMin=Math.log10(vmin), logMax=Math.log10(vmax);
+  const canvas=$('methane-map-canvas');
+  canvas.width=ncols; canvas.height=nrows;
+  const ctx=canvas.getContext('2d');
+  const img=ctx.createImageData(ncols,nrows);
+  let shownResolved=0, shownBg=0;
+  d.cells.forEach(c=>{
+    const v=c[col]; if(!(v>0))return;
+    const isBg=!!(c[6]&bgBit);
+    if(isBg&&hideBg)return;
+    let rgb;
+    if(isBg){ rgb=METHANE_BG_RGB; shownBg++; }
+    else { const t=logMax>logMin?(Math.log10(v)-logMin)/(logMax-logMin):1; rgb=methaneRampColor(t); shownResolved++; }
+    // canvas row 0 = north (highest lat); data row 0 = southernmost (lat0) -> flip
+    const py=(nrows-1-c[0]), px=c[1];
+    const idx=(py*ncols+px)*4;
+    img.data[idx]=rgb[0]; img.data[idx+1]=rgb[1]; img.data[idx+2]=rgb[2]; img.data[idx+3]=255;
+  });
+  ctx.putImageData(img,0,0);
+  const label=METHANE_MAP_LABEL[metric];
+  $('methane-map-count').textContent=shownResolved.toLocaleString('en-CA')+' resolved + '+shownBg.toLocaleString('en-CA')+' background cells ('+label+')';
+  const stops=METHANE_RAMP.map((rgb,i)=>`rgb(${rgb.join(',')}) ${(i/(METHANE_RAMP.length-1)*100).toFixed(0)}%`).join(',');
+  const fmtVal=v=>v<0.01?v.toExponential(1):v<10?v.toFixed(2):v.toFixed(1);
+  $('methane-map-legend').innerHTML=`<span>${fmtVal(vmin)}</span><span class="ramp" style="background:linear-gradient(90deg,${stops})"></span><span>${fmtVal(vmax)} Mg CH₄/yr/km² (resolved)</span>`+(shownBg?`<span><span class="bg-swatch"></span>background / shared rate</span>`:'');
+  METHANE_MAP_STATE={metric,col,bgBit};
+}
+let METHANE_MAP_STATE=null;
+// Decorative Canada outline, drawn once as an SVG overlay in the same
+// row/col pixel space as the canvas (viewBox = ncols x nrows, so 1 SVG
+// unit = 1 grid cell, matching the canvas's own coordinate system
+// regardless of how the element is CSS-scaled).
+function drawMethaneMapOutline(){
+  const d=METHANE_MAP_DATA, rings=d.canada_outline; if(!rings||!rings.length)return;
+  const {nrows,ncols}=METHANE_MAP_DIMS;
+  const px=lon=>(lon-d.lon0)/d.cell_size_deg, py=lat=>(nrows-1)-(lat-d.lat0)/d.cell_size_deg;
+  const paths=rings.map(ring=>{
+    const pts=ring.map(([lon,lat])=>`${px(lon).toFixed(1)},${py(lat).toFixed(1)}`).join(' L');
+    return `<path d="M${pts} Z"/>`;
+  }).join('');
+  const svg=$('methane-map-outline');
+  svg.setAttribute('viewBox',`0 0 ${ncols} ${nrows}`);
+  svg.innerHTML=paths;
+}
+function bindMethaneMapHover(){
+  const canvas=$('methane-map-canvas'), tip=$('methane-map-tip'), wrap=canvas.parentElement;
+  canvas.addEventListener('mousemove',e=>{
+    if(!METHANE_MAP_DATA||!METHANE_MAP_STATE)return;
+    const {nrows,ncols}=METHANE_MAP_DIMS;
+    const rect=canvas.getBoundingClientRect();
+    const px=Math.floor((e.clientX-rect.left)/rect.width*ncols);
+    const py=Math.floor((e.clientY-rect.top)/rect.height*nrows);
+    const row=nrows-1-py, col2=px;
+    const c=METHANE_MAP_INDEX.get(row+','+col2);
+    const v=c?c[METHANE_MAP_STATE.col]:0;
+    if(!c||!(v>0)){tip.style.display='none';return;}
+    const d=METHANE_MAP_DATA;
+    const lat=(d.lat0+row*d.cell_size_deg).toFixed(2), lon=(d.lon0+col2*d.cell_size_deg).toFixed(2);
+    const isBg=!!(c[6]&METHANE_MAP_STATE.bgBit);
+    tip.innerHTML=`${lat}°N, ${lon}°E<br>${v.toFixed(4)} Mg CH₄/yr/km²${isBg?' <i>(background)</i>':''}`;
+    tip.style.left=(e.clientX-rect.left)+'px';
+    tip.style.top=(e.clientY-rect.top)+'px';
+    tip.style.display='';
+  });
+  canvas.addEventListener('mouseleave',()=>{tip.style.display='none';});
+}
+
 const $=id=>document.getElementById(id);
 const fmtI=n=>Math.round(n).toLocaleString('en-CA');
 const fmt1=n=>n.toLocaleString('en-CA',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -1996,6 +2173,7 @@ Promise.all([
   $('results').style.display='';
   recompute();
   renderHouseTypes();
+  loadMethaneMap();
 }).catch(err=>{
   console.error(err);
   $('loading').style.display='none';
@@ -2085,6 +2263,14 @@ function buildInputs(){
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
   ['ht-type','ht-storeys','ht-vintage','ht-size'].forEach(id=>$(id).addEventListener('change',renderHouseTypes));
   $('ht-method-link').addEventListener('click',e=>openMethodology(e,'m-housetypes'));
+  $('methane-map-method-link').addEventListener('click',e=>openMethodology(e,'m-methane-map'));
+  document.querySelectorAll('#methane-map-seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#methane-map-seg button').forEach(x=>x.classList.toggle('active',x===b));
+    renderMethaneMap(b.dataset.val);
+  }));
+  $('methane-map-hide-bg').addEventListener('change',()=>{
+    renderMethaneMap(METHANE_MAP_STATE?METHANE_MAP_STATE.metric:'total');
+  });
   document.querySelectorAll('#weather-view-seg button').forEach(b=>b.addEventListener('click',()=>{
     state.weatherView=b.dataset.view;
     document.querySelectorAll('#weather-view-seg button').forEach(x=>x.classList.toggle('active',x===b));
@@ -2464,7 +2650,7 @@ function buildOpts(){
       lineLossPct:state.lineloss,
       methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (85, 20-yr, TAF)
       oilUpstreamFrac:0.12,
-      charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW,
+      charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW[state.refrig],
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
       refrigerantGWP:REFRIG_GWP[state.refrig],
     },

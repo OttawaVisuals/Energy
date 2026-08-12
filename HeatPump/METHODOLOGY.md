@@ -1771,7 +1771,10 @@ upstream-oil** (kg CO2e/yr). Direct combustion factors, g CO2e/kWh of fuel input
 Lifecycle terms are user sliders (PLAN.md §6), not baked in:
 
 - **Refrigerant** (annual, amortized, PROJECT only):
-  `charge_kg × (leakRate_frac + eolLossFrac/lifetimeYears) × GWP`.
+  `charge_kg × (leakRate_frac + eolLossFrac/lifetimeYears) × GWP`. Both
+  `charge_kg` and `GWP` are now per-refrigerant (corrected 2026-08-12 — see
+  **§Refrigerant GWP and charge mass** below); `charge_kg` = rated capacity
+  (kW) × a per-refrigerant kg/kW constant, `GWP` = AR6 blend-weighted GWP100.
 - **Upstream methane**: `methaneLeakPct%` of gas throughput (mass, via
   10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. The engine still
   accepts both as independent parameters, but the live page currently exposes
@@ -2029,6 +2032,172 @@ the EF, once in the ratio) and roughly double every electricity emission. The
 only quantity we still need to add on top of a per-kWh-generated EF is the
 **delivery loss between the plant busbar and the meter** — i.e. T&D only — which
 is the ~5 % line-loss slider, *not* the 1.83 source–site ratio.
+
+---
+
+## Refrigerant GWP and charge mass (corrected 2026-08-12)
+
+**The bug (found in review, 2026-07-28; fixed 2026-08-12):** the four
+refrigerant options (R-410A, R-32, R-454B, R-290) shared one flat charge
+mass (`0.25 kg per rated kW`, the same for all four) and used AR4/AR5-era
+GWP100 values that were also internally inconsistent — the UI selector said
+R-410A's GWP was 2088, but the engine's own self-test vector
+(`METHODOLOGY.md` §Validation) had already been using 2256 for the same
+refrigerant. Both are now fixed and use one consistent number throughout.
+
+**GWP100 — IPCC AR6, blend-weighted.** AR6 WG1 Ch.7 Table 7.SM.7 gives GWPs
+per pure molecule; commercial refrigerant blends are weighted by their
+constituent mass fractions (e.g. R-410A = 50% R-32 + 50% R-125 by mass).
+Sourced via a peer tool's review (Building Decarbonization Alliance's *Heat
+Pump Lifecycle Emissions Explorer* — see `BDA_COMPARISON.md`), which shows
+its blend arithmetic in a code comment:
+
+| Refrigerant | GWP100 (was) | GWP100 (now) |
+|---|---:|---:|
+| R-410A | 2088 | **2256** |
+| R-32 | 675 | **771** |
+| R-454B | 467 | **531** |
+| R-290 (propane) | 3 | **0.02** |
+
+**Charge mass — ratio-scaled from a peer tool, anchored to our own baseline.**
+The engine computes `charge_kg = ratedCap_kW × (kg per kW)`. R-410A's
+`0.25 kg/kW` is this tool's own original figure (kept as the anchor — not
+independently re-sourced here). The other three refrigerants are that
+baseline scaled by the *ratio* between refrigerants in the same peer tool's
+reference unit (R-410A 3.6 kg : R-454B 3.4 kg : R-32 2.3 kg : R-290 0.5 kg).
+Because that reference unit's own capacity isn't stated in the peer tool's
+published constants, only the **ratio** between refrigerants is portable —
+not their absolute kg figures, which is why our R-410A anchor (`0.25 kg/kW`)
+is kept rather than replaced with `3.6 kg ÷ (their unknown capacity)`:
+
+| Refrigerant | Ratio to R-410A | kg/kW (this tool) |
+|---|---:|---:|
+| R-410A | 1.000 | **0.250** |
+| R-454B | 0.944 | **0.236** |
+| R-32 | 0.639 | **0.160** |
+| R-290 (propane) | 0.139 | **0.035** |
+
+R-290's low ratio is physically expected, not just an artifact of a smaller
+molecule: propane's flammability class caps the maximum allowable charge in
+a residential system by refrigeration/building code, independent of its
+thermodynamic properties.
+
+**Uncertainty, stated plainly.** This is a ratio-scaling approximation, not
+an independently-sourced per-refrigerant charge curve fitted to real
+manufacturer data across the capacity range this tool covers (<18k to
+≥42k Btu/h). A real per-unit charge figure would vary by manufacturer,
+system architecture (line-set length, indoor coil design) and refrigerant
+circuit design, not just refrigerant type and capacity. Treat the resulting
+`charge_kg` as a representative estimate, same caveat level as the rest of
+this tool's screening-grade lifecycle terms.
+
+---
+
+## Methane leakage map — GFEI 2016 (2026-08-12)
+
+Added a section-page map ("Where upstream methane comes from") plus a
+methodology entry (`#m-methane-map` in `heatpump.html`) so the fixed
+2.14% upstream-methane lever (see above) has a geographic anchor: where
+fugitive oil/gas/coal methane actually clusters in Canada.
+
+**Source.** NASA GES DISC's Global Fuel Exploitation Inventory (GFEI) CH4,
+v1, 2016 (Scarpelli et al. 2020, https://doi.org/10.5194/essd-12-563-2020;
+DOI 10.5067/Q28GFYJYFZ7H). A global 0.1°×0.1° grid built from countries'
+own UNFCCC reports where available, IPCC 2006 defaults elsewhere, for
+IPCC category 1B2 (fuel exploitation — fugitive emissions, not
+combustion), spatially allocated to mines, wells, pipelines, compressor
+stations, storage, processing plants and refineries **combined into one
+number per fuel type**. It is not a pipeline-only or transmission-only
+layer, despite starting life (in the prior session that sourced this
+file) framed as "pipeline GIS data" — that framing doesn't survive
+contact with what the file actually contains, and the page/doc language
+was corrected to avoid repeating it. NASA/US-federal data products are
+public domain and freely redistributable — no EULA constraint like
+NRCan's heat-pump tool (see `heatpump-nrcan-and-neep-licensing` decision).
+
+**2016 is the newest vintage at this scope.** Checked for a newer
+equivalent; none exists that we could find. Treated explicitly as a
+historical snapshot in the page copy, not implied as current.
+
+**Processing** (`Python/gfei_ch4_extract.py`): subset the global `.nc` to
+Canada's bounding box (41–79°N, 142–50°W) at the **native 0.1° resolution**
+— no aggregation. An earlier version of this pipeline block-meant to a
+coarser 0.5° grid purely to shrink the file, but that discarded real
+structure: 0.1° resolution visibly shows the Great Lakes, coastlines and
+what reads as actual road/well-pad texture across the AB/BC/SK oil-and-gas
+belt, all of which the 0.5° version blurred into flat horizontal stripes.
+Output: `HeatPump/data/processed/gfei_ch4_canada_2016.json`, ~115,000
+nonzero cells, ~3.4 MB (lon/lat stored as compact `row`/`col` grid indices
+— `lat = lat0 + row*0.1`, `lon = lon0 + col*0.1` — rather than repeating
+float coordinates per cell, to keep the native-resolution file smaller
+than it would otherwise be; served same-origin so a normal HTTP gzip
+transfer applies).
+
+**Resolved vs. background split.** At native resolution a second problem
+became visible: large contiguous patches share the *exact* same emission
+value — GFEI spreads a country/region's reported total across cells it
+can't spatially resolve using one shared modelled rate (a proxy mask —
+basin extent, well density, etc.) rather than an independently-estimated
+per-cell value, which reads as a flat, illegible block rather than
+texture. Checked directly against the raw NetCDF values (not inferred
+from the plot): within the Canada subset, **56% of nonzero gas cells**
+share their exact float32 value with at least one other cell (one value
+alone — `8.816e-10` — repeats across 10,620 cells), a coincidence that's
+essentially impossible at that scale unless deliberately assigned. Oil is
+almost entirely unaffected (99.3% of nonzero oil cells hold a genuinely
+unique value) and coal likewise (86.2% unique, one 12-cell repeated
+patch). The pipeline now flags each cell, **per fuel layer independently**,
+as `background` if its exact value is shared by ≥1 other nonzero cell of
+that layer within the subset, `resolved` otherwise — stored as a 4-bit
+`bg_bits` mask per cell (oil=1, gas=2, coal=4, total=8) rather than four
+separate boolean fields, to keep the file smaller. No threshold to
+justify: either a value is unique or it demonstrably isn't.
+
+**Rendering** (`heatpump.html`, `renderMethaneMap`/`loadMethaneMap`).
+Switched from per-cell SVG `<rect>` elements (fine at 5,200 cells, not at
+115,000 — that many DOM nodes visibly slowed the page) to a **canvas pixel
+buffer**: one canvas pixel per native grid cell, built with
+`ImageData`/`putImageData` in a single pass and then CSS-scaled up with
+`image-rendering:pixelated`. Hover uses a `Map` keyed by `"row,col"` for
+O(1) lookups instead of per-shape `<title>` tooltips (which don't exist at
+this cell count either). **Resolved** cells draw on the log-scaled,
+single-hue amber sequential ramp (pale → deep brown, consistent with the
+existing "Upstream fuel supply" amber used elsewhere on this page); the
+log domain is computed from resolved cells only, so a handful of flat
+background values can't compress the genuinely-varying signal's range.
+**Background** cells draw as a flat neutral gray, distinct from the ramp
+on purpose — the map should not imply those locations were independently
+measured — with a page-level "Hide background" checkbox to drop them
+entirely for readers who want to see only the resolved signal. Projection
+unchanged: simple equirectangular with an x-axis cosine correction at the
+bbox's mid-latitude (~60°N) to avoid extreme east–west stretch —
+approximate, fine for a "where does it cluster" visual, not a
+precise-distance map.
+
+**Cropped to Canada + outline overlay (same day, follow-up pass).** The
+lat/lon bounding box used to subset the NetCDF (41–79°N, 142–50°W) still
+included a strip of US territory along the border — Great Lakes south
+shore, North Dakota, Maine — which showed up on the map with no visual
+indication it wasn't Canada. Fixed by building a single unioned Canada
+land-boundary polygon (`Python/canada_boundary.py`) from the FSA geometry
+already committed for the choropleth maps (`geo_json/*.json`) plus Yukon
+(missing from that set — pulled from the raw national file at the repo
+root and reprojected with the same hand-derived inverse Lambert formula
+`Python/build_fsa_geometry.py` uses, copied rather than imported so this
+module doesn't depend on that one-off script), simplified to the grid's
+own ~0.1° resolution and buffered outward 0.05° so grid cells right at the
+real coast/border aren't dropped just because their center sits a hair
+outside the vector line. 33,201 of 115,271 cells (mostly US) were dropped
+this way; background/resolved percentages were recomputed *after* the
+crop so they reflect Canada alone, not the wider bbox (Canada-only gas is
+78% background, up from the wider bbox's 56% — the US portion this
+removed had relatively more independently-resolved cells, i.e. was
+skewing the "how much is real signal" read on this map before the fix).
+A second, much more heavily simplified/area-filtered version of the same
+polygon (`canada_outline` in the shipped JSON, ~182 rings before
+tightening → 34–44 rings, tolerance 0.12°, islands under 0.4 deg² dropped)
+is drawn by the page as a thin reference outline over the data, so a
+reader can place what they're looking at without needing basemap tiles.
 
 ---
 
