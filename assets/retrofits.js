@@ -874,6 +874,7 @@ function loadProvinceView(myToken){
     toggleHeatWaterfallCard(false); // no heating-only per-fuel figures in the province precompute
     toggleVintageCard(false); // needs row-level YearBuilt + measure flags, province view has none
     toggleWindowChangesCard(false); // needs paired per-home pre/post codes, province view has none
+    toggleFollowThroughCard(false); // needs Plan_*, province precompute has none yet
     $('header-badge').textContent=`EnerGuide data · ${prov.name} · ${payload.total_rows.toLocaleString()} matched homes`;
     renderProvince(payload);
   }).catch(err=>{
@@ -1008,6 +1009,7 @@ function render(){
 
   toggleVintageCard(true);
   toggleWindowChangesCard(true);
+  toggleFollowThroughCard(true);
   renderEUI(preEUIs,postEUIs,euiSave);renderGHG();renderCost();renderRetrofitCost();
   renderKPI(n,fs);renderInsulDist();renderMeasures(n);
   renderHist(savings);renderHeatLossComponents();
@@ -1028,7 +1030,7 @@ function renderAdvancedSections(){
   if(MODE==='fsa'){
     renderYearHist();renderAreaHist();renderTypeDonut();renderStoreyDonut();
     renderSankey();renderSolar(FILTERED.length);renderWaterfall();renderWaterfallHeating();renderAhriWindowFsa();
-    renderVintageMeasures();renderWindowChanges();renderTable();
+    renderVintageMeasures();renderWindowChanges();renderFollowThrough();renderTable();
     renderHeatLoss();renderAuditYearChart();renderHPBackupFsa();renderHPSizing();
     const comp=compositionForSelectedFsa();
     renderFunnel(comp?{total:comp.t,de:comp.de,d:comp.d,e:comp.e,nc:comp.nc,
@@ -2645,6 +2647,80 @@ function renderInsulDist(){
   drawComboChart('fnd-chart','fnd',b.preBins,b.postBins,b.deltaBins,'R-value');
   b=fsaMeasureBins('Pre_AirLeakage','Post_AirLeakage',20,1,false,true);
   drawComboChart('air-chart','air',b.preBins,b.postBins,b.deltaBins,'ACH50');
+}
+
+// ── Follow-through: did homes meet the advisor's recommended upgrade?
+// (FSA mode only -- needs Plan_* alongside paired per-home Pre_/Post_; see
+// Python/ers_web_pipeline.py's "Added 2026-08-11" note. province_json's
+// precomputed stats don't carry Plan_* yet.) ──
+const FOLLOWTHROUGH_COMPONENTS=[
+  {key:'roof',  label:'Roof insulation',       pre:'Pre_RoofInsulation',       plan:'Plan_RoofInsulation',       post:'Post_RoofInsulation',       invert:false},
+  {key:'wall',  label:'Wall insulation',       pre:'Pre_WallInsulation',       plan:'Plan_WallInsulation',       post:'Post_WallInsulation',       invert:false},
+  {key:'fnd',   label:'Foundation insulation', pre:'Pre_FoundationInsulation', plan:'Plan_FoundationInsulation', post:'Post_FoundationInsulation', invert:false},
+  {key:'floor', label:'Floor insulation',      pre:'Pre_FloorInsulation',      plan:'Plan_FloorInsulation',      post:'Post_FloorInsulation',      invert:false},
+  {key:'air',   label:'Air leakage',           pre:'Pre_AirLeakage',           plan:'Plan_AirLeakage',           post:'Post_AirLeakage',           invert:true},
+];
+
+function toggleFollowThroughCard(show){
+  $('followthrough-card').style.display=show?'':'none';
+}
+
+// A "recommendation" exists when Plan differs from Pre by >=10% in the
+// improving direction -- the same threshold ers_web_pipeline.py's gt10pct()
+// uses server-side for the existing Upgrade flags (Roof_Insulation_Upgrade
+// etc.), so "recommended" and "done" are judged on the same footing. Below
+// that threshold a home is counted as having no meaningful recommendation
+// for that component and excluded from its denominator entirely (rather
+// than folded into "no change"), since a home with no plan to follow can't
+// be said to have followed through or not.
+function renderFollowThrough(){
+  const rows=FOLLOWTHROUGH_COMPONENTS.map(c=>{
+    let recommended=0,met=0,partial=0,none=0;
+    FILTERED.forEach(r=>{
+      const pre=num(r[c.pre]),plan=num(r[c.plan]),post=num(r[c.post]);
+      if(pre===null||plan===null||post===null||pre<=0)return;
+      const rel=v=>c.invert?(pre-v)/pre:(v-pre)/pre; // relative change vs pre, +ve = improvement
+      if(rel(plan)<0.10)return; // no meaningful recommendation on this component for this home
+      recommended++;
+      const reachedPlan=c.invert?post<=plan:post>=plan;
+      if(reachedPlan)met++;
+      else if(rel(post)>=0.10)partial++;
+      else none++;
+    });
+    return{...c,recommended,met,partial,none};
+  }).filter(r=>r.recommended>=20); // drop components too thin to show a stable %
+
+  if(!rows.length){
+    drawEmptyCanvasMsg('followthrough-chart','Not enough homes with a recorded recommendation for this selection');
+    return;
+  }
+  dc('followthrough');
+
+  const pct=(n,total)=>total?Math.round(n/total*1000)/10:0;
+  const labels=rows.map(r=>r.label);
+
+  setChartLegend('followthrough-legend',[
+    {label:'Met or exceeded the plan',color:PAL.pos},
+    {label:'Improved, short of the plan',color:PAL.secondary},
+    {label:'No meaningful change',color:PAL.neg},
+  ]);
+
+  charts['followthrough']=new Chart($('followthrough-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Met or exceeded the plan',    data:rows.map(r=>pct(r.met,r.recommended)),    backgroundColor:PAL.pos,      stack:'s',borderWidth:0,borderRadius:2},
+      {label:'Improved, short of the plan', data:rows.map(r=>pct(r.partial,r.recommended)),backgroundColor:PAL.secondary,stack:'s',borderWidth:0,borderRadius:2},
+      {label:'No meaningful change',        data:rows.map(r=>pct(r.none,r.recommended)),   backgroundColor:PAL.neg,      stack:'s',borderWidth:0,borderRadius:2},
+    ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:i=>i[0].label,
+        label:i=>`${i.dataset.label}: ${i.raw}%`,
+        afterBody:i=>`${rows[i[0].dataIndex].recommended.toLocaleString()} homes had this recommended`,
+      }}},
+      scales:{x:{stacked:true,min:0,max:100,ticks:{font:{size:10},color:PAL.tick,callback:v=>v+'%'},grid:{color:PAL.track}},
+              y:{stacked:true,ticks:{font:{size:11},color:PAL.tick},grid:{display:false}}}}
+  });
 }
 
 // ── Measures bar ──────────────────────────────────────────────────
