@@ -2199,6 +2199,36 @@ tightening → 34–44 rings, tolerance 0.12°, islands under 0.4 deg² dropped)
 is drawn by the page as a thin reference outline over the data, so a
 reader can place what they're looking at without needing basemap tiles.
 
+**Sinusoidal projection, collapsed-by-default, gas-first defaults (same
+day, second follow-up pass).** The canvas raster had been drawn with each
+grid cell as one literal pixel — an uncorrected Plate Carrée, which reads
+as a flat, unnaturally wide rectangle at high latitude (a degree of
+longitude spans a real distance at 42°N very different from one at 78°N,
+but the raw grid gives both the same pixel width) and doesn't match how
+Canada is normally drawn. Replaced with a **sinusoidal (Sanson-Flamsteed)
+projection** — a real, named equal-area projection, not an ad hoc squeeze:
+each row is horizontally rescaled by `cos(lat)/cos(lat0)` about the grid's
+own centre column (`lat0` = the bbox's southmost row, so the south stays
+full width and rows narrow going north; y/latitude is untouched). Built by
+rendering the raw raster to an off-screen canvas exactly as before, then
+`drawImage`-ing it onto the visible canvas one row at a time at that row's
+own scale — 380 draw calls, trivial cost. The `canada_outline` overlay and
+the hover-tooltip's screen-to-grid-cell lookup both apply the identical
+per-row transform (and its inverse, for hover) so the outline still traces
+the warped coastline and hovering still resolves the correct cell.
+
+Both this section and "What real homes in \<city\> look like" are now
+wrapped in native `<details>`, collapsed by default, matching the
+`<details>` pattern already used for the methodology accordion elsewhere
+on this page. Collapsing-by-default made the map's ~3MB JSON fetch worth
+deferring: it's now requested only on the `<details>` element's first
+`toggle` to `open`, not unconditionally at page load, via
+`bindMethaneMapLazyLoad()`. Page defaults changed from "all sources" +
+background shown to **gas** + **background hidden** — gas is where nearly
+all of the background/shared-rate problem lives (see above), so hiding it
+by default shows the most legible view first; readers can switch either
+back on.
+
 ---
 
 ## Validation against published benchmarks (Phase 7)

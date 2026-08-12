@@ -5,14 +5,27 @@ Updated **2026-08-12** (**Heat Pump Explorer**: new "Where upstream methane
 comes from" section — a Canada map of fugitive oil/gas/coal methane
 (NASA GES DISC's Global Fuel Exploitation Inventory, 2016, the newest vintage
 at this scope) grounding the page's existing 2.14% upstream-methane lever in
-real geography. Plain-SVG grid-cell heatmap (no basemap), log-scaled amber
-ramp, oil/gas/coal/total toggle. New `Python/gfei_ch4_extract.py` pipeline
-step subsets + coarsens the raw NASA `.nc` to
-`HeatPump/data/processed/gfei_ch4_canada_2016.json` (~180 KB). Explicitly
-labelled as a bundled oil+gas+coal fugitive-emissions layer, not a
-pipeline-only one, despite starting as "pipeline GIS data" in an earlier
-session — see `HeatPump/METHODOLOGY.md`'s "Methane leakage map — GFEI 2016"
-entry.) Prior pass **2026-08-09** (**Heat Pump Explorer** — theme parity: brought the
+real geography. Shipped, then refined same day across two follow-up passes:
+native 0.1° resolution rendered to a canvas pixel buffer (not SVG rects —
+doesn't scale to ~115k cells) with oil/gas/coal/total toggle; "background"
+cells flagged and shown flat-gray, distinct from the real amber log-ramp
+signal, after checking the raw data directly (56–78% of nonzero *gas* cells
+share an exact value with other cells — a shared regional proxy rate GFEI
+applies where it can't spatially resolve, not real per-cell detail — vs.
+~1% for oil), with a toggle to hide them; cropped to a unioned Canada
+boundary polygon (built from the existing FSA choropleth geometry plus
+Yukon, which was missing from it) instead of a raw bbox that bled into the
+US, with a simplified version of the same polygon drawn as a reference
+outline; and a sinusoidal (Sanson-Flamsteed) projection replacing the flat,
+unnaturally-wide-at-the-north raw grid. Section (and "What real homes in
+\<city\> look like") now `<details>`-collapsed by default, with the map's
+~3MB JSON fetch deferred to first expand; default view is gas + background
+hidden, the most legible combination. New `Python/gfei_ch4_extract.py` +
+`Python/canada_boundary.py` pipeline steps. Explicitly labelled as a bundled
+oil+gas+coal fugitive-emissions layer, not a pipeline-only one, despite
+starting as "pipeline GIS data" in an earlier session — see
+`HeatPump/METHODOLOGY.md`'s "Methane leakage map — GFEI 2016" entry and its
+two same-day follow-ups.) Prior pass **2026-08-09** (**Heat Pump Explorer** — theme parity: brought the
 page onto the shared `assets/site-theme.css` system so it finally carries the
 light/dark/colour-blind toggle every other advanced page already had. Deleted
 its duplicated, drifted light-only chrome (reset, `:root`, header, hero,
