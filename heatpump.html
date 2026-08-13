@@ -1285,7 +1285,8 @@ fuel:      fuel kWh × combustion factor</div>
 
 <div class="err-msg" id="err" style="display:none"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Chart.js v4.4.1 vendored same-origin (assets/) — no CDN/external runtime dependency. -->
+<script src="assets/chart.umd.js"></script>
 <script>
 /*
  * engine.js -- Heat Pump tool, Phase 5 core simulation engine.
@@ -1293,8 +1294,14 @@ fuel:      fuel kWh × combustion factor</div>
  * A single pure function, simulate(), that runs one heating year hour by hour
  * and returns annual + monthly energy-by-source and GHG-by-category for a
  * BASE case (the existing gas/oil furnace or electric baseboard) and a PROJECT
- * case (an air- or ground-source heat pump with optional backup). No DOM, no
+ * case (an air-source heat pump with optional backup). No DOM, no
  * dependencies -- runs unchanged in the browser and in Node.
+ *
+ * A ground-source (kind:'gshp') code path exists below but is NOT wired into
+ * the shipping UI -- every caller passes kind:'ashp', so the tool is
+ * air-source-only, matching the methodology panel's "no ground-source option
+ * in this version". The GSHP branch is dormant scaffolding for a later phase;
+ * do not describe it as a user-facing feature until a caller sets kind:'gshp'.
  *
  * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
  * engine (Phase 5)"):

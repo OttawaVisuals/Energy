@@ -4,8 +4,14 @@
  * A single pure function, simulate(), that runs one heating year hour by hour
  * and returns annual + monthly energy-by-source and GHG-by-category for a
  * BASE case (the existing gas/oil furnace or electric baseboard) and a PROJECT
- * case (an air- or ground-source heat pump with optional backup). No DOM, no
+ * case (an air-source heat pump with optional backup). No DOM, no
  * dependencies -- runs unchanged in the browser and in Node.
+ *
+ * A ground-source (kind:'gshp') code path exists below but is NOT wired into
+ * the shipping UI -- every caller passes kind:'ashp', so the tool is
+ * air-source-only, matching the methodology panel's "no ground-source option
+ * in this version". The GSHP branch is dormant scaffolding for a later phase;
+ * do not describe it as a user-facing feature until a caller sets kind:'gshp'.
  *
  * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
  * engine (Phase 5)"):
