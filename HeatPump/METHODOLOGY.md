@@ -2091,6 +2091,346 @@ circuit design, not just refrigerant type and capacity. Treat the resulting
 `charge_kg` as a representative estimate, same caveat level as the rest of
 this tool's screening-grade lifecycle terms.
 
+**Corroboration check (2026-08-12) — weak, not a source.** A general web
+search turned up density-based line-set-charge factors on several
+HVAC-contractor "refrigerant charge calculator" sites (e.g. hvactoolkit.org,
+aristotleair.com, hvacbase.org) — uncited rule-of-thumb content aimed at
+installers, not a manufacturer spec, AHRI figure, or engineering standard,
+and no original source was traced. They put R-32 at ≈0.65× and R-454B at
+≈0.93× an R-410A charge for the same capacity, versus this tool's 0.639/0.944
+— in the same neighbourhood, which is worth recording, but this is **not**
+independent verification of the BDA-derived ratios and should not be read as
+such. No comparable figure exists anywhere for R-290, whose charge is
+code-capped by flammability class rather than density, so it has no check at
+all. If a defensible per-refrigerant charge curve is ever needed, the right
+next step is AHRI's certified-equipment nameplate data or manufacturer
+submittal sheets, not another web search.
+
+### GWP20 added, as a user toggle (2026-08-12)
+
+User asked for the GWP source and whether to re-implement GWP20 alongside
+GWP100 — the engine had only ever used the 100-year figure, while the
+upstream-methane term (above) already runs on a fixed 20-year GWP per TAF's
+own guidance that near-term fuel-switching analysis should use the 20-year
+horizon, not the 100-year inventory basis. HFCs are short-lived (5–30 yr
+atmospheric lifetime), so unlike CO₂ they look considerably worse on a
+20-year window than a 100-year one — neither horizon is "wrong," they
+answer different questions (100-yr: standard national/corporate GHG
+inventories; 20-yr: near-term climate forcing).
+
+**Sourcing — primary source read in full, 2026-08-12.** User added
+`HeatPump/data/raw/IPCC_AR6_WGI_Chapter07_SM.pdf` to the repo (the fetch
+tool gets HTTP 403 on the IPCC site directly; a normal download does not).
+**Table 7.SM.7** (p.29, "Data Table" — actually spans pp.16-27, "Tables of
+Greenhouse Gas Lifetimes, Radiative Efficiencies and Metrics") was read
+directly. Per-molecule GWP20/GWP100, exactly as printed:
+
+| Molecule | GWP20 | GWP100 |
+|---|---:|---:|
+| HFC-32 (CH₂F₂) | 2,690 | 771 |
+| HFC-125 (CHF₂CF₃) | 6,740 | 3,740 |
+| HFO-1234yf (CF₃CF=CH₂) | 1.81 | 0.501 |
+| Propane (C₃H₈) | 0.072 | 0.02 |
+
+Blend arithmetic (R-410A = 50% R-32 + 50% R-125; R-454B = 68.9% R-32 +
+31.1% R-1234yf, per Chemours' Opteon XL41 datasheet composition) reproduces
+our shipped figures to the decimal, not just approximately:
+
+- R-410A GWP20 = 0.5×2,690 + 0.5×6,740 = **4,715.0** (shipped: 4715)
+- R-410A GWP100 = 0.5×771 + 0.5×3,740 = 2,255.5 ≈ **2,256** (shipped: 2256)
+- R-454B GWP20 = 0.689×2,690 + 0.311×1.81 = **1,853.97** (shipped: 1854)
+- R-454B GWP100 = 0.689×771 + 0.311×0.501 = 531.37 ≈ **531** (shipped: 531)
+- R-290 (propane, unblended): GWP20 **0.072**, GWP100 **0.02** — matches
+  shipped values exactly.
+
+This supersedes the earlier version of this fix, which relied on two
+secondary sources (GHG Protocol's reprint, and Refrigerant Management
+Solutions' NY-state compliance table) because the primary PDF returned
+HTTP 403 to the fetch tool. Both secondary sources turn out to have been
+correct — this primary read confirms them exactly — but they were
+presented at the time as "confirmed" without disclosing that the primary
+document had not actually been opened. That was a mistake in how the
+sourcing was reported, not in the numbers themselves; flagged and
+corrected same day (see `source-access-and-assumption-transparency`
+project memory).
+
+| Refrigerant | GWP100 | GWP20 |
+|---|---:|---:|
+| R-410A | 2,256 | 4,715 |
+| R-32 | 771 | 2,690 |
+| R-454B | 531 | 1,854 |
+| R-290 (propane) | 0.02 | 0.07 |
+
+**Implementation.** `heatpump.html` — new `REFRIG_GWP100` / `REFRIG_GWP20`
+constants (replacing the single `REFRIG_GWP`), a `refrigGWP(refrig,horizon)`
+lookup, and a **GWP horizon** segmented toggle next to the refrigerant
+selector (`#gwp-horizon-seg`, same `.seg` pattern as the existing
+average/marginal grid-basis toggle), defaulting to **100-yr**. A live hint
+under the refrigerant dropdown shows the resolved GWP value. The toggle is
+part of the `recompute()` cache key so switching it forces a fresh
+calculation. Self-test vectors are unaffected (they pass an explicit
+`refrigerantGWP` literal, not the UI lookup).
+
+**Scope decision:** the upstream-methane term keeps its existing fixed
+20-year GWP (85, TAF Fugitive Methane guideline) rather than also being
+wired to this toggle — its 2.14% leak-equivalent rate is calibrated
+specifically against TAF's own GWP20-basis +65% ratio (see "Lifecycle terms"
+above), and switching it to GWP100 would require a separately-sourced
+recalibration TAF's guideline doesn't provide. The new toggle affects only
+the refrigerant-leak term.
+
+---
+
+## Refrigerant charge mass — real manufacturer data (2026-08-12)
+
+**Prior state.** `charge_kg = ratedCap_kW × (kg per kW)`, one flat ratio per
+refrigerant: R-410A 0.250 (this tool's own unsourced original figure, kept
+as an anchor), R-454B 0.236, R-32 0.160, R-290 0.035 (all three scaled off
+R-410A by a *ratio* reported by a peer tool, BDA's Heat Pump Lifecycle
+Emissions Explorer, for an unstated reference unit — see "Refrigerant GWP
+and charge mass" above). User asked directly whether the manufacturer spec
+sheets already on file (`data/raw/spec_sheets/`, gathered for Phase 3c
+capacity/COP curve work) list factory refrigerant charge. **They do, in
+most of them** — this had gone unused for the charge-mass question.
+
+### Extraction
+
+Searched every PDF in `data/raw/spec_sheets/` (`pdftotext -layout`, grepped
+for charge/refrigerant fields) for a **factory-charge weight paired with a
+stated rated capacity for the same single-zone/single-outdoor-unit model**
+— excluding multi-zone systems (total charge depends on how many indoor
+heads are connected, not a fixed nameplate figure) and any table where the
+capacity-to-charge column mapping was ambiguous. Every accepted point, its
+source file, and the exact source text is in
+`HeatPump/reference/refrigerant_charge_datapoints.csv`.
+
+**R-410A, n=6** (GREE GUD48W2 ducted single-zone; Carrier 25HNB9 3/4/5-ton;
+TOSOT APEX 24k; LG LA120HYV3 ductless mini-split):
+
+| Unit | Rated capacity | Factory charge | kg/kW |
+|---|---:|---:|---:|
+| GREE GUD48W2 | 13.48 kW | 4.499 kg | 0.334 |
+| Carrier 25HNB9 (3-ton) | 10.55 kW | 6.39 kg | 0.606 |
+| Carrier 25HNB9 (4-ton) | 14.07 kW | 6.78 kg | 0.482 |
+| Carrier 25HNB9 (5-ton) | 17.58 kW | 6.78 kg | 0.386 |
+| TOSOT APEX 24k | 7.03 kW* | 3.487 kg | 0.496 |
+| LG LA120HYV3 | 3.99 kW | 1.151 kg | 0.288 |
+
+*TOSOT's rated *heating* capacity column was misaligned in the source PDF
+(printed the electrical spec instead); the *cooling* rated capacity (24,000
+Btu/h) is used as a proxy, same convention already used elsewhere in this
+tool when a heating figure isn't cleanly available.
+
+**R-454B, n=4** (Lennox SL22KLV 2/3/4/5-ton, the only R-454B line found
+with both capacity and charge):
+
+| Unit | Rated capacity | Factory charge | kg/kW |
+|---|---:|---:|---:|
+| SL22KLV-024 (2-ton) | 6.45 kW | 4.905 kg | 0.760 |
+| SL22KLV-036 (3-ton) | 9.67 kW | 7.625 kg | 0.789 |
+| SL22KLV-048 (4-ton) | 12.89 kW | 7.625 kg | 0.592 |
+| SL22KLV-060 (5-ton) | 16.11 kW | 7.427 kg | 0.461 |
+
+Flagged, not corrected: the 4-ton and 5-ton units carry *less or equal*
+charge than the 3-ton unit, printed exactly that way in the source
+document. Kept as printed rather than adjusted on suspicion of a
+transcription error — a real possibility, but not one this pass can
+confirm or rule out.
+
+**No R-32 or R-290 unit was found** in the spec-sheet set with a stated
+charge — that set was gathered for capacity/COP curves, not for charge, and
+happens to be all R-410A/R-454B units. This is a real gap, not resolved
+here.
+
+### Fit
+
+Both real refrigerants' data show the same **shape a flat ratio cannot
+express**: charge per kW of capacity is *higher* for smaller units, not
+constant — consistent with a largely fixed line-set/coil charge that gets
+amortized over more capacity as units get bigger. A linear fit,
+`charge_kg = a + b × ratedCap_kW` (least-squares, `numpy.polyfit`), captures
+this:
+
+| Refrigerant | a (kg) | b (kg/kW) | n | Source |
+|---|---:|---:|---:|---|
+| R-410A | 0.505 | 0.391 | 6 | real manufacturer data |
+| R-454B | 4.245 | 0.235 | 4 | real manufacturer data |
+| R-32 | 0.322 | 0.250 | 0 | R-410A curve × BDA's 0.639 charge ratio (unverified) |
+| R-290 | 0.070 | 0.054 | 0 | R-410A curve × BDA's 0.139 charge ratio (unverified) |
+
+R-32 and R-290 keep the **old ratio-scaling approach** — applied to the new
+R-410A curve's `a` and `b` together rather than to a single flat number, so
+at least the *shape* is now consistent with real data even though the
+*magnitude* for these two remains an unverified peer-tool ratio.
+
+Charge at standard sizes (1 ton = 3.517 kW), for reference:
+
+| Refrigerant | 2 ton | 3 ton | 4 ton | Source |
+|---|---:|---:|---:|---|
+| R-410A | 3.26 kg | 4.63 kg | 6.01 kg | real spec-sheet fit, n=6 |
+| R-454B | 5.90 kg | 6.72 kg | 7.55 kg | real spec-sheet fit, n=4 |
+| R-32 | 2.08 kg | 2.96 kg | 3.84 kg | BDA ratio × R-410A curve — unverified |
+| R-290 | 0.45 kg | 0.64 kg | 0.83 kg | BDA ratio × R-410A curve — unverified |
+
+### What this changes
+
+The real data show the tool's prior R-410A baseline (0.250 kg/kW) was **too
+low across the entire sampled capacity range** — every one of the 6 real
+units runs higher, from +15% (LG, smallest unit) to +142% (Carrier 3-ton).
+The refrigerant-leak GHG term was therefore understating emissions for
+every refrigerant option, not just misjudging the ratios between them (the
+2026-08-12 GWP fix, above, was a separate and independent correction to the
+same term).
+
+### Uncertainty, stated plainly
+
+n=6 and n=4 from a handful of brands is a spot-check, not a systematic
+survey of the residential ASHP market — a proper version would need dozens
+of units per refrigerant across more manufacturers and capacity bands. The
+extraction was manual (grep + hand verification per file), not an automated
+parser, because the charge field's table layout differs by brand the same
+way the capacity/COP tables already documented in `DATASHEET_INVENTORY.md`
+do, and building a bespoke parser for ~10 usable points was not worth it.
+R-32 and R-290 remain entirely unverified against manufacturer data. Treat
+this as a real improvement over the prior ratio-scaled baseline, not a
+settled figure.
+
+---
+
+## Tiered electricity pricing — removed (2026-08-12)
+
+**Why.** Tiered plans (ON's monthly two-tier structure, QC's Hydro-Québec
+Rate D daily two-tier structure) price a household's *marginal* kWh
+differently depending on how much it has already used in the billing period.
+To price the *added* heating load correctly within a tiered plan, the engine
+had to assume a **non-heating household baseline** — 750 kWh/month for ON,
+25 kWh/day for QC — neither of which this tool has any way to know for a
+real household (appliances, occupants, other electric loads are entirely
+unmodelled). User's call: remove the feature rather than keep it resting on
+an unstated guess.
+
+**What was removed** (`heatpump.html`): the `tierCost`/`monthlyTieredRate`
+functions, the `tiered` branch of `costElectricity`, the
+`BASELINE_ON_KWH_MONTH`/`BASELINE_QC_KWH_DAY` constants, and the `tiered`
+entry from `PLAN_LABEL`. `Python/rates_etl.py`'s `build_on_city` no longer
+collects the OEB tiered tariff; `prices_json/on.json` regenerated without
+it (both cities keep TOU as default and ULO as the alternative — no loss of
+functionality for Ontario, which has two genuine non-tiered options).
+
+**The Quebec problem.** Hydro-Québec's Rate D is the *only* public
+residential tariff QC has data for, and it **has no flat/non-tiered
+option** — removing "tiered" outright would have left Quebec with zero
+supported electricity plans and a broken operating-cost card. Rather than
+silently degrade QC to "rates unavailable" or invent a new baseline
+assumption in a different guise (e.g. a "typical" blended rate, which
+would just relocate the same unknowable-occupant-usage problem), Quebec's
+plan is now priced entirely at **Rate D's tier-2 (marginal/top-tier) rate**
+— `plans.marginal`, `type: "flat"`, `price_cad_per_kwh` = the tier-2 figure
+(0.11142 CAD/kWh as of the 2026-04-01 rates on file). This needs **no
+baseline assumption at all**: Rate D's first tier ends at 40 kWh/day
+(~1,200 kWh/month), and any home with a materially-sized electric heating
+load — the exact case this tool models — will push its *total* daily usage
+past that threshold on essentially every day it's heating, so its heating
+electricity sits in tier 2 regardless of what else the household draws.
+The only place this slightly overstates cost is the sliver of load on the
+very mildest heating days, where a low-heating-demand home's total daily
+usage might dip back under the 40 kWh threshold — a small, one-directional
+(cost-conservative, not cost-flattering) approximation, stated here rather
+than left implicit.
+
+**Validation constant updated.** `rates_etl.py`'s self-check band for a
+1,500 kWh Montreal month moved from the old tier-1-heavy estimate
+($120–185) to reflect all-marginal pricing (**$150–200**, actual ≈ $181.17
+= 1,500 × 0.11142 + $14.04 fixed) — the same real published Rate D numbers,
+just a different exposure assumption per the above.
+
+**Verified live:** ON's plan selector now shows only Time-of-use (default)
+and Ultra-low overnight; Quebec's cost card renders correctly with "Hydro-
+Québec, marginal (top-tier) plan" in the fine print and no plan selector
+(single plan, row auto-hidden — same UI behaviour as any city with one
+plan); zero console errors in either case.
+
+---
+
+## Line loss — province-specific (2026-08-12)
+
+**Where this started.** User: "for the upstream GHG, I think we need to use
+the 1.83 factor (the IESO data is electricity generation, not purchase, so
+for 100 kWh of electricity you use, 183 kWh needs to be generated)." This
+was investigated before implementing anything, per the standing rule to
+flag inaccessible sources and shaky premises rather than build on them
+silently (see project memory `source-access-and-assumption-transparency`).
+
+**Why 1.83 doesn't hold up.** The 1.83 figure is ENERGY STAR Portfolio
+Manager's electricity "source-site" ratio. What it actually measures,
+per ENERGY STAR's own definition, is losses across *production*,
+transmission and delivery — and production (the thermal inefficiency of
+burning fuel to generate electricity, often ~35–45% efficient) is the
+dominant term, not transmission/distribution loss; Canada's ratio is
+explicitly lower than the US's specifically because Canada's hydro/nuclear
+mix has less of that generation inefficiency to begin with. This tool's
+grid EF is already expressed **per kWh generated** (`build_grid_ef.py`'s
+`Average EF = gas_output(h) / total_output(h) * GAS_EF`, both IESO
+generation-by-fuel figures) — a gas plant's thermal inefficiency is exactly
+why its g/kWh figure is high in the first place; that inefficiency is
+already in the number. Applying 1.83 on top would double-count it. Real
+Canadian T&D loss data confirms this: IESO's own transmission loss is only
+~2% of generated power (IESO Transmission Planning Guideline), nowhere
+near 83%.
+
+**The real question, and the answer.** The legitimate version of the user's
+concern — IESO/AESO/HQ generation data vs. what a home actually purchases —
+*is* the existing line-loss term, previously a flat 5% Canada-wide World
+Bank/IEA estimate. Investigated with province-specific regulator data
+instead:
+
+- **ON — 7.4%.** Ontario Energy Board's own [Distribution System Losses
+  audit](https://www.oeb.ca/oeb/_Documents/Audit/report_audit_system_losses_20080624.pdf)
+  (2008, data 2002–2006): distributors' approved Total Loss Factor (TLF)
+  averaged **5.31–5.42%** (2005–2006) — defined by the OEB as "the value by
+  which the end-use metered load must be multiplied... to equal the
+  estimate of the total energy supplied," i.e. exactly the wholesale-
+  purchase-to-retail-meter gap. This is distribution-only; IESO's own
+  transmission loss is separately ~2%. Compounded: 1.02 × 1.0531 ≈ 1.074 →
+  **7.4%**.
+- **AB — 7.68%.** The same OEB report's cross-jurisdiction appendix cites
+  the CEA's Electricity Consumption Report, corroborated by a CASA-hosted
+  study of Alberta's electrical supply system efficiency: Alberta
+  transmission losses 4.45% (2003) and transmission+distribution
+  **combined 7.68%** (2002) — already a full-chain figure, used directly.
+- **QC — 7.5%.** Same OEB appendix, citing Québec's own Régie de l'énergie:
+  a **blended** (T&D combined) loss factor of 7.5% — used directly.
+- **BC/MB/NS/SK — 5% (unchanged fallback).** No province-specific source
+  found for these; they also have no hourly grid pipeline in this tool
+  (flat ECCC-annual EF only), so the generic Canada-wide World Bank/IEA
+  figure remains the best available default.
+
+**Uncertainty, stated plainly.** All three province-specific sources are
+dated (2002–2008) — the OEB report itself is from 2008, the CEA/Alberta
+data from 2002–2003. This is the most specific data found, not a claim of
+current-year precision; distribution infrastructure and loss rates do
+shift over a couple of decades (the OEB report's own 2019–2024-era
+successor, if one exists, was not located). All three provinces converge
+surprisingly tightly (7.4–7.68%) despite being independently sourced,
+which is reassuring but could also mean the underlying CEA-era methodology
+was shared across jurisdictions rather than three truly independent
+measurements — noted, not resolved.
+
+**Implementation.** `heatpump.html` — `LINELOSS_PCT_BY_PROV` replaces the
+flat `UPSTREAM_LINELOSS_PCT` constant; `lineLossPctFor(city)` looks up the
+current city's province, falling back to 5% for provinces without a
+specific figure. Recalculated on both the upstream Yes/No toggle and city
+change (so switching provinces updates the default). No new UI control —
+still governed by the existing Yes/No toggle, per the "Open to-do" note in
+"Lifecycle terms" above about eventually exposing these as adjustable
+rates again.
+
+**Impact on already-published figures:** small. Moving from 5% to
+7.4–7.68% shifts only the *electricity* GHG term (not gas combustion or
+refrigerant) by roughly +2.3–2.6%, i.e. well inside this project's existing
+±15–30% validation tolerances — see the flag added to "Validation against
+published benchmarks" above.
+
 ---
 
 ## Methane leakage map — GFEI 2016 (2026-08-12)
@@ -2284,6 +2624,17 @@ and (3) **archetype floor area** (the tool uses the ERS *population median*,
 UI bug *was* found and fixed while running these scenarios (Quebec
 baseboard→ASHP headline percentage — see the end of this section).
 
+> **Stale-by-a-little, flagged rather than silently left (2026-08-12).** This
+> section's tables were produced with the flat 5% line-loss figure in force
+> at the time. Line loss is now province-specific (7.4% ON, 7.68% AB, 7.5%
+> QC — see "Line loss — province-specific" below), so the electricity-GHG
+> figures below understate the current live page by roughly the same small
+> margin the line-loss figure moved (≈ +2.4% ON, +2.7% AB electricity-GHG
+> component only — gas-combustion and refrigerant terms are unaffected).
+> This is well inside the ±15–30% tolerances this section already works to,
+> so the qualitative conclusions below still hold; the absolute numbers were
+> not re-run against the new line-loss figures for this pass.
+
 ### How the tool figures were produced
 
 The exact browser configuration was reproduced offline by driving the Phase-5
@@ -2407,13 +2758,9 @@ decision: `Python/rates_source_notes.md`; data-shape and caveats:
   exactly per (month, hour). The TMY year has no weekday structure, so
   weekday-only TOU rules are weighted **5/7 weekday : 2/7 weekend** per cell —
   exact in expectation for a temperature-driven load. Holidays are treated as
-  regular weekdays (<1% effect). ON offers TOU (default), ULO and Tiered via
-  a plan selector; both scenarios always use the same plan.
-- **Tiered plans** (ON monthly tiers, QC 40 kWh/day) price the *added*
-  heating load marginally over a documented non-heating household baseline —
-  cost(baseline + heating) − cost(baseline) — with baselines of 750 kWh/month
-  (ON) and 25 kWh/day (QC). QC's daily accumulator uses the month's mean
-  heating day, which slightly understates tier-2 exposure on cold days.
+  regular weekdays (<1% effect). ON offers TOU (default) and ULO via a plan
+  selector; both scenarios always use the same plan. **Tiered plans removed
+  2026-08-12 — see "Tiered electricity pricing — removed" below.**
 - **Fixed charges:** the electricity service charge is identical in both
   scenarios and excluded (stated in the card). The gas fixed charge is
   counted only in scenarios that consume gas; when a gas-heated home switches
@@ -2986,3 +3333,175 @@ most-installed units lean baseline, not premium — and the **≥42k column carr
 under 5 % of appearances**, so a fourth capacity band at the top end buys very
 little. A 3 × 3 grid over <18k / 18–30k / 30–42k covers **93.2 %** of plotted
 appearances.
+
+---
+
+## Real-homes balance-point fix (2026-08-12)
+
+The "real homes" section's per-house **balance point** (`house_profiles_<city>.json`,
+`balance_point_T0_C`, built by `pipeline/build_city_house_profiles.py` and its
+single-FSA precursor `pipeline/check_balance_point_k1s.py`) was landing far
+colder than expected — e.g. Toronto's "worst" home at **11.5 °C**, against
+NRCan/CanmetENERGY's *Cold-Climate Air Source Heat Pumps* report giving a
+Net-Zero-Ready home ≈ 10 °C and a 10 kW/−18 °C worst-case home ≈ 16 °C. User
+flagged the discrepancy 2026-08-12.
+
+### The bug
+
+Both scripts solve for the balance point `T0` by matching a straight-line
+no-gains load model's predicted annual energy to the home's own observed
+delivered energy:
+
+```
+slope (UA, kW/C) = Pre_HeatLoss / (ANCHOR - T_design)
+predicted annual kWh = slope * DDH(T0)         DDH(T0) = Σ_hours max(T0 - T_hour, 0)
+solve: predicted annual kWh = Pre_HeatDelivered   for T0
+```
+
+The bug was `ANCHOR = T0` — using the *unknown being solved for* as the
+temperature the design heat loss is anchored at. But per "UA from design heat
+loss — indoor/outdoor design temperature" above, `Pre_HeatLoss` (`EGHDESHTLOSS`)
+is HOT2000's design heat loss computed at its **fixed default indoor setpoint,
+21 °C** — not at the balance point. Since a home's balance point sits *below*
+21 °C by construction (gains offset some loss, so less than the full
+21 °C-to-outdoor delta is needed before heating stops), anchoring UA on `T0`
+instead of 21 °C always uses too small a denominator, inflating UA. To match
+the same observed annual energy with an inflated UA, the solver is forced to
+push `T0` down. The effect compounds for higher-loss ("worst") homes, which is
+why the worst-house figures were the most visibly wrong.
+
+This is a **regression** of a bug already caught once, upstream: the archetype-
+level work earlier in this document (see "UA from design heat loss" and
+"Finding: calibrated Tbalance (8–12 °C) is lower than the ~15–16 °C planning
+assumption") already anchors UA on the fixed 21 °C setpoint. The per-house
+sketch (`check_balance_point_k1s.py`, 2026-08-11) reintroduced the T0-anchored
+version as a simplification, and `build_city_house_profiles.py` inherited it.
+
+### The fix
+
+`ANCHOR = 21.0` (`T_INDOOR`), fixed, in both scripts:
+
+```
+UA = Pre_HeatLoss / (21.0 - T_design)                 # fixed, one value per house
+target_DDH = Pre_HeatDelivered / UA = (Pre_HeatDelivered / Pre_HeatLoss) * (21.0 - T_design)
+solve: DDH(T0) = target_DDH                             for T0
+```
+
+Because `DDH(T0)` is monotonic increasing in `T0` by construction (raising the
+balance point can only add non-negative terms to the degree-hour sum), this
+also **removes a piece of complexity the old formula needed**: the old
+`h(T0) = DDH(T0)/(T0-T_design)` had a spurious non-monotonic dip just above
+`T_design` (documented in the pre-fix version of this script's docstring),
+requiring a monotonic-branch restriction before solving. That dip was an
+artifact of the wrong anchor, not a real feature of the physics — it is gone
+under the fixed formula.
+
+### Verification — 10 random Toronto homes, full arithmetic
+
+Sampled with a fixed seed (`np.random.RandomState(42)` via
+`DataFrame.sample(random_state=42)`), old vs. new method side by side
+(`T_design` = −18.4 °C for Toronto):
+
+| HOUSEID | Design loss (kW) | Delivered (kWh) | Old T0 (°C) | New T0 (°C) | Δ |
+|---|---|---|---|---|---|
+| 338489 | 29.87 | 49,791 | 11.19 | 14.34 | +3.15 |
+| 1130112 | 16.58 | 24,333 | 9.30 | 12.88 | +3.58 |
+| 1723665 | 21.31 | 33,358 | 10.22 | 13.60 | +3.38 |
+| 5356194 | 17.81 | 23,543 | 7.91 | 11.75 | +3.84 |
+| 942998 | 15.79 | 20,050 | 7.42 | 11.34 | +3.91 |
+| 853324 | 12.26 | 17,637 | 9.02 | 12.66 | +3.64 |
+| 1639276 | 13.69 | 18,869 | 8.45 | 12.20 | +3.75 |
+| 1750640 | 13.87 | 20,506 | 9.40 | 12.96 | +3.56 |
+| 979761 | 15.87 | 27,464 | 11.79 | 14.79 | +3.00 |
+| 950292 | 11.44 | 16,830 | 9.33 | 12.90 | +3.58 |
+
+Worked example, HOUSEID 5356194 (Single Detached, 340 m², built 1994):
+
+- `Pre_HeatLoss` = 17.810 kW, `Pre_HeatEnergy` (consumed) = 25,180 kWh,
+  `Pre_HeatSeasonalCOP` = 93.5 % → `Pre_HeatDelivered` = 25,180 × 0.935 =
+  23,543 kWh.
+- **Old:** target `h` = 23,543 / 17.810 = 1,321.92; solving
+  `DDH(T0)/(T0-(-18.4)) = 1,321.92` on the monotonic branch → **T0 = 7.91 °C**;
+  implied UA = 17.810/(7.91+18.4) = 0.677 kW/°C.
+- **New:** UA = 17.810/(21.0+18.4) = 0.452 kW/°C (fixed); target DDH =
+  23,543/0.452 = 52,084 degree-hours; solving `DDH(T0) = 52,084` →
+  **T0 = 11.75 °C**.
+
+Consistent **+3.0 to +3.9 °C** shift across all 10 homes — systematic, not
+noise, matching the sign and rough magnitude the algebra above predicts.
+
+### What the fix does and doesn't close
+
+The fix closes roughly a third to a half of the gap to CanmetENERGY's ~16 °C
+worst-house figure — it does not fully close it. The remainder is the
+**already-documented** steady-state/occupant-behaviour gap from "Finding:
+calibrated Tbalance (8–12 °C) is lower than the ~15–16 °C planning assumption"
+above: even a correctly-anchored no-gains model run against ERS's steady-state,
+no-solar, design-wind-speed `EGHDESHTLOSS` and a constant-setpoint TMY year
+tends to run cold relative to a real home's average-weather behaviour (reduced
+wind and some incidental solar outside the design-day extreme; real thermostat
+setbacks cut realized annual heating hours below what a constant-setpoint TMY
+simulation predicts). That gap is not resolved by this fix and is not
+resolvable from ERS data alone — it is a genuine finding, not silently
+absorbed, and is flagged the same way on the page (`heatpump.html`
+"Real homes explorer — how the balance point is derived") and in
+`check_balance_point_k1s.py`'s docstring.
+
+### What changed on disk
+
+- `pipeline/check_balance_point_k1s.py` — `T_INDOOR = 21.0` fixed anchor,
+  docstring updated.
+- `pipeline/build_city_house_profiles.py` — `T_INDOOR = 21.0` fixed anchor,
+  monotonic-branch workaround removed (no longer needed), docstring and
+  shipped JSON `meta.method` string updated.
+- `data/processed/house_profiles_<city>.json` — regenerated for all 14
+  cities (747,829 homes total; drop-rate percentages per city unchanged from
+  before the fix — only `balance_point_T0_C` values shifted).
+- `heatpump.html` — "Real homes explorer" advanced-methodology paragraph
+  updated to state the fixed-21 °C anchor and note the 2026-08-12 fix.
+
+Scope note: this fix is **local to the real-homes per-house explorer**. The
+simulation engine's own `Tbalance` (used by `simulate()` for the archetype-
+level What-if calculator) is a **separate calibration**, already anchored
+correctly at the fixed 21 °C indoor setpoint per the Phase-4 archetype work
+above — it was not affected by this bug and needed no change.
+
+---
+
+## In-page methodology section rebuilt (2026-08-12)
+
+`heatpump.html`'s "Assumptions & methodology" accordion (`#method-details`)
+was rewritten in full, in response to a direct ask: it had grown as a log of
+sequential fixes (this same document's own pattern), which made it hard to
+read as a single account of what the tool currently does. This document
+(`METHODOLOGY.md`) keeps the chronological log — that's its job. The
+in-page section does not; it is the reader-facing summary and needed a
+different shape.
+
+**What changed:**
+
+- **Reordered to follow the page's own step sequence** — Weather → Heat
+  load → Equipment → Energy purchased → Grid emissions → Emissions → Cost,
+  then limitations and sources — replacing an order that had drifted from
+  the page's actual Step 1–7 layout as sections were added over time.
+- **All "previously X, now Y" / "corrected 2026-08-12" / "earlier version"
+  narrative language removed.** The page states only what is currently
+  true; the history lives here instead.
+- **Short sentences, bullets and tables** in place of long paragraphs.
+- **Every assumption paired with its source**, inline or in a table column.
+- **Three analyses folded into their natural home in the step sequence**,
+  rather than living in separate sections disconnected from the step they
+  support:
+  - The ERS per-house heat-load/balance-point derivation (field table:
+    `EGHDESHTLOSS`/`EGHFURNACEAEC`/`EGHFURSEASEFF`) — into Step 2, Heat load.
+  - The AHRI/ERS tier-selection sampling method (439,975 record appearances,
+    3×3 COP/capacity-maintenance grid) — into Step 3, Equipment.
+  - The methane leakage map — into Step 6, Emissions, as a sub-section of
+    the upstream-methane term it backs (previously a separate top-level
+    section unconnected to that term).
+
+**What did not change:** the three `data-method` jump-link anchors info
+buttons scroll to (`m-grid`, `m-lifecycle`, `m-methane-map`) are preserved
+on the corresponding headings, so existing "?" info-tip links still resolve.
+No calculation, constant, or formula changed — this was a presentation-only
+rewrite of the same facts already covered elsewhere in this document.

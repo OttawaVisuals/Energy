@@ -171,14 +171,22 @@ load model**, which stays on the NRCan archetypes pending the EnerGuide/HOT2000
 discussion (see ROADMAP § heating-load model rebuild and
 [docs/ENERGUIDE_QUESTIONS.md](../docs/ENERGUIDE_QUESTIONS.md)).
 
-1. **Update refrigerant GWPs to AR6 blend-weighted values** and resolve the
+1. ~~**Update refrigerant GWPs to AR6 blend-weighted values** and resolve the
    2088-vs-2256 inconsistency between the UI selector and the engine test
-   vector. Straight correctness fix, small.
+   vector.~~ **Done 2026-08-12** (GWP100), plus GWP20 added as a user toggle,
+   both cross-checked against sources independent of this review — see
+   METHODOLOGY.md "GWP20 added, as a user toggle."
 2. **Add the AC counterfactual credit.** A legitimate credit we omit entirely;
    we already track charge and leak rate, so the marginal cost is low. Should be
    a user toggle, not a default, and labelled as a counterfactual assumption.
-3. **Per-refrigerant charge factors**, so the R-290 and R-32 options stop
-   carrying an R-410A charge.
+3. ~~**Per-refrigerant charge factors**, so the R-290 and R-32 options stop
+   carrying an R-410A charge.~~ **Done 2026-08-12, and gone further than
+   BDA's own approach** — R-410A and R-454B are now fit against real
+   manufacturer spec-sheet data (n=6, n=4) already on file in this repo,
+   not a ratio off BDA's unstated reference unit; R-32 and R-290 still use
+   BDA's ratio (no manufacturer data found for either), applied to the new
+   fitted curve's shape instead of the old flat number. See METHODOLOGY.md
+   "Refrigerant charge mass — real manufacturer data."
 4. **A forward grid trajectory** from CER Energy Future 2026 Current Measures.
    This is the one place they have a real methodological lead over us, and it
    bears directly on a claim made over a 16-year horizon. Largest of the four;

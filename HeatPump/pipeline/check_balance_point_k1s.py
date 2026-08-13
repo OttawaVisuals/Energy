@@ -25,10 +25,22 @@ Two anchors per house, no internal/solar gains term:
   2. Annual heating energy: Pre_HeatEnergy (kWh), EGHFURNACEAEC.
 
 Load model: load(T) = slope * (T0 - T) for T <= T0, else 0, where
-slope = Pre_HeatLoss / (T0 - T_design) kW/C. T0 (the balance point) is the
-one unknown -- solved by root-finding so that integrating load(T) over
-Ottawa's 8760 TMY hours (HeatPump/data/processed/tmy_temps.json) reproduces
-the house's own Pre_HeatEnergy.
+slope = Pre_HeatLoss / (T_INDOOR - T_design) kW/C, T_INDOOR = 21 C fixed --
+the program default indoor setpoint EGHDESHTLOSS is actually computed at
+(METHODOLOGY.md "UA from design heat loss -- indoor/outdoor design
+temperature"). T0 (the balance point) is the one unknown -- solved by
+root-finding so that integrating load(T) over Ottawa's 8760 TMY hours
+(HeatPump/data/processed/tmy_temps.json) reproduces the house's own
+Pre_HeatEnergy.
+
+FIXED 2026-08-12: slope was originally `Pre_HeatLoss / (T0 - T_design)`,
+i.e. anchored on the *unknown being solved for* rather than the fixed 21 C
+indoor design temperature. Since T0 < 21 C always (a balance point below
+the indoor setpoint is what "gains offset some loss" means), that anchor
+inflated UA, which the solver compensated for by pushing T0 down --
+confirmed on a 10-home Toronto sample to bias T0 low by 3-4 C, worse for
+higher-loss homes. See METHODOLOGY.md "Real-homes balance-point fix
+(2026-08-12)".
 
 This is a straight-line (no-gains) simplification: a real home's balance
 point sits below its indoor setpoint because internal/solar gains offset
@@ -89,8 +101,18 @@ def load_tmy_hours() -> np.ndarray:
     return np.array(hours, dtype=float)
 
 
+T_INDOOR = 21.0  # HOT2000 default indoor design setpoint EGHDESHTLOSS is computed
+                  # at (METHODOLOGY.md "UA from design heat loss -- indoor/outdoor
+                  # design temperature") -- FIXED anchor for UA, not the balance
+                  # point. Using the solved T0 itself as that anchor (the original
+                  # version of this script) inflates UA whenever T0 < 21C, which is
+                  # always, and biases the solved balance point low by 3-4C
+                  # (confirmed 2026-08-12, see METHODOLOGY.md "Real-homes
+                  # balance-point fix").
+
+
 def predicted_annual_kwh(t0: float, t_design: float, heat_loss_kw: float, tmy: np.ndarray) -> float:
-    slope = heat_loss_kw / (t0 - t_design)  # kW/C
+    slope = heat_loss_kw / (T_INDOOR - t_design)  # kW/C, UA fixed at the true design anchor
     load = np.clip(slope * (t0 - tmy), 0, None)  # kW at each of 8760 hours
     return load.sum()  # kWh (1 hour per sample)
 
@@ -131,7 +153,7 @@ def main():
         t0, reason = solve_t0(t_design, hl, he, tmy)
         t0s.append(t0)
         reasons.append(reason)
-        slopes.append(hl / (t0 - t_design) if t0 is not None else np.nan)
+        slopes.append(hl / (T_INDOOR - t_design) if t0 is not None else np.nan)
     valid["T0"] = t0s
     valid["slope_kw_per_C"] = slopes
     valid["_reason"] = reasons
