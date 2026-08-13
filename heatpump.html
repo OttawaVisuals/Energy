@@ -52,7 +52,7 @@
    every width -- auto-fit's per-row column count can differ between rows
    at in-between viewport widths (e.g. 5 cols then 3), scattering labels
    out of their logical groups. */
-.ctrl-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px 10px;align-items:start}
+.ctrl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 10px;align-items:start}
 @media(max-width:1100px){.ctrl-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:900px){.ctrl-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.ctrl-grid{grid-template-columns:1fr}}
@@ -297,6 +297,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
 .methodology details[open] summary::after{content:'\2013'}
 .methodology summary:hover{background:var(--cream)}
+.flow-legend{display:flex;gap:16px;flex-wrap:wrap;font-family:'Inter',sans-serif;font-size:11.5px;color:var(--muted);margin:.5rem 0 .8rem}
+.flow-legend span{display:inline-flex;align-items:center;gap:5px}
+.flow-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--amber)}
+.flow-legend i.outline{background:var(--surface);border:1.5px solid var(--purple);width:8px;height:8px}
+.flow-scroll{overflow-x:auto}
+#hp-flow-svg{width:100%;min-width:720px;display:block;font-family:'Inter',sans-serif}
 .method-body{padding:0 1.1rem 1rem;font-size:14px;line-height:1.65;color:var(--text)}
 .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.35rem 0 .4rem}
 .method-body h5{font-size:13px;font-weight:600;color:var(--text);margin:1.1rem 0 .35rem}
@@ -446,6 +452,15 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </div>
     <div class="ctrl">
+      <label for="in-ef">Emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
+      <select id="in-ef">
+        <option value="marginal">Marginal</option>
+        <option value="average">Hourly average</option>
+        <option value="annual">ECCC yearly</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
       <label for="in-fuel">Current heating</label>
       <select id="in-fuel">
         <option value="gas">Natural-gas furnace</option>
@@ -461,6 +476,14 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <span class="range-val" id="eff-val"></span>
       </div>
     </div>
+    <div class="ctrl" id="band-ctrl">
+      <label for="in-band">Heat pump size</label>
+      <select id="in-band">
+        <option value="&lt;18k">&lt;18,000 Btu/h (≈&lt;5.3 kW)</option>
+        <option value="18-30k">18,000–30,000 Btu/h (≈5.3–8.8 kW)</option>
+        <option value="30-42k">30,000–42,000 Btu/h (≈8.8–12.3 kW)</option>
+      </select>
+    </div>
     <div class="ctrl">
       <label for="in-tier">Heat pump tier <button type="button" class="info-btn" id="tier-info" aria-label="What differs between tiers?">?</button></label>
       <select id="in-tier">
@@ -470,14 +493,14 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <option value="custom">My own data</option>
       </select>
     </div>
-    <div class="ctrl" id="band-ctrl">
-      <label for="in-band">Heat pump size</label>
-      <select id="in-band">
-        <option value="&lt;18k">&lt;18,000 Btu/h (≈&lt;5.3 kW)</option>
-        <option value="18-30k">18,000–30,000 Btu/h (≈5.3–8.8 kW)</option>
-        <option value="30-42k">30,000–42,000 Btu/h (≈8.8–12.3 kW)</option>
-      </select>
+    <div class="ctrl">
+      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: an upstream 'methane-equivalent' term before the gas burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value: the upstream term at 2.14% (weighted at the 20-year methane GWP of 85) is calibrated so this tool's single leak x GWP lever reproduces The Atmospheric Fund's published +65% carbon-intensity increase for a single-home gas-to-heat-pump project — TAF attributes that +65% to both fugitive methane leakage and non-methane extraction 'process emissions' this tool can't model separately, so 2.14% is a bundled proxy, not a literal leak-rate reading; line loss is province-specific (7.4% ON, 7.68% AB, 7.5% QC, 5% elsewhere). Neither is exposed as its own adjustable rate. See methodology." data-method="m-lifecycle">?</button></label>
+      <div class="seg" id="upstream-seg" role="group" aria-label="Include upstream and grid losses">
+        <button type="button" data-val="yes" class="active">Yes</button>
+        <button type="button" data-val="no">No</button>
+      </div>
     </div>
+
     <div class="ctrl">
       <label for="in-backup">Backup heat <button type="button" class="info-btn" id="backup-info" aria-label="How does backup work?">?</button></label>
       <select id="in-backup">
@@ -495,6 +518,30 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
       <div class="ctrl-hint" id="lockout-hint" style="display:none"></div>
     </div>
+    <div class="ctrl">
+      <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential. Both the GWP and the factory charge mass are specific to the refrigerant selected — a low-GWP option like R-290 also carries a much smaller charge by design." data-method="m-lifecycle">?</button></label>
+      <select id="in-refrig">
+        <option value="r410a">R-410A</option>
+        <option value="r32">R-32</option>
+        <option value="r454b">R-454B</option>
+        <option value="r290">R-290 propane</option>
+      </select>
+      <span class="ctrl-hint" id="refrig-gwp-hint" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="ctrl">
+      <label for="in-leak">Leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life.">?</button></label>
+      <div class="range-row">
+        <input type="range" id="in-leak" min="0" max="10" step="0.5" value="2">
+        <span class="range-val" id="leak-val">2.0 %/yr</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label for="gwp-horizon-seg">GWP horizon <button type="button" class="info-btn" aria-label="Why does the time horizon matter?" data-info="Global-warming potential compares a gas to CO₂ over a chosen time window. HFC refrigerants are short-lived (5–30 yr), so they look much worse on the 20-year window (more warming, sooner) than on the standard 100-year inventory window. Neither is 'wrong' — 100-yr is the basis used for national/corporate GHG inventories; 20-yr better reflects near-term climate forcing, and is the horizon this tool's own upstream-methane term already uses." data-method="m-lifecycle">?</button></label>
+      <div class="seg" id="gwp-horizon-seg" role="group" aria-label="Refrigerant GWP time horizon">
+        <button type="button" data-val="100" class="active">100-yr</button>
+        <button type="button" data-val="20">20-yr</button>
+      </div>
+    </div>
 
     <div class="ctrl custom-hp-card" id="custom-hp-card" style="display:none;grid-column:1/-1">
       <label>Your heat pump's capacity &amp; COP curve <button type="button" class="info-btn" id="custom-hp-info" aria-label="How is this used?" data-info="At least 3 points, colder to warmer. The warmest point's capacity becomes the rated (47°F) basis; the coldest point becomes the lockout temperature (hard stop below it, same as the tier cutoffs). Values are linearly interpolated between your points and held flat beyond them — the same rule every other curve on this page uses. This is a screening input, not a substitute for your unit's real datasheet.">?</button></label>
@@ -508,47 +555,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     </div>
 
     <div class="helper-panel" id="arch-helper"></div>
-
-    <div class="ctrl">
-      <label for="in-ef">Emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
-      <select id="in-ef">
-        <option value="marginal">Marginal</option>
-        <option value="average">Hourly average</option>
-        <option value="annual">ECCC yearly</option>
-      </select>
-    </div>
-
-    <div class="ctrl">
-      <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential. Both the GWP and the factory charge mass are specific to the refrigerant selected — a low-GWP option like R-290 also carries a much smaller charge by design." data-method="m-lifecycle">?</button></label>
-      <select id="in-refrig">
-        <option value="r410a">R-410A</option>
-        <option value="r32">R-32</option>
-        <option value="r454b">R-454B</option>
-        <option value="r290">R-290 propane</option>
-      </select>
-      <span class="ctrl-hint" id="refrig-gwp-hint" style="font-size:12px;color:var(--muted)"></span>
-    </div>
-    <div class="ctrl">
-      <label for="gwp-horizon-seg">GWP horizon <button type="button" class="info-btn" aria-label="Why does the time horizon matter?" data-info="Global-warming potential compares a gas to CO₂ over a chosen time window. HFC refrigerants are short-lived (5–30 yr), so they look much worse on the 20-year window (more warming, sooner) than on the standard 100-year inventory window. Neither is 'wrong' — 100-yr is the basis used for national/corporate GHG inventories; 20-yr better reflects near-term climate forcing, and is the horizon this tool's own upstream-methane term already uses." data-method="m-lifecycle">?</button></label>
-      <div class="seg" id="gwp-horizon-seg" role="group" aria-label="Refrigerant GWP time horizon">
-        <button type="button" data-val="100" class="active">100-yr</button>
-        <button type="button" data-val="20">20-yr</button>
-      </div>
-    </div>
-    <div class="ctrl">
-      <label for="in-leak">Leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life.">?</button></label>
-      <div class="range-row">
-        <input type="range" id="in-leak" min="0" max="10" step="0.5" value="2">
-        <span class="range-val" id="leak-val">2.0 %/yr</span>
-      </div>
-    </div>
-    <div class="ctrl">
-      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: an upstream 'methane-equivalent' term before the gas burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value: the upstream term at 2.14% (weighted at the 20-year methane GWP of 85) is calibrated so this tool's single leak x GWP lever reproduces The Atmospheric Fund's published +65% carbon-intensity increase for a single-home gas-to-heat-pump project — TAF attributes that +65% to both fugitive methane leakage and non-methane extraction 'process emissions' this tool can't model separately, so 2.14% is a bundled proxy, not a literal leak-rate reading; line loss is province-specific (7.4% ON, 7.68% AB, 7.5% QC, 5% elsewhere). Neither is exposed as its own adjustable rate. See methodology." data-method="m-lifecycle">?</button></label>
-      <div class="seg" id="upstream-seg" role="group" aria-label="Include upstream and grid losses">
-        <button type="button" data-val="yes" class="active">Yes</button>
-        <button type="button" data-val="no">No</button>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -900,6 +906,135 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     <summary>Show assumptions — how this is calculated, and what to distrust</summary>
     <div class="method-body">
       <p>This tool runs an hour-by-hour simulation (8,760 hours, one typical year) in your browser — no server, no dependencies. It is a <b>screening tool</b>: useful for direction and rough magnitude, not a substitute for a heat-loss assessment or a contractor's quote. Full derivations and validation tables are in <code>HeatPump/METHODOLOGY.md</code> in the repository.</p>
+
+      <div class="card" style="margin:1.2rem 0">
+        <div class="card-title" style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:.4rem">Pipeline overview</div>
+        <div class="flow-legend">
+          <span><i></i> what you set</span>
+          <span><i class="outline"></i> outside data (in-box)</span>
+        </div>
+        <div class="flow-scroll">
+          <svg id="hp-flow-svg" viewBox="0 0 1120 550" role="img" aria-label="Six steps in a row — weather, heat load, heat pump details, backup switch-over, GHG emissions, utility costing — each fed by a user choice. Heat load and heat pump details additionally carry an in-box tag citing their outside data source: ERS for heat load, and ERS, HRAI, NEEP and manufacturer spec sheets for heat pump details. All six feed down into a modeling step that fans out to four hourly outputs: heat needed, utility needed, GHG emissions and cost.">
+            <defs>
+              <marker id="hpfa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0L10,5L0,10Z" style="fill:var(--muted)"/>
+              </marker>
+              <marker id="hpfa-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0L10,5L0,10Z" style="fill:var(--amber)"/>
+              </marker>
+            </defs>
+            <g>
+              <g style="fill:none;stroke:var(--amber);stroke-width:1.5" marker-end="url(#hpfa-amber)">
+                <path d="M135,68 L135,100"/>
+                <path d="M305,68 L305,100"/>
+                <path d="M475,68 L475,100"/>
+                <path d="M645,68 L645,100"/>
+                <path d="M815,68 L815,100"/>
+                <path d="M985,68 L985,100"/>
+              </g>
+              <g style="fill:var(--surface);stroke:var(--amber);stroke-width:1.2">
+                <rect x="65" y="28" width="140" height="40" rx="7"/>
+                <rect x="235" y="28" width="140" height="40" rx="7"/>
+                <rect x="405" y="28" width="140" height="40" rx="7"/>
+                <rect x="575" y="28" width="140" height="40" rx="7"/>
+                <rect x="745" y="28" width="140" height="40" rx="7"/>
+                <rect x="915" y="28" width="140" height="40" rx="7"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--text)" font-size="9.5" font-weight="600">
+                <text x="135" y="52">City</text>
+                <text x="305" y="52">Load &amp; balance pt.</text>
+                <text x="475" y="52">Tier &amp; capacity</text>
+                <text x="645" y="52">Switch-over temp</text>
+                <text x="815" y="52">Basis &amp; toggles</text>
+                <text x="985" y="52">Province</text>
+              </g>
+
+              <g style="fill:var(--card);stroke:var(--border);stroke-width:1.4">
+                <rect x="60" y="100" width="150" height="118" rx="9"/>
+                <rect x="230" y="100" width="150" height="118" rx="9"/>
+                <rect x="400" y="100" width="150" height="118" rx="9"/>
+                <rect x="570" y="100" width="150" height="118" rx="9"/>
+                <rect x="740" y="100" width="150" height="118" rx="9"/>
+                <rect x="910" y="100" width="150" height="118" rx="9"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--text)">
+                <text x="135" y="128" font-size="11" font-weight="600">Weather</text>
+                <text x="135" y="146" font-size="9" style="fill:var(--muted)">8,760 hrs</text>
+                <text x="135" y="160" font-size="9" style="fill:var(--muted)">one year</text>
+
+                <text x="305" y="128" font-size="11" font-weight="600">Heat load</text>
+                <text x="305" y="146" font-size="9" style="fill:var(--muted)">Hourly heat</text>
+                <text x="305" y="160" font-size="9" style="fill:var(--muted)">needed</text>
+
+                <text x="475" y="128" font-size="11" font-weight="600">Heat pump</text>
+                <text x="475" y="146" font-size="9" style="fill:var(--muted)">Capacity, COP</text>
+                <text x="475" y="160" font-size="9" style="fill:var(--muted)">&amp; refrigerant</text>
+
+                <text x="645" y="128" font-size="11" font-weight="600">Backup</text>
+                <text x="645" y="146" font-size="9" style="fill:var(--muted)">Switch-over</text>
+                <text x="645" y="160" font-size="9" style="fill:var(--muted)">to backup</text>
+
+                <text x="815" y="128" font-size="11" font-weight="600">Emissions</text>
+                <text x="815" y="146" font-size="9" style="fill:var(--muted)">Grid + combustion</text>
+                <text x="815" y="160" font-size="9" style="fill:var(--muted)">+ fugitive</text>
+
+                <text x="985" y="128" font-size="11" font-weight="600">Costing</text>
+                <text x="985" y="146" font-size="9" style="fill:var(--muted)">Electricity</text>
+                <text x="985" y="160" font-size="9" style="fill:var(--muted)">&amp; fuel rates</text>
+              </g>
+
+              <rect x="240" y="176" width="130" height="30" rx="6" style="fill:var(--surface);stroke:var(--purple);stroke-width:1.2"/>
+              <text x="305" y="195" text-anchor="middle" font-size="8.5" font-weight="600" style="fill:var(--text)">ERS data</text>
+
+              <rect x="410" y="172" width="130" height="36" rx="6" style="fill:var(--surface);stroke:var(--purple);stroke-width:1.2"/>
+              <text x="475" y="187" text-anchor="middle" font-size="7.3" font-weight="600" style="fill:var(--text)">ERS · HRAI · NEEP</text>
+              <text x="475" y="200" text-anchor="middle" font-size="7.3" font-weight="600" style="fill:var(--text)">+ spec sheets</text>
+
+              <g style="fill:none;stroke:var(--muted);stroke-width:1.5" marker-end="url(#hpfa)">
+                <path d="M135,218 L135,272"/>
+                <path d="M305,218 L305,272"/>
+                <path d="M475,218 L475,272"/>
+                <path d="M645,218 L645,272"/>
+                <path d="M815,218 L815,272"/>
+                <path d="M985,218 L985,272"/>
+              </g>
+
+              <rect x="60" y="272" width="1000" height="90" rx="10" style="fill:var(--navy)"/>
+              <g text-anchor="middle" style="fill:var(--on-navy)">
+                <text x="560" y="310" font-size="15" font-weight="600">Modeling</text>
+                <text x="560" y="332" font-size="11">Runs all six steps together, hour by hour, for the full year</text>
+              </g>
+
+              <g style="fill:none;stroke:var(--muted);stroke-width:1.5" marker-end="url(#hpfa)">
+                <path d="M320,362 L175,412"/>
+                <path d="M480,362 L445,412"/>
+                <path d="M640,362 L715,412"/>
+                <path d="M800,362 L985,412"/>
+              </g>
+
+              <g style="fill:var(--surface);stroke:var(--border);stroke-width:1.4">
+                <rect x="60" y="412" width="230" height="72" rx="9"/>
+                <rect x="330" y="412" width="230" height="72" rx="9"/>
+                <rect x="600" y="412" width="230" height="72" rx="9"/>
+                <rect x="870" y="412" width="230" height="72" rx="9"/>
+              </g>
+              <g text-anchor="middle" style="fill:var(--text)">
+                <text x="175" y="442" font-size="12.5" font-weight="600">Heat needed</text>
+                <text x="445" y="442" font-size="12.5" font-weight="600">Utility needed</text>
+                <text x="715" y="442" font-size="12.5" font-weight="600">GHG emissions</text>
+                <text x="985" y="442" font-size="12.5" font-weight="600">Cost</text>
+                <text x="175" y="462" font-size="9.5" style="fill:var(--muted)">hourly, 8,760 hrs/yr</text>
+                <text x="445" y="462" font-size="9.5" style="fill:var(--muted)">hourly, 8,760 hrs/yr</text>
+                <text x="715" y="462" font-size="9.5" style="fill:var(--muted)">hourly, 8,760 hrs/yr</text>
+                <text x="985" y="462" font-size="9.5" style="fill:var(--muted)">hourly, 8,760 hrs/yr</text>
+              </g>
+
+              <text x="560" y="518" text-anchor="middle" font-size="11" font-style="italic" style="fill:var(--muted)">Six inputs run through one hour-by-hour model, producing four hourly outputs for the year.</text>
+            </g>
+          </svg>
+        </div>
+        <p class="note" style="font-family:'Inter',sans-serif;font-size:12.5px;color:var(--muted);margin:.7rem 0 0;line-height:1.6">Six inputs set up the model; heat load and heat pump details are also grounded in outside data (tagged in-box). The steps below walk through each one's formulas and sources in detail.</p>
+      </div>
 
       <h4>The calculation, step by step</h4>
       <p>Steps 1–7 above run this same chain with your inputs. In general form:</p>
