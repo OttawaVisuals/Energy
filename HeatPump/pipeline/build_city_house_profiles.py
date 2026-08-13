@@ -39,19 +39,31 @@ A per-house scipy.brentq loop (as in check_balance_point_k1s.py) does not
 scale to ~800k homes across 14 cities in reasonable time. Reformulated so
 an entire city solves in one vectorized pass:
   DDH(T0) = sum over TMY hours of max(T0 - T_hour, 0)      [degree-hours]
-  h(T0)   = DDH(T0) / (T0 - T_design)
-  predicted annual energy = HeatLoss(design) * h(T0)
+  UA      = HeatLoss(design) / (T_INDOOR - T_design)          [kW/C, per house]
+  predicted annual energy = UA * DDH(T0) = HeatLoss(design) * DDH(T0) / (T_INDOOR - T_design)
 
-h(T0) depends only on the city's own TMY + design temp, not on any one
-house -- computed ONCE per city on a fine T0 grid, then every house's
-balance point is a single vectorized `np.interp` against its own
-target = HeatEnergy / HeatLoss. h(T0) has a small non-monotonic dip
-immediately above T_design (verified numerically, e.g. Ottawa dips from
-~141 at T_design+0.5C to a minimum near T_design+4C before rising
-monotonically to ~3700 by 30C); solving is restricted to the monotonic
-branch from that minimum upward. A house whose target falls outside that
-branch's range is unsolvable in this no-gains model (implausible energy
-for its design load) -- reported per city, not silently dropped.
+T_INDOOR = 21 C, fixed -- the program default indoor setpoint EGHDESHTLOSS
+is actually computed at (METHODOLOGY.md "UA from design heat loss --
+indoor/outdoor design temperature"), NOT the balance point being solved
+for. DDH(T0) depends only on the city's own TMY, not on any one house --
+computed ONCE per city on a fine T0 grid (monotonic increasing in T0 by
+construction), then every house's balance point is a single vectorized
+`np.interp` against its own target DDH = HeatEnergy / HeatLoss * (T_INDOOR
+- T_design). A house whose target falls outside the grid's DDH range is
+unsolvable in this no-gains model (implausible energy for its design load)
+-- reported per city, not silently dropped.
+
+FIXED 2026-08-12 (was: `h(T0) = DDH(T0) / (T0 - T_design)`, anchoring UA on
+the unknown T0 itself instead of the fixed 21 C indoor setpoint). Because
+T0 < 21 C always, that anchor inflated UA and biased every solved T0 low by
+3-4 C on a 10-home Toronto sample -- worse for higher-loss homes, which is
+why the "worst house" balance points looked implausibly cold. The old
+`h(T0)` also had a spurious non-monotonic dip just above T_design that
+needed a monotonic-branch workaround; that dip was itself an artifact of
+the wrong anchor and is gone under the fixed formula (DDH(T0) is
+monotonic by construction, since raising T0 can only add positive terms to
+the degree-hour sum). See METHODOLOGY.md "Real-homes balance-point fix
+(2026-08-12)".
 
 Toronto (289,656 homes, largest dropdown city) solves end-to-end in ~5s.
 
@@ -129,6 +141,9 @@ CITY_PROV = {
 }
 CITY_TO_DESIGNTEMP_KEY = {"Ottawa": "Ottawa-Gatineau"}  # everything else matches verbatim
 T0_MAX = 30.0
+T_INDOOR = 21.0  # HOT2000 default indoor design setpoint EGHDESHTLOSS is computed
+                  # at -- fixed UA anchor, see METHODOLOGY.md "UA from design heat
+                  # loss -- indoor/outdoor design temperature"
 
 BLDGTYPE_MAP = {
     "single detached": "detached",
@@ -222,22 +237,20 @@ def process_city(city, ers_cache):
     print(f"dropped (no plausible seasonal efficiency, 30-400%): {n_dropped_bad_cop:,}")
 
     grid = np.arange(t_design + 0.02, T0_MAX, 0.02)
-    ddh = np.clip(grid[:, None] - tmy[None, :], 0, None).sum(axis=1)
-    h_grid = ddh / (grid - t_design)
+    ddh_grid = np.clip(grid[:, None] - tmy[None, :], 0, None).sum(axis=1)
+    assert np.all(np.diff(ddh_grid) >= -1e-9), f"{city}: DDH(T0) not monotonic"
+    ddh_min, ddh_max = ddh_grid[0], ddh_grid[-1]
 
-    dip_idx = int(np.argmin(h_grid))
-    mono_grid = grid[dip_idx:]
-    mono_h = h_grid[dip_idx:]
-    assert np.all(np.diff(mono_h) >= -1e-6), f"{city}: h(T0) not monotonic past the dip"
-    h_min, h_max = mono_h[0], mono_h[-1]
-
-    target = valid["Pre_HeatDelivered"].values / valid["Pre_HeatLoss"].values
-    too_low = target < h_min
-    too_high = target > h_max
+    denom = T_INDOOR - t_design
+    # target DDH(T0) implied by each house's own UA (fixed at the 21C anchor,
+    # not at T0) and observed delivered energy
+    target_ddh = (valid["Pre_HeatDelivered"].values / valid["Pre_HeatLoss"].values) * denom
+    too_low = target_ddh < ddh_min
+    too_high = target_ddh > ddh_max
     solvable = ~too_low & ~too_high
 
     t0 = np.full(len(valid), np.nan)
-    t0[solvable] = np.interp(target[solvable], mono_h, mono_grid)
+    t0[solvable] = np.interp(target_ddh[solvable], ddh_grid, grid)
     valid["T0"] = t0
 
     n_too_low = int(too_low.sum())
@@ -245,8 +258,8 @@ def process_city(city, ers_cache):
     ok = valid[solvable].copy()
 
     print(f"dropped (missing/nonpositive fields): {n_dropped_invalid:,}")
-    print(f"energy too low for the model (target < {h_min:.1f}): {n_too_low:,}")
-    print(f"energy too high for the model (target > {h_max:.1f}): {n_too_high:,}")
+    print(f"energy too low for the model (target DDH < {ddh_min:.1f}): {n_too_low:,}")
+    print(f"energy too high for the model (target DDH > {ddh_max:.1f}): {n_too_high:,}")
     print(f"solved: {len(ok):,} ({100*len(ok)/n_city:.1f}% of {city}'s ERS homes)")
 
     ok["bldg_code"] = fold_lookup(ok["BldgType"], BLDGTYPE_MAP, "BldgType")
@@ -286,7 +299,9 @@ def process_city(city, ers_cache):
             "method": "no-gains linear load model anchored on Pre_HeatLoss "
                       "(EGHDESHTLOSS, design/peak) and Pre_HeatDelivered "
                       "(EGHFURNACEAEC consumed x EGHFURSEASEFF/100 seasonal "
-                      "efficiency, converting consumed to delivered heat) "
+                      "efficiency, converting consumed to delivered heat); "
+                      "UA = Pre_HeatLoss / (21C - T_design), fixed at HOT2000's "
+                      "indoor design setpoint, NOT at the solved balance point "
                       "-- see check_balance_point_k1s.py and this script's docstring",
             "n_dropped_bad_efficiency": int(n_dropped_bad_cop),
             "n_dropped_missing_fields": int(n_dropped_invalid),

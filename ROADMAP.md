@@ -1,7 +1,107 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-12** (**Heat Pump Explorer**: new "Where upstream methane
+Updated **2026-08-12** (**Heat Pump Explorer** — in-page methodology section
+rebuilt: reordered to follow the page's own Step 1–7 sequence (was drifting
+from it as sections were added over time), all "previously X, now Y" /
+dated-correction narrative removed (page states only what's currently
+true — the chronological history stays in `HeatPump/METHODOLOGY.md`), long
+paragraphs replaced with bullets/tables, every assumption paired with its
+source. Three previously-separate analyses folded into the step they
+actually support: the ERS per-house balance-point derivation into Step 2
+(Heat load), the AHRI/ERS tier-selection method into Step 3 (Equipment),
+and the methane leakage map into Step 6 (Emissions) as part of the
+upstream-methane term it backs. The three `data-method` info-button jump
+anchors (`m-grid`, `m-lifecycle`, `m-methane-map`) were preserved. No
+calculation changed — presentation only. Verified live: correct step
+order, zero console errors, all jump links resolve.) Prior pass **2026-08-12**
+(**Heat Pump Explorer** — line loss made
+province-specific, replacing the flat 5%. User's original ask was to apply
+ENERGY STAR's 1.83 "source-site" ratio (reasoning: IESO data is generation,
+not purchase) — investigated first rather than implemented blind, since 1.83
+is dominated by generation *thermal-conversion* inefficiency (already baked
+into the grid EF's g/kWh figure) not delivery loss, and applying it would
+have double-counted; IESO's own transmission loss is only ~2%, nowhere near
+83%. The legitimate version of the concern (generation-basis EF vs.
+delivered-electricity purchase) is the existing line-loss term — re-derived
+with real province-specific regulator data instead of a flat Canada-wide
+estimate: **ON 7.4%** (OEB's audited distributor Total Loss Factor +
+IESO's own transmission loss, compounded), **AB 7.68%** and **QC 7.5%**
+(both already-blended CEA/Régie de l'énergie figures) — all higher than the
+old flat 5%, all dated 2002–2008 sources (best available, flagged as such).
+BC/MB/NS/SK keep the 5% fallback (no province-specific source found, no
+hourly grid pipeline either). Small impact on already-published benchmark
+figures (+2.3–2.6% on the electricity-GHG term only, flagged in the
+Phase 7 validation section rather than silently left stale). New standing
+rule from this pass: flag inaccessible/unverified sources and shaky
+premises before building on them (project memory
+`source-access-and-assumption-transparency`).) Prior pass **2026-08-12**
+(**Heat Pump Explorer** — tiered electricity pricing
+removed by user request: correctly pricing the added heating load within a
+tiered plan required assuming a non-heating household baseline (750 kWh/mo
+ON, 25 kWh/day QC) this tool has no way to know for a real household.
+Removed from `heatpump.html` (tier cost functions, baseline constants,
+`tiered` plan-selector entry) and `Python/rates_etl.py` (ON no longer
+collects the OEB tiered tariff; regenerated `prices_json/on.json`). Quebec
+had no non-tiered plan at all (Hydro-Québec Rate D has no flat residential
+option), so rather than leave Quebec's cost card broken, its plan is now
+priced at Rate D's tier-2 marginal rate applied to all modelled
+electricity — needs no baseline assumption, since any home with a material
+electric heating load pushes daily usage past the 40 kWh/day first-tier
+threshold regardless of its other draws. `rates_etl.py`'s Montreal
+self-check band updated ($150–200, was $120–185) to match. Verified live:
+ON shows only TOU/ULO, Quebec's cost card renders with "marginal (top-tier)
+plan" and no console errors.) Prior pass **2026-08-12** (**Heat Pump
+Explorer** — refrigerant charge mass
+replaced with real manufacturer data: found that the spec-sheet PDFs
+already on file for capacity/COP curve work (`data/raw/spec_sheets/`) also
+list factory refrigerant charge — extracted 6 R-410A and 4 R-454B
+data points (model, rated capacity, factory charge, all cited in
+`HeatPump/reference/refrigerant_charge_datapoints.csv`) and fit a linear
+`charge_kg = a + b × capacity_kW` model per refrigerant, replacing the
+prior flat, unsourced 0.250 kg/kW R-410A baseline. Real units run 15–142%
+higher than that baseline across the sampled capacity range, and show
+smaller units carrying *more* charge per kW — a shape a flat ratio can't
+express. R-32/R-290 (no manufacturer data found) still fall back to a
+peer-tool ratio, now applied to the new curve's shape rather than a flat
+number. Also corrected how the prior GWP sourcing pass was reported: the
+primary IPCC AR6 table had returned HTTP 403 to the fetch tool and was
+never actually opened, though the writeup at the time said "confirmed" —
+user added the PDF to the repo directly, it was read in full, and every
+GWP20/GWP100 figure already shipped matches the primary table exactly, to
+the decimal. New standing rule saved to always flag inaccessible sources
+and weak corroboration explicitly going forward (project memory
+`source-access-and-assumption-transparency`).) Prior pass **2026-08-12**
+(**Heat Pump Explorer** — refrigerant GWP20 added as a
+user toggle: the refrigerant leak term previously only ever used GWP100; a
+new "GWP horizon" segmented control (100-yr default / 20-yr) lets a reader
+see the near-term-forcing view, matching the horizon the upstream-methane
+term already uses. GWP100 values independently reproduced from AR6's own
+per-molecule table (GHG Protocol's AR6 reprint); GWP20 values (sourced from
+BDA's peer-tool review) cross-checked against a second independent source, a
+refrigerant-industry compliance table built for NY State's AR6-20yr mandate
+— both confirm the same blend-weighted figures almost exactly. Charge-mass
+ratios also spot-checked against generic HVAC density-based line-set-charge
+guidance (R-32/R-454B ratios land within ~1-2 points of independent
+industry figures). `heatpump.html`, `METHODOLOGY.md` and
+`BDA_COMPARISON.md` updated; engine self-tests unaffected (18/18 Python
+mirror assertions pass).) Prior pass **2026-08-12** (**Heat Pump Explorer** — real-homes balance-point bug
+fix: the per-house "0-heat" balance point in the real-homes explorer
+(`house_profiles_<city>.json`) was anchoring its UA calculation on the balance
+point being solved for, instead of HOT2000's fixed 21°C indoor design
+setpoint — inflating UA and biasing every solved balance point 3-4°C too low
+(confirmed on a 10-home Toronto sample), worst for high-loss "worst" homes,
+which is why Toronto's worst-house figure (11.5°C) read far colder than
+NRCan/CanmetENERGY's comparable published figures (~10-16°C). A regression of
+a bug already caught once at the archetype level (see METHODOLOGY.md "UA from
+design heat loss"). Fixed in `check_balance_point_k1s.py` and
+`build_city_house_profiles.py`; all 14 cities' `house_profiles_*.json`
+regenerated (747,829 homes, drop rates unchanged); `heatpump.html`'s
+real-homes advanced-methodology text and a new `METHODOLOGY.md` "Real-homes
+balance-point fix" section document the before/after math. The fix closes
+roughly a third to a half of the gap to CanmetENERGY's figures — the rest is
+an already-documented, not fully closable, steady-state/occupant-behaviour
+modelling gap, unaffected by this change.) Prior pass **2026-08-12** (**Heat Pump Explorer**: new "Where upstream methane
 comes from" section — a Canada map of fugitive oil/gas/coal methane
 (NASA GES DISC's Global Fuel Exploitation Inventory, 2016, the newest vintage
 at this scope) grounding the page's existing 2.14% upstream-methane lever in

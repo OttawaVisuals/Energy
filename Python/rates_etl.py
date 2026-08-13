@@ -141,10 +141,6 @@ ULO_CALENDAR = {
     ],
     "default_period": "off",
 }
-# OEB tiered thresholds are seasonal; upstream exports only the winter one.
-TIERED_SEASONS = {"winter_months": WINTER, "winter_tier1_kwh": 1000,
-                  "summer_tier1_kwh": 600}
-
 # --- validation bands (documented plausibility ranges, NOT derived from this
 # script's own outputs; sources in rates_source_notes.md §Phase-1 decisions
 # and the printout). Each is (lo, hi) in CAD.
@@ -154,8 +150,9 @@ VALIDATION_BANDS = {
     "ottawa_elec_1000kwh": (160.0, 215.0),
     # Ottawa/Enbridge 200 m3 month, carbon excluded: ~$50 volumetric + ~$28 fixed.
     "ottawa_gas_200m3": (60.0, 95.0),
-    # HQ Rate D, 1,500 kWh month (30-day): mostly tier 1 -> ~10-11 c/kWh all-in.
-    "montreal_elec_1500kwh": (120.0, 185.0),
+    # HQ Rate D, 1,500 kWh month, priced entirely at the tier-2 marginal rate
+    # (tiered plan removed 2026-08-12) -> ~11.1 c/kWh all-in, ~$181.
+    "montreal_elec_1500kwh": (150.0, 200.0),
     # Calgary 600 kWh month, RRO: published all-in RRO bills 2024-25 ~ 22-33 c/kWh.
     "calgary_elec_600kwh": (130.0, 200.0),
     # Calgary 10 GJ month of gas (~263 m3): fixed-charge dominated.
@@ -273,14 +270,17 @@ def build_on_city(rates, city, sources):
             by_kind["tou"] = t
         elif "ultra-low" in n:
             by_kind["ulo"] = t
-        elif "tiered" in n:
-            by_kind["tiered"] = t
-    missing = {"tou", "ulo", "tiered"} - set(by_kind)
+        # "tiered" intentionally not collected -- REMOVED 2026-08-12. Pricing
+        # added heating load correctly within a tiered plan requires assuming
+        # a non-heating household baseline (kWh/month) this tool has no way
+        # to know for a real household. See METHODOLOGY.md "Tiered
+        # electricity pricing -- removed."
+    missing = {"tou", "ulo"} - set(by_kind)
     if missing:
         raise RuntimeError(f"{city}: missing ON price plans {missing}")
 
-    tou_t, ulo_t, tier_t = by_kind["tou"], by_kind["ulo"], by_kind["tiered"]
-    # adders/fixed are identical across the three OEB plans; take them from TOU
+    tou_t, ulo_t = by_kind["tou"], by_kind["ulo"]
+    # adders/fixed are identical across the OEB plans; take them from TOU
     plans = {
         "tou": {
             "type": "tou",
@@ -292,15 +292,6 @@ def build_on_city(rates, city, sources):
             "prices_cad_per_kwh": tou_prices(ulo_t, {"ultra-low-overnight": "ulo", "on-peak": "on",
                                                      "mid-peak": "mid", "off-peak": "off"}),
             "calendar": ULO_CALENDAR,
-        },
-        "tiered": {
-            "type": "tiered", "period": "monthly",
-            "tiers": sorted(
-                [{"limit_kwh": c["tier_threshold"] if c["tier_number"] == 1 else None,
-                  "price_cad_per_kwh": c["charge_value"], "tier": c["tier_number"]}
-                 for c in comps(tier_t, "energy")],
-                key=lambda x: x["tier"]),
-            "seasonal_tier1": TIERED_SEASONS,
         },
     }
     for k in ("tou", "ulo"):
@@ -334,6 +325,17 @@ def build_qc_city(rates, city, sources):
         key=lambda x: x["tier"])
     if len(tiers) != 2:
         raise RuntimeError(f"{city}: expected 2 HQ tiers, got {tiers}")
+    # Tiered pricing REMOVED 2026-08-12 -- see build_on_city's comment for why.
+    # Hydro-Quebec's Rate D has no flat residential option, so there is no
+    # simple substitute plan the way ON has TOU/ULO. Replaced with the
+    # marginal (tier-2, top-tier) rate applied to ALL modelled electricity --
+    # defensible without any non-heating-baseline assumption because any home
+    # with material electric heating draws well past the 40 kWh/day
+    # (~1200 kWh/month) first-tier threshold, so its heating electricity sits
+    # in tier 2 regardless of what else the household uses. This slightly
+    # overstates the sliver of heating load that might fall in tier 1 on the
+    # mildest days. See METHODOLOGY.md "Tiered electricity pricing -- removed."
+    tier2_rate = next(c["price_cad_per_kwh"] for c in tiers if c["tier"] == 2)
     return {
         "utility": t["utility_name"],
         "effective_date": t["effective_date"],
@@ -341,9 +343,16 @@ def build_qc_city(rates, city, sources):
         "source_url": t["source_url"],
         "fixed_monthly_cad": monthly_fixed([t]),
         "volumetric_adders_cad_per_kwh": 0.0,
-        "plans": {"tiered": {"type": "tiered", "period": "daily", "tiers": tiers}},
-        "default_plan": "tiered",
-        "notes": [],
+        "plans": {"marginal": {"type": "flat", "price_cad_per_kwh": tier2_rate}},
+        "default_plan": "marginal",
+        "notes": [
+            "Hydro-Quebec Rate D has no flat residential option -- it is a "
+            "two-tier daily rate (40 kWh/day threshold). Pricing added "
+            "heating load correctly within that structure required assuming "
+            "a non-heating household baseline (removed 2026-08-12, see "
+            "METHODOLOGY.md). Replaced with the tier-2 (marginal/top-tier) "
+            "rate applied to all modelled electricity."
+        ],
     }
 
 
@@ -487,10 +496,7 @@ def validate(provinces):
     check("ottawa_gas_200m3", 200 * g["marginal_cad_per_m3"] + g["fixed_monthly_cad"], results)
 
     m = qc["electricity"]["montreal"]
-    tiers = m["plans"]["tiered"]["tiers"]
-    t1_kwh = min(1500, tiers[0]["limit_kwh"] * 30)
-    bill = (t1_kwh * tiers[0]["price_cad_per_kwh"]
-            + (1500 - t1_kwh) * tiers[1]["price_cad_per_kwh"] + m["fixed_monthly_cad"])
+    bill = 1500 * m["plans"]["marginal"]["price_cad_per_kwh"] + m["fixed_monthly_cad"]
     check("montreal_elec_1500kwh", bill, results)
 
     c = ab["electricity"]["calgary"]

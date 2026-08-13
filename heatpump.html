@@ -299,6 +299,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .methodology summary:hover{background:var(--cream)}
 .method-body{padding:0 1.1rem 1rem;font-size:14px;line-height:1.65;color:var(--text)}
 .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.35rem 0 .4rem}
+.method-body h5{font-size:13px;font-weight:600;color:var(--text);margin:1.1rem 0 .35rem}
 .method-body p{margin:0 0 .6rem}
 .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
 .method-body ul{margin:0 0 .6rem;padding-left:1.1rem}
@@ -520,11 +521,19 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     <div class="ctrl">
       <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential. Both the GWP and the factory charge mass are specific to the refrigerant selected — a low-GWP option like R-290 also carries a much smaller charge by design." data-method="m-lifecycle">?</button></label>
       <select id="in-refrig">
-        <option value="r410a">R-410A (GWP 2256)</option>
-        <option value="r32">R-32 (GWP 771)</option>
-        <option value="r454b">R-454B (GWP 531)</option>
-        <option value="r290">R-290 propane (GWP 0.02)</option>
+        <option value="r410a">R-410A</option>
+        <option value="r32">R-32</option>
+        <option value="r454b">R-454B</option>
+        <option value="r290">R-290 propane</option>
       </select>
+      <span class="ctrl-hint" id="refrig-gwp-hint" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="ctrl">
+      <label for="gwp-horizon-seg">GWP horizon <button type="button" class="info-btn" aria-label="Why does the time horizon matter?" data-info="Global-warming potential compares a gas to CO₂ over a chosen time window. HFC refrigerants are short-lived (5–30 yr), so they look much worse on the 20-year window (more warming, sooner) than on the standard 100-year inventory window. Neither is 'wrong' — 100-yr is the basis used for national/corporate GHG inventories; 20-yr better reflects near-term climate forcing, and is the horizon this tool's own upstream-methane term already uses." data-method="m-lifecycle">?</button></label>
+      <div class="seg" id="gwp-horizon-seg" role="group" aria-label="Refrigerant GWP time horizon">
+        <button type="button" data-val="100" class="active">100-yr</button>
+        <button type="button" data-val="20">20-yr</button>
+      </div>
     </div>
     <div class="ctrl">
       <label for="in-leak">Leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life.">?</button></label>
@@ -534,7 +543,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </div>
     <div class="ctrl">
-      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: an upstream 'methane-equivalent' term before the gas burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value: the upstream term at 2.14% (weighted at the 20-year methane GWP of 85) is calibrated so this tool's single leak x GWP lever reproduces The Atmospheric Fund's published +65% carbon-intensity increase for a single-home gas-to-heat-pump project — TAF attributes that +65% to both fugitive methane leakage and non-methane extraction 'process emissions' this tool can't model separately, so 2.14% is a bundled proxy, not a literal leak-rate reading; line loss 5%. Neither is exposed as its own adjustable rate. See methodology." data-method="m-lifecycle">?</button></label>
+      <label>Upstream losses <button type="button" class="info-btn" id="upstream-info" aria-label="What does this include?" data-info="Combines two separate leakage terms behind one switch: an upstream 'methane-equivalent' term before the gas burns, and grid transmission/distribution losses added to delivered electricity. When on, each is fixed at a single representative value: the upstream term at 2.14% (weighted at the 20-year methane GWP of 85) is calibrated so this tool's single leak x GWP lever reproduces The Atmospheric Fund's published +65% carbon-intensity increase for a single-home gas-to-heat-pump project — TAF attributes that +65% to both fugitive methane leakage and non-methane extraction 'process emissions' this tool can't model separately, so 2.14% is a bundled proxy, not a literal leak-rate reading; line loss is province-specific (7.4% ON, 7.68% AB, 7.5% QC, 5% elsewhere). Neither is exposed as its own adjustable rate. See methodology." data-method="m-lifecycle">?</button></label>
       <div class="seg" id="upstream-seg" role="group" aria-label="Include upstream and grid losses">
         <button type="button" data-val="yes" class="active">Yes</button>
         <button type="button" data-val="no">No</button>
@@ -890,84 +899,103 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   <details id="method-details">
     <summary>Show assumptions — how this is calculated, and what to distrust</summary>
     <div class="method-body">
-      <p>This tool runs a transparent, dependency-free hour-by-hour simulation (8,760 hours) of a single typical year, entirely in your browser. It is a <b>screening tool</b>: good for understanding direction and rough magnitude, not a substitute for a heat-loss assessment or a quote. Full derivations, factors and validation live in <code>HeatPump/METHODOLOGY.md</code> in the repository.</p>
+      <p>This tool runs an hour-by-hour simulation (8,760 hours, one typical year) in your browser — no server, no dependencies. It is a <b>screening tool</b>: useful for direction and rough magnitude, not a substitute for a heat-loss assessment or a contractor's quote. Full derivations and validation tables are in <code>HeatPump/METHODOLOGY.md</code> in the repository.</p>
 
-      <h4>The calculation chain, step by step</h4>
-      <p>Steps 1–7 above walk through this same chain live, with your actual numbers plugged in at every stage. Here is the arithmetic itself, in general form.</p>
+      <h4>The calculation, step by step</h4>
+      <p>Steps 1–7 above run this same chain with your inputs. In general form:</p>
       <div class="calc-step"><div class="calc-num">1</div><div>
-        <div class="calc-h">How much heat the home needs</div>
+        <div class="calc-h">Heat needed</div>
         <div class="calc-math">heat(hour) = UA × (balance − outdoor)</div>
-        <div class="calc-res">Summed over every hour below the zero-heat (balance) temperature, this gives the year's total heat demand in kWh.</div>
+        <div class="calc-res">Summed over hours below the zero-heat temperature.</div>
       </div></div>
       <div class="calc-step"><div class="calc-num">2</div><div>
-        <div class="calc-h">How efficiently the heat pump makes that heat</div>
+        <div class="calc-h">Heat pump electricity</div>
         <div class="calc-math">electricity = heat ÷ COP</div>
-        <div class="calc-res">COP is read off the selected unit's curve at that hour's outdoor temperature; below the tier's lockout the backup (if any) carries the load instead.</div>
+        <div class="calc-res">COP read from the selected unit's curve at that hour's temperature. Below lockout, backup carries the load.</div>
       </div></div>
       <div class="calc-step"><div class="calc-num">3</div><div>
-        <div class="calc-h">Energy bought, before and after</div>
-        <div class="calc-math">now:        heat ÷ furnace efficiency  (or heat ÷ 1.0 for baseboard)
-heat pump:  (heat pump kWh ÷ COP) + backup kWh</div>
-        <div class="calc-res">The same heat, delivered two ways — burning fuel at the furnace's rated efficiency versus running the heat pump at its (varying) COP.</div>
+        <div class="calc-h">Energy bought, now vs. heat pump</div>
+        <div class="calc-math">now:        heat ÷ furnace efficiency
+heat pump:  (heat ÷ COP) + backup kWh</div>
       </div></div>
       <div class="calc-step"><div class="calc-num">4</div><div>
-        <div class="calc-h">Emissions today</div>
-        <div class="calc-math">electric baseboard:  electricity kWh × grid intensity (g/kWh) × (1 + line losses)
-fuel furnace:        fuel kWh × combustion factor (g/kWh)</div>
-        <div class="calc-res">Fuel burned in the home emits directly; electricity is priced at the grid's carbon intensity.</div>
+        <div class="calc-h">Emissions</div>
+        <div class="calc-math">electric:  electricity kWh × grid intensity × (1 + line loss)
+fuel:      fuel kWh × combustion factor</div>
       </div></div>
       <div class="calc-step"><div class="calc-num">5</div><div>
-        <div class="calc-h">Emissions with the heat pump</div>
-        <div class="calc-math">grid electricity:  HP kWh × grid intensity × (1 + line losses)
-+ backup fuel:     backup kWh × combustion factor  (if dual-fuel)
-+ refrigerant:     leak + end-of-life charge, amortized annually</div>
-        <div class="calc-res">The grid intensity is varied hour by hour on the chosen basis (marginal / hourly average / annual) and weighted to the hours when the pump actually runs.</div>
-      </div></div>
-      <div class="calc-step"><div class="calc-num">6</div><div>
-        <div class="calc-h">What it costs to run</div>
-        <div class="calc-math">now:        (fuel or electricity) × current rate + fixed charges
-heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div>
-        <div class="calc-res">Each scenario's yearly energy is priced at the province's current residential rates. The number to trust is the <b>difference</b> between the two — charges identical in both (like the electricity service charge) cancel out.</div>
+        <div class="calc-h">Cost</div>
+        <div class="calc-math">(fuel or electricity) × current rate + fixed charges</div>
+        <div class="calc-res">Priced at the province's current residential rates. The number to trust is the difference between scenarios — identical charges cancel out.</div>
       </div></div>
 
-      <h4>Heating load</h4>
-      <p>Each hour's heat demand is <code>Load = UA × max(0, T_balance − T_outdoor)</code>. <b>Design heat load</b> (kW, at the city's design temperature) and <b>zero-heat temperature</b> (°C) are direct inputs you set — <code>UA = design_load_kW × 1000 / (T_balance − T_design_city)</code>, where the city's design temperature comes from NRCan/HOT2000 weather-station records (see <code>HeatPump/data/processed/city_design_temps.json</code>). There is no auto-sizing: earlier versions of this tool inferred a design load from an archetype label (home vintage/type); that inference step has been removed in favour of letting you enter your own EnerGuide/HOT2000 design heat loss, or a number calibrated against the 4 audited-home reference medians shown beside the slider. Domestic hot water is excluded.</p>
-
-      <h4>Weather</h4>
-      <p>A CWEC2020 Typical Meteorological Year (8,760 hourly temperatures) for each city's airport station (ECCC engineering climate datasets).</p>
-
-      <h4 id="m-equip">Heat-pump performance</h4>
-      <p>Tier × size selects exactly one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands — &lt;18k, 18–30k, 30–42k Btu/h) — no scaling, no averaging, no interpolation between models. Capacity and COP versus outdoor temperature are digitized from that unit's own <b>primary public manufacturer datasheet</b> (submittal / product data), at maximum heating output, converted to SI and normalized on its AHRI-certified rated (47 °F) capacity. The equipment-curve chart and the calculation walkthrough name the exact brand/model and AHRI number in play.</p>
-      <div class="caveats"><b>Below-lockout is now a fixed, assumed hard-stop by tier — not the unit's own published minimum.</b> Real published minimums for the 9 certified units span −15 to −30 °C, scattered by model rather than cleanly by tier. Rather than expose a per-unit lockout plus a hard-stop/continue-derated toggle (the previous version's approach), this tool now <b>assumes</b> a single round number per tier — low −15 °C, mid −20 °C, high −25 °C — and hard-stops there: output is zero below it, no derating. This is a simplification in the spirit of the tiers themselves (see “Don't overcomplicate” in the project's working notes): easier to state and defend than a per-unit figure, at the cost of not reflecting the specific selected model's own real cold-weather floor. <b>Open question, not a settled result:</b> is −15/−20/−25 °C the right set of cutoffs? These are round-number placeholders chosen to sit inside each tier's real published range, not fitted to it — the scatter/curve data in “Heat-pump selection: the underlying data” below is what any revision of these numbers would be argued from. The <b>switch-over temperature</b> control (Advanced → Backup heat) is separate: it decides when a dual-fuel system <i>chooses</i> to hand off to its furnace, and can be set warmer than the tier cut-off; below the tier cut-off the heat pump can't run regardless of that setting.</div>
-      <div class="caveats">A <b>sizing sweep</b> card re-runs the whole year at 40–160% of your design load, synthetically scaling the selected unit's own capacity curve — a hypothetical resizing for sensitivity, not a menu of purchasable sizes (real units come only in the 9 discrete tier × band combinations above). It has <b>no short-cycling model</b>, so it <i>understates</i> the penalty of oversizing (short-cycling and worse part-load efficiency) — oversizing looks nearly free on that chart but isn't in a real home. A quick check of ERS retrofit records (installed-capacity vs. audited design heat loss for homes with a certified heat pump) found real installs scattered widely around design load — median ratio ≈0.66, only 24% within ±20% — so no single "correctly sized" ratio is implied or suggested by this tool.</div>
-      <div class="caveats">The tiers differ mainly in <b>cold-weather capability</b> — premium-tier units tend to hold capacity better and lock out colder than value-tier units, but this varies unit to unit; check the specific model named for your selection rather than assuming tier behaviour in general.</div>
-
-      <h4>How the equipment is chosen — rebuilt 2026</h4>
-      <p>The tiers above replaced an earlier scheme that averaged two hand-picked, vendor-list models per tier, with tier boundaries of our own invention. The current method separates two jobs that should never have been one: <b>AHRI certification is the sampling frame; manufacturer datasheets are the measurement.</b></p>
-      <p><b>Which models matter</b> comes from Canada's own <b>EnerGuide/ERS audit records</b> — every AHRI certified reference number ever entered by an energy advisor, <b>439,975 record appearances across 15,148 distinct certified models</b>. So the answer to <i>“why these heat pumps?”</i> is simply: <b>these are the ones Canadians actually bought.</b> Not a vendor list, not a hand-picked shortlist.</p>
-      <p><b>How they are bucketed</b> uses two ratings from each unit's public AHRI certificate, on a 3×3 grid:</p>
+      <h4 id="m-weather">Step 1 — Weather</h4>
       <ul>
-        <li><b>COP at 5 °F</b> — ≤ 1.8 / 1.8–2.0 / &gt; 2.0. Efficiency in deep cold. The bands are deliberately coarse: 1.75 is the certification floor shared by ENERGY STAR, CEE and NEEP, and <b>55% of records report exactly 1.80</b>, so this number measures compliance as much as performance and should not be read as a fine-grained ranking.</li>
-        <li><b>Capacity maintenance</b> — capacity at 5 °F ÷ capacity at 47 °F, banded &lt; 0.60 / 0.60–0.80 / ≥ 0.80. How much heat the unit still delivers when you need it most. This is <b>not our metric</b>: ENERGY STAR v6.2, CEE and NRCan's Greener Homes ccASHP criterion all define exactly this ratio, the last as <i>(Max −15 °C) / (Rated 8.3 °C) ≥ 70%</i>.</li>
+        <li>Hourly temperature: CWEC2020 Typical Meteorological Year, 8,760 hours, one weather-station record per city. <i>Source: Environment and Climate Change Canada engineering climate datasets.</i></li>
+        <li>Design temperature (used to size the default heat load): the 2.5th-percentile January dry-bulb at each home's own weather station, house-weighted mean per city. <i>Source: NBC Appendix C climatic design data, joined to HOT2000 weather-station records — <code>HeatPump/data/processed/city_design_temps.json</code>.</i></li>
+        <li>A separate weather-year selector (2001–2025 + coldest/mildest) re-runs the whole year against that year's actual recorded temperatures. <i>Source: same ECCC stations, historical observations.</i></li>
       </ul>
-      <p>The two axes are near-independent (correlation −0.168), so all nine cells describe genuinely different equipment. Each cell is then split into four <b>capacity bands</b> (&lt;18k, 18–30k, 30–42k, ≥42k Btu/h), and the <b>most frequently installed currently-certified model</b> in each is taken as the representative — 36 in total, every one traceable to an AHRI number you can look up yourself. This tool currently simulates the <b>9 cells in the &lt;18k/18–30k/30–42k bands</b> (the ≥42k band is identified but not yet wired into the simulation).</p>
-      <div class="caveats"><b>A higher COP number is not a better heat pump.</b> The &gt; 2.0 band contains the most models but the fewest installations, and is the band most concentrated in the <i>worst</i> capacity-maintenance column — high reported COP tends to flag older or conservatively-rated units. Capacity maintenance is the axis that tracks real cold-climate capability.</div>
-      <div class="caveats"><b>Ratings are measured on two different bases, and this matters.</b> The 5 °F figures are taken at <i>maximum</i> compressor output; the 47 °F and 17 °F figures are <i>rated</i> (full-load) points. That is why nearly half of all certified models report a 5 °F capacity <i>above</i> their 17 °F capacity — it is correct, not an error, and filtering it out would discard roughly 180,000 records of valid data. Because both bucketing numbers come from that same maximum-output test, an optimistically reported unit moves on both axes at once.</div>
-      <div class="caveats"><b>What the certificate cannot tell us.</b> AHRI publishes capacity at three temperatures but COP at only one, and no compressor lock-out temperature — not enough to simulate a heating season. So certification is used only to <i>choose</i> the representative units; their actual capacity-and-power curves come from each unit's <b>published manufacturer datasheet</b>. The better submittals carry a full <i>extended ratings</i> table — for the most-installed unit in this dataset (GREE GUD36W/A-D(U)) that is <b>23 operating points from −30 °C to +24 °C, each giving capacity, COP and electrical power draw</b>, plus the published heating lock-out of −30 °C. Where a manufacturer publishes no such table, the <b>NEEP cold-climate listing</b> is used as the fallback, cited per model. Where a datasheet and its certificate disagree — for that GREE unit, 0.79 vs 0.80 capacity maintenance and COP 1.83 vs 1.80 — the certificate governs which bucket a unit sits in and the datasheet governs the simulation, so units cannot silently drift between buckets when better data arrives.</div>
-      <div class="caveats"><b>Coverage.</b> About 28% of records are for models with no certified 5 °F rating at all and cannot be bucketed. That group is <b>99% discontinued or delisted</b> and none of it carries a cold-climate designation — it is genuinely older equipment that predates the rating, not missing data we could go and find. Counts throughout are <b>EnerGuide record appearances, not installed units</b>: a home audited twice counts twice, and retrofit and new-construction records are pooled. It is a sound measure of popularity and a poor headcount.</div>
 
+      <h4 id="m-load">Step 2 — Heat load</h4>
+      <p><code>Load(hour) = UA × max(0, zero-heat temp − outdoor temp)</code></p>
+      <ul>
+        <li><b>Design heat load</b> (kW) and <b>zero-heat temperature</b> (°C) are inputs you set directly — there is no automatic sizing from a home-type label.</li>
+        <li><code>UA = design_load_kW × 1000 ÷ (zero-heat temp − city design temp)</code>.</li>
+        <li>Default slider values: the household-weighted median design load and zero-heat temperature across 4 EnerGuide archetypes for the selected city. <i>Source: <code>HeatPump/data/processed/archetypes.json</code>, built from ERS retrofit records.</i></li>
+        <li>Domestic hot water is excluded from the load.</li>
+      </ul>
+
+      <h5>Real homes explorer — per-house heat load and balance point</h5>
+      <p>The "real homes" section plots every ERS-audited home in the selected city, pre-retrofit condition — up to ~290,000 homes per city, not a sample.</p>
+      <table class="ht-table">
+        <tr><th>Quantity</th><th>ERS field</th><th>Notes</th></tr>
+        <tr><td>Peak load</td><td><code>EGHDESHTLOSS</code></td><td>Design heat loss at the city's design temperature, taken directly from the audit.</td></tr>
+        <tr><td>Energy consumed</td><td><code>EGHFURNACEAEC</code></td><td>Fuel or electricity used by the heating system — not the same as heat delivered.</td></tr>
+        <tr><td>Seasonal efficiency</td><td><code>EGHFURSEASEFF</code></td><td>AFUE-style percentage; &gt;100% for a heat pump.</td></tr>
+        <tr><td>Heat delivered</td><td>—</td><td><code>consumed × (efficiency ÷ 100)</code>. Homes with efficiency outside 30–400% are excluded and counted per city (not silently dropped).</td></tr>
+      </table>
+      <p>Balance point (the "0-heat" temperature): solved, not measured.</p>
+      <ul>
+        <li>Model: a straight line from outdoor temperature to heating load, no internal or solar gains.</li>
+        <li>The line's slope (UA) is fixed from <code>EGHDESHTLOSS ÷ (21°C − city design temp)</code>. 21°C is HOT2000's default indoor design setpoint — the temperature <code>EGHDESHTLOSS</code> is computed at.</li>
+        <li>The balance point is then the one unknown solved so that integrating the load line over a full TMY year reproduces the home's own delivered annual energy.</li>
+        <li>Because gains are excluded by construction, this is an <i>effective</i> balance point — it absorbs real internal/solar gains, occupant behaviour, and TMY-vs-actual-year weather differences into one number, not a physical measurement.</li>
+      </ul>
+      <div class="caveats">"Worst" and "best" are the 99th/1st percentile of a combined peak-load and delivered-energy ranking within the filtered set — not the literal extreme — so one mis-keyed audit row can't stretch the display. "Average" is the arithmetic mean of the filtered set, not any single real home.</div>
+
+      <h4 id="m-equip">Step 3 — Equipment</h4>
+      <p>Tier × capacity band selects one of <b>9 real, individually-certified units</b> (3 performance tiers × 3 capacity bands: &lt;18k, 18–30k, 30–42k Btu/h). No scaling, no averaging between models.</p>
+      <p>How the 9 units were chosen:</p>
+      <ol>
+        <li><b>Sampling frame:</b> every AHRI-certified reference number appearing in Canada's EnerGuide/ERS retrofit audit records — 439,975 record appearances across 15,148 distinct certified models. <i>Source: NRCan EnerGuide/ERS.</i></li>
+        <li><b>Bucketing:</b> each certified model's own AHRI certificate is placed on a 3×3 grid:
+          <table class="ht-table">
+            <tr><th>Axis</th><th>Bands</th><th>What it measures</th></tr>
+            <tr><td>COP at 5°F</td><td>≤1.8 / 1.8–2.0 / &gt;2.0</td><td>Efficiency in deep cold. 1.75 is the shared certification floor (ENERGY STAR, CEE, NEEP); 55% of records report exactly 1.80.</td></tr>
+            <tr><td>Capacity maintenance</td><td>&lt;0.60 / 0.60–0.80 / ≥0.80</td><td>Capacity at 5°F ÷ capacity at 47°F — how much heat the unit still delivers in cold weather. Same definition used by ENERGY STAR v6.2, CEE, and NRCan Greener Homes.</td></tr>
+          </table>
+        </li>
+        <li><b>Representative selection:</b> within each of the 9 cells, the most-installed currently-certified model (by ERS appearance count) is used. Every unit is traceable to its own AHRI number.</li>
+        <li><b>Curves:</b> capacity and COP vs. outdoor temperature come from that unit's own published manufacturer datasheet (submittal / product data), not the certificate — AHRI publishes capacity at three temperatures and COP at only one, not enough points to simulate a season. Where no datasheet table exists, the NEEP cold-climate listing is used instead, cited per model. When a datasheet and its own certificate disagree, the certificate governs which cell the unit sits in; the datasheet governs the simulated curve.</li>
+      </ol>
+      <div class="caveats">~28% of ERS record appearances are for models with no certified 5°F rating and cannot be bucketed — 99% of that group is discontinued/delisted equipment that predates the rating. Counts are ERS record appearances, not installed units (a home audited twice counts twice; retrofit and new-construction records are pooled).</div>
+      <ul>
+        <li><b>Lockout temperature:</b> a fixed assumption per tier — low −15°C, mid −20°C, high −25°C — not each unit's own published minimum (which range −15 to −30°C across the 9 units and don't line up cleanly by tier). Output is zero below the assumed lockout; no derating.</li>
+        <li><b>Switch-over temperature</b> (dual-fuel backup) is a separate, user-adjustable input: the temperature at which the system hands off to its furnace. It can be set warmer than the tier lockout; below the tier lockout the heat pump cannot run regardless of this setting.</li>
+        <li><b>Sizing sweep</b> (40–160% of design load): synthetically scales the selected unit's own capacity curve. It has no short-cycling model, so it understates the real penalty of oversizing.</li>
+      </ul>
+      <div class="caveats">Installed-capacity vs. audited design-heat-loss ratios in ERS retrofit records with a certified heat pump are widely scattered (median ratio ≈0.66, 24% within ±20%) — no single "correctly sized" ratio is implied or suggested by the tool. <i>Source: ERS retrofit records.</i></div>
       <details class="method-sub" id="tv-details">
-        <summary>Heat-pump selection: the underlying data — tier scatter, equipment curves &amp; spec-sheet table</summary>
+        <summary>Underlying data — tier scatter, equipment curves &amp; spec-sheet table</summary>
         <div class="method-sub-body" id="tv-body">
-          <p>Every AHRI-certified unit that appears in the EnerGuide/ERS retrofit data, positioned by cold-climate efficiency (COP at 5 °F) and capacity retention (capacity maintenance), sized by how often it was actually installed — the same view used to place the <b>3 performance tiers × 3 capacity bands</b> above. <b>★</b> marks the 9 cells actually simulated by this tool.</p>
+          <p>Every AHRI-certified unit appearing in the EnerGuide/ERS data, positioned by COP at 5°F and capacity maintenance, sized by ERS appearance count. <b>★</b> marks the 9 cells this tool simulates.</p>
           <div class="tv-card">
             <div class="tv-cw"><canvas id="tv-scatter"></canvas></div>
             <div class="tv-band-legend" id="tv-band-legend"></div>
             <p class="tv-ctl" id="tv-gate"></p>
             <p class="tv-ctl">Bubble area ∝ ERS appearances. <button type="button" class="tv-btn" id="tv-dim">Dim non-selected units</button></p>
           </div>
-
-          <p>Capacity and COP versus outdoor temperature for the 9 simulated units, digitized from each one's own manufacturer datasheet (mostly the <i>maximum</i>-output column — see the spec table below for where that diverges from AHRI's <i>rated</i> figure). Solid = interpolated between published points; dashed = extrapolated. Toggle units in the legend below both charts.</p>
+          <p>Capacity and COP vs. outdoor temperature for the 9 simulated units, digitized from each unit's manufacturer datasheet. Solid = interpolated between published points; dashed = extrapolated.</p>
           <div class="tv-card">
             <div class="tv-cw tv-cw-tall"><canvas id="tv-cap-chart"></canvas></div>
           </div>
@@ -975,11 +1003,10 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
             <div class="tv-cw tv-cw-tall"><canvas id="tv-cop-chart"></canvas></div>
             <div class="tv-legend" id="tv-unit-legend"></div>
           </div>
-
           <details class="method-sub">
-            <summary>Spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−30 °C to 20 °C)</summary>
+            <summary>Spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−30°C to 20°C)</summary>
             <div class="method-sub-body">
-              <p>One row per whole-degree C. <b>Calc.</b> is the digitized curve above — shaded cells are temperatures where a real datasheet point (not interpolation/extrapolation) rounds to that degree. <b>AHRI</b> is the certificate's two anchors (COP+capacity at max compressor speed, 5 °F; rated capacity, 47 °F). <b>NEEP</b> republishes AHRI's own Min/Rated/Max Heating table at more temperatures — same certificate, not a third-party estimate. Blank cells are not zero — no source publishes a value there.</p>
+              <p>One row per whole-degree C. <b>Calc.</b> is the digitized curve above. <b>AHRI</b> is the certificate's two anchors (COP + capacity at max compressor speed, 5°F; rated capacity, 47°F). <b>NEEP</b> republishes the same certificate's Min/Rated/Max Heating table at more temperatures. Blank cells mean no source publishes a value there.</p>
               <label class="tv-ctl" style="display:block;margin:.3rem 0 .6rem">Unit: <select id="tv-unit-sel"></select></label>
               <div class="tv-tblwrap">
                 <table id="tv-spec-tbl">
@@ -990,47 +1017,129 @@ heat pump:  (HP electricity + backup fuel) × current rates + fixed charges</div
                   <tbody id="tv-spec-tbl-body"></tbody>
                 </table>
               </div>
-              <p class="tv-ctl"><span class="tv-swatch pub"></span> from a digitized datasheet point &middot; <span class="tv-swatch src"></span> from AHRI/NEEP certified data</p>
+              <p class="tv-ctl"><span class="tv-swatch pub"></span> digitized datasheet point &middot; <span class="tv-swatch src"></span> AHRI/NEEP certified data</p>
             </div>
           </details>
         </div>
       </details>
 
-      <h4 id="m-grid">Grid emissions — the biggest choice</h4>
-      <p>Hourly grid intensity comes from a temperature × hour-of-day × season "surface" built from 2019–2026 IESO / AESO / Hydro-Québec generation, calibrated against published provincial intensities (within ±6%). It is decomposed as <code>EF = annual_level × shape</code>, so the shape (weather/time pattern) is applied on top of the most recent complete year's level (the current grid). Of every input on this page, which of the three bases below you price electricity at moves the verdict the most — on a gas-on-the-margin grid, switching from Marginal to Hourly average alone can flip a heat pump from raising emissions to cutting them. The <b>Grid emissions basis</b> toggle in the controls switches it directly; every number and chart on the page updates.</p>
-      <ul>
-        <li><b>Marginal</b> (default): new load is served by the marginal generator — modelled as gas whenever gas is running (~500 g CO₂e/kWh in ON/AB). This is the honest basis for a <i>new</i> load like a heat pump.</li>
-        <li><b>Hourly average</b>: the fleet-average intensity from the surface (ON ≈ 97, AB ≈ 414, QC ≈ 0.02 g/kWh in 2025). Appropriate for accounting existing consumption, but it understates the emissions of adding load in a gas-on-the-margin grid.</li>
-        <li><b>ECCC yearly</b>: the province's published National-Inventory annual grid average (a single flat number: from Environment and Climate Change Canada data via StatCan 38-10-0097 ÷ 25-10-0015; validates nationally to ECCC's ~100 g/kWh headline for 2022). This is the official inventory basis, and the only option for provinces without an hourly pipeline (BC, MB, SK, NS, NB…), which also carry a flat, clearly-labelled marginal <i>estimate</i>. It differs from our Hourly-average number by scope — ON reads ~10–20% below The Atmospheric Fund's factor because that attributes all grid emissions to gas.</li>
-      </ul>
-      <div class="caveats">Ontario's average intensity is actively rising as gas generation grows. Quebec's marginal figure is a known gap: new winter demand there may in practice be met by higher-carbon imports (~35 g/kWh) rather than curtailed hydro — not modelled, so Quebec's "after" number is a floor.</div>
+      <h4>Step 4 — Energy purchased</h4>
+      <p>Electricity purchased = heat delivered ÷ COP (heat pump) or ÷ 1.0 (electric baseboard). Below the tier's lockout temperature, backup fuel or electricity covers the load instead. No assumptions beyond the equipment curves (Step 3) and heat load (Step 2) feed into this step.</p>
 
-      <h4 id="m-lifecycle">Lifecycle terms (adjustable)</h4>
+      <h4 id="m-grid">Step 5 — Grid emissions</h4>
+      <p>Hourly grid intensity: a temperature × hour-of-day × season surface, calibrated against published provincial intensities (within ±6%). <i>Source: 2019–2026 IESO / AESO / Hydro-Québec generation-by-fuel data.</i> Decomposed as <code>EF = annual level × shape</code>, so the shape (weather/time pattern) applies on top of the most recent complete year's level.</p>
+      <table class="ht-table">
+        <tr><th>Basis</th><th>Definition</th><th>2025 value</th></tr>
+        <tr><td>Marginal (default)</td><td>New load served by the marginal generator — gas, whenever gas is running</td><td>ON/AB ≈ 500 g/kWh</td></tr>
+        <tr><td>Hourly average</td><td>Fleet-average intensity from the surface, hour by hour</td><td>ON ≈ 97 · AB ≈ 414 · QC ≈ 0.02 g/kWh</td></tr>
+        <tr><td>ECCC yearly</td><td>Province's published National Inventory Report annual average — one flat number</td><td>National ~100 g/kWh (2022)</td></tr>
+      </table>
       <ul>
-        <li><b>Combustion:</b> natural gas 181, oil 275, propane 214 g CO₂e/kWh of fuel input (ECCC National Inventory Report).</li>
-        <li><b>Refrigerant:</b> annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-yr life) × <b>global-warming potential</b> and <b>factory charge mass</b>, both now per-refrigerant (corrected 2026-08-12 — previously a single GWP set and a flat charge-per-kW ratio applied to all four options regardless of which was selected). GWP100: <b>R-410A 2256, R-32 771, R-454B 531, R-290 0.02</b> (IPCC AR6 WG1 Ch.7 Table 7.SM.7, blend-weighted from constituent molecules — e.g. R-410A = 50% R-32 + 50% R-125). Charge mass: <b>0.250 kg/kW (R-410A) · 0.236 (R-454B) · 0.160 (R-32) · 0.035 (R-290)</b> — R-410A's figure is this tool's own original per-kW baseline; the other three scale it by the charge-mass *ratio* a peer tool (Building Decarbonization Alliance's Heat Pump Lifecycle Emissions Explorer) reports for a fixed reference unit (R-410A 3.6kg : R-454B 3.4kg : R-32 2.3kg : R-290 0.5kg) — since that reference unit's own capacity isn't stated, only the ratio between refrigerants carries over, not the absolute kg figures. R-290 (propane)'s low ratio matches reality: flammability limits cap its allowable charge by code, not just its lower density. <b>Uncertainty:</b> this ratio-scaling is an approximation, not an independently-sourced per-refrigerant charge curve — see <code>HeatPump/BDA_COMPARISON.md</code> and <code>METHODOLOGY.md</code>.</li>
-        <li><b>Upstream &amp; grid losses (Yes/No):</b> a single switch now stands in for two previously independent sliders — an upstream "methane-equivalent" term before combustion, and grid transmission/distribution line losses added to delivered electricity. When set to <b>Yes</b> (default) it applies one fixed value for each rather than a range. The upstream term is calibrated to <a href="https://taf.ca/publications/fugitive-methane/" target="_blank" rel="noopener">The Atmospheric Fund's Fugitive Methane guideline</a> (May 2022): TAF publishes <b>+65%</b> as the carbon-intensity increase over combustion-only for a single home's gas-to-heat-pump project (their "no pipeline infrastructure change" scenario — the right match for this tool, vs. their higher +92% "infrastructure change" scenario for neighbourhood-scale conversions), using the 20-year methane GWP (85) per TAF's own guidance that "modelling activities that impact natural gas consumption" should use GWP20, not the 100-year GWP appropriate for emissions inventories. <b>TAF attributes that +65% to two effects this engine can't represent separately</b> — fugitive methane leakage (+10 points) and non-methane extraction "process emissions" like flaring and venting (+55 points) — so rather than pick one, the engine's single methane-leak lever is set to <b>2.14%</b> (at GWP 85), a calibrated value chosen so <code>leak% × GWP</code> reproduces TAF's +65% ratio in aggregate. This is a bundled proxy, not a literal reading of how much gas physically leaks. Line loss is set at <b>5%</b> (World Bank/IEA Canada transmission-and-distribution losses were ~5% in 2019–2020, easing toward ~4% in 2021–2023 before ticking back up to ~4.2% in 2024; utility figures span ~4% transmission-only to ~10% full path to a home — we deliberately don't use ENERGY STAR Portfolio Manager's <b>1.83</b> source–site ratio for Canadian grid electricity, since it also bundles power-plant conversion losses our per-kWh-<i>generated</i> grid factor already includes). Setting it to <b>No</b> zeroes both terms. <b>Open to-do, not a settled simplification:</b> collapsing two independently-evidenced rates into one on/off switch loses the ability to reason about them separately (e.g. a high-leakage gas region with average grid losses), and the methane/process-emissions bundling means the upstream term can't be read as a leak rate on its own — reinstating adjustable rates, or at least a low/mid/high preset per term (and ideally separating process emissions from methane), is tracked in <code>ROADMAP.md</code>.</li>
+        <li>ECCC yearly is the only basis available for provinces without an hourly pipeline (BC, MB, SK, NS, NB…), where it's paired with a flat, labelled marginal estimate.</li>
+        <li>ECCC yearly source: StatCan table 38-10-0097 ÷ 25-10-0015.</li>
       </ul>
+      <div class="caveats">Ontario's average intensity is rising as gas generation grows. Quebec's marginal figure does not model higher-carbon imports (~35 g/kWh) that new winter demand may draw on in practice — Quebec's "after" number is a floor, not a ceiling.</div>
 
-      <h4 id="m-methane-map">Where upstream methane comes from — the map</h4>
-      <p>Source: NASA GES DISC's <b>Global Fuel Exploitation Inventory (GFEI) CH₄, v1, 2016</b> (Scarpelli et al. 2020, <a href="https://doi.org/10.5194/essd-12-563-2020" target="_blank" rel="noopener">essd-12-563-2020</a>; DOI <a href="https://doi.org/10.5067/Q28GFYJYFZ7H" target="_blank" rel="noopener">10.5067/Q28GFYJYFZ7H</a>). A global 0.1° × 0.1° grid of fugitive methane emissions (IPCC 2006 category 1B2 — fuel exploitation, not combustion) built from countries' own UNFCCC-reported totals where available, IPCC 2006 default methods elsewhere, spatially allocated to known infrastructure locations: mines, wells, pipelines, compressor stations, storage facilities, processing plants and refineries. <b>All of those are summed into one number per fuel type</b> — the map cannot and does not isolate pipeline transmission losses specifically, despite "pipeline" being one of the infrastructure classes it draws on.</p>
-      <p>The page's own extract (<code>Python/gfei_ch4_extract.py</code>) subsets the global grid to Canada and block-averages it to a coarser 0.5° grid (mean of the 5×5 source cells per output cell — density is an intensive quantity, so no area-weighting is needed) purely to keep the shipped JSON small (~5,200 nonzero cells, ~180 KB); it changes resolution, not values. The map's colour scale is <b>log-scaled per selected layer</b> (all-sources / gas / oil / coal), since raw emission density is extremely right-skewed — most cells are near zero with a small number of intense clusters (Alberta and BC gas fields chief among them for Canada).</p>
-      <div class="caveats"><b>2016 is the newest vintage available at this scope</b> — we looked for a more recent equivalent and didn't find one; this map should be read as "the last time this was measured this way," not current-year reality. It is a <b>gridded estimate</b>, not a direct measurement or a Canadian regulatory inventory — treat it as illustrative of <i>where</i> fugitive methane clusters, not a precise current-day number for any one facility or region. NASA/US-federal data products are public-domain and freely redistributable, which is why this map (unlike some other third-party sources this project has had to avoid) can be shipped directly rather than only linked.</div>
-      <p>We checked the tool's annual results against published Canadian studies — <b>NRCan / CanmetENERGY</b>'s cold-climate heat-pump report (2022), the <b>Canadian Climate Institute</b>'s <i>Heat Pumps Pay Off</i> (2023), and <b>Efficiency Canada</b>'s <i>Heat Pump Myth Buster</i> (2023). The tool lands in the same territory on every headline number:</p>
+      <h4 id="m-lifecycle">Step 6 — Emissions</h4>
+      <table class="ht-table">
+        <tr><th>Fuel</th><th>Combustion factor</th></tr>
+        <tr><td>Natural gas</td><td>181 g CO₂e/kWh (fuel input)</td></tr>
+        <tr><td>Oil</td><td>275 g CO₂e/kWh</td></tr>
+        <tr><td>Propane</td><td>214 g CO₂e/kWh</td></tr>
+      </table>
+      <p><i>Source: ECCC National Inventory Report.</i></p>
+
+      <h5>Refrigerant</h5>
+      <p>Annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-year life), each weighted by global-warming potential and factory charge mass — both specific to the selected refrigerant.</p>
+      <table class="ht-table">
+        <tr><th>Refrigerant</th><th class="ht-num">GWP100</th><th class="ht-num">GWP20</th></tr>
+        <tr><td>R-410A</td><td class="ht-num">2,256</td><td class="ht-num">4,715</td></tr>
+        <tr><td>R-32</td><td class="ht-num">771</td><td class="ht-num">2,690</td></tr>
+        <tr><td>R-454B</td><td class="ht-num">531</td><td class="ht-num">1,854</td></tr>
+        <tr><td>R-290 (propane)</td><td class="ht-num">0.02</td><td class="ht-num">0.07</td></tr>
+      </table>
+      <p>Blend-weighted from constituent-molecule GWPs (R-410A = 50% R-32 + 50% R-125; R-454B = 68.9% R-32 + 31.1% R-1234yf, composition per Chemours' Opteon XL41 datasheet). <i>Source: IPCC AR6 WG1 Ch.7 Table 7.SM.7.</i> The <b>GWP horizon</b> toggle switches between the 100-year figure (default, standard emissions-inventory basis) and the 20-year figure (near-term forcing — the horizon this page's upstream-methane term below already uses).</p>
+      <table class="ht-table">
+        <tr><th>Refrigerant</th><th class="ht-num">2 ton</th><th class="ht-num">3 ton</th><th class="ht-num">4 ton</th><th>Source</th></tr>
+        <tr><td>R-410A</td><td class="ht-num">3.26 kg</td><td class="ht-num">4.63 kg</td><td class="ht-num">6.01 kg</td><td>manufacturer spec sheets, n=6</td></tr>
+        <tr><td>R-454B</td><td class="ht-num">5.90 kg</td><td class="ht-num">6.72 kg</td><td class="ht-num">7.55 kg</td><td>manufacturer spec sheets, n=4</td></tr>
+        <tr><td>R-32</td><td class="ht-num">2.08 kg</td><td class="ht-num">2.96 kg</td><td class="ht-num">3.84 kg</td><td>ratio-scaled from R-410A, unverified</td></tr>
+        <tr><td>R-290</td><td class="ht-num">0.45 kg</td><td class="ht-num">0.64 kg</td><td class="ht-num">0.83 kg</td><td>ratio-scaled from R-410A, unverified</td></tr>
+      </table>
+      <p>Charge mass: <code>charge_kg = a + b × rated_capacity_kW</code>, fitted to factory-charge figures read from manufacturer spec sheets (GREE, Carrier, TOSOT, LG, Lennox — every point and source file in <code>HeatPump/reference/refrigerant_charge_datapoints.csv</code>). No R-32 or R-290 unit was found with a stated charge, so those two are scaled from the R-410A curve by a peer-tool charge ratio (Building Decarbonization Alliance's Heat Pump Lifecycle Emissions Explorer).</p>
+      <div class="caveats">Refrigerant charge sample sizes (n=6, n=4) are a spot-check, not a systematic market survey. R-32 and R-290 charge figures are not verified against any manufacturer data.</div>
+
+      <h5>Upstream &amp; grid losses</h5>
+      <p>One Yes/No switch applies a fixed value for two terms — an upstream methane-equivalent adder before combustion, and grid line losses added to delivered electricity. <b>No</b> zeroes both.</p>
       <ul>
-        <li><b>Seasonal efficiency:</b> the tool's seasonal COP of ≈ 2.3–2.5 (Ottawa, Toronto, Montreal, Calgary; premium unit) matches NRCan/field values of ≈ 2.4.</li>
-        <li><b>Gas → heat pump:</b> on the <b>average</b> grid the tool cuts emissions ≈ 68–74% in Ontario and ≈ 95% in Quebec — in line with NRCan (who used average factors). In <b>Alberta</b> the switch barely helps or slightly increases emissions, exactly as NRCan found.</li>
-        <li><b>Baseboard → heat pump:</b> ≈ 50–58% less (Ontario/Alberta), inside the published 49–77% range; in Quebec the grid is already ~carbon-free, so there's essentially nothing to cut.</li>
+        <li><b>Upstream methane:</b> 2.14% of gas throughput, weighted at the 20-year methane GWP (85), calibrated so <code>leak% × GWP</code> reproduces a +65% carbon-intensity increase over combustion-only for a single home's gas-to-heat-pump project. <i>Source: The Atmospheric Fund's Fugitive Methane guideline (May 2022), "no pipeline infrastructure change" scenario.</i> TAF attributes that +65% to fugitive methane leakage (+10 points) and non-methane extraction process emissions like flaring and venting (+55 points), which this engine represents as one bundled term rather than two.</li>
+        <li><b>Line loss:</b> converts delivered electricity (the home's meter) into the generation-equivalent kWh the grid EF above is computed against.
+          <table class="ht-table">
+            <tr><th>Province</th><th class="ht-num">Line loss</th><th>Source</th></tr>
+            <tr><td>Ontario</td><td class="ht-num">7.4%</td><td>IESO transmission loss (~2%) compounded with the Ontario Energy Board's audited distributor Total Loss Factor (5.31–5.42%, 2005–2006)</td></tr>
+            <tr><td>Alberta</td><td class="ht-num">7.68%</td><td>CEA Electricity Consumption Report, transmission+distribution combined (2002)</td></tr>
+            <tr><td>Quebec</td><td class="ht-num">7.5%</td><td>Régie de l'énergie, blended transmission+distribution loss factor</td></tr>
+            <tr><td>BC / MB / NS / SK</td><td class="ht-num">5%</td><td>World Bank/IEA Canada-wide transmission-and-distribution loss estimate</td></tr>
+          </table>
+        </li>
       </ul>
-      <div class="caveats">The single biggest reason our numbers can look lower than a headline you've read elsewhere is the <b>marginal</b> grid basis (our default). Most published studies price heat-pump electricity at the grid <i>average</i>; we default to the <i>marginal</i> gas generator because that's what actually runs to meet new demand — an honest but more demanding test. Flip the toggle to “Average” in Advanced to compare like-for-like. Two further gaps are deliberate: our grid is calibrated to the current <b>2025</b> mix (Ontario's has roughly tripled in carbon intensity since 2020, when older studies were written), and our homes are the <b>median</b> audited house of each type (larger, and higher-emitting in absolute terms, than the single reference house those studies model — though the percentage change is barely affected). Full validation tables are in <code>HeatPump/METHODOLOGY.md</code>.</div>
+      <div class="caveats">The Ontario, Alberta and Quebec figures are the most specific sources found; all three are dated 2002–2008, not current-year measurements.</div>
 
-      <h4 id="m-housetypes">Real homes explorer — how the balance point is derived</h4>
-      <p>The "real homes" section above plots <b>every ERS-audited home</b> in the selected city (pre-retrofit condition), not a sample or a model archetype — up to ~290,000 homes per city. <b>Peak load</b> comes straight from each home's own audit (design heat loss at the city's design temperature, EGHDESHTLOSS). <b>Annual heat delivered</b> does not — the audit records energy <i>consumed</i> by the heating system (EGHFURNACEAEC), which only equals heat delivered for electric-resistance heat. Converted using the system's own seasonal efficiency (EGHFURSEASEFF, an AFUE-style percentage, >100 for a heat pump): <code>delivered = consumed × (efficiency / 100)</code>. Skipping this conversion originally let a handful of homes whose pre-retrofit system was already a heat pump masquerade as the most efficient homes in the city, purely because a COP well above 1 makes consumed energy look small next to a normal peak load — caught on an Ottawa ground-source-heat-pump home whose "best in the city" ranking dropped once its delivered heat was corrected up ~2.3×. Records with no plausible efficiency value (outside 30–400%) are excluded and counted in each city's totals, not silently kept — this is why Quebec City and Montreal, in particular, show noticeably fewer solved homes than other cities. The <b>balance point</b> is derived, not measured: assuming a straight-line relationship between outdoor temperature and heating load with <b>no internal or solar gains</b>, it is the outdoor temperature at which that home's own peak-load line, integrated over a full TMY year, would reproduce its own delivered annual energy. Because real gains are ignored by construction, this "balance point" is best read as <i>effective</i> — it absorbs real internal/solar gains, occupant behaviour and TMY-vs-actual-year weather deviation into one number, not a physical measurement of any one of them.</p>
-      <p><b>Worst/best</b> avoid a single miskeyed ERS row stretching the display: each home is ranked on the lower of its own peak-load percentile and annual-heat-delivered percentile within the filtered set (so a home has to be extreme on <i>both</i> axes to rank as bad), and "Worst"/"Best" are the 99th/1st percentile of that ranking — not the literal maximum/minimum. "Average" is the arithmetic mean of the filtered set and is not any single real home.</p>
+      <h5 id="m-methane-map">Where upstream methane comes from — the map</h5>
+      <p>A Canada map of fugitive oil/gas/coal methane, giving the upstream-methane term above a geographic reference.</p>
+      <ul>
+        <li><i>Source: NASA GES DISC's Global Fuel Exploitation Inventory (GFEI) CH₄, v1, 2016</i> (Scarpelli et al. 2020, <a href="https://doi.org/10.5194/essd-12-563-2020" target="_blank" rel="noopener">essd-12-563-2020</a>; DOI <a href="https://doi.org/10.5067/Q28GFYJYFZ7H" target="_blank" rel="noopener">10.5067/Q28GFYJYFZ7H</a>).</li>
+        <li>A global 0.1°×0.1° grid of fugitive methane emissions (fuel exploitation, not combustion), spatially allocated to mines, wells, pipelines, compressor stations, storage, processing plants and refineries — all summed into one number per fuel type. The map does not isolate pipeline losses specifically.</li>
+        <li>2016 is the newest vintage available at this scope. Treat the map as illustrative of where fugitive methane clusters, not a current-day number for any one facility.</li>
+        <li>Colour scale is log-scaled per selected layer (all-sources / gas / oil / coal); emission density is heavily right-skewed.</li>
+      </ul>
+      <div class="caveats">A share of nonzero grid cells share an identical value with neighbouring cells — GFEI spreads a region's reported total across cells it can't independently resolve, using one shared modelled rate. Those cells are flagged as "background" (flat colour) and can be hidden, separate from "resolved" cells with an independently estimated value.</div>
+
+      <h5>Comparison against published studies</h5>
+      <table class="ht-table">
+        <tr><th>Metric</th><th>This tool</th><th>Published figure</th></tr>
+        <tr><td>Seasonal COP (premium unit, ON/QC/AB)</td><td>≈2.3–2.5</td><td>≈2.4 (NRCan / field data)</td></tr>
+        <tr><td>Gas → heat pump, average grid, Ontario</td><td>−68 to −74%</td><td>NRCan: significant reduction (average basis)</td></tr>
+        <tr><td>Gas → heat pump, average grid, Quebec</td><td>≈−95%</td><td>NRCan: significant reduction</td></tr>
+        <tr><td>Gas → heat pump, Alberta</td><td>barely changed or slightly worse</td><td>NRCan: same direction</td></tr>
+        <tr><td>Baseboard → heat pump, ON/AB</td><td>−50 to −58%</td><td>Efficiency Canada: 49–77%</td></tr>
+      </table>
+      <p><i>Sources: NRCan/CanmetENERGY cold-climate heat-pump report (2022), Canadian Climate Institute's <i>Heat Pumps Pay Off</i> (2023), Efficiency Canada's <i>Heat Pump Myth Buster</i> (2023).</i> Full tables in <code>HeatPump/METHODOLOGY.md</code>.</p>
+      <div class="caveats">This tool defaults to the marginal grid basis; most published studies use the grid average. Switching to Average in Advanced gives a like-for-like comparison. The grid is calibrated to 2025 (Ontario's intensity has risen since the studies above were published), and homes use the ERS population median (larger than the single reference house those studies model).</div>
+
+      <h4>Step 7 — Cost</h4>
+      <ul>
+        <li>Energy priced per hour against each province's current residential rates. <i>Source: <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a>, from the utilities' own published tariffs.</i></li>
+        <li>Ontario: Time-of-use (default) or Ultra-low overnight, priced per (month, hour).</li>
+        <li>Quebec: Hydro-Québec Rate D's tier-2 (marginal/top-tier) rate, applied to all modelled electricity. Rate D has no flat residential option; any home with a material electric heating load exceeds the 40 kWh/day first tier on essentially every heating day, so its heating electricity sits in tier 2 regardless of other household usage.</li>
+        <li>Alberta: screening-estimate supplements for transmission (≈$0.017/kWh) and default gas supply (≈$2.25/GJ), flagged on the card.</li>
+        <li>The electricity service charge is identical in both scenarios and excluded. The gas fixed charge is counted only in scenarios that consume gas.</li>
+        <li>Federal consumer carbon charge excluded (set to zero 2025-04-01). Figures are pre-tax.</li>
+      </ul>
+      <div class="caveats">The number to trust is the difference between scenarios, not the absolute bills — several charges are identical in both and cancel out.</div>
 
       <h4>What this does not do</h4>
-      <p>No equipment or installation costs — the cost card compares annual <i>operating</i> cost only, not payback; no solar gains or thermostat setbacks (the zero-heat temperature absorbs them); no ground-source option in this version; a single provincial grid applied to each city's own weather. Treat every number as an estimate with a band around it, not a guarantee.</p>
-      <p style="margin-top:.8rem"><b>Sources:</b> NRCan EnerGuide / ERS · manufacturer datasheets (Mitsubishi, Carrier, Daikin, WaterFurnace) · IESO, AESO &amp; Hydro-Québec generation · ECCC National Inventory Report &amp; climate datasets · The Atmospheric Fund Ontario emissions factors · NASA GES DISC Global Fuel Exploitation Inventory (methane map).</p>
+      <ul>
+        <li>No equipment or installation cost — only annual operating cost, not payback.</li>
+        <li>No solar gains or thermostat setbacks — the zero-heat temperature absorbs them.</li>
+        <li>No ground-source option in this version.</li>
+        <li>One provincial grid applied to each city's own weather.</li>
+      </ul>
+      <p>Every number here is a modelled estimate with a margin of error, not a guarantee.</p>
+
+      <h4>Sources</h4>
+      <ul>
+        <li>NRCan EnerGuide / ERS retrofit and new-construction audit records</li>
+        <li>Manufacturer datasheets (GREE, Carrier, TOSOT, LG, Lennox, Mitsubishi, Daikin, WaterFurnace) and AHRI certificates</li>
+        <li>NEEP cold-climate air-source heat pump listing</li>
+        <li>IESO, AESO &amp; Hydro-Québec generation-by-fuel data</li>
+        <li>ECCC National Inventory Report &amp; climate datasets (CWEC2020, NBC Appendix C)</li>
+        <li>The Atmospheric Fund's Fugitive Methane guideline and Ontario emissions factors</li>
+        <li>IPCC AR6 WG1 Chapter 7, Table 7.SM.7 (refrigerant GWP)</li>
+        <li>NASA GES DISC Global Fuel Exploitation Inventory (methane map)</li>
+        <li>Ontario Energy Board, Alberta CEA Electricity Consumption Report, Régie de l'énergie (line loss)</li>
+        <li><a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a> (residential tariffs)</li>
+      </ul>
     </div>
   </details>
 </section>
@@ -1690,27 +1799,48 @@ function bandLabelText(){return state.tier==='custom'?'your entered curve':BAND_
 const FUEL_LABEL={gas:'natural gas',oil:'oil',electric:'electricity',propane:'propane'};
 const EFF_DEFAULT={gas:80,oil:83,electric:100,propane:90};
 const EFF_RANGE={gas:[70,98],oil:[60,90],electric:[95,100],propane:[75,96]};
-// Refrigerant GWP100, IPCC AR6 WG1 Ch.7 Table 7.SM.7, blend-weighted from
-// constituent molecules (e.g. R-410A = 50% R-32 + 50% R-125 -> 2256). Was
-// AR4/AR5-era (2088/675/467/3) and internally inconsistent with this
+// Refrigerant GWP, IPCC AR6 WG1 Ch.7 Table 7.SM.7, blend-weighted from
+// constituent molecules (e.g. R-410A = 50% R-32 + 50% R-125). Was AR4/AR5-era
+// (2088/675/467/3, 100-yr only) and internally inconsistent with this
 // engine's own self-test vector (which already used 2256) before this fix
 // -- see METHODOLOGY.md "Refrigerant GWP and charge mass" and
 // BDA_COMPARISON.md (peer-tool review, 2026-07-28) for how this was caught.
-const REFRIG_GWP={r410a:2256,r32:771,r454b:531,r290:0.02};
-// Factory charge per rated kW, per refrigerant -- was a single flat 0.25
-// kg/kW applied regardless of refrigerant (so e.g. the R-290 option carried
-// an R-410A-sized charge, overstating its refrigerant-leak emissions).
-// R-410A's 0.25 kg/kW is this engine's own original baseline (kept as the
-// anchor, not independently re-sourced); the other three are that baseline
-// scaled by the CHARGE MASS RATIO a peer tool (BDA's Heat Pump Lifecycle
-// Emissions Explorer) reports for a consistent reference unit -- R-410A
-// 3.6kg : R-454B 3.4kg : R-32 2.3kg : R-290 0.5kg -- since BDA doesn't state
-// that reference unit's capacity, only the RATIO between refrigerants
-// carries over, not their absolute kg figures. R-290 (propane)'s low ratio
-// is consistent with real systems: flammability limits cap allowable charge
-// by code, not just a smaller molar mass. See METHODOLOGY.md for the
-// derivation and its uncertainty.
-const CHARGE_KG_PER_KW={r410a:0.250,r454b:0.236,r32:0.160,r290:0.035};
+// GWP100 and GWP20 both read directly from AR6 WG1 Ch.7 Table 7.SM.7 itself
+// (data/raw/IPCC_AR6_WGI_Chapter07_SM.pdf, p.17-18/27), not a secondary
+// citation: HFC-32 2690/771, HFC-125 6740/3740, HFO-1234yf 1.81/0.501,
+// propane 0.072/0.02 (GWP20/GWP100). Blend arithmetic reproduces every
+// figure below exactly, to the decimal. See METHODOLOGY.md for the worked
+// blend arithmetic and the case for offering both horizons.
+const REFRIG_GWP100={r410a:2256,r32:771,r454b:531,r290:0.02};
+const REFRIG_GWP20={r410a:4715,r32:2690,r454b:1854,r290:0.07};
+function refrigGWP(refrig,horizon){return (horizon==='20'?REFRIG_GWP20:REFRIG_GWP100)[refrig];}
+// Factory charge, per refrigerant -- REPLACED 2026-08-12 (was a single flat
+// kg/kW ratio per refrigerant, scaled off one unsourced R-410A baseline via
+// a peer tool's charge RATIO -- see METHODOLOGY.md "Refrigerant charge mass
+// -- real manufacturer data" for the full history). Now a linear fit,
+// charge_kg = a + b * ratedCap_kW, regressed against real factory-charge
+// figures read off 6 R-410A and 4 R-454B manufacturer spec sheets already on
+// file in data/raw/spec_sheets/ (GREE, Carrier, TOSOT, LG, Lennox --
+// HeatPump/reference/refrigerant_charge_datapoints.csv has every point with
+// its source file). The intercept (a) captures the roughly-fixed line-set/
+// coil charge every unit carries regardless of size; the slope (b) is the
+// incremental kg per kW of capacity -- a shape no single ratio can express,
+// and the real data clearly show smaller units carrying more charge per kW,
+// not less. No R-32 or R-290 unit was found in the spec-sheet set on file,
+// so those two keep the OLD peer-tool RATIO approach (BDA's charge ratio,
+// 0.639 for R-32 and 0.139 for R-290 relative to R-410A) applied to the
+// new R-410A curve's a and b together -- still an approximation, not
+// manufacturer-verified, and flagged as such on the page.
+const CHARGE_MODEL={
+  r410a:{a:0.505, b:0.391},   // n=6 real units, R-410A
+  r454b:{a:4.245, b:0.235},   // n=4 real units, R-454B
+  r32:  {a:0.322, b:0.250},   // = R-410A curve x 0.639 (BDA ratio, unverified)
+  r290: {a:0.070, b:0.054},   // = R-410A curve x 0.139 (BDA ratio, unverified)
+};
+function chargeKg(refrig, ratedCap_kW){
+  var m = CHARGE_MODEL[refrig];
+  return m.a + m.b * ratedCap_kW;
+}
 
 // ---- operating-cost constants (Phase 2; see METHODOLOGY.md §Operating cost) ----
 // Maps each city to the rate entry in prices_json/<prov>.json. New same-province
@@ -1725,11 +1855,13 @@ const CITY_KEY={Ottawa:'ottawa',Toronto:'toronto',Montreal:'montreal',Calgary:'c
   Hamilton:'toronto',London:'toronto',Windsor:'toronto','Quebec City':'montreal'};
 const OIL_KWH_PER_L=10.0;      // matches the engine's oil EF derivation (~10 kWh/L)
 const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
-// Non-heating household baseline, used ONLY to place added heating load on the
-// correct tier of tiered plans (marginal attribution): cost(baseline+heating)
-// − cost(baseline). Typical non-electric-heat households.
-const BASELINE_ON_KWH_MONTH=750, BASELINE_QC_KWH_DAY=25;
-const PLAN_LABEL={tou:'Time-of-use',ulo:'Ultra-low overnight',tiered:'Tiered',flat:'Flat rate'};
+// Tiered plans REMOVED 2026-08-12 -- pricing the added heating load within a
+// tiered plan required assuming a non-heating household baseline (kWh/month
+// or kWh/day) this tool has no way to know for a real household, so tiered
+// support (baseline constants, tierCost/monthlyTieredRate, the tiered branch
+// of costElectricity) was removed rather than kept resting on an unstated
+// guess. See METHODOLOGY.md "Tiered electricity pricing -- removed."
+const PLAN_LABEL={tou:'Time-of-use',ulo:'Ultra-low overnight',flat:'Flat rate',marginal:'Marginal (top-tier)'};
 
 let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null;
 // city_design_temps.json keys most city names verbatim; the exceptions get an
@@ -2178,20 +2310,42 @@ syncThemeButtons(document.documentElement.dataset.theme||'light');
 // therefore a CALIBRATED "methane-equivalent" rate, chosen so leak% x GWP85
 // reproduces TAF's +65% ratio in aggregate; it is not a literal claim that
 // 2.14% of the gas physically leaks. See METHODOLOGY.md for the arithmetic.
-// Line loss is a typical Canadian T&D figure (World Bank/IEA, unrelated to
-// the TAF figure above).
-// TODO: these used to be independently adjustable sliders; the single
-// Yes/No toggle assumes one number per component rather than exposing a
-// range -- see the methodology caveat and ROADMAP.md for reinstating
-// adjustable rates (or a low/mid/high preset).
-const UPSTREAM_METHANE_PCT=2.14, UPSTREAM_LINELOSS_PCT=5.0;
+// Line loss -- REPLACED 2026-08-12, flat 5% -> province-specific. This is
+// the multiplier that converts DELIVERED electricity (what the home's meter
+// reads) into the GENERATION-equivalent kWh the grid EF surface is actually
+// computed against (build_grid_ef.py's Average EF = gas_output(h) /
+// total_output(h) -- both IESO generation-by-fuel figures, i.e. measured at
+// the plant, not the meter). Full generation-to-meter loss = transmission
+// loss (moving power to local distributors) x distribution loss (local
+// wires to the meter), compounded, not just added.
+// ON: Ontario Energy Board's own Distribution System Losses audit (2008,
+//   data 2002-2006) -- distributors' approved Total Loss Factor (TLF)
+//   averaged 5.31-5.42% (wholesale purchase -> retail meter). IESO's own
+//   transmission loss is separately ~2% (IESO Transmission Planning
+//   Guideline). Compounded: 1.02 x 1.0531 ~= 1.074 -> 7.4%.
+// AB: CEA Electricity Consumption Report (via a CASA-hosted efficiency
+//   study of Alberta's supply system) gives Alberta transmission losses
+//   4.45% (2003) and Alberta transmission+distribution COMBINED 7.68%
+//   (2002) -- used directly, already a full-chain figure.
+// QC: Régie de l'énergie (Quebec's own regulator), cited in the same OEB
+//   report's cross-jurisdiction appendix, gives a BLENDED (T&D combined)
+//   loss factor of 7.5% -- used directly.
+// All three sources are dated (2002-2008) -- the best specific data found,
+// not a claim of current-year precision. Provinces without a province-
+// specific figure (BC/MB/NS/SK -- this tool has no hourly grid pipeline for
+// them either) fall back to the original flat 5% (World Bank/IEA Canada-
+// wide T&D estimate). See METHODOLOGY.md "Line loss -- province-specific".
+const UPSTREAM_METHANE_PCT=2.14;
+const LINELOSS_PCT_BY_PROV={on:7.4, ab:7.68, qc:7.5};
+const LINELOSS_PCT_FALLBACK=5.0;
+function lineLossPctFor(city){return LINELOSS_PCT_BY_PROV[CITY_PROV[city]] || LINELOSS_PCT_FALLBACK;}
 
 // ---- state ----
 const state={
   city:'Ottawa', designLoad:14, balancePoint:14, fuel:'gas', eff:80,
   tier:'high', band:'18-30k', backup:'gas',
-  lockout:-5, lockoutAuto:false, efBasis:'average', weatherYear:'tmy', refrig:'r410a', leakRate:2.0,
-  includeUpstream:true, methane:UPSTREAM_METHANE_PCT, lineloss:UPSTREAM_LINELOSS_PCT,
+  lockout:-5, lockoutAuto:false, efBasis:'average', weatherYear:'tmy', refrig:'r410a', gwpHorizon:'100', leakRate:2.0,
+  includeUpstream:true, methane:UPSTREAM_METHANE_PCT, lineloss:LINELOSS_PCT_BY_PROV.on, // default city is Ottawa
   plan:null, // null = city's default electricity plan
   weatherView:'temp', // weather-card chart: 'temp' histogram or 'hourly' 8760-hour line
   loadView:'plain', equipView:'plain', gridView:'plain', energyView:'plain', emisView:'plain', costView:'plain', // step ②③④⑤⑥⑦ charts: 'plain' temp curve, 'freq' weighted by hours, or 'hourly' 8760-hour trace
@@ -2332,6 +2486,7 @@ function buildInputs(){
     $('in-balance').value=state.balancePoint;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';
     updateDesignLoadRef();
     const p=CITY_PROV[state.city];
+    state.lineloss=state.includeUpstream?lineLossPctFor(state.city):0;
     state.weatherYear='tmy'; // reset to typical on city change
     Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city)]).then(()=>{
       syncEfSeg();populateWeatherSelector(state.city);recompute();
@@ -2401,12 +2556,19 @@ function buildInputs(){
   $('in-lockout').addEventListener('input',e=>{state.lockout=+e.target.value;state.lockoutAuto=false;$('lockout-val').textContent=fmtSigned(state.lockout)+' °C';$('lockout-auto').hidden=false;recompute();});
   $('lockout-auto').addEventListener('click',()=>{state.lockoutAuto=true;syncSwitchoverAuto();recompute();});
   $('in-ef').addEventListener('change',e=>{state.efBasis=e.target.value;recompute();});
-  $('in-refrig').addEventListener('change',e=>{state.refrig=e.target.value;recompute();});
+  $('in-refrig').addEventListener('change',e=>{state.refrig=e.target.value;updateRefrigGwpHint();recompute();});
+  document.querySelectorAll('#gwp-horizon-seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#gwp-horizon-seg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.gwpHorizon=b.dataset.val;
+    updateRefrigGwpHint();
+    recompute();
+  }));
   $('in-leak').addEventListener('input',e=>{state.leakRate=+e.target.value;$('leak-val').textContent=fmt1(state.leakRate)+' %/yr';recompute();});
   document.querySelectorAll('#upstream-seg button').forEach(b=>b.addEventListener('click',()=>{
     state.includeUpstream=b.dataset.val==='yes';
     state.methane=state.includeUpstream?UPSTREAM_METHANE_PCT:0;
-    state.lineloss=state.includeUpstream?UPSTREAM_LINELOSS_PCT:0;
+    state.lineloss=state.includeUpstream?lineLossPctFor(state.city):0;
     document.querySelectorAll('#upstream-seg button').forEach(x=>x.classList.toggle('active',x===b));
     recompute();
   }));
@@ -2427,6 +2589,11 @@ function buildInputs(){
   updateLockoutInfo();
   $('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   document.querySelectorAll('#upstream-seg button').forEach(b=>b.classList.toggle('active',(b.dataset.val==='yes')===state.includeUpstream));
+  updateRefrigGwpHint();
+}
+function updateRefrigGwpHint(){
+  const gwp=refrigGWP(state.refrig,state.gwpHorizon);
+  $('refrig-gwp-hint').textContent='GWP'+state.gwpHorizon+' = '+(gwp<1?gwp:Math.round(gwp).toLocaleString());
 }
 function fmtSigned(n){return (n<0?'−':'')+Math.abs(n);}
 // The below-lockout behaviour is now a fixed hard-stop assumption by tier
@@ -2729,9 +2896,9 @@ function buildOpts(){
       lineLossPct:state.lineloss,
       methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (85, 20-yr, TAF)
       oilUpstreamFrac:0.12,
-      charge_kg:hc.ratedCap_kW*CHARGE_KG_PER_KW[state.refrig],
+      charge_kg:chargeKg(state.refrig, hc.ratedCap_kW),
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
-      refrigerantGWP:REFRIG_GWP[state.refrig],
+      refrigerantGWP:refrigGWP(state.refrig,state.gwpHorizon),
     },
     ...efObjectFor(prov,state.efBasis),
   };
@@ -4185,7 +4352,7 @@ function niceTicksSigned(lo,hi,n){
 let _bandMemo={key:null,val:null};
 function weatherBand(){
   const w=WEATHER_CACHE[weatherSlug(state.city)];if(!w||!w.years)return null;
-  const key=[state.city,state.designLoad,state.balancePoint,state.fuel,state.eff,state.tier,state.band,state.backup,state.lockout,state.efBasis,state.refrig,state.leakRate,state.methane,state.lineloss].join('|');
+  const key=[state.city,state.designLoad,state.balancePoint,state.fuel,state.eff,state.tier,state.band,state.backup,state.lockout,state.efBasis,state.refrig,state.gwpHorizon,state.leakRate,state.methane,state.lineloss].join('|');
   if(_bandMemo.key===key)return _bandMemo.val;
   const baseOpts=buildOpts();
   let best=null,worst=null; // best = biggest cut, worst = smallest
@@ -4351,28 +4518,9 @@ function planEnergyPrice(plan,m,h){ // blended energy-only $/kWh at month m (0-1
   };
   return (5/7)*prices[periodFor(true)]+(2/7)*prices[periodFor(false)];
 }
-function tierCost(kwh,limit,tiers){
-  return Math.min(kwh,limit)*tiers[0].price_cad_per_kwh+Math.max(0,kwh-limit)*tiers[1].price_cad_per_kwh;
-}
 function costElectricity(matrix,elec,planKey){
   const plan=elec.plans[planKey];
   let cost=0;
-  if(plan.type==='tiered'){
-    // marginal attribution: cost(baseline+heating) − cost(baseline)
-    for(let m=0;m<12;m++){
-      const heat=matrix[m].reduce((a,b)=>a+b,0);
-      if(plan.period==='daily'){
-        const days=DAYS_IN_MONTH[m],dHeat=heat/days,lim=plan.tiers[0].limit_kwh;
-        cost+=days*(tierCost(BASELINE_QC_KWH_DAY+dHeat,lim,plan.tiers)-tierCost(BASELINE_QC_KWH_DAY,lim,plan.tiers));
-      }else{
-        const s=plan.seasonal_tier1;
-        const lim=s.winter_months.includes(m+1)?s.winter_tier1_kwh:s.summer_tier1_kwh;
-        cost+=tierCost(BASELINE_ON_KWH_MONTH+heat,lim,plan.tiers)-tierCost(BASELINE_ON_KWH_MONTH,lim,plan.tiers);
-      }
-      cost+=heat*elec.volumetric_adders_cad_per_kwh;
-    }
-    return cost;
-  }
   for(let m=0;m<12;m++)for(let h=0;h<24;h++){
     const e=matrix[m][h];if(!e)continue;
     cost+=e*(planEnergyPrice(plan,m,h)+elec.volumetric_adders_cad_per_kwh);
@@ -4507,7 +4655,6 @@ function renderCost(res){
   if(state.fuel==='oil'||state.backup==='oil')
     lines.push(`<b>Heating oil:</b> $${oil.cad_per_litre.toFixed(2)}/L (${oil.geo_used}, ${oil.ref_month}, StatCan 18-10-0001). No fixed charge modelled.`);
   if(elec.notes&&elec.notes.length)lines.push(elec.notes.join(' '));
-  if(planKey==='tiered')lines.push(`Tiered plans price the <b>added</b> heating load above a typical non-heating household baseline (${prov==='qc'?BASELINE_QC_KWH_DAY+' kWh/day':BASELINE_ON_KWH_MONTH+' kWh/month'}).`);
   lines.push(`Rates aggregated by <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a> from the utilities' published tariffs; carbon charge excluded (federal consumer fuel charge is zero since April 2025). Pre-tax; taxes and rebates apply to both scenarios alike.`);
   note.innerHTML=lines.join(' ');
   note.style.display='';
@@ -4525,28 +4672,6 @@ function renderCost(res){
     $('cost-chart-card').style.display='none';
   }
 }
-// Effective $/kWh for a tiered plan, per calendar month — cost(baseline+heat)
-// minus cost(baseline), divided by that month's heating kWh. Used to price
-// individual hours within a tiered month, since tier cost itself is nonlinear.
-function monthlyTieredRate(matrix,elec,plan){
-  const rates=[];
-  for(let m=0;m<12;m++){
-    const heat=matrix[m].reduce((a,b)=>a+b,0);
-    let rate;
-    if(plan.period==='daily'){
-      const days=DAYS_IN_MONTH[m],dHeat=heat/days,lim=plan.tiers[0].limit_kwh;
-      const cost=days*(tierCost(BASELINE_QC_KWH_DAY+dHeat,lim,plan.tiers)-tierCost(BASELINE_QC_KWH_DAY,lim,plan.tiers));
-      rate=heat>0?cost/heat:plan.tiers[0].price_cad_per_kwh;
-    } else {
-      const s=plan.seasonal_tier1;
-      const lim=s.winter_months.includes(m+1)?s.winter_tier1_kwh:s.summer_tier1_kwh;
-      const cost=tierCost(BASELINE_ON_KWH_MONTH+heat,lim,plan.tiers)-tierCost(BASELINE_ON_KWH_MONTH,lim,plan.tiers);
-      rate=heat>0?cost/heat:plan.tiers[0].price_cad_per_kwh;
-    }
-    rates.push(rate+elec.volumetric_adders_cad_per_kwh);
-  }
-  return rates;
-}
 // Per-hour $ cost, now vs heat pump, for the whole weather year — volumetric
 // energy charges only (fixed monthly service charges are identical in both
 // scenarios and excluded, same as the annual summary above).
@@ -4555,20 +4680,18 @@ function buildHourlyCostSeries(res,elec,gas,oil,planKey){
   const H=res.hourly,N=H.base_ghg_kg.length;
   const bnd=monthStartHours(N);
   const moOf=new Array(N); for(let m=0;m<12;m++)for(let h=bnd[m];h<bnd[m+1]&&h<N;h++)moOf[h]=m;
-  const baseTiered=plan.type==='tiered'?monthlyTieredRate(res.base.energy.elec_month_hour,elec,plan):null;
-  const projTiered=plan.type==='tiered'?monthlyTieredRate(res.project.energy.elec_month_hour,elec,plan):null;
-  const rateAt=(mo,hr,tiered)=>tiered?tiered[mo]:(planEnergyPrice(plan,mo,hr)+elec.volumetric_adders_cad_per_kwh);
+  const rateAt=(mo,hr)=>planEnergyPrice(plan,mo,hr)+elec.volumetric_adders_cad_per_kwh;
   const gasRate=gas?gas.marginal_cad_per_m3/E.GAS_KWH_PER_M3:0;
   const oilRate=oil?oil.cad_per_litre/OIL_KWH_PER_L:0;
   const baseCost=new Array(N),hpCost=new Array(N),bkCost=new Array(N),projCost=new Array(N);
   for(let i=0;i<N;i++){
     const mo=moOf[i],hr=i%24;
-    baseCost[i]=state.fuel==='electric'?H.base_energy_kWh[i]*rateAt(mo,hr,baseTiered)
+    baseCost[i]=state.fuel==='electric'?H.base_energy_kWh[i]*rateAt(mo,hr)
       :state.fuel==='gas'?H.base_energy_kWh[i]*gasRate
       :H.base_energy_kWh[i]*oilRate;
-    hpCost[i]=H.hp_elec_kWh[i]*rateAt(mo,hr,projTiered);
+    hpCost[i]=H.hp_elec_kWh[i]*rateAt(mo,hr);
     let bk=0;
-    if(state.backup==='electric')bk=H.backup_energy_kWh[i]*rateAt(mo,hr,projTiered);
+    if(state.backup==='electric')bk=H.backup_energy_kWh[i]*rateAt(mo,hr);
     else if(state.backup==='gas')bk=H.backup_energy_kWh[i]*gasRate;
     else if(state.backup==='oil')bk=H.backup_energy_kWh[i]*oilRate;
     bkCost[i]=bk;
