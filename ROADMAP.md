@@ -1,7 +1,40 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-12** (**Heat Pump Explorer** — in-page methodology section
+Updated **2026-08-19** (**Heat Pump Explorer** — three result-affecting
+defects fixed, found by an external methodology audit and each verified
+against the code before acting (the same audit's three "P0" retrofit findings
+were checked and rejected as false positives — already-correct behaviour it
+couldn't see because the reviewer had no access to `assets/retrofits.js` or
+the Python). (1) **Upstream-oil adder removed**: `buildOpts()` passed
+`oilUpstreamFrac: 0.12` unconditionally, so "Upstream & grid losses: **No**"
+never zeroed it, despite the page stating that switch zeroed every upstream
+term; the 12% had no source anywhere in the repo and no propane equivalent.
+Removed outright — option, accumulator and `upstream_oil` output field — not
+merely defaulted to zero, so it cannot be silently reinstated. (2) **Fuel
+constants reconciled with the retrofit pipeline**: combustion factors were
+181 / 275 / 214 g CO2e/kWh against `Python/ghg_factors.py`'s
+185.4 / 255.4 / 213.6 for the same fuels, each hardcoded beside its own
+inconsistent energy content (gas 10.55 kWh/m³, oil 10.0 kWh/L) — and the gas
+entry did not reproduce its own stated basis (1.921 ÷ 10.55 = 182.1, not
+181). Factors are now *derived* from volumetric factor ÷ energy content, with
+both tools reading one set of conversions, and the cost layer's separately
+hardcoded oil conversion now reads the engine's exported constant. (3)
+**Default grid-basis contradiction resolved**: the page (in two places) and
+`HeatPump/METHODOLOGY.md` all described marginal as the default, but
+`state.efBasis` has always initialised to `'average'`. Aligned docs to code
+by user decision — the tool opens on hourly average, the like-for-like basis
+with the studies it benchmarks against, with marginal one click away in
+Advanced. Impact: an **oil-heated baseline falls ≈17%** (7.7% from the
+factor, the rest from the dropped adder), taking the oil savings headline
+from ~46% to **35%**; gas baseline rises ≈2.4% (savings 47→48%); propane
+−0.2%. The TAF +65% methane calibration was re-checked under the new
+constants and survives (+64.8% → +64.4%); an exact re-solve would give 2.152%
+rather than the shipped 2.14%, deliberately left un-retuned rather than churn
+every published figure for a rounding-level gain. Verified live: all 15
+engine self-test vectors pass (two expected values moved with the constants),
+zero console errors, oil path exercised end-to-end through the UI.) Prior
+pass **2026-08-12** (**Heat Pump Explorer** — in-page methodology section
 rebuilt: reordered to follow the page's own Step 1–7 sequence (was drifting
 from it as sections were added over time), all "previously X, now Y" /
 dated-correction narrative removed (page states only what's currently
@@ -803,6 +836,7 @@ GEOTHERMAL_STATUS.md's 2026-07-31 and 2026-08-03 entries.
 | 6 | Live grid dashboard — ETL + page (`grid.html`) | 2026-07-12 (ETL) / 2026-07-24 (page) |
 | 5 | Landing page hub (`index.html`) | 2026-07-24 |
 | — | New Homes Explorer (built outside the roadmap) | 2026-07-15 |
+| 14 | Heat Pump — methodology-audit fixes (upstream-oil, fuel constants, default basis) | 2026-08-19 |
 
 ---
 
