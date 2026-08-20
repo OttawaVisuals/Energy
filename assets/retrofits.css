@@ -37,7 +37,7 @@
 .filter-group select:hover{border-color:var(--ink)}
 .filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .filter-group input{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);text-transform:uppercase;transition:border-color .15s}
-.filter-group input::placeholder{color:var(--light);text-transform:none}
+.filter-group input::placeholder{color:var(--muted);text-transform:none}
 .filter-group input:hover{border-color:var(--ink)}
 .filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 /* Measures multi-select: a button styled like the sibling <select>s that
@@ -110,7 +110,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
-.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
 /* Pipeline flow diagram (methodology section E overview) — hoverable/
    focusable boxes carry their stats/filters/sources in data-tip, shown via
    a single shared floating tooltip (see ensurePipeTooltip in retrofits.js),
@@ -163,7 +163,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 
 /* ── Simple-mode "see more" prompt ── */
 .simple-more{text-align:center;margin:.25rem 0 1.25rem}
-.simple-more button{font-family:'Inter',sans-serif;font-size:13px;color:var(--amber2);background:none;border:none;cursor:pointer;text-decoration:underline;padding:.4rem}
+.simple-more button{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;padding:.4rem}
 .simple-more button:hover{color:var(--ink)}
 
 /* ── Can/cannot answer ── */
@@ -187,8 +187,13 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
 .stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
 .stat-value.accent{color:var(--amber)}
+/* --amber on white is 2.25:1 in the colour-blind theme -- below the 3:1
+   this 32px figure needs as large/graphical text (light 3.00:1 and dark
+   7.46:1 both already clear it, so only cb needs an override). #AC7700
+   is --amber's own hue darkened to 3.89:1, not a new brand colour. */
+:root[data-theme="cb"] .stat-value.accent{color:#AC7700}
 .stat-value.green{color:var(--green)}
-.stat-sub{font-size:12px;color:var(--light);margin-top:4px}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
 /* ── Chart wrappers ── */
 .cw{position:relative;width:100%}
@@ -210,7 +215,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .kpi-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;min-height:28px;line-height:1.3}
 .kpi-values{display:flex;align-items:center;gap:8px;min-height:1.875rem}
 .kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
-.kpi-arrow{color:var(--light);font-size:14px}
+.kpi-arrow{color:var(--muted);font-size:14px}
 /* Small circular badge that straddles the Pre/Post column border in the
    HVAC & energy table — only rendered when that row's value actually
    changed, so a glance at the border tells you which rows moved without
@@ -219,8 +224,8 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .td-arrow{position:absolute;left:0;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;line-height:14px;text-align:center;font-size:9px;color:#fff;border-radius:50%;z-index:1}
 .kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
 .kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink)}
-.kpi-unit{font-size:11px;color:var(--light);margin-top:2px}
-.kpi-rsi{color:var(--light)}
+.kpi-unit{font-size:11px;color:var(--muted);margin-top:2px}
+.kpi-rsi{color:var(--muted)}
 .kpi-delta{font-size:12px;margin-top:4px}
 .kpi-delta.good{color:var(--green)}
 .kpi-delta.bad{color:var(--red)}
@@ -237,7 +242,7 @@ main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
 .eui-pre-val{color:var(--red)}
 .eui-post-val{color:var(--green)}
 .eui-lbl{font-size:12px;color:var(--muted);margin-top:4px}
-.eui-arrow-big{font-size:2rem;color:var(--light)}
+.eui-arrow-big{font-size:2rem;color:var(--muted)}
 .eui-saving{font-family:'Fraunces',Georgia,serif;font-size:1.8rem;font-weight:300;color:var(--green)}
 
 /* ── Table ── */
@@ -272,10 +277,10 @@ tr.detail-row.open .detail-inner{display:block}
 .saving-pos{color:var(--green);font-weight:500;font-variant-numeric:tabular-nums}
 .saving-neg{color:var(--red);font-weight:500;font-variant-numeric:tabular-nums}
 .fuel-chip{display:inline-block;font-size:11px;padding:2px 6px;background:var(--surface);color:var(--muted);border-radius:4px}
-.fuel-arrow{color:var(--light);font-size:11px}
+.fuel-arrow{color:var(--muted);font-size:11px}
 .measure-chips{display:flex;flex-wrap:wrap;gap:4px}
 .measure-chip{font-size:11px;padding:2px 6px;border-radius:4px;background:var(--navy);color:rgba(255,255,255,.9)}
-.tbl-footer{font-size:12px;color:var(--light);margin-top:10px;text-align:right}
+.tbl-footer{font-size:12px;color:var(--muted);margin-top:10px;text-align:right}
 
 
 /* ── Info "?" buttons ── */
@@ -358,6 +363,12 @@ tr.detail-row.open .detail-inner{display:block}
    Stroke uses currentColor so each icon inherits its heading's colour. Two
    context sizes: larger + amber next to an <h2>, smaller + muted next to a
    .measure-chart-title / .card-title. */
+/* --light (#8A9BB0) is 2.84:1 on white and 2.59:1 on cream -- below WCAG AA
+   for normal text and below 3:1 even for large text and meaningful glyphs.
+   Every readable use here moved to --muted (#5C6E82, 5.5:1 on white, 6.5:1 on
+   the dark card) on 2026-08-20. Hierarchy for these labels comes from size and
+   placement, not from fading them out. Keep --light for non-text decoration
+   or disabled states only. */
 .ic{display:inline-block;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.5;
     stroke-linecap:round;stroke-linejoin:round;vertical-align:-.16em}
 h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align:-4px}
@@ -369,7 +380,7 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 .equip-list .measure-row{align-items:flex-start}
 .equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
 .equip-list .measure-label .ml-code{display:block;line-height:1.3}
-.equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--light);line-height:1.25;margin-top:1px}
+.equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--muted);line-height:1.25;margin-top:1px}
 .equip-list .measure-label .ml-sub a{color:var(--muted);text-decoration:underline}
 .equip-list .measure-label .ml-sub a:hover{color:var(--ink)}
 .equip-list .measure-label .ml-badges{display:block;margin-top:4px}
@@ -386,9 +397,9 @@ h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align
 .ahri-cert-list{margin:2px 0 0;padding-left:14px;border-left:2px solid var(--surface)}
 .ahri-cert-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:5px 0;font-size:12px}
 .ahri-cert-row+.ahri-cert-row{border-top:1px solid var(--surface)}
-.ahri-cert-row .ml-sub{color:var(--light);line-height:1.3}
+.ahri-cert-row .ml-sub{color:var(--muted);line-height:1.3}
 .ahri-cert-row .ml-sub a{color:var(--muted);text-decoration:underline}
 .ahri-cert-row .ml-sub a:hover{color:var(--ink)}
 .ahri-cert-row .ml-badges .badge{margin-right:4px}
 .ahri-cert-row .ahri-cert-count{margin-left:auto;font-size:11px;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
-.ahri-cert-more{padding:4px 0 0 14px;font-size:11px;color:var(--light);font-style:italic}
+.ahri-cert-more{padding:4px 0 0 14px;font-size:11px;color:var(--muted);font-style:italic}
