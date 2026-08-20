@@ -25,9 +25,9 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root,:root[data-theme="light"]{
-  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;--amber-text:#8A5D0F;
   --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --cream:#F7F4EE;--surface:#EDF1F7;--border:#D2D8E3;
   --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
   --card:#fff;--on-navy:#fff;--ink:#0B2545;
   --r-sm:6px;--r-md:10px;--r-lg:16px;
@@ -41,7 +41,7 @@
   --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
 }
 :root[data-theme="dark"]{
-  --navy:#0A1622;--amber:#E8A124;--amber2:#F0B94E;
+  --navy:#0A1622;--amber:#E8A124;--amber2:#F0B94E;--amber-text:#E8A124;
   --green:#3FA97C;--red:#E2705F;--blue:#5FA6E8;--purple:#8C79D8;
   --cream:#0E1621;--surface:#1B2735;--border:#2C3A4B;
   --text:#DCE4EE;--muted:#94A5B8;--light:#738699;--white:#16202E;
@@ -56,7 +56,7 @@
   --map-bg:#111C28;--map-stroke:#0E1621;--map-attr-bg:rgba(14,22,33,.72);
 }
 :root[data-theme="cb"]{
-  --navy:#10263D;--amber:#E69F00;--amber2:#F0B429;
+  --navy:#10263D;--amber:#E69F00;--amber2:#F0B429;--amber-text:#966700;
   /* pos/neg ("--green"/"--red" by name, kept for var-name compatibility with
      the other themes) deliberately moved off the red-green confusion axis:
      protanopia/deuteranopia confuse red vs green specifically, not blue vs
@@ -64,7 +64,7 @@
      the old green/vermilion pair, which measured under 10% apart in
      relative luminance and read as near-identical once faded to a fill. */
   --green:#1B4F8C;--red:#C1521A;--blue:#0072B2;--purple:#CC79A7;
-  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --cream:#F7F4EE;--surface:#EDF1F7;--border:#D2D8E3;
   --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
   --card:#fff;--on-navy:#fff;--ink:#10263D;
   --d-primary:#0072B2;--d-secondary:#E69F00;
@@ -77,6 +77,12 @@
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+/* Fallback for any <a> not caught by a more specific rule (e.g. inline
+   citation links in prose) -- added 2026-08-20 after finding ~35 such
+   links on retrofits.html with no color rule at all, falling back to the
+   browser default link blue (1.75:1 on a dark card). Low specificity, so
+   every existing scoped a{} rule on any page still wins over this. */
+a{color:var(--ink);text-decoration:underline}
 
 /* ── Header ── */
 header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
