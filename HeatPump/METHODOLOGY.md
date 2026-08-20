@@ -1757,16 +1757,29 @@ conservative; documented as a limitation.
 
 ### Emission categories & constants (ECCC NIR)
 
-GHG is split into **combustion / electricity / refrigerant / upstream-methane /
-upstream-oil** (kg CO2e/yr). Direct combustion factors, g CO2e/kWh of fuel input
-(HHV basis, matching the efficiency convention):
+GHG is split into **combustion / electricity / refrigerant / upstream-methane**
+(kg CO2e/yr). Direct combustion factors, g CO2e/kWh of fuel input (HHV basis,
+matching the efficiency convention). Each is **derived in code** from the
+volumetric factor and the energy content rather than hardcoded, so the two can
+never disagree, and the energy contents are the same ones
+`Python/ghg_factors.py` uses — the engine and the retrofit pipeline now read
+one set of conversions:
 
-| Fuel | g CO2e/kWh | Basis |
+| Fuel | g CO2e/kWh | Basis (CO2 + CH4 + N2O, residential rows, ECCC NIR) |
 |---|---|---|
-| Natural gas | 181 | 1.921 kg CO2e/m³ ÷ 10.55 kWh/m³ |
-| Light fuel oil (No.2) | 275 | ~2.75 kg CO2e/L ÷ ~10 kWh/L |
-| Propane | 214 | 1.55 kg CO2e/L ÷ ~7.2 kWh/L |
+| Natural gas | 185.41 | (1921 + 0.072) g CO2e/m³ ÷ 10.3611 kWh/m³ |
+| Light fuel oil (No.2) | 255.44 | (2753 + 0.026 + 0.006) g CO2e/L ÷ 10.7778 kWh/L |
+| Propane | 213.65 | (1515 + 0.027 + 0.108) g CO2e/L ÷ 7.0917 kWh/L |
 | Electric | 0 | grid EF only |
+
+> **Corrected 2026-08-19.** These were 181 / 275 / 214 g CO2e/kWh against their
+> own inconsistent energy contents (gas 10.55 kWh/m³, oil 10.0 kWh/L) — up to
+> 8 % from the values the Retrofit Explorer used for the same fuels, worst on
+> oil and biased in the heat pump's favour. The old gas entry did not even
+> reproduce its own stated basis (1.921 ÷ 10.55 = 182.1, not 181). Net effect
+> on results: an oil-heated baseline falls **≈ 17 %** (7.7 % from the factor,
+> the rest from dropping the upstream-oil adder below), a gas baseline rises
+> **≈ 2.4 %**, propane is unchanged at −0.2 %.
 
 Lifecycle terms are user sliders (PLAN.md §6), not baked in:
 
@@ -1776,14 +1789,20 @@ Lifecycle terms are user sliders (PLAN.md §6), not baked in:
   **§Refrigerant GWP and charge mass** below); `charge_kg` = rated capacity
   (kW) × a per-refrigerant kg/kW constant, `GWP` = AR6 blend-weighted GWP100.
 - **Upstream methane**: `methaneLeakPct%` of gas throughput (mass, via
-  10.55 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. The engine still
+  10.3611 kWh/m³ and 0.68 kg/m³, ~100 % CH₄) × `methaneGWP`. The engine still
   accepts both as independent parameters, but the live page currently exposes
   only a single "Upstream & grid losses: Yes/No" switch (not a slider) that
   applies fixed defaults when Yes: `methaneLeakPct` = **2.14** (a calibrated
   methane-equivalent rate, not a literal leak reading — see **§Lifecycle
   sourcing**) and `methaneGWP` = **85** (20-yr, per TAF's Fugitive Methane
   guideline). Sources and the arithmetic are in **§Lifecycle sourcing** below.
-- **Upstream oil**: optional adder `oilUpstreamFrac` × oil combustion.
+- **Upstream oil**: ~~optional adder `oilUpstreamFrac` × oil combustion~~ —
+  **removed 2026-08-19**. The 12 % default had no source anywhere in the
+  repository, had no propane equivalent, and was passed unconditionally by
+  `buildOpts()`, so the "Upstream & grid losses: No" switch never turned it
+  off despite the page saying that switch zeroed every upstream term. The
+  option, its accumulator and the `upstream_oil` output field are all gone
+  rather than defaulted to zero, so it cannot be silently reinstated.
 - **Line losses**: default 5 % on delivered electricity (sourced in
   **§Lifecycle sourcing**).
 
@@ -1972,18 +1991,26 @@ per TAF's own reasoning.
 
 ### The arithmetic — calibrating the single leak-rate lever to TAF's +65%
 
-Natural gas combustion is **181 g CO₂e/kWh** (HHV). One kWh of gas (HHV) is
-`1 / 10.55 = 0.094787 m³`; at 0.68 kg/m³ (≈ 100 % CH₄ for the leak) that is
-**0.064455 kg** of gas per kWh delivered to the meter. Solving for the leak
-rate that makes `combustion × (1 + leak% × 0.064455 × GWP85 / combustion)`
-equal TAF's own **3.13 / 1.90 = 1.6474** ratio gives **leak% = 2.14%**:
+Natural gas combustion is **185.41 g CO₂e/kWh** (HHV). One kWh of gas (HHV) is
+`1 / 10.3611 = 0.096515 m³`; at 0.68 kg/m³ (≈ 100 % CH₄ for the leak) that is
+**0.065630 kg** of gas per kWh delivered to the meter. Solving for the leak
+rate that makes `combustion × (1 + leak% × 0.065630 × GWP85 / combustion)`
+equal TAF's own **3.13 / 1.90 = 1.6474** ratio gives **leak% ≈ 2.15%**; the
+page ships **2.14%**, which lands at +64.4 %:
 
 ```
-0.02140 × 0.064455    = 0.0013793 kg CH4-equivalent per kWh
-0.0013793 kg × 85      = 0.11724 kg CO2e    = 117.2 g CO2e per kWh gas
-combustion + upstream  = 181 + 117.2        = 298.2 g CO2e per kWh gas
-ratio to combustion only = 298.2 / 181      = 1.647  = +64.7 %  ≈ TAF's +65 %
+0.02140 × 0.065630    = 0.0014045 kg CH4-equivalent per kWh
+0.0014045 kg × 85      = 0.11938 kg CO2e    = 119.4 g CO2e per kWh gas
+combustion + upstream  = 185.41 + 119.4     = 304.8 g CO2e per kWh gas
+ratio to combustion only = 304.8 / 185.41   = 1.644  = +64.4 %  ≈ TAF's +65 %
 ```
+
+> **Re-checked 2026-08-19** against the corrected gas constants above. The
+> calibration survives: the ratio moves from +64.8 % to +64.4 %, both still
+> "≈ +65 %". An exact re-solve under the new constants would give 2.152 %
+> rather than 2.14 %, a 0.5 % relative change in the methane term — **left
+> alone deliberately**, since re-tuning a calibrated lever for a rounding-level
+> gain would churn every published result for no defensible improvement.
 
 **2.14%, not TAF's headline 2.7%, is the calibrated value** — using the
 literal 2.7% full-lifecycle rate in this same formula gives `+82%` (shown
@@ -2696,7 +2723,7 @@ ON 96.9 g/kWh avg / 500 marg; AB 414.5 avg / 540 marg; QC ≈ 0.01 either way.
 | **Backup share of load** | 0.1–0.4 % | "0.3 % of heating hours" unmet (2018–2022) | agrees | unit auto-sized to design load, so backup is rare. |
 | **Energy saved vs baseboard** | ~55 % less electricity | "up to 65 %" (CCI); "≥ 50 %" (Eff. Canada) | inside range | tool sits at the lower-middle (Tier-1, cold cities); "up to 65 %" is the warm-climate/premium ceiling. |
 | **gas→ASHP, ON (avg)** | −68 to −74 % | "significant reduction" (NRCan, avg basis) | consistent | NRCan used a **2020–21 Ontario grid (~32–41 g/kWh)**; the tool uses **2025 (97 g/kWh, ~3× dirtier)**, so its average-basis reduction is *smaller* than NRCan-era — grid vintage, fully expected. |
-| **gas→ASHP, ON (marg)** | ~0 to +11 % (≈ break-even/worse) | NRCan: marginal "reduces reduction ~5 %" (hybrid) | **> 30 % vs NRCan's *average* headline — but fully explained** | (a) avg vs marginal is the whole point of the tool's toggle; (b) NRCan's ~5 % is for a **hybrid** (ASHP electricity is a small slice); a **full** ASHP prices *all* its kWh at the margin; (c) the tool's marginal channel is a deliberately pessimistic "**gas = 500 g/kWh whenever gas runs**" upper bound (Phase 1), harsher than a seasonal-hourly marginal that credits some hydro/nuclear hours. This is the honest RAP/TAF marginal view, and it is the *default* on purpose. |
+| **gas→ASHP, ON (marg)** | ~0 to +11 % (≈ break-even/worse) | NRCan: marginal "reduces reduction ~5 %" (hybrid) | **> 30 % vs NRCan's *average* headline — but fully explained** | (a) avg vs marginal is the whole point of the tool's toggle; (b) NRCan's ~5 % is for a **hybrid** (ASHP electricity is a small slice); a **full** ASHP prices *all* its kWh at the margin; (c) the tool's marginal channel is a deliberately pessimistic "**gas = 500 g/kWh whenever gas runs**" upper bound (Phase 1), harsher than a seasonal-hourly marginal that credits some hydro/nuclear hours. This is the honest RAP/TAF marginal view. **Correction 2026-08-19:** this row previously said marginal "is the *default* on purpose" — it never has been. `state.efBasis` has always initialised to `'average'` (and falls back to `'annual'` for provinces with no hourly surface); the page and this document both described a default the code does not ship. The docs have been aligned to the code rather than the reverse, so the tool opens on the hourly average — the like-for-like basis with the published studies in this table — and marginal remains one click away in Advanced. |
 | **gas→ASHP, AB** | −5 % (avg) / +18 % (marg) | NRCan: **"increases emissions in Alberta"** | direction matches | NRCan's AB grid was ~565–597 g/kWh (2020–21) → clear increase. The tool's **2025 AB grid (414 g/kWh, coal retired)** is much cleaner → average basis is now ~break-even; marginal still shows an increase, matching NRCan's sign. Grid vintage again. |
 | **gas→ASHP, QC** | −95 % | NRCan: "significantly reduces" | matches | near-zero grid; the residual 5 % is refrigerant + the base's own combustion. |
 | **gas→ASHP, moderate grid** | between −5 % (AB avg) and −74 % (ON avg); marginal ON/AB ≈ 0 to +18 % | Pembina/CCI "20–30 % less than gas" | tool brackets it | the "20–30 %" corresponds to a grid ≈ 150–250 g/kWh; ON-average (clean) beats it, AB and all-marginal fall below it. The tool spans the benchmark rather than contradicting it. |
@@ -2769,8 +2796,12 @@ decision: `Python/rates_source_notes.md`; data-shape and caveats:
   to a heat pump without gas backup, the savings include the dropped fixed
   charge and the card says so (with the subtract-it-yourself number for
   homes keeping gas service).
-- **Unit conversions:** gas at the engine's own 10.55 kWh/m³ (HHV); oil at
-  10.0 kWh/L, matching the engine's oil-EF derivation.
+- **Unit conversions:** gas at the engine's own 10.3611 kWh/m³ (HHV); oil at
+  10.7778 kWh/L. Both are read from the engine's exported constants
+  (`E.OIL_KWH_PER_L`) rather than re-declared in the cost layer, so the price
+  card and the emission factors cannot drift apart (corrected 2026-08-19 — the
+  cost layer previously carried its own hardcoded 10.0 kWh/L, which priced oil
+  ≈ 7 % too dear per kWh).
 
 **Honesty notes** (all surfaced in the card's fine print): carbon components
 are excluded (federal consumer fuel charge zero since 2025-04-01); AB values

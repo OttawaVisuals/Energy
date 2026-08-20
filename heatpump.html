@@ -1165,12 +1165,12 @@ fuel:      fuel kWh × combustion factor</div>
       <p>Hourly grid intensity: a temperature × hour-of-day × season surface, calibrated against published provincial intensities (within ±6%). <i>Source: 2019–2026 IESO / AESO / Hydro-Québec generation-by-fuel data.</i> Decomposed as <code>EF = annual level × shape</code>, so the shape (weather/time pattern) applies on top of the most recent complete year's level.</p>
       <table class="ht-table">
         <tr><th>Basis</th><th>Definition</th><th>2025 value</th></tr>
-        <tr><td>Marginal (default)</td><td>New load served by the marginal generator — gas, whenever gas is running</td><td>ON/AB ≈ 500 g/kWh</td></tr>
-        <tr><td>Hourly average</td><td>Fleet-average intensity from the surface, hour by hour</td><td>ON ≈ 97 · AB ≈ 414 · QC ≈ 0.02 g/kWh</td></tr>
+        <tr><td>Marginal</td><td>New load served by the marginal generator — gas, whenever gas is running</td><td>ON/AB ≈ 500 g/kWh</td></tr>
+        <tr><td>Hourly average (default)</td><td>Fleet-average intensity from the surface, hour by hour</td><td>ON ≈ 97 · AB ≈ 414 · QC ≈ 0.02 g/kWh</td></tr>
         <tr><td>ECCC yearly</td><td>Province's published National Inventory Report annual average — one flat number</td><td>National ~100 g/kWh (2022)</td></tr>
       </table>
       <ul>
-        <li>ECCC yearly is the only basis available for provinces without an hourly pipeline (BC, MB, SK, NS, NB…), where it's paired with a flat, labelled marginal estimate.</li>
+        <li>ECCC yearly is the only basis available for provinces without an hourly pipeline (BC, MB, SK, NS, NB…), where it's paired with a flat, labelled marginal estimate — and where it, rather than the hourly average, is what the page opens on.</li>
         <li>ECCC yearly source: StatCan table 38-10-0097 ÷ 25-10-0015.</li>
       </ul>
       <div class="caveats">Ontario's average intensity is rising as gas generation grows. Quebec's marginal figure does not model higher-carbon imports (~35 g/kWh) that new winter demand may draw on in practice — Quebec's "after" number is a floor, not a ceiling.</div>
@@ -1178,11 +1178,12 @@ fuel:      fuel kWh × combustion factor</div>
       <h4 id="m-lifecycle">Step 6 — Emissions</h4>
       <table class="ht-table">
         <tr><th>Fuel</th><th>Combustion factor</th></tr>
-        <tr><td>Natural gas</td><td>181 g CO₂e/kWh (fuel input)</td></tr>
-        <tr><td>Oil</td><td>275 g CO₂e/kWh</td></tr>
-        <tr><td>Propane</td><td>214 g CO₂e/kWh</td></tr>
+        <tr><td>Natural gas</td><td>185.4 g CO₂e/kWh (fuel input)</td></tr>
+        <tr><td>Oil</td><td>255.4 g CO₂e/kWh</td></tr>
+        <tr><td>Propane</td><td>213.6 g CO₂e/kWh</td></tr>
       </table>
-      <p><i>Source: ECCC National Inventory Report.</i></p>
+      <p>CO₂ + CH₄ + N₂O, residential rows. Each is <b>derived in code</b> from a volumetric factor and an energy content rather than typed in as a finished number, so the two can never disagree: gas <code>(1921 + 0.072) g/m³ ÷ 10.3611 kWh/m³</code>, oil <code>(2753 + 0.026 + 0.006) g/L ÷ 10.7778 kWh/L</code>, propane <code>(1515 + 0.027 + 0.108) g/L ÷ 7.0917 kWh/L</code>. The same energy contents convert litres to kWh in the cost card, and m³ to leaked-methane mass in the upstream term. <i>Source: ECCC National Inventory Report; conversions shared with <code>Python/ghg_factors.py</code>, the retrofit pipeline's factor module.</i></p>
+      <div class="caveats"><b>Changed 2026-08-19.</b> These factors were previously 181 / 275 / 214 g CO₂e/kWh, hardcoded alongside their own inconsistent energy contents (gas 10.55 kWh/m³, oil 10.0 kWh/L) — up to 8% away from the figures the Retrofit Explorer used for the same fuels, with oil the worst case and biased in the heat pump's favour. Both tools now read the same conversions. The same change removed a 12% upstream adder that was applied to oil combustion: it had no source anywhere in the repository, no propane equivalent, and — contrary to what this page said — it was not switched off by the upstream-losses control below.</div>
 
       <h5>Refrigerant</h5>
       <p>Annual in-service leak (adjustable, default 2%/yr) + amortized end-of-life loss (15% of charge over a 15-year life), each weighted by global-warming potential and factory charge mass — both specific to the selected refrigerant.</p>
@@ -1240,7 +1241,7 @@ fuel:      fuel kWh × combustion factor</div>
         <tr><td>Baseboard → heat pump, ON/AB</td><td>−50 to −58%</td><td>Efficiency Canada: 49–77%</td></tr>
       </table>
       <p><i>Sources: NRCan/CanmetENERGY cold-climate heat-pump report (2022), Canadian Climate Institute's <i>Heat Pumps Pay Off</i> (2023), Efficiency Canada's <i>Heat Pump Myth Buster</i> (2023).</i> Full tables in <code>HeatPump/METHODOLOGY.md</code>.</p>
-      <div class="caveats">This tool defaults to the marginal grid basis; most published studies use the grid average. Switching to Average in Advanced gives a like-for-like comparison. The grid is calibrated to 2025 (Ontario's intensity has risen since the studies above were published), and homes use the ERS population median (larger than the single reference house those studies model).</div>
+      <div class="caveats">This tool defaults to the <b>hourly average</b> basis, which is the like-for-like comparison with the published studies above — they use the grid average too. Switching to Marginal in Advanced answers a different question (what the <i>next</i> kWh of heating load draws), and in Ontario and Alberta it roughly quintuples the "after" number, so the two bases are not interchangeable. <i>Corrected 2026-08-19: this passage and the table above previously described marginal as the default, which the page has never done.</i> The grid is calibrated to 2025 (Ontario's intensity has risen since the studies above were published), and homes use the ERS population median (larger than the single reference house those studies model).</div>
 
       <h4>Step 7 — Cost</h4>
       <ul>
@@ -1348,17 +1349,31 @@ fuel:      fuel kWh × combustion factor</div>
   // (higher-heating-value basis, matching the AFUE/seasonal-efficiency the
   // base-case `efficiency` is expressed on). Electric baseboard has no
   // combustion term -- its emissions come entirely from the grid.
+  // Fuel energy content (HHV), native billing unit -> kWh. ONE source for the
+  // emission factors below, the upstream-methane leak mass, and the volumetric
+  // cost conversions -- and deliberately the same numbers Python/ghg_factors.py
+  // uses, so this tool and the retrofit pipeline cannot drift apart.
+  // Changed 2026-08-19: gas was 10.55 and oil 10.0 here against 10.3611 and
+  // 10.7778 in the pipeline, which put the two tools' fuel factors 2-8% apart.
+  var GAS_KWH_PER_M3 = 10.3611;
+  var OIL_KWH_PER_L = 10.7778;
+  var PROPANE_KWH_PER_L = 7.0917;
+  var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
+
+  // Combustion factors, g CO2e per kWh of fuel *input*. Derived from the
+  // volumetric factors and the conversions above rather than hardcoded, so a
+  // change to either can't leave the two inconsistent (the old hardcoded gas
+  // value did not reproduce its own stated derivation). CO2 + CH4 + N2O,
+  // residential rows, ECCC National Inventory Report:
+  //   gas     1921 g CO2/m3 (Ontario, Table 1.x "Marketable") + 0.072 CH4+N2O
+  //   oil     2753 g CO2/L  (Light Fuel Oil - Residential) + 0.026 + 0.006
+  //   propane 1515 g CO2/L  (Propane - Residential) + 0.027 + 0.108
   var COMBUSTION_EF_G_PER_KWH = {
-    gas: 181.0, // natural gas: 1.921 kg CO2e/m3 / 10.55 kWh/m3
-    oil: 275.0, // light fuel oil (No.2): ~2.75 kg CO2e/L / ~10 kWh/L
-    propane: 214.0, // 1.55 kg CO2e/L / ~7.2 kWh/L
+    gas: (1921 + 0.072) / GAS_KWH_PER_M3, // 185.41
+    oil: (2753 + 0.026 + 0.006) / OIL_KWH_PER_L, // 255.44
+    propane: (1515 + 0.027 + 0.108) / PROPANE_KWH_PER_L, // 213.65
     electric: 0.0,
   };
-
-  // Natural-gas physical properties, for converting a gas energy throughput
-  // (kWh, HHV) into a leaked-methane mass for the upstream-methane term.
-  var GAS_KWH_PER_M3 = 10.55; // HHV energy content
-  var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
 
   // GWP20 (20-yr), not GWP100 -- TAF's Fugitive Methane guideline (May 2022)
   // specifies GWP20 for "modelling activities that impact natural gas
@@ -1546,7 +1561,6 @@ fuel:      fuel kWh × combustion factor</div>
   //     refrigerantGWP, charge_kg, leakRate_frac,   // annual leak fraction
   //     eolLossFrac?, lifetimeYears?,               // amortized end-of-life loss
   //     methaneLeakPct?, methaneGWP?,               // upstream gas methane
-  //     oilUpstreamFrac?,                           // upstream oil adder (frac of combustion)
   //     lineLossPct?                                // grid line losses on delivered elec
   //   }
   //   ef:       province EF surface JSON (ef_surface_*.json)
@@ -1581,7 +1595,6 @@ fuel:      fuel kWh × combustion factor</div>
     var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
     var methanePct = lc.methaneLeakPct == null ? 0.0 : lc.methaneLeakPct;
     var methaneGWP = lc.methaneGWP == null ? CH4_GWP_DEFAULT : lc.methaneGWP;
-    var oilUpstream = lc.oilUpstreamFrac == null ? 0.0 : lc.oilUpstreamFrac;
 
     var efMode = opts.efMode === "marginal" ? "marginal" : "average";
     var efLevel = opts.efLevel || null;
@@ -1614,8 +1627,7 @@ fuel:      fuel kWh × combustion factor</div>
     // ghg (kg CO2e) -- combustion / electricity, per case, per month
     var m_base_comb = zeros12(),
       m_base_elecghg = zeros12(),
-      m_base_ch4 = zeros12(),
-      m_base_oilup = zeros12();
+      m_base_ch4 = zeros12();
     var m_proj_comb = zeros12(),
       m_proj_elecghg = zeros12(),
       m_proj_ch4 = zeros12();
@@ -1682,9 +1694,7 @@ fuel:      fuel kWh × combustion factor</div>
         var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
         m_base_comb[mi] += baseCombGhg;
         h_base_ghg[i] += baseCombGhg;
-        if (baseFuel === "oil") {
-          m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
-        } else if (baseFuel === "gas") {
+        if (baseFuel === "gas") {
           // Methane-leak adder is pipeline-gas-specific (density/energy
           // constants below are natural gas's, not propane's); propane gets
           // no leak adder here rather than reusing gas's number -- no
@@ -1793,8 +1803,7 @@ fuel:      fuel kWh × combustion factor</div>
 
     var base_comb = sum(m_base_comb),
       base_elecghg = sum(m_base_elecghg),
-      base_ch4 = sum(m_base_ch4),
-      base_oilup = sum(m_base_oilup);
+      base_ch4 = sum(m_base_ch4);
     var proj_comb = sum(m_proj_comb),
       proj_elecghg = sum(m_proj_elecghg),
       proj_ch4 = sum(m_proj_ch4);
@@ -1810,8 +1819,7 @@ fuel:      fuel kWh × combustion factor</div>
         electricity: base_elecghg,
         refrigerant: 0,
         upstream_methane: base_ch4,
-        upstream_oil: base_oilup,
-        total: base_comb + base_elecghg + base_ch4 + base_oilup,
+        total: base_comb + base_elecghg + base_ch4,
       },
       monthly: monthlyRows({
         fuel_kWh: m_base_fuel,
@@ -1819,7 +1827,6 @@ fuel:      fuel kWh × combustion factor</div>
         combustion: m_base_comb,
         electricity_ghg: m_base_elecghg,
         upstream_methane: m_base_ch4,
-        upstream_oil: m_base_oilup,
       }),
     };
 
@@ -1837,7 +1844,6 @@ fuel:      fuel kWh × combustion factor</div>
         electricity: proj_elecghg,
         refrigerant: refrigerantKg,
         upstream_methane: proj_ch4,
-        upstream_oil: 0,
         total: proj_comb + proj_elecghg + refrigerantKg + proj_ch4,
       },
       monthly: monthlyRows({
@@ -1894,6 +1900,8 @@ fuel:      fuel kWh × combustion factor</div>
     monthOfDay: monthOfDay,
     COMBUSTION_EF_G_PER_KWH: COMBUSTION_EF_G_PER_KWH,
     GAS_KWH_PER_M3: GAS_KWH_PER_M3,
+    OIL_KWH_PER_L: OIL_KWH_PER_L,
+    PROPANE_KWH_PER_L: PROPANE_KWH_PER_L,
     GAS_KG_PER_M3: GAS_KG_PER_M3,
   };
 });
@@ -1995,7 +2003,7 @@ function chargeKg(refrig, ratedCap_kW){
 // "energy and emissions only".
 const CITY_KEY={Ottawa:'ottawa',Toronto:'toronto',Montreal:'montreal',Calgary:'calgary',Edmonton:'edmonton',
   Hamilton:'toronto',London:'toronto',Windsor:'toronto','Quebec City':'montreal'};
-const OIL_KWH_PER_L=10.0;      // matches the engine's oil EF derivation (~10 kWh/L)
+const OIL_KWH_PER_L=E.OIL_KWH_PER_L;  // single source: the engine's own conversion
 const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
 // Tiered plans REMOVED 2026-08-12 -- pricing the added heating load within a
 // tiered plan required assuming a non-heating household baseline (kWh/month
@@ -3037,7 +3045,6 @@ function buildOpts(){
     lifecycle:{
       lineLossPct:state.lineloss,
       methaneLeakPct:state.methane, // methaneGWP omitted: fixed at the engine default (85, 20-yr, TAF)
-      oilUpstreamFrac:0.12,
       charge_kg:chargeKg(state.refrig, hc.ratedCap_kW),
       leakRate_frac:state.leakRate/100, eolLossFrac:0.15, lifetimeYears:15,
       refrigerantGWP:refrigGWP(state.refrig,state.gwpHorizon),
@@ -4088,7 +4095,7 @@ function renderEmissionsStep(res,opts){
     {k:'refrigerant',label:'Refrigerant leak',color:css('--purple')},
     {k:'upstream',label:'Upstream fuel supply',color:css('--amber')},
   ];
-  const val=(g,k)=>k==='upstream'?(g.upstream_methane||0)+(g.upstream_oil||0):(g[k]||0);
+  const val=(g,k)=>k==='upstream'?(g.upstream_methane||0):(g[k]||0);
   const baseT=base.total, projT=proj.total, maxT=Math.max(baseT,projT,1);
   const row=(name,g,tot,cls)=>{
     let segs='';let acc=0;
@@ -4946,7 +4953,7 @@ function runSelfTest(){
   let r=E.simulate(base());
   ck('load',r.project.diagnostics.load_kWh,7);ck('hpDeliv',r.project.diagnostics.hp_delivered_kWh,5);
   ck('elec',r.project.energy.electricity_kWh,4);ck('elecGHGavg',r.project.ghg.electricity,0.42);
-  ck('baseComb',r.base.ghg.combustion,1.58375);
+  ck('baseComb',r.base.ghg.combustion,1.622355);
   ck('elecGHGmarg',E.simulate(base({efMode:'marginal'})).project.ghg.electricity,2.1);
   r=E.simulate(base({tempSeries:[20]}));ck('above-bal load',r.project.diagnostics.load_kWh,0);ck('above-bal ghg',r.project.ghg.total,0);
   r=E.simulate(base({control:{strategy:'lockout',lockoutTemp_C:-5}}));
@@ -4954,7 +4961,7 @@ function runSelfTest(){
   r=E.simulate(base({lifecycle:{lineLossPct:5,charge_kg:3,leakRate_frac:0.05,eolLossFrac:0.8,lifetimeYears:15,refrigerantGWP:2256}}));
   ck('refrig',r.project.ghg.refrigerant,699.36);
   r=E.simulate(base({archetype:{UA_W_per_K:(80/28)*1000,Tbalance_C:18},lifecycle:{lineLossPct:5,methaneLeakPct:2,methaneGWP:28}}));
-  ck('ch4',r.base.ghg.upstream_methane,3.609479);
+  ck('ch4',r.base.ghg.upstream_methane,3.675285);
   // Below-lock-out "derate" mode (workstream E): curve min-op -10, hour at -20;
   // cap extrapolates 0.5→0.3 on the 0.02/°C coldest slope, COP held at floor 2.0.
   const CURVE_D={T_C:[-10,0,15],cap_frac_of_rated47:[0.5,0.7,1.0],COP:[2.0,3.0,4.0]};
