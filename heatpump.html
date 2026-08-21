@@ -134,9 +134,11 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .chart-head .seg{background:rgba(255,255,255,.14)}
 .chart-head .seg button{color:rgba(255,255,255,.78)}
 .chart-head .seg button.active{background:#fff;color:var(--navy)}
-.range-sel{display:none;height:30px;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:0 24px 0 9px;font-family:'Inter',sans-serif;font-size:12px;color:#fff;background:rgba(255,255,255,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
-.range-sel.show{display:inline-block}
-.range-sel option{color:var(--ink)}
+.chart-range-row{display:flex;justify-content:center}
+.range-sel{display:none;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 24px 0 9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
+.range-sel.show{display:inline-block;margin-bottom:.75rem}
+.range-sel+.range-sel.show{margin-left:8px}
+.range-sel option{color:var(--ink);background:var(--card)}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
 .card .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:12.5px;line-height:1.55;margin-top:12px}
 .card .caveats b{color:var(--text);font-weight:600}
@@ -230,14 +232,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .stat-sub{font-size:12px;color:var(--light);margin-top:5px}
 .stat-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:5px;border-radius:50%;border:1px solid var(--light);color:var(--light);font-size:9px;font-style:italic;font-family:Georgia,serif;cursor:help;flex:none;line-height:1;text-transform:none;letter-spacing:0}
 .stat-i:hover{border-color:var(--amber);color:var(--amber)}
-
-/* ── Before → after comparison bars ── */
-.beforeafter{display:grid;grid-template-columns:minmax(84px,auto) 1fr auto;align-items:center;gap:6px 10px;max-width:100%}
-.ba-row{display:contents}
-.ba-lbl{font-size:12px;color:var(--muted);text-align:right}
-.ba-lbl small{display:block;color:var(--light);font-size:10.5px}
-.ba-bar{height:24px;border-radius:var(--r-sm);min-width:2px;transition:width .45s cubic-bezier(.4,0,.2,1)}
-.ba-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
 
 /* ── Stacked GHG bars ── */
 .ghgbar-wrap{display:flex;flex-direction:column;gap:14px}
@@ -377,7 +371,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   body>*:not(#print-summary){display:none!important}
   #print-summary{display:block!important;color:#111;font-family:'Inter',sans-serif;
     /* Force light-theme values for these tokens regardless of the page's
-       current theme (dark/colour-blind) -- the cloned .stat-card/.ba-row
+       current theme (dark/colour-blind) -- the cloned .stat-card
        markup below reads them, and paper is always white. */
     --card:#fff;--ink:#111;--text:#111;--muted:#666;--light:#777;--border:#ddd;--surface:#f3f3f3;--shadow:none;--amber2:#b8860b;--green:#1A7A55;--red:#B33A2E;}
   @page{size:letter;margin:12mm}
@@ -390,9 +384,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   #print-summary table.ps-table th{text-align:left;color:#666;font-weight:500;padding:1px 6px 1px 0;white-space:nowrap}
   #print-summary table.ps-table td{text-align:right;font-weight:600;padding:1px 0}
   #print-summary .ps-kpi-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #eee}
-  #print-summary #ps-energy-img{width:100%;max-height:150px;object-fit:contain;display:block;margin:0 auto}
-  #print-summary .beforeafter{display:grid;grid-template-columns:minmax(70px,auto) 1fr auto;gap:2px 8px;font-size:11px}
-  #print-summary .ba-bar{height:14px}
+  #print-summary #ps-energy-img,#print-summary #ps-emis-img,#print-summary #ps-cost-img{width:100%;max-height:150px;object-fit:contain;display:block;margin:0 auto}
   #print-summary .ps-footer{margin-top:.8rem;font-size:9.5px;color:#777;border-top:1px solid #ddd;padding-top:.4rem}
   #print-summary .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:0}
   #print-summary .stat-card{padding:.3rem .4rem;box-shadow:none;border:1px solid #ddd;border-radius:4px}
@@ -637,11 +629,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="weather-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="weather-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="weather-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="weather-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap">
               <svg id="weatherchart" viewBox="0 0 740 380" role="img" aria-label="Weather record for the selected city and year"></svg>
               <div class="kc-tip" id="weather-tip"></div>
@@ -669,11 +663,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="ld-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="ld-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="ld-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="ld-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap"><svg id="ld-temp" viewBox="0 0 740 340" role="img" aria-label="Heating load versus outdoor temperature"></svg><div class="kc-tip" id="ld-tip"></div></div>
             <div class="kc-legend" id="ld-legend"></div>
             <div class="note" id="ld-note"></div>
@@ -698,11 +694,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="equip-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="equip-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="equip-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="equip-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap">
               <svg id="equip-chart" viewBox="0 0 740 360" role="img" aria-label="Heat-pump capacity and delivered heat versus outdoor temperature"></svg>
               <div class="kc-tip" id="equip-tip"></div>
@@ -730,11 +728,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="ecop-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="ecop-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="ecop-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="ecop-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap" id="cop-chart-wrap">
               <svg id="cop-chart" viewBox="0 0 740 150" role="img" aria-label="Heat-pump COP versus outdoor temperature"></svg>
               <div class="kc-tip" id="cop-tip"></div>
@@ -767,11 +767,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="gg-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="gg-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="gg-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="gg-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap">
               <svg id="gg-chart" viewBox="0 0 740 320" role="img" aria-label="Grid carbon intensity versus outdoor temperature"></svg>
               <div class="kc-tip" id="gg-tip"></div>
@@ -799,11 +801,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="em-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="em-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="em-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="em-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap"><svg id="em-chart" viewBox="0 0 740 320" role="img" aria-label="Emissions versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="em-tip"></div></div>
             <div class="kc-legend" id="em-legend"></div>
             <div class="note" id="em-note"></div>
@@ -840,11 +844,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
-          <select class="range-sel" id="cost-view-seg-month" aria-label="Month to show"></select>
-          <select class="range-sel" id="cost-view-seg-week" aria-label="Week to show"></select>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="cost-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="cost-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost by hour of day, now versus heat pump"></svg><div class="kc-tip" id="cost-tip"></div></div>
             <div class="kc-legend" id="cost-chart-legend"></div>
             <div class="note" id="cost-chart-note"></div>
@@ -862,24 +868,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <button type="button" id="btn-print-summary" class="print-btn">📄 Download one-page summary</button>
       </div>
       <div class="card">
-        <div class="card-title-row"><span class="card-title">Annual energy by source</span><span class="card-sub">now vs heat pump, totals for the year</span></div>
-        <div class="cw cw-md"><canvas id="energyChart"></canvas></div>
+        <div class="card-title-row chart-head"><span class="card-title">Annual energy by source</span><span class="card-sub">now vs heat pump, totals for the year</span></div>
+        <div class="cw cw-lg"><canvas id="energyChart"></canvas></div>
         <div class="note" id="energy-note"></div>
       </div>
       <div class="card">
-        <div class="card-title-row"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
-        <div class="step-body">
-          <div class="step-chart-col">
-            <div class="beforeafter" id="em2-bars"></div>
-            <div class="kc-legend" id="em2-legend"></div>
-            <div class="note" id="em2-note"></div>
-          </div>
-          <div class="step-kpi-col" id="em2-kpis"></div>
-        </div>
+        <div class="card-title-row chart-head"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
+        <div class="cw cw-lg"><canvas id="emisChart"></canvas></div>
+        <div class="note" id="em2-note"></div>
       </div>
       <div class="card">
-        <div class="card-title-row"><span class="card-title">Annual operating cost</span><span class="card-sub">now vs heat pump, current rates</span></div>
-        <div class="beforeafter" id="ba-cost" style="margin-bottom:1.1rem"></div>
+        <div class="card-title-row chart-head"><span class="card-title">Annual operating cost</span><span class="card-sub">now vs heat pump, current rates</span></div>
+        <div class="cw cw-lg"><canvas id="costBarChart"></canvas></div>
         <div id="cost-body">
           <div class="cost-hook">
             <div class="ch-title">Loading current energy prices…</div>
@@ -913,9 +913,9 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   <h2>Annual energy by source</h2>
   <img id="ps-energy-img" alt="Annual energy by source">
   <h2>Annual heating emissions</h2>
-  <div class="beforeafter" id="ps-emis-bars"></div>
+  <img id="ps-emis-img" alt="Annual heating emissions">
   <h2>Annual operating cost</h2>
-  <div class="beforeafter" id="ps-cost-bars"></div>
+  <img id="ps-cost-img" alt="Annual operating cost">
   <div class="ps-footer">Modelled estimate, not a substitute for a heat-loss assessment or contractor quote. Full methodology and assumptions: <span id="ps-url"></span></div>
 </div>
 
@@ -3581,7 +3581,7 @@ function renderLoadStep(res,opts){
   const ldNoteBase=`Heat demand is <code>UA × (zero-heat − outdoor)</code>, so it rises in a straight line as it gets colder.`;
   if(view==='hourly') $('ld-note').innerHTML=`${ldNoteBase} This is the raw hourly trace the simulation runs on, for <b>${state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear}</b> in ${state.city}.`;
   else if(view==='daily') $('ld-note').innerHTML=`${ldNoteBase} Each point here is a day's mean, for <b>${state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear}</b> in ${state.city} — the same trace as "Full year (hour-by-hour)" with the hour-to-hour noise averaged out.`;
-  else if(view==='freq') $('ld-note').innerHTML=`${ldNoteBase} But the <b>weather</b> decides how <i>often</i> each temperature occurs: each bar is <code>load × hours at that temperature</code> — the actual kWh delivered while it was that cold. Most of the season's energy comes from mild spells, not the rare deep-cold hours, even though those set the peak.`;
+  else if(view==='freq') $('ld-note').innerHTML=`${ldNoteBase} But the <b>weather</b> decides how <i>often</i> each temperature occurs: each bar is <code>load × hours at that temperature</code> — kWh heat needed while it was that cold. Most of the season's energy comes from mild spells, not the rare deep-cold hours, even though those set the peak.`;
   else $('ld-note').innerHTML=`${ldNoteBase} Switch to "Weighted by hours" to see how often each temperature actually occurs — that's what decides how much of the season's load falls in the depths of winter versus the mild shoulder months.`;
 }
 // Plain load-vs-temperature line, no weighting.
@@ -3651,7 +3651,7 @@ function renderLoadChartHourly(svgT,H,temps,daily){
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
-  s.v+=`<text x="14" y="${m.t+pH/2}" transform="rotate(-90 14 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW heat needed</text>`;
+  s.v+=`<text x="14" y="${m.t+pH/2}" transform="rotate(-90 14 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">average kW heat needed</text>`;
   if(daily) dailyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset); else hourlyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset);
   let pts='';for(let i=0;i<N;i++)pts+=(i?'L':'M')+x(i).toFixed(1)+' '+y(series[i]).toFixed(1)+' ';
   s.v+=`<path d="${pts}" fill="none" stroke="${navy}" stroke-width="1"/>`;
@@ -3991,7 +3991,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     ]});
     $('ecop-note').innerHTML=`Energy input if that source alone carried the <b>whole</b> load. Green is solid while the pump is actually the one running${C.isFuel?`, and continues faint-dashed past <b>${fmtSigned(Math.round(onCutoff))} °C</b> — how much less it would need to buy if it kept going instead of handing off to the ${FUEL_LABEL[state.backup]} furnace there`:''}. In practice they split the load — see "Weighted by hours" for what's actually bought.`;
   } else {
-    const W=740,Hh=340,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+    const W=740,Hh=340,m={l:58,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
     // Actual energy bought per 1 °C bin, from the real hourly dispatch.
     const binsHp=binByTemp(temps,H.hp_elec_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
     const binsBk=binByTemp(temps,H.backup_energy_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
@@ -4000,7 +4000,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     const bw=pW/(Tmax-Tmin)-1;
     niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
       s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
-    s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased</text>`;
+    s.v+=`<text x="12" y="${m.t+pH/2}" transform="rotate(-90 12 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased</text>`;
     stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
     binsHp.forEach((b,i)=>{
       let y0=y(0);
@@ -4027,7 +4027,7 @@ function renderEnergyChartHourly(svg,H,daily){
   const hp=rHp.series, bk=rBk.series, offset=rHp.offset;
   const N=hp.length;
   const hasBackup=bk.some(v=>v>0);
-  const W=920,Hh=423,m={l:52,r:16,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=920,Hh=423,m={l:58,r:16,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const tot=hp.map((v,i)=>v+bk[i]);
   const maxV=Math.max(1,...tot)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
@@ -4035,7 +4035,7 @@ function renderEnergyChartHourly(svg,H,daily){
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
-  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased${daily?' (daily total)':''}</text>`;
+  s.v+=`<text x="12" y="${m.t+pH/2}" transform="rotate(-90 12 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased${daily?' (daily total)':''}</text>`;
   if(daily) dailyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset); else hourlyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset);
   let hpPts='';for(let i=0;i<N;i++)hpPts+=(i?'L':'M')+x(i).toFixed(1)+' '+y(hp[i]).toFixed(1)+' ';
   s.v+=`<path d="M${x(0).toFixed(1)} ${y(0).toFixed(1)} ${hpPts.slice(1)} L${x(N-1).toFixed(1)} ${y(0).toFixed(1)} Z" fill="${green}" opacity="0.85"/>`;
@@ -4300,35 +4300,34 @@ function attachDailyHover(cfg){
 
 // ---- ⑥ Emissions: baseline vs heat pump + backup ----------------------------
 function renderEmissionsStep(res,opts){
-  const wrap=$('em2-bars'); if(!wrap) return;
   const base=res.base.ghg, proj=res.project.ghg;
   const cats=[
     {k:'combustion',label:'On-site combustion',color:css('--red')},
-    {k:'electricity',label:'Grid electricity',color:css('--blue')},
+    {k:'electricity',label:'Grid electricity',color:css('--green')},
     {k:'refrigerant',label:'Refrigerant leak',color:css('--purple')},
-    {k:'upstream',label:'Upstream fuel supply',color:css('--amber')},
+    {k:'upstream',label:'Upstream fuel supply',color:css('--blue')},
   ];
   const val=(g,k)=>k==='upstream'?(g.upstream_methane||0):(g[k]||0);
-  const baseT=base.total, projT=proj.total, maxT=Math.max(baseT,projT,1);
-  const row=(name,g,tot,cls)=>{
-    let segs='';let acc=0;
-    cats.forEach(c=>{const v=val(g,c.k);if(v<=0)return;const wpc=v/maxT*100;segs+=`<span title="${c.label}: ${fmtGHG(v)}" style="display:inline-block;height:100%;width:${wpc}%;background:${c.color}"></span>`;acc+=v;});
-    return `<div class="ba-row"><span class="ba-lbl">${name}</span><span class="ba-bar" style="width:${tot/maxT*100}%;background:transparent;display:inline-flex;overflow:hidden;border-radius:4px">${segs}</span><span class="ba-val ${cls||''}">${fmtGHG(tot)}</span></div>`;
-  };
+  const baseT=base.total, projT=proj.total;
   const cut=baseT-projT, pctc=baseT>0?cut/baseT*100:0;
-  wrap.innerHTML=
-    row(`Now — ${FUEL_LABEL[state.fuel]}`,base,baseT,'')+
-    row(`Heat pump${state.backup!=='none'?' + '+FUEL_LABEL[state.backup]+' backup':''}`,proj,projT,'')+
-    `<div class="ba-row"><span class="ba-lbl">${cut>=0?'Avoided':'Added'}</span><span class="ba-bar" style="width:${Math.abs(cut)/maxT*100}%;background:${cut>=0?'var(--green)':'var(--red)'}"></span><span class="ba-val">${cut>=0?'−':'+'}${fmtGHG(Math.abs(cut))} · ${cut>=0?'−':'+'}${Math.abs(Math.round(pctc))}%</span></div>`;
+  const emisCanvas=$('emisChart');
+  if(emisCanvas){
+    destroy('emis');
+    const labels=['Now','Heat pump',cut>=0?'Avoided':'Added'];
+    const ds=cats.map(c=>({label:c.label,data:[val(base,c.k),val(proj,c.k),0],backgroundColor:c.color}));
+    ds.push({label:cut>=0?'Avoided':'Added',data:[0,0,Math.abs(cut)],backgroundColor:cut>=0?css('--green'):css('--red')});
+    charts.emis=new Chart(emisCanvas,{type:'bar',data:{labels,datasets:ds},options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      scales:{x:{stacked:true,title:{display:true,text:'CO₂e / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtGHG(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
+      plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11},filter:item=>item.text!=='Avoided'&&item.text!=='Added'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtGHG(c.parsed.x)}}}
+    }});
+  }
   const emKpiHtml=[
     stepCard('Emissions now',fmtGHG(baseT),`${FUEL_LABEL[state.fuel]} heating`,'red'),
     stepCard('With heat pump',fmtGHG(projT),`${basisAdj(state.efBasis)} grid basis`,'green'),
     stepCard('Change',`${cut>=0?'−':'+'}${Math.abs(Math.round(pctc))}%`,`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cut>=0?'green':'red'),
   ].join('');
-  $('em2-kpis').innerHTML=emKpiHtml;
   if($('em-kpis'))$('em-kpis').innerHTML=emKpiHtml;
-  const legc=cats.map(c=>`<span class="kc-leg"><span class="kc-swatch fill" style="background:${c.color}"></span>${c.label}</span>`).join('');
-  $('em2-legend').innerHTML=legc;
   $('em2-basis').textContent=`${basisAdj(state.efBasis)} grid basis`;
   $('em2-note').innerHTML=`Each hour's electricity (step 4) × the grid intensity at that hour (step 5), plus any furnace combustion, summed over the year — the whole point of the exercise. ${cut>=0?`The switch <b>avoids ${fmtGHG(Math.abs(cut))}</b> a year here.`:`On the ${basisAdj(state.efBasis)} basis the switch <b>adds ${fmtGHG(Math.abs(cut))}</b> a year here.`}`;
 
@@ -4772,17 +4771,21 @@ const MONTHS=['J','F','M','A','M','J','J','A','S','O','N','D'];
 function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function renderEnergyChart(base,proj){
   destroy('energy');
-  const labels=['Now','Heat pump'];
   const baseFuel=base.energy.fuel_kWh, baseElec=base.energy.electricity_kWh;
+  const baseTotal=baseFuel+baseElec;
+  const projTotal=proj.energy.hp_electricity_kWh+proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh;
+  const cut=baseTotal-projTotal;
+  const labels=['Now','Heat pump',cut>=0?'Avoided':'Added'];
   const ds=[
-    {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseFuel+baseElec,0],backgroundColor:css('--red')},
-    {label:'Heat-pump electricity',data:[0,proj.energy.hp_electricity_kWh],backgroundColor:css('--green')},
-    {label:`Backup energy — ${FUEL_LABEL[state.backup]}`,data:[0,proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh],backgroundColor:backupColor()},
+    {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseTotal,0,0],backgroundColor:css('--red')},
+    {label:'Heat-pump electricity',data:[0,proj.energy.hp_electricity_kWh,0],backgroundColor:css('--green')},
+    {label:`Backup energy — ${FUEL_LABEL[state.backup]}`,data:[0,proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh,0],backgroundColor:backupColor()},
+    {label:cut>=0?'Avoided':'Added',data:[0,0,Math.abs(cut)],backgroundColor:cut>=0?css('--green'):css('--red')},
   ];
   charts.energy=new Chart($('energyChart'),{type:'bar',data:{labels,datasets:ds},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     scales:{x:{stacked:true,title:{display:true,text:'kWh / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtI(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
-    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.x)+' kWh'}}}
+    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11},filter:item=>item.text!=='Avoided'&&item.text!=='Added'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtI(c.parsed.x)+' kWh'}}}
   }});
 }
 
@@ -4822,10 +4825,10 @@ function buildPrintSummary(){
   const vm=$('verdict-main'); $('ps-verdict').innerHTML=vm?vm.innerHTML:'';
   $('ps-selections').innerHTML=printSelectionsHTML();
   const statsEl=$('stats'); $('ps-kpis').innerHTML=statsEl?statsEl.innerHTML:'';
-  const energyCanvas=$('energyChart');
-  if(energyCanvas){ try{ $('ps-energy-img').src=energyCanvas.toDataURL('image/png'); }catch(e){} }
-  const emisBars=$('em2-bars'); $('ps-emis-bars').innerHTML=emisBars?emisBars.innerHTML:'';
-  const costBars=$('ba-cost'); $('ps-cost-bars').innerHTML=costBars?costBars.innerHTML:'';
+  const snapshot=(canvasId,imgId)=>{const c=$(canvasId); if(c){ try{ $(imgId).src=c.toDataURL('image/png'); }catch(e){} }};
+  snapshot('energyChart','ps-energy-img');
+  snapshot('emisChart','ps-emis-img');
+  snapshot('costBarChart','ps-cost-img');
   $('ps-url').textContent=location.href.split(/[?#]/)[0];
 }
 // ---- day-of-year label, used by hourly hover tooltips ----
@@ -5005,7 +5008,7 @@ function setCostStat(val,sub,cls){
 function renderCost(res){
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],body=$('cost-body'),note=$('cost-note');
   $('cost-basis').textContent='current residential rates · pre-tax';
-  {const b=$('ba-cost');if(b)b.innerHTML='';}
+  destroy('costBar');
   if(!P){
     $('cost-plan-row').style.display='none';
     $('cost-chart-card').style.display='none';
@@ -5042,26 +5045,36 @@ function renderCost(res){
   }
 
   // ---- heat-pump scenario ----
-  let projCost=costElectricity(res.project.energy.elec_month_hour,elec,planKey);
+  let hpElecCost=costElectricity(res.project.energy.elec_month_hour,elec,planKey);
   let projSub=`${fmtI(res.project.energy.electricity_kWh)} kWh electricity`;
   const bkFuel=res.project.energy.backup_fuel_kWh;
+  let bkCost=0;
   if(bkFuel>0&&state.backup==='gas'){
-    projCost+=gasCost(bkFuel,gas)+12*gas.fixed_monthly_cad;
+    bkCost=gasCost(bkFuel,gas)+12*gas.fixed_monthly_cad;
     projSub+=` + ${fmtI(bkFuel/E.GAS_KWH_PER_M3)} m³ backup gas`;
   }else if(bkFuel>0&&state.backup==='oil'){
-    projCost+=oilCost(bkFuel,oil);
+    bkCost=oilCost(bkFuel,oil);
     projSub+=` + ${fmtI(bkFuel/OIL_KWH_PER_L)} L backup oil`;
   }
+  const projCost=hpElecCost+bkCost;
 
   const delta=baseCost-projCost;
   const saves=delta>=0;
-  const baEl=$('ba-cost');
-  if(baEl){
-    const maxC=Math.max(baseCost,projCost,1e-9),wC=v=>Math.max(2,100*v/maxC);
-    baEl.innerHTML=
-      `<div class="ba-row"><span class="ba-lbl">${baseName}<small>${baseSub}</small></span><span class="ba-bar" style="width:${wC(baseCost)}%;background:var(--red)"></span><span class="ba-val">${fmt$(baseCost)}/yr</span></div>`+
-      `<div class="ba-row"><span class="ba-lbl">Heat pump${state.backup!=='none'?' + '+FUEL_LABEL[state.backup]+' backup':''}<small>${projSub}</small></span><span class="ba-bar" style="width:${wC(projCost)}%;background:${saves?'var(--green)':'var(--red)'}"></span><span class="ba-val">${fmt$(projCost)}/yr</span></div>`+
-      `<div class="ba-row"><span class="ba-lbl">${saves?'Saves':'Costs'}</span><span class="ba-bar" style="width:${wC(Math.abs(delta))}%;background:${saves?'var(--green)':'var(--red)'}"></span><span class="ba-val">${saves?'−':'+'}${fmt$(Math.abs(delta))}/yr</span></div>`;
+  const costCanvas=$('costBarChart');
+  if(costCanvas){
+    destroy('costBar');
+    const labels=['Now','Heat pump',saves?'Saves':'Costs'];
+    const ds=[
+      {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseCost,0,0],backgroundColor:css('--red')},
+      {label:'Heat-pump electricity',data:[0,hpElecCost,0],backgroundColor:css('--green')},
+    ];
+    if(bkCost>0) ds.push({label:`Backup — ${FUEL_LABEL[state.backup]}`,data:[0,bkCost,0],backgroundColor:backupColor()});
+    ds.push({label:saves?'Saves':'Costs',data:[0,0,Math.abs(delta)],backgroundColor:saves?css('--green'):css('--red')});
+    charts.costBar=new Chart(costCanvas,{type:'bar',data:{labels,datasets:ds},options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      scales:{x:{stacked:true,title:{display:true,text:'$ / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmt$(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
+      plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11},filter:item=>item.text!=='Saves'&&item.text!=='Costs'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt$(c.parsed.x)+'/yr'}}}
+    }});
   }
   const screening=[elec,state.fuel==='gas'||state.backup==='gas'?gas:null]
     .some(s=>s&&s.confidence==='low');
