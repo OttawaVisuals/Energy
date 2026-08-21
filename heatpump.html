@@ -91,6 +91,11 @@
 .seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:2px;gap:2px}
 .seg button{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;padding:7px 6px;border:none;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
 .seg button.active{background:var(--card);color:var(--ink);font-weight:500;box-shadow:var(--shadow)}
+/* Dark mode: --card and --surface are too close in luminance for the active
+   pill's background swap (plus the box-shadow) to read as "selected" -- give
+   it real contrast instead, matching the amber-fill idiom already used for
+   the mode/theme toggles' active state. */
+:root[data-theme="dark"] .seg button.active{background:var(--amber2);color:var(--navy);box-shadow:none}
 .preset-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
 .preset-row button{font-family:'Inter',sans-serif;font-size:11px;padding:4px 9px;border:1px solid var(--surface);border-radius:999px;background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
 .preset-row button:hover{border-color:var(--blue);color:var(--ink)}
@@ -166,7 +171,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .out-section-head{margin-bottom:1rem}
 .out-section-eyebrow{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:.3rem}
 .out-section-title{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:1.55rem;color:var(--ink);letter-spacing:-.01em;margin-bottom:.35rem}
-.out-section-intro{font-size:13.5px;color:var(--muted);max-width:680px;line-height:1.55}
+.out-section-intro{font-size:13.5px;color:var(--muted);line-height:1.55}
 .out-collapsible{margin:0}
 .out-collapsible>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;margin-bottom:.35rem}
 .out-collapsible>summary::-webkit-details-marker{display:none}
@@ -179,8 +184,11 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
 /* ── Verdict / stats ── */
 .verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:linear-gradient(180deg,#0d2a52,#0B2545);color:var(--on-navy);border-radius:var(--r-lg);padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:var(--shadow)}
-.verdict-main{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(1.15rem,3.2vw,1.6rem);line-height:1.25;flex:1;min-width:240px}
+.verdict-text{flex:1;min-width:240px;display:flex;flex-direction:column;gap:.4rem}
+.verdict-main{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(1.15rem,3.2vw,1.6rem);line-height:1.25}
 .verdict-main b{color:var(--amber2);font-weight:400;font-style:italic}
+.verdict-sub{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.5}
+.verdict-sub b{color:#fff;font-weight:600}
 .verdict-pill{font-size:12px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);white-space:nowrap}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1rem}
 /* Top verdict KPI row: all 7 on one line to save vertical space, smaller
@@ -226,11 +234,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .ba-lbl{font-size:12px;color:var(--muted);text-align:right}
 .ba-bar{height:24px;border-radius:var(--r-sm);min-width:2px;transition:width .45s cubic-bezier(.4,0,.2,1)}
 .ba-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
-
-/* ── One-line summary lede ── */
-.summary-lede{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-md);padding:.85rem 1.1rem;margin-bottom:1rem;box-shadow:var(--shadow);font-size:15px;line-height:1.55;color:var(--text)}
-.summary-lede b{color:var(--ink);font-weight:600}
-.lede-eyebrow{display:block;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:.35rem}
 
 /* ── Stacked GHG bars ── */
 .ghgbar-wrap{display:flex;flex-direction:column;gap:14px}
@@ -521,7 +524,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <option value="r454b">R-454B</option>
         <option value="r290">R-290 propane</option>
       </select>
-      <span class="ctrl-hint" id="refrig-gwp-hint" style="font-size:12px;color:var(--muted)"></span>
     </div>
     <div class="ctrl">
       <label for="in-leak">Leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life.">?</button></label>
@@ -563,9 +565,11 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <h2 class="out-section-title">The verdict</h2>
         <p class="out-section-intro">The bottom line for your inputs — does the switch cut emissions, by how much, and what it does to your bill. The numbers that back it up follow below.</p>
       </div>
-      <div class="summary-lede" id="summary"></div>
       <div class="verdict" id="verdict">
-        <div class="verdict-main" id="verdict-main"></div>
+        <div class="verdict-text">
+          <div class="verdict-main" id="verdict-main"></div>
+          <div class="verdict-sub" id="verdict-sub"></div>
+        </div>
         <div class="verdict-pill" id="verdict-pill"></div>
       </div>
       <div id="stats"></div>
@@ -780,17 +784,17 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
       <div class="card" id="cost-chart-card" style="display:none">
         <div class="card-title-row chart-head">
-          <span class="card-title">Cost vs outdoor temperature</span>
+          <span class="card-title">Cost by hour of day</span>
           <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="byhour" class="active">By hour of day</button>
+            <button type="button" data-view="freq">Weighted by temperature</button>
             <button type="button" data-view="daily">Full year (day-by-day)</button>
             <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
           </div>
         </div>
         <div class="step-body">
           <div class="step-chart-col">
-            <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost versus outdoor temperature, now versus heat pump"></svg><div class="kc-tip" id="cost-tip"></div></div>
+            <div class="keychart-wrap"><svg id="cost-chart" viewBox="0 0 740 320" role="img" aria-label="Cost by hour of day, now versus heat pump"></svg><div class="kc-tip" id="cost-tip"></div></div>
             <div class="kc-legend" id="cost-chart-legend"></div>
             <div class="note" id="cost-chart-note"></div>
           </div>
@@ -1332,7 +1336,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
  * verbatim extract of it (for Node tests / reuse). If you change one, re-sync
  * the other. Later additions beyond the original Phase 5 outputs, all additive:
  *   - energy.elec_month_hour  (12x24 kWh matrix, for TOU pricing)
- *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg}
+ *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg, hp_ghg_kg, backup_ghg_kg}
  *   - hourly.{base_energy_kWh, hp_elec_kWh, backup_energy_kWh}
  *     (purchased-energy series, for the by-temperature charts)
  */
@@ -1652,7 +1656,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     var h_ef = new Array(N).fill(0),
       h_load = new Array(N).fill(0),
       h_base_ghg = new Array(N).fill(0),
-      h_proj_ghg = new Array(N).fill(0);
+      h_proj_ghg = new Array(N).fill(0),
+      // proj_ghg_kg split by source -- lets the UI show the heat-pump and
+      // backup slices separately (e.g. the "weighted by hours" emissions
+      // chart) without re-deriving grid EF x electricity in the DOM layer.
+      // Sum of the two always equals proj_ghg_kg for that hour.
+      h_hp_ghg = new Array(N).fill(0),
+      h_bk_ghg = new Array(N).fill(0);
     // hourly PURCHASED energy (kWh input, not heat delivered): the base system's
     // fuel-or-electricity draw, the heat pump's electricity, and the backup's
     // fuel-or-electricity draw -- lets the UI aggregate energy by any key
@@ -1739,6 +1749,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
         m_proj_elecghg[mi] += hpGhg;
         h_proj_ghg[i] += hpGhg;
+        h_hp_ghg[i] += hpGhg;
         hpDelivered += hpHeat;
         hpRunHours++;
         if (perf.derated) deratedHours++;
@@ -1759,6 +1770,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
           m_proj_elecghg[mi] += bkGhg;
           h_proj_ghg[i] += bkGhg;
+          h_bk_ghg[i] += bkGhg;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
           m_bk_fuel[mi] += bkFuelIn;
@@ -1766,6 +1778,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
           m_proj_comb[mi] += bkCombGhg;
           h_proj_ghg[i] += bkCombGhg;
+          h_bk_ghg[i] += bkCombGhg;
           if (backup.type === "gas") {
             // See base-case note above: propane leak adder omitted, not
             // reused from gas's density/energy constants.
@@ -1880,6 +1893,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         load_kW: h_load,
         base_ghg_kg: h_base_ghg,
         proj_ghg_kg: h_proj_ghg,
+        hp_ghg_kg: h_hp_ghg,
+        backup_ghg_kg: h_bk_ghg,
         base_energy_kWh: h_base_in,
         hp_elec_kWh: h_hp_elec,
         backup_energy_kWh: h_bk_in,
@@ -2505,7 +2520,7 @@ const state={
   includeUpstream:true, methane:UPSTREAM_METHANE_PCT, lineloss:LINELOSS_PCT_BY_PROV.on, // default city is Ottawa
   plan:null, // null = city's default electricity plan
   weatherView:'temp', // weather-card chart: 'temp' histogram or 'hourly' 8760-hour line
-  loadView:'plain', equipView:'plain', gridView:'plain', energyView:'plain', emisView:'plain', costView:'plain', // step ②③④⑤⑥⑦ charts: 'plain' temp curve, 'freq' weighted by hours, or 'hourly' 8760-hour trace
+  loadView:'plain', equipView:'plain', gridView:'plain', energyView:'plain', emisView:'plain', costView:'byhour', // step ②③④⑤⑥⑦ charts: 'plain' temp curve, 'freq' weighted by hours, 'byhour' (cost only) or 'hourly' 8760-hour trace
   // "My own data" tier: user-entered (outdoor °C, capacity Btu/h, COP) points,
   // colder to warmer. Starter values are a plausible mid-tier shape, not a
   // recommendation -- see buildCustomCell().
@@ -2748,9 +2763,18 @@ function buildInputs(){
   document.querySelectorAll('#upstream-seg button').forEach(b=>b.classList.toggle('active',(b.dataset.val==='yes')===state.includeUpstream));
   updateRefrigGwpHint();
 }
+const REFRIG_LABEL={r410a:'R-410A',r32:'R-32',r454b:'R-454B',r290:'R-290 propane'};
+// GWP moved onto the option labels themselves (rather than a separate hint
+// line below the dropdown) so it's visible without spending extra vertical
+// space -- and re-render on every horizon flip since the number it shows
+// depends on the 100-yr/20-yr toggle.
 function updateRefrigGwpHint(){
-  const gwp=refrigGWP(state.refrig,state.gwpHorizon);
-  $('refrig-gwp-hint').textContent='GWP'+state.gwpHorizon+' = '+(gwp<1?gwp:Math.round(gwp).toLocaleString());
+  const sel=$('in-refrig'),horizon=state.gwpHorizon;
+  Array.from(sel.options).forEach(opt=>{
+    const gwp=refrigGWP(opt.value,horizon);
+    const gwpTxt=gwp<1?gwp:Math.round(gwp).toLocaleString();
+    opt.textContent=`${REFRIG_LABEL[opt.value]} — GWP${horizon} ${gwpTxt}`;
+  });
 }
 function fmtSigned(n){return (n<0?'−':'')+Math.abs(n);}
 // The below-lockout behaviour is now a fixed hard-stop assumption by tier
@@ -3147,17 +3171,12 @@ function render(res,opts){
   // of the space saving; each card's own label still says what it is.
   $('stats').innerHTML=`<div class="stats-grid">${stats.map(s=>`<div class="stat-card"${s.id?` id="${s.id}"`:''}><div class="stat-label">${statLabelHTML(s.label,s.tip)}</div><div class="stat-value ${s.cls}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`).join('')}</div>`;
 
-  // ---- one-line synthesis (energy + carbon + cost); cost clause filled by renderCost ----
+  // ---- verdict subtitle (home context + energy + cost); the carbon story is
+  // already the headline above, so this line covers what that headline
+  // doesn't: which home/city this is, and the energy side of the trade.
+  // Cost clause filled in afterwards by setSummaryCost(), once rates load.
   const energyClause=`uses <b>${Math.abs(Math.round(ePct))}% ${ePct>=0?'less':'more'} energy</b>`;
-  let carbonClause;
-  if(nearZeroBase) carbonClause=`barely changes carbon (${state.city}'s grid is already near-zero)`;
-  else if(pct>=2) carbonClause=`cuts carbon <b>${Math.round(pct)}%</b>`;
-  else if(pct<=-2) carbonClause=`raises carbon <b>${Math.abs(Math.round(pct))}%</b> on the ${basisAdj(state.efBasis)} grid`;
-  else carbonClause=`barely changes carbon`;
-  // "but" when the energy and carbon stories diverge (energy improves, carbon
-  // doesn't), else "and". nearZeroBase is treated as carbon-not-improving.
-  const conj=(ePct>=0&&(nearZeroBase||pct<=-2))?'but':'and';
-  $('summary').innerHTML=`<span class="lede-eyebrow">The short version</span>A <b>${bucketShort()}</b> heat pump in a ${fmt1(state.designLoad)}-kW design-load home in ${state.city} ${energyClause} ${conj} ${carbonClause}<span id="summary-cost">.</span>`;
+  $('verdict-sub').innerHTML=`A ${fmt1(state.designLoad)}-kW design-load home in ${state.city} ${energyClause}<span id="summary-cost">.</span>`;
 
   renderWeatherChart();
 
@@ -3287,6 +3306,42 @@ function binByTemp(temps,vals,Wb){
   for(let i=0;i<temps.length;i++){let b=Math.floor((temps[i]-lo)/Wb);b=Math.max(0,Math.min(n-1,b));sum[b]+=vals?vals[i]:0;cnt[b]++;}
   const out=[];for(let b=0;b<n;b++){const c=cnt[b];out.push({T:lo+b*Wb+Wb/2,cnt:c,sum:sum[b],mean:c?sum[b]/c:null});}
   return out;
+}
+// Sum + mean of an hourly series (length N, chronological) by hour-of-day
+// (0-23), folding all ~365 occurrences of each hour together. Used for the
+// cost-by-hour-of-day chart, where TOU/ULO pricing makes hour-of-day the
+// relevant axis -- not outdoor temperature.
+function binByHour(vals){
+  const sum=new Array(24).fill(0), cnt=new Array(24).fill(0);
+  for(let i=0;i<vals.length;i++){const h=i%24;sum[h]+=vals[i];cnt[h]++;}
+  const out=[];for(let h=0;h<24;h++)out.push({h,cnt:cnt[h],sum:sum[h],mean:cnt[h]?sum[h]/cnt[h]:null});
+  return out;
+}
+const HOUR_OF_DAY_LABELS=['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
+function attachHourOfDayHover(cfg){
+  const svg=$(cfg.svgId), tip=$(cfg.tipId), over=$(cfg.overId);
+  if(!svg||!tip||!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect(),scale=cfg.W/pt.width;
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    let h=Math.round((cx*scale-cfg.m.l)/cfg.pW*23);
+    h=Math.max(0,Math.min(23,h));
+    const rows=[]; let topY=null;
+    cfg.series.forEach(s=>{
+      const v=s.get(h); if(v==null)return;
+      rows.push(`<span class="kc-tip-row"><span class="kc-tip-dot" style="background:${s.color}"></span><b>${s.label}:</b> ${s.fmt?s.fmt(v):v}</span>`);
+      if(s.y){const yy=s.y(v); if(topY==null||yy<topY)topY=yy;}
+    });
+    if(!rows.length)return;
+    tip.style.left=(cfg.x(h)/scale)+'px';
+    tip.style.top=((topY!=null?topY:cfg.m.t)/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${HOUR_OF_DAY_LABELS[h]}</b>${rows.join('')}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
 }
 // Temperature (°C) below which a given fraction of the annual heating ENERGY is
 // delivered — the load-weighted percentile the user asked for ("50% below X").
@@ -3705,7 +3760,7 @@ function renderCopChartTemp(svg,C,opts){
   C.T.forEach((t,i)=>{ if(C.cop[i]==null)return; (t>=onCutoff?solid:dashed).push([t,C.cop[i]]); });
   if(C.isFuel&&solid.length&&dashed.length){
     const bi=C.T.findIndex(t=>Math.abs(t-onCutoff)<0.26);
-    if(bi>=0&&C.cop[bi]!=null)dashed.unshift([onCutoff,C.cop[bi]]);
+    if(bi>=0&&C.cop[bi]!=null)dashed.push([onCutoff,C.cop[bi]]);
   }
   s.v+=polyline(solid,x,y,green,2.3);
   if(dashed.length)s.v+=`<polyline points="${dashed.map(p=>x(p[0])+','+y(p[1])).join(' ')}" fill="none" stroke="${green}" stroke-width="2" stroke-dasharray="5 4" opacity="0.55"/>`;
@@ -3761,7 +3816,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     C.T.forEach((t,i)=>{ if(hpIn[i]==null)return; (t>=onCutoff?solid:dashed).push([t,hpIn[i]]); });
     if(C.isFuel&&solid.length&&dashed.length){
       const bi=C.T.findIndex(t=>Math.abs(t-onCutoff)<0.26);
-      if(bi>=0&&hpIn[bi]!=null)dashed.unshift([onCutoff,hpIn[bi]]);
+      if(bi>=0&&hpIn[bi]!=null)dashed.push([onCutoff,hpIn[bi]]);
     }
     s.v+=polyline(solid,x,yL,green,2.3);
     if(dashed.length)s.v+=`<polyline points="${dashed.map(p=>x(p[0])+','+yL(p[1])).join(' ')}" fill="none" stroke="${green}" stroke-width="2" stroke-dasharray="5 4" opacity="0.55"/>`;
@@ -4142,11 +4197,14 @@ function renderEmisChartTemp(svg,temps,H,weighted){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const binsBase=binByTemp(temps,H.base_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsProj=binByTemp(temps,H.proj_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
+  const hasBackup=H.backup_ghg_kg.some(v=>v>0);
+  const binsHp=binByTemp(temps,H.hp_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
+  const binsBk=binByTemp(temps,H.backup_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
   const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
-  const red=css('--red'),green=css('--green'),light=css('--light'),muted=css('--muted');
+  const red=css('--red'),green=css('--green'),backup=css('--amber'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt1(v)}</text>`;});
@@ -4154,7 +4212,15 @@ function renderEmisChartTemp(svg,temps,H,weighted){
   stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
   if(weighted){
     const bw=pW/(Tmax-Tmin)-1;
-    binsProj.forEach(p=>{if(p.sum>0)s.v+=`<rect x="${x(p.T)-bw/2}" y="${y(p.sum)}" width="${bw}" height="${m.t+pH-y(p.sum)}" fill="${green}" opacity="0.8"/>`;});
+    // Heat-pump scenario bars stack the pump's own electricity emissions
+    // (green) under the backup's (amber), same convention as the energy
+    // chart's weighted view -- so the split shows up here too, not just a
+    // single undifferentiated bar.
+    binsHp.forEach((b,i)=>{
+      let y0=y(0);
+      if(b.sum>0){s.v+=`<rect x="${x(b.T)-bw/2}" y="${y(b.sum)}" width="${bw}" height="${y0-y(b.sum)}" fill="${green}" opacity="0.8"/>`;y0=y(b.sum);}
+      if(hasBackup&&binsBk[i]&&binsBk[i].sum>0){const top=y(b.sum+binsBk[i].sum);s.v+=`<rect x="${x(b.T)-bw/2}" y="${top}" width="${bw}" height="${y0-top}" fill="${backup}" opacity="0.8"/>`;}
+    });
     const baseLine=binsBase.filter(b=>b.cnt>0).map(b=>[b.T,b.sum]);
     s.v+=polyline(baseLine,x,y,red,2.4);
     baseLine.forEach(([t,v])=>s.v+=`<circle cx="${x(t)}" cy="${y(v)}" r="2.2" fill="${red}"/>`);
@@ -4167,13 +4233,18 @@ function renderEmisChartTemp(svg,temps,H,weighted){
   svg.innerHTML=s.v;
   const findBin=(bins,t)=>bins.reduce((a,c)=>Math.abs(c.T-t)<Math.abs(a.T-t)?c:a,bins[0]);
   const unit=weighted?' kg/yr':' kg/hr';
-  attachTempHover({svgId:'em-chart',tipId:'em-tip',overId:'em-over',W,m,pW,Tmin,Tmax,x,series:[
+  attachTempHover({svgId:'em-chart',tipId:'em-tip',overId:'em-over',W,m,pW,Tmin,Tmax,x,series:weighted?[
+    {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsBase,t);return b?b[field]:null;}},
+    {label:'Heat pump',color:green,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsHp,t);return b?b[field]:null;}},
+    ...(hasBackup?[{label:'Backup',color:backup,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsBk,t);return b?b[field]:null;}}]:[]),
+  ]:[
     {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsBase,t);return b?b[field]:null;}},
     {label:'Heat pump',color:green,y:v=>y(Math.max(v,0)),fmt:v=>fmt1(v)+unit,get:t=>{const b=findBin(binsProj,t);return b?b[field]:null;}},
   ]});
   $('em-legend').innerHTML=[
     `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
     `<span class="kc-leg"><span class="kc-swatch${weighted?' fill':''}" style="${weighted?'background':'border-color'}:${green}"></span>Heat pump</span>`,
+    ...(weighted&&hasBackup?[`<span class="kc-leg"><span class="kc-swatch fill" style="background:${backup}"></span>Backup</span>`]:[]),
   ].join('');
   $('em-note').innerHTML=weighted
     ?`The green bars are the actual kg CO₂e emitted that year while it was that outdoor temperature; the red line is the same for today's heating — the full-year totals above, broken down by temperature instead of summed into one number.`
@@ -4823,7 +4894,8 @@ function renderCost(res){
     const view=state.costView;
     if(view==='hourly'){ renderCostChartHourly(costSvg,series,false); }
     else if(view==='daily'){ renderCostChartHourly(costSvg,series,true); }
-    else { renderCostChartTemp(costSvg,stepTemps(),series,view==='freq'); }
+    else if(view==='freq'){ renderCostChartTemp(costSvg,stepTemps(),series,true); }
+    else { renderCostChartByHour(costSvg,series); }
   } else if($('cost-chart-card')) {
     $('cost-chart-card').style.display='none';
   }
@@ -4855,9 +4927,53 @@ function buildHourlyCostSeries(res,elec,gas,oil,planKey){
   }
   return {baseCost,hpCost,bkCost,projCost};
 }
-// Cost vs temperature: 'plain' = average $/hr at each temp; 'freq' = actual $
-// attributable to each 1°C bin over the year (already hours-weighted, same as
-// the emissions chart — summing per-hour $ over a bin's hours is load × hours).
+// Cost by hour of day: total $ across the whole year attributable to each of
+// the 24 hours, now vs heat pump (electricity + backup stacked). Outdoor
+// temperature barely explains electricity cost once a time-of-use or
+// ultra-low-overnight plan is in play -- the hour of day the load falls in
+// does, which is what this view (default for the cost card) shows instead.
+function renderCostChartByHour(svg,series){
+  const hasBackup=series.bkCost.some(v=>v>0);
+  const binsBase=binByHour(series.baseCost);
+  const binsHp=binByHour(series.hpCost);
+  const binsBk=binByHour(series.bkCost);
+  const W=740,Hh=320,m={l:56,r:22,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const maxV=Math.max(0.01,...binsBase.map(b=>b.sum),...binsHp.map((b,i)=>b.sum+(hasBackup?binsBk[i].sum:0)))*1.15;
+  const x=h=>m.l+(h/23)*pW, y=v=>m.t+pH-(v/maxV)*pH;
+  const red=css('--red'),green=css('--green'),backup=css('--amber'),light=css('--light'),muted=css('--muted');
+  const s={v:''};
+  niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt$(v)}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">$ / year, summed across every day at that hour</text>`;
+  s.v+=`<line x1="${m.l}" y1="${m.t+pH}" x2="${W-m.r}" y2="${m.t+pH}" stroke="${css('--border')}" stroke-width="1"/>`;
+  for(let h=0;h<24;h+=2)s.v+=`<text x="${x(h)}" y="${m.t+pH+18}" text-anchor="middle" font-size="10.5" fill="${light}">${HOUR_OF_DAY_LABELS[h].replace('am',' am').replace('pm',' pm')}</text>`;
+  const bw=pW/24-1;
+  binsHp.forEach((b,i)=>{
+    let y0=y(0);
+    if(b.sum>0){s.v+=`<rect x="${x(b.h)-bw/2}" y="${y(b.sum)}" width="${bw}" height="${y0-y(b.sum)}" fill="${green}" opacity="0.85"/>`;y0=y(b.sum);}
+    const bk=binsBk[i]; if(hasBackup&&bk.sum>0){const top=y(b.sum+bk.sum);s.v+=`<rect x="${x(b.h)-bw/2}" y="${top}" width="${bw}" height="${y0-top}" fill="${backup}" opacity="0.85"/>`;}
+  });
+  const baseLine=binsBase.map(b=>[b.h,b.sum]);
+  s.v+=polyline(baseLine,x,y,red,2.4);
+  baseLine.forEach(([h,v])=>s.v+=`<circle cx="${x(h)}" cy="${y(v)}" r="2.6" fill="${red}"/>`);
+  s.v+=`<rect id="cost-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
+  svg.innerHTML=s.v;
+  attachHourOfDayHover({svgId:'cost-chart',tipId:'cost-tip',overId:'cost-over',W,m,pW,x,series:[
+    {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsBase[h].sum},
+    {label:'Heat pump electricity',color:green,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsHp[h].sum},
+    ...(hasBackup?[{label:`Backup — ${FUEL_LABEL[state.backup]}`,color:backup,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsBk[h].sum}]:[]),
+  ]});
+  $('cost-chart-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
+    `<span class="kc-leg"><span class="kc-swatch fill" style="background:${green}"></span>Heat pump electricity</span>`,
+    hasBackup?`<span class="kc-leg"><span class="kc-swatch fill" style="background:${backup}"></span>Backup — ${FUEL_LABEL[state.backup]}</span>`:'',
+  ].join('');
+  $('cost-chart-note').innerHTML=`Every hour of the weather year folded into its hour-of-day (all ~365 midnights together, all ~365 5pm's together, etc.), then summed — so a plan that prices 5–8pm higher shows up as a taller bar there, whatever the temperature happened to be each time. Volumetric energy charges only, no fixed monthly service charges.`;
+}
+// Cost vs temperature: 'freq' = actual $ attributable to each 1°C bin over
+// the year (hours-weighted, same as the emissions chart — summing per-hour $
+// over a bin's hours is load × hours).
 function renderCostChartTemp(svg,temps,series,weighted){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const hasBackup=series.bkCost.some(v=>v>0);
@@ -5036,7 +5152,7 @@ function renderTouChart(onJson){
   const tou=on.plans.tou, ulo=on.plans.ulo;
   const HOUR_LABELS=['12am','1','2','3','4','5','6','7','8','9','10','11am','12pm','1','2','3','4','5','6','7','8','9','10','11pm'];
   const datasets=[
-    {label:'Time-of-use, winter (Nov–Apr)',data:hourlyPrices(tou,1),borderColor:css('--navy'),backgroundColor:css('--navy'),borderWidth:2.2,stepped:true,pointRadius:0},
+    {label:'Time-of-use, winter (Nov–Apr)',data:hourlyPrices(tou,1),borderColor:css('--purple'),backgroundColor:css('--purple'),borderWidth:2.2,stepped:true,pointRadius:0},
     {label:'Time-of-use, summer (May–Oct)',data:hourlyPrices(tou,7),borderColor:css('--blue'),backgroundColor:css('--blue'),borderWidth:2.2,stepped:true,pointRadius:0,borderDash:[5,4]},
     {label:'Ultra-low overnight (no seasonal schedule)',data:hourlyPrices(ulo,1),borderColor:css('--green'),backgroundColor:css('--green'),borderWidth:2.2,stepped:true,pointRadius:0},
   ];
