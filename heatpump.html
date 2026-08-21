@@ -838,60 +838,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
-    <!-- ═══ Real homes explorer (proof of concept) ═══ -->
-    <section class="out-section" id="section-housetypes">
-      <details class="out-collapsible">
-        <summary class="out-section-title">What real homes in <span id="ht-city-name"></span> look like</summary>
-        <p class="out-section-intro">Every ERS-audited home in <span id="ht-city-name2"></span>, before any retrofit — filter by house type and see how load varies with outdoor temperature for the worst, best and typical homes in that filter, real audited homes. Proof of concept.</p>
-        <div class="card">
-          <div class="card-title-row"><span class="card-title">Filter homes</span><span class="card-sub" id="ht-count"></span></div>
-          <div class="ht-filters">
-            <select id="ht-type"><option value="">All types</option></select>
-            <select id="ht-storeys"><option value="">All storeys</option></select>
-            <select id="ht-vintage"><option value="">All vintages</option></select>
-            <select id="ht-size">
-              <option value="">All sizes</option>
-              <option value="0-100">&lt;100 m²</option>
-              <option value="100-150">100–150 m²</option>
-              <option value="150-200">150–200 m²</option>
-              <option value="200-250">200–250 m²</option>
-              <option value="250-300">250–300 m²</option>
-              <option value="300-99999">300 m²+</option>
-            </select>
-          </div>
-          <div id="ht-body"></div>
-          <div class="note">Peak = pre-retrofit design heat loss (kW, EGHDESHTLOSS). Annual heat delivered = pre-retrofit heating energy consumed × the system's own seasonal efficiency (kWh thermal, EGHFURNACEAEC × EGHFURSEASEFF/100) — a straight consumed-energy reading would understate any home whose pre-retrofit system already had a COP or AFUE away from 1 (an existing heat pump, in particular). Balance point = the no-internal/solar-gains implied temperature above which the home needs no heat — see <a href="#" id="ht-method-link">methodology</a>. "Worst"/"Best" are the 99th/1st percentile of a combined severity score (the lower of each home's peak-load and annual-energy percentile within the filtered set), not the literal extreme — a single mis-entered ERS record shouldn't stretch the displayed range. "Average" is the arithmetic mean, not a real home.</div>
-        </div>
-      </details>
-    </section>
-
-    <!-- ═══ Methane leakage map ═══ -->
-    <section class="out-section" id="section-methane-map">
-      <details class="out-collapsible" id="methane-map-details">
-        <summary class="out-section-title">Where upstream methane comes from</summary>
-        <p class="out-section-intro">The "Upstream losses" toggle above adds a methane-equivalent leak rate onto gas heating's emissions. That rate isn't abstract — it comes from real fugitive emissions across the oil and gas sector. This map shows where, using the most recent inventory of its kind. <button type="button" class="info-btn" aria-label="What is this map showing?" data-info="Gridded fugitive methane emissions from oil, gas and coal fuel exploitation across Canada (NASA's Global Fuel Exploitation Inventory, 2016) -- wells, pipelines, compressor stations, storage, processing and refineries all bundled together, not a pipeline-only layer, and not a live or recent measurement." data-method="m-methane-map">?</button></p>
-        <div class="card">
-          <div class="card-title-row"><span class="card-title">Fugitive methane emissions, 2016</span><span class="card-sub" id="methane-map-count"></span></div>
-          <div class="methane-map-controls">
-            <div class="seg" id="methane-map-seg" role="group" aria-label="Choose emission source">
-              <button type="button" data-val="total">All sources</button>
-              <button type="button" data-val="gas" class="active">Gas</button>
-              <button type="button" data-val="oil">Oil</button>
-              <button type="button" data-val="coal">Coal</button>
-            </div>
-            <label class="methane-map-bg-toggle"><input type="checkbox" id="methane-map-hide-bg" checked>Hide background (shared regional rate)</label>
-          </div>
-          <div class="methane-map-canvas-wrap">
-            <canvas id="methane-map-canvas" role="img" aria-label="Map of fugitive methane emission intensity across Canada, 2016, by grid cell"></canvas>
-            <svg id="methane-map-outline" class="methane-map-outline-svg" preserveAspectRatio="none" aria-hidden="true"></svg>
-            <div id="methane-map-tip" class="methane-map-tip" style="display:none"></div>
-          </div>
-          <div class="methane-legend" id="methane-map-legend"></div>
-          <div class="note">2016 is the most recent year this inventory covers — there is no newer equivalent at this scope, which is why the rest of this tool doesn't rely on it for a live number. Native 0.1° grid (~110m N–S per cell), cropped to a Canada land-boundary polygon (the thin outline on the map) — the source grid extends into the US along the border, dropped here so nothing south of the line shows up. Colour = emission density (Mg CH₄/yr/km², log scale) — darker means more methane leaking per km² of that cell, not more total gas produced there. Map is drawn with an Albers equal-area conic projection (the standard for Canadian thematic maps) rather than a flat rectangle — chosen specifically because it's <i>equal-area</i>: a patch that looks twice as big on screen really is twice the land area, which matters when colour encodes emissions per km². <b>Gray cells</b> are flagged "background": GFEI spreads one shared modelled rate across an area it can't spatially resolve (in Canada, 78% of nonzero <i>gas</i> cells, vs. ~1% of oil cells) — those are a regional average, not a location-specific estimate; hidden by default above, toggle back on to see them. Checked directly: the shared-rate blocks line up almost exactly with <b>provincial borders</b> (the top repeated gas values are ≥99% contained within one province each) — GFEI inherits this from Canada's own emissions reporting, which is provincial, not from the map's projection. Hiding background removes these province-shaped blocks along with every other shared-rate cell. This bundles all oil/gas/coal fugitive sources (wells, pipelines, compressors, storage, processing, refineries) together — it is <b>not</b> a pipeline-only layer. See <a href="#" id="methane-map-method-link">methodology</a>.</div>
-        </div>
-      </details>
-    </section>
-
   </div>
 </main>
 
@@ -1061,9 +1007,28 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </ul>
 
       <details class="method-sub">
-        <summary>Real homes explorer — per-house heat load and balance point</summary>
+        <summary>Real homes explorer — what real homes in <span id="ht-city-name"></span> look like</summary>
         <div class="method-sub-body">
-          <p>The "real homes" section plots every ERS-audited home in the selected city, pre-retrofit condition — up to ~290,000 homes per city, not a sample.</p>
+          <p class="out-section-intro">Every ERS-audited home in <span id="ht-city-name2"></span>, before any retrofit — filter by house type and see how load varies with outdoor temperature for the worst, best and typical homes in that filter, real audited homes. Proof of concept.</p>
+          <div class="card">
+            <div class="card-title-row"><span class="card-title">Filter homes</span><span class="card-sub" id="ht-count"></span></div>
+            <div class="ht-filters">
+              <select id="ht-type"><option value="">All types</option></select>
+              <select id="ht-storeys"><option value="">All storeys</option></select>
+              <select id="ht-vintage"><option value="">All vintages</option></select>
+              <select id="ht-size">
+                <option value="">All sizes</option>
+                <option value="0-100">&lt;100 m²</option>
+                <option value="100-150">100–150 m²</option>
+                <option value="150-200">150–200 m²</option>
+                <option value="200-250">200–250 m²</option>
+                <option value="250-300">250–300 m²</option>
+                <option value="300-99999">300 m²+</option>
+              </select>
+            </div>
+            <div id="ht-body"></div>
+          </div>
+          <p>The "real homes" section above plots every ERS-audited home in the selected city, pre-retrofit condition — up to ~290,000 homes per city, not a sample.</p>
           <table class="ht-table">
             <tr><th>Quantity</th><th>ERS field</th><th>Notes</th></tr>
             <tr><td>Peak load</td><td><code>EGHDESHTLOSS</code></td><td>Design heat loss at the city's design temperature, taken directly from the audit.</td></tr>
@@ -1206,15 +1171,38 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <li><b>Upstream methane:</b> 2.14% of gas throughput, weighted at the 20-year methane GWP (85), calibrated so <code>leak% × GWP</code> reproduces a +65% carbon-intensity increase over combustion-only for a single home's gas-to-heat-pump project. <i>Source: <a href="https://taf.ca/" target="_blank" rel="noopener">The Atmospheric Fund</a>'s Fugitive Methane guideline (May 2022), "no pipeline infrastructure change" scenario.</i> TAF attributes that +65% to fugitive methane leakage (+10 points) and non-methane extraction process emissions like flaring and venting (+55 points), which this engine represents as one bundled term rather than two.</li>
       </ul>
 
-      <h5 id="m-methane-map">Where upstream methane comes from — the map</h5>
-      <p>A Canada map of fugitive oil/gas/coal methane, giving the upstream-methane term above a geographic reference.</p>
-      <ul>
-        <li><i>Source: NASA GES DISC's Global Fuel Exploitation Inventory (GFEI) CH₄, v1, 2016</i> (Scarpelli et al. 2020, <a href="https://doi.org/10.5194/essd-12-563-2020" target="_blank" rel="noopener">essd-12-563-2020</a>; DOI <a href="https://doi.org/10.5067/Q28GFYJYFZ7H" target="_blank" rel="noopener">10.5067/Q28GFYJYFZ7H</a>).</li>
-        <li>A global 0.1°×0.1° grid of fugitive methane emissions (fuel exploitation, not combustion), spatially allocated to mines, wells, pipelines, compressor stations, storage, processing plants and refineries — all summed into one number per fuel type. The map does not isolate pipeline losses specifically.</li>
-        <li>2016 is the newest vintage available at this scope. Treat the map as illustrative of where fugitive methane clusters, not a current-day number for any one facility.</li>
-        <li>Colour scale is log-scaled per selected layer (all-sources / gas / oil / coal); emission density is heavily right-skewed.</li>
-      </ul>
-      <div class="caveats">A share of nonzero grid cells share an identical value with neighbouring cells — GFEI spreads a region's reported total across cells it can't independently resolve, using one shared modelled rate. Those cells are flagged as "background" (flat colour) and can be hidden, separate from "resolved" cells with an independently estimated value. That "region" is a Canadian province: checked by intersecting each shared value's cells against province boundaries (the same <code>geo_json/*.json</code> polygons used elsewhere on this site) — the top repeated gas values are ≥99% contained within a single province (e.g. 10,584/10,620 cells at one shared value fall in NT, 4,499/4,501 at another in SK). The province-shaped edges visible on the map are therefore GFEI's own per-province background allocation, not a projection artifact; hiding background removes them.</div>
+      <details class="method-sub" id="methane-map-details">
+        <summary id="m-methane-map">Where upstream methane comes from — the map</summary>
+        <div class="method-sub-body">
+          <p>The "Upstream losses" toggle above adds a methane-equivalent leak rate onto gas heating's emissions. That rate isn't abstract — it comes from real fugitive emissions across the oil and gas sector. This map shows where, using the most recent inventory of its kind. <button type="button" class="info-btn" aria-label="What is this map showing?" data-info="Gridded fugitive methane emissions from oil, gas and coal fuel exploitation across Canada (NASA's Global Fuel Exploitation Inventory, 2016) -- wells, pipelines, compressor stations, storage, processing and refineries all bundled together, not a pipeline-only layer, and not a live or recent measurement.">?</button></p>
+          <div class="card">
+            <div class="card-title-row"><span class="card-title">Fugitive methane emissions, 2016</span><span class="card-sub" id="methane-map-count"></span></div>
+            <div class="methane-map-controls">
+              <div class="seg" id="methane-map-seg" role="group" aria-label="Choose emission source">
+                <button type="button" data-val="total">All sources</button>
+                <button type="button" data-val="gas" class="active">Gas</button>
+                <button type="button" data-val="oil">Oil</button>
+                <button type="button" data-val="coal">Coal</button>
+              </div>
+              <label class="methane-map-bg-toggle"><input type="checkbox" id="methane-map-hide-bg" checked>Hide background (shared regional rate)</label>
+            </div>
+            <div class="methane-map-canvas-wrap">
+              <canvas id="methane-map-canvas" role="img" aria-label="Map of fugitive methane emission intensity across Canada, 2016, by grid cell"></canvas>
+              <svg id="methane-map-outline" class="methane-map-outline-svg" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <div id="methane-map-tip" class="methane-map-tip" style="display:none"></div>
+            </div>
+            <div class="methane-legend" id="methane-map-legend"></div>
+          </div>
+          <p>A Canada map of fugitive oil/gas/coal methane, giving the upstream-methane term above a geographic reference.</p>
+          <ul>
+            <li><i>Source: NASA GES DISC's Global Fuel Exploitation Inventory (GFEI) CH₄, v1, 2016</i> (Scarpelli et al. 2020, <a href="https://doi.org/10.5194/essd-12-563-2020" target="_blank" rel="noopener">essd-12-563-2020</a>; DOI <a href="https://doi.org/10.5067/Q28GFYJYFZ7H" target="_blank" rel="noopener">10.5067/Q28GFYJYFZ7H</a>).</li>
+            <li>A global 0.1°×0.1° grid of fugitive methane emissions (fuel exploitation, not combustion), spatially allocated to mines, wells, pipelines, compressor stations, storage, processing plants and refineries — all summed into one number per fuel type. The map does not isolate pipeline losses specifically. Native resolution is ~110m N–S per cell, cropped to a Canada land-boundary polygon (the source grid extends into the US along the border, dropped here).</li>
+            <li>2016 is the newest vintage available at this scope — there's no newer equivalent, which is why the rest of this tool doesn't rely on it for a live number. Treat the map as illustrative of where fugitive methane clusters, not a current-day number for any one facility.</li>
+            <li>Colour scale is log-scaled per selected layer (all-sources / gas / oil / coal); emission density is heavily right-skewed. Drawn with an Albers equal-area conic projection (the standard for Canadian thematic maps) rather than a flat rectangle — chosen because it's <i>equal-area</i>: a patch that looks twice as big on screen really is twice the land area, which matters when colour encodes emissions per km².</li>
+          </ul>
+          <div class="caveats">A share of nonzero grid cells share an identical value with neighbouring cells — GFEI spreads a region's reported total across cells it can't independently resolve, using one shared modelled rate (78% of nonzero <i>gas</i> cells in Canada, vs. ~1% of oil cells). Those cells are flagged as "background" (flat colour) and can be hidden, separate from "resolved" cells with an independently estimated value. That "region" is a Canadian province: checked by intersecting each shared value's cells against province boundaries (the same <code>geo_json/*.json</code> polygons used elsewhere on this site) — the top repeated gas values are ≥99% contained within a single province (e.g. 10,584/10,620 cells at one shared value fall in NT, 4,499/4,501 at another in SK). The province-shaped edges visible on the map are therefore GFEI's own per-province background allocation, not a projection artifact; hiding background removes them. This bundles all oil/gas/coal fugitive sources together — it is <b>not</b> a pipeline-only layer.</div>
+        </div>
+      </details>
 
       <h5>Comparison against published studies</h5>
       <table class="ht-table">
@@ -2668,8 +2656,6 @@ function buildInputs(){
   });
   $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();recompute();});
   ['ht-type','ht-storeys','ht-vintage','ht-size'].forEach(id=>$(id).addEventListener('change',renderHouseTypes));
-  $('ht-method-link').addEventListener('click',e=>openMethodology(e,'m-housetypes'));
-  $('methane-map-method-link').addEventListener('click',e=>openMethodology(e,'m-methane-map'));
   document.querySelectorAll('#methane-map-seg button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#methane-map-seg button').forEach(x=>x.classList.toggle('active',x===b));
     renderMethaneMap(b.dataset.val);
@@ -3305,16 +3291,6 @@ function binByTemp(temps,vals,Wb){
   const sum=new Array(n).fill(0), cnt=new Array(n).fill(0);
   for(let i=0;i<temps.length;i++){let b=Math.floor((temps[i]-lo)/Wb);b=Math.max(0,Math.min(n-1,b));sum[b]+=vals?vals[i]:0;cnt[b]++;}
   const out=[];for(let b=0;b<n;b++){const c=cnt[b];out.push({T:lo+b*Wb+Wb/2,cnt:c,sum:sum[b],mean:c?sum[b]/c:null});}
-  return out;
-}
-// Sum + mean of an hourly series (length N, chronological) by hour-of-day
-// (0-23), folding all ~365 occurrences of each hour together. Used for the
-// cost-by-hour-of-day chart, where TOU/ULO pricing makes hour-of-day the
-// relevant axis -- not outdoor temperature.
-function binByHour(vals){
-  const sum=new Array(24).fill(0), cnt=new Array(24).fill(0);
-  for(let i=0;i<vals.length;i++){const h=i%24;sum[h]+=vals[i];cnt[h]++;}
-  const out=[];for(let h=0;h<24;h++)out.push({h,cnt:cnt[h],sum:sum[h],mean:cnt[h]?sum[h]/cnt[h]:null});
   return out;
 }
 const HOUR_OF_DAY_LABELS=['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
@@ -4895,7 +4871,7 @@ function renderCost(res){
     if(view==='hourly'){ renderCostChartHourly(costSvg,series,false); }
     else if(view==='daily'){ renderCostChartHourly(costSvg,series,true); }
     else if(view==='freq'){ renderCostChartTemp(costSvg,stepTemps(),series,true); }
-    else { renderCostChartByHour(costSvg,series); }
+    else { renderCostChartByHour(costSvg,elec,planKey); }
   } else if($('cost-chart-card')) {
     $('cost-chart-card').style.display='none';
   }
@@ -4927,49 +4903,46 @@ function buildHourlyCostSeries(res,elec,gas,oil,planKey){
   }
   return {baseCost,hpCost,bkCost,projCost};
 }
-// Cost by hour of day: total $ across the whole year attributable to each of
-// the 24 hours, now vs heat pump (electricity + backup stacked). Outdoor
-// temperature barely explains electricity cost once a time-of-use or
-// ultra-low-overnight plan is in play -- the hour of day the load falls in
-// does, which is what this view (default for the cost card) shows instead.
-function renderCostChartByHour(svg,series){
-  const hasBackup=series.bkCost.some(v=>v>0);
-  const binsBase=binByHour(series.baseCost);
-  const binsHp=binByHour(series.hpCost);
-  const binsBk=binByHour(series.bkCost);
+// Cost by hour of day: the electricity plan's own $/kWh RATE at each hour --
+// not accumulated dollars. Same idea as the methodology's TOU/ULO rate chart,
+// but for whichever province/plan is actually selected here. Flat-rate
+// provinces (Alberta, Quebec) draw as one flat line; Ontario's time-of-use
+// and ultra-low-overnight plans vary by both hour and season, so two lines.
+function renderCostChartByHour(svg,elec,planKey){
+  const plan=elec.plans[planKey];
+  const rateAt=(m,h)=>planEnergyPrice(plan,m,h)+elec.volumetric_adders_cad_per_kwh;
+  const winter=[],summer=[];
+  for(let h=0;h<24;h++){winter.push(rateAt(0,h));summer.push(rateAt(6,h));}
+  const seasonal=winter.some((v,h)=>Math.abs(v-summer[h])>0.0005);
   const W=740,Hh=320,m={l:56,r:22,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
-  const maxV=Math.max(0.01,...binsBase.map(b=>b.sum),...binsHp.map((b,i)=>b.sum+(hasBackup?binsBk[i].sum:0)))*1.15;
+  const maxV=Math.max(0.01,...winter,...summer)*1.15;
   const x=h=>m.l+(h/23)*pW, y=v=>m.t+pH-(v/maxV)*pH;
-  const red=css('--red'),green=css('--green'),backup=css('--amber'),light=css('--light'),muted=css('--muted');
+  const purple=css('--purple'),blue=css('--blue'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
-    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt$(v)}</text>`;});
-  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">$ / year, summed across every day at that hour</text>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">$${v.toFixed(2)}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">$/kWh</text>`;
   s.v+=`<line x1="${m.l}" y1="${m.t+pH}" x2="${W-m.r}" y2="${m.t+pH}" stroke="${css('--border')}" stroke-width="1"/>`;
   for(let h=0;h<24;h+=2)s.v+=`<text x="${x(h)}" y="${m.t+pH+18}" text-anchor="middle" font-size="10.5" fill="${light}">${HOUR_OF_DAY_LABELS[h].replace('am',' am').replace('pm',' pm')}</text>`;
-  const bw=pW/24-1;
-  binsHp.forEach((b,i)=>{
-    let y0=y(0);
-    if(b.sum>0){s.v+=`<rect x="${x(b.h)-bw/2}" y="${y(b.sum)}" width="${bw}" height="${y0-y(b.sum)}" fill="${green}" opacity="0.85"/>`;y0=y(b.sum);}
-    const bk=binsBk[i]; if(hasBackup&&bk.sum>0){const top=y(b.sum+bk.sum);s.v+=`<rect x="${x(b.h)-bw/2}" y="${top}" width="${bw}" height="${y0-top}" fill="${backup}" opacity="0.85"/>`;}
-  });
-  const baseLine=binsBase.map(b=>[b.h,b.sum]);
-  s.v+=polyline(baseLine,x,y,red,2.4);
-  baseLine.forEach(([h,v])=>s.v+=`<circle cx="${x(h)}" cy="${y(v)}" r="2.6" fill="${red}"/>`);
+  s.v+=polyline(winter.map((v,h)=>[h,v]),x,y,purple,2.4);
+  winter.forEach((v,h)=>s.v+=`<circle cx="${x(h)}" cy="${y(v)}" r="2.4" fill="${purple}"/>`);
+  if(seasonal){
+    s.v+=polyline(summer.map((v,h)=>[h,v]),x,y,blue,2.2,'5 4');
+  }
   s.v+=`<rect id="cost-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
   svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
   svg.innerHTML=s.v;
   attachHourOfDayHover({svgId:'cost-chart',tipId:'cost-tip',overId:'cost-over',W,m,pW,x,series:[
-    {label:`Now — ${FUEL_LABEL[state.fuel]}`,color:red,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsBase[h].sum},
-    {label:'Heat pump electricity',color:green,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsHp[h].sum},
-    ...(hasBackup?[{label:`Backup — ${FUEL_LABEL[state.backup]}`,color:backup,y:v=>y(Math.max(v,0)),fmt:fmt$,get:h=>binsBk[h].sum}]:[]),
+    {label:seasonal?'Winter (Nov–Apr)':PLAN_LABEL[planKey],color:purple,y:v=>y(Math.max(v,0)),fmt:v=>'$'+v.toFixed(3)+'/kWh',get:h=>winter[h]},
+    ...(seasonal?[{label:'Summer (May–Oct)',color:blue,y:v=>y(Math.max(v,0)),fmt:v=>'$'+v.toFixed(3)+'/kWh',get:h=>summer[h]}]:[]),
   ]});
   $('cost-chart-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${red}"></span>Now — ${FUEL_LABEL[state.fuel]}</span>`,
-    `<span class="kc-leg"><span class="kc-swatch fill" style="background:${green}"></span>Heat pump electricity</span>`,
-    hasBackup?`<span class="kc-leg"><span class="kc-swatch fill" style="background:${backup}"></span>Backup — ${FUEL_LABEL[state.backup]}</span>`:'',
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${purple}"></span>${seasonal?'Winter (Nov–Apr)':PLAN_LABEL[planKey]}</span>`,
+    ...(seasonal?[`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${blue}"></span>Summer (May–Oct)</span>`]:[]),
   ].join('');
-  $('cost-chart-note').innerHTML=`Every hour of the weather year folded into its hour-of-day (all ~365 midnights together, all ~365 5pm's together, etc.), then summed — so a plan that prices 5–8pm higher shows up as a taller bar there, whatever the temperature happened to be each time. Volumetric energy charges only, no fixed monthly service charges.`;
+  $('cost-chart-note').innerHTML=seasonal
+    ?`${elec.utility}'s own ${PLAN_LABEL[planKey].toLowerCase()} $/kWh schedule — blended 5/7 weekday : 2/7 weekend, same convention the totals above use. This is the rate itself, not what this home spends; volumetric adders included, the fixed monthly service charge is not.`
+    :`${elec.utility}'s ${PLAN_LABEL[planKey].toLowerCase()} plan charges the same rate every hour — no time-of-day pricing to chart here. Volumetric adders included, the fixed monthly service charge is not.`;
 }
 // Cost vs temperature: 'freq' = actual $ attributable to each 1°C bin over
 // the year (hours-weighted, same as the emissions chart — summing per-hour $
