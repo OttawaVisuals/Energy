@@ -36,7 +36,7 @@
  * heatpump.html (the shipping copy). If you change one, re-sync the other.
  * Later additions beyond the original Phase 5 outputs, all additive:
  *   - energy.elec_month_hour  (12x24 kWh matrix, for TOU pricing)
- *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg}
+ *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg, hp_ghg_kg, backup_ghg_kg}
  *   - hourly.{base_energy_kWh, hp_elec_kWh, backup_energy_kWh}
  *     (purchased-energy series, for the by-temperature charts)
  */
@@ -341,7 +341,13 @@
     var h_ef = new Array(N).fill(0),
       h_load = new Array(N).fill(0),
       h_base_ghg = new Array(N).fill(0),
-      h_proj_ghg = new Array(N).fill(0);
+      h_proj_ghg = new Array(N).fill(0),
+      // proj_ghg_kg split by source -- lets the UI show the heat-pump and
+      // backup slices separately (e.g. the "weighted by hours" emissions
+      // chart) without re-deriving grid EF x electricity in the DOM layer.
+      // Sum of the two always equals proj_ghg_kg for that hour.
+      h_hp_ghg = new Array(N).fill(0),
+      h_bk_ghg = new Array(N).fill(0);
     // hourly PURCHASED energy (kWh input, not heat delivered): the base system's
     // fuel-or-electricity draw, the heat pump's electricity, and the backup's
     // fuel-or-electricity draw -- lets the UI aggregate energy by any key
@@ -430,6 +436,7 @@
         var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
         m_proj_elecghg[mi] += hpGhg;
         h_proj_ghg[i] += hpGhg;
+        h_hp_ghg[i] += hpGhg;
         hpDelivered += hpHeat;
         hpRunHours++;
         if (perf.derated) deratedHours++;
@@ -450,6 +457,7 @@
           var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
           m_proj_elecghg[mi] += bkGhg;
           h_proj_ghg[i] += bkGhg;
+          h_bk_ghg[i] += bkGhg;
         } else {
           var bkFuelIn = bkHeat / backup.efficiency;
           m_bk_fuel[mi] += bkFuelIn;
@@ -457,6 +465,7 @@
           var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
           m_proj_comb[mi] += bkCombGhg;
           h_proj_ghg[i] += bkCombGhg;
+          h_bk_ghg[i] += bkCombGhg;
           if (backup.type === "gas") {
             // See base-case note above: propane leak adder omitted, not
             // reused from gas's density/energy constants.
@@ -575,6 +584,8 @@
         load_kW: h_load,
         base_ghg_kg: h_base_ghg,
         proj_ghg_kg: h_proj_ghg,
+        hp_ghg_kg: h_hp_ghg,
+        backup_ghg_kg: h_bk_ghg,
         base_energy_kWh: h_base_in,
         hp_elec_kWh: h_hp_elec,
         backup_energy_kWh: h_bk_in,
