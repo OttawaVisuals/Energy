@@ -2156,7 +2156,7 @@ function renderHouseTypes(){
     const points=[
       {label:'Best (1st pct)',v:best,color:css('--green'),w:2},
       {label:'25th percentile',v:p25,color:css('--blue'),w:2},
-      {label:'Average',v:avg,color:css('--navy'),w:3,isAvg:true},
+      {label:'Average',v:avg,color:css('--ink'),w:3,isAvg:true},
       {label:'75th percentile',v:p75,color:css('--purple'),w:2},
       {label:'Worst (99th pct)',v:worst,color:css('--red'),w:2},
     ].map(p=>({...p,peak:p.isAvg?p.v.peak:p.v[HT_COL.PEAK],t0:p.isAvg?p.v.t0:p.v[HT_COL.T0]}));
@@ -3378,7 +3378,7 @@ function renderLoadChartTemp(svgT,C,medT){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const maxKW=Math.max(1,...C.load)*1.08;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, yL=v=>m.t+pH-(v/maxKW)*pH;
-  const navy=css('--navy'),light=css('--light'),muted=css('--muted');
+  const navy=css('--ink'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxKW,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${yL(v)}" x2="${W-m.r}" y2="${yL(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${yL(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
@@ -3402,7 +3402,7 @@ function renderLoadChartTemp(svgT,C,medT){
   attachTempHover({svgId:'ld-temp',tipId:'ld-tip',overId:'ld-over',W,m,pW,Tmin,Tmax,x,series:[
     {label:'Heat needed',color:navy,y:yL,fmt:v=>fmt1(v)+' kW',get:t=>{const i=Math.max(0,Math.min(C.T.length-1,Math.round((t-Tmin)/0.5)));return C.load[i];}},
   ]});
-  return `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy);border-top-width:3px"></span>Heat needed (kW)</span>`;
+  return `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--ink);border-top-width:3px"></span>Heat needed (kW)</span>`;
 }
 // Weighted by hours: load × hours-at-that-temperature, in 1 °C bins — the
 // actual annual kWh delivered while it was each temperature.
@@ -3413,7 +3413,7 @@ function renderLoadChartWeighted(svgT,temps,H){
   const maxV=Math.max(1,...bins.map(b=>b.sum))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const bw=pW/(Tmax-Tmin)-1;
-  const navy=css('--navy'),light=css('--light'),muted=css('--muted');
+  const navy=css('--ink'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
@@ -3435,7 +3435,7 @@ function renderLoadChartHourly(svgT,H,temps,daily){
   const W=920,Hh=423,m={l:52,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...series)*1.1;
   const x=i=>m.l+(i/(N-1))*pW, y=v=>m.t+pH-(v/maxV)*pH;
-  const navy=css('--navy'),light=css('--light'),muted=css('--muted');
+  const navy=css('--ink'),light=css('--light'),muted=css('--muted');
   const s={v:''};
   niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
@@ -3451,7 +3451,7 @@ function renderLoadChartHourly(svgT,H,temps,daily){
   ]};
   if(daily) attachDailyHover(hoverCfg); else attachHourlyHover(hoverCfg);
   const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
-  return `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy)"></span>Heat needed (kW), ${daily?`daily mean across ${yr}`:`every hour of ${yr}`}</span>`;
+  return `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--ink)"></span>Heat needed (kW), ${daily?`daily mean across ${yr}`:`every hour of ${yr}`}</span>`;
 }
 
 // ---- ③ Equipment: capacity + COP + heat delivered ---------------------------
@@ -4248,7 +4248,7 @@ let WX_MODEL=null;
 // coldest/mildest reference lines. Whichever one is selected is drawn bold
 // dashed in its own colour and called out in the legend; if the selection is
 // some other year entirely, it gets its own black bold-dashed line. ----
-const WX_BLACK='#000';
+
 function renderWeatherChartTemp(ctx){
   const {w,selId,selLabel,selSeries}=ctx;
   const svg=$('weatherchart');
@@ -4329,8 +4329,8 @@ function renderWeatherChartTemp(ctx){
   // selected is some other year entirely (not TMY/coldest/mildest) — its own black bold-dashed line
   if(!selMatchesRef){
     const selPath=polylineFrom(selCounts,tmin,x,y);
-    s+=`<path d="${selPath}" fill="none" stroke="${WX_BLACK}" stroke-width="6.5" opacity="0.12" stroke-linejoin="round"/>`;
-    s+=`<path d="${selPath}" fill="none" stroke="${WX_BLACK}" stroke-width="3" stroke-dasharray="7 4" stroke-linejoin="round"/>`;
+    s+=`<path d="${selPath}" fill="none" stroke="${css('--ink')}" stroke-width="6.5" opacity="0.12" stroke-linejoin="round"/>`;
+    s+=`<path d="${selPath}" fill="none" stroke="${css('--ink')}" stroke-width="3" stroke-dasharray="7 4" stroke-linejoin="round"/>`;
   }
   s+=`<rect id="wx-over" x="${m.l}" y="${m.t}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -4343,7 +4343,7 @@ function renderWeatherChartTemp(ctx){
     const sel=r.id===selId;
     leg.push(`<span class="kc-leg"><span class="kc-swatch${sel?' dash':''}" style="border-color:${r.color};${sel?'border-top-width:3px':''}"></span>${sel?`<b>${r.label} — selected</b>`:r.label}</span>`);
   });
-  if(!selMatchesRef) leg.push(`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${WX_BLACK};border-top-width:3px"></span><b>Selected (${selLabel})</b></span>`);
+  if(!selMatchesRef) leg.push(`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${css('--ink')};border-top-width:3px"></span><b>Selected (${selLabel})</b></span>`);
   $('weather-legend').innerHTML=leg.join('');
 
   const b2=weatherBand();
@@ -4392,7 +4392,7 @@ function renderWeatherChartHourly(ctx,daily){
   const design=w.meta.design_temp_computed_2p5_C, so=switchOffTemp();
   let lo=Math.min(design!=null?design:0,so,...series)-2, hi=Math.max(...series)+2;
   const x=i=>m.l+(i/(N-1))*plotW, y=v=>m.t+plotH-(v-lo)/(hi-lo)*plotH;
-  const muted=css('--muted'),light=css('--light'),navy=css('--navy'),amber2=css('--amber2');
+  const muted=css('--muted'),light=css('--light'),navy=css('--ink'),amber2=css('--amber2');
   let s='';
   niceTicksSigned(lo,hi,6).forEach(v=>{s+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
     s+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtSigned(Math.round(v))}</text>`;});
@@ -4425,7 +4425,7 @@ function renderWeatherChartHourly(ctx,daily){
   attachWeatherHoverHourly();
 
   $('weather-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--navy)"></span>Selected (${selLabel})</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:var(--ink)"></span>Selected (${selLabel})</span>`,
   ].join('');
   $('weather-note').innerHTML=daily
     ?`Every day of <b>${selLabel}</b>, averaged across its 24 hours, in order across the year.`
