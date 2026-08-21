@@ -1,7 +1,83 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-19** (**Heat Pump Explorer** — three result-affecting
+Updated **2026-08-21** (**Heat Pump Explorer** — four UI/methodology fixes
+from user testing. (1) **Month/week zoom** added to all 7 "Full year"
+charts (weather, load, equipment, energy, grid GHG, emissions, cost): a
+per-chart month dropdown (day-by-day view) and week dropdown (hour-by-hour
+view), independent per chart, built on a shared `sliceRange()` helper so
+axis ticks and hover tooltips report the real calendar date even when
+zoomed. (2) **Propane backup** added to the "Backup heat" dropdown — the
+simulation engine already supported it (90% AFUE) but it wasn't selectable;
+also fixed a latent `stepCurves().isFuel` bug that would have shown propane
+backup as if it were electric (no switch-over line/label) had it shipped
+without the check. Backup AFUE (gas 95% / oil 85% / propane 90%, fixed, not
+user-adjustable) documented in the methodology under "Energy purchased" for
+the first time. (3) **Two backup colors**: fossil-fuel backup (gas/oil/
+propane combustion) and electric-resistance backup now render in distinct
+colors (new `--backup-fossil` / `--backup-elec` tokens in
+`assets/site-theme.css`, themed for light/dark/colour-blind) instead of
+sharing one amber swatch, with the fuel name threaded through every legend
+("Backup — propane") instead of a bare "Backup". (4) **Upstream-methane
+hourly bug fixed**: the "Upstream losses" toggle's methane-equivalent adder
+was only ever added to the *annual* total (`m_base_ch4`/`m_proj_ch4`), never
+to the *hourly* emissions arrays (`h_base_ghg`/`h_bk_ghg`) that every
+temperature/weighted/full-year chart reads — so those charts showed only
+line-loss's effect on electricity when the toggle was flipped, never
+methane's effect on gas, even though the annual total was already correct.
+Fixed by folding each hour's methane contribution into the hourly series
+too; verified live that `sum(hourly.base_ghg_kg) === base.ghg.total` exactly
+(no double-count) and that toggling upstream now moves the hourly sum
+(+4,428 kg/yr on a gas baseline in Ottawa). Also added the switch-over/
+hard-cutoff reference lines and a green/backup-color stacked split to the
+emissions "By temperature" view, matching the equipment chart's convention.
+Verified live via a local static server (screenshots render blank in this
+sandbox's preview pane per the known no-rAF quirk — confirmed via DOM/JS
+inspection instead): engine self-test still passes, zero console errors
+across all 7 charts' daily/hourly/week/month combinations.) Same-day follow-up
+(**Heat Pump Explorer** — chart-readability pass, also from user testing.
+**(a)** Y-axis titles shortened across every chart to a plain `<unit> <what>`
+(e.g. "kg CO₂e/hr", "kWh purchased"), with the fuller explanation left to
+each chart's existing note paragraph rather than crammed into the axis
+label. **(b)** Every axis/label now says *which* quantity it is — "heat
+needed" (load, Step 2), "heat delivered" (equipment, Step 3), or "purchased"
+(electricity/fuel bought, Step 4) — so the three are never ambiguous against
+each other. **(c)** Full-year day-by-day views for the three *quantity*
+charts (Step 4 energy, Step 6 emissions, Step 7 cost — kWh/kg/$) now show
+each day's **total**, not its mean; the three *rate* charts (Step 2 load,
+Step 3 equipment, Step 5 grid intensity — kW/°C/g-per-kWh) correctly keep
+the daily mean, since summing a rate isn't meaningful. New `toDailySum()`
+alongside the existing `toDaily()`, selected via a `sumMode` flag on
+`sliceRange()`. **(d)** Step 6's "By temperature" view was missing the
+zero-heat/design/switch-off reference lines that Steps 1, 2 and 5 already
+draw — it turned out a shared `drawStepRefLines()` helper already existed
+(built for Step 5) and Step 6 just wasn't calling it; now it does, replacing
+the equipment-style switch-over/HP-cutoff pair that didn't belong on a
+weather-exposure chart. **(e)** Final numbers section tidied: the
+before/after bar rows (`.beforeafter`/`.ba-row`) were each their own
+independent CSS grid, so sibling rows' label columns sized to their own
+text and the bars started at different x-offsets row to row — moved the
+grid to the shared parent with `.ba-row{display:contents}` so all rows
+share one set of column tracks. The "Annual operating cost" card also
+repeated the same two dollar figures twice (once in the bar chart, again in
+a text list below) — the text list is gone, the bars gained a third
+"Saves/Costs" delta row (matching the emissions card's existing three-row
+convention) and each bar's sub-detail (kWh/m³ breakdown) moved into a
+`<small>` under its label instead. **(f)** Added a "Download one-page
+summary" button (Final numbers section) that populates a dedicated
+`#print-summary` block — scenario recap (every dropdown/slider's current
+value, read live from the DOM), the verdict headline, the KPI tile strip,
+the energy chart rasterized to a PNG via `canvas.toDataURL()`, and the
+emissions/cost bars, with page CSS vars force-overridden to light-theme
+values so it prints correctly regardless of the page's current theme — then
+calls `window.print()`. No PDF library, no server round-trip: the browser's
+own print-to-PDF is the only dependency-free option under this repo's "no
+build step, no external runtime deps" rule, so that's what "download" means
+here (Save as PDF in the print dialog). Verified live: all DOM content
+populates correctly (selections table, 7 KPI tiles, verdict text, rasterized
+chart image, both bar sets), the `@media print` rule is present and scoped
+to `#print-summary`, zero console errors.) Prior pass
+**2026-08-19** (**Heat Pump Explorer** — three result-affecting
 defects fixed, found by an external methodology audit and each verified
 against the code before acting (the same audit's three "P0" retrofit findings
 were checked and rejected as false positives — already-correct behaviour it
@@ -437,7 +513,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09) |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09); propane backup + per-chart month/week zoom on all 7 full-year charts + two-color backup (fossil vs. electric) + hourly-methane bug fix; axis-label cleanup, daily-sum vs. daily-mean split, Step 6 reference lines, Final-numbers tidy-up, one-page PDF summary button (2026-08-21) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
