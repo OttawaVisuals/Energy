@@ -553,21 +553,40 @@ milder shoulder hours.
 
 ### Province vs. city temperature
 
-The grid EF is province-wide, so each surface is per province, keyed on the
-temperature of that province's **largest electricity-load centre** — the
-best single-station proxy for the province-wide demand↔weather correlation
-being captured:
+The grid EF is province-wide, so each surface is per province, keyed on a
+single proxy city's temperature record. IESO's generation-by-fuel report has
+no regional breakdown — Ontario's grid is one integrated pool, so every
+location sees the identical province-wide EF for a given hour. The proxy
+city choice therefore can't select a different fuel mix, only whose
+temperature times-aligns the bins against province-wide demand:
 
 | Province | Temperature proxy city |
 |---|---|
-| ON | Toronto (GTA dominates Ontario demand) |
+| ON | London |
 | QC | Montreal |
 | AB | Calgary |
+
+ON was originally keyed on Toronto (GTA dominates Ontario demand), but
+Toronto's 2020–2026 record only reaches −22.6 °C (n = 5 hours colder than
+−22 °C), so the coldest bins were thin or absent and design-load-cold
+temperatures fell straight through every fallback to the flat global mean.
+Checked against IESO's own hourly generation data, London tracks
+province-wide gas output just as tightly as Toronto (winter
+`corr(temp, gas MW)` = −0.420 vs Toronto's −0.419; at the actual top-30
+gas-output hours 2020–2026, London/Toronto/Hamilton track within 1–3 °C of
+each other) while reaching −24.8 °C with 44 hours below −22 °C. Ottawa is
+colder still but a worse demand proxy — at those same peak-demand hours it
+runs 5–10 °C colder than Toronto/London, which would overstate how cold
+Ontario needs to get before the grid gets dirty.
 
 The engine applies the resulting provincial surface to each launch city's
 own temperature series (e.g. Ottawa temperatures against the ON surface).
 For a screening tool the modest intra-province inter-city temperature offset
-is acceptable.
+is acceptable. Below the coldest (or above the warmest) bin the surface has
+real data for, the browser engine linearly extrapolates the `coarse_t` trend
+from the two most extreme sufficiently-sampled bins rather than falling
+back to the flat global mean at the very first missing bin — see
+`extrapolateShape()` in heatpump.html.
 
 ### Shape × level decomposition — the key modelling choice
 
@@ -627,9 +646,23 @@ global    : overall mean shape                    (fallback 3)
 
 `lookup_shape()` walks this order, taking the first level whose cell has
 ≥ 20 hours. Every cell carries its count so the rule is explicit and the
-engine can reproduce it. (Worked example: Toronto winter-19h at −18 °C has
-only 1 h in the fine cell → falls back to the coarse_ts −18 °C winter cell,
-97 h.)
+engine can reproduce it. (Worked example, current ON/London surface:
+winter-19h at −18 °C has only 2 h in the fine cell → falls back to the
+coarse_ts −18 °C winter cell, 155 h, ratio 1.6152 → 1.6152 × 96.907 ≈
+157 g/kWh on the 2025 reference level.)
+
+Below the coldest (or above the warmest) `coarse_t` bin that itself clears
+the 20-hour threshold, the JS engine takes one more step before falling to
+`global`: it fits a least-squares line through the tail's 6 most extreme
+sufficiently-sampled `coarse_t` bins and extends it to the requested
+temperature, floored at 0. A 2-point edge slope was tried first and
+rejected — the outermost bin has the fewest hours of any bin that clears
+the threshold (e.g. ON/London's −22 °C bin, n=37), so a single point's
+sampling noise can flip the extrapolated direction; fitting across several
+bins averages that out. This only matters for the very coldest/warmest
+design-load temperatures (e.g. below the ON/London surface's −22 °C
+thin-bin edge) — inside the data's own range, the fine/coarse_ts/coarse_t
+fallback above still applies unchanged.
 
 ### Validation — reconstruct annual intensity, ±10 %
 

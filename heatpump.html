@@ -372,42 +372,16 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .loading-msg{text-align:center;color:var(--muted);padding:2.5rem 1rem;font-size:14px}
 .err-msg{max-width:1280px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:#B33A2E;font-size:13px}
 
-/* ── One-page PDF summary ──────────────────────────────────────────
-   #print-summary is built by buildPrintSummary() just before window.print()
-   and stays display:none on screen; the @media print block below hides
-   every other top-level element and shows only this one, so "Print" /
-   "Save as PDF" in the browser's own print dialog produces a single page
-   with no build step or PDF library involved. */
+/* ── One-page printable summary ────────────────────────────────────────
+   #print-summary is built by buildPrintSummary() and never becomes visible
+   in this document -- it's just a staging area. openSummaryPopup() copies
+   its innerHTML into a separate pop-up window that carries its own
+   standalone stylesheet (see POPUP_CSS in the script below), so the
+   browser's Print / Save-as-PDF controls operate on a clean one-page
+   document instead of hiding the whole live app behind @media print. */
 .print-btn{margin-top:.5rem;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:.55rem 1rem;border:none;border-radius:var(--r-sm);background:var(--amber);color:#fff;cursor:pointer}
 .print-btn:hover{filter:brightness(1.08)}
 #print-summary{display:none}
-@media print{
-  body>*:not(#print-summary){display:none!important}
-  #print-summary{display:block!important;color:#111;font-family:'Inter',sans-serif;
-    /* Force light-theme values for these tokens regardless of the page's
-       current theme (dark/colour-blind) -- the cloned .stat-card
-       markup below reads them, and paper is always white. */
-    --card:#fff;--ink:#111;--text:#111;--muted:#666;--light:#777;--border:#ddd;--surface:#f3f3f3;--shadow:none;--amber2:#b8860b;--green:#1A7A55;--red:#B33A2E;}
-  @page{size:letter;margin:12mm}
-  #print-summary h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.5rem;margin-bottom:.2rem}
-  #print-summary h2{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#555;margin:.9rem 0 .3rem}
-  #print-summary .ps-meta{font-size:11.5px;color:#555;margin-bottom:.5rem}
-  #print-summary .ps-verdict{font-size:13.5px;line-height:1.4;padding:.5rem .7rem;background:#f3f3f3;border-radius:6px;margin-bottom:.3rem}
-  #print-summary .ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 1.2rem}
-  #print-summary table.ps-table{width:100%;border-collapse:collapse;font-size:11px}
-  #print-summary table.ps-table th{text-align:left;color:#666;font-weight:500;padding:1px 6px 1px 0;white-space:nowrap}
-  #print-summary table.ps-table td{text-align:right;font-weight:600;padding:1px 0}
-  #print-summary .ps-kpi-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #eee}
-  #print-summary #ps-energy-img,#print-summary #ps-emis-img,#print-summary #ps-cost-img{width:100%;max-height:150px;object-fit:contain;display:block;margin:0 auto}
-  #print-summary .ps-footer{margin-top:.8rem;font-size:9.5px;color:#777;border-top:1px solid #ddd;padding-top:.4rem}
-  #print-summary .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:0}
-  #print-summary .stat-card{padding:.3rem .4rem;box-shadow:none;border:1px solid #ddd;border-radius:4px}
-  #print-summary .stat-value{font-size:.95rem;font-family:'Inter',sans-serif;font-weight:700}
-  #print-summary .stat-label{font-size:8px;min-height:0;margin-bottom:1px;letter-spacing:.02em}
-  #print-summary .stat-sub{font-size:8px;margin-top:1px;line-height:1.2}
-  #print-summary .stat-i{display:none}
-  #print-summary *{page-break-inside:avoid}
-}
 
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
@@ -879,7 +853,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="out-section-head">
         <h2 class="out-section-title">Final numbers</h2>
         <p class="out-section-intro">Everything above, added up — the full year's energy, emissions and cost, now versus with the heat pump.</p>
-        <button type="button" id="btn-print-summary" class="print-btn">📄 Download one-page summary</button>
+        <button type="button" id="btn-print-summary" class="print-btn">📄 View printable summary</button>
       </div>
       <div class="card">
         <div class="card-title-row chart-head"><span class="card-title">Annual energy by source</span><span class="card-sub">now vs heat pump, totals for the year</span></div>
@@ -907,30 +881,36 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   </div>
 </main>
 
-<!-- Print-only one-page summary: hidden on screen, populated just before
-     window.print() by buildPrintSummary(), shown exclusively via the
-     @media print rule (see CSS) which hides everything else. -->
+<!-- Summary staging area: never shown in this document. buildPrintSummary()
+     fills it in, then openSummaryPopup() copies its innerHTML into a
+     separate pop-up window (its own stylesheet -- see POPUP_CSS) where the
+     reader can print / save-as-PDF / just close it. -->
 <div id="print-summary">
-  <h1 id="ps-title">Heat Pump Explorer — Summary</h1>
-  <div class="ps-meta" id="ps-meta"></div>
-  <div class="ps-verdict" id="ps-verdict"></div>
-  <div class="ps-grid">
-    <div class="ps-col">
-      <h2>Scenario</h2>
-      <div id="ps-selections"></div>
-    </div>
-    <div class="ps-col">
-      <h2>Key numbers</h2>
-      <div id="ps-kpis"></div>
-    </div>
+  <div class="ps-header">
+    <div class="ps-brand">heat<span>pump</span></div>
+    <h1 id="ps-title">Heat Pump Explorer — Summary</h1>
+    <div class="ps-meta" id="ps-meta"></div>
   </div>
-  <h2>Annual energy by source</h2>
-  <img id="ps-energy-img" alt="Annual energy by source">
-  <h2>Annual heating emissions</h2>
-  <img id="ps-emis-img" alt="Annual heating emissions">
-  <h2>Annual operating cost</h2>
-  <img id="ps-cost-img" alt="Annual operating cost">
-  <div class="ps-footer">Modelled estimate, not a substitute for a heat-loss assessment or contractor quote. Full methodology and assumptions: <span id="ps-url"></span></div>
+  <div class="ps-body">
+    <div class="ps-verdict" id="ps-verdict"></div>
+    <div class="ps-grid">
+      <div class="ps-col">
+        <h2>Scenario</h2>
+        <div id="ps-selections"></div>
+      </div>
+      <div class="ps-col">
+        <h2>Key numbers</h2>
+        <div id="ps-kpis"></div>
+      </div>
+    </div>
+    <h2>Annual totals</h2>
+    <div class="ps-charts-row">
+      <div class="ps-chart-col"><div class="ps-chart-label">Energy by source</div><img id="ps-energy-img" alt="Annual energy by source"></div>
+      <div class="ps-chart-col"><div class="ps-chart-label">Heating emissions</div><img id="ps-emis-img" alt="Annual heating emissions"></div>
+      <div class="ps-chart-col"><div class="ps-chart-label">Operating cost</div><img id="ps-cost-img" alt="Annual operating cost"></div>
+    </div>
+    <div class="ps-footer">Modelled estimate, not a substitute for a heat-loss assessment or contractor quote. Full methodology and assumptions: <span id="ps-url"></span></div>
+  </div>
 </div>
 
 
@@ -1555,9 +1535,66 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     return { tEdge: T[i0], capEdge: cap[i0], copFloor: cop[i0], capSlope: slope };
   }
 
+  // Sorted [tbin, ratio0, ratio1, n] rows from ef.coarse_t with n >= thin,
+  // ascending by temperature. Cached on the ef object (one build per
+  // fetched surface, not per lookup).
+  function coarseTRows(ef, thin) {
+    if (ef._coarseTRows) return ef._coarseTRows;
+    var rows = [];
+    for (var tb in ef.coarse_t) {
+      if (!Object.prototype.hasOwnProperty.call(ef.coarse_t, tb)) continue;
+      var c = ef.coarse_t[tb];
+      if (c[2] >= thin) rows.push([Number(tb), c[0], c[1], c[2]]);
+    }
+    rows.sort(function (a, b) { return a[0] - b[0]; });
+    ef._coarseTRows = rows;
+    return rows;
+  }
+
+  // Least-squares slope+intercept through a set of [x, y] pairs.
+  function linRegress(pts) {
+    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0, i;
+    for (i = 0; i < n; i++) { sx += pts[i][0]; sy += pts[i][1]; }
+    var mx = sx / n, my = sy / n;
+    for (i = 0; i < n; i++) {
+      sxx += (pts[i][0] - mx) * (pts[i][0] - mx);
+      sxy += (pts[i][0] - mx) * (pts[i][1] - my);
+    }
+    var slope = sxx ? sxy / sxx : 0;
+    return { slope: slope, intercept: my - slope * mx };
+  }
+
+  var EXTRAP_TAIL_N = 6; // how many of the coldest/warmest sufficiently-
+                         // sampled coarse_t bins to fit the tail trend on
+
+  // Beyond the coldest/warmest temperature the surface has real (>= thin)
+  // data for, extend a least-squares trend line fit through the tail's
+  // EXTRAP_TAIL_N most extreme sufficiently-sampled coarse_t bins, rather
+  // than falling back to the flat global mean (shape ratio 1.0) at the
+  // very first missing bin. A 2-point edge slope was tried first but is
+  // noisy -- the outermost bins have the fewest hours, so a single edge
+  // bin's sampling noise can flip the extrapolated direction; fitting
+  // across several bins averages that out. See "Province vs. city
+  // temperature" / cold-tail note in build_ef_surface.py. Floored at 0 (a
+  // shape ratio can't go negative). Returns null if there aren't at least
+  // two coarse_t bins to found a trend on (falls through to global).
+  function extrapolateShape(ef, tbin, field) {
+    var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
+    var rows = coarseTRows(ef, thin);
+    if (rows.length < 2) return null;
+    var lo = rows[0], hi = rows[rows.length - 1];
+    var tail;
+    if (tbin < lo[0]) tail = rows.slice(0, Math.min(EXTRAP_TAIL_N, rows.length));
+    else if (tbin > hi[0]) tail = rows.slice(-Math.min(EXTRAP_TAIL_N, rows.length));
+    else return null; // interior gap, not a tail -- let caller fall to global
+    var reg = linRegress(tail.map(function (r) { return [r[0], r[field + 1]]; }));
+    return Math.max(0, reg.intercept + reg.slope * tbin);
+  }
+
   // Grid-EF shape ratio with the surface's thin-bin fallback -- a direct port
-  // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t -> global).
-  // `field`: 0 = average-EF ratio, 1 = marginal-EF ratio.
+  // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t ->
+  // cold/warm-tail extrapolation -> global). `field`: 0 = average-EF ratio,
+  // 1 = marginal-EF ratio.
   function lookupShape(ef, season, hour, tbin, field) {
     var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
     var h = String(hour),
@@ -1569,6 +1606,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     if (c && c[2] >= thin) return c[field];
     c = ef.coarse_t && ef.coarse_t[tb];
     if (c && c[2] >= thin) return c[field];
+    var ex = extrapolateShape(ef, tbin, field);
+    if (ex !== null) return ex;
     return ef.global[field];
   }
 
@@ -2830,7 +2869,7 @@ function buildInputs(){
     }));
   });
   $('in-plan').addEventListener('change',e=>{state.plan=e.target.value;recompute();});
-  $('btn-print-summary').addEventListener('click',()=>{buildPrintSummary();window.print();});
+  $('btn-print-summary').addEventListener('click',openSummaryPopup);
   $('in-designload').addEventListener('input',e=>{state.designLoad=+e.target.value;$('designload-val').textContent=fmt1(state.designLoad)+' kW';recompute();});
   $('in-balance').addEventListener('input',e=>{state.balancePoint=+e.target.value;$('balance-val').textContent=fmt1(state.balancePoint)+' °C';recompute();});
   $('in-fuel').addEventListener('change',e=>{state.fuel=e.target.value;applyFuel();recompute();});
