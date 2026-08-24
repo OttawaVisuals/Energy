@@ -4845,10 +4845,11 @@ function renderEnergyChart(base,proj){
 // ==========================================================================
 // One-page PDF summary -- reuses already-rendered DOM (verdict, stat tiles,
 // the energy canvas, the emissions/cost before-after bars) rather than
-// re-deriving anything, then prints via the browser's own print-to-PDF.
-// No PDF library, no server round-trip -- matches this repo's "no build
-// step, no external runtime deps" rule. See #print-summary's @media print
-// block for the layout that isolates it from the rest of the page.
+// re-deriving anything, then hands it to a pop-up window (openSummaryPopup)
+// that carries its own standalone stylesheet (POPUP_CSS) so the reader can
+// print / save-as-PDF / just close it without the live app's own print
+// dialog taking over the whole tab. No PDF library, no server round-trip --
+// matches this repo's "no build step, no external runtime deps" rule.
 // ==========================================================================
 function printSelectionsHTML(){
   const rows=[];
@@ -4883,6 +4884,83 @@ function buildPrintSummary(){
   snapshot('emisChart','ps-emis-img');
   snapshot('costBarChart','ps-cost-img');
   $('ps-url').textContent=location.href.split(/[?#]/)[0];
+}
+// Standalone stylesheet for the pop-up: this window shares no CSS with the
+// live app (different document), so every token it needs is hardcoded here
+// -- always the light palette, since paper (and the pop-up's own page) is
+// always white regardless of the app's current theme. Three-column chart
+// row (instead of stacking the three charts) is what gets the whole thing
+// onto one printed page.
+const POPUP_CSS=`
+  *{box-sizing:border-box}
+  body{margin:0;background:#dde3ea;font-family:'Inter',Arial,sans-serif;color:#171f2b}
+  .ps-toolbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;justify-content:center;padding:10px;background:#171f2b}
+  .ps-toolbar button{font-family:'Inter',Arial,sans-serif;font-size:13px;font-weight:600;padding:.55rem 1.1rem;border:none;border-radius:6px;cursor:pointer}
+  .ps-toolbar .ps-print{background:#C8881A;color:#fff}
+  .ps-toolbar .ps-print:hover{background:#b87a15}
+  .ps-toolbar .ps-close{background:transparent;color:#cdd6e2;border:1px solid #3a4658}
+  .ps-toolbar .ps-close:hover{color:#fff;border-color:#5a6a80}
+  #print-summary{display:block!important;max-width:800px;margin:22px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.22)}
+  .ps-header{background:linear-gradient(135deg,#0B2545,#123a6b);color:#fff;padding:1.3rem 1.6rem 1.1rem}
+  .ps-brand{font-family:'Fraunces',Georgia,serif;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:#bcd0ea;margin-bottom:.35rem}
+  .ps-brand span{color:#E8A124}
+  #print-summary h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.55rem;margin:0 0 .3rem;color:#fff}
+  .ps-meta{font-size:11.5px;color:#a9bdd8}
+  .ps-body{padding:1.1rem 1.6rem 1.3rem}
+  #print-summary h2{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8A5D0F;margin:1rem 0 .4rem;padding-bottom:.2rem;border-bottom:2px solid #f0d9ae}
+  #print-summary h2:first-of-type{margin-top:0}
+  .ps-verdict{font-size:13.5px;line-height:1.45;padding:.65rem .85rem;background:#FDF3E1;border-left:4px solid #C8881A;border-radius:0 6px 6px 0;margin-bottom:.2rem}
+  .ps-verdict b{color:#8A5D0F;font-weight:600;font-style:italic}
+  .ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 1.4rem}
+  table.ps-table{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e7e2d6;border-radius:6px;overflow:hidden}
+  table.ps-table tr:nth-child(even){background:#FBF6EC}
+  table.ps-table th{text-align:left;color:#6b6355;font-weight:500;padding:3px 8px;white-space:nowrap;border-bottom:1px solid #efe9db}
+  table.ps-table td{text-align:right;font-weight:600;padding:3px 8px;border-bottom:1px solid #efe9db;color:#171f2b}
+  table.ps-table tr:last-child th,table.ps-table tr:last-child td{border-bottom:none}
+  .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:0}
+  .stat-card{padding:.4rem .55rem;border:1px solid #e2e6ec;border-radius:6px;background:#fafbfc}
+  .stat-value{font-size:1.05rem;font-family:'Fraunces',Georgia,serif;font-weight:400;color:#171f2b}
+  .stat-value.accent{color:#C8881A}
+  .stat-value.green{color:#1A7A55}
+  .stat-value.red{color:#B33A2E}
+  .stat-label{font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:#8892a0;min-height:0;margin-bottom:2px;display:flex;align-items:flex-start}
+  .stat-sub{font-size:8.5px;color:#8892a0;margin-top:1px;line-height:1.25}
+  .stat-i{display:none}
+  .ps-charts-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem}
+  .ps-chart-col{border:1px solid #e2e6ec;border-radius:6px;padding:.4rem .5rem .5rem;background:#fafbfc}
+  .ps-chart-label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#8A5D0F;margin-bottom:.3rem;text-align:center}
+  .ps-chart-col img{width:100%;max-height:130px;object-fit:contain;display:block;margin:0 auto}
+  .ps-footer{margin-top:.9rem;font-size:9.5px;color:#8892a0;border-top:1px solid #e2e6ec;padding-top:.5rem}
+  @media print{
+    body{background:#fff}
+    .ps-toolbar{display:none}
+    #print-summary{margin:0;max-width:100%;border-radius:0;box-shadow:none}
+    @page{size:letter;margin:10mm}
+    #print-summary *{page-break-inside:avoid}
+  }
+`;
+// Builds the summary, then opens it in a separate window so the reader can
+// print / save-as-PDF / just close it -- doesn't touch the live app's own
+// print dialog or navigate away from it.
+function openSummaryPopup(){
+  buildPrintSummary();
+  const w=window.open('','_blank','width=900,height=1000');
+  if(!w){ alert('Your browser blocked the pop-up. Please allow pop-ups for this site and try again.'); return; }
+  const title=`Heat pump summary — ${state.city}`;
+  w.document.open();
+  w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>${POPUP_CSS}</style></head><body>
+<div class="ps-toolbar">
+  <button type="button" class="ps-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  <button type="button" class="ps-close" onclick="window.close()">✕ Close</button>
+</div>
+${$('print-summary').outerHTML}
+</body></html>`);
+  w.document.close();
 }
 // ---- day-of-year label, used by hourly hover tooltips ----
 const DAY0_MONTH=[0,31,59,90,120,151,181,212,243,273,304,334]; // cum. days, non-leap, matches TMY
