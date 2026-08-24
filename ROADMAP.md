@@ -1,7 +1,31 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-21** (**Heat Pump Explorer** — four UI/methodology fixes
+Updated **2026-08-24** (**Heat Pump Explorer** — Ontario grid-EF surface
+temperature proxy switched from Toronto to London. Toronto's 2020–2026
+weather record only reaches −22.6 °C (5 hours colder than −22 °C), so the
+surface's coldest `coarse_t` bins were thin/absent and Step 5's grid-carbon
+chart flatlined below −22 °C (fell through every thin-bin fallback to the
+flat global-mean shape ratio). Checked against IESO's hourly generation
+data first: London tracks province-wide gas output as tightly as Toronto
+does (winter `corr(temp, gas MW)` = −0.420 vs −0.419; both track within
+1–3 °C of Toronto at the actual top-30 gas-output hours 2020–2026) while
+reaching −24.8 °C with 44 hours below −22 °C — Ottawa was also checked and
+rejected as colder but a worse demand proxy (runs 5–10 °C colder than
+Toronto/London at the same peak-demand hours). `ef_surface_on.json`
+regenerated (`build_ef_surface.py`, `PROVINCES["ON"]` now `London`);
+reconstruction validation still passes (worst per-year diff 5.2%, within
+the ±10% tolerance). Separately, added cold/warm-tail **extrapolation** to
+the browser engine (`extrapolateShape()` in heatpump.html) so any
+temperature beyond the surface's thin-bin edge — for any province, not just
+ON — gets a least-squares trend fit through the tail's 6 most extreme
+sufficiently-sampled `coarse_t` bins instead of snapping to the flat global
+mean; a naive 2-point edge slope was tried first and rejected as too noisy
+(outermost bins have the fewest hours). `METHODOLOGY.md` "Province vs. city
+temperature" and "Thin-bin fallback" sections updated with the correlation
+check and the extrapolation method.)
+
+Prior update **2026-08-21** (**Heat Pump Explorer** — four UI/methodology fixes
 from user testing. (1) **Month/week zoom** added to all 7 "Full year"
 charts (weather, load, equipment, energy, grid GHG, emissions, cost): a
 per-chart month dropdown (day-by-day view) and week dropdown (hour-by-hour

@@ -48,18 +48,42 @@ shape == 1 -- their level is negligible either way.
 Province vs. city temperature
 ------------------------------
 The grid EF is province-wide, so the surface is per province, keyed on the
-temperature of that province's **largest electricity-load centre** -- the
-best single-station proxy for the province-wide demand<->weather
-correlation the surface is trying to capture:
+temperature of a single proxy city's weather record. IESO's generation-by-
+fuel report has no regional breakdown -- Ontario's grid is one integrated
+pool, so every location sees the identical province-wide EF for a given
+hour. The proxy city choice therefore doesn't select a different fuel mix,
+only whose temperature gets used to time-align the bins against province-
+wide demand:
 
-    ON -> Toronto   (GTA dominates Ontario demand)
+    ON -> London    (see below)
     QC -> Montreal
     AB -> Calgary
+
+ON was originally keyed on Toronto (GTA dominates Ontario demand), but
+Toronto's 2020-2026 record only reaches -22.6 C (n=5 hours colder than
+-22 C), so the surface's coldest bins were thin/absent and design-load-cold
+temperatures fell straight through every fallback to the flat global mean
+(shape ratio 1.0). Checked against IESO's hourly generation data, London
+tracks province-wide gas output just as tightly as Toronto does (winter
+corr(temp, gas MW) = -0.420 vs Toronto's -0.419; at the actual top-30
+gas-output hours 2020-2026, London/Toronto/Hamilton track within 1-3 C of
+each other) while reaching -24.8 C with 44 hours below -22 C -- real
+cold-tail coverage instead of a flatline. Ottawa is colder still but is a
+worse demand proxy: at those same peak-demand hours it runs 5-10 C colder
+than Toronto/London, which would overstate how cold Ontario needs to get
+before the grid gets dirty.
 
 The engine applies the resulting provincial surface to each launch city's
 own temperature series (e.g. Ottawa temps against the ON surface); for a
 screening tool the small inter-city temperature offset within a province is
-acceptable and is documented in METHODOLOGY.md.
+acceptable and is documented in METHODOLOGY.md. Below the coldest (or
+above the warmest) bin the surface actually has data for, the browser
+engine fits a least-squares line through the tail's 6 most extreme
+sufficiently-sampled coarse_t bins and extends it, rather than falling back
+to the flat global mean at the first missing bin -- a 2-point edge slope
+was tried first and rejected as too noisy (the outermost bin has the fewest
+hours of any bin clearing the thin-bin threshold). See the
+`extrapolateShape` cold/warm-tail extrapolation in heatpump.html.
 
 Thin-bin fallback
 -----------------
@@ -119,9 +143,11 @@ ZERO_LEVEL_EPS = 1.0        # provinces with mean EF below this (g/kWh) skip the
 FULL_YEAR_HOURS = 8000      # a calendar year with >= this many joined hours is
                             # "complete" and eligible to be the reference level
 
-# province -> (grid EF json, load-centre weather city)
+# province -> (grid EF json, temperature-proxy weather city)
+# ON: London, not Toronto -- see "Province vs. city temperature" above for
+# the correlation check and cold-tail rationale.
 PROVINCES = {
-    "ON": ("grid_ef_on.json", "Toronto"),
+    "ON": ("grid_ef_on.json", "London"),
     "AB": ("grid_ef_ab.json", "Calgary"),
     "QC": ("grid_ef_qc.json", "Montreal"),
 }
