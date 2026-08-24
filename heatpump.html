@@ -43,7 +43,17 @@
    vertical space -- desktop/laptop only, mobile already stacks fields. */
 @media(min-width:900px){
   .controls.is-compact .ctrl label{display:none}
-  .controls.is-compact{padding-top:.5rem;padding-bottom:.5rem}
+  .controls.is-compact{padding-top:.3rem;padding-bottom:.3rem}
+  .controls.is-compact .ctrl-grid{gap:8px 10px}
+  /* Hovering the shrunk bar expands it back to the full, labelled layout --
+     same content, just temporarily un-compacted so it's easy to re-check a
+     field without scrolling back up. Re-collapses on mouseout via the
+     scroll handler's normal state (is-compact class itself never changes,
+     only what :hover overrides). */
+  .controls.is-compact:hover{padding-top:.9rem;padding-bottom:.6rem}
+  .controls.is-compact:hover .ctrl-grid{gap:12px 10px}
+  .controls.is-compact:hover .ctrl label{display:flex}
+  .controls.is-compact:hover .custom-hp-card{display:block}
 }
 /* The "My own data" custom-curve table is tall -- collapse it once scrolled
    so the sticky controls bar doesn't stay oversized for the rest of the page. */
@@ -67,6 +77,10 @@
 .ctrl select:hover,.ctrl input:hover{border-color:var(--navy)}
 .ctrl select:focus,.ctrl input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
 .ctrl-hint{font-size:10.5px;color:var(--light);line-height:1.35}
+/* Switch-over temp's warning sentence lives at the bottom of the selector
+   pane (not inline under its slider) so it can run the full width without
+   disrupting the grid's row alignment. */
+#lockout-hint{padding-top:.15rem}
 /* .info-btn + #info-tip base look come from assets/site-theme.css (the shared
    circular "?" used on every page). This page keeps only .auto-reset and the
    info-tip's link/flash helpers below. */
@@ -543,7 +557,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <input type="range" id="in-lockout" min="-25" max="5" step="1" value="-5">
         <span class="range-val" id="lockout-val">−5 °C</span>
       </div>
-      <div class="ctrl-hint" id="lockout-hint" style="display:none"></div>
     </div>
     <div class="ctrl">
       <label for="in-refrig">Refrigerant <button type="button" class="info-btn" aria-label="How is refrigerant leakage counted?" data-info="Charge leaks slowly in service plus a share at end-of-life, weighted by the refrigerant's global-warming potential. Both the GWP and the factory charge mass are specific to the refrigerant selected — a low-GWP option like R-290 also carries a much smaller charge by design." data-method="m-refrig">?</button></label>
@@ -581,6 +594,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     </div>
 
     <div class="helper-panel" id="arch-helper"></div>
+    <div class="ctrl-hint" id="lockout-hint" style="display:none;grid-column:1/-1"></div>
   </div>
 </section>
 
@@ -3360,7 +3374,7 @@ function updateLockoutHint(){
   const x=crossoverTemp();
   if(!isFuelBackup||state.lockoutAuto||x==null||state.lockout>=x){hint.style.display='none';return;}
   hint.style.display='';
-  hint.innerHTML=`Below <b>${fmtSigned(Math.round(x))} °C</b> the pump physically can't meet the load, so the furnace takes over there regardless of this setting.`;
+  hint.innerHTML=`Below <b>${fmtSigned(Math.round(x))} °C</b> the pump physically can't meet the load, so the furnace takes over there regardless of the switch-over temperature set above.`;
 }
 // When the switch-over temp is in auto mode, snap it to the crossover and push
 // the value to the slider + label. No-op once the user has dragged it.
@@ -3621,7 +3635,7 @@ function renderLoadChartTemp(svgT,C,medT){
 function renderLoadChartWeighted(svgT,temps,H){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const bins=binByTemp(temps,H.load_kW,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
-  const W=740,Hh=340,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=740,Hh=340,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...bins.map(b=>b.sum))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -3761,7 +3775,7 @@ function renderEquipChartWeighted(svg,temps,H,opts){
   const binsHp=binByTemp(temps,hpHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsBk=binByTemp(temps,bkHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const hasBackup=opts.backup.type!=='none';
-  const W=740,Hh=360,m={l:56,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=740,Hh=360,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsHp.map((b,i)=>b.sum+(hasBackup?binsBk[i].sum:0)))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -3991,7 +4005,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     ]});
     $('ecop-note').innerHTML=`Energy input if that source alone carried the <b>whole</b> load. Green is solid while the pump is actually the one running${C.isFuel?`, and continues faint-dashed past <b>${fmtSigned(Math.round(onCutoff))} °C</b> — how much less it would need to buy if it kept going instead of handing off to the ${FUEL_LABEL[state.backup]} furnace there`:''}. In practice they split the load — see "Weighted by hours" for what's actually bought.`;
   } else {
-    const W=740,Hh=340,m={l:58,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+    const W=740,Hh=340,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
     // Actual energy bought per 1 °C bin, from the real hourly dispatch.
     const binsHp=binByTemp(temps,H.hp_elec_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
     const binsBk=binByTemp(temps,H.backup_energy_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
@@ -4000,7 +4014,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     const bw=pW/(Tmax-Tmin)-1;
     niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
       s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
-    s.v+=`<text x="12" y="${m.t+pH/2}" transform="rotate(-90 12 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased</text>`;
+    s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kWh purchased</text>`;
     stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
     binsHp.forEach((b,i)=>{
       let y0=y(0);
@@ -4144,7 +4158,7 @@ function renderGridChartWeighted(svg,temps,H,C){
   const bins=binByTemp(temps,ef).filter(b=>b.cnt>0);
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const shown=bins.filter(b=>b.T>=Tmin&&b.T<=Tmax);
-  const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=740,Hh=320,m={l:68,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxEF=Math.max(1,...shown.map(b=>b.sum))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxEF)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -4351,7 +4365,7 @@ function renderEmisChartTemp(svg,temps,H,weighted,C){
   const binsHp=binByTemp(temps,H.hp_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsBk=binByTemp(temps,H.backup_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
-  const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=740,Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),backup=backupColor(),light=css('--light'),muted=css('--muted');
@@ -5198,7 +5212,7 @@ function renderCostChartTemp(svg,temps,series,weighted){
   const binsBk=binByTemp(temps,series.bkCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsProj=binByTemp(temps,series.projCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
-  const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=740,Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),backup=backupColor(),light=css('--light'),muted=css('--muted');
