@@ -1,7 +1,18 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-24** (**Heat Pump Explorer** — Ontario grid-EF surface
+Updated **2026-08-25** (**Retrofit Insights** — new §10 "One house at a time":
+a second, external dataset alongside the ERS-derived numbers. Scraped Retrofit
+Canada's case-study library (48 self-submitted deep/net-zero home retrofits,
+shared under their site's open-content terms) via new
+`Python/retrofit_casestudies_scrape.py` into `retrofit_casestudies_json/_all.json`,
+filtering out 7 non-residential/non-Canadian cases (documented, not silently
+dropped) to 41. Shows min–median–max ranges (R-values, ACH50, EUI, GHG/energy
+savings) by performance-level bucket, plus a sortable table linking out to each
+source; kept deliberately separate from and never averaged with the ERS numbers
+elsewhere on the page. See `docs/RETROFITS.md`'s 2026-08-25 changelog entry.)
+
+Prior update **2026-08-24** (**Heat Pump Explorer** — Ontario grid-EF surface
 temperature proxy switched from Toronto to London. Toronto's 2020–2026
 weather record only reaches −22.6 °C (5 hours colder than −22 °C), so the
 surface's coldest `coarse_t` bins were thin/absent and Step 5's grid-carbon
@@ -532,7 +543,7 @@ lifecycle-update candidates logged — see
 | Tool | Live | Docs | Notes |
 |---|---|---|---|
 | 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05), HPCAP/COP/CCASHP validated against AHRI+NEEP + full pairing-gate breakdown (2026-08-06) |
-| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05 |
+| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05; §10 "One house at a time" added 2026-08-25 — Retrofit Canada case-study ranges (41 residential Canadian cases), kept separate from the ERS numbers |
 | 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |

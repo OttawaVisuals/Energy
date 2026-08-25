@@ -76,6 +76,8 @@ Energy/
 │  ├─ _dictionary.json              # shared categorical dictionary for the coded columns
 │  └─ <PROV>/<FSA>.json
 ├─ census_json/ geo_json/ climate_json/   # context layers (census panel, FSA map, HDD/CDD)
+├─ retrofit_casestudies_json/       # one-off scrape of retrofitcanada.com/case-studies,
+│  └─ _all.json                     # feeds retrofit-insights.html §10 — see below
 └─ utility_rates_reference.json     # blended per-province rates for the bill card + payback
 Python/
 ├─ ers_web_pipeline.py              # Step 1: raw ERS CSVs -> per-province parquet
@@ -90,7 +92,9 @@ Python/
 │                                   # (dore_count) that Step 2 writes into _index.json
 ├─ retrofit_cost_extract_fields.py  # cost POC: pulls the ERS fields BASE_MAPPING doesn't carry
 ├─ retrofit_cost_estimate.py        # cost POC: the REMDB pricing pass, per province
-└─ build_retrofit_costs_json.py     # cost POC: splits the output into retrofit_costs_json/
+├─ build_retrofit_costs_json.py     # cost POC: splits the output into retrofit_costs_json/
+└─ retrofit_casestudies_scrape.py   # one-off: scrapes Retrofit Canada's case-study library
+                                    # -> retrofit_casestudies_json/_all.json (no ERS input at all)
 lookup/
 ├─ ahri_numbers.json                # AHRI certificate data (brand/model/capacity/HSPF2/…),
 │                                   # keyed by AHRI reference number (see build_ahri_lookup_full.py).
@@ -599,6 +603,19 @@ is a third independent chain off the same Step-1 parquets:
 client-side by `HOUSEID`, so it can be re-run and re-published on its own without
 touching Steps 2/3. Full method: [docs/RETROFIT_COSTS.md](RETROFIT_COSTS.md).
 
+**Case studies** (`retrofit-insights.html` §10, "One house at a time") has no ERS
+input at all: `Python/retrofit_casestudies_scrape.py` scrapes Retrofit Canada's
+case-study library (retrofitcanada.com/case-studies, shared under their site's
+open-content terms — see the module docstring) directly into
+`retrofit_casestudies_json/_all.json`, fetched client-side like everything else on
+the page but outside the `insights_json/` rollup pattern. It's a manual one-off,
+not part of the refresh cadence above — there's no bulk API, and the library only
+grows via their submission form, so re-run it by hand when you want a refresh.
+Non-residential (commercial/institutional feasibility studies) and non-Canadian
+cases are filtered out and recorded, with reason, in the JSON's `excluded` array
+rather than silently dropped. Needs `beautifulsoup4` in addition to the
+dependencies below.
+
 **Dependencies:** `pandas`, `numpy`, `pyarrow` (Step 1 also uses `pyarrow.csv`).
 
 ---
@@ -739,6 +756,24 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-08-25 Case-study ranges — a second, external dataset on Retrofit Insights
+
+- **New §10 on `retrofit-insights.html`, "One house at a time"**: min–median–max
+  ranges (envelope R-values, ACH50, EUI, GHG/energy savings) by performance-level
+  bucket (Net Zero / Net-Zero Ready / Partial-Other / Unknown), plus a sortable
+  table of every case linking out to its source, built from a new external
+  dataset — Retrofit Canada's case-study library — scraped once by the new
+  `Python/retrofit_casestudies_scrape.py` into `retrofit_casestudies_json/_all.json`.
+  Deliberately kept separate from the ERS-derived numbers everywhere else on the
+  page: different population (48 self-submitted showcase projects vs. 1.45M
+  audits), different methodology, never averaged together. 7 non-residential
+  (commercial/institutional feasibility studies) or non-Canadian cases are
+  filtered out of the 48 and recorded with reason rather than silently dropped,
+  leaving 41. Surfaced as an explicit caveat rather than silently absorbed: 11 of
+  those 41 report savings above 100% (net-positive-energy homes under each
+  project's own reporting basis, not a data error). See the new "Case studies"
+  paragraph under [Regenerating the data](#regenerating-the-data) above.
 
 ### 2026-08-06 HPCAP/COP/CCASHP validation against AHRI+NEEP, full pairing-gate breakdown
 
