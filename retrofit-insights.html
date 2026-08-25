@@ -109,6 +109,8 @@ section{margin-top:2.4rem;scroll-margin-top:60px}
 .scorecard th.arrow-active{color:var(--ink)}
 .scorecard td:first-child,.scorecard th:first-child{text-align:left}
 .scorecard tbody tr:hover td{background:var(--surface)}
+.scorecard tr.cs-row{cursor:pointer}
+.scorecard td .note{white-space:normal}
 .scorecard .prov-name{font-weight:500;color:var(--ink)}
 .bar-cell{position:relative;border-right:2px solid var(--card)}
 .bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;border-radius:2px;z-index:0;max-width:calc(100% - 6px)}
@@ -644,6 +646,34 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <div class="chart-wrap" style="height:300px"><canvas id="ch-value"></canvas></div>
       <div class="caveat">The same composition applies here: the lowest dwelling-value quintile contains a higher share of Atlantic and Quebec postal areas, so its heat-pump rate cannot be attributed to dwelling value on this evidence.</div>
     </div>
+  </section>
+
+  <!-- 10 DEEP-RETROFIT REALITY CHECK -->
+  <section id="sec-casestudies">
+    <div class="section-head">
+      <div class="section-num">10 — ONE HOUSE AT A TIME</div>
+      <h2>What deep retrofits actually hit</h2>
+      <p class="intro">Everything above is a modelled average across 1.45 million ERS audits, most of which did one or two measures. <a href="https://retrofitcanada.com/case-studies" target="_blank" rel="noopener">Retrofit Canada's case-study library</a> is the opposite kind of dataset: <b id="cs-n">41</b> individual homeowner/contractor write-ups of Canadian home retrofits, each with a real before/after breakdown — envelope R-values, airtightness, energy use intensity, GHG. It's not a random sample of retrofits; it's a self-submitted showcase of deep and net-zero projects, so read every range below as "what the best-documented projects achieved," not "what's typical."</p>
+      <div class="sowhat" id="cs-sowhat"><b>By the numbers:</b> Loading…</div>
+    </div>
+    <div class="card">
+      <h3>Ranges, by how far the home got</h3>
+      <div class="sub">Median (min–max) for every numeric field with enough coverage to be worth showing. n = how many of the 41 cases reported that field — most fields aren't filled in on every case, so read a thin column as a thin sample, not a thin result.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="cs-range-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note">"After" values only (post-retrofit), except energy/carbon savings which are already a before→after delta. Effective thermal resistance (R-value) and airtightness (ACH50) come straight from each project's own energy model, the same way ERS's HOT2000 fields do elsewhere on this page — not a metered measurement.</div>
+      <div class="caveat" id="cs-over100-caveat" style="margin-top:.6rem"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3 id="cs-case-heading">All cases</h3>
+      <div class="sub">Click a column to sort. Click a row to open that case study on retrofitcanada.com.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="cs-case-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note" id="cs-case-note"></div>
+    </div>
+    <div class="note">Case studies via <a href="https://retrofitcanada.com" target="_blank" rel="noopener">Retrofit Canada</a>, shared under their site's open-content terms (view/download/share freely, including commercially, with credit). Figures above are as reported on retrofitcanada.com and use each project's own energy-modelling methodology — not the ERS pipeline used elsewhere on this page, so don't average them together. Retrofit Canada's library holds 48 case studies in total; 7 are left out here — 6 commercial/institutional buildings (feasibility studies for a bus depot, seniors' centre, water utility building, community centre and municipal operations building) and 1 non-Canadian project (Portland, OR) — since they aren't comparable to a house or in scope for a Canadian-homes page. Scraped 2026-08-25; the library only grows via their submission form, so this is a snapshot, not a live feed.</div>
   </section>
 
 </main>
@@ -1790,7 +1820,94 @@ function sec09(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   10 — METHODOLOGY
+   10 — DEEP-RETROFIT CASE STUDIES (Retrofit Canada, external, N=48)
+   Self-submitted showcase library, scraped once by Python/retrofit_casestudies_scrape.py
+   into retrofit_casestudies_json/_all.json -- flat, small (~460KB), fetched directly
+   rather than through insights_json/ or loadJSON's per-province rollup pattern.
+   Deliberately never merged with the ERS-derived numbers elsewhere on this page:
+   different population, different methodology, different (self-selection) bias.
+   ══════════════════════════════════════════════════════════════════════ */
+function csGet(obj,path){let v=obj;for(const k of path){if(v==null)return null;v=v[k];}return v;}
+function csMedian(arr){const s=[...arr].sort((a,b)=>a-b);const n=s.length;if(!n)return null;const m=n>>1;return n%2?s[m]:(s[m-1]+s[m])/2;}
+const CS_BUCKETS=['Net Zero','Net-Zero Ready','Partial / Other','Unknown'];
+const CS_FIELDS=[
+  {label:'Attic/roof R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Attic/Roof Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Wall R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Wall Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Foundation wall R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Foundation Wall Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Airtightness',unit:'ACH50',get:c=>csGet(c,['before_after','Envelope','Air Tightness','after','value'])},
+  {label:'Energy use intensity',unit:'kWh/m²/yr',get:c=>csGet(c,['before_after','Annual Energy Usage','Energy Use Intensity','after','value'])},
+  {label:'Annual energy saving',unit:'%',get:c=>csGet(c,['summary','Annual Energy Savings','value'])},
+  {label:'Operational carbon saving',unit:'tCO₂e/yr',get:c=>csGet(c,['summary','Operational Carbon Savings','value'])},
+];
+function csStats(vals){if(!vals.length)return null;return{n:vals.length,med:csMedian(vals),min:Math.min(...vals),max:Math.max(...vals)};}
+function csFmt(v,unit){return unit==='R'?'R-'+v.toFixed(1):unit==='%'?v.toFixed(0)+'%':v.toFixed(1);}
+
+let CS_CASES=null;
+function secCaseStudies(){
+  return fetch(`${BASE_URL}retrofit_casestudies_json/_all.json`).then(r=>{
+    if(!r.ok)throw new Error('retrofit_casestudies_json/_all.json '+r.status);
+    return r.json();
+  }).then(d=>{
+    CS_CASES=d.cases;
+    $('cs-n').textContent=d.n;
+    renderCsRangeTable();
+    renderCsCaseTable();
+    const savedVals=CS_CASES.map(c=>csGet(c,['summary','Annual Energy Savings','value'])).filter(v=>v!=null);
+    const nzCases=CS_CASES.filter(c=>c.performance_level_bucket==='Net Zero');
+    const wallVals=nzCases.map(c=>csGet(c,['before_after','Envelope','Wall Assembly Effective Thermal Resistance','after','value'])).filter(v=>v!=null);
+    $('cs-sowhat').innerHTML=`<b>By the numbers:</b> across the ${d.n} case studies, reported annual energy savings range `+
+      `${Math.min(...savedVals).toFixed(0)}–${Math.max(...savedVals).toFixed(0)}% (n=${savedVals.length}). Among the ${nzCases.length} that reached full Net Zero, `+
+      (wallVals.length?`post-retrofit wall assemblies range R-${Math.min(...wallVals).toFixed(1)}–R-${Math.max(...wallVals).toFixed(1)} (n=${wallVals.length}).`:'wall R-value wasn\'t consistently reported.');
+    const over100=savedVals.filter(v=>v>100).length;
+    $('cs-over100-caveat').innerHTML=over100?`<b>${over100} of ${savedVals.length} report savings above 100%.</b> That's not a data error — it's a net-positive-energy home under that project's own reporting (annual production exceeding its baseline consumption), the same idea as the ERS-derived pages' "net surplus" language elsewhere on this site. Retrofit Canada doesn't publish a shared definition of the baseline each project measures against, so treat these as self-reported and not directly comparable case to case.`:'';
+  }).catch(err=>{
+    console.error('case studies',err);
+    $('cs-sowhat').textContent='Case-study data unavailable (retrofit_casestudies_json/_all.json failed to load).';
+  });
+}
+
+function renderCsRangeTable(){
+  const groups=['All',...CS_BUCKETS];
+  const head=$('cs-range-table').tHead,body=$('cs-range-table').tBodies[0];
+  head.innerHTML='<tr><th>Field</th>'+groups.map(g=>`<th>${g}</th>`).join('')+'</tr>';
+  body.innerHTML=CS_FIELDS.map(f=>{
+    const cells=groups.map(g=>{
+      const pool=g==='All'?CS_CASES:CS_CASES.filter(c=>c.performance_level_bucket===g);
+      const s=csStats(pool.map(f.get).filter(v=>v!=null));
+      return s?`<td>${csFmt(s.med,f.unit)} <span class="note">(${csFmt(s.min,f.unit)}–${csFmt(s.max,f.unit)}, n=${s.n})</span></td>`:'<td class="note">—</td>';
+    }).join('');
+    return `<tr><td>${f.label}</td>${cells}</tr>`;
+  }).join('');
+}
+
+function csProv(c){const loc=csGet(c,['summary','Location','raw']);if(!loc)return'—';const parts=loc.split(',');return parts[parts.length-1].trim();}
+const CS_COLS=[
+  {key:'title',label:'Case study',fmt:c=>c.title,val:c=>c.title},
+  {key:'prov',label:'Prov',fmt:csProv,val:csProv},
+  {key:'year',label:'Built',fmt:c=>csGet(c,['summary','Year Built','value'])??'—',val:c=>csGet(c,['summary','Year Built','value'])??-Infinity},
+  {key:'level',label:'Performance',fmt:c=>c.performance_level_bucket,val:c=>c.performance_level_bucket},
+  {key:'saved',label:'Saved',fmt:c=>{const v=csGet(c,['summary','Annual Energy Savings','value']);return v!=null?v.toFixed(0)+'%':'—';},val:c=>csGet(c,['summary','Annual Energy Savings','value'])??-Infinity},
+];
+let CS_SORT={key:'saved',dir:-1};
+function renderCsCaseTable(){
+  const head=$('cs-case-table').tHead,body=$('cs-case-table').tBodies[0];
+  head.innerHTML='<tr>'+CS_COLS.map(c=>`<th data-key="${c.key}" class="${CS_SORT.key===c.key?'arrow-active':''}">${c.label}${CS_SORT.key===c.key?(CS_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const sorted=[...CS_CASES].sort((a,b)=>{
+    const av=CS_COLS.find(c=>c.key===CS_SORT.key).val(a),bv=CS_COLS.find(c=>c.key===CS_SORT.key).val(b);
+    return typeof av==='string'?CS_SORT.dir*av.localeCompare(bv):CS_SORT.dir*(av-bv);
+  });
+  body.innerHTML=sorted.map(c=>`<tr class="cs-row" data-url="${c.url}">${CS_COLS.map(col=>`<td>${col.fmt(c)}</td>`).join('')}</tr>`).join('');
+  head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.key;
+    if(CS_SORT.key===k)CS_SORT.dir*=-1;else CS_SORT={key:k,dir:k==='title'?1:-1};
+    renderCsCaseTable();
+  });
+  body.querySelectorAll('tr.cs-row').forEach(tr=>tr.onclick=()=>window.open(tr.dataset.url,'_blank','noopener'));
+  $('cs-case-note').textContent=`${CS_CASES.length} case studies, sorted by ${CS_COLS.find(c=>c.key===CS_SORT.key).label.toLowerCase()}.`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   11 — METHODOLOGY
    ══════════════════════════════════════════════════════════════════════ */
 function sec10(){return loadJSON(INS+'meta.json').then(m=>{
   const def=m.definitions,th=m.thresholds,pc=m.participation_coverage||{};
@@ -1919,6 +2036,7 @@ whenVisible('sec-hp',sec07);
 whenVisible('sec-hp-equipment',sec07b);
 whenVisible('sec-opp',sec08);
 whenVisible('sec-timeline',sec09);
+whenVisible('sec-casestudies',secCaseStudies);
 whenVisible('sec-method',sec10);
 // initial render pass (covers above-the-fold sections + the frame-less preview)
 checkPending();
