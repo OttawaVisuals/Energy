@@ -36,7 +36,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests pandas
+        run: pip install requests pandas openpyxl   # openpyxl: EWRB ships XLSX
 
       - name: Run core ETL (permits, starts, investment)
         working-directory: Python
@@ -46,16 +46,25 @@ jobs:
         working-directory: Python
         run: python construction_context_etl.py --refresh
 
-      # Greener Homes figures are hand-transcribed, not fetched — this step
-      # only re-confirms they still appear on NRCan's live progress page and
-      # rewrites programs.json. NON-BLOCKING on purpose: when NRCan publishes
-      # a newer update the check fails, which should show up as a warning to
-      # act on, not take the whole monthly data refresh down with it. The
-      # previous programs.json (seeded from gh-pages above) is left in place.
-      - name: Check Greener Homes transcription is current
+      - name: Run municipal permits ETL (Vancouver + Toronto)
+        working-directory: Python
+        run: python municipal_permits_etl.py
+
+      - name: Run Ontario EWRB ETL (large-building energy)
+        working-directory: Python
+        run: python ewrb_etl.py
+
+      # The cite-only figures (NRCan Greener Homes, CHBA Net Zero) are
+      # hand-transcribed, not fetched — this step only re-confirms they still
+      # appear on the publishers' live pages and rewrites programs.json.
+      # NON-BLOCKING on purpose: when a publisher posts an update the check
+      # fails, which should show up as a warning to act on, not take the whole
+      # monthly data refresh down with it. The previous programs.json (seeded
+      # from gh-pages above) is left in place.
+      - name: Check cited figures are current
         continue-on-error: true
         working-directory: Python
-        run: python greener_homes_verify.py
+        run: python cited_figures_verify.py
 
       # Data lives on gh-pages, which is kept at a single commit: amend and
       # force-push rather than adding a commit per refresh.

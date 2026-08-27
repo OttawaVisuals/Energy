@@ -32,6 +32,12 @@ totals).
 Advanced mode also gains construction job vacancies and the average offered hourly
 wage, alongside the existing employment-vs-backlog chart.
 
+**Tier 3 (added 2026-08-27):** an *"Inside one city"* section (Vancouver and
+Toronto permit desks — area breakdown, work-type split, and a city-vs-metro
+cross-check), a *"Large buildings, measured"* card (Ontario EWRB energy
+intensity by building type, Ontario/Toronto views only), and CHBA Net Zero
+label counts alongside the Greener Homes figures.
+
 **Tier 2 (added 2026-08-27):** a *"Did it sell?"* card (absorptions vs unsold
 inventory, with a months-of-inventory mode) closing the pipeline past completions;
 *"The cost of a building, by trade"* (BCPI by CSI division — envelope, windows and
@@ -55,9 +61,16 @@ Python/construction_context_etl.py  # context: 18-10-0205 NHPI, 17-10-0009 pop,
         → construction_json/        # one compact JSON per geography + context.json
                                     #   + meta.json (key scheme, units, dates)
 
-Python/greener_homes_verify.py      # publishes the CURATED Greener Homes figures
-                                    #   from Python/greener_homes_data.json and
-                                    #   re-checks them against NRCan's live page
+Python/municipal_permits_etl.py     # Vancouver (Opendatasoft) + Toronto (CKAN)
+        → construction_json/municipal.json
+
+Python/ewrb_etl.py                  # Ontario large-building energy disclosure
+        → construction_json/ewrb.json       # XLSX per year, cached in ewrb_cache/
+
+Python/cited_figures_verify.py      # publishes the CURATED cite-only figures
+                                    #   from Python/cited_figures.json (NRCan
+                                    #   Greener Homes, CHBA Net Zero) and
+                                    #   re-checks each against its live page
         → construction_json/programs.json
 
         → construction_json/bcpi.json   # BCPI division detail, lazy-loaded by
@@ -109,14 +122,48 @@ footnotes:
   excludes smaller centres and rural areas), and hides itself entirely on a provincial
   view. Vacancy is annual (October survey) while the columns beside it in the CMA
   table are monthly, which the table note states.
-- **Greener Homes figures are hand-transcribed, not scraped.** NRCan publishes no data
+- **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
+  fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
+  Halton, so these series cannot be reconciled with the StatCan CMA figures. The
+  card says so and states the ratio (Vancouver ≈ 40% of its metro's permit value;
+  Toronto ≈ 50% of its metro's dwelling units created) rather than implying the
+  lines should meet. Two cities only, deliberately: Calgary (Socrata) and Ottawa
+  (ArcGIS) are reachable but four schemas is maintenance, not insight.
+- **Toronto's `EST_CONST_COST` is placeholder text on ~45% of rows** (the literal
+  string `DO NOT UPDATE OR DELETE THIS INFO FIELD`). Its permit *counts* and
+  *dwelling-unit* series are sound; its dollar totals are an undercount of unknown
+  size. The cross-check therefore compares Toronto on dwelling units created and
+  Vancouver on permit value — each city on what its data can actually support.
+- **Toronto needs BOTH permit sets.** "Cleared" means closed, so on its own it is
+  badly right-censored: the final month showed 74 permits against ~375 two months
+  earlier. Active + cleared together give every permit issued, and the series then
+  runs at a steady ~3,000/month.
+- **Ontario EWRB is self-reported and published uncleansed**, which the province
+  states plainly. 27,685 of 30,693 rows across 2018–2024 are usable; 2,776 carry no
+  weather-normalized intensity, 195 report zero or negative, and 37 exceed 20 GJ/m²
+  (an order of magnitude beyond any real building, so a reporting error rather than
+  an inefficient one). Types thinner than 20 rows in a year are suppressed. The
+  Data Quality Checker flag records whether a reporter *ran* a tool, not whether the
+  data passed, so it is reported and never used as a filter. The reporting
+  population grows from 534 buildings in 2018 to 6,739 in 2024, so year-to-year
+  movement in the medians is partly a changing sample.
+- **The provincial pipeline gap was re-tested against CMHC's own portal**
+  (2026-08-27). Requesting Ontario under-construction for July 2026 from HMIP's
+  `ExportTable` endpoint returns *"This data series is now archived."*, while the
+  same request for December 2022 returns real data (162,813 units) and Ontario
+  *starts* for July 2026 returns real data. So the gap is a genuine CMHC
+  discontinuation, not a StatCan publication decision — the earlier hypothesis that
+  HMIP might still carry it is now disproved, and the caveat stays.
+- **Greener Homes and CHBA figures are hand-transcribed, not scraped.** NRCan publishes no data
   file, and on the progress page each province's *name follows its numbers* in document
   order — a positional parser pairs them off by one and silently mis-assigns every
-  province. So the figures live in `Python/greener_homes_data.json` on `main`, and
-  `greener_homes_verify.py` asserts each one still appears verbatim on the live page
-  before publishing. It runs `continue-on-error` in the monthly workflow: when NRCan
-  posts a newer update the check should raise a warning to act on, not take the data
-  refresh down with it.
+  province. So the figures live in `Python/cited_figures.json` on `main`, and
+  `cited_figures_verify.py` asserts each one still appears verbatim on its live page
+  before publishing. It runs `continue-on-error` in the monthly workflow: when a
+  publisher posts an update the check should raise a warning to act on, not take the
+  data refresh down with it. **No CaGBC count is published** — CaGBC shows no running
+  total on its public pages and its project database is behind a sign-in, so there is
+  no figure that could be verified this way. Getting one means asking CaGBC.
 - **EnerGuide new-home ratings** cover only the evaluated share of new construction.
   Years with fewer than 30 evaluations are suppressed, sections with fewer than three
   usable years are hidden entirely (Quebec, which has two), and the card states that the
@@ -130,7 +177,9 @@ footnotes:
 cd Python
 python construction_etl.py            # cached downloads; --refresh to force
 python construction_context_etl.py    # writes context.json AND bcpi.json
-python greener_homes_verify.py        # writes programs.json; exits 1 if stale
+python municipal_permits_etl.py       # writes municipal.json (live portals)
+python ewrb_etl.py                    # writes ewrb.json; --refresh re-downloads
+python cited_figures_verify.py        # writes programs.json; exits 1 if stale
 ```
 
 `.github/workflows/construction-refresh.yml` does this monthly (20th, 14:00 UTC)
