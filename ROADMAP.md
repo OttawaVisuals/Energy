@@ -1,7 +1,50 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-27** (**Construction Tracker** — Tier 2 of the data-sources
+Updated **2026-08-27** (**Construction Tracker** — Tier 3, the last tier of the
+data-sources expansion. Three new pipelines and one settled question.
+
+**Inside one city** (new advanced section, Vancouver and Toronto): permit-desk
+data straight from the city portals — value by neighbourhood/FSA, work-type
+split, and a city-vs-metro cross-check against the StatCan CMA series. Two
+cities on purpose; Calgary and Ottawa are reachable and deliberately skipped,
+because four schemas is maintenance rather than insight. **Large buildings,
+measured** (Ontario/Toronto only): Ontario's EWRB disclosure — median
+weather-normalized energy intensity by building type for every Ontario building
+over 100,000 sq ft, about half of it multifamily, which is the MURB stock the
+Retrofit Explorer models from the other side. **CHBA Net Zero labels** join the
+Greener Homes card as cited figures.
+
+Four findings worth keeping. **(1)** The provincial under-construction gap is
+settled: CMHC's own HMIP `ExportTable` endpoint returns *"This data series is
+now archived."* for Ontario July 2026, while December 2022 returns real data
+(162,813 units) and Ontario *starts* for July 2026 returns real data. So it is a
+genuine CMHC discontinuation, not a StatCan publication decision — the Tier-1
+hypothesis that HMIP might still carry it is disproved and the caveat stays.
+**(2)** Toronto's `EST_CONST_COST` is the literal string `DO NOT UPDATE OR
+DELETE THIS INFO FIELD` on ~45% of rows, so its dollar totals are an undercount
+of unknown size; its counts and dwelling-unit series are sound, so the
+cross-check compares Toronto on units created and Vancouver on permit value —
+each city on what its data can actually support. **(3)** Toronto needs *both*
+permit sets: "cleared" means closed, so alone it is badly right-censored (74
+permits in the final month against ~375 two months earlier); active + cleared
+gives a steady ~3,000/month. **(4)** EWRB is self-reported and published
+uncleansed — 27,685 of 30,693 rows usable, with every gate counted on the card,
+and the Data Quality Checker flag reported but never used as a filter because it
+records that a reporter ran a tool, not that the data passed.
+
+Deliberately **not** shipped: any CaGBC LEED or Zero Carbon count. CaGBC
+publishes no running total and its project database is behind a sign-in, so
+there is no figure that could be verified the way the CHBA and NRCan ones are —
+getting one means asking CaGBC. The Efficiency Canada code-stringency column
+proposed in Tier 2 is also still unbuilt for the same reason. `greener_homes_*`
+generalised to `cited_figures_*` now that two publishers use the pattern.
+Verified in the browser on desktop and mobile across ca/on/bc/toronto/vancouver:
+20 charts, no console errors, no horizontal overflow, and each new card
+correctly hidden where its data does not exist. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md).)
+
+Prior update **2026-08-27** (**Construction Tracker** — Tier 2 of the data-sources
 expansion, same day as Tier 1. Four additions: a **"Did it sell?"** card
 (34-10-0149 absorptions vs unsold inventory, with a months-of-inventory mode)
 closing the pipeline past completions; **"The cost of a building, by trade"**

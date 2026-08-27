@@ -871,7 +871,9 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Context series<small>house prices (NHPI), population, employment, mortgage rates, building costs (BCPI)</small></div>
     <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · building costs by trade 18-10-0289 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
     <div class="src">Demand<small>absorptions &amp; unsold inventory 34-10-0149 · rental vacancy 34-10-0127 (both CMA-only)</small></div>
-    <div class="src">Program counts<small>NRCan Greener Homes — hand-transcribed, machine-verified against the live page</small></div>
+    <div class="src">Program counts<small>NRCan Greener Homes · CHBA Net Zero labels — hand-transcribed, machine-verified against the live pages</small></div>
+    <div class="src">City permit desks<small>Vancouver (Opendatasoft) · Toronto (CKAN), incl. green-roof and solar-hot-water permits</small></div>
+    <div class="src">Building energy<small>Ontario EWRB — every Ontario building over 100,000 sq ft, self-reported</small></div>
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
   </div>
@@ -922,6 +924,22 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     And the absorptions and rental-vacancy tables have <b>no provincial members at all</b> — they are
     census-metropolitan-area tables — so that card shows metros directly, shows the all-CMA aggregate
     on a Canada view with the label saying so, and hides itself on a provincial view.</p>
+    <h4>Settling the provincial pipeline gap for good</h4>
+    <p>Tier 1 raised the possibility that CMHC still had the provincial under-construction series
+    even though StatCan had stopped publishing it. Tested directly against CMHC's own portal export
+    endpoint: Ontario under-construction for July 2026 comes back <i>"This data series is now
+    archived."</i>, while the same request for December 2022 returns real data (162,813 units) and
+    Ontario <i>starts</i> for July 2026 returns real data. The endpoint works; the series is gone.
+    It is a genuine CMHC discontinuation, and the page's caveat stands with two independent
+    confirmations behind it.</p>
+    <h4>Two cities, and what their data will and won't support</h4>
+    <p>City permit desks are the only address-level data on the page, and a city is not its metro
+    area — so the card states the ratio rather than implying the lines should meet. Toronto's cost
+    column turns out to hold the literal text <code>DO NOT UPDATE OR DELETE THIS INFO FIELD</code>
+    on about 45% of rows, so its dollar totals are an undercount; its permit counts and dwelling-unit
+    counts are sound. The cross-check therefore compares Toronto on dwelling units created and
+    Vancouver on permit value. Toronto also needs both its permit datasets: "cleared" means closed,
+    so on its own the recent months collapse to a fraction of the true count.</p>
     <h4>The one hand-typed number set on the page</h4>
     <p>NRCan's Greener Homes progress page has no data file, and each province's name sits
     <i>after</i> its figures in the markup — so a positional parser pairs them off by one and
