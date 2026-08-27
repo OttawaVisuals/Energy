@@ -1,7 +1,42 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-27** (**Heat Pump Explorer** — new collapsible "The 8,760
+Updated **2026-08-27** (**Construction Tracker** — Tier 1 of the data-sources
+expansion. Three new StatCan series join the context ETL and two new page
+sections are built on them, plus one section that needed no fetch at all.
+**"What it costs"**: the old trailing-12-month investment-by-work-type chart
+(2017-start, nominal-only) is replaced by the **Housing Economic Account**
+(36-10-0677) — new construction vs renovations vs ownership transfer costs,
+annual from **1961**, with a nominal/real toggle; and a new **renovation price
+index by project** (18-10-0286) showing heat pump, furnace, windows, solar
+panels and roofing against the all-projects composite. **"How green is what we
+build"**: housing starts against the median EnerGuide rating of new homes
+evaluated in the same province and year, read straight from the existing
+`newhomes_json/` — no new pipeline. Advanced mode gains **construction job
+vacancies and average offered wage** (14-10-0442) beside the employment-vs-
+backlog chart, because employment alone can't separate a labour shortage from a
+demand slump.
+
+Two coverage rules drove real UI decisions rather than footnotes: 18-10-0286
+publishes its 45 project types for **CMAs only** (provinces and the national
+composite carry the composite alone; PEI has no member), so that card has its
+own metro picker instead of following the page geography into an empty cell;
+and EnerGuide covers only the evaluated share of new construction, so years
+under 30 evaluations are suppressed, provinces with fewer than three usable
+years are hidden outright (Quebec, which has two), and the note reports the
+latest median with its sample size rather than a first-to-last delta — these
+medians are not monotonic and an endpoint change would imply a trend the data
+doesn't show. Also re-verified the documented provincial pipeline gap against
+34-10-0136 and 34-10-0143 through 2026-07: still null for every province *and*
+Canada, including the Toronto and Montréal members inside 0143. The caveat
+stands. One shared-helper change: `extract_table()` takes an optional `floor`
+and normalizes annual `REF_DATE` from bare `YYYY` to `YYYY-01` before the floor
+comparison — without it the 1990 default trim would have silently dropped a
+year of the annual cube. `context.json` 79 KB → 160 KB, 287 series. Verified in
+the browser on desktop and mobile across ca/bc/qc/pe/toronto, no console errors.
+See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md).)
+
+Prior update **2026-08-27** (**Heat Pump Explorer** — new collapsible "The 8,760
 hours behind these numbers" section, immediately before the methodology
 accordion: a 16-column, row-per-hour readout of the full simulated year
 (outdoor temp, load, run status, and COP/capacity/energy/GHG/cost split by

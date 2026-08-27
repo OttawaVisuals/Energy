@@ -74,6 +74,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .seg-btn{font-size:12px;padding:6px 12px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s}
 .seg-btn.active{background:var(--navy);color:#fff}
 .seg-btn:not(.active):hover{color:var(--navy)}
+.card-select{height:28px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 24px 0 8px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer;appearance:none;max-width:200px}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
@@ -298,15 +299,40 @@ footer a:hover{color:var(--amber2)}
       </div>
     </div>
 
-    <!-- 6 ▸ New build vs renovation -->
+    <!-- 6 ▸ What it costs -->
+    <div class="section-head">
+      <h2>What it costs</h2>
+      <p class="sec-sub">Two different questions: how the residential building dollar splits between putting up new homes and working on the ones we have, and what the work itself costs to buy.</p>
+    </div>
+
     <div class="card">
       <div class="card-title-row">
-        <div class="card-title">Investment by type of work — trailing 12 months</div>
-        <div class="chart-legend-inline" id="worktype-legend"></div>
+        <div class="card-title" id="worktype-title">New construction vs renovation — annual investment</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="worktype-legend"></div>
+          <div class="seg-toggle" id="worktype-real">
+            <button type="button" class="seg-btn" data-real="current">Nominal</button>
+            <button type="button" class="seg-btn active" data-real="constant">Real&nbsp;$</button>
+          </div>
+        </div>
       </div>
       <div class="cw cw-md" id="worktype-chart"></div>
-      <p class="note">Investment in building construction, unadjusted current dollars summed over the trailing 12 months (work-type splits aren't seasonally adjusted, so a rolling year removes the seasonality). Renovation is the retrofit economy — compare the <a href="retrofits.html">Retrofit Explorer</a>.</p>
+      <p class="note" id="worktype-note"></p>
       <div id="worktype-table"></div>
+    </div>
+
+    <!-- 7 ▸ Renovation price index by project -->
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title">What a renovation costs — price index by project</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="renoprice-legend"></div>
+          <select id="renoprice-cma" class="card-select" aria-label="Metro area for project-level renovation prices"></select>
+        </div>
+      </div>
+      <div class="cw cw-md" id="renoprice-chart"></div>
+      <p class="note" id="renoprice-note"></p>
+      <div id="renoprice-table"></div>
     </div>
 
     <!-- 8 ▸ Provincial comparison -->
@@ -382,6 +408,33 @@ footer a:hover{color:var(--amber2)}
         <div class="cw cw-md" id="labour-chart"></div>
         <p class="note" id="labour-note">Employment: Labour Force Survey, NAICS Construction, seasonally adjusted — all construction, not only residential.</p>
       </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title" id="vac-title">Construction job vacancies &amp; offered wage</div>
+          <div class="chart-legend-inline" id="vac-legend"></div>
+        </div>
+        <div class="cw cw-sm" id="vac-rate-chart"></div>
+        <div class="cw cw-sm" id="vac-wage-chart" style="margin-top:4px"></div>
+        <p class="note" id="vac-note"></p>
+      </div>
+    </div>
+
+    <!-- 13 ▸ How the new homes perform -->
+    <div id="perf-section">
+      <div class="section-head">
+        <h2>How green is what we build</h2>
+        <p class="sec-sub">Every chart above counts homes. This one asks what they're like to heat — the same country, the same years, measured instead of counted.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title" id="perf-title">Housing starts vs the energy rating of new homes</div>
+          <div class="chart-legend-inline" id="perf-legend"></div>
+        </div>
+        <div class="cw cw-sm" id="perf-starts-chart"></div>
+        <div class="cw cw-sm" id="perf-ers-chart" style="margin-top:4px"></div>
+        <p class="note" id="perf-note"></p>
+        <div id="perf-table"></div>
+      </div>
     </div>
 
   </div>
@@ -434,7 +487,8 @@ function geoLabel(code){
    table views). Brand navy remains for UI chrome via CSS --navy. */
 var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',purple:'#533AB7',red:'#B33A2E',gray:'#8A9BB0'};
 
-var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs', resnonresReal:'nominal' };
+var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs',
+               resnonresReal:'nominal', worktypeReal:'constant', renoCMA:null };
 var dataCache = {}, currentData = null, contextData = null, metaData = null;
 var allLoaded = false, cmaSort = {col:'starts', dir:-1};
 
@@ -444,18 +498,21 @@ function miStr(i){ var y=Math.floor(i/12), m=i%12+1; return y+'-'+(m<10?'0':'')+
 var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function miLabel(i){ return MONTHS[i%12]+' '+Math.floor(i/12); }
 
-/* series → [{m:monthIndex, v:value}] (nulls skipped); quarterly steps by 3 */
+/* series → [{m:monthIndex, v:value}] (nulls skipped).
+   Step in months per stored value: monthly 1, quarterly 3, annual 12. */
+var FREQ_STEP={m:1,q:3,a:12};
+function step(s){ return FREQ_STEP[s.freq]||1; }
 function pts(s){
   if(!s) return [];
-  var out=[], m0=mi(s.start), step=(s.freq==='q')?3:1;
+  var out=[], m0=mi(s.start), st=step(s);
   for(var i=0;i<s.values.length;i++)
-    if(s.values[i]!=null) out.push({m:m0+i*step, v:s.values[i]});
+    if(s.values[i]!=null) out.push({m:m0+i*st, v:s.values[i]});
   return out;
 }
 function lastPt(s){ var p=pts(s); return p.length?p[p.length-1]:null; }
 function valAt(s, m){
   if(!s) return null;
-  var m0=mi(s.start), step=(s.freq==='q')?3:1, idx=(m-m0)/step;
+  var m0=mi(s.start), idx=(m-m0)/step(s);
   if(idx<0||idx>=s.values.length||idx%1!==0) return null;
   return s.values[idx];
 }
@@ -947,17 +1004,129 @@ function renderResNonres(){
   stackedArea('ici-chart',ici,{share:false,money:true,fmt:fmtM});
 }
 
+/* ── what it costs ──────────────────────────────────────────────── */
+/* The Housing Economic Account is provincial only, so a metro view falls
+   back to its province — stated on the card, never silently. */
+var CMA_PROV={ottawa:'on',ottawa_on:'on',ottawa_qc:'qc',toronto:'on',montreal:'qc',
+  vancouver:'bc',calgary:'ab',edmonton:'ab',winnipeg:'mb',halifax:'ns'};
+function provOf(code){ return isCMA(code)?(CMA_PROV[code]||'ca'):code; }
+
 function renderWorktype(){
+  if(!contextData) return;
+  var geo=provOf(state.geo), real=state.worktypeReal;
   var series=[
     {key:'new',label:'New construction',color:PAL.navy},
-    {key:'renovation',label:'Renovation',color:PAL.amber},
-    {key:'conversion',label:'Conversion',color:PAL.gray}
+    {key:'reno',label:'Renovations',color:PAL.amber},
+    {key:'transfer',label:'Ownership transfer costs',color:PAL.gray}
   ].map(function(l){
-    return {label:l.label,color:l.color,pts:roll12(pts(S('invest.total.'+l.key+'.nsa_current'))),type:'line'};
+    return {label:l.label,color:l.color,type:'line',
+            pts:pts(CS('housing_acct.'+geo+'.'+l.key+'.'+real))};
   });
+  document.getElementById('worktype-title').textContent=
+    'New construction vs renovation — annual investment, '+geoLabel(provOf(state.geo));
   buildLegend(document.getElementById('worktype-legend'),series);
   timeChart('worktype-chart',{series:series,money:true,fmt:fmtM});
+
+  /* the ratio is the story: renovation as a share of new-build spending */
+  var nw=series[0].pts, rv=series[1].pts, ratio=null, ryr=null;
+  if(nw.length&&rv.length){
+    var rmap={}; rv.forEach(function(d){rmap[d.m]=d.v});
+    var last=nw[nw.length-1];
+    if(rmap[last.m]!=null&&last.v){ ratio=rmap[last.m]/last.v*100; ryr=Math.floor(last.m/12); }
+  }
+  document.getElementById('worktype-note').innerHTML=
+    'Residential investment from the Housing Economic Account (StatCan 36-10-0677), total economy, all dwelling types, '+
+    (real==='constant'?'<strong>constant dollars</strong> — inflation removed, so the lines are comparable across 64 years'
+                      :'<strong>current dollars</strong> — not inflation-adjusted')+
+    '. Annual, 1961 onward; provincial, so metro views show their province.'+
+    (ratio!=null?' In '+ryr+', renovation spending was <strong>'+ratio.toFixed(0)+'%</strong> of new-construction spending here.':'')+
+    ' Renovation is the retrofit economy — compare the <a href="retrofits.html">Retrofit Explorer</a>.';
   dataTable('worktype-table',series,{fmt:fmtM});
+}
+
+/* Project-level renovation prices are published for CMAs only; provinces and
+   the national composite carry the 8-project composite alone (measured against
+   the full table, 2026-08-27). So this card picks its own metro rather than
+   following the page geography into a geography with no detail. */
+var RENO_CMAS=[['toronto','Toronto'],['montreal','Montréal'],['vancouver','Vancouver'],
+  ['calgary','Calgary'],['edmonton','Edmonton'],['winnipeg','Winnipeg'],
+  ['ottawa_on','Ottawa (Ont. part)'],['halifax','Halifax']];
+var PROV_CMA={on:'toronto',qc:'montreal',bc:'vancouver',ab:'calgary',mb:'winnipeg',
+  ns:'halifax',ca:'toronto'};
+function defaultRenoCMA(){
+  if(isCMA(state.geo)) return state.geo==='ottawa'||state.geo==='ottawa_qc'?'ottawa_on':state.geo;
+  return PROV_CMA[state.geo]||'toronto';
+}
+function renderRenoPrice(){
+  if(!contextData) return;
+  var sel=document.getElementById('renoprice-cma');
+  if(!sel.options.length){
+    sel.innerHTML=RENO_CMAS.map(function(c){return '<option value="'+c[0]+'">'+c[1]+'</option>'}).join('');
+    sel.addEventListener('change',function(){ state.renoCMA=sel.value; renderRenoPrice(); });
+  }
+  if(!state.renoCMA) state.renoCMA=defaultRenoCMA();
+  sel.value=state.renoCMA;
+  var g=state.renoCMA;
+  var defs=[
+    {key:'composite',label:'All projects',color:PAL.gray,dash:'4,3'},
+    {key:'heatpump', label:'Heat pump',   color:PAL.green},
+    {key:'furnace',  label:'Furnace',     color:PAL.red},
+    {key:'windows',  label:'Windows',     color:PAL.navy},
+    {key:'solar',    label:'Solar panels',color:PAL.amber},
+    {key:'roofing',  label:'Roofing',     color:PAL.purple}
+  ];
+  var series=defs.map(function(d){
+    return {label:d.label,color:d.color,type:'line',dash:d.dash,
+            pts:pts(CS('reno_price.'+g+'.'+d.key))};
+  }).filter(function(s){ return s.pts.length; });
+  buildLegend(document.getElementById('renoprice-legend'),series);
+  timeChart('renoprice-chart',{series:series,
+    fmt:function(v){return v==null?'—':v.toFixed(1)}});
+
+  var hp=series.filter(function(s){return s.label==='Heat pump'})[0];
+  var line='';
+  if(hp&&hp.pts.length>1){
+    var a=hp.pts[0], b=hp.pts[hp.pts.length-1];
+    line=' A heat-pump installation in '+
+      (RENO_CMAS.filter(function(c){return c[0]===g})[0]||['','this metro'])[1]+
+      ' costs <strong>'+((b.v/a.v-1)*100).toFixed(0)+'% more</strong> than in '+
+      Math.floor(a.m/12)+'.';
+  }
+  document.getElementById('renoprice-note').innerHTML=
+    'Residential renovation price index (StatCan 18-10-0286), quarterly, 2017 = the start of the series. '+
+    'This is what contractors charge for the job, not what the equipment costs.'+line+
+    ' <strong>Coverage:</strong> project-level detail is published for census metropolitan areas only — '+
+    'provinces and the national composite carry the all-projects composite and nothing else, and Prince Edward Island '+
+    'has no member in this table. That is why this card has its own metro picker instead of following the page. '+
+    'See the <a href="heatpump.html">Heat Pump Explorer</a> for what the equipment does once installed.';
+  dataTable('renoprice-table',series,{fmt:function(v){return v==null?'—':v.toFixed(1)}});
+}
+
+/* ── construction labour market ─────────────────────────────────── */
+function renderVacancies(){
+  if(!contextData) return;
+  var geo=provOf(state.geo);
+  var rate={label:'Job vacancy rate (%)',color:PAL.red,type:'area',
+            pts:pts(CS('vac.'+geo+'.rate'))};
+  var wage={label:'Average offered wage ($/h)',color:PAL.blue,type:'line',
+            pts:pts(CS('vac.'+geo+'.wage'))};
+  document.getElementById('vac-title').textContent=
+    'Construction job vacancies & offered wage — '+geoLabel(geo);
+  buildLegend(document.getElementById('vac-legend'),[rate,wage]);
+  var all=rate.pts.concat(wage.pts);
+  var xd=all.length?[Math.min.apply(null,all.map(function(d){return d.m})),
+                     Math.max.apply(null,all.map(function(d){return d.m}))]:null;
+  timeChart('vac-rate-chart',{series:[rate],linkKey:'vac',xDomain:xd,
+    fmt:function(v){return v==null?'—':v.toFixed(1)+'%'}});
+  timeChart('vac-wage-chart',{series:[wage],linkKey:'vac',xDomain:xd,
+    fmt:function(v){return v==null?'—':'$'+v.toFixed(2)}});
+  var cnt=lastPt(CS('vac.'+geo+'.count'));
+  document.getElementById('vac-note').innerHTML=
+    'Job Vacancy and Wage Survey (StatCan 14-10-0442), NAICS 23 Construction, quarterly and '+
+    '<strong>not seasonally adjusted</strong> — this table publishes no adjusted variant, so read the '+
+    'trend rather than quarter-to-quarter steps. Provincial, so metro views show their province.'+
+    (cnt?' Latest: <strong>'+fmtInt(cnt.v)+'</strong> unfilled construction jobs in '+geoLabel(geo)+'.':'')+
+    ' Employment alone can\'t tell a labour shortage from a demand slump; the vacancy rate can.';
 }
 
 function renderRates(){
@@ -1010,6 +1179,76 @@ function renderLabour(){
   ];
   buildLegend(document.getElementById('labour-legend'),series);
   timeChart('labour-chart',{series:series,fmt:function(v){return v==null?'—':v.toFixed(0)}});
+}
+
+/* ── how green is what we build ─────────────────────────────────── */
+/* Joins this page's starts count to the EnerGuide performance of new homes
+   already precomputed for newhomes.html. Two independent programs, same
+   province and year — so the caveats have to be loud: EnerGuide covers only
+   the evaluated subset of new construction, not every start. */
+var NH_BASE='newhomes_json/';
+var NH_CODE={ca:'CA',nl:'NF',pe:'PE',ns:'NS',nb:'NB',qc:'QC',on:'ON',
+  mb:'MB',sk:'SK',ab:'AB',bc:'BC'};
+var nhCache={};
+var MIN_EVALS=30;   /* suppress a year's median below this many evaluations */
+
+function loadNewHomes(code){
+  if(nhCache[code]) return nhCache[code];
+  nhCache[code]=loadJSON(NH_BASE+code+'.json').catch(function(){ return null; });
+  return nhCache[code];
+}
+
+function renderPerf(){
+  var sec=document.getElementById('perf-section');
+  var prov=provOf(state.geo), code=NH_CODE[prov];
+  if(!code){ sec.style.display='none'; return; }
+  loadNewHomes(code).then(function(nh){
+    var bt=nh&&nh.by_type&&nh.by_type['All types'];
+    var ersBy=(bt&&bt.ers_by_year)||{}, fuelBy=(bt&&bt.fuel_by_year)||{};
+    var nOf=function(y){
+      var f=fuelBy[y]; if(!f) return 0;
+      return Object.keys(f).reduce(function(a,k){return a+f[k]},0);
+    };
+    /* keep only years with enough evaluations to publish a median */
+    var yrs=Object.keys(ersBy).map(Number).sort(function(a,b){return a-b})
+      .filter(function(y){ return ersBy[y]!=null && nOf(y)>=MIN_EVALS; });
+    if(yrs.length<3){ sec.style.display='none'; return; }
+    sec.style.display='';
+
+    var startsAnnual=annualSums(S('starts_unadj.starts.total'))
+      .filter(function(d){ return yrs.indexOf(d.y)>=0; });
+    var startsPts=startsAnnual.map(function(d){return {m:d.y*12, v:d.v}});
+    var ersPts=yrs.map(function(y){return {m:y*12, v:ersBy[y]}});
+    var xd=[Math.min(yrs[0],startsAnnual.length?startsAnnual[0].y:yrs[0])*12,
+            yrs[yrs.length-1]*12];
+
+    var sSeries={label:'Housing starts (complete years)',color:PAL.amber,type:'area',pts:startsPts};
+    var eSeries={label:'Median energy rating of new homes (GJ/yr)',color:PAL.green,type:'line',pts:ersPts};
+    document.getElementById('perf-title').textContent=
+      'Housing starts vs the energy rating of new homes — '+geoLabel(prov);
+    buildLegend(document.getElementById('perf-legend'),[sSeries,eSeries]);
+    timeChart('perf-starts-chart',{series:[sSeries],linkKey:'perf',xDomain:xd});
+    timeChart('perf-ers-chart',{series:[eSeries],linkKey:'perf',xDomain:xd,
+      fmt:function(v){return v==null?'—':v.toFixed(1)+' GJ/yr'}});
+
+    /* State the latest reading rather than a first-to-last change: these
+       medians are not monotonic (Canada rises, falls and rises again), so an
+       endpoint-to-endpoint delta would read as a trend the data doesn't show. */
+    var lastYr=yrs[yrs.length-1];
+    var totalEvals=yrs.reduce(function(a,y){return a+nOf(y)},0);
+    document.getElementById('perf-note').innerHTML=
+      'Upper panel: housing starts from CMHC, complete calendar years only. Lower panel: the median EnerGuide '+
+      'rating of new homes evaluated in '+geoLabel(prov)+' that year, in gigajoules per year — '+
+      '<strong>lower is better</strong>. In '+lastYr+' the median was <strong>'+ersBy[lastYr].toFixed(0)+
+      ' GJ/yr</strong> across '+fmtInt(nOf(lastYr))+' evaluations.'+
+      ' <strong>What this can\'t tell you:</strong> EnerGuide evaluations cover only the share of new construction that '+
+      'gets rated — '+fmtInt(totalEvals)+' evaluations across these '+yrs.length+' years, against far more starts — and '+
+      'that share is neither complete nor random, so the two panels are not a like-for-like ratio. Years with fewer than '+
+      MIN_EVALS+' evaluations are suppressed rather than plotted. Full method and per-home detail: '+
+      '<a href="newhomes.html">New Homes Explorer</a>.';
+    dataTable('perf-table',[sSeries,eSeries],
+      {fmt:function(v){return v==null?'—':(v>1000?fmtInt(v):v.toFixed(1))}});
+  });
 }
 
 /* ── comparison sections (need all geos) ────────────────────────── */
@@ -1094,9 +1333,12 @@ function renderAll(){
   renderMarket();
   renderResNonres();
   renderWorktype();
+  renderRenoPrice();
   renderRates();
   renderNetSupply();
   renderLabour();
+  renderVacancies();
+  renderPerf();
   renderProvBars();
   renderCMATable();
 }
@@ -1136,6 +1378,7 @@ function populateGeoSelect(){
 function switchGeo(code){
   if(code===state.geo) return;
   state.geo=code;
+  state.renoCMA=null;   /* let the renovation card follow the new geography */
   document.getElementById('geo-sel').value=code;
   fetchGeo(code).then(function(d){
     currentData=d;
@@ -1153,6 +1396,7 @@ function boot(){
   wireToggle('dwelling-share','data-share',function(v){state.dwellingShare=v;renderDwelling();});
   wireToggle('market-share','data-share',function(v){state.marketShare=v;renderMarket();});
   wireToggle('resnonres-real','data-real',function(v){state.resnonresReal=v;renderResNonres();});
+  wireToggle('worktype-real','data-real',function(v){state.worktypeReal=v;renderWorktype();});
 
   Promise.all([fetchGeo(state.geo), loadJSON(BASE_URL+'meta.json')])
     .then(function(res){
@@ -1166,7 +1410,9 @@ function boot(){
       renderAll();
       /* context + all-geo comparisons load in the background */
       loadJSON(BASE_URL+'context.json').then(function(c){
-        contextData=c; renderRates(); renderLabour(); renderProvBars();
+        contextData=c;
+        renderWorktype(); renderRenoPrice(); renderRates();
+        renderLabour(); renderVacancies(); renderProvBars();
       }).catch(function(e){ console.warn('context.json unavailable:',e.message); });
       loadAllGeos().then(function(){ renderProvBars(); renderCMATable(); })
         .catch(function(e){ console.warn('comparison load failed:',e.message); });
