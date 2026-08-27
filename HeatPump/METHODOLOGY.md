@@ -3571,3 +3571,60 @@ buttons scroll to (`m-grid`, `m-lifecycle`, `m-methane-map`) are preserved
 on the corresponding headings, so existing "?" info-tip links still resolve.
 No calculation, constant, or formula changed — this was a presentation-only
 rewrite of the same facts already covered elsewhere in this document.
+
+## Full hourly data table (2026-08-27)
+
+A new collapsible section, "The 8,760 hours behind these numbers," sits
+immediately before the Assumptions & methodology accordion — a row-by-row
+readout of the simulated year, added in response to a direct ask: the page
+already showed every summary number derived from the hour-by-hour
+simulation, but not the hours themselves. Sixteen columns per hour (grouped
+Weather & load / Baseline / Heat pump / Backup): outdoor temp, heat load,
+run status, COP, capacity (heat pump only), energy purchased, GHG and cost
+— split by baseline, heat pump and backup — plus a month filter and a CSV
+download of the full unfiltered year.
+
+**No new calculation.** Every cell is either already-simulated data that
+`simulate()` (`heatpump.html`) discarded after use, or a value already
+computed elsewhere on the page:
+
+- **HP COP and capacity** were computed every heating hour inside the
+  dispatch loop (`hpPerformance()`) but only used transiently to size that
+  hour's heat pump output, then thrown away. Now captured into `h_hp_cop[i]`
+  / `h_hp_cap[i]` and returned on `simulate()`'s `hourly` object — captured
+  even on hours the heat pump is locked out (capacity 0, COP null), so a
+  reader can see *why* it isn't running that hour, not just that it isn't.
+- **Per-hour $ cost** reuses `buildHourlyCostSeries()` verbatim — the same
+  function that already fed the cost-by-hour chart — so the table cannot
+  drift from the chart above it.
+- **Baseline COP and Backup COP are constant**, not hourly-varying: they're
+  the fixed AFUE/seasonal-COP values the user set (or the defaults), same
+  as the "Baseline — current system" assumption used throughout the rest of
+  the page. The table states this directly rather than implying two flat
+  numbers are a simulated curve.
+
+**Status column** reads *HP only / HP + backup / Backup only / No load*
+rather than a bare on/off boolean — derived from whether that hour's
+`hp_elec_kWh` and `backup_energy_kWh` are each nonzero, not tracked as a
+separate flag.
+
+**Performance:** built lazily (only when the `<details>` is opened) and
+only re-built while open, so a slider drag with the table collapsed costs
+nothing extra. 8,760 rows render as one plain HTML table inside a
+`max-height` scroll container rather than a virtualized list — simple and
+fast enough at this row count, consistent with this repo's "don't
+overcomplicate" default.
+
+**Bug found while building this:** the sticky two-row header's tinted
+group-background colours (`grp-base`/`grp-hp`/`grp-bk`) were set as
+low-alpha `rgba()` values with nothing opaque behind them, so on scroll the
+table's own body rows showed straight through the header instead of being
+covered by it. Fixed by compositing the tint as a `linear-gradient()` layer
+over an opaque `var(--cream)` base in the same `background` shorthand, so
+the sticky header stays fully opaque regardless of what scrolls beneath it.
+Confirmed live in a real fronted browser tab (the sandboxed preview pane
+used for the earlier check showed the same bleed pattern, but so did an
+un-fronted tab showing a stale frame entirely — this bug was real and
+distinct from that unrelated compositing artifact, isolated by comparing
+`getBoundingClientRect()` layout math, which was correct throughout,
+against the painted screenshot, which was not).
