@@ -3608,12 +3608,14 @@ rather than a bare on/off boolean — derived from whether that hour's
 `hp_elec_kWh` and `backup_energy_kWh` are each nonzero, not tracked as a
 separate flag.
 
-**Performance:** built lazily (only when the `<details>` is opened) and
-only re-built while open, so a slider drag with the table collapsed costs
-nothing extra. 8,760 rows render as one plain HTML table inside a
-`max-height` scroll container rather than a virtualized list — simple and
-fast enough at this row count, consistent with this repo's "don't
-overcomplicate" default.
+**Performance:** row *data* (`hdtRows`) rebuilds in full on every
+recompute while the table is open — cheap, since it's plain JS objects
+with no DOM — but only ever a no-op while the `<details>` is closed. The
+DOM **render** is virtualized: only the ~30–40 rows inside the scroll
+container's viewport (plus a small buffer) are ever put in the table, via
+two spacer `<tr>`s that size the rest of the scrollbar so it still behaves
+like a normal 8,760-row list. See "Full hourly data table — performance
+fix" below for why the first shipped version didn't do this.
 
 **Bug found while building this:** the sticky two-row header's tinted
 group-background colours (`grp-base`/`grp-hp`/`grp-bk`) were set as
@@ -3628,3 +3630,40 @@ un-fronted tab showing a stale frame entirely — this bug was real and
 distinct from that unrelated compositing artifact, isolated by comparing
 `getBoundingClientRect()` layout math, which was correct throughout,
 against the painted screenshot, which was not).
+
+### Full hourly data table — performance fix (2026-08-27)
+
+Reported live within hours of shipping: changing any slider or dropdown
+took 5–10 seconds, where the rest of the page still responded instantly.
+The first shipped version built the table lazily (correct — nothing runs
+while the `<details>` is closed) but then called that same full-build
+function, `hdtRebuild()`, on **every recompute** for as long as the section
+stayed open — not once when it was opened. `hdtRebuild()` built all 8,760
+rows as one HTML string and set it via `innerHTML`, so once a reader had
+looked at the table even briefly, every later slider tick re-ran that
+~780ms (measured on a fast machine — plausibly several seconds on a slower
+one) full rebuild, on top of the page's own existing per-tick chart-redraw
+cost.
+
+**Fix — virtualized rendering.** `hdtRebuild()` still rebuilds `hdtRows`
+(the row *data*, plain JS objects) in full every call — cheap, no DOM
+involved. Rendering was split out into `hdtRenderWindow()`, which computes
+which row indices fall inside `#hdt-scroll`'s current viewport
+(`scrollTop`/`HDT_ROW_H`, ±`HDT_BUFFER` rows) and puts only those rows in
+the DOM, bracketed by two spacer `<tr>`s (`start × HDT_ROW_H` and
+`(total − end) × HDT_ROW_H` tall) so the scrollbar still sizes and behaves
+as if all 8,760 rows were present. A `scroll` listener on `#hdt-scroll`,
+throttled to one recompute per animation frame, re-renders the window as
+the reader scrolls; the month filter (`hdtApplyFilter()`) resets scroll to
+top and recomputes which rows pass the filter once, not per row per
+scroll tick.
+
+Measured live on the deployed page, before vs. after: the table's own
+render cost dropped from ~780ms to ~60ms, and the cost of having the
+section open during a slider-equivalent recompute dropped from ~780ms+ to
+~190ms — against a ~440ms baseline recompute cost with the table closed
+that was already there beforehand (the page's existing chart redraws, not
+part of this feature, unchanged by this fix). Verified against the exact
+reported scenario: table open, then a real UI control change (baseline
+fuel dropdown), with no perceptible lag and correct table contents
+afterward.

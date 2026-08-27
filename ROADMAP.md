@@ -33,6 +33,24 @@ page (colours resolved from `readPalette()` and baked in at render time, so
 the section re-renders on every theme change rather than relying on CSS
 `var()` inside the SVG string). Filter state persists across a theme toggle.)
 
+Same-day follow-up **2026-08-27** (**Heat Pump Explorer** — performance fix
+for the new hourly table, reported live within hours of shipping: the table
+was rebuilding all 8,760 rows of DOM on **every recompute** while its
+section stayed open, not just once when opened, so leaving it expanded
+turned every slider drag or dropdown change into a 5–10s stall. Fixed with
+virtualized rendering — only the ~30–40 rows inside the scroll viewport
+are ever in the DOM, via two spacer `<tr>`s sizing the rest of the
+scrollbar for it; row *data* (`hdtRows`, plain JS objects) still rebuilds
+in full every time, only the DOM render is windowed. Measured live on the
+deployed page: table-render cost dropped from ~780ms to ~60ms, and the
+added cost of having the section open during a recompute dropped from
+~780ms+ to ~190ms (on top of the page's pre-existing ~440ms recompute cost
+from its own chart redraws, unrelated to this feature and unchanged).
+Verified against the exact reported scenario — table open, then a real UI
+dropdown change (baseline fuel) — with no perceptible lag and correct
+table contents. See `HeatPump/METHODOLOGY.md`'s 2026-08-27 "Full hourly
+data table" entry, updated in place.)
+
 Prior update **2026-08-25** (**Retrofit Insights** — new §10 "One house at a time":
 a second, external dataset alongside the ERS-derived numbers. Scraped Retrofit
 Canada's case-study library (48 self-submitted deep/net-zero home retrofits,
@@ -580,7 +598,7 @@ lifecycle-update candidates logged — see
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
-| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09); propane backup + per-chart month/week zoom on all 7 full-year charts + two-color backup (fossil vs. electric) + hourly-methane bug fix; axis-label cleanup, daily-sum vs. daily-mean split, Step 6 reference lines, Final-numbers tidy-up, one-page PDF summary button (2026-08-21); ON grid-EF proxy city Toronto→London + cold/warm-tail extrapolation (2026-08-24); full 8,760-hour data table with CSV export, before the methodology section (2026-08-27) |
+| 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09); propane backup + per-chart month/week zoom on all 7 full-year charts + two-color backup (fossil vs. electric) + hourly-methane bug fix; axis-label cleanup, daily-sum vs. daily-mean split, Step 6 reference lines, Final-numbers tidy-up, one-page PDF summary button (2026-08-21); ON grid-EF proxy city Toronto→London + cold/warm-tail extrapolation (2026-08-24); full 8,760-hour data table with CSV export, before the methodology section, virtualized same-day after a live perf report (2026-08-27) |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
