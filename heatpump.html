@@ -5069,7 +5069,17 @@ function dayLabel(dayOfYear){
 // so a slider drag with the table closed costs nothing, and opening it (or
 // switching months) never re-runs the simulation, just re-slices the last
 // result already sitting in lastRes/lastCostSeries.
-let hdtRows=null;
+//
+// The body is virtualized: with the table open, a slider drag re-renders
+// on every recompute (each input event), so building all ~8,760 rows of
+// DOM every time was the actual cost (~0.8s here, worse on a real machine,
+// compounding per drag tick) -- not the one-off cost of opening it. Only
+// the rows inside the scroll viewport (+ a small buffer) are ever in the
+// DOM; two spacer <tr>s stand in for the rest so the scrollbar still sizes
+// correctly. hdtRows (plain JS objects, no DOM) IS rebuilt in full every
+// time -- that part is cheap; only the render is windowed.
+let hdtRows=null, hdtFiltered=null, hdtWinStart=-1, hdtWinEnd=-1, hdtScrollScheduled=false;
+const HDT_ROW_H=28, HDT_BUFFER=10;
 function monthOfDayForTable(dayOfYear){
   let mi=0; for(let k=0;k<12;k++){ if(dayOfYear>=DAY0_MONTH[k]) mi=k; } return mi+1;
 }
@@ -5101,11 +5111,12 @@ function hdtBuildRows(res,costSeries){
   return rows;
 }
 function hdtNum(v,dec){ return (v==null||isNaN(v))?'–':v.toFixed(dec); }
-function hdtRenderRows(rows,moFilter){
+// Renders one already-sliced window of rows (no filtering here -- that
+// happens once in hdtComputeFiltered, not on every scroll tick).
+function hdtRenderRows(rows){
   const parts=[];
   for(let k=0;k<rows.length;k++){
     const r=rows[k];
-    if(moFilter>=0 && r.mo!==moFilter) continue;
     parts.push(`<tr${r.status==='No load'?' class="hdt-mut"':''}>`+
       `<td class="hdt-lbl">${r.label}</td>`+
       `<td>${hdtNum(r.temp,1)}</td><td>${hdtNum(r.load,2)}</td><td class="hdt-status">${r.status}</td>`+
@@ -5120,19 +5131,55 @@ function hdtPopulateMonthSelect(){
   MONTH_NAMES.forEach((m,idx)=>{ const o=document.createElement('option'); o.value=idx+1; o.textContent=m; sel.appendChild(o); });
   sel.dataset.built='1';
 }
+function hdtComputeFiltered(){
+  const moFilter=+($('hdt-month').value);
+  hdtFiltered = moFilter<0 ? hdtRows : hdtRows.filter(r=>r.mo===moFilter);
+  $('hdt-count').textContent=fmtI(hdtFiltered.length)+' of '+fmtI(hdtRows.length)+' hours shown';
+}
+// Renders only the rows currently in (or near) the scroll viewport. `force`
+// re-renders even if the window index range hasn't moved -- needed after a
+// recompute, since the row *values* changed even though the scroll position
+// (and therefore which indices are visible) didn't.
+function hdtRenderWindow(force){
+  const scroller=$('hdt-scroll');
+  if(!hdtFiltered||!scroller)return;
+  const total=hdtFiltered.length;
+  if(total===0){
+    $('hdt-tbody').innerHTML='<tr><td class="hdt-loading" colspan="17">No hours match.</td></tr>';
+    hdtWinStart=-1; hdtWinEnd=-1;
+    return;
+  }
+  const scrollTop=scroller.scrollTop, viewH=scroller.clientHeight||400;
+  const start=Math.max(0, Math.floor(scrollTop/HDT_ROW_H)-HDT_BUFFER);
+  const end=Math.min(total, Math.ceil((scrollTop+viewH)/HDT_ROW_H)+HDT_BUFFER);
+  if(!force && start===hdtWinStart && end===hdtWinEnd)return;
+  hdtWinStart=start; hdtWinEnd=end;
+  const topH=start*HDT_ROW_H, botH=(total-end)*HDT_ROW_H;
+  $('hdt-tbody').innerHTML=
+    `<tr style="height:${topH}px"><td colspan="17" style="padding:0;border:none"></td></tr>`+
+    hdtRenderRows(hdtFiltered.slice(start,end))+
+    `<tr style="height:${botH}px"><td colspan="17" style="padding:0;border:none"></td></tr>`;
+}
+function hdtOnScroll(){
+  if(hdtScrollScheduled)return;
+  hdtScrollScheduled=true;
+  requestAnimationFrame(()=>{ hdtScrollScheduled=false; hdtRenderWindow(false); });
+}
 function hdtApplyFilter(){
   if(!hdtRows)return;
-  const moFilter=+($('hdt-month').value);
-  const html=hdtRenderRows(hdtRows,moFilter);
-  $('hdt-tbody').innerHTML=html||'<tr><td class="hdt-loading" colspan="17">No hours match.</td></tr>';
-  const shown=moFilter<0?hdtRows.length:hdtRows.filter(r=>r.mo===moFilter).length;
-  $('hdt-count').textContent=fmtI(shown)+' of '+fmtI(hdtRows.length)+' hours shown';
+  const scroller=$('hdt-scroll'); if(scroller)scroller.scrollTop=0;
+  hdtComputeFiltered();
+  hdtRenderWindow(true);
 }
+// Rebuilds the row DATA in full every call (cheap -- plain objects, no DOM)
+// but only re-renders the DOM window currently on screen, so a slider drag
+// with the table open no longer re-renders 8,760 rows on every tick.
 function hdtRebuild(){
   if(!lastRes)return;
   hdtRows=hdtBuildRows(lastRes,lastCostSeries);
   hdtPopulateMonthSelect();
-  hdtApplyFilter();
+  hdtComputeFiltered();
+  hdtRenderWindow(true);
 }
 // Called from recompute() on every input change -- cheap no-op while the
 // table is closed, only rebuilds when it's actually visible.
@@ -5142,6 +5189,7 @@ function renderHourlyTable(){
 }
 if($('hdt-details')) $('hdt-details').addEventListener('toggle',()=>{ if($('hdt-details').open) hdtRebuild(); });
 if($('hdt-month')) $('hdt-month').addEventListener('change',hdtApplyFilter);
+if($('hdt-scroll')) $('hdt-scroll').addEventListener('scroll',hdtOnScroll);
 function hdtCsvField(v){ return v==null||typeof v!=='number'||isNaN(v)?'':v; }
 if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
   if(!lastRes)return;
