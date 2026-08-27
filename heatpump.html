@@ -184,6 +184,31 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .ht-table td.ht-num{text-align:right;font-variant-numeric:tabular-nums}
 .ht-table tr.ht-row-avg td{color:var(--muted);font-style:italic}
 
+/* ── Full 8,760-hour data table ── */
+.hdt-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:.7rem 0}
+.hdt-toolbar select{padding:.4rem .55rem;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:12.5px}
+.hdt-count{font-size:12px;color:var(--muted);margin-left:auto}
+.hdt-scroll{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:var(--r-md)}
+.hdt-table{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;white-space:nowrap}
+.hdt-table th,.hdt-table td{padding:4px 7px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.hdt-table td:last-child,.hdt-table th:last-child{border-right:none}
+.hdt-table td{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+.hdt-table td.hdt-lbl{text-align:left;color:var(--ink);position:sticky;left:0;background:var(--card);z-index:1}
+.hdt-table thead th{position:sticky;background:var(--cream);color:var(--muted);font-weight:600;text-align:center;z-index:3}
+.hdt-table thead tr:first-child th{top:0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.hdt-table thead tr:last-child th{top:26px;font-size:10px;text-transform:uppercase;letter-spacing:.03em;font-weight:500;line-height:1.3;white-space:normal}
+.hdt-table thead th.hdt-lbl{left:0;z-index:4;text-align:left}
+.hdt-unit{display:block;font-weight:400;text-transform:none;letter-spacing:0;opacity:.7}
+.hdt-table thead th.grp-when{background:var(--surface)}
+.hdt-table thead th.grp-base{background:linear-gradient(rgba(200,60,50,.16),rgba(200,60,50,.16)),var(--cream)}
+.hdt-table thead th.grp-hp{background:linear-gradient(rgba(60,150,90,.20),rgba(60,150,90,.20)),var(--cream)}
+.hdt-table thead th.grp-bk{background:linear-gradient(rgba(200,136,26,.20),rgba(200,136,26,.20)),var(--cream)}
+.hdt-table tbody tr:hover td{background:rgba(0,0,0,.035)}
+.hdt-table tbody tr:hover td.hdt-lbl{background:var(--cream)}
+.hdt-table tr.hdt-mut td{color:var(--muted)}
+.hdt-table td.hdt-status{text-align:left}
+.hdt-loading{padding:1.4rem;text-align:center;color:var(--muted);font-size:13px}
+
 /* ── Output sections ── */
 .out-section{margin:0 0 2.1rem}
 .out-section:last-of-type{margin-bottom:1rem}
@@ -913,6 +938,58 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   </div>
 </div>
 
+
+<section class="methodology" id="hourly-data" aria-label="Full hourly data table">
+  <div class="out-section-head" style="margin-bottom:.75rem">
+    <h2 class="out-section-title">The 8,760 hours behind these numbers</h2>
+    <p class="out-section-intro">Every hour of the simulated year, row by row — the same figures the charts and totals above are built from, with nothing rounded away or averaged out.</p>
+  </div>
+  <details id="hdt-details">
+    <summary>Show the hour-by-hour table (8,760 rows)</summary>
+    <div class="method-body">
+      <p>Each row is one hour of the typical-meteorological-year weather record for the selected city. <b>Baseline COP</b> and <b>Backup COP</b> are the fixed efficiencies you set (or the defaults) — they don't vary hour to hour in this model, unlike the heat pump's COP and capacity, which follow outdoor temperature. Costs use the currently selected electricity plan and are $0 for a component that draws no energy that hour.</p>
+      <div class="hdt-toolbar">
+        <label for="hdt-month" style="font-size:12.5px;color:var(--muted)">Month</label>
+        <select id="hdt-month"><option value="-1">All 12 months</option></select>
+        <button id="hdt-csv" class="weather-btn">Download full year as CSV</button>
+        <span class="hdt-count" id="hdt-count"></span>
+      </div>
+      <div class="hdt-scroll" id="hdt-scroll">
+        <table class="hdt-table" id="hdt-table">
+          <thead>
+            <tr>
+              <th class="hdt-lbl" rowspan="2">When</th>
+              <th class="grp-when" colspan="3">Weather &amp; load</th>
+              <th class="grp-base" colspan="4">Baseline — current system</th>
+              <th class="grp-hp" colspan="5">Heat pump</th>
+              <th class="grp-bk" colspan="4">Backup</th>
+            </tr>
+            <tr>
+              <th class="grp-when">Temp<span class="hdt-unit">°C</span></th>
+              <th class="grp-when">Load<span class="hdt-unit">kW</span></th>
+              <th class="grp-when">Status</th>
+              <th class="grp-base">COP</th>
+              <th class="grp-base">Energy<span class="hdt-unit">kWh</span></th>
+              <th class="grp-base">GHG<span class="hdt-unit">kg</span></th>
+              <th class="grp-base">Cost<span class="hdt-unit">$</span></th>
+              <th class="grp-hp">COP</th>
+              <th class="grp-hp">Capacity<span class="hdt-unit">kW</span></th>
+              <th class="grp-hp">Energy<span class="hdt-unit">kWh</span></th>
+              <th class="grp-hp">GHG<span class="hdt-unit">kg</span></th>
+              <th class="grp-hp">Cost<span class="hdt-unit">$</span></th>
+              <th class="grp-bk">COP</th>
+              <th class="grp-bk">Energy<span class="hdt-unit">kWh</span></th>
+              <th class="grp-bk">GHG<span class="hdt-unit">kg</span></th>
+              <th class="grp-bk">Cost<span class="hdt-unit">$</span></th>
+            </tr>
+          </thead>
+          <tbody id="hdt-tbody"><tr><td class="hdt-loading" colspan="17">Run a scenario above, then open this table.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="caveats">GHG and cost are per-hour splits of the same figures totalled in the KPIs and charts above — they will sum to the annual totals (to rounding). "Status" reads Backup only / HP + backup / HP only / No load; the heat pump's own COP and capacity are shown even on hours it doesn't run (e.g. locked out by cold), so you can see why it didn't.</div>
+    </div>
+  </details>
+</section>
 
 <section class="methodology" id="methodology" aria-label="Assumptions and methodology">
   <div class="out-section-head" style="margin-bottom:.75rem">
@@ -1797,6 +1874,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     var h_base_in = new Array(N).fill(0),
       h_hp_elec = new Array(N).fill(0),
       h_bk_in = new Array(N).fill(0);
+    // hourly HP performance at the outdoor temp that hour -- captured even on
+    // hours the HP doesn't run (locked out) so the table/export can show why.
+    var h_hp_cop = new Array(N).fill(null),
+      h_hp_cap = new Array(N).fill(0);
 
     var G2KG = 0.001; // grams -> kg
 
@@ -1862,6 +1943,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             : hp.ewt
           : undefined;
       var perf = hpPerformance(hp, T, ewt);
+      h_hp_cop[i] = perf.cop;
+      h_hp_cap[i] = perf.capacity_kW;
 
       // Control strategy decides whether the HP is allowed to run this hour and
       // how much of the load it may take.
@@ -2036,6 +2119,9 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         base_energy_kWh: h_base_in,
         hp_elec_kWh: h_hp_elec,
         backup_energy_kWh: h_bk_in,
+        hp_cop: h_hp_cop,
+        hp_capacity_kW: h_hp_cap,
+        temp_C: temps,
       },
       meta: {
         hours: N,
@@ -2043,6 +2129,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         ef_level_g_per_kWh: efLevel || opts.ef.reference_level_g_per_kWh,
         ef_province: opts.ef.meta ? opts.ef.meta.province : null,
         control_strategy: control.strategy,
+        base_efficiency: baseEff,
+        backup_efficiency: backup.efficiency,
+        backup_type: backup.type,
+        start_month: startMonth,
       },
     };
   }
@@ -2704,7 +2794,7 @@ function cityBalancePointDefault(city){
   for(const r of rows){acc+=r.w;if(acc>=total/2)return Math.round(r.v*2)/2;}
   return rows.length?rows[rows.length-1].v:10.5;
 }
-let lastRes=null, lastOpts=null;
+let lastRes=null, lastOpts=null, lastCostSeries=null, lastPlanKey=null;
 
 // ==========================================================================
 // Boot
@@ -4973,6 +5063,111 @@ function dayLabel(dayOfYear){
 }
 
 // ==========================================================================
+// Full 8,760-hour data table
+// ==========================================================================
+// Row build + render are split from the month-filter/toggle handlers below
+// so a slider drag with the table closed costs nothing, and opening it (or
+// switching months) never re-runs the simulation, just re-slices the last
+// result already sitting in lastRes/lastCostSeries.
+let hdtRows=null;
+function monthOfDayForTable(dayOfYear){
+  let mi=0; for(let k=0;k<12;k++){ if(dayOfYear>=DAY0_MONTH[k]) mi=k; } return mi+1;
+}
+function hdtStatus(H,i){
+  if(H.load_kW[i]<=1e-9) return 'No load';
+  const hpOn=H.hp_elec_kWh[i]>1e-9, bkOn=H.backup_energy_kWh[i]>1e-9;
+  if(hpOn&&bkOn) return 'HP + backup';
+  if(hpOn) return 'HP only';
+  if(bkOn) return 'Backup only';
+  return 'Unmet load';
+}
+function hdtBuildRows(res,costSeries){
+  const H=res.hourly, N=H.load_kW.length;
+  const baseEff=res.meta.base_efficiency, bkEff=res.meta.backup_efficiency, bkType=res.meta.backup_type;
+  const rows=new Array(N);
+  for(let i=0;i<N;i++){
+    const dow=Math.floor(i/24), hr=(i%24)+1;
+    rows[i]={
+      mo:monthOfDayForTable(dow), label:dayLabel(dow)+', h'+hr,
+      temp:H.temp_C[i], load:H.load_kW[i], status:hdtStatus(H,i),
+      baseCop:baseEff, baseEnergy:H.base_energy_kWh[i], baseGhg:H.base_ghg_kg[i],
+      baseCost:costSeries?costSeries.baseCost[i]:null,
+      hpCop:H.hp_cop[i], hpCap:H.hp_capacity_kW[i], hpEnergy:H.hp_elec_kWh[i], hpGhg:H.hp_ghg_kg[i],
+      hpCost:costSeries?costSeries.hpCost[i]:null,
+      bkCop:bkType==='none'?null:bkEff, bkEnergy:H.backup_energy_kWh[i], bkGhg:H.backup_ghg_kg[i],
+      bkCost:costSeries?costSeries.bkCost[i]:null,
+    };
+  }
+  return rows;
+}
+function hdtNum(v,dec){ return (v==null||isNaN(v))?'–':v.toFixed(dec); }
+function hdtRenderRows(rows,moFilter){
+  const parts=[];
+  for(let k=0;k<rows.length;k++){
+    const r=rows[k];
+    if(moFilter>=0 && r.mo!==moFilter) continue;
+    parts.push(`<tr${r.status==='No load'?' class="hdt-mut"':''}>`+
+      `<td class="hdt-lbl">${r.label}</td>`+
+      `<td>${hdtNum(r.temp,1)}</td><td>${hdtNum(r.load,2)}</td><td class="hdt-status">${r.status}</td>`+
+      `<td>${hdtNum(r.baseCop,2)}</td><td>${hdtNum(r.baseEnergy,2)}</td><td>${hdtNum(r.baseGhg,2)}</td><td>${hdtNum(r.baseCost,2)}</td>`+
+      `<td>${hdtNum(r.hpCop,2)}</td><td>${hdtNum(r.hpCap,2)}</td><td>${hdtNum(r.hpEnergy,2)}</td><td>${hdtNum(r.hpGhg,2)}</td><td>${hdtNum(r.hpCost,2)}</td>`+
+      `<td>${hdtNum(r.bkCop,2)}</td><td>${hdtNum(r.bkEnergy,2)}</td><td>${hdtNum(r.bkGhg,2)}</td><td>${hdtNum(r.bkCost,2)}</td></tr>`);
+  }
+  return parts.join('');
+}
+function hdtPopulateMonthSelect(){
+  const sel=$('hdt-month'); if(!sel||sel.dataset.built)return;
+  MONTH_NAMES.forEach((m,idx)=>{ const o=document.createElement('option'); o.value=idx+1; o.textContent=m; sel.appendChild(o); });
+  sel.dataset.built='1';
+}
+function hdtApplyFilter(){
+  if(!hdtRows)return;
+  const moFilter=+($('hdt-month').value);
+  const html=hdtRenderRows(hdtRows,moFilter);
+  $('hdt-tbody').innerHTML=html||'<tr><td class="hdt-loading" colspan="17">No hours match.</td></tr>';
+  const shown=moFilter<0?hdtRows.length:hdtRows.filter(r=>r.mo===moFilter).length;
+  $('hdt-count').textContent=fmtI(shown)+' of '+fmtI(hdtRows.length)+' hours shown';
+}
+function hdtRebuild(){
+  if(!lastRes)return;
+  hdtRows=hdtBuildRows(lastRes,lastCostSeries);
+  hdtPopulateMonthSelect();
+  hdtApplyFilter();
+}
+// Called from recompute() on every input change -- cheap no-op while the
+// table is closed, only rebuilds when it's actually visible.
+function renderHourlyTable(){
+  const details=$('hdt-details');
+  if(details&&details.open) hdtRebuild();
+}
+if($('hdt-details')) $('hdt-details').addEventListener('toggle',()=>{ if($('hdt-details').open) hdtRebuild(); });
+if($('hdt-month')) $('hdt-month').addEventListener('change',hdtApplyFilter);
+function hdtCsvField(v){ return v==null||typeof v!=='number'||isNaN(v)?'':v; }
+if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
+  if(!lastRes)return;
+  const rows=hdtRows||hdtBuildRows(lastRes,lastCostSeries);
+  const header=['Day, hour','Outdoor temp (C)','Heat load (kW)','Status',
+    'Baseline COP','Baseline energy (kWh)','Baseline GHG (kg)','Baseline cost (CAD)',
+    'HP COP','HP capacity (kW)','HP energy (kWh)','HP GHG (kg)','HP cost (CAD)',
+    'Backup COP','Backup energy (kWh)','Backup GHG (kg)','Backup cost (CAD)'];
+  const lines=[header.join(',')];
+  rows.forEach(r=>{
+    lines.push([
+      '"'+r.label+'"',hdtCsvField(r.temp),hdtCsvField(r.load),'"'+r.status+'"',
+      hdtCsvField(r.baseCop),hdtCsvField(r.baseEnergy),hdtCsvField(r.baseGhg),hdtCsvField(r.baseCost),
+      hdtCsvField(r.hpCop),hdtCsvField(r.hpCap),hdtCsvField(r.hpEnergy),hdtCsvField(r.hpGhg),hdtCsvField(r.hpCost),
+      hdtCsvField(r.bkCop),hdtCsvField(r.bkEnergy),hdtCsvField(r.bkGhg),hdtCsvField(r.bkCost),
+    ].join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`heatpump_hourly_${state.city}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ==========================================================================
 // Methodology
 // ==========================================================================
 function openMethod(){$('method-details').open=true;}
@@ -5147,6 +5342,8 @@ function renderCost(res){
     note.style.display='none';
     setCostStat('–','rates unavailable','');
     setSummaryCost(null);
+    lastCostSeries=null; lastPlanKey=null;
+    renderHourlyTable();
     return;
   }
   const ck=CITY_KEY[state.city];
@@ -5156,6 +5353,8 @@ function renderCost(res){
     $('cost-chart-card').style.display='none';
     body.innerHTML='<div class="cost-hook"><div class="ch-title">Rates not modelled for this city</div><div class="ch-body">This run compares energy and emissions only. Residential rates for '+state.city+' are not in the prices dataset yet.</div></div>';
     note.style.display='none';
+    lastCostSeries=null; lastPlanKey=null;
+    renderHourlyTable();
     return;
   }
   const planKey=syncPlanSelector(elec);
@@ -5239,6 +5438,7 @@ function renderCost(res){
   // ---- cost vs outdoor temperature ----
   const costSvg=$('cost-chart');
   const series=buildHourlyCostSeries(res,elec,gas,oil,planKey);
+  lastCostSeries=series; lastPlanKey=planKey;
   if(costSvg&&series){
     $('cost-chart-card').style.display='';
     const view=state.costView;
@@ -5249,6 +5449,7 @@ function renderCost(res){
   } else if($('cost-chart-card')) {
     $('cost-chart-card').style.display='none';
   }
+  renderHourlyTable();
 }
 // Per-hour $ cost, now vs heat pump, for the whole weather year — volumetric
 // energy charges only (fixed monthly service charges are identical in both
