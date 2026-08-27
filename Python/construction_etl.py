@@ -335,7 +335,7 @@ CHUNK_ROWS = 500_000
 USE_COLS = ["REF_DATE", "COORDINATE", "VALUE", "UOM", "SCALAR_FACTOR"]
 
 
-def extract_table(zip_path, ndims, allowed, geo_ids):
+def extract_table(zip_path, ndims, allowed, geo_ids, floor=None):
     """
     Stream the (possibly multi-GB) table CSV out of its zip in chunks, keeping
     only the exact rows we want, matched on the COORDINATE column.
@@ -348,12 +348,22 @@ def extract_table(zip_path, ndims, allowed, geo_ids):
 
     allowed : {tuple(non-geo member ids in dim order) -> series key}
     geo_ids : iterable of geography (dim 1) member ids to keep.
+    floor   : earliest 'YYYY-MM' to keep; defaults to FLOOR_MONTH. Pass an
+              earlier floor for the small annual cubes, where the 1990 trim
+              that keeps the monthly CMHC files small costs real history.
+
+    ANNUAL CUBES: StatCan publishes REF_DATE as bare 'YYYY' in annual tables
+    (36-10-0677), not 'YYYY-MM'. Those are normalized to 'YYYY-01' here, before
+    the floor comparison — a bare 'YYYY' would otherwise sort below every
+    'YYYY-MM' floor of the same year and silently drop that year's row.
 
     Returns (series, uom, scalar) where
         series : {geo_member_id: {series_key: {"YYYY-MM": value}}}
         uom    : the unit-of-measure string(s) seen ("; "-joined if >1)
         scalar : the SCALAR_FACTOR string(s) seen ("; "-joined if >1)
     """
+    keep_from = floor or FLOOR_MONTH
+
     # full coordinate string -> (geo id, series key)
     coord_map = {}
     for geo in geo_ids:
@@ -380,7 +390,9 @@ def extract_table(zip_path, ndims, allowed, geo_ids):
                 for coord, month, raw, uom, scal in zip(
                         sub["COORDINATE"], sub["REF_DATE"], sub["VALUE"],
                         sub["UOM"], sub["SCALAR_FACTOR"]):
-                    if month < FLOOR_MONTH:
+                    if len(month) == 4:          # annual cube: 'YYYY'
+                        month = f"{month}-01"
+                    if month < keep_from:
                         continue
                     val = parse_value(raw)
                     if val is None:

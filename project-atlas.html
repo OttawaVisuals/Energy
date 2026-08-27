@@ -862,12 +862,15 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <a class="live-link" href="https://ottawavisuals.github.io/Energy/construction" target="_blank">open the tool ↗</a>
   </div>
   <p><b>In one sentence:</b> building permits → housing starts → completions for Canada, every
-  province and 8 metro areas, refreshed automatically on the 20th of each month.</p>
+  province and 8 metro areas — plus what the building costs, who is available to build it, and how
+  the finished homes actually perform — refreshed automatically on the 20th of each month.</p>
 
   <h3>Where the data comes from</h3>
   <div class="srcs">
     <div class="src">StatCan tables<small>permits 34-10-0292 · investment 34-10-0293 · starts 34-10-0151/0154/0158 · market 34-10-0148</small></div>
     <div class="src">Context series<small>house prices (NHPI), population, employment, mortgage rates, building costs (BCPI)</small></div>
+    <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
+    <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
   </div>
 
@@ -898,6 +901,18 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     accepting that, four candidate tables were queried live (34-10-0151, 0136, 0139, annual 0126) —
     all null after 2022. Conclusion: CMHC genuinely discontinued provincial-level reporting of those
     stages; only metro areas continue. The dashboard annotates the gap rather than hiding the series.
+    <p>Re-verified 2026-08-27 against 34-10-0136 and 34-10-0143 through 2026-07 — still null for
+    every province <i>and</i> for Canada, including the Toronto and Montréal members inside 0143.
+    The caveat stands.</p>
+    <h4>Coverage rules that shape what each card can show</h4>
+    <p>Two of the newer series are published unevenly, and the page is built around that rather than
+    papering over it. <b>Renovation prices by project</b> (18-10-0286) publish the 45 project types
+    for census metropolitan areas <i>only</i> — provinces and the national composite carry the
+    all-projects composite alone, and Prince Edward Island has no member at all — so that card
+    carries its own metro picker instead of following the page geography into an empty cell.
+    <b>New-home energy ratings</b> come from EnerGuide, which covers only the evaluated share of new
+    construction, so years with fewer than 30 evaluations are suppressed rather than plotted, and the
+    card states plainly that the two panels are not a like-for-like ratio.</p>
     The status doc says: <em>do not go looking for a replacement table</em> — it was a saga.</p>
     <h4>Chart design</h4>
     <p>Where two measures share a story (e.g. starts vs interest rates), the page uses a
