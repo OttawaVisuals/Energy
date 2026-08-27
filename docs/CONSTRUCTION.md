@@ -25,10 +25,18 @@ solar panels, roofing against the all-projects composite.
 
 **"How green is what we build"** (added 2026-08-27): housing starts against the median
 EnerGuide rating of new homes evaluated in the same province and year, reusing
-`newhomes_json/` — the only section on the page that needs no fetch of its own.
+`newhomes_json/` — the only section on the page that needs no fetch of its own; plus
+a Greener Homes program card (grants, top-5 retrofit measure counts, per-province
+totals).
 
 Advanced mode also gains construction job vacancies and the average offered hourly
 wage, alongside the existing employment-vs-backlog chart.
+
+**Tier 2 (added 2026-08-27):** a *"Did it sell?"* card (absorptions vs unsold
+inventory, with a months-of-inventory mode) closing the pipeline past completions;
+*"The cost of a building, by trade"* (BCPI by CSI division — envelope, windows and
+doors, HVAC, electrical, concrete, wood — with a building-type picker); and a rental
+vacancy column on the CMA table.
 
 ## Data pipeline
 
@@ -46,6 +54,15 @@ Python/construction_context_etl.py  # context: 18-10-0205 NHPI, 17-10-0009 pop,
                                     #   14-10-0442 construction job vacancies
         → construction_json/        # one compact JSON per geography + context.json
                                     #   + meta.json (key scheme, units, dates)
+
+Python/greener_homes_verify.py      # publishes the CURATED Greener Homes figures
+                                    #   from Python/greener_homes_data.json and
+                                    #   re-checks them against NRCan's live page
+        → construction_json/programs.json
+
+        → construction_json/bcpi.json   # BCPI division detail, lazy-loaded by
+                                        #   the page (18-10-0289); written by
+                                        #   construction_context_etl.py
 
 newhomes_json/<PROV>.json           # read directly by the page for the energy-
                                     #   performance section; produced by the New
@@ -78,6 +95,28 @@ footnotes:
 - **14-10-0442** has no seasonally adjusted variant, so the card says to read the trend
   rather than quarter-to-quarter steps. It was chosen over the monthly SA 14-10-0406
   because that table is Canada-only and this page is driven by a geography selector.
+- **18-10-0289 division detail** begins 2017-01 for *every* building type. The 1981
+  history in that cube belongs to the non-residential composites only. Every division
+  and geography shares one reference period, **2023 = 100** (verified: the 2023
+  quarterly mean is 100.00 for the composite, wood, concrete and envelope alike), so
+  the published index is plotted as published. An earlier draft re-based every line to
+  2017 = 100; that was wrong, because it amplified whichever series started lowest —
+  wood, off a 2017 lumber-cycle trough — and read as a claim about the trades rather
+  than about their starting points.
+- **34-10-0149 (absorptions) and 34-10-0127 (rental vacancy)** have **no provincial
+  members** — they are CMA tables. The absorptions card therefore shows metro views
+  directly, shows the all-CMA aggregate on a Canada view (labelled as such, since it
+  excludes smaller centres and rural areas), and hides itself entirely on a provincial
+  view. Vacancy is annual (October survey) while the columns beside it in the CMA
+  table are monthly, which the table note states.
+- **Greener Homes figures are hand-transcribed, not scraped.** NRCan publishes no data
+  file, and on the progress page each province's *name follows its numbers* in document
+  order — a positional parser pairs them off by one and silently mis-assigns every
+  province. So the figures live in `Python/greener_homes_data.json` on `main`, and
+  `greener_homes_verify.py` asserts each one still appears verbatim on the live page
+  before publishing. It runs `continue-on-error` in the monthly workflow: when NRCan
+  posts a newer update the check should raise a warning to act on, not take the data
+  refresh down with it.
 - **EnerGuide new-home ratings** cover only the evaluated share of new construction.
   Years with fewer than 30 evaluations are suppressed, sections with fewer than three
   usable years are hidden entirely (Quebec, which has two), and the card states that the
@@ -90,7 +129,8 @@ footnotes:
 ```bash
 cd Python
 python construction_etl.py            # cached downloads; --refresh to force
-python construction_context_etl.py
+python construction_context_etl.py    # writes context.json AND bcpi.json
+python greener_homes_verify.py        # writes programs.json; exits 1 if stale
 ```
 
 `.github/workflows/construction-refresh.yml` does this monthly (20th, 14:00 UTC)

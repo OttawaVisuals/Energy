@@ -1,7 +1,46 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-27** (**Construction Tracker** — Tier 1 of the data-sources
+Updated **2026-08-27** (**Construction Tracker** — Tier 2 of the data-sources
+expansion, same day as Tier 1. Four additions: a **"Did it sell?"** card
+(34-10-0149 absorptions vs unsold inventory, with a months-of-inventory mode)
+closing the pipeline past completions; **"The cost of a building, by trade"**
+(18-10-0289 BCPI by CSI division — envelope, windows/doors, HVAC, electrical,
+concrete, wood — with a building-type picker); a **rental vacancy column** on
+the CMA table (34-10-0127); and a **Greener Homes program card** showing grants,
+per-province totals and the top-5 retrofit *measure counts*, which are directly
+comparable with the ERS-derived measure counts on the Retrofit Explorer.
+
+Three findings shaped the build. **(1)** The BCPI divisions all share one
+reference period, **2023 = 100** — verified, the 2023 quarterly mean is 100.00
+for composite, wood, concrete and envelope alike. A first draft re-based every
+line to 2017 = 100; that was wrong and was removed, because it amplified
+whichever series started lowest (wood, off a lumber-cycle trough) and read as a
+claim about the trades rather than about their starting points. Plotted as
+published, the interesting result is that **HVAC** has run furthest above the
+all-trades average since 2023 — which bears directly on heat-pump economics.
+**(2)** 34-10-0149 and 34-10-0127 are **CMA tables with no provincial members**,
+so the absorptions card shows metros directly, shows the all-CMA aggregate for
+Canada (labelled, since it excludes smaller centres and rural areas), and hides
+itself on a provincial view rather than inventing a number. **(3)** NRCan's
+Greener Homes page publishes no data file, and each province's *name follows its
+numbers* in document order — a positional parser pairs them off by one and
+silently mis-assigns every province. So those figures are **hand-transcribed**
+into `Python/greener_homes_data.json` on `main`, and a new
+`greener_homes_verify.py` asserts every one still appears verbatim on the live
+page before publishing; it runs `continue-on-error` in the monthly workflow so a
+newer NRCan update raises a warning instead of taking the data refresh down.
+
+BCPI division detail ships as a **separate `construction_json/bcpi.json`**
+(170.6 KB, 630 series) that the page lazy-loads, because it outweighs the whole
+of context.json and only one advanced card reads it. `context.json` 160 KB →
+201 KB, 320 series. Verified in the browser on desktop and mobile across
+ca/on/pe/ns/toronto: absorptions correctly hidden for provinces, BCPI falling
+back to the 15-CMA composite for PEI and Canada, vacancy column sorting, and the
+verifier negative-tested to confirm it exits non-zero on a stale figure. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md).)
+
+Prior update **2026-08-27** (**Construction Tracker** — Tier 1 of the data-sources
 expansion. Three new StatCan series join the context ETL and two new page
 sections are built on them, plus one section that needed no fetch at all.
 **"What it costs"**: the old trailing-12-month investment-by-work-type chart
