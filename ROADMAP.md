@@ -17,6 +17,22 @@ through the header on scroll; fixed by compositing the tint over an opaque
 base in the same `background` shorthand. See `HeatPump/METHODOLOGY.md`'s
 2026-08-27 "Full hourly data table" entry.)
 
+Same-day follow-up **2026-08-27** (**Retrofit Insights** §10 reworked from user
+feedback: a **building-type multi-select filter** (pills, all on by default)
+now drives every chart/table in the section; the old "all cases" table became
+a **project summary table** (Project, Location, Year Built, Status, Building
+Type, Energy Saving, Retrofit Type, Performance Level); and a new **R-value
+slopegraph** — one small chart per envelope component (attic/roof, wall,
+foundation wall, each on its own R-value axis since the scales don't share
+well), pre-retrofit axis on the left and post on the right, one line per
+project coloured by that project's overall energy saving % — sits above a
+matching **envelope-values table** (the chart's data, in table form, limited
+to the ~34 cases reporting at least one envelope R-value). Hand-built inline
+SVG for the slopegraph, same pattern as the choropleth map elsewhere on this
+page (colours resolved from `readPalette()` and baked in at render time, so
+the section re-renders on every theme change rather than relying on CSS
+`var()` inside the SVG string). Filter state persists across a theme toggle.)
+
 Prior update **2026-08-25** (**Retrofit Insights** — new §10 "One house at a time":
 a second, external dataset alongside the ERS-derived numbers. Scraped Retrofit
 Canada's case-study library (48 self-submitted deep/net-zero home retrofits,
@@ -559,7 +575,7 @@ lifecycle-update candidates logged — see
 | Tool | Live | Docs | Notes |
 |---|---|---|---|
 | 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05), HPCAP/COP/CCASHP validated against AHRI+NEEP + full pairing-gate breakdown (2026-08-06) |
-| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05; §10 "One house at a time" added 2026-08-25 — Retrofit Canada case-study ranges (41 residential Canadian cases), kept separate from the ERS numbers |
+| 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05; §10 "One house at a time" added 2026-08-25 — Retrofit Canada case-study ranges (41 residential Canadian cases), kept separate from the ERS numbers; reworked 2026-08-27 — building-type filter, project summary table, and a per-component R-value slopegraph (pre→post, coloured by energy saving %) with its backing table |
 | 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |

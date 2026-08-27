@@ -757,6 +757,36 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 
 ## Changelog
 
+### 2026-08-27 Case-study section rework — filter, project table, R-value slopegraph
+
+- **Building-type multi-select filter** (`#cs-type-filter`, pills built from the
+  data's own distinct `Building Type` values, all on by default) now drives
+  every chart/table in §10 through a single `renderCsAll()` re-render, gated
+  so a theme toggle re-renders in place without resetting the user's
+  selection (`CS_INITED` guard around the one-time fetch/pill-build step).
+- **Project summary table** replaces the old "all cases" table: Project,
+  Location, Year Built, Retrofit Status, Building Type, Energy Saving,
+  Retrofit Type, Performance Level — still sortable, still click-through to
+  the source page.
+- **New R-value slopegraph**: one small hand-built inline-SVG chart per
+  envelope component (attic/roof, wall, foundation wall), each on its own
+  R-value axis since the components don't share a scale (attic R-values run
+  past R-80, foundation walls can sit under R-5). Pre-retrofit axis on the
+  left, post-retrofit on the right; each project is one line, coloured by its
+  overall annual energy saving % (same cream→amber ramp as the province bar
+  charts/choropleth elsewhere on the page); a gradient legend gives the %
+  range, with a separate grey marker for projects that don't report a saving
+  figure. Colours are resolved from `readPalette()` and baked into the SVG
+  string at render time — hand-built SVG can't reliably consume a CSS
+  `var()` reference here (see the comment above `readPalette()`) — so this
+  chart re-renders like every other chart on a theme change.
+- **Envelope-values table** underneath: the slopegraph's data in table form
+  (Project, Energy Saving, pre/post R-value per component), restricted to
+  the ~34 of 41 cases reporting at least one envelope R-value.
+- Both new tables and the slopegraph read from the same filtered case list as
+  the existing range table, so narrowing the building-type filter (e.g. to
+  just bungalows) updates all four consistently.
+
 ### 2026-08-25 Case-study ranges — a second, external dataset on Retrofit Insights
 
 - **New §10 on `retrofit-insights.html`, "One house at a time"**: min–median–max
