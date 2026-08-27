@@ -46,6 +46,17 @@ jobs:
         working-directory: Python
         run: python construction_context_etl.py --refresh
 
+      # Greener Homes figures are hand-transcribed, not fetched — this step
+      # only re-confirms they still appear on NRCan's live progress page and
+      # rewrites programs.json. NON-BLOCKING on purpose: when NRCan publishes
+      # a newer update the check fails, which should show up as a warning to
+      # act on, not take the whole monthly data refresh down with it. The
+      # previous programs.json (seeded from gh-pages above) is left in place.
+      - name: Check Greener Homes transcription is current
+        continue-on-error: true
+        working-directory: Python
+        run: python greener_homes_verify.py
+
       # Data lives on gh-pages, which is kept at a single commit: amend and
       # force-push rather than adding a commit per refresh.
       - name: Publish to gh-pages (only if changed)

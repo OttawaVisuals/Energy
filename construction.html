@@ -232,6 +232,23 @@ footer a:hover{color:var(--amber2)}
       <div id="pipeline-table"></div>
     </div>
 
+    <!-- 2b ▸ Did it sell? -->
+    <div class="card" id="absorb-card">
+      <div class="card-title-row">
+        <div class="card-title" id="absorb-title">Did it sell? — absorptions vs unsold inventory</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="absorb-legend"></div>
+          <div class="seg-toggle" id="absorb-mode">
+            <button type="button" class="seg-btn active" data-mode="units">Units</button>
+            <button type="button" class="seg-btn" data-mode="months">Months of inventory</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-md" id="absorb-chart"></div>
+      <p class="note" id="absorb-note"></p>
+      <div id="absorb-table"></div>
+    </div>
+
     <!-- 3 ▸ What's being built -->
     <div class="section-head">
       <h2>What's being built</h2>
@@ -307,6 +324,19 @@ footer a:hover{color:var(--amber2)}
 
     <div class="card">
       <div class="card-title-row">
+        <div class="card-title" id="bcpidiv-title">The cost of a building, by trade</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="bcpidiv-legend"></div>
+          <select id="bcpidiv-bldg" class="card-select" aria-label="Building type"></select>
+        </div>
+      </div>
+      <div class="cw cw-md" id="bcpidiv-chart"></div>
+      <p class="note" id="bcpidiv-note"></p>
+      <div id="bcpidiv-table"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
         <div class="card-title" id="worktype-title">New construction vs renovation — annual investment</div>
         <div class="card-controls">
           <div class="chart-legend-inline" id="worktype-legend"></div>
@@ -358,7 +388,7 @@ footer a:hover{color:var(--amber2)}
     </div>
     <div class="card">
       <div class="cma-tbl-wrap" id="cma-table"><div class="section-loading">Loading metro areas…</div></div>
-      <p class="note">Starts and under-construction from CMHC (34-10-0154); permit value and investment are trailing-12-month sums (34-10-0292/0293, unadjusted where noted). Ottawa-Gatineau combines the Ontario and Quebec parts.</p>
+      <p class="note">Starts and under-construction from CMHC (34-10-0154); permit value and investment are trailing-12-month sums (34-10-0292/0293, unadjusted where noted). Ottawa-Gatineau combines the Ontario and Quebec parts. Rental vacancy is the apartment (6+ units) vacancy rate from CMHC's annual October survey (34-10-0127) — a different vintage from the monthly columns beside it, so read it as context rather than as this month's figure.</p>
     </div>
 
     <!-- 10 ▸ Rate cycle (advanced) -->
@@ -425,6 +455,15 @@ footer a:hover{color:var(--amber2)}
         <h2>How green is what we build</h2>
         <p class="sec-sub">Every chart above counts homes. This one asks what they're like to heat — the same country, the same years, measured instead of counted.</p>
       </div>
+      <div class="card" id="programs-card">
+        <div class="card-title-row">
+          <div class="card-title" id="programs-title">Retrofits, by the program's own count</div>
+        </div>
+        <div class="stats-grid" id="programs-stats" style="margin-bottom:.6rem"></div>
+        <div class="cw cw-md" id="programs-chart"></div>
+        <p class="note" id="programs-note"></p>
+      </div>
+
       <div class="card">
         <div class="card-title-row">
           <div class="card-title" id="perf-title">Housing starts vs the energy rating of new homes</div>
@@ -488,7 +527,8 @@ function geoLabel(code){
 var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',purple:'#533AB7',red:'#B33A2E',gray:'#8A9BB0'};
 
 var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs',
-               resnonresReal:'nominal', worktypeReal:'constant', renoCMA:null };
+               resnonresReal:'nominal', worktypeReal:'constant', renoCMA:null,
+               absorbMode:'units', bcpiBldg:null };
 var dataCache = {}, currentData = null, contextData = null, metaData = null;
 var allLoaded = false, cmaSort = {col:'starts', dir:-1};
 
@@ -1004,7 +1044,154 @@ function renderResNonres(){
   stackedArea('ici-chart',ici,{share:false,money:true,fmt:fmtM});
 }
 
+/* ── did it sell? ───────────────────────────────────────────────── */
+/* 34-10-0149 is a census-metropolitan-area table with no provincial members,
+   so this card shows metro views directly, Canada via the all-CMA aggregate,
+   and hides itself for provinces rather than inventing a provincial figure. */
+function absorbGeo(){
+  if(state.geo==='ca') return 'cma_total';
+  if(isCMA(state.geo)) return state.geo==='ottawa_qc'?'ottawa':state.geo;
+  return null;
+}
+function renderAbsorb(){
+  var card=document.getElementById('absorb-card');
+  var g=absorbGeo();
+  if(!g||!contextData){ card.style.display=g?'':'none'; return; }
+  var abs=pts(CS('absorb.'+g+'.absorbed')), un=pts(CS('absorb.'+g+'.unabsorbed'));
+  if(!abs.length&&!un.length){ card.style.display='none'; return; }
+  card.style.display='';
+  var label=(g==='cma_total')?'all census metropolitan areas':geoLabel(state.geo);
+  document.getElementById('absorb-title').textContent=
+    'Did it sell? — absorptions vs unsold inventory, '+label;
+
+  var series;
+  if(state.absorbMode==='months'){
+    /* months of inventory = unsold stock divided by the trailing-12-month
+       absorption rate. The standard read: how long the shelf would take to
+       clear at the current pace. */
+    var a12=maPts(abs,12), amap={};
+    a12.forEach(function(d){ amap[d.m]=d.v; });
+    var moi=un.filter(function(d){ return amap[d.m]>0; })
+              .map(function(d){ return {m:d.m, v:d.v/amap[d.m]}; });
+    series=[{label:'Months of inventory',color:PAL.purple,type:'area',pts:moi}];
+    timeChart('absorb-chart',{series:series,
+      fmt:function(v){return v==null?'—':v.toFixed(1)+' mo'}});
+  }else{
+    series=[
+      {label:'Absorbed (sold), 12-mo avg',color:PAL.green,type:'line',pts:maPts(abs,12)},
+      {label:'Unsold inventory (stock)',color:PAL.red,type:'area',pts:un}
+    ];
+    timeChart('absorb-chart',{series:series});
+  }
+  buildLegend(document.getElementById('absorb-legend'),series);
+
+  var lastUn=un.length?un[un.length-1]:null;
+  document.getElementById('absorb-note').innerHTML=
+    'Newly completed dwellings that found a buyer or tenant (absorbed) against those still sitting '+
+    'unsold (CMHC via StatCan 34-10-0149, monthly). Absorptions are a flow, so they are shown as a '+
+    '12-month average; unsold inventory is a stock, shown as-is.'+
+    (lastUn?' Latest: <strong>'+fmtInt(lastUn.v)+'</strong> completed but unsold units in '+label+'.':'')+
+    ' <strong>Coverage:</strong> this table has <strong>no provincial members</strong> — it is published '+
+    'for census metropolitan areas only. A Canada view therefore shows the all-CMA aggregate, which '+
+    'excludes smaller centres and rural areas, and the card hides itself entirely on a provincial view '+
+    'rather than showing a number that does not exist. Every chart above stops at completion; this is '+
+    'the step that says whether those completions met demand.';
+  dataTable('absorb-table',series,
+    {fmt:state.absorbMode==='months'?function(v){return v==null?'—':v.toFixed(1)}:fmtInt});
+}
+
 /* ── what it costs ──────────────────────────────────────────────── */
+/* 18-10-0289 division detail lives in its own lazily-loaded file: it is
+   bigger than the whole of context.json and only this card reads it. */
+var bcpiData=null, bcpiPromise=null;
+var BCPI_BLDG=[['res','All residential'],['single','Single-detached'],
+  ['lowrise','Low-rise apartment'],['highrise','High-rise apartment'],
+  ['nonres','Non-residential']];
+var BCPI_DIV=[
+  {key:'composite', label:'All trades',   color:PAL.gray,   dash:'4,3'},
+  {key:'envelope',  label:'Envelope',     color:PAL.green},
+  {key:'openings',  label:'Windows & doors',color:PAL.navy},
+  {key:'hvac',      label:'HVAC',         color:PAL.red},
+  {key:'electrical',label:'Electrical',   color:PAL.purple},
+  {key:'concrete',  label:'Concrete',     color:PAL.blue},
+  {key:'wood',      label:'Wood & composites',color:PAL.amber}
+];
+function loadBCPI(){
+  if(bcpiPromise) return bcpiPromise;
+  bcpiPromise=loadJSON(BASE_URL+'bcpi.json').then(function(d){ bcpiData=d; return d; })
+    .catch(function(e){ console.warn('bcpi.json unavailable:',e.message); return null; });
+  return bcpiPromise;
+}
+/* Every division and geography in this table shares one reference period,
+   2023 = 100 (verified: the 2023 quarterly mean is 100.00 for the composite,
+   wood, concrete and envelope alike). So the published index is already
+   directly comparable across trades and must be plotted as published —
+   re-basing it to the first quarter would just amplify whichever series
+   happened to start lowest, which is wood, and would read as a claim about
+   the trades rather than about their 2017 starting points. */
+function renderBCPIDiv(){
+  loadBCPI().then(function(){
+    if(!bcpiData) return;
+    var sel=document.getElementById('bcpidiv-bldg');
+    if(!sel.options.length){
+      sel.innerHTML=BCPI_BLDG.map(function(b){return '<option value="'+b[0]+'">'+b[1]+'</option>'}).join('');
+      sel.addEventListener('change',function(){ state.bcpiBldg=sel.value; renderBCPIDiv(); });
+    }
+    if(!state.bcpiBldg) state.bcpiBldg='res';
+    sel.value=state.bcpiBldg;
+    /* this table shares 18-10-0286's geography dimension: provinces yes, PEI no,
+       and 'composite' is the 15-CMA composite rather than Canada */
+    var g=state.geo;
+    if(g==='ca'||g==='pe') g='composite';
+    else if(g==='ottawa'||g==='ottawa_qc') g='ottawa_on';
+    var probe=bcpiData.series['bcpi_div.'+g+'.'+state.bcpiBldg+'.composite'];
+    if(!probe){ g='composite'; }
+
+    var raw=BCPI_DIV.map(function(d){
+      return {def:d, pts:pts(bcpiData.series['bcpi_div.'+g+'.'+state.bcpiBldg+'.'+d.key])};
+    }).filter(function(x){ return x.pts.length; });
+    if(!raw.length){
+      document.getElementById('bcpidiv-chart').innerHTML=
+        '<div class="section-loading">No division detail for this combination.</div>';
+      return;
+    }
+    var series=raw.map(function(x){
+      return {label:x.def.label,color:x.def.color,type:'line',dash:x.def.dash,
+              pts:x.pts};
+    });
+    var geoName=(g==='composite')?'15-CMA composite':geoLabel(g);
+    document.getElementById('bcpidiv-title').textContent=
+      'The cost of a building, by trade — '+geoName;
+    buildLegend(document.getElementById('bcpidiv-legend'),series);
+    timeChart('bcpidiv-chart',{series:series,
+      fmt:function(v){return v==null?'—':v.toFixed(1)}});
+
+    /* Name the widest gap rather than asserting a direction that isn't
+       universal: the envelope leads in Toronto but trails in Montreal. */
+    var comp=series.filter(function(x){return x.label==='All trades'})[0];
+    var lead='';
+    if(comp&&comp.pts.length){
+      var cLast=comp.pts[comp.pts.length-1].v, best=null;
+      series.forEach(function(x){
+        if(x.label==='All trades'||!x.pts.length) return;
+        var d=x.pts[x.pts.length-1].v-cLast;
+        if(best==null||d>best.d) best={label:x.label,d:d,v:x.pts[x.pts.length-1].v};
+      });
+      if(best&&best.d>0) lead=' Since that base, <strong>'+best.label+'</strong> has run furthest '+
+        'above the all-trades average here — '+best.v.toFixed(1)+' against '+cLast.toFixed(1)+'.';
+    }
+    document.getElementById('bcpidiv-note').innerHTML=
+      'Building construction price index by CSI division (StatCan 18-10-0289), quarterly, '+
+      '<strong>2023 = 100</strong>. Every division and geography in this table shares that one reference '+
+      'period, so the lines are directly comparable as published — a value of 110 means that trade costs '+
+      '10% more than it did in 2023.'+lead+
+      ' "Envelope" is the thermal-and-moisture-protection division: insulation, air barriers, roofing membrane. '+
+      '<strong>Coverage:</strong> division detail begins 2017 for every building type — the 1981 history in this '+
+      'table belongs to the non-residential composites only. Prince Edward Island has no member, and the '+
+      'national figure is a 15-CMA composite rather than Canada, so both fall back to that composite here.';
+    dataTable('bcpidiv-table',series,{fmt:function(v){return v==null?'—':v.toFixed(1)}});
+  });
+}
 /* The Housing Economic Account is provincial only, so a metro view falls
    back to its province — stated on the card, never silently. */
 var CMA_PROV={ottawa:'on',ottawa_on:'on',ottawa_qc:'qc',toronto:'on',montreal:'qc',
@@ -1198,6 +1385,65 @@ function loadNewHomes(code){
   return nhCache[code];
 }
 
+/* Greener Homes program counts. These are hand-transcribed cite-only figures
+   with an as-of date, not a regenerable series — the card says so, and they
+   never feed a chart axis shared with StatCan data. */
+var programsData=null, programsPromise=null;
+function loadPrograms(){
+  if(programsPromise) return programsPromise;
+  programsPromise=loadJSON(BASE_URL+'programs.json').then(function(d){ programsData=d; return d; })
+    .catch(function(e){ console.warn('programs.json unavailable:',e.message); return null; });
+  return programsPromise;
+}
+var PROG_PROV=['ab','bc','mb','nb','nl','ns','on','pe','qc','sk','nt','nu','yt'];
+function renderPrograms(){
+  loadPrograms().then(function(){
+    var card=document.getElementById('programs-card');
+    if(!programsData){ card.style.display='none'; return; }
+    card.style.display='';
+    var g=programsData.cghg, o=programsData.ohpa;
+    var prov=provOf(state.geo), here=g.by_province[prov];
+
+    document.getElementById('programs-title').textContent=
+      "Retrofits, by the program's own count" + (here?' — '+geoLabel(prov):'');
+
+    var tiles=[
+      ['Homes retrofitted<br>nationally', fmtInt(g.households_completed)],
+      ['Heat pumps installed<br>with federal support since 2020',
+       fmtInt(programsData.heat_pumps_since_2020)],
+      ['Average grant<br>per household', '$'+fmtInt(g.average_grant)]
+    ];
+    if(here) tiles.push([geoLabel(prov)+'<br>grants issued',
+      fmtInt(here.grants)+' <span style="font-size:.5em;color:var(--muted)">· $'+
+      here.millions.toFixed(here.millions<10?1:0)+'M</span>']);
+    document.getElementById('programs-stats').innerHTML=tiles.map(function(t){
+      return '<div class="stat-card"><div class="stat-label">'+t[0]+'</div>'+
+             '<div class="stat-value">'+t[1]+'</div></div>';
+    }).join('');
+
+    /* Measure counts, not dollars — this is the number directly comparable
+       with the ERS measure counts on the Retrofit Explorer. */
+    var items=g.top_retrofits.map(function(r){
+      return {label:r[0], v:r[1], selected:/Heat pumps/.test(r[0])};
+    });
+    hBars('programs-chart',items,{fmt:fmtInt});
+
+    document.getElementById('programs-note').innerHTML=
+      '<strong>Hand-transcribed, not regenerated.</strong> These are NRCan\'s own administrative counts '+
+      'from the Greener Homes Initiative progress update, as of <strong>'+programsData.as_of+
+      '</strong> — the program publishes no data file, so the figures are transcribed by hand and a '+
+      'checker re-confirms them against the live page rather than parsing it (the provincial blocks list '+
+      'each province\'s name after its numbers, which trips positional parsers into mis-assigning every '+
+      'province). The Greener Homes Grant '+g.status+'. '+
+      'Bars are <strong>measure counts</strong>, so they are directly comparable with the measure counts '+
+      'the <a href="retrofits.html">Retrofit Explorer</a> derives from EnerGuide audit records — two '+
+      'independent readings of the same activity. Oil-to-Heat-Pump ran alongside it: '+
+      fmtInt(o.grants_issued)+' grants, averaging $'+fmtInt(o.average_grant)+', roughly '+
+      Math.round(o.average_grant/g.average_grant)+'x the main grant because it targeted oil heating. '+
+      '<a href="'+programsData.source_url+'" target="_blank" rel="noopener">Source</a>.';
+  });
+}
+
 function renderPerf(){
   var sec=document.getElementById('perf-section');
   var prov=provOf(state.geo), code=NH_CODE[prov];
@@ -1292,6 +1538,7 @@ function renderCMATable(){
       uc:latestNonNull(d.series['starts_unadj.under_construction.total']),
       permits:roll12Last(d.series['permits.value.total.total.sa_current']),
       invest:roll12Last(d.series['invest.total.total.sa_current']),
+      vacancy:latestNonNull(CS('vacancy.'+(g[0]==='ottawa'?'ottawa':g[0]))),
       spark:r12.slice(-48).map(function(x){return x.v})
     };
   }).filter(Boolean);
@@ -1299,7 +1546,8 @@ function renderCMATable(){
     var va=a[cmaSort.col],vb=b[cmaSort.col];
     return ((va==null)-(vb==null))||cmaSort.dir*((vb||0)-(va||0));
   });
-  var cols=[['starts','Starts (12 mo)'],['uc','Under constr.'],['permits','Permits (12 mo)'],['invest','Investment (12 mo)']];
+  var cols=[['starts','Starts (12 mo)'],['uc','Under constr.'],['permits','Permits (12 mo)'],
+            ['invest','Investment (12 mo)'],['vacancy','Rental vacancy']];
   var html='<table class="cma-tbl"><thead><tr><th>Metro area</th>'+
     cols.map(function(c){return '<th data-col="'+c[0]+'" class="'+(cmaSort.col===c[0]?'sorted':'')+'">'+c[1]+
       (cmaSort.col===c[0]?(cmaSort.dir<0?' ↓':' ↑'):'')+'</th>'}).join('')+
@@ -1308,6 +1556,7 @@ function renderCMATable(){
       return '<tr data-code="'+r.code+'" class="'+(state.geo===r.code?'is-selected':'')+'" style="cursor:pointer">'+
         '<td>'+r.name+'</td><td>'+fmtInt(r.starts)+'</td><td>'+fmtInt(r.uc)+'</td>'+
         '<td>'+fmtM(r.permits)+'</td><td>'+fmtM(r.invest)+'</td>'+
+        '<td>'+(r.vacancy==null?'—':r.vacancy.toFixed(1)+'%')+'</td>'+
         '<td style="min-width:100px">'+sparkSVG(r.spark,PAL.amber,100,22)+'</td></tr>';
     }).join('')+'</tbody></table>';
   var mount=document.getElementById('cma-table');
@@ -1332,12 +1581,15 @@ function renderAll(){
   renderDwelling();
   renderMarket();
   renderResNonres();
+  renderAbsorb();
+  renderBCPIDiv();
   renderWorktype();
   renderRenoPrice();
   renderRates();
   renderNetSupply();
   renderLabour();
   renderVacancies();
+  renderPrograms();
   renderPerf();
   renderProvBars();
   renderCMATable();
@@ -1397,6 +1649,7 @@ function boot(){
   wireToggle('market-share','data-share',function(v){state.marketShare=v;renderMarket();});
   wireToggle('resnonres-real','data-real',function(v){state.resnonresReal=v;renderResNonres();});
   wireToggle('worktype-real','data-real',function(v){state.worktypeReal=v;renderWorktype();});
+  wireToggle('absorb-mode','data-mode',function(v){state.absorbMode=v;renderAbsorb();});
 
   Promise.all([fetchGeo(state.geo), loadJSON(BASE_URL+'meta.json')])
     .then(function(res){
@@ -1411,8 +1664,8 @@ function boot(){
       /* context + all-geo comparisons load in the background */
       loadJSON(BASE_URL+'context.json').then(function(c){
         contextData=c;
-        renderWorktype(); renderRenoPrice(); renderRates();
-        renderLabour(); renderVacancies(); renderProvBars();
+        renderAbsorb(); renderWorktype(); renderRenoPrice(); renderRates();
+        renderLabour(); renderVacancies(); renderProvBars(); renderCMATable();
       }).catch(function(e){ console.warn('context.json unavailable:',e.message); });
       loadAllGeos().then(function(){ renderProvBars(); renderCMATable(); })
         .catch(function(e){ console.warn('comparison load failed:',e.message); });

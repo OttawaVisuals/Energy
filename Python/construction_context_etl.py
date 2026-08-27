@@ -59,6 +59,29 @@ OUTPUT  construction_json/context.json
                                transfer | total; price = current | constant
       vac.<geo>.<stat>         quarterly; stat = count (int jobs) |
                                rate (%, 1 dp) | wage ($/h, 2 dp)
+      absorb.<cma>.absorbed|unabsorbed
+                               monthly units (int); CMA-ONLY, cma_total = the
+                               all-CMA aggregate
+      vacancy.<cma>            ANNUAL rental vacancy rate %; CMA-ONLY
+
+TIER-2 ADDITIONS (verified live 2026-08-27)
+    18-10-0289  Division detail (envelope / openings / HVAC / electrical /
+                  concrete / wood) for 5 building types across 18 geographies.
+                  Written to a SEPARATE construction_json/bcpi.json, lazy-
+                  loaded by the page, because it outweighs the whole of
+                  context.json and only one advanced section reads it.
+                  Division detail starts 2017-01 for EVERY building type; the
+                  1981 history in this cube is non-residential composites only.
+    34-10-0149  Absorptions and unabsorbed inventory of newly completed
+                  dwellings (monthly). CMA-ONLY — no provincial members, so
+                  the page shows this for metro views and for Canada (via the
+                  all-CMA aggregate) and hides it for provinces.
+    34-10-0127  Rental vacancy rate, apartments of 6+ units (annual October
+                  survey). CMA-ONLY, same rule.
+
+OUTPUT  construction_json/bcpi.json
+    {"retrieved", "sources", "buildings", "divisions",
+     "series": {"bcpi_div.<geo>.<building>.<division>": {start, freq, values}}}
 
     Index and rate values keep StatCan/BoC precision (<= 2 decimals); person
     counts are ints. Same start/values/null-gap contract as the core files.
@@ -90,6 +113,8 @@ EXPECTED_DIMS.update({
     18100286: 2,   # geo, project type
     36100677: 7,   # geo, sector, asset, dwelling, housing type, prices, est
     14100442: 3,   # geo, NAICS, statistics
+    34100149: 3,   # geo, completed dwelling units, type of dwelling unit
+    34100127: 1,   # geo
 })
 
 # --- geography member ids (verified via getCubeMetadata 2026-07-09) ----------
@@ -100,16 +125,17 @@ GEO_205 = {"ca": 1, "halifax": 8, "montreal": 15, "ottawa_qc": 16,
            "ottawa_on": 18, "toronto": 20, "winnipeg": 30, "calgary": 35,
            "edmonton": 36, "vancouver": 39}
 
-GEO_289 = {"composite": 1, "halifax": 5, "montreal": 10, "ottawa_on": 12,
-           "toronto": 13, "winnipeg": 16, "calgary": 21, "edmonton": 22,
-           "vancouver": 24}
-
-# 18-10-0286 shares 18-10-0289's geography dimension member-for-member
-# (verified 2026-08-27), so the CMA ids above are reused and the provinces
-# added. There is no Prince Edward Island member in either table.
-GEO_286_CMA = {k: v for k, v in GEO_289.items() if k != "composite"}
-GEO_286_PROV = {"composite": 1, "nl": 2, "ns": 4, "nb": 6, "qc": 8, "on": 11,
-                "mb": 15, "sk": 17, "ab": 20, "bc": 23}
+# 18-10-0286 and 18-10-0289 share ONE geography dimension, member-for-member
+# (verified 2026-08-27), so a single pair of maps serves both price tables.
+# There is no Prince Edward Island member in either. "composite" is the
+# 15-CMA composite, which is the closest thing either table has to a national
+# figure — it is NOT Canada, and the page says so.
+GEO_PRICE_CMA = {"halifax": 5, "montreal": 10, "ottawa_on": 12, "toronto": 13,
+                 "winnipeg": 16, "calgary": 21, "edmonton": 22, "vancouver": 24}
+GEO_PRICE_PROV = {"composite": 1, "nl": 2, "ns": 4, "nb": 6, "qc": 8, "on": 11,
+                  "mb": 15, "sk": 17, "ab": 20, "bc": 23}
+GEO_289 = dict(composite=1, **GEO_PRICE_CMA)
+GEO_286_CMA, GEO_286_PROV = GEO_PRICE_CMA, GEO_PRICE_PROV
 
 # 18-10-0286 project types kept: the composite plus the measures this suite
 # already models elsewhere (heat pump / windows / envelope / solar). Ids from
@@ -126,6 +152,33 @@ PRICE_677 = {1: "current", 2: "constant"}
 
 # 14-10-0442: NAICS 5 = Construction; geography Canada + provinces as 1..11.
 STAT_442 = {1: "count", 4: "rate", 5: "wage"}
+
+# --- Tier 2 -----------------------------------------------------------------
+# 18-10-0289 division detail. Building types and divisions are trimmed to the
+# ones that carry a story for this suite: the envelope ("Thermal and moisture
+# protection", "Openings") against the mechanical and structural trades. All
+# 24 divisions exist, but shipping every division x building type x geography
+# would triple the payload for lines nobody plots.
+BLDG_289 = {1: "res", 5: "single", 4: "lowrise", 3: "highrise", 7: "nonres"}
+DIV_289 = {1: "composite", 9: "envelope", 10: "openings", 17: "hvac",
+           19: "electrical", 4: "concrete", 8: "wood"}
+# COVERAGE: division detail begins 2017-01 for EVERY building type. The 1981
+# history in this cube belongs to the non-residential composites only
+# (commercial/industrial/institutional/office/school/warehouse); residential
+# and all division-level series start 2017. Verified against the full table
+# 2026-08-27.
+DIV_289_FLOOR = "2017-01"
+
+# 34-10-0149 absorptions / unabsorbed inventory and 34-10-0127 vacancy rates
+# are BOTH census-metropolitan-area tables — no provincial members at all.
+# Member id 1 is the all-CMA aggregate, which is what a Canada view shows.
+GEO_149 = {"cma_total": 1, "calgary": 2, "edmonton": 4, "halifax": 5,
+           "montreal": 10, "ottawa": 13, "ottawa_qc": 14, "ottawa_on": 15,
+           "toronto": 24, "vancouver": 26, "winnipeg": 29}
+GEO_127 = {"cma_total": 1, "calgary": 2, "edmonton": 4, "halifax": 5,
+           "montreal": 9, "ottawa": 11, "ottawa_on": 12, "ottawa_qc": 13,
+           "toronto": 23, "vancouver": 25, "winnipeg": 28}
+ABSORB_149 = {(1, 1): "absorbed", (2, 1): "unabsorbed"}
 
 BOC_URL = ("https://www.bankofcanada.ca/valet/observations/V39079/json"
            "?start_date=1990-01-01")
@@ -172,6 +225,7 @@ def main():
     args = parser.parse_args()
 
     series = {}
+    bcpi_series = {}
     try:
         # --- NHPI (monthly, index type 1 = total house and land) ----------
         verify_layout(18100205)
@@ -217,8 +271,8 @@ def main():
         # --- BCPI (quarterly; building 1 = residential, 7 = non-res;
         #     division 1 = composite) ---------------------------------------
         verify_layout(18100289)
-        zp = download_full_zip(18100289, refresh=args.refresh)
-        s, _, _ = extract_table(zp, 3, {(1, 1): "res", (7, 1): "nonres"},
+        zp_289 = download_full_zip(18100289, refresh=args.refresh)
+        s, _, _ = extract_table(zp_289, 3, {(1, 1): "res", (7, 1): "nonres"},
                                 GEO_289.values())
         by_id = {v: k for k, v in GEO_289.items()}
         for gid, keys in s.items():
@@ -288,6 +342,46 @@ def main():
                     rnd(months, nd=nd, as_int=as_int), "q")
         print(f"  vac: {sum(1 for k in series if k.startswith('vac.'))} series")
 
+        # --- BCPI division detail (quarterly) -> its own file --------------
+        #     Reuses the 18-10-0289 zip already downloaded above. Kept out of
+        #     context.json because it is ~5x the size of everything else in
+        #     there combined and only one advanced section reads it; the page
+        #     lazy-loads bcpi.json the same way it lazy-loads newhomes_json.
+        allowed_div = {(b, d): f"{bn}.{dn}"
+                       for b, bn in BLDG_289.items()
+                       for d, dn in DIV_289.items()}
+        geos_289 = dict(GEO_PRICE_PROV, **GEO_PRICE_CMA)
+        s_div, _, _ = extract_table(zp_289, 3, allowed_div, geos_289.values(),
+                                    floor=DIV_289_FLOOR)
+        by_id = {v: k for k, v in geos_289.items()}
+        for gid, keys in s_div.items():
+            for kind, months in keys.items():
+                bcpi_series[f"bcpi_div.{by_id[gid]}.{kind}"] =                     series_from_months(rnd(months, nd=1), "q")
+        print(f"  bcpi_div: {len(bcpi_series)} series "
+              f"({len(s_div)} geographies x {len(BLDG_289)} building types "
+              f"x {len(DIV_289)} divisions)")
+
+        # --- absorptions / unabsorbed inventory (monthly, CMA-only) --------
+        verify_layout(34100149)
+        zp = download_full_zip(34100149, refresh=args.refresh)
+        s, _, _ = extract_table(zp, 3, ABSORB_149, GEO_149.values())
+        by_id = {v: k for k, v in GEO_149.items()}
+        for gid, keys in s.items():
+            for kind, months in keys.items():
+                series[f"absorb.{by_id[gid]}.{kind}"] = series_from_months(
+                    rnd(months, as_int=True), "m")
+        print(f"  absorb: {sum(1 for k in series if k.startswith('absorb'))} series")
+
+        # --- rental vacancy rate (annual, CMA-only) ------------------------
+        verify_layout(34100127)
+        zp = download_full_zip(34100127, refresh=args.refresh)
+        s, _, _ = extract_table(zp, 1, {(): "vacancy"}, GEO_127.values())
+        by_id = {v: k for k, v in GEO_127.items()}
+        for gid, keys in s.items():
+            series[f"vacancy.{by_id[gid]}"] = series_from_months(
+                rnd(keys["vacancy"], nd=1), "a")
+        print(f"  vacancy: {sum(1 for k in series if k.startswith('vacancy'))} series")
+
         # --- BoC overnight rate --------------------------------------------
         series["rate.overnight"] = series_from_months(
             rnd(fetch_boc_overnight(), nd=2), "m")
@@ -318,6 +412,13 @@ def main():
             "vac": "StatCan 14-10-0442 (job vacancies, NAICS 23 Construction, "
                    "quarterly, UNADJUSTED; count = jobs, rate = %, "
                    "wage = average offered $/hour)",
+            "absorb": "StatCan 34-10-0149 (absorptions and unabsorbed "
+                      "inventory of newly completed dwellings, monthly; "
+                      "CENSUS METROPOLITAN AREAS ONLY — no provincial "
+                      "members. 'cma_total' is the all-CMA aggregate)",
+            "vacancy": "StatCan 34-10-0127 (rental vacancy rate, apartment "
+                       "structures of six units and over, annual October "
+                       "survey; CMA-only, same caveat as absorb)",
         },
         "series": series,
     }
@@ -326,6 +427,29 @@ def main():
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
     print(f"\nwrote {out.name} ({out.stat().st_size/1024:.1f} KB, "
           f"{len(series)} series)")
+
+    # BCPI division detail ships separately: only one advanced section reads
+    # it, and it outweighs everything in context.json put together, so the
+    # page lazy-loads this file the way it lazy-loads newhomes_json.
+    bcpi_payload = {
+        "retrieved": payload["retrieved"],
+        "sources": {
+            "bcpi_div": "StatCan 18-10-0289 (building construction price "
+                        "index by division). Division detail begins 2017-01 "
+                        "for every building type — the 1981 history in this "
+                        "cube belongs to the non-residential composites only. "
+                        "'composite' geography = 15-CMA composite, NOT Canada; "
+                        "no Prince Edward Island member.",
+        },
+        "buildings": BLDG_289,
+        "divisions": DIV_289,
+        "series": bcpi_series,
+    }
+    out2 = OUTPUT_DIR / "bcpi.json"
+    with open(out2, "w", encoding="utf-8") as f:
+        json.dump(bcpi_payload, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"wrote {out2.name} ({out2.stat().st_size/1024:.1f} KB, "
+          f"{len(bcpi_series)} series)")
 
 
 if __name__ == "__main__":

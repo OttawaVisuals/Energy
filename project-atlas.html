@@ -869,7 +869,9 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
   <div class="srcs">
     <div class="src">StatCan tables<small>permits 34-10-0292 · investment 34-10-0293 · starts 34-10-0151/0154/0158 · market 34-10-0148</small></div>
     <div class="src">Context series<small>house prices (NHPI), population, employment, mortgage rates, building costs (BCPI)</small></div>
-    <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
+    <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · building costs by trade 18-10-0289 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
+    <div class="src">Demand<small>absorptions &amp; unsold inventory 34-10-0149 · rental vacancy 34-10-0127 (both CMA-only)</small></div>
+    <div class="src">Program counts<small>NRCan Greener Homes — hand-transcribed, machine-verified against the live page</small></div>
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
   </div>
@@ -913,6 +915,20 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <b>New-home energy ratings</b> come from EnerGuide, which covers only the evaluated share of new
     construction, so years with fewer than 30 evaluations are suppressed rather than plotted, and the
     card states plainly that the two panels are not a like-for-like ratio.</p>
+    <p>Two more from the Tier-2 pass. The building-cost divisions all share one reference period,
+    <b>2023 = 100</b>, so the index is plotted as published; an earlier draft re-based every line to
+    2017 = 100, which was removed because it amplified whichever trade started lowest (wood, off a
+    lumber-cycle trough) and read as a claim about the trades rather than their starting points.
+    And the absorptions and rental-vacancy tables have <b>no provincial members at all</b> — they are
+    census-metropolitan-area tables — so that card shows metros directly, shows the all-CMA aggregate
+    on a Canada view with the label saying so, and hides itself on a provincial view.</p>
+    <h4>The one hand-typed number set on the page</h4>
+    <p>NRCan's Greener Homes progress page has no data file, and each province's name sits
+    <i>after</i> its figures in the markup — so a positional parser pairs them off by one and
+    mis-assigns every province while looking perfectly plausible. The figures are therefore
+    transcribed by hand into the repo, and a checker re-confirms each one still appears verbatim on
+    the live page before publishing, failing loudly when NRCan posts an update. The card labels
+    itself as transcribed and carries its as-of date.</p>
     The status doc says: <em>do not go looking for a replacement table</em> — it was a saga.</p>
     <h4>Chart design</h4>
     <p>Where two measures share a story (e.g. starts vs interest rates), the page uses a
