@@ -22,6 +22,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="assets/site-theme.css">
+<link rel="stylesheet" href="assets/feedback.css">
 <style>
 /* Reset, theme variables (light/dark/cb), body base, header, hero, the
    Simple/Advanced mode toggle and the theme toggle now live in
@@ -720,6 +721,30 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
 <div class="map-tip" id="map-tip"></div>
 <div id="info-tip"></div>
 
+<section class="feedback" data-feedback aria-labelledby="feedbackHeading">
+  <div class="feedback-head">
+    <div>
+      <p class="feedback-kicker">Private feedback</p>
+      <h2 id="feedbackHeading">Was this clear?</h2>
+      <p class="feedback-copy">Your response is private and helps improve this page.</p>
+    </div>
+    <div class="feedback-choices" role="group" aria-label="Clarity rating">
+      <button class="feedback-choice" type="button" data-rating="clear" aria-pressed="false">Yes</button>
+      <button class="feedback-choice" type="button" data-rating="almost" aria-pressed="false">Almost</button>
+      <button class="feedback-choice" type="button" data-rating="not-yet" aria-pressed="false">Not yet</button>
+    </div>
+  </div>
+  <form class="feedback-form" hidden>
+    <label for="feedbackComment">What could be clearer? <span>Optional, 1,200 characters maximum.</span></label>
+    <textarea id="feedbackComment" name="comment" maxlength="1200" placeholder="A confusing chart, a possible mistake, or an idea..."></textarea>
+    <label class="feedback-trap" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+    <div class="feedback-actions">
+      <button class="feedback-send" type="submit">Send private feedback</button>
+      <span class="feedback-status" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+</section>
+
 <footer>
   Data: <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · 2021 Census Profile (income, dwellings) · ECCC Climate Normals (HDD/CDD) · matched before/after audits 2004–2026.<br>
   Values are modelled EnerGuide estimates, not metered consumption. FSA-level income and value figures are neighbourhood aggregates, not participant-level.<br>
@@ -728,6 +753,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
 
 <!-- Chart.js v4.4.1 vendored same-origin (assets/) — no CDN/external runtime dependency. -->
 <script src="assets/chart.umd.js"></script>
+<script defer src="assets/feedback.js"></script>
 <script>
 /* Retrofit Insights — national big-picture page.
    Self-contained logic (inlined into retrofit-insights.html at ship time).
