@@ -49,6 +49,7 @@ PATHS=(
   newhomes.html project-atlas.html retrofit-insights.html retrofits.html
   tier-scatter.html
   assets
+  functions
   fsa_json newhomes_fsa newhomes_json province_json insights_json
   retrofit_costs_json
   ceud_json construction_json grid_json prices_json geo_json census_json
