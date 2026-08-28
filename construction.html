@@ -497,6 +497,15 @@ footer a:hover{color:var(--amber2)}
         <p class="note" id="programs-note"></p>
       </div>
 
+      <div class="card" id="cagbc-card">
+        <div class="card-title-row">
+          <div class="card-title" id="cagbc-title">Certified green buildings — LEED &amp; Zero Carbon</div>
+        </div>
+        <div class="stats-grid" id="cagbc-stats" style="margin-bottom:.6rem"></div>
+        <div id="cagbc-bars"></div>
+        <p class="note" id="cagbc-note"></p>
+      </div>
+
       <div class="card">
         <div class="card-title-row">
           <div class="card-title" id="perf-title">Housing starts vs the energy rating of new homes</div>
@@ -1498,9 +1507,8 @@ function renderPrograms(){
         ' labels — '+fmtInt(chba.houses.total)+' houses, '+fmtInt(chba.murbs.units)+' units across '+
         chba.murbs.buildings+' multi-unit buildings, and '+chba.renovations.total+' renovations. '+
         'Association-reported and cited with attribution, not republished as a dataset.'+ratio:'')+
-      ' <strong>Not shown:</strong> CaGBC LEED and Zero Carbon counts. CaGBC publishes no running total '+
-      'and its project database sits behind a sign-in, so there is no figure that could be checked the '+
-      'way these are. '+
+      ' CaGBC LEED and Zero Carbon counts appear in the next card, from a separate one-time export '+
+      'rather than this checked-figures pattern — see its own note for why. '+
       '<a href="'+gh.source_url+'" target="_blank" rel="noopener">NRCan source</a>'+
       (chba?' · <a href="'+chba.source_url+'" target="_blank" rel="noopener">CHBA source</a>':'')+'.';
   });
@@ -1561,6 +1569,73 @@ function renderEWRB(){
       '(534 buildings in 2018 against '+fmtInt(ewrbData.years[yrs[yrs.length-1]].rows)+' now), so year-to-year '+
       'movement in these medians is partly a changing sample rather than a changing stock. '+
       'Licence: '+ewrbData.licence+'.';
+  });
+}
+
+/* CaGBC LEED + Zero Carbon Building counts. This is NOT the checked-figures
+   pattern the retrofit/CHBA card above uses — there is no CaGBC page to
+   re-verify against, because the number comes from a one-time manual export
+   of their own project database (leed.cagbc.org, no sign-in required) rather
+   than a published figure. Aggregate counts only: no project name or address
+   is in the data this reads. Re-exporting is a manual step, so this card is
+   only as current as the last export — the "as of" date says so plainly. */
+var cagbcData=null, cagbcPromise=null;
+function loadCagbc(){
+  if(cagbcPromise) return cagbcPromise;
+  cagbcPromise=loadJSON(BASE_URL+'cagbc.json').then(function(d){ cagbcData=d; return d; })
+    .catch(function(e){ console.warn('cagbc.json unavailable:',e.message); return null; });
+  return cagbcPromise;
+}
+function renderCagbc(){
+  var card=document.getElementById('cagbc-card');
+  loadCagbc().then(function(){
+    if(!cagbcData){ card.style.display='none'; return; }
+    card.style.display='';
+    var bp=cagbcData.by_program, t=cagbcData.totals;
+
+    var tiles=[
+      ['LEED registered<br>or certified, nationally', fmtInt(bp.leed.registered)],
+      ['LEED certified<br>(of those registered)', fmtInt(bp.leed.certified)],
+      ['Zero Carbon Building<br>certified (Design + Perf.)',
+       fmtInt(bp.zcb_design.certified+bp.zcb_performance.certified)]
+    ];
+    var here=cagbcData.by_province[provOf(state.geo)];
+    if(here) tiles.push([geoLabel(provOf(state.geo))+'<br>LEED + ZCB certified',
+      fmtInt(here.certified)+' <span style="font-size:.5em;color:var(--muted)">of '+
+      fmtInt(here.registered)+' registered</span>']);
+    document.getElementById('cagbc-stats').innerHTML=tiles.map(function(x){
+      return '<div class="stat-card"><div class="stat-label">'+x[0]+'</div>'+
+             '<div class="stat-value">'+x[1]+'</div></div>';
+    }).join('');
+
+    var provNames={on:'Ontario',qc:'Quebec',bc:'British Columbia',ab:'Alberta',
+      mb:'Manitoba',ns:'Nova Scotia',sk:'Saskatchewan',nb:'New Brunswick',
+      nl:'Newfoundland and Labrador',pe:'Prince Edward Island',yt:'Yukon',
+      nt:'Northwest Territories',nu:'Nunavut'};
+    var items=Object.keys(cagbcData.by_province).map(function(p){
+      return {label:provNames[p]||p, v:cagbcData.by_province[p].certified,
+              selected:p===provOf(state.geo)};
+    }).sort(function(a,b){return b.v-a.v});
+    hBars('cagbc-bars',items,{fmt:fmtInt});
+
+    var starts=roll12Last(S('starts_unadj.starts.total'));
+    document.getElementById('cagbc-note').innerHTML=
+      '<strong>Not from a checked live page — from a one-time database export.</strong> CaGBC\&rsquo;s LEED '+
+      'project-search tool (<span class="mono">leed.cagbc.org</span>) needs no sign-in and its "export a '+
+      'list of projects" feature returns the full national list with no filter. That export, taken '+
+      cagbcData.retrieved+' (newest project date inside it: '+cagbcData.newest_date_in_data+'), is '+
+      'aggregated here into counts by province, program and year — <strong>no project name or address '+
+      'is published</strong>. CaGBC\&rsquo;s site carries no Terms of Use addressing this database or its reuse; '+
+      'the generic "All rights reserved" footer is the same boilerplate on every page on the site, not a '+
+      'term attached to the export function. Because there is no API and no page to re-check this '+
+      'against, refreshing it is a manual step — this card is only as current as that date, unlike '+
+      'every other figure on this page. <strong>Zero Carbon Building</strong> is pass/fail, not '+
+      'Gold/Silver/Platinum, so its '+fmtInt(bp.zcb_design.certified+bp.zcb_performance.certified)+
+      ' certifications carry no level. '+
+      (starts?'For scale: '+geoLabel(state.geo)+' started about '+fmtInt(starts)+' homes in the last '+
+        'twelve months alone — LEED and Zero Carbon together have certified '+fmtInt(t.certified)+
+        ' buildings of every type, nationally, since 2001.':'')+
+      ' <a href="'+cagbcData.source_url+'" target="_blank" rel="noopener">CaGBC LEED project search</a>.';
   });
 }
 
@@ -1812,6 +1887,7 @@ function renderAll(){
   renderVacancies();
   renderMunicipal();
   renderPrograms();
+  renderCagbc();
   renderPerf();
   renderEWRB();
   renderProvBars();

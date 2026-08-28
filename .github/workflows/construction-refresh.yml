@@ -66,6 +66,14 @@ jobs:
         working-directory: Python
         run: python cited_figures_verify.py
 
+      # cagbc_leed_etl.py is DELIBERATELY not run here. It reads
+      # project_profile.csv, a manual export from leed.cagbc.org with no API
+      # and no sign-in — there is no way to fetch it in CI. The construction_
+      # json/cagbc.json seeded from gh-pages above just carries forward
+      # unchanged each month until someone re-exports the CSV locally, runs
+      # this script by hand, and republishes cagbc.json through the
+      # incremental gh-pages update path documented in CLAUDE.md.
+
       # Data lives on gh-pages, which is kept at a single commit: amend and
       # force-push rather than adding a commit per refresh.
       - name: Publish to gh-pages (only if changed)

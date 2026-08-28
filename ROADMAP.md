@@ -1,7 +1,46 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-27** (**Construction Tracker** — Tier 3, the last tier of the
+Updated **2026-08-28** (**Construction Tracker** — reversal of a Tier-3 "not
+built" call. Tier 3 (2026-08-27) declined to build a CaGBC LEED/Zero Carbon
+count on the assumption that their project database required a sign-in and
+carried a licence restriction. Both premises turned out to be wrong on closer
+check: the project-search tool at `leed.cagbc.org` needs **no sign-in** and
+exports its full national list, and CaGBC's actual Terms and Conditions page
+plus their Member Terms & Conditions PDF — both read in full, not just
+searched — say nothing about the project database, scraping, or data reuse.
+The Member Terms PDF turned out to be entirely about certification-*mark*
+misuse (a builder falsely claiming certification), not data. The generic
+"All rights reserved" site footer is the same boilerplate on every page,
+including the Privacy Policy — not a term attached to the export function.
+
+Built a new **"Certified green buildings"** card from a manual export
+(`project_profile.csv`, 10,670 rows, gitignored — no API exists, so this is a
+point-in-time snapshot re-exported by hand): 9,952 LEED-family registrations
+(7,541 certified) and 461 certified Zero Carbon Buildings, nationally, with a
+per-province breakdown as ranked bars and a province-specific stat tile. One
+data-quality finding worth keeping: "certified" means *has a certification
+date*, not *has a certification level* — 152 rows carry a date but a blank
+level, and every one of them is Zero Carbon (which is pass/fail and never
+issues a Gold/Silver/Platinum-style level). Filtering on level would have
+silently zeroed out every Zero Carbon certification. A second: one row
+declares a 399,420,000 sq ft floor area (a waterfront redevelopment, clearly
+a unit or entry error) — excluded from the floor-area sum via a 10M sq ft
+plausibility gate, counted and reported, never silently dropped.
+
+Published as **aggregates only** — province/program/year counts and a floor-
+area sum, never a project name or address — deliberately more conservative
+than the licence question alone required, because a compiled list of names
+and addresses sits closer to what CaGBC actually built than any single fact
+in it does. Verified in the browser on desktop and mobile across
+ca/on/pe/toronto: card renders, hides its province tile correctly for Canada
+(no province code to key into), and a run of the apostrophe through a
+double-escaping bug (`\u2019` written literally into the page instead of
+being interpreted) was caught and fixed before shipping. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and `Python/cagbc_leed_etl.py`'s
+module docstring for the full terms-of-use walkthrough.)
+
+Prior update **2026-08-27** (**Construction Tracker** — Tier 3, the last tier of the
 data-sources expansion. Three new pipelines and one settled question.
 
 **Inside one city** (new advanced section, Vancouver and Toronto): permit-desk

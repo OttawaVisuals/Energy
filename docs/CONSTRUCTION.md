@@ -32,6 +32,17 @@ totals).
 Advanced mode also gains construction job vacancies and the average offered hourly
 wage, alongside the existing employment-vs-backlog chart.
 
+**CaGBC LEED &amp; Zero Carbon (added 2026-08-28):** a "Certified green buildings"
+card — 9,952 LEED-family registrations (7,541 certified) and 461 certified
+Zero Carbon Buildings, nationally, broken out by province. Built after
+re-checking CaGBC's actual Terms and Conditions and Member Terms PDF: neither
+addresses the project database, scraping, or data reuse, and the site-wide
+"All rights reserved" footer is not a term attached to the export function.
+The project-search tool at `leed.cagbc.org` needs **no sign-in** and its
+export feature returns the full national list. This reverses the Tier-3
+"not built" call on CaGBC — see `Python/cagbc_leed_etl.py`'s module docstring
+for the full reasoning and the data-quality gates.
+
 **Tier 3 (added 2026-08-27):** an *"Inside one city"* section (Vancouver and
 Toronto permit desks — area breakdown, work-type split, and a city-vs-metro
 cross-check), a *"Large buildings, measured"* card (Ontario EWRB energy
@@ -180,6 +191,10 @@ python construction_context_etl.py    # writes context.json AND bcpi.json
 python municipal_permits_etl.py       # writes municipal.json (live portals)
 python ewrb_etl.py                    # writes ewrb.json; --refresh re-downloads
 python cited_figures_verify.py        # writes programs.json; exits 1 if stale
+python cagbc_leed_etl.py              # writes cagbc.json from a MANUAL export,
+                                      #   project_profile.csv at the repo root
+                                      #   (gitignored; re-export by hand from
+                                      #   leed.cagbc.org — no API, no sign-in)
 ```
 
 `.github/workflows/construction-refresh.yml` does this monthly (20th, 14:00 UTC)
