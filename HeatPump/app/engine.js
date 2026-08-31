@@ -600,8 +600,151 @@
     };
   }
 
+  // --------------------------------------------------------------------------
+  // Cooling: "potential AC" scenario (added 2026-08-31). Independent of the
+  // heating simulate() above -- see METHODOLOGY.md "Cooling / 'potential AC'
+  // scenario" and "Cooling curve library expanded, and SEER2 badges don't
+  // predict real-TMY performance".
+  // --------------------------------------------------------------------------
+
+  // Solve the cooling balance point Tc (deg C) by CDH-inversion, mirroring
+  // build_city_house_profiles.py's method exactly: UA_cool is fixed from the
+  // design (peak) cooling load against the city's design cooling dry-bulb and
+  // the fixed 25 C HOT2000 ThermostatCooling indoor anchor; Tc is then the
+  // temperature at which integrating cooling-degree-hours over the ACTUAL
+  // tempSeries against UA_cool reproduces the target annual cooling energy.
+  // gridStepC trades solve accuracy for speed -- the Python build script
+  // grids at 0.02 C once per city; this runs in the browser on every slider
+  // drag, so a coarser default keeps it interactive.
+  function solveCoolingBalancePoint(tempSeries, designCoolingTempC, coolPeakKW, annualCoolKWh, gridStepC) {
+    var step = gridStepC || 0.25;
+    var UA = coolPeakKW / (designCoolingTempC - 25.0); // kW/K, ThermostatCooling fixed at 25 C
+    var tcMax = designCoolingTempC - 0.02;
+    var grid = [], cdh = [];
+    for (var tc = 0.0; tc < tcMax; tc += step) {
+      var s = 0;
+      for (var i = 0; i < tempSeries.length; i++) {
+        var d = tempSeries[i] - tc;
+        if (d > 0) s += d;
+      }
+      grid.push(tc);
+      cdh.push(s);
+    }
+    // CDH strictly decreases as Tc rises; interp() needs an ascending x
+    // array, so flip both (mirrors the Python xp,fp = cdh_grid[::-1], tc_grid[::-1]).
+    var xs = cdh.slice().reverse();
+    var ys = grid.slice().reverse();
+    var target = annualCoolKWh / UA;
+    var Tc = interp(xs, ys, target);
+    return { UA_cool_kW_per_K: UA, Tc_C: Tc };
+  }
+
+  // Cooling-only simulation: one piece of equipment (a standard AC or a heat
+  // pump's own cooling curve) meeting a cooling load over the year. No base
+  // case and no backup -- this is the "AC added" side of the potential-AC
+  // scenario, not a replacement of an existing system, so there is nothing to
+  // compare against inside this function. The caller runs it once per
+  // candidate (standard AC, chosen heat pump) against the same archetype and
+  // compares the results itself, against an implicit "no AC" zero baseline.
+  //
+  // opts = {
+  //   tempSeries:  Array<number> outdoor dry-bulb C, one per hour
+  //   archetype:   { UA_cool_kW_per_K, Tc_C }   // from solveCoolingBalancePoint
+  //   equipment:   { curve: { T_C[], cap_frac_of_rated95[], COP[] }, nominalCap_kW }
+  //   lifecycle?:  { lineLossPct }
+  //   ef, efMode, efLevel?, startMonth?         // same grid-EF inputs as simulate()
+  // }
+  function simulateCooling(opts) {
+    var temps = opts.tempSeries;
+    var N = temps.length;
+    var leap = N === 8784;
+    var UA = opts.archetype.UA_cool_kW_per_K;
+    var Tc = opts.archetype.Tc_C;
+    var curve = opts.equipment.curve;
+    var nominalCap = opts.equipment.nominalCap_kW;
+    var lc = opts.lifecycle || {};
+    var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
+    var efMode = opts.efMode === "marginal" ? "marginal" : "average";
+    var efLevel = opts.efLevel || null;
+    var startMonth = opts.startMonth || 1;
+    var G2KG = 0.001;
+
+    var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
+    var coolingHours = 0, metHours = 0, unmetHours = 0;
+    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0);
+    var m_elec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      m_ghg = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // month x hour-of-day electricity (kWh), same shape as simulate()'s
+    // elec_month_hour -- lets the UI price this with the existing TOU
+    // costElectricity() function unchanged.
+    var mh_elec = [];
+    for (var mo0 = 0; mo0 < 12; mo0++) { var row0 = []; for (var h0 = 0; h0 < 24; h0++) row0.push(0); mh_elec.push(row0); }
+
+    for (var i = 0; i < N; i++) {
+      var T = temps[i];
+      var load = UA * Math.max(0, T - Tc);
+      h_load[i] = load;
+      if (load <= 0) continue;
+      coolingHours++;
+      loadKWh += load;
+
+      var hour = (i % 24) + 1;
+      var dayOfYear = Math.floor(i / 24);
+      var month = monthOfDay(dayOfYear, leap);
+      if (startMonth !== 1) month = ((month - 1 + (startMonth - 1)) % 12) + 1;
+      var mi = month - 1;
+      var season = SEASON_BY_MONTH[month];
+      var tbin = tempBinLeft(T);
+
+      var capFrac = interp(curve.T_C, curve.cap_frac_of_rated95, T);
+      var cop = interp(curve.T_C, curve.COP, T);
+      var capacity = capFrac == null ? 0 : nominalCap * capFrac;
+      h_cap[i] = capacity; h_cop[i] = cop;
+      var delivered = cop ? Math.min(load, capacity) : 0;
+      deliveredKWh += delivered;
+      if (delivered + 1e-9 >= load) metHours++;
+      else unmetHours++;
+
+      if (delivered > 0 && cop) {
+        var elec = delivered / cop;
+        elecKWh += elec;
+        m_elec[mi] += elec;
+        h_elec[i] = elec;
+        mh_elec[mi][hour - 1] += elec;
+
+        var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+        var ghg = efThisHour * elec * lineLoss * G2KG;
+        ghgKg += ghg;
+        m_ghg[mi] += ghg;
+        h_ghg[i] = ghg;
+      }
+    }
+
+    var monthly = [];
+    for (var mo = 0; mo < 12; mo++) {
+      monthly.push({ month: mo + 1, electricity_kWh: m_elec[mo], electricity_ghg: m_ghg[mo] });
+    }
+
+    return {
+      energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
+      ghg: { electricity: ghgKg, total: ghgKg },
+      monthly: monthly,
+      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, temp_C: temps },
+      diagnostics: {
+        load_kWh: loadKWh,
+        delivered_kWh: deliveredKWh,
+        seasonal_cop: elecKWh > 0 ? deliveredKWh / elecKWh : null,
+        cooling_hours: coolingHours,
+        met_hours: metHours,
+        unmet_hours: unmetHours,
+      },
+    };
+  }
+
   return {
     simulate: simulate,
+    solveCoolingBalancePoint: solveCoolingBalancePoint,
+    simulateCooling: simulateCooling,
     // exported for tests / reuse
     interp: interp,
     tempBinLeft: tempBinLeft,

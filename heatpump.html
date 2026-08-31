@@ -500,6 +500,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     </div>
 
     <div class="ctrl">
+      <label>Cooling scenario <button type="button" class="info-btn" id="cooling-toggle-info" aria-label="What does this add?" data-info="Optional add-on: estimates what this home's summer cooling would use, emit and cost with a standard AC, and with the selected heat pump's own cooling curve if it publishes one. Everything else on this page is heating only." data-method="m-cooling">?</button></label>
+      <div class="seg" id="cooling-seg" role="group" aria-label="Show the potential-AC cooling scenario">
+        <button type="button" data-val="off" class="active">Off</button>
+        <button type="button" data-val="on">Show potential AC</button>
+      </div>
+    </div>
+    <div class="ctrl">
       <label for="in-fuel">Current heating</label>
       <select id="in-fuel">
         <option value="gas">Natural-gas furnace</option>
@@ -900,6 +907,17 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           </div>
         </div>
         <div class="note" id="cost-note" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- ═══ Cooling · potential AC (optional, off by default) ═══ -->
+    <section class="out-section" id="section-cooling" style="display:none">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Cooling — what adding AC would look like</h2>
+        <p class="out-section-intro">Everything above is heating only. This estimates what this home's summer cooling would use, emit and cost with a standard central AC — and, if the selected heat pump publishes a cooling curve, with that same unit run in cooling mode instead. <button type="button" class="info-btn" id="cooling-info" aria-label="Where do these numbers come from?" data-info="Cooling peak and energy are estimated from this home's design heat load via two correlations found across 209,272 ERS homes — not measured. The standard AC is one representative Goodman unit; the heat pump's own cooling curve is used instead where its spec sheet publishes one." data-method="m-cooling">?</button></p>
+      </div>
+      <div class="card" id="cooling-body">
+        <p class="note">Loading cooling data…</p>
       </div>
     </section>
 
@@ -1407,6 +1425,22 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           <div class="caveats">Weekends aren't shown: time-of-use bills every weekend hour at off-peak, and ultra-low overnight bills every weekend hour except the overnight window at off-peak too (no mid/on-peak ever applies on weekends). Ultra-low overnight has no seasonal schedule — its overnight/mid/on-peak hours are the same in summer and winter, unlike time-of-use.</div>
         </div>
       </details>
+
+      <h4 id="m-cooling">Cooling — "potential AC" scenario (optional)</h4>
+      <p>Everything above this section is <b>heating only</b>. Turning on "Show potential AC" adds a separate estimate of what this home's summer cooling would use, emit and cost — with a standard central air conditioner, and, if the selected heat pump publishes a cooling curve, with that same unit run in cooling mode instead. It does not feed back into any heating number above.</p>
+      <p>No real cooling data is looked up for this scenario — there is no specific house selected here, just a design heat load. Instead, two correlations found across 209,272 real ERS-audited homes (pooled across the 14 tracked cities) turn the design heat load you've already set into a plausible cooling profile, the same way the heating side already turns your inputs into a load curve, with no extra sizing control needed:</p>
+      <ul>
+        <li><b>Peak cooling from peak heating:</b> <code>cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254</code> (r = 0.683, R² = 0.467). Physically real, not coincidence — both peaks are driven by the same building envelope (UA, floor area).</li>
+        <li><b>Annual cooling energy from peak cooling:</b> <code>annual_cool_kWh = 838.3 × cool_peak_kW</code> (a through-origin ratio, r = 0.778). Annual heating and cooling energy do <i>not</i> correlate well with each other (r ≈ 0.2–0.25) — annual energy is dominated by climate-hours and occupant behaviour, which heating and cooling don't share, but peak <i>load</i> in both is dominated by the shared envelope, which is why this second relationship works so much better than heating-energy-to-cooling-energy would.</li>
+      </ul>
+      <p>The cooling balance point (the outdoor temperature above which the home needs cooling) is then solved the same way the heating balance point is: cooling-degree-hours are integrated against this city's own weather year until they match the estimated annual energy, anchored on the fixed 25 °C HOT2000 indoor cooling setpoint (<code>ThermostatCooling</code> — a program constant, confirmed zero-variance across 620,107 real audit records, not an assumption standing in for a missing field).</p>
+      <div class="caveats">These are always the <b>estimated</b> fields — two correlations removed from measurement (a correlation-estimated peak, run through a ratio-estimated energy, run through a balance-point solve). They are not shown with the confidence of a real per-house measurement, and are not intended to be: their entire purpose is giving a home with <i>no</i> installed AC — the population a "what would adding AC cost" question is actually about — a plausible cooling profile at all.</div>
+
+      <h5>The standard AC and the heat pump's own cooling curve</h5>
+      <p>The "standard AC" baseline is one representative unit — a <b>Goodman GLXS4B, 3-ton (36,000 Btu/h), up to 15.2 SEER2</b> — extracted the same way the heat pump curves are: capacity and power draw read directly off the manufacturer's own Performance Data table (75–115 °F outdoor, fixed 80 °F/67 °F indoor condition), not a digitized chart and not an assumed SEER. One size covers 92–99.5% of homes by peak cooling load across the 14 tracked cities (worst case Vancouver, small sample), so a single baseline is a reasonable stand-in for "a typical central AC," not a claim that every home needs exactly this unit. Outside its published 23.9–46.1 °C range the curve is held flat, not linearly extrapolated — a deliberately conservative, bounded choice given how little margin sits between that range and a typical solved balance point (17–21 °C).</p>
+      <p>Where the selected heat pump's own spec sheet publishes a temperature-indexed cooling table (5 of the 9 tier×size cells on this page, checked directly against each manufacturer's datasheet: Tosot 36k, GREE 24k/36k, Fujitsu 15k and 36k — the other 4 genuinely have no published cooling curve, not an extraction gap), that real curve is used for the "cooling mode" comparison instead of a second generic assumption. Both curves are normalized the same way as heating's, but on <b>95 °F</b> (the cooling AHRI/SEER anchor) rather than heating's 47 °F — the two <code>cap_frac</code> scales are not interchangeable.</p>
+
+      <div class="caveats"><b>SEER/SEER2 badges do not predict this comparison's outcome.</b> Two of the three real heat-pump cooling curves checked (Tosot, GREE) carry a <i>higher</i> published SEER/SEER2 than the Goodman baseline, yet both use <i>more</i> electricity once their real measured points are integrated against a full year of real weather. The reconciliation: SEER is a standardized average across a published outdoor-temperature distribution that barely samples above 35 °C (the hottest standard AHRI bin, 38.9 °C, is weighted at only 0.4% of assumed cooling hours) — a unit can post a strong badge from shoulder-season performance while degrading faster than a competitor above that range, which is exactly where a real climate's cooling load is concentrated (load grows with outdoor temperature, so the biggest hours are near the design condition, not the mild ones SEER weights most). Use the kWh/GHG/cost numbers this scenario computes, not the equipment's badge, to judge which unit actually costs less to run here.</div>
 
       <h4>What this does not do</h4>
       <ul>
@@ -2137,8 +2171,151 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     };
   }
 
+  // --------------------------------------------------------------------------
+  // Cooling: "potential AC" scenario (added 2026-08-31). Independent of the
+  // heating simulate() above -- see METHODOLOGY.md "Cooling / 'potential AC'
+  // scenario" and "Cooling curve library expanded, and SEER2 badges don't
+  // predict real-TMY performance".
+  // --------------------------------------------------------------------------
+
+  // Solve the cooling balance point Tc (deg C) by CDH-inversion, mirroring
+  // build_city_house_profiles.py's method exactly: UA_cool is fixed from the
+  // design (peak) cooling load against the city's design cooling dry-bulb and
+  // the fixed 25 C HOT2000 ThermostatCooling indoor anchor; Tc is then the
+  // temperature at which integrating cooling-degree-hours over the ACTUAL
+  // tempSeries against UA_cool reproduces the target annual cooling energy.
+  // gridStepC trades solve accuracy for speed -- the Python build script
+  // grids at 0.02 C once per city; this runs in the browser on every slider
+  // drag, so a coarser default keeps it interactive.
+  function solveCoolingBalancePoint(tempSeries, designCoolingTempC, coolPeakKW, annualCoolKWh, gridStepC) {
+    var step = gridStepC || 0.25;
+    var UA = coolPeakKW / (designCoolingTempC - 25.0); // kW/K, ThermostatCooling fixed at 25 C
+    var tcMax = designCoolingTempC - 0.02;
+    var grid = [], cdh = [];
+    for (var tc = 0.0; tc < tcMax; tc += step) {
+      var s = 0;
+      for (var i = 0; i < tempSeries.length; i++) {
+        var d = tempSeries[i] - tc;
+        if (d > 0) s += d;
+      }
+      grid.push(tc);
+      cdh.push(s);
+    }
+    // CDH strictly decreases as Tc rises; interp() needs an ascending x
+    // array, so flip both (mirrors the Python xp,fp = cdh_grid[::-1], tc_grid[::-1]).
+    var xs = cdh.slice().reverse();
+    var ys = grid.slice().reverse();
+    var target = annualCoolKWh / UA;
+    var Tc = interp(xs, ys, target);
+    return { UA_cool_kW_per_K: UA, Tc_C: Tc };
+  }
+
+  // Cooling-only simulation: one piece of equipment (a standard AC or a heat
+  // pump's own cooling curve) meeting a cooling load over the year. No base
+  // case and no backup -- this is the "AC added" side of the potential-AC
+  // scenario, not a replacement of an existing system, so there is nothing to
+  // compare against inside this function. The caller runs it once per
+  // candidate (standard AC, chosen heat pump) against the same archetype and
+  // compares the results itself, against an implicit "no AC" zero baseline.
+  //
+  // opts = {
+  //   tempSeries:  Array<number> outdoor dry-bulb C, one per hour
+  //   archetype:   { UA_cool_kW_per_K, Tc_C }   // from solveCoolingBalancePoint
+  //   equipment:   { curve: { T_C[], cap_frac_of_rated95[], COP[] }, nominalCap_kW }
+  //   lifecycle?:  { lineLossPct }
+  //   ef, efMode, efLevel?, startMonth?         // same grid-EF inputs as simulate()
+  // }
+  function simulateCooling(opts) {
+    var temps = opts.tempSeries;
+    var N = temps.length;
+    var leap = N === 8784;
+    var UA = opts.archetype.UA_cool_kW_per_K;
+    var Tc = opts.archetype.Tc_C;
+    var curve = opts.equipment.curve;
+    var nominalCap = opts.equipment.nominalCap_kW;
+    var lc = opts.lifecycle || {};
+    var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
+    var efMode = opts.efMode === "marginal" ? "marginal" : "average";
+    var efLevel = opts.efLevel || null;
+    var startMonth = opts.startMonth || 1;
+    var G2KG = 0.001;
+
+    var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
+    var coolingHours = 0, metHours = 0, unmetHours = 0;
+    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0);
+    var m_elec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      m_ghg = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // month x hour-of-day electricity (kWh), same shape as simulate()'s
+    // elec_month_hour -- lets the UI price this with the existing TOU
+    // costElectricity() function unchanged.
+    var mh_elec = [];
+    for (var mo0 = 0; mo0 < 12; mo0++) { var row0 = []; for (var h0 = 0; h0 < 24; h0++) row0.push(0); mh_elec.push(row0); }
+
+    for (var i = 0; i < N; i++) {
+      var T = temps[i];
+      var load = UA * Math.max(0, T - Tc);
+      h_load[i] = load;
+      if (load <= 0) continue;
+      coolingHours++;
+      loadKWh += load;
+
+      var hour = (i % 24) + 1;
+      var dayOfYear = Math.floor(i / 24);
+      var month = monthOfDay(dayOfYear, leap);
+      if (startMonth !== 1) month = ((month - 1 + (startMonth - 1)) % 12) + 1;
+      var mi = month - 1;
+      var season = SEASON_BY_MONTH[month];
+      var tbin = tempBinLeft(T);
+
+      var capFrac = interp(curve.T_C, curve.cap_frac_of_rated95, T);
+      var cop = interp(curve.T_C, curve.COP, T);
+      var capacity = capFrac == null ? 0 : nominalCap * capFrac;
+      h_cap[i] = capacity; h_cop[i] = cop;
+      var delivered = cop ? Math.min(load, capacity) : 0;
+      deliveredKWh += delivered;
+      if (delivered + 1e-9 >= load) metHours++;
+      else unmetHours++;
+
+      if (delivered > 0 && cop) {
+        var elec = delivered / cop;
+        elecKWh += elec;
+        m_elec[mi] += elec;
+        h_elec[i] = elec;
+        mh_elec[mi][hour - 1] += elec;
+
+        var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+        var ghg = efThisHour * elec * lineLoss * G2KG;
+        ghgKg += ghg;
+        m_ghg[mi] += ghg;
+        h_ghg[i] = ghg;
+      }
+    }
+
+    var monthly = [];
+    for (var mo = 0; mo < 12; mo++) {
+      monthly.push({ month: mo + 1, electricity_kWh: m_elec[mo], electricity_ghg: m_ghg[mo] });
+    }
+
+    return {
+      energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
+      ghg: { electricity: ghgKg, total: ghgKg },
+      monthly: monthly,
+      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, temp_C: temps },
+      diagnostics: {
+        load_kWh: loadKWh,
+        delivered_kWh: deliveredKWh,
+        seasonal_cop: elecKWh > 0 ? deliveredKWh / elecKWh : null,
+        cooling_hours: coolingHours,
+        met_hours: metHours,
+        unmet_hours: unmetHours,
+      },
+    };
+  }
+
   return {
     simulate: simulate,
+    solveCoolingBalancePoint: solveCoolingBalancePoint,
+    simulateCooling: simulateCooling,
     // exported for tests / reuse
     interp: interp,
     tempBinLeft: tempBinLeft,
@@ -2267,7 +2444,7 @@ const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
 // guess. See METHODOLOGY.md "Tiered electricity pricing -- removed."
 const PLAN_LABEL={tou:'Time-of-use',ulo:'Ultra-low overnight',flat:'Flat rate',marginal:'Marginal (top-tier)'};
 
-let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null;
+let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null, AC_CURVE=null;
 // city_design_temps.json keys most city names verbatim; the exceptions get an
 // explicit mapping rather than assuming a match.
 const CITY_TO_DESIGNTEMP_KEY={Ottawa:'Ottawa-Gatineau'};
@@ -2753,6 +2930,7 @@ const state={
   lockout:-5, lockoutAuto:false, efBasis:'average', weatherYear:'tmy', refrig:'r410a', gwpHorizon:'100', leakRate:2.0,
   includeUpstream:true, methane:UPSTREAM_METHANE_PCT, lineloss:LINELOSS_PCT_BY_PROV.on, // default city is Ottawa
   plan:null, // null = city's default electricity plan
+  coolingOn:false, // opt-in "potential AC" cooling scenario -- off by default, see METHODOLOGY.md "Cooling / potential AC scenario"
   weatherView:'temp', // weather-card chart: 'temp' histogram or 'hourly' 8760-hour line
   loadView:'plain', equipView:'plain', gridView:'plain', energyView:'plain', emisView:'plain', costView:'byhour', // step ②③④⑤⑥⑦ charts: 'plain' temp curve, 'freq' weighted by hours, 'byhour' (cost only) or 'hourly' 8760-hour trace
   // Per-chart month (0-11, null=whole year) / week (0-52, null=whole year) filter for
@@ -2806,8 +2984,10 @@ Promise.all([
   fetch(DATA+'grid_ef_annual.json').then(r=>r.json()).catch(()=>null),
   fetch(DATA+'hp_cell_curves.json').then(r=>r.json()),
   fetch(DATA+'city_design_temps.json').then(r=>r.json()),
-]).then(([a,c,t,ann,cc,dt])=>{
+  fetch(DATA+'ac_curves.json').then(r=>r.json()).catch(()=>null),
+]).then(([a,c,t,ann,cc,dt,acj])=>{
   ARCH=a; CURVES=c; TMY=t; ANNUAL_EF=ann; CELL_CURVES=cc; DESIGN_TEMPS=dt;
+  AC_CURVE=acj&&acj.models&&acj.models['Goodman_GLXS4BA3610'];
   runSelfTest();
   buildInputs();
   return Promise.all([ensureEF(CITY_PROV[state.city]),ensurePrices(CITY_PROV[state.city]),ensureWeather(state.city)]);
@@ -2990,6 +3170,12 @@ function buildInputs(){
     state.lineloss=state.includeUpstream?lineLossPctFor(state.city):0;
     document.querySelectorAll('#upstream-seg button').forEach(x=>x.classList.toggle('active',x===b));
     recompute();
+  }));
+  document.querySelectorAll('#cooling-seg button').forEach(b=>b.addEventListener('click',()=>{
+    state.coolingOn=b.dataset.val==='on';
+    document.querySelectorAll('#cooling-seg button').forEach(x=>x.classList.toggle('active',x===b));
+    if(state.coolingOn) ensureHouseProfiles(state.city).then(renderCooling);
+    else renderCooling();
   }));
 
   $('arch-info').addEventListener('click',()=>{$('arch-helper').classList.toggle('open');renderArchHelper();});
@@ -3342,6 +3528,7 @@ function recompute(){
   lastRes=res; lastOpts=opts;
   render(res,opts);
   renderCost(res);
+  renderCooling();
 }
 
 // ==========================================================================
@@ -5499,6 +5686,162 @@ function renderCost(res){
   }
   renderHourlyTable();
 }
+
+// ==========================================================================
+// Cooling — "potential AC" scenario (opt-in, off by default). See
+// METHODOLOGY.md "Cooling / 'potential AC' scenario" and "Cooling curve
+// library expanded, and SEER2 badges don't predict real-TMY performance".
+// Independent of the heating simulation above: reuses the engine's own
+// simulateCooling()/solveCoolingBalancePoint(), not a parallel calculation
+// path, but nothing here feeds back into the heating numbers.
+// ==========================================================================
+// cool_peak_kW = 0.2789*heat_peak_kW + 1.3254 (r=0.683, n=209,272 ERS homes);
+// annual_cool_kWh = 838.3*cool_peak_kW (through-origin ratio, r=0.778). Both
+// applied to the user's OWN design heat load -- no separate AC-sizing
+// control, same "no archetype auto-sizing" spirit as the rest of this page.
+// Always the estimated (_est) method, never the real per-house ERS fields --
+// this scenario has no specific house selected, just a design load.
+function coolPeakEstKW(){ return 0.2789*state.designLoad + 1.3254; }
+function coolEnergyEstKWh(peakKW){ return 838.3*peakKW; }
+let COOL_BP_CACHE={};
+// Solved {UA_cool_kW_per_K, Tc_C, peak_kW, energy_kWh, design_cooling_temp_C},
+// memoized on the inputs that actually change it (recomputing means
+// re-integrating degree-hours over the full weather year). Returns null if
+// this city has no design_cooling_temp_C (house_profiles not loaded yet, or
+// genuinely unavailable).
+function coolingArchetype(){
+  const prof=HOUSE_PROFILES_CACHE[houseProfileSlug(state.city)];
+  const designCoolC=prof&&prof.meta&&prof.meta.design_cooling_temp_C;
+  if(designCoolC==null)return null;
+  const key=state.city+'|'+state.weatherYear+'|'+state.designLoad.toFixed(2);
+  if(COOL_BP_CACHE[key])return COOL_BP_CACHE[key];
+  const peak=coolPeakEstKW(), energy=coolEnergyEstKWh(peak);
+  const temps=tempSeriesFor(state.city,state.weatherYear);
+  const bp=E.solveCoolingBalancePoint(temps,designCoolC,peak,energy);
+  const result={peak_kW:peak,energy_kWh:energy,design_cooling_temp_C:designCoolC,
+    UA_cool_kW_per_K:bp.UA_cool_kW_per_K,Tc_C:bp.Tc_C};
+  COOL_BP_CACHE[key]=result;
+  return result;
+}
+// Load/capacity/COP as smooth curves of outdoor temperature, for the chart --
+// mirrors stepCurves()'s heating equivalent, sampled over a cooling range.
+const COOL_Tmin=14,COOL_Tmax_DEFAULT=42;
+function coolStepCurves(UA,Tc,equip,Tmax){
+  const T=[],load=[],cap=[],cop=[];
+  for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
+    const L=UA*Math.max(0,t-Tc);
+    let cf=null,cp=null,cv=0;
+    if(equip){ cf=E.interp(equip.curve.T_C,equip.curve.cap_frac_of_rated95,t); cp=E.interp(equip.curve.T_C,equip.curve.COP,t); cv=cf==null?0:equip.nominalCap_kW*cf; }
+    T.push(t);load.push(L);cap.push(cv);cop.push(cp);
+  }
+  return {T,load,cap,cop};
+}
+function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC){
+  const W=740,H=320,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
+  // The chart's hot end is bounded near the city's OWN design cooling
+  // temperature, not a fixed ceiling: UA_cool is inversely proportional to
+  // (design_temp - 25 C), so a mild-summer city (Vancouver's design temp is
+  // only 0.7 C above the fixed 25 C anchor) gets a huge UA and the load line
+  // explodes if extrapolated to a distant, climatically-irrelevant hot
+  // extreme -- capping near the city's real design condition keeps the axis
+  // meaningful everywhere instead of just where UA happens to be small.
+  const Tmin=COOL_Tmin,Tmax=Math.min(COOL_Tmax_DEFAULT,Math.max(28,Math.round(designCoolingTempC)+3));
+  const Cac=coolStepCurves(UA,Tc,acEquip,Tmax);
+  const Chp=hpEquip?coolStepCurves(UA,Tc,hpEquip,Tmax):null;
+  const maxKW=Math.max(1,...Cac.load,...Cac.cap,...(Chp?Chp.cap:[0]))*1.1;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, yL=v=>m.t+pH-(v/maxKW)*pH;
+  const blue=css('--blue'),purple=css('--purple'),muted=css('--muted'),light=css('--light'),green=css('--green');
+  const s={v:''};
+  niceTicks(maxKW,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${yL(v)}" x2="${W-m.r}" y2="${yL(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${yL(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW cooling</text>`;
+  stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
+  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.load[i]]),x,yL,muted,1.6,'3 4');
+  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cap[i]]),x,yL,blue,2.2);
+  if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cap[i]]),x,yL,purple,2.2,'5 3');
+  s.v+=`<line x1="${x(Tc)}" y1="${m.t}" x2="${x(Tc)}" y2="${m.t+pH}" stroke="${green}" stroke-width="1.3" stroke-dasharray="4 4"/>`;
+  s.v+=`<text x="${x(Tc)+4}" y="${m.t+12}" font-size="10.5" fill="${green}">balance point ${fmt1(Tc)}°</text>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s.v;
+  $('cooling-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${muted}"></span>Cooling load</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC capacity</span>`,
+    Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} capacity</span>`:'',
+  ].join('');
+}
+function renderCoolingKWh$(elec,planKey,resAC,resHP){
+  return {
+    ac_$: elec&&planKey ? costElectricity(resAC.energy.elec_month_hour,elec,planKey) : null,
+    hp_$: (elec&&planKey&&resHP) ? costElectricity(resHP.energy.elec_month_hour,elec,planKey) : null,
+  };
+}
+function renderCooling(){
+  const sec=$('section-cooling'); if(!sec) return;
+  if(!state.coolingOn){ sec.style.display='none'; return; }
+  sec.style.display='';
+  const body=$('cooling-body');
+  if(!AC_CURVE){ body.innerHTML='<p class="note">Standard-AC reference data failed to load.</p>'; return; }
+  const cityAtCall=state.city;
+  // House-profiles (source of design_cooling_temp_C) is lazy-fetched per city
+  // and may not be cached yet on a fresh city switch -- wait for it rather
+  // than reporting a false "not available" while the fetch is in flight.
+  if(HOUSE_PROFILES_CACHE[houseProfileSlug(state.city)]===undefined){
+    body.innerHTML='<p class="note">Loading cooling data…</p>';
+    ensureHouseProfiles(state.city).then(()=>{ if(state.city===cityAtCall) renderCooling(); });
+    return;
+  }
+  const arch=coolingArchetype();
+  if(!arch){ body.innerHTML=`<p class="note">Cooling data not available for ${state.city}.</p>`; return; }
+
+  const temps=tempSeriesFor(state.city,state.weatherYear);
+  const efObj=efObjectFor(CITY_PROV[state.city],state.efBasis);
+  const acEquip={curve:AC_CURVE.curve,nominalCap_kW:AC_CURVE.rated_cap_kW};
+  const resAC=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
+    equipment:acEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
+
+  const cell=cellFor(state.tier,state.band);
+  const hasHPCurve=cell&&cell.cooling;
+  let resHP=null,hpEquip=null,hpLabel=null;
+  if(hasHPCurve){
+    hpEquip={curve:cell.cooling.curve,nominalCap_kW:cell.cooling.rated_cap_95f_btuh/3412};
+    hpLabel=cell.brand_model||bucketShort()+' pump';
+    resHP=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
+      equipment:hpEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
+  }
+
+  const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],ck=CITY_KEY[state.city];
+  const elec=ck&&P&&P.electricity[ck];
+  const planKey=elec?((state.plan&&elec.plans[state.plan])?state.plan:elec.default_plan):null;
+  const costs=renderCoolingKWh$(elec,planKey,resAC,resHP);
+
+  const kpis=[
+    stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW',`from this home's ${fmt1(state.designLoad)}-kW design heat load, via a validated correlation — not measured`,'accent'),
+    stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`solved balance point ${fmt1(arch.Tc_C)} °C (city design cooling temp ${fmt1(arch.design_cooling_temp_C)} °C)`,'accent'),
+    stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e/yr${costs.ac_$!=null?` · ${fmt$(costs.ac_$)}/yr`:''}`,'green'),
+    resHP
+      ? (function(){
+          const beats=resHP.energy.electricity_kWh<resAC.energy.electricity_kWh;
+          return stepCard(hpLabel+' (cooling mode)',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',
+            `${fmtGHG(resHP.ghg.total)} CO₂e/yr${costs.hp_$!=null?` · ${fmt$(costs.hp_$)}/yr`:''} — ${beats?'uses less than':'uses more than'} the standard AC`,
+            beats?'green':'red');
+        })()
+      : stepCard(bucketShort()+' pump (cooling mode)','no data','This unit\'s spec sheet has no cooling curve on file — see the "underlying data" panel above for which of the 9 cells do.','red'),
+  ];
+  body.innerHTML=`
+    <div class="card-title-row chart-head"><span class="card-title">Cooling load vs outdoor temperature</span></div>
+    <div class="step-body">
+      <div class="step-chart-col">
+        <div class="keychart-wrap"><svg id="cooling-chart" viewBox="0 0 740 320" role="img" aria-label="Cooling load and equipment capacity versus outdoor temperature"></svg></div>
+        <div class="kc-legend" id="cooling-legend"></div>
+        <div class="note">Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated. The load curve legitimately runs above the nameplate design peak toward the hot end — an energy-preserving, not peak-preserving, convention shared with the heating load curve above; see methodology.</div>
+      </div>
+      <div class="step-kpi-col">${kpis.join('')}</div>
+    </div>
+    <p class="note">${!elec?'Current energy rates aren\'t available for this city, so cooling cost is omitted (kWh and GHG are still shown).':''} Estimated cooling load is derived from this home's design heat load via two correlations found across 209,272 ERS homes — it is not a measurement, and is two steps removed from one; see methodology for the full derivation and honesty caveats. SEER/SEER2 badges do not predict this ranking: a unit can carry a higher badge than the Goodman AC baseline and still use more electricity once integrated against a full year of real weather — see methodology.</p>
+  `;
+  renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
+}
+
 // Per-hour $ cost, now vs heat pump, for the whole weather year — volumetric
 // energy charges only (fixed monthly service charges are identical in both
 // scenarios and excluded, same as the annual summary above).
