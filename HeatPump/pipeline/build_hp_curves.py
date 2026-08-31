@@ -194,6 +194,38 @@ def build_model_curve(points, rated_cap_47_kW, min_op_temp_C,
     return cap_kw, cap_frac, cop_out
 
 
+COOL_GRID = np.round(np.arange(-15.0, 50.0 + 1e-9, 0.5), 2)
+
+
+def build_cooling_curve(cooling):
+    """Simple linear-interpolated cooling curve, no defrost/lockout logic --
+    those are heating-specific physics. Normalized on rated_cap_95_kW (the
+    cooling AHRI anchor), matching build_ac_curves.py's convention, NOT the
+    heating side's 47F anchor. Clamped (flat) outside the published range,
+    same choice made for the standalone Goodman AC curve (Simon 2026-08-31)."""
+    pts = sorted(cooling["points"], key=lambda p: p["T_C"])
+    xs = np.array([p["T_C"] for p in pts])
+    cap = np.array([p["cap_kW"] for p in pts])
+    cop = np.array([p["COP"] for p in pts])
+    rated95 = cooling["rated_cap_95_kW"]
+
+    cap_g = np.interp(COOL_GRID, xs, cap)  # clamps flat outside [xs[0], xs[-1]]
+    cop_g = np.interp(COOL_GRID, xs, cop)
+    return {
+        "rated_cap_95_kW": round(rated95, 4),
+        "doc": cooling.get("doc"),
+        "datasheet_points": pts,
+        "source_range_C": [round(float(xs[0]), 2), round(float(xs[-1]), 2)],
+        "extrapolation": "flat (clamped) outside the published range",
+        "curve": {
+            "T_C": COOL_GRID.tolist(),
+            "cap_kW": [round(float(v), 4) for v in cap_g],
+            "cap_frac_of_rated95": [round(float(v) / rated95, 4) for v in cap_g],
+            "COP": [round(float(v), 3) for v in cop_g],
+        },
+    }
+
+
 def curve_value(T_C, grid_curve):
     """Sample a GRID-based curve array at an arbitrary temperature."""
     return float(np.interp(T_C, GRID, np.nan_to_num(grid_curve, nan=0.0)))
@@ -367,6 +399,8 @@ def main(make_plots=False):
                 # grid arrays (kept for aggregation / plotting; trimmed on output)
                 "cap_kw": cap_kw, "cap_frac": cap_frac, "COP": cop,
             }
+            if d.get("cooling"):
+                rec["cooling"] = build_cooling_curve(d["cooling"])
             models[mid] = rec
             tier_members[tier].append(rec)
 

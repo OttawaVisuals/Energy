@@ -70,6 +70,14 @@ OUT_JSON = HERE.parent / "data/processed/hp_cell_curves.json"
 GRID = np.round(np.arange(-30.0, 20.0 + 1e-9, 0.5), 2)   # uniform temp grid, C
 WARM_MAX_C = 20.0
 
+# Cooling grid: separate from the heating GRID above (different physical range --
+# cooling load lives at the WARM end, heating's GRID stops at 20C). Simple flat
+# clamp outside each unit's own published range, matching the convention already
+# used for ac_curves.json/hp_curves.json's cooling curves (Simon 2026-08-31),
+# rather than the heating side's linear-extrapolation-to-lockout rule -- cooling
+# units here don't have a published lockout the way heating compressors do.
+COOL_GRID = np.round(np.arange(-15.0, 55.0 + 1e-9, 0.5), 2)
+
 # --------------------------------------------------------------------------
 # The 9 selected cells. Every point below was read directly off a manufacturer
 # document by Simon or Claude during chat on 2026-07-29 -- see `source`.
@@ -115,6 +123,21 @@ UNITS = {
         "lockout_C": -15.0,
         "flags": ["Lockout confirmed from spec page: 'Heating Temperature Range 5-75F'. "
                   "COP@5F=1.76 is an exact match to the AHRI record -- best agreement of any unit."],
+        "cool_cap_points": [(-15.00, 31700), (-12.22, 31700), (-9.44, 31700), (-6.67, 31700),
+                        (-3.89, 31700), (-1.11, 31700), (1.67, 31700), (4.44, 31700),
+                        (7.22, 31700), (10.00, 31700), (12.78, 31700), (15.56, 31700),
+                        (18.33, 31700), (21.11, 33000), (23.89, 34000), (26.67, 35000),
+                        (29.44, 34000), (32.22, 34000), (35.00, 34000), (37.78, 31600),
+                        (40.56, 29200), (43.33, 26900), (46.11, 24500)],
+        "cool_cop_points": [(-15.00, 3.872), (-12.22, 3.854), (-9.44, 3.839), (-6.67, 3.825),
+                        (-3.89, 3.807), (-1.11, 3.792), (1.67, 3.760), (4.44, 3.746),
+                        (7.22, 3.731), (10.00, 3.687), (12.78, 3.643), (15.56, 3.614),
+                        (18.33, 3.520), (21.11, 3.637), (23.89, 3.719), (26.67, 3.872),
+                        (29.44, 3.496), (32.22, 3.242), (35.00, 2.931), (37.78, 2.764),
+                        (40.56, 2.594), (43.33, 2.427), (46.11, 2.245)],
+        "cool_source": "TOSOT_TUD36.pdf p.4 EXTENDED RATINGS COOLING PERFORMANCE, "
+                       "80F/67F return air column, MAX OUTPUT, 23-pt",
+        "rated_cap_95f_btuh": 34000.0,
     },
     "mid_<18k": {
         "brand_model": "LG LSU120HSV5", "ahri": "10570123", "w": 4182,
@@ -148,6 +171,24 @@ UNITS = {
         "cap_points": None, "cop_points": None,  # filled from datasheet_points_v2.json below
         "lockout_C": -30.0,
         "flags": [],
+        "cool_cap_points": [(-15.00, 36000), (-12.22, 36000), (-9.44, 36000), (-6.67, 36000),
+                        (-3.89, 36000), (-1.11, 36000), (1.67, 36000), (4.44, 36000),
+                        (7.22, 36000), (10.00, 36000), (12.78, 36000), (15.56, 36000),
+                        (18.33, 36000), (21.11, 36000), (23.89, 36000), (26.67, 36000),
+                        (29.44, 35500), (32.22, 35000), (35.00, 34000), (37.78, 34000),
+                        (40.56, 34000), (43.33, 33500), (46.11, 33000), (48.89, 32300),
+                        (51.67, 30500), (53.89, 29500)],
+        "cool_cop_points": [(-15.00, 4.795), (-12.22, 4.730), (-9.44, 4.669), (-6.67, 4.587),
+                        (-3.89, 4.528), (-1.11, 4.452), (1.67, 4.396), (4.44, 4.341),
+                        (7.22, 4.270), (10.00, 4.220), (12.78, 4.171), (15.56, 4.121),
+                        (18.33, 4.059), (21.11, 3.980), (23.89, 3.907), (26.67, 3.637),
+                        (29.44, 3.356), (32.22, 3.157), (35.00, 2.931), (37.78, 2.767),
+                        (40.56, 2.623), (43.33, 2.456), (46.11, 2.359), (48.89, 2.339),
+                        (51.67, 2.321), (53.89, 2.307)],
+        "cool_source": "GREE_FLEXX_extended_ratings.pdf p.4, FLEXX36HP230V1BH/FLEXX36HP230V1AO, "
+                       "80F/67F return air column, MAX OUTPUT, 26-pt (widest hot-end range of "
+                       "any cell here, to 53.9C/129F)",
+        "rated_cap_95f_btuh": 34000.0,
     },
     "high_<18k": {
         "brand_model": "Fujitsu AOUG15LZAH1", "ahri": "206597213", "w": 1918,
@@ -165,6 +206,15 @@ UNITS = {
                   "Cross-check at 5F: curve gives COP 2.12 vs. the AHRI record's 2.34 (9.4% gap) -- "
                   "the widest mismatch of any unit in this set, right at the pipeline's 10% "
                   "cross-check tolerance."],
+        "cool_cap_points": [(-10.0, 16105), (-5.0, 15866), (0.0, 15593), (5.0, 15355),
+                        (10.0, 15116), (15.0, 14843), (19.4, 17061), (25.0, 16276),
+                        (30.6, 15423), (35.0, 14502), (40.0, 12727), (46.1, 11601)],
+        "cool_cop_points": [(-10.0, 12.757), (-5.0, 11.625), (0.0, 10.881), (5.0, 10.714),
+                        (10.0, 10.302), (15.0, 9.457), (19.4, 6.667), (25.0, 5.679),
+                        (30.6, 4.758), (35.0, 4.087), (40.0, 3.657), (46.1, 3.366)],
+        "cool_source": "Fujitsu General Design & Technical Manual DR_AS117EF_03, "
+                       "5-1 Cooling capacity, ASUG15LZAS, 80F/67F indoor DB/WB column, 12-pt",
+        "rated_cap_95f_btuh": 14500.0,
     },
     "high_18-30k": {
         "brand_model": "Moovair DMA24HOS20230E7", "ahri": "212361759", "w": 4206,
@@ -193,6 +243,15 @@ UNITS = {
         "lockout_C": -20.6,   # Simon's -20C call, clamped to the coldest tested point (-20.6C)
         "flags": ["Cross-check at 5F: curve gives COP 2.03 vs. the AHRI record's 2.00 (1.3% gap) -- "
                   "the anchor unit for this tier."],
+        "cool_cap_points": [(-10.0, 39956), (0.0, 43198), (5.0, 43914), (10.0, 44051),
+                        (15.0, 43607), (19.4, 42720), (25.0, 40946), (30.0, 38694),
+                        (35.0, 35998), (40.0, 32449), (46.1, 27502)],
+        "cool_cop_points": [(-10.0, 6.888), (0.0, 6.362), (5.0, 5.986), (10.0, 5.589),
+                        (15.0, 5.153), (19.4, 4.760), (25.0, 4.240), (30.0, 3.767),
+                        (35.0, 3.318), (40.0, 2.805), (46.1, 2.214)],
+        "cool_source": "Fujitsu General Design & Technical Manual DR_AR048EF_13, "
+                       "4-1 Cooling capacity, AMUG36LMAS, 80F/67F indoor DB/WB column, 11-pt",
+        "rated_cap_95f_btuh": 36000.0,
     },
 }
 
@@ -206,6 +265,10 @@ UNITS["mid_30-42k"]["cop_points"] = _gree_cop
 UNITS["mid_18-30k"]["cap_points"] = _gree_cap
 UNITS["mid_18-30k"]["cop_points"] = _gree_cop
 UNITS["mid_18-30k"]["lockout_C"] = -30.0
+UNITS["mid_18-30k"]["cool_cap_points"] = UNITS["mid_30-42k"]["cool_cap_points"]
+UNITS["mid_18-30k"]["cool_cop_points"] = UNITS["mid_30-42k"]["cool_cop_points"]
+UNITS["mid_18-30k"]["cool_source"] = UNITS["mid_30-42k"]["cool_source"]
+UNITS["mid_18-30k"]["rated_cap_95f_btuh"] = UNITS["mid_30-42k"]["rated_cap_95f_btuh"]
 
 # AHRI-certified rated 47F capacity (Btu/h) per unit, from hp_units_joined.csv
 # `c47` -- the certificate, not the datasheet's own 47F reading (TIER_SPEC.md
@@ -221,6 +284,36 @@ RATED_CAP_47F_BTUH = {
     "high_18-30k": 25000.0,
     "high_30-42k": 36000.0,
 }
+
+
+def _sample_cool_grid(points):
+    """Cooling curve on COOL_GRID: true interpolation between published points,
+    flat-clamped outside the published range (see COOL_GRID comment above --
+    no lockout/extrapolation logic here, unlike the heating side)."""
+    pts = sorted(points)
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return [float(np.interp(t, xs, ys)) for t in COOL_GRID]
+
+
+def build_cool_segments(points, chart_min_C=-15.0, chart_max_C=55.0):
+    """(T,V) list -> list of (T0,V0,T1,V1,solid) for a cooling curve: solid
+    segments between real published points, flat (non-solid, i.e. flagged as
+    extrapolation for dashed rendering) segments from the chart bounds in to
+    the first/last real point -- mirrors build_segments()'s solid/dashed
+    convention for the heating info-panel chart, but flat rather than sloped
+    since cooling has no lockout to extrapolate toward."""
+    pts = sorted(points)
+    cold_T, cold_V = pts[0]
+    warm_T, warm_V = pts[-1]
+    segs = []
+    if chart_min_C < cold_T - 1e-6:
+        segs.append((chart_min_C, cold_V, cold_T, cold_V, False))
+    for i in range(len(pts) - 1):
+        segs.append((pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], True))
+    if warm_T < chart_max_C - 1e-6:
+        segs.append((warm_T, warm_V, chart_max_C, warm_V, False))
+    return segs
 
 
 def build_segments(points, lockout_C, is_cop):
@@ -287,6 +380,23 @@ def build_cell_curves():
                 "COP": [None if v is None else round(v, 4) for v in cop_grid],
             },
         }
+        if u.get("cool_cap_points"):
+            rated95 = u["rated_cap_95f_btuh"]
+            cool_cap_grid = _sample_cool_grid(u["cool_cap_points"])
+            cool_cop_grid = _sample_cool_grid(u["cool_cop_points"])
+            cool_xs = [p[0] for p in u["cool_cap_points"]]
+            cells_out[cell_id]["cooling"] = {
+                "source": u["cool_source"],
+                "rated_cap_95f_btuh": rated95,
+                "source_range_C": [round(min(cool_xs), 2), round(max(cool_xs), 2)],
+                "extrapolation": "flat (clamped) outside the published range",
+                "curve": {
+                    "T_C": [float(t) for t in COOL_GRID],
+                    "cap_kW": [round(v / 3412.0, 4) for v in cool_cap_grid],
+                    "cap_frac_of_rated95": [round(v / rated95, 4) for v in cool_cap_grid],
+                    "COP": [round(v, 4) for v in cool_cop_grid],
+                },
+            }
     out = {
         "meta": {
             "phase": "3c cell-curve promotion",

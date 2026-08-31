@@ -1,7 +1,132 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-28** (**Construction Tracker** — reversal of a Tier-3 "not
+Updated **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
+scenario, built end to end: what a home without AC would emit/cost if it got
+one, and how a standard AC compares to a heat pump for cooling specifically.
+**Now wired into the live page**, not just the data layer: an opt-in "Show
+potential AC" toggle adds a cooling section (load-vs-temperature chart,
+estimated peak/energy/balance-point KPIs, and a standard-AC-vs-selected-unit
+kWh/GHG/$ comparison, with an honest "no cooling curve for this unit"
+fallback for the 4 of 9 cells without one) plus matching Simple/Advanced
+methodology copy stating the SEER-badge caveat in plain language. `engine.js`
+gained `solveCoolingBalancePoint()` (a live, in-browser port of the Python
+CDH-inversion solve, run against the actual TMY series rather than a
+precomputed grid) and `simulateCooling()` (the cooling-side hourly
+load→capacity→COP→kWh/GHG/$ pass, mirroring `simulate()`'s heating pass).
+One chart-scaling fix during testing: a mild-summer city's design cooling
+temperature sits close enough to the fixed 25°C indoor anchor (Vancouver:
+25.7°C) that `UA_cool` — inversely proportional to that gap — blows up, so
+the chart's hot-end axis is now capped near each city's own design cooling
+temperature rather than a fixed ceiling, instead of extrapolating into a
+climatically-meaningless range.
+
+Real ERS fields did almost all the work, replacing Phase 0's assumed-SEER
+calibration for the peak/energy inputs. **Peak heat loss correlates with peak
+cool loss** (r=0.683, R²=0.467, n=209,272 homes pooled across 14 cities) —
+`cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254` — which is what removes the
+need for a separate AC-sizing control. **Peak cool loss correlates with
+annual cool energy** far more strongly than annual heat and cool energy
+correlate with each other (r=0.778 vs. only ~0.2–0.25) — used as a
+through-origin ratio, `annual_cool_kWh = 838.3 × cool_peak_kW`. Both,
+plus the same CDH-inversion balance-point solve already built for real
+cooling data, are folded into `build_city_house_profiles.py` as new
+`cool_peak_est_kW`/`cool_energy_est_kWh`/`balance_point_Tc_est_C` columns —
+populated for every heating-solved home, not gated on real cooling fields,
+so a no-AC home still gets a "what would adding AC do" estimate. Along the
+way, confirmed `AIRCOP` (Coefficient of performance for A/C system) is a
+real, 100%-filled-among-cooling-users field the earlier cooling-energy basis
+had missed, fixing an inconsistent (consumption vs. delivered) energy
+comparison; and confirmed `ThermostatCooling` is a fixed 25.0°C HOT2000
+constant (zero variance across 620,107 records), not an audited value.
+
+A standard-AC baseline (Goodman GLXS4B 3-ton, `build_ac_curves.py` →
+`ac_curves.json`) covers 92–99.5% of real homes across all 14 cities at
+their own design temperature. Real cooling curves now exist for **5 of 8**
+`hp_curves.json` heat pump models and **5 of 9** live `hp_cell_curves.json`/
+`hp_tier_selection.json` cells (a separate, newer pipeline the live page
+actually reads — cooling data added to one file does not reach the other).
+Two vocabulary misses were caught and fixed same-day: Carrier's cooling
+tables are titled "DETAILED COOLING CAPACITIES" (indexed by "condenser
+entering air temperature"), and Daikin's don't say "Outdoor Ambient
+Temperature" either — both were initially reported as having no cooling
+data, which was wrong.
+
+**Headline finding: SEER/SEER2 badges don't predict which unit actually uses
+less electricity in a real climate.** GREE (SEER 18) and Tosot (SEER2 15.5)
+both carry a higher badge than the Goodman AC (SEER2 13.8–14.5) but sit
+*below* it in COP across most of the hot range once plotted against real
+measured points — confirmed on three independent real units (Fujitsu
+ducted, Tosot, GREE), not a one-off. Reconciled with an actual AHRI
+210/240 bin-method reconstruction: the standard's published temperature
+bins barely sample above 35°C (the hottest bin, 102°F, is only 0.4% of
+assumed cooling hours), while a real TMY-integrated calculation is
+dominated by the hottest hours near each city's own design temperature —
+exactly where these curves diverge from their badges. Also caught and
+fixed same-day: an early chart showing a heat pump beating the Goodman AC
+below ~22°C turned out to be an artifact of flat-clamping Goodman's curve
+below its published floor instead of extrapolating its own real (rising)
+trend — linear-extrapolating instead puts Goodman ahead at every checked
+temperature. See
+[HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "Cooling / potential AC
+scenario" and "Cooling curve library expanded, and SEER2 badges don't
+predict real-TMY performance.")
+
+Prior update **2026-08-31** (**Construction Tracker** — new **"Builder confidence"**
+card: CHBA's Housing Market Index, a quarterly builder-sentiment survey (0–100
+scale, 50 = neutral), national single-family and multi-family lines from
+Q1 2021 to the current quarter, plus a regional tile for Ontario/BC/Prairies/
+Atlantic views. Same cite-only, hand-transcribed pattern as Greener Homes and
+CHBA Net Zero, added to `Python/cited_figures.json` as a new `chba_hmi` source
+— `cited_figures_verify.py` needed no code change, since it already loops
+generically over every source. Two findings shaped the build. **(1)** CHBA's
+HMI page publishes only static chart images, no data file; a check of their
+auto-generated alt text (an obvious shortcut around reading 21 quarters of
+prose) found it unreliable — one chart's alt text swapped which
+selling-condition category a percentage belonged to (a 46% "average"/Fair
+reading mislabelled as "Good"), another mislabelled a quarter's index value
+by a full year. The card is built entirely from the page's own "Key Findings"
+narrative text instead, cross-checked quarter to quarter for
+self-consistency. **(2)** CHBA's only regional cuts are Ontario, British
+Columbia, Prairies (Alberta+Saskatchewan+Manitoba combined) and Atlantic
+Canada (NB+NS+PE+NL combined) — no Quebec, no territories, no per-province
+split within the two aggregate regions. An early draft labelled the regional
+tile with this page's own (single-province) geo label, e.g. "Nova Scotia
+single-family HMI," when the figure underneath is really the four-province
+Atlantic aggregate — caught in browser verification, fixed by labelling the
+tile with the actual CHBA region ("Atlantic Canada (NB+NS+PE+NL)") and adding
+a note whenever a Prairies/Atlantic province is selected. Regional index
+figures also only go back to 2024 Q2, since CHBA reported them as qualitative
+description (not index numbers) before that quarter, and multi-family
+Atlantic Canada is never reported in any quarter checked — both gaps are
+shown as `null`/"not reported" rather than interpolated or omitted silently.
+Verified live via a local static server across Canada/Ontario/Quebec/Nova
+Scotia/Alberta/Toronto: card renders, hides its regional tile correctly for
+Quebec with an explanatory note, shows "not reported" for multi-family
+Atlantic, zero console errors. Pre-existing and unrelated: `chba_net_zero`'s
+transcription is now stale against CHBA's live page (3 of 7 verify strings no
+longer match) — flagged, not fixed, since it wasn't part of this pass. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md).)
+
+Same-day follow-up **2026-08-31** (**Construction Tracker** — the flagged
+`chba_net_zero` staleness fixed: CHBA updated the page 2026-08-28 (3,979 →
+**3,982** labels, all three new labels single-detached houses; every other
+figure unchanged). Re-transcribed and re-verified live. Along the way,
+evaluated CHBA's other Net Zero page (chba.ca/net-zero/) at the user's
+request — it embeds a Power BI report with a per-builder map/table (units,
+province, city, and a **named contact with personal email and phone**, one
+row per company). Declined to build against it: extracting name/contact-level
+rows would cross the same line this project already held for CaGBC's project
+database, more so — it's individual people's contact details, not an
+aggregate. Also spent real effort trying to drive the report's custom filter
+dropdown via browser automation to get *only* a per-province unit total (no
+names); the slicer proved too unreliable to trust — two different automated
+attempts at the same province (BC) returned two different numbers on
+different tries, so nothing from that report shipped. `chba_net_zero`'s
+`note` field now documents the Power BI report and why it's excluded, for
+the next time this comes up.)
+
+Prior update **2026-08-28** (**Construction Tracker** — reversal of a Tier-3 "not
 built" call. Tier 3 (2026-08-27) declined to build a CaGBC LEED/Zero Carbon
 count on the assumption that their project database required a sign-in and
 carried a licence restriction. Both premises turned out to be wrong on closer

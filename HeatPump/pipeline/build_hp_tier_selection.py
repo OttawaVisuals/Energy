@@ -39,7 +39,7 @@ from pathlib import Path
 import pandas as pd
 
 from build_tier_scatter import SIZE_BANDS, SELECTED_AHRI, X_MIN, X_MAX, Y_MIN, Y_MAX, weighted_quantile
-from build_cell_curves import UNITS, build_segments
+from build_cell_curves import UNITS, build_segments, build_cool_segments
 from build_tier_curves import COLOURS, build_table_data
 
 HERE = Path(__file__).resolve().parent
@@ -123,6 +123,19 @@ def build_curves():
             "cap_points": [[t, v] for t, v in u["cap_points"]],
             "cop_points": [[t, v] for t, v in u["cop_points"]],
         }
+        if u.get("cool_cap_points"):
+            cool_cap_segs = build_cool_segments(u["cool_cap_points"])
+            cool_cop_segs = build_cool_segments(u["cool_cop_points"])
+            out[uid]["cooling"] = {
+                "source": u["cool_source"],
+                "rated_cap_95f_btuh": u["rated_cap_95f_btuh"],
+                "cap_segments": [[round(v, 3) if isinstance(v, float) else v for v in s]
+                                 for s in cool_cap_segs],
+                "cop_segments": [[round(v, 3) if isinstance(v, float) else v for v in s]
+                                 for s in cool_cop_segs],
+                "cap_points": [[t, v] for t, v in u["cool_cap_points"]],
+                "cop_points": [[t, v] for t, v in u["cool_cop_points"]],
+            }
     return out
 
 

@@ -3667,3 +3667,269 @@ part of this feature, unchanged by this fix). Verified against the exact
 reported scenario: table open, then a real UI control change (baseline
 fuel dropdown), with no perceptible lag and correct table contents
 afterward.
+
+## Cooling / "potential AC" scenario (2026-08-31)
+
+Input to a scenario that has not been wired into `heatpump.html` yet: what
+a home without AC would emit/cost if it got one. Built entirely from real
+ERS fields plus one real manufacturer spec sheet — no assumed SEER, unlike
+the Phase 0 calibration this replaces for the peak/energy inputs (Phase 0,
+`Python/heatpump_cooling_calibration.py`, remains valid as an independent
+cross-check; see its own section-equivalent, `ROADMAP.md`). All of it lives
+in `build_city_house_profiles.py`, alongside — not separate from — the
+existing heating solve, on the same per-house population.
+
+### The standard AC model and data
+
+`HeatPump/data/raw/AC/ss-glxs4b-r32.pdf` — Goodman GLXS4B, R-32 split-system
+air conditioner, up to 15.2 SEER2, 1.5–5 ton. One representative size used:
+**GLXS4BA3610A\*/CAPTA3626\* (3 ton, 36,000 Btu/h nominal)** — central in
+Goodman's range and close to the median real design cooling load found
+across cities (`house_profiles_<city>.json` city averages cluster
+4.4–6.8 kW). Extracted by `build_ac_curves.py` from the "Performance Data"
+table (pp. 18–19): Total Btu/h, Sensible/Latent split, and Total Watts at
+one fixed indoor condition (80°F DB/67°F WB) across outdoor temperature
+75–115°F — a clean published curve, not digitized off a chart.
+`COP(T) = Total_Btu/h / (Total_Watts × 3.412)` falls straight out.
+
+Normalized on **95°F**, the cooling AHRI/SEER rating point — deliberately
+different from the heat pump curves' 47°F heating anchor; the two
+`cap_frac` fractions are not comparable across that boundary. Outside the
+published 75–115°F (23.9–46.1°C) range the curve is held **flat**
+(clamped), per Simon's instruction 2026-08-31 — not linearly extrapolated
+the way the heat pump curves are, since the published range already brackets
+the solved balance points (~17–21°C) with only a few degrees of margin, so
+flat-holding is a small, bounded extrapolation rather than a long one.
+Output: `HeatPump/data/processed/ac_curves.json`.
+
+**Coverage check — is one 3-ton unit enough?** Compared each city's real
+`design_cool_loss_kW` distribution (from `house_profiles_<city>.json`)
+against the Goodman curve's capacity at that city's own design cooling
+temperature (where its capacity is at its worst): **92.4% (Vancouver,
+n=655, small sample) to 99.5% (Regina) of homes are covered**, every other
+city in the 93–99% band. A single 3-ton baseline is therefore a reasonable
+"standard AC" for the large majority of the fleet; the uncovered tail
+(bigger/leakier homes, worse in Vancouver/Montreal) would need a larger
+Goodman size — not pursued here since "one representative size" was the
+brief, but the 4-/5-ton curves are extractable the same way if that tail
+needs handling later.
+
+Three real heat pump models also carry genuine cooling curves now (not the
+single-AC-baseline substitute), extracted the same way from their own
+spec sheets and folded into `hp_curves.json` per-model, normalized the same
+95°F way: **Daikin DZ20VC** (existing tier-2 heating model, its own
+"Expanded Cooling Data" table), and two new Fujitsu General units pulled
+from `data/raw/spec_sheets/NewSelection/` — **AOUG12LZAH1** (Extra Cold
+Climate wall-mount ductless, tier 1) and **AOUG36LMAS1** (ducted inverter,
+tier 2 — a judgement call, flagged in its own `doc` field: COP@5°F rivals
+tier-1 members, but it's a mainstream ducted family, not a premium
+cold-climate line). The other five heating-side models (3 small Mitsubishi
+submittals, 2 Carrier product-data sheets) publish only a single AHRI-rated
+cooling point, not a temperature curve — checked directly against their raw
+PDFs, not assumed absent.
+
+### Peak heat ↔ peak cool correlation (so no AC-sizing dropdown is needed)
+
+Checked directly against `house_profiles_<city>.json`'s two peak columns,
+pooled across all 14 cities: **r = 0.683, R² = 0.467, n = 209,272** homes
+with both `design_heat_loss_kW` and `design_cool_loss_kW` populated
+(per-city range 0.54–0.87 — Halifax lowest but on only 179 homes). Real and
+expected: both peaks are driven by the same envelope (UA, floor area), so a
+leakier/bigger house needs more of both. Linear fit:
+
+    cool_peak_kW = 0.2789 * heat_peak_kW + 1.3254
+
+Median ratio (for a sense of scale, not used in the fit): cool peak ≈ 0.36×
+heat peak — consistent with Canada's heating-dominated climate almost
+everywhere. The positive intercept means even a very-low-heat-loss home
+still carries a baseline ~1.3 kW of cooling load (solar/internal gains that
+don't scale with the envelope the same way heat loss does).
+
+This is what removes the need for a separate "size your AC" control in a
+potential-AC scenario: the tool already has (or the user sets) a design
+heat load, so a plausible design cool load falls out of it directly.
+
+### Peak cool ↔ cool energy correlation (what stands in for the missing kWh)
+
+The natural next step — deriving annual cooling energy from annual heating
+energy the way peak cool comes from peak heat — **does not work**: checked
+the same way (heat energy vs. cool energy, COP-corrected using the real
+`AIRCOP` field so both sides are on a delivered-thermal basis), pooled
+r = 0.207–0.251 depending on COP-correction basis, barely above noise.
+Annual energy is dominated by *how many hours* of heating/cooling degree
+time the climate delivers plus occupant behaviour — largely independent
+axes for heating vs. cooling — where peak load is dominated by the shared
+envelope, which is why peaks correlate well and annual energies don't.
+
+**Peak cool DOES correlate well with annual cool energy, though** — checked
+directly on the same `house_profiles_<city>.json` population (`design_cool_loss_kW`
+vs. `annual_cool_energy_kWh`, the AIRCOP-corrected delivered figure):
+**r = 0.778, R² = 0.605 pooled** (n = 209,272; per-city 0.66–0.86). This is
+the relationship actually used: a **through-origin ratio**, chosen over the
+pooled linear fit (which carries a non-physical positive intercept — a
+zero-peak home implying nonzero cooling energy) —
+
+    annual_cool_kWh = 838.3 * cool_peak_kW        (median ratio)
+
+### Folded into `build_city_house_profiles.py`
+
+Both correlations are applied to every heating-solved home (not gated on
+real cooling data), giving each one an *estimated* cooling profile even
+with zero real cooling fields — the actual population a "what would adding
+AC do" scenario needs, since a home with real cooling data already has AC.
+Reuses the exact same CDH-inversion machinery already built for the real
+cooling solve (same `tc_grid`/`cdh_grid`, same fixed 25°C indoor anchor) —
+only the peak and energy inputs are swapped for the estimated ones. Output
+columns `cool_peak_est_kW`, `cool_energy_est_kWh`, `balance_point_Tc_est_C`
+ship alongside (never replacing) the real `design_cool_loss_kW` /
+`annual_cool_energy_kWh` / `balance_point_Tc_C` columns, both gate counts
+(`n_cool_est_too_low/too_high/solved`) reported per city the same way the
+real solve's are.
+
+**Flagged explicitly, in the script's own docstring and in `meta.cool_estimate_method`:**
+the `_est` fields are two correlations removed from measurement — a
+correlation-estimated peak run through a ratio-estimated energy run through
+a balance-point inversion built for real data. They should not be presented
+with the same confidence as the real (non-`_est`) cooling columns.
+
+**A quirk shared with the heating side, not unique to this addition:**
+because `UA` is anchored on the fixed 25°C indoor constant while the
+*solved* balance point sits below it (~17–21°C typically), the resulting
+load curve exceeds the nameplate peak at the design outdoor temperature —
+verified to integrate exactly to the target `annual_cool_kWh` over a real
+TMY (confirmed on a Toronto example: target 8,383.0 kWh, integrated
+8,383.0 kWh). This is the *energy-preserving* convention, not the
+*peak-preserving* one used in illustrative charts — and it is the mirror
+image of the heating side's own real-homes curve, which comes in *under*
+its `Pre_HeatLoss` peak at design temp for the identical reason (T0 sits
+below the fixed 21°C heating anchor, so `(T0 − design)` is smaller than
+`(21 − design)` there, where cooling's `(design − Tc)` is larger than
+`(design − 25)`). Confirmed numerically on 5 random Toronto homes: modelled
+load at design temp comes in at ~78–81% of the nameplate `EGHDESHTLOSS`
+peak. Neither curve is peak-preserving at the design condition; both are
+deliberately energy-preserving, which is the only property that matters
+for feeding an annual kWh into the GHG/cost calculation.
+
+## Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance (2026-08-31)
+
+Follow-on to the section above, after Simon asked to fold cooling data into
+every file the live page actually reads (not just `ac_curves.json`), and
+then asked whether the badge SEER/SEER2 values agree with how these curves
+actually behave once integrated against real weather. They don't agree,
+and the reason why is itself a useful thing to have on record.
+
+### Cooling curve coverage now spans three files
+
+`hp_curves.json`'s per-model cooling coverage grew from 2 to 5 of 8 models
+this session — **Carrier 25HNB9 and 25HNB5 both turned out to have real
+cooling tables** the first pass missed entirely, because Carrier calls the
+section "DETAILED COOLING CAPACITIES" indexed by "condenser entering air
+temperature," not "Outdoor Ambient Temperature" like every other
+manufacturer here — a pure vocabulary miss, not a genuine data gap (same
+class of mistake as the earlier Daikin miss, corrected the same session).
+Carrier's tables also extend furthest into heat of anything extracted here
+(to 125°F/51.7°C, vs. everyone else's ~46°C ceiling).
+
+Separately, `hp_cell_curves.json` and `hp_tier_selection.json` — the files
+the live page's 9-unit picker and "underlying data" info panel actually
+read, a **different, newer pipeline** (`build_cell_curves.py`, sourced from
+`data/interim/datasheet_points_v2.json`) than the `hp_curves.json`/
+`datasheet_points.json` pair above — needed the same cooling work done
+separately, since nothing in one file reaches the other. Checked all 9 live
+cells' source documents directly: **5 have real outdoor-temp-indexed
+cooling tables** (Tosot TUD36W2/D-D(U), GREE GUD36W/A-D(U) — shared by two
+cells, same physical outdoor unit under two AHRI-certified indoor
+pairings — Fujitsu AOUG15LZAH1, Fujitsu AOUG36LMAS1); **4 do not**
+(Cooper & Hunter, Tosot TUD24, LG, Moovair — each checked directly against
+what's on disk, confirmed as single min/rated/max cooling points with no
+temperature curve, not an extraction miss). Cooling curves added via a new
+`_sample_cool_grid`/`build_cool_segments` pair in `build_cell_curves.py`:
+simple interpolation between published points, flat-clamped outside the
+range (mirroring the `ac_curves.json` convention, not the heating side's
+linear-extrapolation-to-lockout rule — these units have no published
+cooling lockout the way heating compressors do), on a `[-15, 55]`°C grid
+separate from heating's `[-30, 20]`°C `GRID`.
+
+### The bin-method SEER2 sanity check
+
+Implemented the actual AHRI 210/240 bin method (8 standard temperature
+bins — 67/72/77/82/87/92/97/102°F with published fractional cooling-season
+hours, a standardized building-load line, default cycling-degradation
+`Cd=0.25`) against two units' real extracted points, to check the curves
+against their own published badge:
+
+| Unit | Computed SEER | Published badge |
+|---|---|---|
+| Goodman GLXS4BA3610A\* | 12.2 | 13.8–14.5 (SEER2) |
+| Fujitsu AMUG36LMAS | 11.7 | 17.1 (SEER2) |
+
+**Goodman passes** (~12–20% low, plausibly the generic default `Cd` vs.
+Goodman's own unpublished tested value) — same order of magnitude, computed
+with the method the standard actually specifies for a fixed-speed unit,
+a real confirmation the extracted curve is sound. **Fujitsu's gap is a
+methodology mismatch, not a data problem**: AMUG36LMAS is variable-speed,
+and its true SEER2 comes from a different AHRI test method (multiple
+compressor-speed points blended) specifically designed to avoid the
+cycling penalty `Cd=0.25` assumes a fixed-speed unit incurs — applying the
+fixed-speed method to a unit that never actually cycles understates it by
+construction. Neither result reflects on the GHG/cost integration itself,
+which uses each curve's real measured T-dependent points directly, not
+this bin-method reconstruction.
+
+### A flat-clamp choice created a false result — caught and fixed
+
+Simon caught an apparent finding — a cooling COP chart showing Fujitsu's
+ducted unit beating the Goodman AC below ~22°C — as suspicious: "that's
+because we assumed a flat COP for the Goodman there." Confirmed correct.
+Goodman's own two coldest published points (23.9°C, 26.7°C) already show
+COP *rising* as temperature falls (physically expected — smaller ∆T means
+less compressor work); holding the curve flat below the 75°F/23.9°C
+published floor (per the original flat-extrapolation instruction, chosen
+for a bounded/conservative extrapolation) suppressed that real trend.
+Linear-extrapolating Goodman's own slope instead puts it *above* Fujitsu at
+every temperature checked (20.3°C: 4.90 vs. 4.68; 18.8°C: 5.06 vs. 4.81;
+15.0°C: 5.46 vs. 5.15) — the earlier "Fujitsu wins below 22°C" region was
+an artifact of the clamp choice, not a real efficiency difference. The
+cooling *load* is smallest in exactly that near-balance-point region, so
+the GHG/cost integration from earlier is largely unaffected, but the
+"crossover at 22°C" framing itself should be discarded.
+
+### SEER/SEER2 badges do not predict TMY-integrated real-world performance
+
+Pulled the published SEER/SEER2 for every one of the 10 distinct cooling
+curves now in the pipeline, matched to the *exact* AHRI-certified
+combination used for each extraction wherever a combination-ratings table
+exists (not just a generic model-family number):
+
+| Unit | SEER / SEER2 | Source |
+|---|---|---|
+| Fujitsu ASUG12LZAS/AOUG12LZAH1 | SEER2 29.4 | Fujitsu spec sheet |
+| Fujitsu ASUG15LZAS/AOUG15LZAH1 | SEER2 25.3 | Fujitsu spec sheet |
+| Fujitsu AMUG36LMAS/AOUG36LMAS1 | SEER2 17.1 | Fujitsu spec sheet |
+| GREE GUD36AH2/A-D(U) / GUD36W/A-D(U) | SEER 18 (EER 11) | GREE FLEXX submittal |
+| Daikin DZ20VC0361A\* + MBVC1600 indoor | SEER 21.0 (EER2 14.0) | Daikin AHRI Ratings table |
+| Carrier 25HNB936A\*\*30 + FE4ANB006 indoor | SEER 19.0 (EER 13.7) | Carrier Combination Ratings, exact combo match |
+| Carrier 25HNB536A\*\*30 + FX4DN(B,F)037 indoor | SEER 15.0 (EER 12.5) | Carrier Combination Ratings, exact combo match |
+| Tosot TUD36W2/D-D(U) | SEER2 15.5 (EER2 10) | Tosot spec sheet, AHRI #211078855 — exact match to this cell's AHRI number |
+| Goodman GLXS4BA3610A\* | SEER2 13.8–14.5 (band) | Decoded from model-number nomenclature digit, not a direct badge |
+
+The SEER2 ranking and the TMY-integrated ranking from the "Cooling / potential
+AC scenario" section above **do not agree**: Tosot (SEER2 15.5) and GREE
+(SEER 18) both carry a *higher* badge than the Goodman AC (13.8–14.5), yet
+both sit *below* the Goodman curve in COP across most of the hot range once
+plotted against real measured points — the same "AC beats the heat pump on
+cooling electricity" result now confirmed on three independent real units
+(Fujitsu ducted, Tosot, GREE), not a one-off. The reconciliation is the bin
+method above: **SEER/SEER2 is a standardized, bin-weighted average at fixed
+AHRI test conditions across a *published* temperature distribution that
+barely samples above ~35°C** (see the bin table: 102°F/38.9°C is the
+highest standard bin, at only 0.4% of assumed cooling hours). A curve can
+carry a high badge from strong shoulder-season performance while degrading
+faster than a competitor above the AHRI test range — exactly the region a
+real TMY-integrated cooling calculation is dominated by (load grows with
+`T − Tc`, so the biggest hours are near each city's design temperature, not
+the mild ones the SEER standard weights most heavily). **Conclusion for this
+tool: use the TMY-integrated result for any real cooling-scenario
+comparison; treat the SEER/SEER2 badge as a shopping-label number, not a
+predictor of which unit will actually use less electricity in a specific
+climate.**
