@@ -1,11 +1,14 @@
 """
 municipal_permits_etl.py
 
-Permit-level open data from seven city portals/APIs plus one no-API
+Permit-level open data from eight city portals/APIs plus one no-API
 workbook pipeline, aggregated into construction_json/municipal.json for the
-Construction Tracker's municipal deep-dive card.
+Construction Tracker's municipal deep-dive card. These nine cities cover
+all eight of the CMAs used elsewhere on this page except Montreal was
+initially passed over and later added anyway, so in practice every major
+CMA this page tracks now has a matching city-level permit desk.
 
-WHY THESE EIGHT CITIES
+WHY THESE NINE CITIES
     Every other source on this page is a national aggregate on one schema.
     Municipal permits are the opposite: one schema, refresh cadence and set of
     coverage caveats per city. Vancouver has the cleanest schema and
@@ -27,14 +30,21 @@ WHY THESE EIGHT CITIES
     (real contractor names among them); Montreal has the largest single
     dataset by row count (558,874 rows since 1997) and, alongside Vancouver
     and Calgary, a genuine processing-time signal, despite having no cost
-    field whatsoever — the only city on this page ranked by permit count
-    rather than dollar value; and Halifax has the cleanest cost field of any
+    field whatsoever — one of two cities on this page ranked by permit count
+    rather than dollar value; Halifax has the cleanest cost field of any
     city here (Estimated_Project_Value populated on 99.3% of rows, no fee-
     schedule artifact like Ottawa's, no scope-mixing problem like
     Mississauga's) plus a genuine three-date chain like Mississauga's,
     giving it both a processing-time AND a build-time panel on top of a
-    real unit-economics table — and it is the only city whose own boundary
-    is close enough to its full CMA that the two are nearly the same city.
+    real unit-economics table, and it is the only city whose own boundary
+    is close enough to its full CMA that the two are nearly the same city;
+    and Winnipeg is the second no-cost-field city (its own dataset
+    description says so plainly) but has the cleanest APPLICANT data of any
+    city here — real, unredacted business names with none of Ottawa's
+    placeholder-redaction pattern — plus a genuine three-date chain giving
+    it both a processing-time and a build-time panel, computed entirely
+    server-side via Socrata's own `median()`/`date_diff_d()`, same as
+    Calgary.
 
     Three of these seven were rejected in an earlier pass and only shipped
     after being RE-evaluated live, each time because a previous rejection
@@ -165,6 +175,20 @@ SOURCES
                with zero negative-day rows on either interval. See the
                dedicated Halifax section below. Open Government Licence -
                Halifax.
+    Winnipeg   Socrata SODA API, dataset `Detailed Building Permit Data`
+               (Open Government Licence - Winnipeg). 162,558 rows since
+               2010, server-side SoQL aggregation like Calgary, including
+               `median()`/`date_diff_d()` for the processing-time and
+               build-time panels. No cost field at all (the dataset's own
+               description says so), matching it to a separate aggregate
+               dataset (by year/neighbourhood/permit type, single-permit
+               cells privacy-redacted) that has no permit-level key to join
+               back to individual rows — not used, same reasoning as
+               Montreal. `applicant_business_name` carries real, unredacted
+               business names (no placeholder-redaction pattern like
+               Ottawa's), so the concentration panel here needed no string
+               filtering beyond excluding blanks. See the dedicated
+               Winnipeg section below.
 
 DATA QUALITY
     Toronto's EST_CONST_COST column contains a literal placeholder string,
@@ -1763,6 +1787,178 @@ def fetch_halifax():
     }
 
 
+# =============================================================================
+# Winnipeg — Socrata SoQL, server-side aggregation like Calgary/Edmonton.
+# 162,558 rows since 2010 (deepest history bar Montreal). NO cost field —
+# the dataset's own description says so plainly ("containing most
+# information about the permit WITH THE EXCEPTION OF declared construction
+# value"), matching it to a separate "Aggregate Building Permit Data"
+# dataset that sums declared value by year/neighbourhood/permit_group only
+# (single-permit-count cells have their value stripped for privacy and
+# rolled into a 'WINNIPEG OMITTED CONSTRUCTION VALUE' bucket) — not
+# joinable back to individual permits, same reasoning as Montreal's separate
+# stats file, so not used here. value_basis:'count', like Montreal.
+#
+# What IS unusually clean here: `applicant_business_name` carries real,
+# unredacted business names (Qualico Developments, A&S Homes, Randall
+# Homes...) with NO placeholder-redaction pattern like Ottawa's `CONTRACTOR
+# UNKNOWN` — checked live, the only non-name value is a genuine blank, so
+# the concentration panel here needs no placeholder-string filtering at
+# all, just excluding nulls. A genuine three-date chain
+# (application_received_date/issue_date/final_date, 100%/100%/91.6%
+# populated, only 3 and 30 negative-day rows respectively out of 162,558)
+# gives both a processing-time and a build-time panel, computed entirely
+# server-side via SoQL's `median()` + `date_diff_d()`, the same mechanism
+# as Calgary.
+#
+# One caveat disclosed on the dataset's own page, not discovered by
+# inspection: "the detailed and aggregate building permit data has been
+# revised because of a minor over-statement of approved dwelling units, and
+# the counting methodology has been updated... Data before November 14,
+# 2022 has not been updated" -- so dwelling_units_created before that date
+# uses an older, less precise counting method than the same field after it.
+# Stated in the quality note rather than silently plotted as one continuous
+# series.
+# =============================================================================
+
+WPG_API = "https://data.winnipeg.ca/resource/it4w-cpf4.json"
+
+
+def fetch_winnipeg():
+    def agg(select, group_by=None, order_by=None, where=None, limit=200):
+        params = {"$select": select, "$limit": limit}
+        if group_by:
+            params["$group"] = group_by
+        if order_by:
+            params["$order"] = order_by
+        if where:
+            params["$where"] = where
+        return get(WPG_API, params)
+
+    since_floor = f"issue_date >= '{FLOOR}-01'"
+
+    monthly = agg("date_trunc_ym(issue_date) as ym,count(*) as n,"
+                 "sum(dwelling_units_created) as units",
+                 "ym", "ym", where=since_floor, limit=250)
+    by_month_n = {r["ym"][:7]: int(r["n"]) for r in monthly if r.get("ym")}
+    by_month_u = {r["ym"][:7]: int(float(r.get("units") or 0))
+                 for r in monthly if r.get("ym")}
+
+    areas_raw = agg("neighbourhood_name,count(*) as n", "neighbourhood_name",
+                   order_by="n desc", where=since_floor, limit=500)
+    work_raw = agg("permit_type,count(*) as n", "permit_type",
+                  order_by="n desc", where=since_floor, limit=50)
+    use_raw = agg("permit_group,count(*) as n", "permit_group",
+                 order_by="n desc", where=since_floor, limit=10)
+
+    def tidy_count(rows, key):
+        return [[r[key], int(r["n"]), int(r["n"])] for r in rows if r.get(key)]
+
+    areas = tidy_count(areas_raw, "neighbourhood_name")[:TOP_AREAS]
+    work = tidy_count(work_raw, "permit_type")
+    use = tidy_count(use_raw, "permit_group")
+
+    # Processing and build time: server-side median via date_diff_d, same
+    # mechanism as Calgary. Negative-day rows (3 of 162,558 for submission
+    # -> issuance, 30 for issuance -> completion, checked live) excluded in
+    # the WHERE clause rather than zeroed.
+    proc_where = (f"{since_floor} and application_received_date is not null "
+                 f"and date_diff_d(issue_date,application_received_date) >= 0")
+    proc_type = agg("permit_type,median(date_diff_d(issue_date,application_received_date)) "
+                   "as med,count(*) as n", "permit_type", where=proc_where, limit=50)
+    proc_year = agg("date_trunc_y(application_received_date) as yr,"
+                   "median(date_diff_d(issue_date,application_received_date)) as med,"
+                   "count(*) as n", "yr", "yr", where=proc_where, limit=30)
+
+    bt_where = (f"{since_floor} and final_date is not null "
+               f"and date_diff_d(final_date,issue_date) >= 0")
+    bt_type = agg("permit_type,median(date_diff_d(final_date,issue_date)) "
+                 "as med,count(*) as n", "permit_type", where=bt_where, limit=50)
+    bt_year = agg("date_trunc_y(issue_date) as yr,"
+                 "median(date_diff_d(final_date,issue_date)) as med,"
+                 "count(*) as n", "yr", "yr", where=bt_where, limit=30)
+
+    # Concentration: real business names, no placeholder redaction found
+    # live -- just excluding blanks.
+    conc_where = f"{since_floor} and applicant_business_name is not null"
+    total = int(agg("count(*) as n", where=since_floor, limit=1)[0]["n"])
+    conc_rows = agg("applicant_business_name,count(*) as n",
+                    "applicant_business_name", order_by="n desc",
+                    where=conc_where, limit=15000)
+    has_field = sum(int(r["n"]) for r in conc_rows)
+    threshold = 20
+    qualifying = [r for r in conc_rows if int(r["n"]) >= threshold]
+    covered = sum(int(r["n"]) for r in qualifying)
+
+    return {
+        "label": "City of Winnipeg",
+        "cma": "winnipeg",
+        "coverage": ("City of Winnipeg proper. The Winnipeg CMA also "
+                    "includes several surrounding rural municipalities and "
+                    "towns this data does not cover, though the city itself "
+                    "makes up the large majority of the CMA's population."),
+        "licence": "Open Government Licence - Winnipeg",
+        "count": months_to_series(by_month_n),
+        "units_created": months_to_series(by_month_u),
+        "areas": areas,
+        "areas_label": "neighbourhood",
+        "work": work,
+        "use": use,
+        "value_basis": "count",
+        "quality": {
+            "rows": total,
+            "unparseable_cost_pct": 100.0,
+            "note": ("This dataset has no cost/value field at all, per its "
+                    "own description. Winnipeg separately publishes an "
+                    "aggregate declared-value dataset (by year, "
+                    "neighbourhood and permit type; single-permit cells have "
+                    "their value stripped for privacy), but it has no "
+                    "permit-level key to join back to individual rows, so "
+                    "it is not used here. Areas, work type and use panels "
+                    "are therefore ranked by PERMIT COUNT, not dollar "
+                    "value, like Montreal. Separately: the city revised its "
+                    "dwelling-unit counting methodology and states plainly "
+                    "that data before 2022-11-14 was not updated to match, "
+                    "so dwelling_units_created before and after that date "
+                    "may not be perfectly comparable."),
+        },
+        "processing": {
+            "unit_note": ("Days from application to issuance. Median, not "
+                          "mean, computed server-side (SoQL median() over "
+                          "date_diff_d()). 3 rows with a negative day-count "
+                          "(of 162,558) excluded, not zeroed."),
+            "by_type": [[r["permit_type"], int(r["n"]), round(float(r["med"]), 1)]
+                       for r in proc_type if r.get("med") is not None],
+            "by_year": [[r["yr"][:4], int(r["n"]), round(float(r["med"]), 1)]
+                       for r in proc_year if r.get("yr") and r.get("med") is not None],
+        },
+        "build_time": {
+            "group_label": "permit type",
+            "unit_note": ("Days from issuance to the Final Date field. "
+                          "Median, not mean, computed server-side. 30 rows "
+                          "with a negative day-count excluded, not zeroed. "
+                          "91.6% of permits have a final date; the rest are "
+                          "still open."),
+            "by_type": [[r["permit_type"], int(r["n"]), round(float(r["med"]), 1)]
+                       for r in bt_type if r.get("med") is not None],
+            "by_year": [[r["yr"][:4], int(r["n"]), round(float(r["med"]), 1)]
+                       for r in bt_year if r.get("yr") and r.get("med") is not None],
+        },
+        "concentration": {
+            "applicants": {
+                "threshold": threshold,
+                "field_coverage_pct": round(has_field / total * 100, 1) if total else 0,
+                "total_distinct": len(conc_rows),
+                "qualifying": len(qualifying),
+                "permits_covered": covered,
+                "pct_of_field_permits": round(covered / has_field * 100, 1) if has_field else 0,
+                "top": [[r["applicant_business_name"], int(r["n"]), int(r["n"])]
+                       for r in qualifying[:15]],
+            },
+        },
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
@@ -1807,6 +2003,10 @@ def main():
         cities["halifax"] = fetch_halifax()
         print(f"  halifax: {len(cities['halifax']['areas'])} communities, "
               f"{len(cities['halifax']['work'])} work types")
+        print("fetching Winnipeg (Socrata SoQL, server-side aggregation)...")
+        cities["winnipeg"] = fetch_winnipeg()
+        print(f"  winnipeg: {len(cities['winnipeg']['areas'])} neighbourhoods, "
+              f"{len(cities['winnipeg']['work'])} permit types")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1831,6 +2031,8 @@ def main():
                        "transformation et démolition (CKAN datastore_search_sql)",
             "halifax": "Halifax Regional Municipality open data, PPL&C "
                       "Building Permits (Esri ArcGIS FeatureServer)",
+            "winnipeg": "City of Winnipeg open data, Detailed Building "
+                       "Permit Data (Socrata SODA API)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "

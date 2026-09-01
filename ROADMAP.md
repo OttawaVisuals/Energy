@@ -313,6 +313,50 @@ panels all populated, concentration correctly absent. See
 [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
 `Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
 
+Same day, ninth pass: **Winnipeg added as a ninth city**, again on a field
+list the user supplied directly from the source
+(`data.winnipeg.ca/.../it4w-cpf4`). This is the last of the eight CMAs this
+page tracks to get a matching city-level permit desk — Montreal was passed
+over in an earlier evaluation and added anyway earlier this same day, so
+Mississauga (inside the Toronto CMA) is now the only city here without its
+own CMA. Socrata SoQL, server-side aggregation like Calgary, 162,558 rows
+since 2010 — the deepest history of any city here besides Montreal.
+
+**No cost field at all**, disclosed plainly in the dataset's own
+description ("containing most information about the permit WITH THE
+EXCEPTION OF declared construction value"), matching it to a separate
+aggregate dataset (by year, neighbourhood and permit type; single-permit
+cells have their value stripped for privacy and rolled into a "WINNIPEG
+OMITTED CONSTRUCTION VALUE" bucket) with no permit-level key to join back
+to individual rows — same reasoning as Montreal not using its own separate
+stats file, so areas/work/use panels here are ranked by permit count, the
+second city on this page where that's true. What's unusually clean instead:
+`applicant_business_name` carries real, unredacted business names (Qualico
+Developments, A&S Homes, Randall Homes, Kensington Homes, all genuine
+Winnipeg builders) with none of Ottawa's placeholder-redaction pattern
+(`CONTRACTOR UNKNOWN`/`***CONTRACTOR***`) — checked live, the only
+non-name value found was a genuine blank, so the concentration panel here
+needed no placeholder-string filtering at all, unlike every other city
+with one. A genuine three-date chain (application received/issued/final,
+100%/100%/91.6% populated, only 3 and 30 negative-day rows respectively out
+of 162,558) gives both a processing-time and a build-time panel, computed
+entirely server-side via SoQL's `median()` and `date_diff_d()` — the same
+mechanism Calgary already used, so no new query pattern was needed.
+
+One caveat disclosed on the dataset's own page, not found by inspecting the
+data itself: the city revised its dwelling-unit counting methodology and
+states plainly that "data before November 14, 2022 has not been updated"
+to match, so `dwelling_units_created` before and after that date may not be
+perfectly comparable. Stated in the card's quality note rather than
+silently plotted as one continuous series implying full comparability.
+Verified live across all nine cities plus Manitoba (a province, no CMA
+match): zero console errors, Winnipeg's areas panel correctly count-ranked,
+applicants panel populated with contractors correctly absent (Winnipeg has
+an applicant field but no separate contractor field), processing/build-time
+panels populated and plausible, unit-economics correctly absent (no cost
+data). See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
+`Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
+
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.
