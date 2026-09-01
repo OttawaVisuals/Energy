@@ -264,6 +264,55 @@ populated, concentration/build-time/econ correctly absent. See
 [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
 `Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
 
+Same day, eighth pass: **Halifax added as an eighth city**, again on a field
+list the user supplied directly from the source
+(`data-hrm.hub.arcgis.com`). This turned out to be the cleanest dataset of
+any city built this session: a plain Esri TABLE (no geometry at all —
+`Community` is the only geography, unlike every other city here, which all
+have at least lat/long), 18,817 rows since 2020-12, small enough to page
+raw like Mississauga. `Estimated_Project_Value` is populated on 99.3% of
+rows with none of Ottawa's fee-schedule clustering or Mississauga's need
+for a scope filter to fix physically-impossible figures — the cleanest cost
+field found across all eight cities. `Net_New_Units` is pre-computed and
+100% populated, so unlike Mississauga's RES_UNITS or Calgary's
+housingunits, no derivation was needed. A genuine three-date chain
+(submission/issuance/completed, zero negative-day rows on either interval,
+checked live) gives Halifax both a processing-time and a build-time panel
+on top of a real unit-economics table — Mississauga's combination, but
+built on materially cleaner underlying data, so unlike every other city's
+unit-economics panel this session, this one needed no data-quality caveat
+in its scope note.
+
+`Occupancy_Type = 'Residential Use'` was used to scope unit economics
+instead of `Type_of_Structure` alone after checking live and finding a
+permit with `Type_of_Structure = 'Dwelling - Single Detached'` and
+`Occupancy_Type = 'Garage'` — an accessory structure on a residential lot,
+not a home, which the occupancy field correctly excludes and the structure
+field alone would not have. `Building_Footprint_Area` turned out to be in
+square metres, the same unit-mixing trap hit on Mississauga and Ottawa's
+2026 file — caught the same way, by checking sample rows' magnitudes
+against known real building sizes before trusting the field, not after.
+The user also flagged `Most_Recent_Inspection`/`Inspection_Outcome` as
+worth checking for a richer external dataset; checked live and it's just
+this same permit's own current inspection stage/result, no external
+inspections table found — not built into a panel, since a status snapshot
+doesn't trend the way a date interval or dollar figure does, and forcing
+one would manufacture insight the data doesn't support. No concentration
+panel: no applicant/contractor field exists in this schema at all.
+
+One geography note worth keeping: Halifax Regional Municipality's boundary
+is unusually close to its full CMA (the amalgamated former cities of
+Halifax and Dartmouth plus surrounding county), so its cross-check line
+should track the metro figures elsewhere on the page far more closely than
+most cities here — closer to Calgary's ≈88%-of-CMA case than to
+Vancouver's or Toronto's fraction-of-CMA case. Verified live across all
+eight cities plus Nova Scotia (a province, no CMA match): zero console
+errors, Halifax's areas panel correctly dollar-ranked (unlike Montreal's
+count-only panel from the pass before it), processing/build-time/econ
+panels all populated, concentration correctly absent. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
+`Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
+
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.

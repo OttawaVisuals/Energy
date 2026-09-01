@@ -304,8 +304,46 @@ footnotes:
   page's unused-but-computed `use` field) carries real casing duplicates
   across boroughs (`"Commercial"`/`"commercial"`/`"Commerce"` all appear
   separately) — normalized to uppercase for grouping rather than picking one
-  casing arbitrarily. See `Python/municipal_permits_etl.py`'s module
-  docstring for the full writeup on all seven cities.
+  casing arbitrarily.
+- **Halifax (added 2026-09-01)** joins as an eighth city, on the field list
+  the user gave directly from `data-hrm.hub.arcgis.com` (submission/issuance/
+  completed dates, Permit_Name, Work_Type, Permit_Status,
+  Estimated_Project_Value, Most_Recent_Inspection, Type_of_Structure,
+  Occupancy_Type, residential unit counts, Building_Footprint_Area, storeys,
+  Inspection_Outcome, building height, Net_New_Units). This resource is a
+  plain Esri TABLE with **no geometry at all** — no lat/long anywhere,
+  unlike every other city here — so `Community` is the only geography.
+  18,817 rows since 2020-12, small enough to page raw like Mississauga
+  rather than build ArcGIS `outStatistics` calls. The **cleanest cost data
+  of any city on this page**: `Estimated_Project_Value` populated on 99.3%
+  of rows (no Ottawa-style fee-schedule clustering, no Mississauga-style
+  scope-mixing problem needing a fix), and `Net_New_Units` pre-computed and
+  100% populated — no need to derive it from separate existing/end-unit
+  counts. A genuine three-date chain (submission/issuance/completed, zero
+  negative-day rows checked live on either interval) gives it **both** a
+  processing-time and a build-time panel, on top of a real unit-economics
+  table — the same combination Mississauga has, but with materially cleaner
+  underlying data. `Occupancy_Type = 'Residential Use'` scopes the
+  unit-economics panel more precisely than `Type_of_Structure` alone:
+  checked live, a permit can carry `Type_of_Structure = 'Dwelling - Single
+  Detached'` with `Occupancy_Type = 'Garage'` (an accessory structure on a
+  residential lot, not a home), which the occupancy field correctly
+  excludes. `Building_Footprint_Area` is in square **metres**, the same
+  unit-mixing trap as Mississauga and Ottawa's 2026 file, caught the same
+  way (checked live against sample rows' magnitudes) before it could ship
+  wrong. The user separately flagged `Most_Recent_Inspection`/
+  `Inspection_Outcome` as worth checking for a richer external dataset —
+  checked live, they're just this same permit's own current inspection
+  stage/result (e.g. "Building - Part 9 - Final" / "Passed"), no external
+  inspections table found, and not built into a panel: a status snapshot
+  doesn't trend the way a date interval or a dollar figure does. No
+  concentration panel (no applicant/contractor field in this schema at
+  all). Halifax Regional Municipality's boundary is unusually close to its
+  full CMA (the amalgamated former cities of Halifax and Dartmouth plus
+  surrounding county), so unlike most cities here its series should track
+  the metro figures elsewhere on the page closely rather than being a small
+  fraction of them. See `Python/municipal_permits_etl.py`'s module
+  docstring for the full writeup on all eight cities.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The
