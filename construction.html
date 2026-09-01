@@ -249,6 +249,17 @@ footer a:hover{color:var(--amber2)}
       <div id="absorb-table"></div>
     </div>
 
+    <!-- 2c ▸ Builder confidence (CHBA HMI) -->
+    <div class="card" id="hmi-card">
+      <div class="card-title-row">
+        <div class="card-title" id="hmi-title">Builder confidence — CHBA Housing Market Index</div>
+        <div class="chart-legend-inline" id="hmi-legend"></div>
+      </div>
+      <div class="stats-grid" id="hmi-stats" style="margin-bottom:.6rem"></div>
+      <div class="cw cw-md" id="hmi-chart"></div>
+      <p class="note" id="hmi-note"></p>
+    </div>
+
     <!-- 3 ▸ What's being built -->
     <div class="section-head">
       <h2>What's being built</h2>
@@ -421,6 +432,47 @@ footer a:hover{color:var(--amber2)}
         <div class="card-title">Energy-measure permits</div>
         <div class="cw cw-sm" id="muni-energy-chart"></div>
         <p class="note" id="muni-energy-note"></p>
+      </div>
+      <div class="chart-grid" id="muni-processing-card">
+        <div class="card">
+          <div class="card-title">Time to get a permit — by type of work</div>
+          <div id="muni-proc-type"></div>
+          <p class="note" id="muni-proc-type-note"></p>
+        </div>
+        <div class="card">
+          <div class="card-title">Time to get a permit — by year issued</div>
+          <div id="muni-proc-year"></div>
+          <p class="note" id="muni-proc-year-note"></p>
+        </div>
+      </div>
+      <div class="chart-grid" id="muni-concentration-card">
+        <div class="card">
+          <div class="card-title">Top applicants (20+ permits)</div>
+          <div id="muni-conc-applicants"></div>
+          <p class="note" id="muni-conc-applicants-note"></p>
+        </div>
+        <div class="card">
+          <div class="card-title">Top contractors (20+ permits)</div>
+          <div id="muni-conc-contractors"></div>
+          <p class="note" id="muni-conc-contractors-note"></p>
+        </div>
+      </div>
+      <div class="chart-grid" id="muni-buildtime-card">
+        <div class="card">
+          <div class="card-title" id="muni-build-type-title">Time to build</div>
+          <div id="muni-build-type"></div>
+          <p class="note" id="muni-build-type-note"></p>
+        </div>
+        <div class="card">
+          <div class="card-title">Time to build — by year issued</div>
+          <div id="muni-build-year"></div>
+          <p class="note" id="muni-build-year-note"></p>
+        </div>
+      </div>
+      <div class="card" id="muni-econ-card">
+        <div class="card-title">New-construction cost per unit and per square foot</div>
+        <div id="muni-econ-table"></div>
+        <p class="note" id="muni-econ-note"></p>
       </div>
     </div>
 
@@ -1513,6 +1565,87 @@ function renderPrograms(){
       (chba?' · <a href="'+chba.source_url+'" target="_blank" rel="noopener">CHBA source</a>':'')+'.';
   });
 }
+/* CHBA Housing Market Index — hand-transcribed quarterly builder-sentiment
+   survey, sharing programs.json with the cite-only figures above. CHBA's own
+   regional cuts are Ontario / BC / Prairies (AB+SK+MB) / Atlantic (NB+NS+PE+NL)
+   — Quebec and the territories have no HMI region at all, so those geographies
+   fall back to the national chart with no regional tile. */
+var CHBA_REGION={on:'on',bc:'bc',ab:'prairies',sk:'prairies',mb:'prairies',
+                 nb:'atlantic',ns:'atlantic',pe:'atlantic',nl:'atlantic'};
+/* CHBA reports Prairies and Atlantic as multi-province aggregates, not one
+   province each — a tile must say so rather than borrow this page's own
+   (single-province) geo label, which would misattribute the aggregate figure
+   to whichever one province happens to be selected. */
+var CHBA_REGION_LABEL={on:'Ontario',bc:'British Columbia',
+                        prairies:'Prairie provinces (AB+SK+MB)',
+                        atlantic:'Atlantic Canada (NB+NS+PE+NL)'};
+function hmiQtoM(q){ var y=+q.slice(0,4), qn=+q.slice(6,7); return y*12+(qn-1)*3; }
+function renderHMI(){
+  loadPrograms().then(function(){
+    var card=document.getElementById('hmi-card');
+    var hmi=(programsData&&programsData.sources)?programsData.sources.chba_hmi:null;
+    if(!hmi){ card.style.display='none'; return; }
+    card.style.display='';
+    var nat=hmi.national, n=nat.quarters.length, last=n-1;
+
+    var sfSeries={label:'Single-family',color:PAL.navy,type:'line',
+      pts:nat.quarters.map(function(q,i){return {m:hmiQtoM(q),v:nat.single_family[i]};})};
+    var mfSeries={label:'Multi-family',color:PAL.amber,type:'line',
+      pts:nat.quarters.map(function(q,i){return {m:hmiQtoM(q),v:nat.multi_family[i]};})};
+    buildLegend(document.getElementById('hmi-legend'),[sfSeries,mfSeries]);
+    timeChart('hmi-chart',{series:[sfSeries,mfSeries],yMin:0,
+      fmt:function(v){return v==null?'—':v.toFixed(1)}});
+
+    var tiles=[
+      ['National single-family HMI<br><span style="opacity:.6">'+nat.quarters[last]+'</span>',
+       nat.single_family[last].toFixed(1)],
+      ['National multi-family HMI<br><span style="opacity:.6">'+nat.quarters[last]+'</span>',
+       nat.multi_family[last].toFixed(1)]
+    ];
+
+    var prov=provOf(state.geo), region=CHBA_REGION[prov], reg=hmi.regional;
+    var regionLabel=region?CHBA_REGION_LABEL[region]:null;
+    var regionNote='';
+    if(region){
+      var ri=reg.quarters.length-1, rq=reg.quarters[ri];
+      var sfv=reg.single_family[region][ri], mfv=reg.multi_family[region][ri];
+      tiles.push([regionLabel+' single-family HMI<br><span style="opacity:.6">'+rq+'</span>',
+        sfv!=null?sfv.toFixed(1):'not reported']);
+      tiles.push([regionLabel+' multi-family HMI<br><span style="opacity:.6">'+rq+'</span>',
+        mfv!=null?mfv.toFixed(1):'not reported']);
+      if(region==='prairies'||region==='atlantic')
+        regionNote=' CHBA reports '+regionLabel+' as one combined region, not broken out by province — the '+
+          'figures above are that regional aggregate, not specific to '+geoLabel(prov)+' alone.';
+    } else if(prov==='qc'){
+      regionNote=' CHBA’s HMI has no Quebec region — its regional cuts are Ontario, BC, Prairies and '+
+        'Atlantic Canada only — so this card shows the national chart with no regional tile here.';
+    }
+
+    document.getElementById('hmi-title').textContent=
+      'Builder confidence — CHBA Housing Market Index'+(regionLabel?' — '+regionLabel:'');
+    document.getElementById('hmi-stats').innerHTML=tiles.map(function(t){
+      return '<div class="stat-card"><div class="stat-label">'+t[0]+'</div>'+
+             '<div class="stat-value">'+t[1]+'</div></div>';
+    }).join('');
+
+    document.getElementById('hmi-note').innerHTML=
+      '<strong>A sentiment survey, not a StatCan series.</strong> CHBA panels its own homebuilder/developer '+
+      'members quarterly and scores their answers on a <strong>0–100 scale, 50 = neutral</strong> (share '+
+      'rating conditions Good equals share rating Poor) — modelled on NAHB’s US index and framed by CHBA as '+
+      'a leading indicator of housing starts roughly six months out. '+
+      'Hand-transcribed from CHBA’s own quarterly write-up, not scraped: the source page’s charts are '+
+      'static images with no data file behind them, and a spot-check of their auto-generated alt text found '+
+      'it unreliable — one chart’s alt text swapped which selling-condition category a percentage '+
+      'belonged to, another mislabelled a quarter. A checker re-confirms this quarter’s figures still '+
+      'appear on the live page rather than re-parsing it.'+regionNote+
+      ' <strong>Regional coverage:</strong> Ontario, British Columbia, Prairies (Alberta+Saskatchewan+'+
+      'Manitoba) and Atlantic Canada (NB+NS+PE+NL) only — no per-province split within Prairies or Atlantic, '+
+      'and CHBA reported regional scores as numbers only from 2024 Q2 on, so the regional tiles above start '+
+      'there even though the national chart runs back to 2021. Multi-family Atlantic is never reported, '+
+      'likely too few respondents for CHBA to publish a number. '+
+      '<a href="'+hmi.source_url+'" target="_blank" rel="noopener">CHBA HMI source</a>.';
+  });
+}
 
 /* Ontario's large-building energy disclosure. Ontario-only by regulation, so
    the card appears on Ontario and Toronto views and nowhere else. */
@@ -1709,6 +1842,7 @@ function renderMunicipal(){
     var city=muniData&&muniData.cities&&muniData.cities[state.geo];
     if(!city){ sec.style.display='none'; return; }
     sec.style.display='';
+    var dayFmt=function(v){return Math.round(v)+'d'};
     document.getElementById('muni-title').textContent=city.label+' — permits issued';
 
     /* Cross-check against the StatCan CMA series. Which measure depends on
@@ -1756,8 +1890,7 @@ function renderMunicipal(){
     }),{fmt:fmtM});
     document.getElementById('muni-areas-note').innerHTML=
       'Top '+city.areas.length+' by total declared construction value since 2017, in millions. '+
-      (city.quality?'<strong>Undercounted:</strong> see the note below — these totals omit every permit '+
-       'whose cost cell holds placeholder text.':'Values as declared on the permit.');
+      (city.quality?'<strong>Undercounted:</strong> '+city.quality.note:'Values as declared on the permit.');
 
     hBars('muni-work',city.work.slice(0,8).map(function(w){
       return {label:w[0], v:w[1]};
@@ -1771,25 +1904,128 @@ function renderMunicipal(){
     /* Toronto is the only city found publishing energy-measure permits. */
     var ec=document.getElementById('muni-energy-card');
     var en=city.energy;
-    if(!en){ ec.style.display='none'; return; }
-    ec.style.display='';
-    var yrs=Object.keys(en.green_roof_permits).sort();
-    var gr={label:'Green roof permits',color:PAL.green,type:'line',
-            pts:yrs.map(function(y){return {m:+y*12, v:en.green_roof_permits[y]}})};
-    var sh={label:'Solar hot water permits',color:PAL.amber,type:'line',
-            pts:Object.keys(en.solar_hot_water_permits).sort().map(function(y){
-              return {m:+y*12, v:en.solar_hot_water_permits[y]};})};
-    timeChart('muni-energy-chart',{series:[gr,sh],fmt:fmtInt});
-    var grTotal=yrs.reduce(function(a,y){return a+en.green_roof_permits[y]},0);
-    var shTotal=Object.keys(en.solar_hot_water_permits).reduce(
-      function(a,y){return a+en.solar_hot_water_permits[y]},0);
-    document.getElementById('muni-energy-note').innerHTML=
-      'Toronto publishes dedicated green-roof and solar-hot-water permit datasets — the only municipal '+
-      'energy-measure permit counts found anywhere in the country. <strong>'+fmtInt(grTotal)+'</strong> '+
-      'green-roof permits and <strong>'+fmtInt(shTotal)+'</strong> solar hot water permits in total. '+
-      'The scale is the point: against roughly three thousand permits a month of every kind, these are '+
-      'rounding errors, and solar hot water has all but stopped. Green roofs are driven by Toronto\'s '+
-      'Green Roof Bylaw rather than by voluntary uptake.';
+    if(en){
+      ec.style.display='';
+      var yrs=Object.keys(en.green_roof_permits).sort();
+      var gr={label:'Green roof permits',color:PAL.green,type:'line',
+              pts:yrs.map(function(y){return {m:+y*12, v:en.green_roof_permits[y]}})};
+      var sh={label:'Solar hot water permits',color:PAL.amber,type:'line',
+              pts:Object.keys(en.solar_hot_water_permits).sort().map(function(y){
+                return {m:+y*12, v:en.solar_hot_water_permits[y]};})};
+      timeChart('muni-energy-chart',{series:[gr,sh],fmt:fmtInt});
+      var grTotal=yrs.reduce(function(a,y){return a+en.green_roof_permits[y]},0);
+      var shTotal=Object.keys(en.solar_hot_water_permits).reduce(
+        function(a,y){return a+en.solar_hot_water_permits[y]},0);
+      document.getElementById('muni-energy-note').innerHTML=
+        'Toronto publishes dedicated green-roof and solar-hot-water permit datasets — the only municipal '+
+        'energy-measure permit counts found anywhere in the country. <strong>'+fmtInt(grTotal)+'</strong> '+
+        'green-roof permits and <strong>'+fmtInt(shTotal)+'</strong> solar hot water permits in total. '+
+        'The scale is the point: against roughly three thousand permits a month of every kind, these are '+
+        'rounding errors, and solar hot water has all but stopped. Green roofs are driven by Toronto\'s '+
+        'Green Roof Bylaw rather than by voluntary uptake.';
+    }else{
+      ec.style.display='none';
+    }
+
+    /* Vancouver and Calgary both carry a per-permit elapsed-days field and
+       an applicant/contractor field; Toronto and Montreal do not. */
+    var pc=document.getElementById('muni-processing-card');
+    var proc=city.processing;
+    if(proc){
+      pc.style.display='';
+      hBars('muni-proc-type',proc.by_type.map(function(t){
+        return {label:t[0], v:t[2]};
+      }),{fmt:dayFmt});
+      document.getElementById('muni-proc-type-note').innerHTML=
+        'Median days to issuance by work category, since 2017 — new buildings and demolitions take months; '+
+        'additions/alterations and temporary structures move far faster. '+proc.unit_note;
+      hBars('muni-proc-year',proc.by_year.map(function(y){
+        return {label:y[0], v:y[2]};
+      }),{fmt:dayFmt});
+      document.getElementById('muni-proc-year-note').innerHTML=
+        'Median days to issuance by year issued, all work types combined (the current year is partial).';
+    }else{
+      pc.style.display='none';
+    }
+
+    var cc=document.getElementById('muni-concentration-card');
+    var conc=city.concentration;
+    if(conc){
+      cc.style.display='';
+      var ap=conc.applicants;
+      hBars('muni-conc-applicants',ap.top.map(function(a){
+        return {label:a[0], v:a[1]};
+      }),{fmt:fmtInt});
+      document.getElementById('muni-conc-applicants-note').innerHTML=
+        (ap.field_coverage_pct<99?'Applicant is named on only <strong>'+ap.field_coverage_pct+'%</strong> of '+
+         'permits, so this scopes to permits that name one. ':'')+
+        '<strong>'+fmtInt(ap.qualifying)+'</strong> applicants ('+(ap.qualifying/ap.total_distinct*100).toFixed(1)+
+        '% of '+fmtInt(ap.total_distinct)+' distinct filers since 2017) have filed <strong>'+ap.threshold+
+        '+</strong> permits each, accounting for <strong>'+ap.pct_of_field_permits+'%</strong> of permits that '+
+        'name one. "Applicant" is "often the design professional or their firm" per the field\'s own definition — '+
+        'the names atop this list are architecture, design and building firms, not individual homeowners, since a '+
+        'private owner rarely files enough permits to clear a 20-permit bar. Bars show permit count, not dollar value.';
+      var co=conc.contractors;
+      hBars('muni-conc-contractors',co.top.map(function(c){
+        return {label:c[0], v:c[1]};
+      }),{fmt:fmtInt});
+      document.getElementById('muni-conc-contractors-note').innerHTML=
+        'Contractor is named on only <strong>'+co.field_coverage_pct+'%</strong> of permits — often not yet '+
+        'chosen at issuance — so this scopes to permits that name one. <strong>'+fmtInt(co.qualifying)+
+        '</strong> contractors ('+(co.qualifying/co.total_distinct*100).toFixed(1)+'% of '+fmtInt(co.total_distinct)+
+        ' named) have <strong>'+co.threshold+'+</strong> permits each, covering <strong>'+co.pct_of_field_permits+
+        '%</strong> of permits that name a contractor.';
+    }else{
+      cc.style.display='none';
+    }
+
+    /* Calgary and Edmonton only: issue-to-completed build time, and $/unit +
+       $/sqft for residential new construction. The grouping dimension on
+       "by_type" differs by city — Calgary groups by work category (its
+       work_type is meaningful across the whole build-time population),
+       Edmonton groups by building type (its scope is New-construction-only,
+       so work_type would be constant and uninformative there). */
+    var bc=document.getElementById('muni-buildtime-card');
+    var bt=city.build_time;
+    if(bt){
+      bc.style.display='';
+      var groupLabel=bt.group_label||'type of work';
+      document.getElementById('muni-build-type-title').textContent='Time to build — by '+groupLabel;
+      hBars('muni-build-type',bt.by_type.map(function(t){
+        return {label:t[0], v:t[2]};
+      }),{fmt:dayFmt});
+      document.getElementById('muni-build-type-note').innerHTML=
+        'Median days to completion by '+groupLabel+', since 2017. '+bt.unit_note+
+        (bt.coverage_note?' '+bt.coverage_note:'');
+      hBars('muni-build-year',bt.by_year.map(function(y){
+        return {label:y[0], v:y[2]};
+      }),{fmt:dayFmt});
+      document.getElementById('muni-build-year-note').innerHTML=
+        'Median days from issuance to completion, by year issued (the current year is partial and skews low — '+
+        'recently issued permits have had less time to reach completion).'+
+        (bt.coverage_note?' '+bt.coverage_note:'');
+    }else{
+      bc.style.display='none';
+    }
+
+    var ecC=document.getElementById('muni-econ-card');
+    var econ=city.unit_economics;
+    if(econ && econ.by_year && econ.by_year.length){
+      ecC.style.display='';
+      var econRows=econ.by_year.map(function(r){
+        return '<tr><td>'+r[0]+'</td><td>'+fmtInt(r[1])+'</td><td>'+
+          (r[2]==null?'—':'$'+fmtInt(r[2]))+'</td><td>'+
+          (r[3]==null?'—':'$'+r[3])+'</td><td>'+
+          (r[4]==null?'—':fmtInt(r[4])+' sqft')+'</td></tr>';
+      }).join('');
+      document.getElementById('muni-econ-table').innerHTML=
+        '<div class="data-tbl-wrap"><table class="data-tbl"><thead><tr><th>Year issued</th><th>Permits</th>'+
+        '<th>$ / unit</th><th>$ / sqft</th><th>Avg. unit size</th></tr></thead><tbody>'+econRows+'</tbody></table></div>';
+      document.getElementById('muni-econ-note').innerHTML=econ.scope_note+
+        ' Declared construction cost only — excludes land, and is not a market sale price.';
+    }else{
+      ecC.style.display='none';
+    }
   });
 }
 
@@ -1878,6 +2114,7 @@ function renderAll(){
   renderMarket();
   renderResNonres();
   renderAbsorb();
+  renderHMI();
   renderBCPIDiv();
   renderWorktype();
   renderRenoPrice();

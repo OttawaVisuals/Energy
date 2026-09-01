@@ -27,7 +27,91 @@ Calgary's single largest community by permit value (Downtown Commercial Core,
 $9.1B) before the fix — sort by parsed value client-side over the full
 distinct-value count (317 communities), never trust the API's own order when
 nulls are present. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
-`Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
+`Python/municipal_permits_etl.py`'s module docstring for the full writeup.
+
+Same day, second pass: **two new Vancouver-only panels** in "Inside one city",
+because Vancouver's schema (unlike Toronto's or Calgary's) carries a
+per-permit elapsed-days field and a fully-populated applicant field. **Time to
+get a permit** shows median days from permit-number assignment to issuance —
+by work type (new buildings and demolitions take months; additions/temporary
+structures move in weeks) and by year issued. Median, not mean: the
+distribution is right-skewed by large projects, and the mean runs 40-70 days
+higher. **Applicant/contractor concentration** shows who files and who builds
+the most permits, thresholded to 20+ permits: 420 of 11,155 distinct
+applicants (3.8%) clear that bar and account for 48.9% of every permit issued;
+311 of 4,363 named contractors (7.1%) clear it and cover 56.9% of permits that
+name one (`buildingcontractor` is populated on only ~62% of rows — often not
+yet chosen at issuance). The 20-permit threshold is a deliberate editorial
+choice, not a legal one: `applicant` is "often the design professional or
+their firm" per the field's own description, and no private homeowner
+personally files dozens of permits, so the threshold keeps the published list
+to genuine repeat filers rather than naming an individual over a one-off
+renovation. Calgary and Edmonton have equivalent applicant/contractor fields
+and could support this later; Toronto and Montreal do not.
+
+Same day, third pass: **Calgary gets four more panels**, since its schema
+turned out to carry everything Vancouver's does plus a `completeddate` and a
+`totalsqft` field Vancouver lacks. **Time to get a permit** and
+**applicant/contractor concentration** reuse Vancouver's exact panels and
+20-permit threshold, with lower field coverage stated on the card (applicant
+~66%, contractor ~60%, versus Vancouver's ~100%/~62%). Two are new: **time to
+build** (issuance to the permit's completed date — an administrative closure
+date, not necessarily physical completion, but the best available proxy) and
+**$/unit, $/sqft and average unit size** for residential new-construction
+permits with dwelling units — `totalsqft` is recorded on 0% of non-residential
+rows and only ~38% of residential rows dataset-wide, but checked live within
+that exact scope (residential + new + units>0) it is ~91% populated, so it's
+usable there even though it isn't usable dataset-wide. One bug caught before
+shipping: Calgary's dataset runs back to 1999, not 2017 like Vancouver's —
+its areas/work/concentration/processing queries were unfiltered, so a card
+that says "since 2017" everywhere else was silently pulling in 27 years of
+history for Calgary alone. Now explicitly floored to 2017, mirroring
+Toronto's existing `d >= FLOOR` filter. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) for the full writeup.)
+
+Same day, fourth pass: **Edmonton added as a fourth city**, reversing this
+same day's own "ruled out" call above after the user pointed at the specific
+dataset (`24uj-dj8v`, "General Building Permits") and it was re-checked live
+rather than trusted from memory. What actually changed the verdict: this
+dataset is explicitly labelled the city's **"Primary Dataset or View"** —
+deduplicated, verified for accuracy, daily updates, clean history back to
+2009 — which resolves the "several overlapping/redundant datasets" reason it
+was excluded earlier that same day. Two real limits confirmed live, not
+assumed: **no concentration panel** — Edmonton's own dataset description
+states applicant/contractor names were deliberately excluded as a privacy
+measure (a private individual's name, and by extension address, would
+otherwise become searchable), which is the city making the right call, not a
+gap to route around — and **no processing-time panel** — the portal's UI
+mislabels its own columns (the one displayed as "PERMIT_DATE" is actually the
+API's `issue_date`; "REPORT_PERMIT_DATE" is actually `permit_date`), and
+checked live the two are identical on every one of 143,693 rows since 2017,
+so there is no application-to-issuance interval to measure at all, unlike
+Vancouver and Calgary. It does get Calgary's other two panels — **time to
+build** (permit date to `occupancy_granted_date`) and **$/unit, $/sqft,
+average unit size** for residential new construction (99% floor-area
+coverage in that exact scope) — but build time carries a real coverage
+caveat the card states plainly: Edmonton only began systematically recording
+occupancy dates for residential permits finalized 2022-01-01 forward
+(non-residential: 2024-01-01), so only 22,543 of 45,374 residential-new
+permits since 2017 have one. One implementation snag: `occupancy_granted_date`
+is stored as TEXT rather than a proper `calendar_date`, so Socrata's
+`date_diff_d` (which works fine for Calgary) 400s on it — those ~22.5k rows
+are pulled raw and diffed client-side in Python instead. Also caught and
+fixed a labelling bug before shipping: the shared "Time to build" panel
+originally hardcoded "by work category" in its title and note text, correct
+for Calgary but wrong for Edmonton, whose `by_type` breakdown is actually
+grouped by **building type** (Calgary's own `work_type` is constant
+"New" within the residential-new scope, so building type is the informative
+dimension instead) — both cities' build-time payloads now carry an explicit
+`group_label` the page reads rather than assuming Calgary's wording fits
+everywhere. A second fix: the areas-card undercount note was hardcoded to
+Toronto's specific "placeholder text" wording; now reads each city's own
+`quality.note` instead, so Edmonton's genuinely-different reason (74.8% cost
+coverage, blank rather than corrupted) displays correctly. Verified live via
+a local static server across all four cities: zero console errors, Edmonton's
+processing/concentration cards correctly hidden, build-time/unit-economics
+cards correctly shown with accurate per-city labels. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) for the full writeup.)
 
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
