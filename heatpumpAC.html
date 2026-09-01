@@ -276,6 +276,13 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <option value="low">Value</option>
       </select>
     </div>
+    <div class="ctrl">
+      <label for="in-leak">Refrigerant leak rate <button type="button" class="info-btn" aria-label="What is the refrigerant leak rate?" data-info="Annual charge leaked in service, before end-of-life — applies to the standard AC only (R-32, 69 oz factory charge, from the unit's own spec sheet). See methodology." data-method="m-ac-refrig">?</button></label>
+      <div class="range-row">
+        <input type="range" id="in-leak" min="0" max="10" step="0.5" value="2">
+        <span class="range-val" id="leak-val">2.0 %/yr</span>
+      </div>
+    </div>
 
     <div class="helper-panel" id="arch-helper"></div>
   </div>
@@ -482,7 +489,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
       <h5 id="m-ac-refrig">Refrigerant leakage (standard AC only)</h5>
       <p>The Goodman GLXS4B spec sheet (<code>SS-GLXS4B-R32</code>, "Product Specifications" table) states the refrigerant directly: <b>R-32</b>, factory charged for 15' of liquid line. The 36,000 Btu/h (3-ton) unit modelled here — <code>GLXS4BA3610A*</code> — is listed at <b>69 oz</b> (≈1.96 kg). This is a real spec-sheet figure for the exact unit used, not an estimate.</p>
-      <p>Annual leakage uses the same amortization the Heat Pump Explorer's heating side uses: a fixed 2%/yr in-service leak plus a 15%-of-charge end-of-life loss spread over a 15-year life, weighted by R-32's GWP100 (771, IPCC AR6 WG1 Ch.7 Table 7.SM.7) — <code>1.96 kg × (0.02 + 0.15⁄15) × 771 ≈ 45 kg CO₂e/yr</code>. Unlike the heating side, this isn't a user-adjustable slider here; it's a fixed figure baked into the standard AC's totals, disclosed in its own stat-card line rather than hidden inside "electricity."</p>
+      <p>Annual leakage uses the same amortization the Heat Pump Explorer's heating side uses: an adjustable in-service leak rate (default 2%/yr, "Refrigerant leak rate" slider above) plus a fixed 15%-of-charge end-of-life loss spread over a 15-year life, weighted by R-32's GWP100 (771, IPCC AR6 WG1 Ch.7 Table 7.SM.7) — at the default rate, <code>1.96 kg × (0.02 + 0.15⁄15) × 771 ≈ 45 kg CO₂e/yr</code>. Shown as its own segment in Step 4's emissions chart and its own line in the Standard AC stat card, rather than hidden inside "electricity."</p>
       <div class="caveats">Not added to the heat pump's cooling-mode comparison — that would double-count against the same physical unit's refrigerant charge already priced into the Heat Pump Explorer's heating-side numbers for a real heat pump, and no per-model charge mass has been sourced for the Tosot/GREE/Fujitsu cooling cells this page draws on. It also isn't part of the by-temperature/weighted/daily/hourly detail charts in Step 4 — leakage isn't tied to a particular operating hour, so it's a flat annual addition to the totals only, the same convention the Heat Pump Explorer's own refrigerant term already uses.</div>
 
       <h4 id="m-grid">Grid emissions &amp; line loss</h4>
@@ -1505,7 +1512,7 @@ syncThemeButtons(document.documentElement.dataset.theme||'light');
 const state={
   city:'Ottawa', designLoad:14, weatherYear:'tmy', efBasis:'average',
   includeLineLoss:true, lineloss:LINELOSS_PCT_BY_PROV.on,
-  tier:'high', band:'18-30k', plan:null,
+  tier:'high', band:'18-30k', plan:null, leakRate:2.0,
   // Step 1/3/4/5 chart views: 'plain' (by temperature), 'freq' (weighted by
   // hours), 'daily' or 'hourly' (full year), each with its own month/week
   // filter for the daily/hourly views — same pattern as heatpump.html's step
@@ -1938,6 +1945,7 @@ function buildInputs(){
   $('in-ef').addEventListener('change',e=>{state.efBasis=e.target.value;buildOptsAndRun();});
   $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];buildOptsAndRun();});
   $('in-band').addEventListener('change',e=>{state.band=e.target.value;buildOptsAndRun();});
+  $('in-leak').addEventListener('input',e=>{state.leakRate=+e.target.value;$('leak-val').textContent=fmt1(state.leakRate)+' %/yr';buildOptsAndRun();});
   document.querySelectorAll('#lineloss-seg button').forEach(b=>b.addEventListener('click',()=>{
     state.includeLineLoss=b.dataset.val==='yes';
     state.lineloss=state.includeLineLoss?lineLossPctFor(state.city):0;
@@ -1948,6 +1956,7 @@ function buildInputs(){
 
   $('in-tier').value=state.tier;$('in-band').value=state.band;
   $('tier-info').dataset.info=TIER_BLURB[state.tier];
+  $('in-leak').value=state.leakRate;$('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   syncEfSeg();
 
   // Step 1/3/4/5 chart-view segs (by temperature / weighted by hours / daily
@@ -2049,8 +2058,8 @@ const COOL_Tmin=14,COOL_Tmax_DEFAULT=42;
 // sheet (SS-GLXS4B-R32, p.3 "Product Specifications" table, "Refrigerant
 // Charge" row) states R-32 and a factory charge of 69 oz for 15' of liquid
 // line -- a real spec-sheet figure, not estimated. Same annual amortization
-// heatpump.html's heating side uses: in-service leak (fixed 2%/yr, not
-// user-adjustable here) + end-of-life loss (15% of charge over a 15-year
+// heatpump.html's heating side uses: in-service leak (adjustable, state.leakRate,
+// default 2%/yr) + end-of-life loss (fixed 15% of charge over a 15-year
 // life), weighted by GWP100 (IPCC AR6 WG1 Ch.7 Table 7.SM.7: R-32 = 771).
 // NOT added to the heat pump's cooling-mode comparison: that would double-
 // count against the same physical unit's refrigerant already charged on the
@@ -2062,8 +2071,12 @@ const COOL_Tmin=14,COOL_Tmax_DEFAULT=42;
 // term already uses.
 const AC_REFRIG_CHARGE_KG=69*0.0283495; // 69 oz factory charge -> kg
 const AC_REFRIG_GWP100=771; // R-32, IPCC AR6 WG1 Ch.7 Table 7.SM.7
-const AC_REFRIG_LEAK_FRAC=0.02, AC_REFRIG_EOL_FRAC=0.15, AC_REFRIG_LIFE_YEARS=15;
-const AC_REFRIG_GHG_KG_PER_YR=AC_REFRIG_CHARGE_KG*(AC_REFRIG_LEAK_FRAC+AC_REFRIG_EOL_FRAC/AC_REFRIG_LIFE_YEARS)*AC_REFRIG_GWP100;
+const AC_REFRIG_EOL_FRAC=0.15, AC_REFRIG_LIFE_YEARS=15;
+// In-service leak rate is user-adjustable (state.leakRate, %/yr) — end-of-life
+// loss (15% of charge over a 15-year life) stays fixed, same as heatpump.html.
+function acRefrigGhgKgPerYr(){
+  return AC_REFRIG_CHARGE_KG*(state.leakRate/100+AC_REFRIG_EOL_FRAC/AC_REFRIG_LIFE_YEARS)*AC_REFRIG_GWP100;
+}
 
 // First outdoor temperature (0.5 °C step) at which this equipment's capacity
 // falls short of the estimated cooling load -- null if it never does across
@@ -2149,8 +2162,8 @@ function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossov
     ? `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here; ${hpLabel} in cooling mode would use <b>${fmtI(resHP.energy.electricity_kWh)} kWh</b> — ${beats?'less':'more'}.`
     : `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here.`;
   $('verdict-sub').innerHTML=(resHP
-    ? `The selected heat pump's own cooling curve is on file for this tier/size — its cooling-mode electricity, GHG and cost are compared against the standard-AC baseline throughout. Standard AC figures include ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet); the heat pump's cooling-mode figures don't (see methodology).`
-    : `This tier/size cell has no published cooling curve — only the standard-AC baseline is shown below. Try a different tier or size. Standard AC figures include ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet).`)
+    ? `The selected heat pump's own cooling curve is on file for this tier/size — its cooling-mode electricity, GHG and cost are compared against the standard-AC baseline throughout. Standard AC figures include ${fmtGHG(acRefrigGhgKgPerYr())} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet); the heat pump's cooling-mode figures don't (see methodology).`
+    : `This tier/size cell has no published cooling curve — only the standard-AC baseline is shown below. Try a different tier or size. Standard AC figures include ${fmtGHG(acRefrigGhgKgPerYr())} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet).`)
     + undersizedClause(resAC,acCrossover,'The standard AC') + undersizedClause(resHP||{diagnostics:{}},hpCrossover,hpLabel||'');
   $('stats').innerHTML=`<div class="stats-grid">${[
     stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW',`from this home's ${fmt1(state.designLoad)}-kW design heat load`,'accent'),
@@ -2220,15 +2233,23 @@ function renderElectricitySection(resAC,resHP,hpLabel,acCrossover,hpCrossover){
 
 function renderGhgSection(resAC,resHP,hpLabel){
   $('ghg-basis-note').innerHTML=`Each hour's added electricity × the grid intensity at that hour (${basisAdj(state.efBasis)} basis), summed over the summer.`;
-  const labels=['No AC (today)','Standard AC'], data=[0,resAC.ghg.total], colors=[css('--light'),css('--blue')];
-  if(resHP){labels.push(hpLabel+' (cooling mode)');data.push(resHP.ghg.total);colors.push(css('--purple'));}
-  threeBarChart('ghgChart',labels,data,colors,'CO₂e / summer',v=>fmtGHG(v)+'/yr');
+  const labels=['No AC (today)','Standard AC'], elecData=[0,resAC.ghg.electricity], elecColors=[css('--light'),css('--blue')], refrigData=[0,resAC.ghg.refrigerant];
+  if(resHP){labels.push(hpLabel+' (cooling mode)');elecData.push(resHP.ghg.electricity);elecColors.push(css('--purple'));refrigData.push(0);}
+  destroy('ghgChart');
+  charts.ghgChart=new Chart($('ghgChart'),{type:'bar',data:{labels,datasets:[
+    {label:'Electricity',data:elecData,backgroundColor:elecColors},
+    {label:'Refrigerant leak (standard AC)',data:refrigData,backgroundColor:css('--amber')},
+  ]},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    scales:{x:{stacked:true,title:{display:true,text:'CO₂e / summer',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtGHG(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
+    plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtGHG(c.parsed.x)}}}
+  }});
   const kpis=[
     stepCard('No AC (today)','0 kg CO₂e/yr','baseline','muted'),
-    stepCard('Standard AC',fmtGHG(resAC.ghg.total)+' CO₂e/yr',`${basisAdj(state.efBasis)} grid basis, incl. ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} refrigerant leak`,'green'),
+    stepCard('Standard AC',fmtGHG(resAC.ghg.total)+' CO₂e/yr',`${fmtGHG(resAC.ghg.electricity)} electricity (${basisAdj(state.efBasis)} basis) + ${fmtGHG(resAC.ghg.refrigerant)} refrigerant leak`,'green'),
   ];
   kpis.push(resHP
-    ? stepCard(hpLabel+' (cooling mode)',fmtGHG(resHP.ghg.total)+' CO₂e/yr',`${resHP.ghg.total<resAC.ghg.total?'less than':'more than'} the standard AC`,resHP.ghg.total<resAC.ghg.total?'green':'red')
+    ? stepCard(hpLabel+' (cooling mode)',fmtGHG(resHP.ghg.total)+' CO₂e/yr',`${resHP.ghg.total<resAC.ghg.total?'less than':'more than'} the standard AC — electricity only, no refrigerant term`,resHP.ghg.total<resAC.ghg.total?'green':'red')
     : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
   $('ghg-kpis').innerHTML=kpis.join('');
 }
@@ -2333,7 +2354,7 @@ function ghgSeriesFor(resAC,resHP,hpLabel){
 }
 function renderGhgDetailSection(resAC,resHP,hpLabel,Tmax){
   const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
-  const refrigNote=` Electricity only — the standard AC's ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)}/yr refrigerant leak is a flat annual figure, not tied to any hour, so it's in the annual totals above but not here.`;
+  const refrigNote=` Electricity only — the standard AC's ${fmtGHG(acRefrigGhgKgPerYr())}/yr refrigerant leak is a flat annual figure, not tied to any hour, so it's in the annual totals above but not here.`;
   renderDetailChart('ghg',state.ghgView,'ghgMonth','ghgWeek',ghgSeriesFor(resAC,resHP,hpLabel),COOL_Tmin,Tmax,
     'kg CO₂e/hr (mean)','kg CO₂e, sum per 1 °C bin','kg CO₂e, daily total',
     {rate:v=>fmt1(v)+' kg',sum:v=>fmtGHG(v)},true,'ghg-detail-note',view=>{
@@ -2415,8 +2436,9 @@ function buildOptsAndRun(){
   // via .ghg.total; the per-hour detail charts intentionally keep reading
   // .hourly.ghg_kg (electricity only), same convention heatpump.html's own
   // refrigerant term already uses.
-  resAC.ghg.refrigerant=AC_REFRIG_GHG_KG_PER_YR;
-  resAC.ghg.total+=AC_REFRIG_GHG_KG_PER_YR;
+  const acRefrigGhg=acRefrigGhgKgPerYr();
+  resAC.ghg.refrigerant=acRefrigGhg;
+  resAC.ghg.total+=acRefrigGhg;
 
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],ck=CITY_KEY[state.city];
   const elec=ck&&P&&P.electricity[ck];
