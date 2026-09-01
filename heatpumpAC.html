@@ -135,10 +135,21 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
 /* ── Key chart (SVG) ── */
 .keychart-wrap{position:relative;width:100%}
+.kc-tip{position:absolute;pointer-events:none;background:var(--navy);color:var(--on-navy);font-size:11.5px;line-height:1.5;padding:7px 9px;border-radius:6px;box-shadow:var(--shadow);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;transform:translate(-50%,calc(-100% - 10px))}
+.kc-tip b{color:var(--amber2);font-weight:400}
+.kc-tip-row{display:flex;align-items:baseline;gap:5px}
+.kc-tip-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;margin-bottom:1px}
+.kc-tip-row b{color:var(--on-navy);font-weight:400}
 .kc-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
 .kc-leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .kc-swatch{width:14px;height:0;border-top:2.5px solid;flex:none}
 .kc-swatch.dash{border-top-style:dashed}
+.kc-swatch.fill{height:11px;border:none;border-radius:2px}
+.chart-range-row{display:flex;justify-content:center}
+.range-sel{display:none;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 24px 0 9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
+.range-sel.show{display:inline-block;margin-bottom:.75rem}
+.range-sel+.range-sel.show{margin-left:8px}
+.range-sel option{color:var(--ink);background:var(--card)}
 
 /* ── Chart wrappers (Chart.js) ── */
 .cw{position:relative;width:100%}
@@ -289,29 +300,60 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div id="stats"></div>
     </section>
 
-    <!-- ═══ Cooling load ═══ -->
+    <!-- ═══ Step 1 · Cooling load ═══ -->
     <section class="out-section" id="section-load">
       <div class="out-section-head">
-        <h2 class="out-section-title">Cooling load</h2>
+        <h2 class="out-section-title">Step 1 — Cooling load</h2>
         <p class="out-section-intro">No real cooling data exists for this house — there is no AC installed, just a design heat load. Two correlations found across 209,272 ERS-audited homes turn that heat load into a plausible summer cooling profile. <button type="button" class="info-btn" id="load-info" aria-label="Where do these numbers come from?" data-info="cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254 (r=0.683); annual_cool_kWh = 838.3 × cool_peak_kW (r=0.778), both from 209,272 ERS homes. Two correlations removed from measurement — see methodology." data-method="m-cooling-load">?</button></p>
       </div>
       <div class="card">
-        <div class="card-title-row chart-head"><span class="card-title">Cooling load vs outdoor temperature</span></div>
+        <div class="card-title-row chart-head">
+          <span class="card-title">Cooling load vs outdoor temperature</span>
+          <div class="seg" id="load-view-seg" role="group" aria-label="Load chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
         <div class="step-body">
           <div class="step-chart-col">
-            <div class="keychart-wrap"><svg id="cooling-chart" viewBox="0 0 740 320" role="img" aria-label="Cooling load and equipment capacity versus outdoor temperature"></svg></div>
+            <div class="chart-range-row">
+              <select class="range-sel" id="load-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="load-view-seg-week" aria-label="Week to show"></select>
+            </div>
+            <div class="keychart-wrap"><svg id="cooling-chart" viewBox="0 0 740 320" role="img" aria-label="Cooling load and equipment capacity versus outdoor temperature"></svg><div class="kc-tip" id="load-tip"></div></div>
             <div class="kc-legend" id="cooling-legend"></div>
-            <div class="note">Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.</div>
+            <div class="note" id="load-note">Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.</div>
           </div>
           <div class="step-kpi-col" id="load-kpis"></div>
         </div>
       </div>
     </section>
 
-    <!-- ═══ Electricity usage ═══ -->
+    <!-- ═══ Step 2 · Equipment COPs ═══ -->
+    <section class="out-section" id="section-cop">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Step 2 — Equipment COPs</h2>
+        <p class="out-section-intro">How each unit's coefficient of performance changes with outdoor temperature — the hotter it gets, the harder either unit works for the same kW of cooling.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head"><span class="card-title">COP vs outdoor temperature</span></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap"><svg id="cop-chart" viewBox="0 0 740 220" role="img" aria-label="Coefficient of performance versus outdoor temperature"></svg><div class="kc-tip" id="cop-tip"></div></div>
+            <div class="kc-legend" id="cop-legend"></div>
+            <div class="note">COP here is <code>capacity ÷ electricity</code> at that outdoor temperature, read off each unit's own manufacturer datasheet curve — not measured in this home.</div>
+          </div>
+          <div class="step-kpi-col" id="cop-kpis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Step 3 · Energy usage ═══ -->
     <section class="out-section" id="section-electricity">
       <div class="out-section-head">
-        <h2 class="out-section-title">Electricity usage</h2>
+        <h2 class="out-section-title">Step 3 — Energy usage</h2>
         <p class="out-section-intro">Before adding AC, this home draws zero electricity for cooling. After, it draws whatever the chosen equipment needs to meet the estimated load above, hour by hour over a full summer.</p>
       </div>
       <div class="card">
@@ -319,12 +361,32 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <div class="cw cw-lg"><canvas id="elecChart"></canvas></div>
         <div class="stats-grid" id="elec-kpis" style="margin-top:1rem"></div>
       </div>
+      <div class="card">
+        <div class="card-title-row chart-head">
+          <span class="card-title">Electricity — standard AC vs. heat pump</span>
+          <div class="seg" id="energy-view-seg" role="group" aria-label="Energy chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
+        <div class="step-chart-col">
+          <div class="chart-range-row">
+            <select class="range-sel" id="energy-view-seg-month" aria-label="Month to show"></select>
+            <select class="range-sel" id="energy-view-seg-week" aria-label="Week to show"></select>
+          </div>
+          <div class="keychart-wrap"><svg id="energy-detail-chart" viewBox="0 0 740 320" role="img" aria-label="Electricity use versus outdoor temperature or time"></svg><div class="kc-tip" id="energy-tip"></div></div>
+          <div class="kc-legend" id="energy-detail-legend"></div>
+          <div class="note" id="energy-detail-note"></div>
+        </div>
+      </div>
     </section>
 
-    <!-- ═══ GHG emissions ═══ -->
+    <!-- ═══ Step 4 · GHG emissions ═══ -->
     <section class="out-section" id="section-ghg">
       <div class="out-section-head">
-        <h2 class="out-section-title">GHG emissions</h2>
+        <h2 class="out-section-title">Step 4 — GHG emissions</h2>
         <p class="out-section-intro" id="ghg-basis-note">Each hour's added electricity × the grid intensity at that hour, summed over the summer.</p>
       </div>
       <div class="card">
@@ -332,17 +394,57 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <div class="cw cw-lg"><canvas id="ghgChart"></canvas></div>
         <div class="stats-grid" id="ghg-kpis" style="margin-top:1rem"></div>
       </div>
+      <div class="card">
+        <div class="card-title-row chart-head">
+          <span class="card-title">Emissions — standard AC vs. heat pump</span>
+          <div class="seg" id="ghg-view-seg" role="group" aria-label="GHG chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
+        <div class="step-chart-col">
+          <div class="chart-range-row">
+            <select class="range-sel" id="ghg-view-seg-month" aria-label="Month to show"></select>
+            <select class="range-sel" id="ghg-view-seg-week" aria-label="Week to show"></select>
+          </div>
+          <div class="keychart-wrap"><svg id="ghg-detail-chart" viewBox="0 0 740 320" role="img" aria-label="Emissions versus outdoor temperature or time"></svg><div class="kc-tip" id="ghg-tip"></div></div>
+          <div class="kc-legend" id="ghg-detail-legend"></div>
+          <div class="note" id="ghg-detail-note"></div>
+        </div>
+      </div>
     </section>
 
-    <!-- ═══ Costs ═══ -->
+    <!-- ═══ Step 5 · Costs ═══ -->
     <section class="out-section" id="section-cost">
       <div class="out-section-head">
-        <h2 class="out-section-title">Costs</h2>
+        <h2 class="out-section-title">Step 5 — Costs</h2>
         <p class="out-section-intro">Added electricity priced against this province's current residential rates.</p>
       </div>
       <div class="card" id="cost-card">
         <div class="card-title-row chart-head"><span class="card-title">Annual operating cost — before vs. after adding AC</span></div>
         <div id="cost-body"></div>
+      </div>
+      <div class="card" id="cost-detail-card" style="display:none">
+        <div class="card-title-row chart-head">
+          <span class="card-title">Cost — standard AC vs. heat pump</span>
+          <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
+        <div class="step-chart-col">
+          <div class="chart-range-row">
+            <select class="range-sel" id="cost-view-seg-month" aria-label="Month to show"></select>
+            <select class="range-sel" id="cost-view-seg-week" aria-label="Week to show"></select>
+          </div>
+          <div class="keychart-wrap"><svg id="cost-detail-chart" viewBox="0 0 740 320" role="img" aria-label="Cost versus outdoor temperature or time"></svg><div class="kc-tip" id="cost-tip"></div></div>
+          <div class="kc-legend" id="cost-detail-legend"></div>
+          <div class="note" id="cost-detail-note"></div>
+        </div>
       </div>
     </section>
 
@@ -1391,8 +1493,16 @@ const state={
   city:'Ottawa', designLoad:14, weatherYear:'tmy', efBasis:'average',
   includeLineLoss:true, lineloss:LINELOSS_PCT_BY_PROV.on,
   tier:'high', band:'18-30k', plan:null,
+  // Step 1/3/4/5 chart views: 'plain' (by temperature), 'freq' (weighted by
+  // hours), 'daily' or 'hourly' (full year), each with its own month/week
+  // filter for the daily/hourly views — same pattern as heatpump.html's step
+  // charts. Step 2 (COP) has no view toggle, just one plot.
+  loadView:'plain', loadMonth:null, loadWeek:null,
+  energyView:'plain', energyMonth:null, energyWeek:null,
+  ghgView:'plain', ghgMonth:null, ghgWeek:null,
+  costView:'plain', costMonth:null, costWeek:null,
 };
-let lastArch=null,lastResAC=null,lastResHP=null,lastHpLabel=null,lastCosts=null,lastElec=null,lastPlanKey=null,lastAcEquip=null,lastHpEquip=null;
+let lastArch=null,lastResAC=null,lastResHP=null,lastHpLabel=null,lastCosts=null,lastElec=null,lastPlanKey=null,lastAcEquip=null,lastHpEquip=null,lastTemps=null,lastCostSeries=null,lastTmax=null;
 
 function cityDesignLoadDefault(city){
   const c=ARCH[city];
@@ -1515,6 +1625,253 @@ function stepAxes(s,m,W,H,pW,pH,Tmin,Tmax,skipTitle){
 }
 const stepCard=(lbl,val,sub,cls)=>`<div class="stat-card"><div class="stat-label">${lbl}</div><div class="stat-value ${cls||''}">${val}</div><div class="stat-sub">${sub}</div></div>`;
 
+// ==========================================================================
+// Shared multi-view charting infra — ported from heatpump.html's step charts
+// (binByTemp, toDaily(Sum), month/day axes, sliceRange, hover tooltips).
+// Generalized only where heatpump.html hardcoded a heating temperature range;
+// logic is otherwise identical.
+// ==========================================================================
+const DAY0_MONTH=[0,31,59,90,120,151,181,212,243,273,304,334];
+const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayLabel(dayOfYear){
+  let mi=0;
+  for(let k=0;k<12;k++){ if(dayOfYear>=DAY0_MONTH[k]) mi=k; }
+  const dom=dayOfYear-DAY0_MONTH[mi]+1;
+  return `${MONTH_NAMES[mi]} ${dom}`;
+}
+function binByTempRange(temps,vals,lo,hi,Wb){
+  Wb=Wb||1; const n=Math.ceil((hi-lo)/Wb);
+  const sum=new Array(n).fill(0), cnt=new Array(n).fill(0);
+  for(let i=0;i<temps.length;i++){let b=Math.floor((temps[i]-lo)/Wb);b=Math.max(0,Math.min(n-1,b));sum[b]+=vals?vals[i]:0;cnt[b]++;}
+  const out=[];for(let b=0;b<n;b++){const c=cnt[b];out.push({T:lo+b*Wb+Wb/2,cnt:c,sum:sum[b],mean:c?sum[b]/c:null});}
+  return out;
+}
+function toDaily(arr){
+  const days=Math.floor(arr.length/24), out=new Array(days);
+  for(let d=0;d<days;d++){
+    let sum=0,cnt=0;
+    for(let h=d*24;h<d*24+24;h++){const v=arr[h];if(v!=null&&!isNaN(v)){sum+=v;cnt++;}}
+    out[d]=cnt?sum/cnt:null;
+  }
+  return out;
+}
+function toDailySum(arr){
+  const days=Math.floor(arr.length/24), out=new Array(days);
+  for(let d=0;d<days;d++){
+    let sum=0,any=false;
+    for(let h=d*24;h<d*24+24;h++){const v=arr[h];if(v!=null&&!isNaN(v)){sum+=v;any=true;}}
+    out[d]=any?sum:null;
+  }
+  return out;
+}
+function monthStartDays(n){
+  const leap=n>=366, dim=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+  const b=[0]; for(let i=0;i<12;i++) b.push(b[i]+dim[i]); return b;
+}
+function monthStartHours(n){
+  const leap=n>=8784, dim=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+  const b=[0]; for(let i=0;i<12;i++) b.push(b[i]+dim[i]*24); return b;
+}
+function dailyMonthAxis(s,x,N,m,W,H,pW,pH,dayOffset){
+  const light=css('--light'),muted=css('--muted');
+  if(dayOffset==null){
+    const bnd=monthStartDays(N);
+    for(let mo=0;mo<12;mo++){const mid=(bnd[mo]+Math.min(bnd[mo+1],N))/2;
+      s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MONTH_NAMES[mo]}</text>`;
+      if(mo>0)s.v+=`<line x1="${x(bnd[mo])}" y1="${m.t}" x2="${x(bnd[mo])}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
+    s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Day of year (${N} d)</text>`;
+  } else {
+    const step=N>20?5:(N>10?2:1);
+    for(let d=0;d<N;d+=step){
+      s.v+=`<text x="${x(d)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${d+1}</text>`;
+      if(d>0)s.v+=`<line x1="${x(d)}" y1="${m.t}" x2="${x(d)}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
+    const monthName=dayLabel(dayOffset).split(' ')[0];
+    s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Day of ${monthName} (${N} d)</text>`;
+  }
+}
+function hourlyMonthAxis(s,x,N,m,W,H,pW,pH,hourOffset){
+  const light=css('--light'),muted=css('--muted');
+  if(hourOffset==null){
+    const bnd=monthStartHours(N);
+    for(let mo=0;mo<12;mo++){const mid=(bnd[mo]+Math.min(bnd[mo+1],N))/2;
+      s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MONTH_NAMES[mo]}</text>`;
+      if(mo>0)s.v+=`<line x1="${x(bnd[mo])}" y1="${m.t}" x2="${x(bnd[mo])}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
+    s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Hour of year (8,760 h)</text>`;
+  } else {
+    const startDay=Math.floor(hourOffset/24), days=Math.ceil(N/24);
+    for(let d=0;d<days;d++){const mid=Math.min(d*24+12,N);
+      s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${dayLabel(startDay+d)}</text>`;
+      if(d>0)s.v+=`<line x1="${x(d*24)}" y1="${m.t}" x2="${x(d*24)}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
+    s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Hour of week — ${dayLabel(startDay)}–${dayLabel(startDay+days-1)}</text>`;
+  }
+}
+function sliceRange(rawArr,daily,month,week,sumMode){
+  if(daily){
+    const full=sumMode?toDailySum(rawArr):toDaily(rawArr);
+    if(month==null) return {series:full,offset:null};
+    const bnd=monthStartDays(full.length);
+    return {series:full.slice(bnd[month],bnd[month+1]),offset:bnd[month]};
+  }
+  if(week==null) return {series:rawArr,offset:null};
+  const st=week*168, en=Math.min(st+168,rawArr.length);
+  return {series:rawArr.slice(st,en),offset:st};
+}
+function attachTempHover(cfg){
+  const svg=$(cfg.svgId), tip=$(cfg.tipId), over=$(cfg.overId);
+  if(!svg||!tip||!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect(),scale=cfg.W/pt.width;
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    let t=cfg.Tmin+(cx*scale-cfg.m.l)/cfg.pW*(cfg.Tmax-cfg.Tmin);
+    t=Math.max(cfg.Tmin,Math.min(cfg.Tmax,t));
+    const tr=Math.round(t);
+    const rows=[]; let topY=null;
+    cfg.series.forEach(s=>{
+      const v=s.get(tr); if(v==null)return;
+      rows.push(`<span class="kc-tip-row"><span class="kc-tip-dot" style="background:${s.color}"></span><b>${s.label}:</b> ${s.fmt?s.fmt(v):v}</span>`);
+      if(s.y){const yy=s.y(v); if(topY==null||yy<topY)topY=yy;}
+    });
+    if(!rows.length)return;
+    tip.style.left=(cfg.x(tr)/scale)+'px';
+    tip.style.top=((topY!=null?topY:cfg.m.t)/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${fmtSigned(tr)} °C</b>${rows.join('')}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+function attachHourlyHover(cfg){
+  const svg=$(cfg.svgId), tip=$(cfg.tipId), over=$(cfg.overId);
+  if(!svg||!tip||!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect(),scale=cfg.W/pt.width;
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    let i=Math.round((cx*scale-cfg.m.l)/cfg.pW*(cfg.N-1));
+    i=Math.max(0,Math.min(cfg.N-1,i));
+    const rows=[]; let topY=null;
+    cfg.series.forEach(s=>{
+      const v=s.arr[i]; if(v==null)return;
+      rows.push(`<span class="kc-tip-row"><span class="kc-tip-dot" style="background:${s.color}"></span><b>${s.label}:</b> ${s.fmt?s.fmt(v):v}</span>`);
+      if(s.y){const yy=s.y(v); if(topY==null||yy<topY)topY=yy;}
+    });
+    if(!rows.length)return;
+    const abs=i+(cfg.offset||0), day=Math.floor(abs/24), hr=abs%24;
+    tip.style.left=(cfg.x(i)/scale)+'px';
+    tip.style.top=((topY!=null?topY:cfg.m.t)/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${dayLabel(day)} ${String(hr).padStart(2,'0')}:00</b>${rows.join('')}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+function attachDailyHover(cfg){
+  const svg=$(cfg.svgId), tip=$(cfg.tipId), over=$(cfg.overId);
+  if(!svg||!tip||!over)return;
+  function move(evt){
+    const pt=svg.getBoundingClientRect(),scale=cfg.W/pt.width;
+    const cx=(evt.touches?evt.touches[0].clientX:evt.clientX)-pt.left;
+    let i=Math.round((cx*scale-cfg.m.l)/cfg.pW*(cfg.N-1));
+    i=Math.max(0,Math.min(cfg.N-1,i));
+    const rows=[]; let topY=null;
+    cfg.series.forEach(s=>{
+      const v=s.arr[i]; if(v==null)return;
+      rows.push(`<span class="kc-tip-row"><span class="kc-tip-dot" style="background:${s.color}"></span><b>${s.label}:</b> ${s.fmt?s.fmt(v):v}</span>`);
+      if(s.y){const yy=s.y(v); if(topY==null||yy<topY)topY=yy;}
+    });
+    if(!rows.length)return;
+    tip.style.left=(cfg.x(i)/scale)+'px';
+    tip.style.top=((topY!=null?topY:cfg.m.t)/scale)+'px';
+    tip.style.opacity='1';
+    tip.innerHTML=`<b>${dayLabel(i+(cfg.offset||0))}</b>${rows.join('')}`;
+  }
+  over.addEventListener('mousemove',move);
+  over.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  over.addEventListener('touchmove',e=>{move(e);e.preventDefault();},{passive:false});
+  over.addEventListener('touchstart',move,{passive:true});
+}
+// Grouped (not stacked — AC and HP are alternatives, not additive) bar chart
+// of per-1°C-bin sums, for the "Weighted by hours" view.
+function renderGroupedBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal){
+  const W=740,Hh=320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const bins=series.map(s=>binByTempRange(temps,s.arr,Tmin,Tmax,1));
+  const maxV=Math.max(1,...bins.flat().map(b=>b.sum))*1.12;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
+  const nS=series.length, bw=(pW/(Tmax-Tmin))/(nS+0.6);
+  const light=css('--light'),muted=css('--muted');
+  const s={v:''};
+  niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtI(v)}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">${yLabel}</text>`;
+  stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
+  bins.forEach((binArr,si)=>{
+    const off=(si-(nS-1)/2)*bw;
+    binArr.forEach(b=>{if(b.sum<=0)return;s.v+=`<rect x="${x(b.T)+off-bw/2}" y="${y(b.sum)}" width="${bw}" height="${m.t+pH-y(b.sum)}" fill="${series[si].color}" opacity="0.85"/>`;});
+  });
+  s.v+=`<rect id="${tipPrefix}-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
+  svg.innerHTML=s.v;
+  const findBin=(barr,t)=>barr.reduce((a,c)=>Math.abs(c.T-t)<Math.abs(a.T-t)?c:a,barr[0]);
+  attachTempHover({svgId:svg.id,tipId:tipPrefix+'-tip',overId:tipPrefix+'-over',W,m,pW,Tmin,Tmax,x,series:series.map((se,si)=>(
+    {label:se.label,color:se.color,y:v=>y(Math.max(v,0)),fmt:fmtVal,get:t=>{const b=findBin(bins[si],t);return b?b.sum:null;}}
+  ))});
+  if(legendId)$(legendId).innerHTML=series.map(se=>`<span class="kc-leg"><span class="kc-swatch fill" style="background:${se.color}"></span>${se.label}</span>`).join('');
+}
+// Mean per 1°C bin from real hourly data, one line per series — the "By
+// temperature" view for metrics with no clean analytic curve (energy, GHG,
+// cost all depend on the grid/rate at that hour, not just outdoor temp).
+function renderMeanBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal){
+  const W=740,Hh=320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const bins=series.map(s=>binByTempRange(temps,s.arr,Tmin,Tmax,1));
+  const maxV=Math.max(0.01,...bins.flat().map(b=>b.mean||0))*1.15;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
+  const light=css('--light'),muted=css('--muted');
+  const s={v:''};
+  niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtVal(v)}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">${yLabel}</text>`;
+  stepAxes(s,m,W,Hh,pW,pH,Tmin,Tmax);
+  bins.forEach((binArr,si)=>{s.v+=polyline(binArr.filter(b=>b.mean!=null).map(b=>[b.T,b.mean]),x,y,series[si].color,2.4,series[si].dash);});
+  s.v+=`<rect id="${tipPrefix}-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
+  svg.innerHTML=s.v;
+  const findBin=(barr,t)=>barr.reduce((a,c)=>Math.abs(c.T-t)<Math.abs(a.T-t)?c:a,barr[0]);
+  attachTempHover({svgId:svg.id,tipId:tipPrefix+'-tip',overId:tipPrefix+'-over',W,m,pW,Tmin,Tmax,x,series:series.map((se,si)=>(
+    {label:se.label,color:se.color,y:v=>y(Math.max(v,0)),fmt:fmtVal,get:t=>{const b=findBin(bins[si],t);return b?b.mean:null;}}
+  ))});
+  if(legendId)$(legendId).innerHTML=series.map(se=>`<span class="kc-leg"><span class="kc-swatch${se.dash?' dash':''}" style="border-color:${se.color}"></span>${se.label}</span>`).join('');
+}
+// Full year, chronologically (or daily-mean/-sum when daily=true) — one line
+// per series, sliced to the chosen month (daily) or week (hourly).
+function renderTimeSeriesChart(svg,legendId,tipPrefix,series,daily,monthVal,weekVal,yLabel,fmtVal,sumMode){
+  const sliced=series.map(s=>sliceRange(s.arr,daily,monthVal,weekVal,sumMode));
+  const N=sliced[0].series.length, offset=sliced[0].offset;
+  const W=920,Hh=380,m={l:58,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const maxV=Math.max(0.01,...sliced.flatMap(sl=>sl.series.filter(v=>v!=null)))*1.1;
+  const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
+  const light=css('--light'),muted=css('--muted');
+  const s={v:''};
+  niceTicks(maxV,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmtVal(v)}</text>`;});
+  s.v+=`<text x="14" y="${m.t+pH/2}" transform="rotate(-90 14 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">${yLabel}</text>`;
+  if(daily) dailyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset); else hourlyMonthAxis(s,x,N,m,W,Hh,pW,pH,offset);
+  sliced.forEach((sl,si)=>{
+    let pts='';for(let i=0;i<N;i++){const v=sl.series[i];if(v==null)continue;pts+=(pts?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' ';}
+    s.v+=`<path d="${pts}" fill="none" stroke="${series[si].color}" stroke-width="1.3"${series[si].dash?` stroke-dasharray="${series[si].dash}"`:''}/>`;
+  });
+  s.v+=`<rect id="${tipPrefix}-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${Hh}`);
+  svg.innerHTML=s.v;
+  const hoverCfg={svgId:svg.id,tipId:tipPrefix+'-tip',overId:tipPrefix+'-over',W,m,pW,N,x,offset,series:series.map((se,si)=>(
+    {label:se.label,color:se.color,y,fmt:fmtVal,arr:sliced[si].series}
+  ))};
+  if(daily) attachDailyHover(hoverCfg); else attachHourlyHover(hoverCfg);
+  if(legendId)$(legendId).innerHTML=series.map(se=>`<span class="kc-leg"><span class="kc-swatch${se.dash?' dash':''}" style="border-color:${se.color}"></span>${se.label}</span>`).join('');
+}
+
 function planEnergyPrice(plan,m,h){
   if(plan.type==='flat')return plan.price_cad_per_kwh;
   const cal=plan.calendar,prices=plan.prices_cad_per_kwh;
@@ -1579,6 +1936,45 @@ function buildInputs(){
   $('in-tier').value=state.tier;$('in-band').value=state.band;
   $('tier-info').dataset.info=TIER_BLURB[state.tier];
   syncEfSeg();
+
+  // Step 1/3/4/5 chart-view segs (by temperature / weighted by hours / daily
+  // / hourly), each with its own month (daily) and week (hourly) selector —
+  // same pattern as heatpump.html's RANGE_CHARTS. Re-renders only the one
+  // section, reusing the cached simulation results rather than re-running
+  // buildOptsAndRun (which would re-simulate 8,760 hours for nothing).
+  const RANGE_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function rangeWeekLabel(w){
+    const bnd=[0,31,59,90,120,151,181,212,243,273,304,334,365];
+    const dom=d=>{let mo=0;while(mo<11&&d>=bnd[mo+1])mo++;return `${MONTH_NAMES[mo]} ${d-bnd[mo]+1}`;};
+    return `${dom(w*7)}–${dom(Math.min(w*7+6,364))}`;
+  }
+  const DETAIL_CHARTS=[
+    {seg:'load-view-seg', vKey:'loadView', mKey:'loadMonth', wKey:'loadWeek', render:()=>{if(lastArch)renderLoadSection(lastArch,lastResAC,lastAcEquip,lastHpEquip,lastHpLabel,lastTmax);}},
+    {seg:'energy-view-seg', vKey:'energyView', mKey:'energyMonth', wKey:'energyWeek', render:()=>{if(lastResAC)renderEnergyDetailSection(lastResAC,lastResHP,lastHpLabel,lastTmax);}},
+    {seg:'ghg-view-seg', vKey:'ghgView', mKey:'ghgMonth', wKey:'ghgWeek', render:()=>{if(lastResAC)renderGhgDetailSection(lastResAC,lastResHP,lastHpLabel,lastTmax);}},
+    {seg:'cost-view-seg', vKey:'costView', mKey:'costMonth', wKey:'costWeek', render:()=>{if(lastResAC)renderCostDetailSection(lastResAC,lastResHP,lastHpLabel,lastElec,lastPlanKey,lastTmax);}},
+  ];
+  DETAIL_CHARTS.forEach(rc=>{
+    const segEl=$(rc.seg); if(!segEl) return;
+    const monthSel=$(rc.seg+'-month'), weekSel=$(rc.seg+'-week');
+    if(monthSel){
+      monthSel.innerHTML='<option value="">Whole year</option>'+RANGE_MONTHS.map((n,i)=>`<option value="${i}">${n}</option>`).join('');
+      monthSel.addEventListener('change',()=>{state[rc.mKey]=monthSel.value===''?null:+monthSel.value; rc.render();});
+    }
+    if(weekSel){
+      let opts='<option value="">Whole year</option>';
+      for(let w=0;w<53;w++) opts+=`<option value="${w}">Week of ${rangeWeekLabel(w)}</option>`;
+      weekSel.innerHTML=opts;
+      weekSel.addEventListener('change',()=>{state[rc.wKey]=weekSel.value===''?null:+weekSel.value; rc.render();});
+    }
+    document.querySelectorAll(`#${rc.seg} button`).forEach(b=>b.addEventListener('click',()=>{
+      state[rc.vKey]=b.dataset.view;
+      document.querySelectorAll(`#${rc.seg} button`).forEach(x=>x.classList.toggle('active',x===b));
+      if(monthSel) monthSel.classList.toggle('show',b.dataset.view==='daily');
+      if(weekSel) weekSel.classList.toggle('show',b.dataset.view==='hourly');
+      rc.render();
+    }));
+  });
 }
 
 function populateWeatherSelector(city){
@@ -1690,12 +2086,29 @@ function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec){
   ].join('')}</div>`;
 }
 
-function renderLoadSection(arch){
+function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
   $('load-kpis').innerHTML=[
     stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW','via a validated correlation — not measured','accent'),
     stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`design cooling temp ${fmt1(arch.design_cooling_temp_C)} °C`,'accent'),
     stepCard('Balance point',fmt1(arch.Tc_C)+' °C','above this, the home needs cooling','muted'),
   ].join('');
+  const view=state.loadView;
+  const monthSel=$('load-view-seg-month'),weekSel=$('load-view-seg-week');
+  if(monthSel)monthSel.classList.toggle('show',view==='daily');
+  if(weekSel)weekSel.classList.toggle('show',view==='hourly');
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  if(view==='plain'){
+    renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
+    $('load-note').innerHTML=`Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.`;
+  } else if(view==='freq'){
+    renderGroupedBinChart($('cooling-chart'),'cooling-legend','load',[{label:'Cooling load',color:css('--ink'),arr:resAC.hourly.load_kW}],lastTemps,COOL_Tmin,Tmax,'kWh, load × hours per 1 °C bin',v=>fmtI(v)+' kWh');
+    $('load-note').innerHTML=`Each bar is <code>load × hours at that temperature</code> — kWh of cooling needed while it was that hot, in 1 °C bins. Shows where the summer's cooling demand actually comes from.`;
+  } else if(view==='daily'||view==='hourly'){
+    renderTimeSeriesChart($('cooling-chart'),'cooling-legend','load',[{label:'Cooling load',color:css('--ink'),arr:resAC.hourly.load_kW}],view==='daily',state.loadMonth,state.loadWeek,view==='daily'?'kW, daily mean':'kW cooling',v=>fmt1(v)+' kW',false);
+    $('load-note').innerHTML=view==='hourly'
+      ? `The raw hourly cooling load trace for <b>${yr}</b> in ${state.city}.`
+      : `Each point is a day's mean cooling load for <b>${yr}</b> in ${state.city} — the hourly trace with the hour-to-hour noise averaged out.`;
+  }
 }
 
 function threeBarChart(canvasId,labels,data,colors,unitSuffix,fmtFn){
@@ -1758,6 +2171,127 @@ function renderCostSection(resAC,resHP,hpLabel,costs,elec){
   $('cost-kpis').innerHTML=kpis.join('');
 }
 
+// ---- Step 2: Equipment COPs — per temperature only, no view toggle -------
+function renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax){
+  const svg=$('cop-chart'); if(!svg) return;
+  const Cac=coolStepCurves(arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,Tmax);
+  const Chp=hpEquip?coolStepCurves(arch.UA_cool_kW_per_K,arch.Tc_C,hpEquip,Tmax):null;
+  const W=740,H=220,m={l:52,r:22,t:16,b:34},pW=W-m.l-m.r,pH=H-m.t-m.b;
+  const Tmin=COOL_Tmin;
+  const blue=css('--blue'),purple=css('--purple'),muted=css('--muted'),light=css('--light');
+  const maxCOP=Math.max(2,...Cac.cop.filter(v=>v!=null),...(Chp?Chp.cop.filter(v=>v!=null):[0]))*1.15;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxCOP)*pH;
+  const s={v:''};
+  niceTicks(maxCOP,4).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt1(v)}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">COP</text>`;
+  stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
+  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cop[i]]).filter((_,i)=>Cac.cop[i]!=null),x,y,blue,2.3);
+  if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cop[i]]).filter((_,i)=>Chp.cop[i]!=null),x,y,purple,2.3,'5 3');
+  s.v+=`<rect id="cop-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s.v;
+  const idxAt=t=>Math.max(0,Math.min(Cac.T.length-1,Math.round((t-Tmin)/0.5)));
+  attachTempHover({svgId:'cop-chart',tipId:'cop-tip',overId:'cop-over',W,m,pW,Tmin,Tmax,x,series:[
+    {label:'Standard AC COP',color:blue,y,fmt:v=>fmt1(v),get:t=>Cac.cop[idxAt(t)]},
+    ...(Chp?[{label:hpLabel+' COP',color:purple,y,fmt:v=>fmt1(v),get:t=>Chp.cop[idxAt(t)]}]:[]),
+  ]});
+  $('cop-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC COP</span>`,
+    Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} COP</span>`:'',
+  ].join('');
+  const refT=Math.min(Tmax,Math.round(arch.design_cooling_temp_C));
+  const acCopAt=Cac.cop[idxAt(refT)], hpCopAt=Chp?Chp.cop[idxAt(refT)]:null;
+  $('cop-kpis').innerHTML=[
+    stepCard('Standard AC COP',acCopAt!=null?fmt1(acCopAt):'n/a',`at this city's design cooling temp (${fmt1(refT)} °C)`,'accent'),
+    hpCopAt!=null
+      ? stepCard(hpLabel+' COP',fmt1(hpCopAt),`at this city's design cooling temp (${fmt1(refT)} °C)`,hpCopAt>acCopAt?'green':'red')
+      : stepCard(bucketShort()+' pump COP','no data','no cooling curve on file for this cell','red'),
+  ].join('');
+}
+
+// ---- Steps 3–5 detail charts: standard AC vs. heat pump, 4 views each ----
+function renderDetailChart(tipPrefix,view,monthKey,weekKey,series,Tmin,Tmax,yLabelPlain,yLabelWeighted,yLabelDaily,fmtVal,sumMode,noteId,noteFn){
+  const svg=$(tipPrefix+'-detail-chart'); if(!svg) return;
+  const legendId=tipPrefix+'-detail-legend';
+  const monthSel=$(tipPrefix+'-view-seg-month'),weekSel=$(tipPrefix+'-view-seg-week');
+  if(monthSel)monthSel.classList.toggle('show',view==='daily');
+  if(weekSel)weekSel.classList.toggle('show',view==='hourly');
+  if(view==='freq'){
+    renderGroupedBinChart(svg,legendId,tipPrefix,series,lastTemps,Tmin,Tmax,yLabelWeighted,fmtVal.sum);
+  } else if(view==='daily'||view==='hourly'){
+    renderTimeSeriesChart(svg,legendId,tipPrefix,series,view==='daily',state[monthKey],state[weekKey],view==='daily'?yLabelDaily:yLabelPlain,fmtVal.rate,sumMode);
+  } else {
+    renderMeanBinChart(svg,legendId,tipPrefix,series,lastTemps,Tmin,Tmax,yLabelPlain,fmtVal.rate);
+  }
+  if(noteId)$(noteId).innerHTML=noteFn(view);
+}
+
+function energySeriesFor(resAC,resHP,hpLabel){
+  const s=[{label:'Standard AC',color:css('--blue'),arr:resAC.hourly.elec_kWh}];
+  if(resHP)s.push({label:hpLabel+' (cooling mode)',color:css('--purple'),arr:resHP.hourly.elec_kWh,dash:'5 3'});
+  return s;
+}
+function renderEnergyDetailSection(resAC,resHP,hpLabel,Tmax){
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  renderDetailChart('energy',state.energyView,'energyMonth','energyWeek',energySeriesFor(resAC,resHP,hpLabel),COOL_Tmin,Tmax,
+    'kWh/hr (mean)','kWh, sum per 1 °C bin','kWh, daily total',
+    {rate:v=>fmt1(v)+' kWh',sum:v=>fmtI(v)+' kWh'},true,'energy-detail-note',view=>{
+      if(view==='hourly')return `Electricity drawn by each unit, every hour of ${yr} in ${state.city}.`;
+      if(view==='daily')return `Each point is a day's total electricity for each unit, over ${yr} in ${state.city}.`;
+      if(view==='freq')return `Each bar is the actual electricity bought while it was that outdoor temperature, summed per 1 °C bin — where the summer's electricity use actually comes from.`;
+      return `Average electricity draw (kWh/hr) at each outdoor temperature, from the real hour-by-hour dispatch.`;
+    });
+}
+function ghgSeriesFor(resAC,resHP,hpLabel){
+  const s=[{label:'Standard AC',color:css('--blue'),arr:resAC.hourly.ghg_kg}];
+  if(resHP)s.push({label:hpLabel+' (cooling mode)',color:css('--purple'),arr:resHP.hourly.ghg_kg,dash:'5 3'});
+  return s;
+}
+function renderGhgDetailSection(resAC,resHP,hpLabel,Tmax){
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  renderDetailChart('ghg',state.ghgView,'ghgMonth','ghgWeek',ghgSeriesFor(resAC,resHP,hpLabel),COOL_Tmin,Tmax,
+    'kg CO₂e/hr (mean)','kg CO₂e, sum per 1 °C bin','kg CO₂e, daily total',
+    {rate:v=>fmt1(v)+' kg',sum:v=>fmtGHG(v)},true,'ghg-detail-note',view=>{
+      if(view==='hourly')return `Emissions from each unit's electricity, every hour of ${yr} in ${state.city}, at the ${basisAdj(state.efBasis)} grid basis.`;
+      if(view==='daily')return `Each point is a day's total emissions for each unit, over ${yr} in ${state.city}.`;
+      if(view==='freq')return `Each bar is the actual kg CO₂e emitted while it was that outdoor temperature, summed per 1 °C bin.`;
+      return `Average emissions rate (kg CO₂e/hr) at each outdoor temperature, from the real hour-by-hour dispatch at the ${basisAdj(state.efBasis)} grid basis.`;
+    });
+}
+function buildCoolingHourlyCost(res,elec,planKey){
+  if(!res||!elec||!planKey) return null;
+  const plan=elec.plans[planKey];
+  const N=res.hourly.elec_kWh.length;
+  const bnd=monthStartHours(N);
+  const moOf=new Array(N); for(let m=0;m<12;m++)for(let h=bnd[m];h<bnd[m+1]&&h<N;h++)moOf[h]=m;
+  const out=new Array(N);
+  for(let i=0;i<N;i++){
+    const mo=moOf[i],hr=i%24;
+    out[i]=res.hourly.elec_kWh[i]*(planEnergyPrice(plan,mo,hr)+elec.volumetric_adders_cad_per_kwh);
+  }
+  return out;
+}
+function renderCostDetailSection(resAC,resHP,hpLabel,elec,planKey,Tmax){
+  const card=$('cost-detail-card');
+  if(!elec||!planKey){ card.style.display='none'; return; }
+  card.style.display='';
+  const acCost=buildCoolingHourlyCost(resAC,elec,planKey);
+  const hpCost=resHP?buildCoolingHourlyCost(resHP,elec,planKey):null;
+  lastCostSeries={acCost,hpCost};
+  const series=[{label:'Standard AC',color:css('--blue'),arr:acCost}];
+  if(hpCost)series.push({label:hpLabel+' (cooling mode)',color:css('--purple'),arr:hpCost,dash:'5 3'});
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  renderDetailChart('cost',state.costView,'costMonth','costWeek',series,COOL_Tmin,Tmax,
+    '$/hr (mean)','$, sum per 1 °C bin','$, daily total',
+    {rate:v=>'$'+v.toFixed(2),sum:v=>fmt$(v)},true,'cost-detail-note',view=>{
+      if(view==='hourly')return `Cost of each unit's electricity, every hour of ${yr} in ${state.city}, at current rates.`;
+      if(view==='daily')return `Each point is a day's total cost for each unit, over ${yr} in ${state.city}.`;
+      if(view==='freq')return `Each bar is the actual dollars spent while it was that outdoor temperature, summed per 1 °C bin — volumetric energy charges only, no fixed monthly service charge.`;
+      return `Average cost rate ($/hr) at each outdoor temperature. Electricity plans that vary by time of day make this noisier than "Weighted by hours".`;
+    });
+}
+
 function buildOptsAndRun(){
   if(!AC_CURVE){
     ['verdict-main'].forEach(id=>$(id).textContent='Standard-AC reference data failed to load.');
@@ -1799,14 +2333,18 @@ function buildOptsAndRun(){
     hp_$: (elec&&planKey&&resHP) ? costElectricity(resHP.energy.elec_month_hour,elec,planKey) : null,
   };
 
-  lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;
+  const Tmax=Math.min(COOL_Tmax_DEFAULT,Math.max(28,Math.round(arch.design_cooling_temp_C)+3));
+  lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;lastTemps=temps;lastTmax=Tmax;
 
   renderVerdict(arch,resAC,resHP,hpLabel,costs,elec);
-  renderLoadSection(arch);
-  renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
+  renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax);
+  renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax);
   renderElectricitySection(resAC,resHP,hpLabel);
+  renderEnergyDetailSection(resAC,resHP,hpLabel,Tmax);
   renderGhgSection(resAC,resHP,hpLabel);
+  renderGhgDetailSection(resAC,resHP,hpLabel,Tmax);
   renderCostSection(resAC,resHP,hpLabel,costs,elec);
+  renderCostDetailSection(resAC,resHP,hpLabel,elec,planKey,Tmax);
 }
 
 // ==========================================================================
