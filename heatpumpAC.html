@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Potential AC Explorer — energy, emissions &amp; cost of adding air conditioning</title>
+<meta name="description" content="This home has no AC today. See what adding a standard central air conditioner — or running a cold-climate heat pump in cooling mode — would use, emit and cost each summer, hour-by-hour for a typical year in 14 Canadian cities.">
+<meta property="og:title" content="Potential AC Explorer — what would adding AC cost this home?">
+<meta property="og:description" content="An estimate of summer cooling load, electricity, emissions and cost for a home with no AC today — standard central AC vs. a heat pump's own cooling curve.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/heatpumpAC">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/heatpump.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Potential AC Explorer social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/heatpump.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M16 8a8 8 0 0 0-8 8h2a6 6 0 0 1 12 0h2a8 8 0 0 0-8-8z' fill='%2331B6E8'/%3E%3Ccircle cx='16' cy='20' r='2.4' fill='%2331B6E8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<!-- Shared chrome + the light/dark/colour-blind theme system -- see assets/site-theme.css.
+     This page keeps only its own page-specific rules below. Trimmed from
+     heatpump.html: no house-type explorer, no 8,760-row data table, no
+     methane map, no tier-selection scatter panel, no custom-curve entry,
+     no print summary -- none of those are part of the cooling-only story. -->
+<link rel="stylesheet" href="assets/site-theme.css">
+<style>
+.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:.5rem}
+@media(max-width:600px){.sibling-link{display:none}}
+
+/* ── Inputs ── */
+.controls{position:sticky;top:48px;z-index:90;max-width:1280px;margin:-1px auto 0;background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.9rem 1.25rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+@media(min-width:900px){
+  .controls.is-compact .ctrl label{display:none}
+  .controls.is-compact{padding-top:.3rem;padding-bottom:.3rem}
+  .controls.is-compact .ctrl-grid{gap:8px 10px}
+  .controls.is-compact:hover{padding-top:.9rem;padding-bottom:.6rem}
+  .controls.is-compact:hover .ctrl-grid{gap:12px 10px}
+  .controls.is-compact:hover .ctrl label{display:flex}
+}
+.ctrl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 10px;align-items:start}
+@media(max-width:1100px){.ctrl-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.ctrl-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.ctrl-grid{grid-template-columns:1fr}}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctrl label{font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.ctrl select,.ctrl input[type=number]{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 26px 0 9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;appearance:none;transition:border-color .15s;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctrl select:hover,.ctrl input:hover{border-color:var(--navy)}
+.ctrl select:focus,.ctrl input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.ctrl-hint{font-size:10.5px;color:var(--light);line-height:1.35}
+.weather-row{display:flex;align-items:center;gap:6px}
+.weather-row select{flex:1}
+.helper-panel{grid-column:1/-1;background:var(--cream);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:12.5px;color:var(--muted);line-height:1.55;display:none}
+.helper-panel.open{display:block}
+.helper-panel b{color:var(--text);font-weight:500}
+.helper-panel .hp-row{margin:.25rem 0}
+.range-row{display:flex;align-items:center;gap:10px;height:34px}
+.range-row input[type=range]{flex:1;min-width:0;accent-color:var(--amber);height:4px}
+.range-val{font-size:13px;color:var(--text);min-width:62px;text-align:right;font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:2px;gap:2px}
+.seg button{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;padding:7px 6px;border:none;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.seg button.active{background:var(--card);color:var(--ink);font-weight:500;box-shadow:var(--shadow)}
+:root[data-theme="dark"] .seg button.active{background:var(--amber2);color:var(--navy);box-shadow:none}
+
+/* ── Shared info tooltip ── */
+#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3);display:none}
+.info-tip-link{display:block;margin-top:7px;color:var(--amber2);font-weight:500;text-decoration:none;cursor:pointer}
+.info-tip-link:hover{text-decoration:underline}
+@keyframes method-flash{0%{background:rgba(232,161,36,.28)}100%{background:transparent}}
+.method-flash{animation:method-flash 1.6s ease-out}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.85rem}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card-sub{font-size:12px;color:var(--light)}
+.chart-head{background:linear-gradient(180deg,#0d2a52,#0B2545);align-items:center;margin:-1.1rem -1.1rem .95rem -1.1rem;padding:.7rem 1.1rem;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.chart-head .card-title{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.15rem;letter-spacing:0;text-transform:none;color:var(--on-navy)}
+.chart-head .card-sub{color:rgba(255,255,255,.68)}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.card .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:12.5px;line-height:1.55;margin-top:12px}
+.card .caveats b{color:var(--text);font-weight:600}
+.note b{color:var(--muted);font-weight:500}
+.cost-hook{border:1px dashed var(--border);border-radius:var(--r-md);padding:1rem 1.1rem;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(11,37,69,.015) 8px,rgba(11,37,69,.015) 16px)}
+.cost-hook .ch-title{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.cost-hook .ch-body{font-size:12.5px;color:var(--light);line-height:1.55}
+
+/* ── House-table-style methodology tables (shared class name w/ heatpump.html) ── */
+.ht-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:.9rem}
+.ht-table th{text-align:left;font-size:10.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
+.ht-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+.ht-table tr:last-child td{border-bottom:none}
+.ht-table td.ht-num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── Output sections ── */
+.out-section{margin:0 0 2.1rem}
+.out-section:last-of-type{margin-bottom:1rem}
+.out-section-head{margin-bottom:1rem}
+.out-section-title{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:1.55rem;color:var(--ink);letter-spacing:-.01em;margin-bottom:.35rem}
+.out-section-intro{font-size:13.5px;color:var(--muted);line-height:1.55}
+
+/* ── Verdict / stats ── */
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:linear-gradient(180deg,#0d2a52,#0B2545);color:var(--on-navy);border-radius:var(--r-lg);padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.verdict-text{flex:1;min-width:240px;display:flex;flex-direction:column;gap:.4rem}
+.verdict-main{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(1.15rem,3.2vw,1.6rem);line-height:1.25}
+.verdict-main b{color:var(--amber2);font-weight:400;font-style:italic}
+.verdict-sub{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.5}
+.verdict-sub b{color:#fff;font-weight:600}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:1.9rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.stat-value.accent{color:var(--amber)}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-value.muted{color:var(--muted)}
+.stat-sub{font-size:12px;color:var(--light);margin-top:5px}
+
+/* ── Step card: chart + a narrow vertical KPI rail beside it ── */
+.step-body{display:flex;gap:1rem;align-items:flex-start}
+.step-chart-col{flex:1;min-width:0}
+.step-kpi-col{display:flex;flex-direction:column;gap:8px;width:196px;flex:none}
+.step-kpi-col .stat-card{padding:.65rem .8rem}
+.step-kpi-col .stat-value{font-size:1.5rem}
+.step-kpi-col .stat-label{min-height:0;margin-bottom:3px}
+@media(max-width:860px){
+  .step-body{flex-direction:column}
+  .step-kpi-col{flex-direction:row;flex-wrap:wrap;width:auto}
+  .step-kpi-col .stat-card{flex:1 1 130px}
+}
+
+/* ── Key chart (SVG) ── */
+.keychart-wrap{position:relative;width:100%}
+.kc-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
+.kc-leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.kc-swatch{width:14px;height:0;border-top:2.5px solid;flex:none}
+.kc-swatch.dash{border-top-style:dashed}
+
+/* ── Chart wrappers (Chart.js) ── */
+.cw{position:relative;width:100%}
+.cw-md{height:230px}
+.cw-lg{height:280px}
+
+/* ── Methodology ── */
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1.25rem}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
+.methodology details[open] summary::after{content:'\2013'}
+.methodology summary:hover{background:var(--cream)}
+.method-body{padding:0 1.1rem 1rem;font-size:14px;line-height:1.65;color:var(--text)}
+.method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.35rem 0 .4rem}
+.method-body h5{font-size:13px;font-weight:600;color:var(--text);margin:1.1rem 0 .35rem}
+.method-body p{margin:0 0 .6rem}
+.method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.method-body ul,.method-body ol{margin:0 0 .6rem;padding-left:1.1rem}
+.method-body li{margin:.2rem 0}
+.method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px;margin:.4rem 0 .8rem}
+.method-body a{color:var(--blue)}
+
+.loading-msg{text-align:center;color:var(--muted);padding:2.5rem 1rem;font-size:14px}
+.err-msg{max-width:1280px;margin:1rem auto;padding:1rem 1.25rem;background:#fdecec;border:1px solid #f3c0bb;border-radius:var(--r-md);color:#B33A2E;font-size:13px}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body>
+<script>
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">heat<span>pump</span></div>
+    <div class="header-title">Potential AC — energy, emissions &amp; cost of adding cooling</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="heatpump.html">↳ Heat Pump Explorer</a>
+    <a class="sibling-link" href="grid.html">↳ Grid Dashboard</a>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <p class="hero-eyebrow">Cooling add-on · standard AC vs. heat pump · ON · QC · AB</p>
+  <h1>What would adding <em>air conditioning</em> cost this home?</h1>
+  <p class="hero-sub">This home has no AC today. An hour-by-hour simulation of one typical summer — cooling load estimated from your heating inputs, a standard central AC, and the selected heat pump run in cooling mode instead where its spec sheet allows it.</p>
+</div>
+
+<section class="controls" aria-label="Inputs">
+  <div class="ctrl-grid" id="ctrl-grid">
+    <div class="ctrl">
+      <label for="in-city">City</label>
+      <select id="in-city"></select>
+    </div>
+    <div class="ctrl">
+      <label for="in-weather">Weather year <button type="button" class="info-btn" id="weather-info" aria-label="About this weather record">?</button></label>
+      <div class="weather-row">
+        <select id="in-weather"><option value="tmy">Typical (TMY)</option></select>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label for="in-designload">Design heat load <button type="button" class="info-btn" id="arch-info" aria-label="How do I pick this?">i</button></label>
+      <div class="range-row">
+        <input type="range" id="in-designload" min="3" max="20" step="0.5">
+        <span class="range-val" id="designload-val"></span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label for="in-ef">Emissions basis <button type="button" class="info-btn" id="ef-info" aria-label="How is the grid basis priced?" data-method="m-grid">?</button></label>
+      <select id="in-ef">
+        <option value="marginal">Marginal</option>
+        <option value="average">Hourly average</option>
+        <option value="annual">ECCC yearly</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Grid line losses <button type="button" class="info-btn" id="lineloss-info" aria-label="What does this include?" data-info="Converts delivered electricity (the home's meter) into the generation-equivalent kWh the grid emissions figure above is computed against — province-specific (7.4% ON, 7.68% AB, 7.5% QC, 5% elsewhere). See methodology." data-method="m-grid">?</button></label>
+      <div class="seg" id="lineloss-seg" role="group" aria-label="Include grid transmission and distribution losses">
+        <button type="button" data-val="yes" class="active">Yes</button>
+        <button type="button" data-val="no">No</button>
+      </div>
+    </div>
+    <div class="ctrl" id="band-ctrl">
+      <label for="in-band">Heat pump size</label>
+      <select id="in-band">
+        <option value="&lt;18k">&lt;18,000 Btu/h (≈&lt;5.3 kW)</option>
+        <option value="18-30k">18,000–30,000 Btu/h (≈5.3–8.8 kW)</option>
+        <option value="30-42k">30,000–42,000 Btu/h (≈8.8–12.3 kW)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label for="in-tier">Heat pump tier <button type="button" class="info-btn" id="tier-info" aria-label="What differs between tiers?">?</button></label>
+      <select id="in-tier">
+        <option value="high">Premium cold-climate</option>
+        <option value="mid">Mid-range</option>
+        <option value="low">Value</option>
+      </select>
+    </div>
+
+    <div class="helper-panel" id="arch-helper"></div>
+  </div>
+</section>
+
+<main id="main">
+  <div class="loading-msg" id="loading">Loading equipment curves, grid data and weather…</div>
+  <div id="results" style="display:none">
+
+    <!-- ═══ The estimate ═══ -->
+    <section class="out-section" id="section-verdict">
+      <div class="out-section-head">
+        <h2 class="out-section-title">The estimate</h2>
+        <p class="out-section-intro">This home has no air conditioning today. Here's what adding one would use, emit and cost each summer — a standard central AC, and (where the selected heat pump's spec sheet publishes a cooling curve) that same unit run in cooling mode instead.</p>
+      </div>
+      <div class="verdict" id="verdict">
+        <div class="verdict-text">
+          <div class="verdict-main" id="verdict-main"></div>
+          <div class="verdict-sub" id="verdict-sub"></div>
+        </div>
+      </div>
+      <div id="stats"></div>
+    </section>
+
+    <!-- ═══ Cooling load ═══ -->
+    <section class="out-section" id="section-load">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Cooling load</h2>
+        <p class="out-section-intro">No real cooling data exists for this house — there is no AC installed, just a design heat load. Two correlations found across 209,272 ERS-audited homes turn that heat load into a plausible summer cooling profile. <button type="button" class="info-btn" id="load-info" aria-label="Where do these numbers come from?" data-info="cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254 (r=0.683); annual_cool_kWh = 838.3 × cool_peak_kW (r=0.778), both from 209,272 ERS homes. Two correlations removed from measurement — see methodology." data-method="m-cooling-load">?</button></p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head"><span class="card-title">Cooling load vs outdoor temperature</span></div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="keychart-wrap"><svg id="cooling-chart" viewBox="0 0 740 320" role="img" aria-label="Cooling load and equipment capacity versus outdoor temperature"></svg></div>
+            <div class="kc-legend" id="cooling-legend"></div>
+            <div class="note">Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.</div>
+          </div>
+          <div class="step-kpi-col" id="load-kpis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Electricity usage ═══ -->
+    <section class="out-section" id="section-electricity">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Electricity usage</h2>
+        <p class="out-section-intro">Before adding AC, this home draws zero electricity for cooling. After, it draws whatever the chosen equipment needs to meet the estimated load above, hour by hour over a full summer.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head"><span class="card-title">Annual electricity — before vs. after adding AC</span></div>
+        <div class="cw cw-lg"><canvas id="elecChart"></canvas></div>
+        <div class="stats-grid" id="elec-kpis" style="margin-top:1rem"></div>
+      </div>
+    </section>
+
+    <!-- ═══ GHG emissions ═══ -->
+    <section class="out-section" id="section-ghg">
+      <div class="out-section-head">
+        <h2 class="out-section-title">GHG emissions</h2>
+        <p class="out-section-intro" id="ghg-basis-note">Each hour's added electricity × the grid intensity at that hour, summed over the summer.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head"><span class="card-title">Annual emissions — before vs. after adding AC</span></div>
+        <div class="cw cw-lg"><canvas id="ghgChart"></canvas></div>
+        <div class="stats-grid" id="ghg-kpis" style="margin-top:1rem"></div>
+      </div>
+    </section>
+
+    <!-- ═══ Costs ═══ -->
+    <section class="out-section" id="section-cost">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Costs</h2>
+        <p class="out-section-intro">Added electricity priced against this province's current residential rates.</p>
+      </div>
+      <div class="card" id="cost-card">
+        <div class="card-title-row chart-head"><span class="card-title">Annual operating cost — before vs. after adding AC</span></div>
+        <div id="cost-body"></div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<section class="methodology" id="methodology" aria-label="Assumptions and methodology">
+  <div class="out-section-head" style="margin-bottom:.75rem">
+    <h2 class="out-section-title">Assumptions &amp; methodology</h2>
+    <p class="out-section-intro">Every number above is a modelled estimate — here's exactly how it's built, and what to distrust. This page is a spinoff of the <a href="heatpump.html">Heat Pump Explorer</a>'s optional "potential AC" scenario, promoted to its own page; nothing here feeds back into that page's heating numbers, or vice versa.</p>
+  </div>
+  <details id="method-details">
+    <summary>Show assumptions — how this is calculated, and what to distrust</summary>
+    <div class="method-body">
+      <p>This tool runs an hour-by-hour simulation (8,760 hours, one typical summer) in your browser — no server, no dependencies. It is a <b>screening tool</b>: useful for direction and rough magnitude, not a substitute for a load calculation or a contractor's quote.</p>
+
+      <h4 id="m-cooling-load">How the cooling load is estimated</h4>
+      <p>No real cooling data is looked up for this scenario — there is no specific house selected here, just a design heat load (the same input the Heat Pump Explorer uses for its heating simulation). Instead, two correlations found across 209,272 real ERS-audited homes (pooled across 14 tracked cities) turn that design heat load into a plausible cooling profile:</p>
+      <ul>
+        <li><b>Peak cooling from peak heating:</b> <code>cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254</code> (r = 0.683, R² = 0.467). Physically real, not coincidence — both peaks are driven by the same building envelope (UA, floor area).</li>
+        <li><b>Annual cooling energy from peak cooling:</b> <code>annual_cool_kWh = 838.3 × cool_peak_kW</code> (a through-origin ratio, r = 0.778). Annual heating and cooling energy do <i>not</i> correlate well with each other (r ≈ 0.2–0.25) — annual energy is dominated by climate-hours and occupant behaviour, which heating and cooling don't share, but peak <i>load</i> in both is dominated by the shared envelope, which is why this second relationship works so much better than heating-energy-to-cooling-energy would.</li>
+      </ul>
+      <p>The cooling balance point (the outdoor temperature above which the home needs cooling) is then solved the same way a heating balance point is: cooling-degree-hours are integrated against this city's own weather year until they match the estimated annual energy, anchored on the fixed 25 °C HOT2000 indoor cooling setpoint (<code>ThermostatCooling</code> — a program constant, confirmed zero-variance across 620,107 real audit records, not an assumption standing in for a missing field).</p>
+      <div class="caveats">These are always <b>estimated</b> fields — two correlations removed from measurement (a correlation-estimated peak, run through a ratio-estimated energy, run through a balance-point solve). They are not shown with the confidence of a real per-house measurement, and are not intended to be: their entire purpose is giving a home with <i>no</i> installed AC — the population a "what would adding AC cost" question is actually about — a plausible cooling profile at all.</div>
+
+      <h5>The standard AC and the heat pump's own cooling curve</h5>
+      <p>The "standard AC" baseline is one representative unit — a <b>Goodman GLXS4B, 3-ton (36,000 Btu/h), up to 15.2 SEER2</b> — extracted the same way the heat pump curves are: capacity and power draw read directly off the manufacturer's own Performance Data table (75–115 °F outdoor, fixed 80 °F/67 °F indoor condition), not a digitized chart and not an assumed SEER. One size covers 92–99.5% of homes by peak cooling load across the 14 tracked cities (worst case Vancouver, small sample), so a single baseline is a reasonable stand-in for "a typical central AC," not a claim that every home needs exactly this unit. Outside its published 23.9–46.1 °C range the curve is held flat, not linearly extrapolated — a deliberately conservative, bounded choice given how little margin sits between that range and a typical solved balance point (17–21 °C).</p>
+      <p>Where the selected heat pump's own spec sheet publishes a temperature-indexed cooling table (5 of the 9 tier×size cells on this page, checked directly against each manufacturer's datasheet: Tosot 36k, GREE 24k/36k, Fujitsu 15k and 36k — the other 4 genuinely have no published cooling curve, not an extraction gap), that real curve is used for the "heat pump (cooling mode)" comparison instead of a second generic assumption. Both curves are normalized the same way as heating's, but on <b>95 °F</b> (the cooling AHRI/SEER anchor) rather than heating's 47 °F — the two <code>cap_frac</code> scales are not interchangeable.</p>
+      <div class="caveats"><b>SEER/SEER2 badges do not predict this comparison's outcome.</b> Two of the three real heat-pump cooling curves checked (Tosot, GREE) carry a <i>higher</i> published SEER/SEER2 than the Goodman baseline, yet both use <i>more</i> electricity once their real measured points are integrated against a full year of real weather. The reconciliation: SEER is a standardized average across a published outdoor-temperature distribution that barely samples above 35 °C (the hottest standard AHRI bin, 38.9 °C, is weighted at only 0.4% of assumed cooling hours) — a unit can post a strong badge from shoulder-season performance while degrading faster than a competitor above that range, which is exactly where a real climate's cooling load is concentrated (load grows with outdoor temperature, so the biggest hours are near the design condition, not the mild ones SEER weights most). Use the kWh/GHG/cost numbers this page computes, not the equipment's badge, to judge which unit actually costs less to run here.</div>
+
+      <h4 id="m-grid">Grid emissions &amp; line loss</h4>
+      <p>Hourly grid intensity: a temperature × hour-of-day × season surface, calibrated against published provincial intensities (within ±6%). <i>Source: 2019–2026 <a href="https://reports-public.ieso.ca/public/GenOutputbyFuelHourly/" target="_blank" rel="noopener">IESO</a> / <a href="https://www.aeso.ca/market/market-and-system-reporting/data-requests/historical-generation-data/" target="_blank" rel="noopener">AESO</a> / Hydro-Québec generation-by-fuel data.</i></p>
+      <table class="ht-table">
+        <tr><th>Basis</th><th>Definition</th><th>2025 value</th></tr>
+        <tr><td>Marginal</td><td>New load served by the marginal generator — gas, whenever gas is running</td><td>ON/AB ≈ 500 g/kWh</td></tr>
+        <tr><td>Hourly average (default)</td><td>Fleet-average intensity from the surface, hour by hour</td><td>ON ≈ 97 · AB ≈ 414 · QC ≈ 0.02 g/kWh</td></tr>
+        <tr><td>ECCC yearly</td><td>Province's published National Inventory Report annual average — one flat number</td><td>National ~100 g/kWh (2022)</td></tr>
+      </table>
+      <p>ECCC yearly is the only basis available for provinces without an hourly pipeline (BC, MB, SK, NS, NB…), where it's paired with a flat, labelled marginal estimate. <i>Source: <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/greenhouse-gas-emissions/inventory.html" target="_blank" rel="noopener">ECCC National Inventory Report</a>.</i></p>
+      <p><b>Line loss</b> converts delivered electricity (the home's meter) into the generation-equivalent kWh the grid emissions figure above is computed against.</p>
+      <table class="ht-table">
+        <tr><th>Province</th><th class="ht-num">Line loss</th><th>Source</th></tr>
+        <tr><td>Ontario</td><td class="ht-num">7.4%</td><td>IESO transmission loss (~2%) compounded with the Ontario Energy Board's audited distributor Total Loss Factor (5.31–5.42%, 2005–2006)</td></tr>
+        <tr><td>Alberta</td><td class="ht-num">7.68%</td><td>CEA Electricity Consumption Report, transmission+distribution combined (2002)</td></tr>
+        <tr><td>Quebec</td><td class="ht-num">7.5%</td><td>Régie de l'énergie, blended transmission+distribution loss factor</td></tr>
+        <tr><td>BC / MB / NS / SK</td><td class="ht-num">5%</td><td>World Bank/IEA Canada-wide transmission-and-distribution loss estimate</td></tr>
+      </table>
+      <div class="caveats">The Ontario, Alberta and Quebec figures are the most specific sources found; all three are dated 2002–2008, not current-year measurements. Neither the standard AC nor the heat pump's cooling mode has a refrigerant-leakage term modelled here — unlike the Heat Pump Explorer's heating side, this cooling scenario counts electricity emissions only.</div>
+
+      <h4>Cost</h4>
+      <ul>
+        <li>Added electricity priced per hour against each province's current residential rates. <i>Source: <a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a>, from the utilities' own published tariffs.</i></li>
+        <li>Ontario: default Time-of-use plan, priced per (month, hour). Quebec: Hydro-Québec Rate D's tier-2 (marginal/top-tier) rate.</li>
+        <li>The electricity fixed monthly service charge is identical with or without AC and excluded from the numbers here.</li>
+        <li>Federal consumer carbon charge excluded (set to zero 2025-04-01). Figures are pre-tax.</li>
+      </ul>
+      <div class="caveats">BC, Manitoba, Nova Scotia, Saskatchewan and the Atlantic provinces have no modelled rate entry yet — their cost section degrades to "rates unavailable" while electricity and GHG stay available.</div>
+
+      <h4>What this does not do</h4>
+      <ul>
+        <li>No equipment or installation cost — only annual operating cost, not payback.</li>
+        <li>No humidity/latent-load modelling — sensible cooling load only, same simplification as the heating side's zero-heat temperature standing in for gains.</li>
+        <li>No refrigerant-leakage term for either unit (see caveat above).</li>
+        <li>This is a standalone spinoff of the Heat Pump Explorer's "potential AC" add-on — the two pages don't share live state; changing a value here doesn't affect <a href="heatpump.html">heatpump.html</a>.</li>
+      </ul>
+      <p>Every number here is a modelled estimate with a margin of error, not a guarantee.</p>
+
+      <h4>Sources</h4>
+      <ul>
+        <li>NRCan EnerGuide / ERS retrofit audit records (209,272 homes, cooling correlations; house-level design cooling temperatures)</li>
+        <li>Manufacturer datasheets (Goodman, Tosot, GREE, Fujitsu) and AHRI certificates</li>
+        <li>IESO, AESO &amp; Hydro-Québec generation-by-fuel data</li>
+        <li>ECCC National Inventory Report &amp; climate datasets (CWEC2020)</li>
+        <li>Ontario Energy Board, Alberta CEA Electricity Consumption Report, Régie de l'énergie (line loss)</li>
+        <li><a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a> (residential tariffs)</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<footer>
+  Modelled cooling energy, emission and cost estimates for a typical summer — a screening tool, not metered consumption or a professional assessment. Cooling load is estimated from a design heat load via a validated correlation, not measured. Equipment curves are digitized from public manufacturer datasheets for representative models. A spinoff of the <a href="heatpump.html" style="color:inherit">Heat Pump Explorer</a>. Ottawa Visuals · Canadian energy data tools.
+</footer>
+
+<div class="err-msg" id="err" style="display:none"></div>
+
+<!-- Chart.js v4.4.1 vendored same-origin (assets/) — no CDN/external runtime dependency. -->
+<script src="assets/chart.umd.js"></script>
+<script>
+/*
+ * engine.js -- Heat Pump tool, Phase 5 core simulation engine.
+ *
+ * A single pure function, simulate(), that runs one heating year hour by hour
+ * and returns annual + monthly energy-by-source and GHG-by-category for a
+ * BASE case (the existing gas/oil furnace or electric baseboard) and a PROJECT
+ * case (an air-source heat pump with optional backup). No DOM, no
+ * dependencies -- runs unchanged in the browser and in Node.
+ *
+ * A ground-source (kind:'gshp') code path exists below but is NOT wired into
+ * the shipping UI -- every caller passes kind:'ashp', so the tool is
+ * air-source-only, matching the methodology panel's "no ground-source option
+ * in this version". The GSHP branch is dormant scaffolding for a later phase;
+ * do not describe it as a user-facing feature until a caller sets kind:'gshp'.
+ *
+ * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
+ * engine (Phase 5)"):
+ *
+ *   1. Heat pump input is a NORMALIZED TIER CURVE from hp_curves.json --
+ *      { T_C[], cap_frac_of_rated47[], COP[] } -- scaled by a user-selected
+ *      nominal capacity (kW at 47 F). The engine multiplies the fractional
+ *      capacity by nominalCap_kW; the fractional shape is size-independent so
+ *      any per-model, per-tier or "average installed" curve plugs in the same
+ *      way. Lockout is governed by the curve's own min_op_temp_C, NOT by the
+ *      COP array being null (the aggregate tier/average curves keep a non-null
+ *      COP below their median lockout temperature).
+ *
+ *   2. Hourly grid emissions factor comes from the Phase-2 EF SURFACE
+ *      (ef_surface_{on,ab,qc}.json), with an average / marginal toggle per
+ *      methodology decision #1. EF(hour) = level * shape(tbin, hour, season);
+ *      the toggle selects both the level index and the shape-ratio field.
+ *
+ * All physical constants are documented inline and in METHODOLOGY.md.
+ *
+ * NOTE: this inlined engine is the shipping copy; HeatPump/app/engine.js is a
+ * verbatim extract of it (for Node tests / reuse). If you change one, re-sync
+ * the other. Later additions beyond the original Phase 5 outputs, all additive:
+ *   - energy.elec_month_hour  (12x24 kWh matrix, for TOU pricing)
+ *   - hourly.{ef_g_per_kWh, load_kW, base_ghg_kg, proj_ghg_kg, hp_ghg_kg, backup_ghg_kg}
+ *   - hourly.{base_energy_kWh, hp_elec_kWh, backup_energy_kWh}
+ *     (purchased-energy series, for the by-temperature charts)
+ */
+
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) {
+    module.exports = factory();
+  } else {
+    root.HeatPumpEngine = factory();
+  }
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  // --------------------------------------------------------------------------
+  // Physical constants (ECCC National Inventory Report; see METHODOLOGY.md).
+  // --------------------------------------------------------------------------
+
+  // Direct combustion emission factors, grams CO2e per kWh of FUEL INPUT
+  // (higher-heating-value basis, matching the AFUE/seasonal-efficiency the
+  // base-case `efficiency` is expressed on). Electric baseboard has no
+  // combustion term -- its emissions come entirely from the grid.
+  // Fuel energy content (HHV), native billing unit -> kWh. ONE source for the
+  // emission factors below, the upstream-methane leak mass, and the volumetric
+  // cost conversions -- and deliberately the same numbers Python/ghg_factors.py
+  // uses, so this tool and the retrofit pipeline cannot drift apart.
+  // Changed 2026-08-19: gas was 10.55 and oil 10.0 here against 10.3611 and
+  // 10.7778 in the pipeline, which put the two tools' fuel factors 2-8% apart.
+  var GAS_KWH_PER_M3 = 10.3611;
+  var OIL_KWH_PER_L = 10.7778;
+  var PROPANE_KWH_PER_L = 7.0917;
+  var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
+
+  // Combustion factors, g CO2e per kWh of fuel *input*. Derived from the
+  // volumetric factors and the conversions above rather than hardcoded, so a
+  // change to either can't leave the two inconsistent (the old hardcoded gas
+  // value did not reproduce its own stated derivation). CO2 + CH4 + N2O,
+  // residential rows, ECCC National Inventory Report:
+  //   gas     1921 g CO2/m3 (Ontario, Table 1.x "Marketable") + 0.072 CH4+N2O
+  //   oil     2753 g CO2/L  (Light Fuel Oil - Residential) + 0.026 + 0.006
+  //   propane 1515 g CO2/L  (Propane - Residential) + 0.027 + 0.108
+  var COMBUSTION_EF_G_PER_KWH = {
+    gas: (1921 + 0.072) / GAS_KWH_PER_M3, // 185.41
+    oil: (2753 + 0.026 + 0.006) / OIL_KWH_PER_L, // 255.44
+    propane: (1515 + 0.027 + 0.108) / PROPANE_KWH_PER_L, // 213.65
+    electric: 0.0,
+  };
+
+  // GWP20 (20-yr), not GWP100 -- TAF's Fugitive Methane guideline (May 2022)
+  // specifies GWP20 for "modelling activities that impact natural gas
+  // consumption" (their own words), which is exactly what this tool does;
+  // GWP100 (~28-30) is TAF's recommendation for emissions INVENTORIES only.
+  // Was 28 (AR5, 100-yr) before this correction -- see METHODOLOGY.md.
+  var CH4_GWP_DEFAULT = 85.0; // TAF Fugitive Methane guideline, Figure 2
+
+  var SEASON_BY_MONTH = {
+    1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring",
+    6: "summer", 7: "summer", 8: "summer", 9: "fall", 10: "fall",
+    11: "fall", 12: "winter",
+  };
+
+  // Cumulative days before month m (1-indexed), non-leap and leap.
+  var CUM_DAYS = {
+    common: [0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334],
+    leap: [0, 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335],
+  };
+
+  // --------------------------------------------------------------------------
+  // Small helpers.
+  // --------------------------------------------------------------------------
+
+  // Month (1..12) for a 0-based day-of-year, given a calendar (365 or 366 days).
+  function monthOfDay(dayOfYear, leap) {
+    var cum = leap ? CUM_DAYS.leap : CUM_DAYS.common;
+    for (var m = 12; m >= 1; m--) {
+      if (dayOfYear >= cum[m]) return m;
+    }
+    return 1;
+  }
+
+  // Left edge (inclusive) of the 2 C temperature bin -- mirrors
+  // build_ef_surface.temp_bin_left exactly (floor to a multiple of 2).
+  function tempBinLeft(tempC) {
+    return Math.floor(tempC / 2) * 2;
+  }
+
+  // Linear interpolation of `ys` (parallel to ascending `xs`) at `x`, clamped
+  // at both ends. Returns null if either bracketing y is null (locked-out
+  // per-model curves store null COP below min-op temperature).
+  function interp(xs, ys, x) {
+    var n = xs.length;
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    // Uniform 0.5 C grid in hp_curves.json, but do a safe binary search so the
+    // engine also works on irregular grids.
+    var lo = 0,
+      hi = n - 1;
+    while (hi - lo > 1) {
+      var mid = (lo + hi) >> 1;
+      if (xs[mid] <= x) lo = mid;
+      else hi = mid;
+    }
+    var y0 = ys[lo],
+      y1 = ys[hi];
+    if (y0 === null || y1 === null) return null;
+    var t = (x - xs[lo]) / (xs[hi] - xs[lo]);
+    return y0 + t * (y1 - y0);
+  }
+
+  // Cold edge of an ASHP curve: the two coldest grid points where BOTH capacity
+  // and COP are defined (curves store null below the model's lockout). Returns
+  // the coldest defined point (tEdge/capEdge/copFloor) and the slope of the
+  // coldest defined capacity segment. Used only by the optional
+  // "continue derated below the published minimum operating temperature" mode --
+  // capacity is extrapolated on capSlope, COP is held at copFloor. Behaviour
+  // below the published minimum is manufacturer-unspecified (see METHODOLOGY.md).
+  function coldEdge(curve) {
+    var T = curve.T_C,
+      cap = curve.cap_frac_of_rated47,
+      cop = curve.COP;
+    var i0 = -1;
+    for (var i = 0; i < T.length; i++) {
+      if (cap[i] != null && cop[i] != null) { i0 = i; break; }
+    }
+    if (i0 < 0) return null;
+    var i1 = i0 + 1;
+    while (i1 < T.length && (cap[i1] == null || cop[i1] == null)) i1++;
+    var slope = i1 < T.length ? (cap[i1] - cap[i0]) / (T[i1] - T[i0]) : 0;
+    return { tEdge: T[i0], capEdge: cap[i0], copFloor: cop[i0], capSlope: slope };
+  }
+
+  // Sorted [tbin, ratio0, ratio1, n] rows from ef.coarse_t with n >= thin,
+  // ascending by temperature. Cached on the ef object (one build per
+  // fetched surface, not per lookup).
+  function coarseTRows(ef, thin) {
+    if (ef._coarseTRows) return ef._coarseTRows;
+    var rows = [];
+    for (var tb in ef.coarse_t) {
+      if (!Object.prototype.hasOwnProperty.call(ef.coarse_t, tb)) continue;
+      var c = ef.coarse_t[tb];
+      if (c[2] >= thin) rows.push([Number(tb), c[0], c[1], c[2]]);
+    }
+    rows.sort(function (a, b) { return a[0] - b[0]; });
+    ef._coarseTRows = rows;
+    return rows;
+  }
+
+  // Least-squares slope+intercept through a set of [x, y] pairs.
+  function linRegress(pts) {
+    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0, i;
+    for (i = 0; i < n; i++) { sx += pts[i][0]; sy += pts[i][1]; }
+    var mx = sx / n, my = sy / n;
+    for (i = 0; i < n; i++) {
+      sxx += (pts[i][0] - mx) * (pts[i][0] - mx);
+      sxy += (pts[i][0] - mx) * (pts[i][1] - my);
+    }
+    var slope = sxx ? sxy / sxx : 0;
+    return { slope: slope, intercept: my - slope * mx };
+  }
+
+  var EXTRAP_TAIL_N = 6; // how many of the coldest/warmest sufficiently-
+                         // sampled coarse_t bins to fit the tail trend on
+
+  // Beyond the coldest/warmest temperature the surface has real (>= thin)
+  // data for, extend a least-squares trend line fit through the tail's
+  // EXTRAP_TAIL_N most extreme sufficiently-sampled coarse_t bins, rather
+  // than falling back to the flat global mean (shape ratio 1.0) at the
+  // very first missing bin. A 2-point edge slope was tried first but is
+  // noisy -- the outermost bins have the fewest hours, so a single edge
+  // bin's sampling noise can flip the extrapolated direction; fitting
+  // across several bins averages that out. See "Province vs. city
+  // temperature" / cold-tail note in build_ef_surface.py. Floored at 0 (a
+  // shape ratio can't go negative). Returns null if there aren't at least
+  // two coarse_t bins to found a trend on (falls through to global).
+  function extrapolateShape(ef, tbin, field) {
+    var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
+    var rows = coarseTRows(ef, thin);
+    if (rows.length < 2) return null;
+    var lo = rows[0], hi = rows[rows.length - 1];
+    var tail;
+    if (tbin < lo[0]) tail = rows.slice(0, Math.min(EXTRAP_TAIL_N, rows.length));
+    else if (tbin > hi[0]) tail = rows.slice(-Math.min(EXTRAP_TAIL_N, rows.length));
+    else return null; // interior gap, not a tail -- let caller fall to global
+    var reg = linRegress(tail.map(function (r) { return [r[0], r[field + 1]]; }));
+    return Math.max(0, reg.intercept + reg.slope * tbin);
+  }
+
+  // Grid-EF shape ratio with the surface's thin-bin fallback -- a direct port
+  // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t ->
+  // cold/warm-tail extrapolation -> global). `field`: 0 = average-EF ratio,
+  // 1 = marginal-EF ratio.
+  function lookupShape(ef, season, hour, tbin, field) {
+    var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
+    var h = String(hour),
+      tb = String(tbin);
+    var c =
+      ef.fine && ef.fine[season] && ef.fine[season][h] && ef.fine[season][h][tb];
+    if (c && c[2] >= thin) return c[field];
+    c = ef.coarse_ts && ef.coarse_ts[season] && ef.coarse_ts[season][tb];
+    if (c && c[2] >= thin) return c[field];
+    c = ef.coarse_t && ef.coarse_t[tb];
+    if (c && c[2] >= thin) return c[field];
+    var ex = extrapolateShape(ef, tbin, field);
+    if (ex !== null) return ex;
+    return ef.global[field];
+  }
+
+  // Absolute grid EF (g CO2e / kWh generated) for one hour under the selected
+  // average / marginal mode.
+  function gridEF(ef, season, hour, tbin, mode, levelOverride) {
+    var field = mode === "marginal" ? 1 : 0;
+    var level = levelOverride
+      ? levelOverride[field]
+      : ef.reference_level_g_per_kWh[field];
+    return level * lookupShape(ef, season, hour, tbin, field);
+  }
+
+  // --------------------------------------------------------------------------
+  // Heat-pump capacity & COP at a given hour.
+  //
+  // Air-source: read cap_frac_of_rated47 and COP off the tier curve at the
+  // outdoor temperature, scale capacity by nominalCap_kW. Ground-source: read
+  // cap_frac_of_ewt0 and COP off the EWT curve at the hour's entering-water
+  // temperature. In both cases the curve's min_op_temp_C is the authoritative
+  // lockout gate.
+  // --------------------------------------------------------------------------
+  function hpPerformance(hp, tempC, ewtC) {
+    var curve = hp.curve;
+    if (hp.kind === "gshp") {
+      // Ground loops do not lock out on air temperature; they run whenever the
+      // building calls for heat. Capacity/COP track entering water temperature.
+      var copG = interp(curve.EWT_C, curve.COP, ewtC);
+      var fracG = interp(curve.EWT_C, curve.cap_frac_of_ewt0, ewtC);
+      var af = hp.antifreezeFactor == null ? 1.0 : hp.antifreezeFactor;
+      return { capacity_kW: hp.nominalCap_kW * fracG, cop: copG * af, locked: false };
+    }
+    // Air-source.
+    if (tempC < hp.minOpTemp_C) {
+      // Default (`belowLockout` unset or 'hard'): hard stop at the published
+      // minimum operating temperature -- the current, validated behaviour.
+      // Optional 'derate': keep running below it, extrapolating capacity on the
+      // coldest defined segment's slope and holding COP at the floor. Clearly
+      // manufacturer-unspecified (see METHODOLOGY.md).
+      if (hp.belowLockout === "derate") {
+        var e = coldEdge(curve);
+        if (e) {
+          var capf = e.capEdge + e.capSlope * (tempC - e.tEdge);
+          if (capf > 0) {
+            return {
+              capacity_kW: hp.nominalCap_kW * capf,
+              cop: e.copFloor,
+              locked: false,
+              derated: true,
+            };
+          }
+        }
+      }
+      return { capacity_kW: 0, cop: null, locked: true };
+    }
+    var cop = interp(curve.T_C, curve.COP, tempC);
+    var frac = interp(curve.T_C, curve.cap_frac_of_rated47, tempC);
+    if (cop === null || frac === null || frac <= 0) {
+      return { capacity_kW: 0, cop: null, locked: true };
+    }
+    return { capacity_kW: hp.nominalCap_kW * frac, cop: cop, locked: false };
+  }
+
+  // --------------------------------------------------------------------------
+  // simulate()
+  //
+  // opts = {
+  //   tempSeries:   Array<number>  outdoor dry-bulb C, one per hour (8760/8784)
+  //   archetype:    { UA_W_per_K, Tbalance_C }
+  //   baseCase:     { fuel: 'gas'|'oil'|'propane'|'electric', efficiency }
+  //                   efficiency is a fraction (AFUE/seasonal); electric ~1.0
+  //   hp: {
+  //     curve: { T_C[], cap_frac_of_rated47[], COP[] }   // ASHP tier/model curve
+  //            | { EWT_C[], COP[], cap_frac_of_ewt0[] }  // GSHP curve
+  //     nominalCap_kW,           // user-selected rated capacity @47F (ASHP) or @0C (GSHP)
+  //     minOpTemp_C,             // lockout temperature (ASHP)
+  //     kind: 'ashp' | 'gshp',   // default 'ashp'
+  //     belowLockout?: 'hard' | 'derate', // ASHP behaviour below minOpTemp_C:
+  //         'hard' (default) = hard stop; 'derate' = keep running, capacity
+  //         extrapolated on the coldest segment slope, COP held at the floor
+  //     ewtSeries?, ewt?,        // GSHP entering-water temp (series or constant C)
+  //     antifreezeFactor?        // GSHP COP derate for glycol (~0.91), default 1.0
+  //   }
+  //   backup:  { type: 'electric'|'gas'|'oil'|'propane'|'none', efficiency }
+  //   control: { strategy: 'lockout'|'load-exceeds-capacity', lockoutTemp_C? }
+  //   lifecycle: {
+  //     refrigerantGWP, charge_kg, leakRate_frac,   // annual leak fraction
+  //     eolLossFrac?, lifetimeYears?,               // amortized end-of-life loss
+  //     methaneLeakPct?, methaneGWP?,               // upstream gas methane
+  //     lineLossPct?                                // grid line losses on delivered elec
+  //   }
+  //   ef:       province EF surface JSON (ef_surface_*.json)
+  //   efMode:   'average' | 'marginal'   (default 'average')
+  //   efLevel?: [avg, marg]  override grid level (e.g. a historical year); default reference
+  //   startMonth?: 1..12 for hour 0 (default 1 = Jan 1, matching TMY)
+  // }
+  // --------------------------------------------------------------------------
+  function simulate(opts) {
+    var temps = opts.tempSeries;
+    var N = temps.length;
+    var leap = N === 8784;
+
+    var UA_kW_per_K = opts.archetype.UA_W_per_K / 1000.0;
+    var Tbal = opts.archetype.Tbalance_C;
+
+    var baseFuel = opts.baseCase.fuel;
+    var baseEff = opts.baseCase.efficiency;
+    var baseCombEF = COMBUSTION_EF_G_PER_KWH[baseFuel];
+    if (baseCombEF === undefined) throw new Error("unknown base fuel: " + baseFuel);
+
+    var hp = opts.hp;
+    if (hp.kind === undefined) hp.kind = "ashp";
+
+    var backup = opts.backup || { type: "electric", efficiency: 1.0 };
+    var backupCombEF =
+      backup.type === "none" ? 0.0 : COMBUSTION_EF_G_PER_KWH[backup.type];
+    if (backupCombEF === undefined) throw new Error("unknown backup type: " + backup.type);
+
+    var control = opts.control || { strategy: "load-exceeds-capacity" };
+    var lc = opts.lifecycle || {};
+    var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
+    var methanePct = lc.methaneLeakPct == null ? 0.0 : lc.methaneLeakPct;
+    var methaneGWP = lc.methaneGWP == null ? CH4_GWP_DEFAULT : lc.methaneGWP;
+
+    var efMode = opts.efMode === "marginal" ? "marginal" : "average";
+    var efLevel = opts.efLevel || null;
+    var startMonth = opts.startMonth || 1;
+
+    // ---- accumulators ----
+    var zeros12 = function () {
+      return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    };
+    // energy
+    var m_base_fuel = zeros12(), // fuel input (gas/oil/propane) kWh
+      m_base_elec = zeros12(); // site electricity kWh (electric base case)
+    var m_hp_elec = zeros12(),
+      m_bk_elec = zeros12(),
+      m_bk_fuel = zeros12();
+    // month x hour-of-day electricity (kWh), so the cost layer can price
+    // time-of-use tariffs exactly. TMY has no weekday structure, so TOU
+    // weekday/weekend rules are weighted 5/7 : 2/7 downstream.
+    var mh24 = function () {
+      var a = [];
+      for (var m = 0; m < 12; m++) {
+        var row = [];
+        for (var h = 0; h < 24; h++) row.push(0);
+        a.push(row);
+      }
+      return a;
+    };
+    var mh_base_elec = mh24(),
+      mh_proj_elec = mh24();
+    // ghg (kg CO2e) -- combustion / electricity, per case, per month
+    var m_base_comb = zeros12(),
+      m_base_elecghg = zeros12(),
+      m_base_ch4 = zeros12();
+    var m_proj_comb = zeros12(),
+      m_proj_elecghg = zeros12(),
+      m_proj_ch4 = zeros12();
+    // delivered-heat diagnostics
+    var totalLoad = 0,
+      hpDelivered = 0,
+      bkDelivered = 0;
+    var hpRunHours = 0,
+      backupHours = 0,
+      lockoutHours = 0,
+      deratedHours = 0,
+      heatingHours = 0;
+
+    // hourly series (length N), for the 8760-hour chart: grid intensity is
+    // captured for every hour (not just heating hours) so its own daily/
+    // seasonal shape is visible independent of when the home actually heats.
+    var h_ef = new Array(N).fill(0),
+      h_load = new Array(N).fill(0),
+      h_base_ghg = new Array(N).fill(0),
+      h_proj_ghg = new Array(N).fill(0),
+      // proj_ghg_kg split by source -- lets the UI show the heat-pump and
+      // backup slices separately (e.g. the "weighted by hours" emissions
+      // chart) without re-deriving grid EF x electricity in the DOM layer.
+      // Sum of the two always equals proj_ghg_kg for that hour.
+      h_hp_ghg = new Array(N).fill(0),
+      h_bk_ghg = new Array(N).fill(0);
+    // hourly PURCHASED energy (kWh input, not heat delivered): the base system's
+    // fuel-or-electricity draw, the heat pump's electricity, and the backup's
+    // fuel-or-electricity draw -- lets the UI aggregate energy by any key
+    // (temperature bins, etc.) without re-deriving the dispatch.
+    var h_base_in = new Array(N).fill(0),
+      h_hp_elec = new Array(N).fill(0),
+      h_bk_in = new Array(N).fill(0);
+    // hourly HP performance at the outdoor temp that hour -- captured even on
+    // hours the HP doesn't run (locked out) so the table/export can show why.
+    var h_hp_cop = new Array(N).fill(null),
+      h_hp_cap = new Array(N).fill(0);
+
+    var G2KG = 0.001; // grams -> kg
+
+    for (var i = 0; i < N; i++) {
+      var T = temps[i];
+      var hour = (i % 24) + 1; // 1..24, matching the surface's convention
+      var dayOfYear = Math.floor(i / 24);
+      var month = monthOfDay(dayOfYear, leap);
+      if (startMonth !== 1) month = ((month - 1 + (startMonth - 1)) % 12) + 1;
+      var mi = month - 1;
+      var season = SEASON_BY_MONTH[month];
+      var tbin = tempBinLeft(T);
+
+      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+      h_ef[i] = efThisHour;
+
+      // ---- heating load this hour (kWh delivered) ----
+      var load = UA_kW_per_K * Math.max(0, Tbal - T); // kW == kWh over 1 h
+      h_load[i] = load;
+      if (load <= 0) continue; // above balance point: nothing runs
+      heatingHours++;
+      totalLoad += load;
+
+      // ---- BASE case: same delivered heat from the incumbent system ----
+      if (baseFuel === "electric") {
+        var baseElec = load / baseEff; // ~= load
+        m_base_elec[mi] += baseElec;
+        mh_base_elec[mi][hour - 1] += baseElec;
+        h_base_in[i] = baseElec;
+        var baseElecGhg = efThisHour * baseElec * lineLoss * G2KG;
+        m_base_elecghg[mi] += baseElecGhg;
+        h_base_ghg[i] += baseElecGhg;
+      } else {
+        var baseFuelIn = load / baseEff;
+        m_base_fuel[mi] += baseFuelIn;
+        h_base_in[i] = baseFuelIn;
+        var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
+        m_base_comb[mi] += baseCombGhg;
+        h_base_ghg[i] += baseCombGhg;
+        if (baseFuel === "gas") {
+          // Methane-leak adder is pipeline-gas-specific (density/energy
+          // constants below are natural gas's, not propane's); propane gets
+          // no leak adder here rather than reusing gas's number -- no
+          // defensible propane upstream-loss constant exists yet.
+          var baseM3 = baseFuelIn / GAS_KWH_PER_M3;
+          var baseCH4kg = (methanePct / 100.0) * baseM3 * GAS_KG_PER_M3;
+          var baseCH4ghg = baseCH4kg * methaneGWP;
+          m_base_ch4[mi] += baseCH4ghg;
+          // Also fold into the hourly series (not just the monthly/annual
+          // total) -- otherwise every chart keyed off h_base_ghg (by-
+          // temperature, weighted-by-hours, full-year day/hour views) never
+          // reflects the "Upstream losses" toggle for gas, even though the
+          // annual total (computed from base_ch4 = sum(m_base_ch4)) does.
+          h_base_ghg[i] += baseCH4ghg;
+        }
+      }
+
+      // ---- PROJECT case: heat pump (+ backup) for the same load ----
+      var ewt =
+        hp.kind === "gshp"
+          ? hp.ewtSeries
+            ? hp.ewtSeries[i]
+            : hp.ewt
+          : undefined;
+      var perf = hpPerformance(hp, T, ewt);
+      h_hp_cop[i] = perf.cop;
+      h_hp_cap[i] = perf.capacity_kW;
+
+      // Control strategy decides whether the HP is allowed to run this hour and
+      // how much of the load it may take.
+      var hpAllowed = !perf.locked;
+      if (control.strategy === "lockout") {
+        // "lockout at T": the HP is simply switched off below the setpoint,
+        // regardless of the capacity it could still deliver there.
+        if (T < control.lockoutTemp_C) hpAllowed = false;
+      }
+
+      var hpHeat = 0,
+        hpElec = 0;
+      if (hpAllowed && perf.capacity_kW > 0 && perf.cop) {
+        hpHeat = Math.min(load, perf.capacity_kW);
+        hpElec = hpHeat / perf.cop;
+        m_hp_elec[mi] += hpElec;
+        mh_proj_elec[mi][hour - 1] += hpElec;
+        h_hp_elec[i] = hpElec;
+        var hpGhg = efThisHour * hpElec * lineLoss * G2KG;
+        m_proj_elecghg[mi] += hpGhg;
+        h_proj_ghg[i] += hpGhg;
+        h_hp_ghg[i] += hpGhg;
+        hpDelivered += hpHeat;
+        hpRunHours++;
+        if (perf.derated) deratedHours++;
+      } else if (perf.locked || (control.strategy === "lockout" && T < control.lockoutTemp_C)) {
+        lockoutHours++;
+      }
+
+      // Backup covers whatever the HP did not.
+      var bkHeat = load - hpHeat;
+      if (bkHeat > 1e-12 && backup.type !== "none") {
+        backupHours++;
+        bkDelivered += bkHeat;
+        if (backup.type === "electric") {
+          var bkElec = bkHeat / backup.efficiency;
+          m_bk_elec[mi] += bkElec;
+          mh_proj_elec[mi][hour - 1] += bkElec;
+          h_bk_in[i] = bkElec;
+          var bkGhg = efThisHour * bkElec * lineLoss * G2KG;
+          m_proj_elecghg[mi] += bkGhg;
+          h_proj_ghg[i] += bkGhg;
+          h_bk_ghg[i] += bkGhg;
+        } else {
+          var bkFuelIn = bkHeat / backup.efficiency;
+          m_bk_fuel[mi] += bkFuelIn;
+          h_bk_in[i] = bkFuelIn;
+          var bkCombGhg = backupCombEF * bkFuelIn * G2KG;
+          m_proj_comb[mi] += bkCombGhg;
+          h_proj_ghg[i] += bkCombGhg;
+          h_bk_ghg[i] += bkCombGhg;
+          if (backup.type === "gas") {
+            // See base-case note above: propane leak adder omitted, not
+            // reused from gas's density/energy constants.
+            var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
+            var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
+            var bkCH4ghg = bkCH4kg * methaneGWP;
+            m_proj_ch4[mi] += bkCH4ghg;
+            // Same fix as the base case above: fold into the hourly series too.
+            h_proj_ghg[i] += bkCH4ghg;
+            h_bk_ghg[i] += bkCH4ghg;
+          }
+        }
+      } else if (bkHeat > 1e-12 && backup.type === "none") {
+        // No backup: this load simply goes unmet. Track it as backup-required
+        // hours so the UI can warn, but add no energy/emissions.
+        backupHours++;
+      }
+    }
+
+    // ---- refrigerant (annual, amortized) -- PROJECT case only ----
+    var refrigerantKg = 0;
+    if (lc.charge_kg && lc.refrigerantGWP) {
+      var eol = lc.eolLossFrac == null ? 0.0 : lc.eolLossFrac;
+      var life = lc.lifetimeYears == null ? 15.0 : lc.lifetimeYears;
+      var annualLeakFrac = (lc.leakRate_frac || 0.0) + eol / life;
+      refrigerantKg = lc.charge_kg * annualLeakFrac * lc.refrigerantGWP;
+    }
+
+    // ---- roll monthly -> annual, assemble output ----
+    function sum(a) {
+      var s = 0;
+      for (var k = 0; k < a.length; k++) s += a[k];
+      return s;
+    }
+    function monthlyRows(fields) {
+      var rows = [];
+      for (var mo = 0; mo < 12; mo++) {
+        var r = { month: mo + 1 };
+        for (var name in fields) r[name] = fields[name][mo];
+        rows.push(r);
+      }
+      return rows;
+    }
+
+    var base_comb = sum(m_base_comb),
+      base_elecghg = sum(m_base_elecghg),
+      base_ch4 = sum(m_base_ch4);
+    var proj_comb = sum(m_proj_comb),
+      proj_elecghg = sum(m_proj_elecghg),
+      proj_ch4 = sum(m_proj_ch4);
+
+    var base = {
+      energy: {
+        fuel_kWh: sum(m_base_fuel),
+        electricity_kWh: sum(m_base_elec),
+        elec_month_hour: mh_base_elec,
+      },
+      ghg: {
+        combustion: base_comb,
+        electricity: base_elecghg,
+        refrigerant: 0,
+        upstream_methane: base_ch4,
+        total: base_comb + base_elecghg + base_ch4,
+      },
+      monthly: monthlyRows({
+        fuel_kWh: m_base_fuel,
+        electricity_kWh: m_base_elec,
+        combustion: m_base_comb,
+        electricity_ghg: m_base_elecghg,
+        upstream_methane: m_base_ch4,
+      }),
+    };
+
+    var proj_elec_total = sum(m_hp_elec) + sum(m_bk_elec);
+    var project = {
+      energy: {
+        hp_electricity_kWh: sum(m_hp_elec),
+        backup_electricity_kWh: sum(m_bk_elec),
+        backup_fuel_kWh: sum(m_bk_fuel),
+        electricity_kWh: proj_elec_total,
+        elec_month_hour: mh_proj_elec,
+      },
+      ghg: {
+        combustion: proj_comb,
+        electricity: proj_elecghg,
+        refrigerant: refrigerantKg,
+        upstream_methane: proj_ch4,
+        total: proj_comb + proj_elecghg + refrigerantKg + proj_ch4,
+      },
+      monthly: monthlyRows({
+        hp_electricity_kWh: m_hp_elec,
+        backup_electricity_kWh: m_bk_elec,
+        backup_fuel_kWh: m_bk_fuel,
+        combustion: m_proj_comb,
+        electricity_ghg: m_proj_elecghg,
+        upstream_methane: m_proj_ch4,
+      }),
+      diagnostics: {
+        load_kWh: totalLoad,
+        hp_delivered_kWh: hpDelivered,
+        backup_delivered_kWh: bkDelivered,
+        seasonal_cop: sum(m_hp_elec) > 0 ? hpDelivered / sum(m_hp_elec) : null,
+        heating_hours: heatingHours,
+        hp_run_hours: hpRunHours,
+        backup_hours: backupHours,
+        lockout_hours: lockoutHours,
+        derated_hours: deratedHours,
+      },
+    };
+
+    return {
+      base: base,
+      project: project,
+      hourly: {
+        ef_g_per_kWh: h_ef,
+        load_kW: h_load,
+        base_ghg_kg: h_base_ghg,
+        proj_ghg_kg: h_proj_ghg,
+        hp_ghg_kg: h_hp_ghg,
+        backup_ghg_kg: h_bk_ghg,
+        base_energy_kWh: h_base_in,
+        hp_elec_kWh: h_hp_elec,
+        backup_energy_kWh: h_bk_in,
+        hp_cop: h_hp_cop,
+        hp_capacity_kW: h_hp_cap,
+        temp_C: temps,
+      },
+      meta: {
+        hours: N,
+        ef_mode: efMode,
+        ef_level_g_per_kWh: efLevel || opts.ef.reference_level_g_per_kWh,
+        ef_province: opts.ef.meta ? opts.ef.meta.province : null,
+        control_strategy: control.strategy,
+        base_efficiency: baseEff,
+        backup_efficiency: backup.efficiency,
+        backup_type: backup.type,
+        start_month: startMonth,
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Cooling: "potential AC" scenario (added 2026-08-31). Independent of the
+  // heating simulate() above -- see METHODOLOGY.md "Cooling / 'potential AC'
+  // scenario" and "Cooling curve library expanded, and SEER2 badges don't
+  // predict real-TMY performance".
+  // --------------------------------------------------------------------------
+
+  // Solve the cooling balance point Tc (deg C) by CDH-inversion, mirroring
+  // build_city_house_profiles.py's method exactly: UA_cool is fixed from the
+  // design (peak) cooling load against the city's design cooling dry-bulb and
+  // the fixed 25 C HOT2000 ThermostatCooling indoor anchor; Tc is then the
+  // temperature at which integrating cooling-degree-hours over the ACTUAL
+  // tempSeries against UA_cool reproduces the target annual cooling energy.
+  // gridStepC trades solve accuracy for speed -- the Python build script
+  // grids at 0.02 C once per city; this runs in the browser on every slider
+  // drag, so a coarser default keeps it interactive.
+  function solveCoolingBalancePoint(tempSeries, designCoolingTempC, coolPeakKW, annualCoolKWh, gridStepC) {
+    var step = gridStepC || 0.25;
+    var UA = coolPeakKW / (designCoolingTempC - 25.0); // kW/K, ThermostatCooling fixed at 25 C
+    var tcMax = designCoolingTempC - 0.02;
+    var grid = [], cdh = [];
+    for (var tc = 0.0; tc < tcMax; tc += step) {
+      var s = 0;
+      for (var i = 0; i < tempSeries.length; i++) {
+        var d = tempSeries[i] - tc;
+        if (d > 0) s += d;
+      }
+      grid.push(tc);
+      cdh.push(s);
+    }
+    // CDH strictly decreases as Tc rises; interp() needs an ascending x
+    // array, so flip both (mirrors the Python xp,fp = cdh_grid[::-1], tc_grid[::-1]).
+    var xs = cdh.slice().reverse();
+    var ys = grid.slice().reverse();
+    var target = annualCoolKWh / UA;
+    var Tc = interp(xs, ys, target);
+    return { UA_cool_kW_per_K: UA, Tc_C: Tc };
+  }
+
+  // Cooling-only simulation: one piece of equipment (a standard AC or a heat
+  // pump's own cooling curve) meeting a cooling load over the year. No base
+  // case and no backup -- this is the "AC added" side of the potential-AC
+  // scenario, not a replacement of an existing system, so there is nothing to
+  // compare against inside this function. The caller runs it once per
+  // candidate (standard AC, chosen heat pump) against the same archetype and
+  // compares the results itself, against an implicit "no AC" zero baseline.
+  //
+  // opts = {
+  //   tempSeries:  Array<number> outdoor dry-bulb C, one per hour
+  //   archetype:   { UA_cool_kW_per_K, Tc_C }   // from solveCoolingBalancePoint
+  //   equipment:   { curve: { T_C[], cap_frac_of_rated95[], COP[] }, nominalCap_kW }
+  //   lifecycle?:  { lineLossPct }
+  //   ef, efMode, efLevel?, startMonth?         // same grid-EF inputs as simulate()
+  // }
+  function simulateCooling(opts) {
+    var temps = opts.tempSeries;
+    var N = temps.length;
+    var leap = N === 8784;
+    var UA = opts.archetype.UA_cool_kW_per_K;
+    var Tc = opts.archetype.Tc_C;
+    var curve = opts.equipment.curve;
+    var nominalCap = opts.equipment.nominalCap_kW;
+    var lc = opts.lifecycle || {};
+    var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
+    var efMode = opts.efMode === "marginal" ? "marginal" : "average";
+    var efLevel = opts.efLevel || null;
+    var startMonth = opts.startMonth || 1;
+    var G2KG = 0.001;
+
+    var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
+    var coolingHours = 0, metHours = 0, unmetHours = 0;
+    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0);
+    var m_elec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      m_ghg = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // month x hour-of-day electricity (kWh), same shape as simulate()'s
+    // elec_month_hour -- lets the UI price this with the existing TOU
+    // costElectricity() function unchanged.
+    var mh_elec = [];
+    for (var mo0 = 0; mo0 < 12; mo0++) { var row0 = []; for (var h0 = 0; h0 < 24; h0++) row0.push(0); mh_elec.push(row0); }
+
+    for (var i = 0; i < N; i++) {
+      var T = temps[i];
+      var load = UA * Math.max(0, T - Tc);
+      h_load[i] = load;
+      if (load <= 0) continue;
+      coolingHours++;
+      loadKWh += load;
+
+      var hour = (i % 24) + 1;
+      var dayOfYear = Math.floor(i / 24);
+      var month = monthOfDay(dayOfYear, leap);
+      if (startMonth !== 1) month = ((month - 1 + (startMonth - 1)) % 12) + 1;
+      var mi = month - 1;
+      var season = SEASON_BY_MONTH[month];
+      var tbin = tempBinLeft(T);
+
+      var capFrac = interp(curve.T_C, curve.cap_frac_of_rated95, T);
+      var cop = interp(curve.T_C, curve.COP, T);
+      var capacity = capFrac == null ? 0 : nominalCap * capFrac;
+      h_cap[i] = capacity; h_cop[i] = cop;
+      var delivered = cop ? Math.min(load, capacity) : 0;
+      deliveredKWh += delivered;
+      if (delivered + 1e-9 >= load) metHours++;
+      else unmetHours++;
+
+      if (delivered > 0 && cop) {
+        var elec = delivered / cop;
+        elecKWh += elec;
+        m_elec[mi] += elec;
+        h_elec[i] = elec;
+        mh_elec[mi][hour - 1] += elec;
+
+        var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+        var ghg = efThisHour * elec * lineLoss * G2KG;
+        ghgKg += ghg;
+        m_ghg[mi] += ghg;
+        h_ghg[i] = ghg;
+      }
+    }
+
+    var monthly = [];
+    for (var mo = 0; mo < 12; mo++) {
+      monthly.push({ month: mo + 1, electricity_kWh: m_elec[mo], electricity_ghg: m_ghg[mo] });
+    }
+
+    return {
+      energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
+      ghg: { electricity: ghgKg, total: ghgKg },
+      monthly: monthly,
+      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, temp_C: temps },
+      diagnostics: {
+        load_kWh: loadKWh,
+        delivered_kWh: deliveredKWh,
+        seasonal_cop: elecKWh > 0 ? deliveredKWh / elecKWh : null,
+        cooling_hours: coolingHours,
+        met_hours: metHours,
+        unmet_hours: unmetHours,
+      },
+    };
+  }
+
+  return {
+    simulate: simulate,
+    solveCoolingBalancePoint: solveCoolingBalancePoint,
+    simulateCooling: simulateCooling,
+    // exported for tests / reuse
+    interp: interp,
+    tempBinLeft: tempBinLeft,
+    lookupShape: lookupShape,
+    gridEF: gridEF,
+    hpPerformance: hpPerformance,
+    monthOfDay: monthOfDay,
+    COMBUSTION_EF_G_PER_KWH: COMBUSTION_EF_G_PER_KWH,
+    GAS_KWH_PER_M3: GAS_KWH_PER_M3,
+    OIL_KWH_PER_L: OIL_KWH_PER_L,
+    PROPANE_KWH_PER_L: PROPANE_KWH_PER_L,
+    GAS_KG_PER_M3: GAS_KG_PER_M3,
+  };
+});
+
+</script>
+<script>
+"use strict";
+const E = window.HeatPumpEngine;
+const BASE_URL='./';
+const DATA=`${BASE_URL}HeatPump/data/processed/`;
+
+const CITY_PROV={Ottawa:'on',Toronto:'on',Montreal:'qc',Calgary:'ab',Edmonton:'ab',
+  Vancouver:'bc',Winnipeg:'mb','Quebec City':'qc',Halifax:'ns',Saskatoon:'sk',Regina:'sk',
+  Hamilton:'on',London:'on',Windsor:'on'};
+const CITIES=['Ottawa','Toronto','Hamilton','London','Windsor','Montreal','Quebec City',
+  'Calgary','Edmonton','Vancouver','Winnipeg','Halifax','Saskatoon','Regina'];
+const CITY_KEY={Ottawa:'ottawa',Toronto:'toronto',Montreal:'montreal',Calgary:'calgary',Edmonton:'edmonton',
+  Hamilton:'toronto',London:'toronto',Windsor:'toronto','Quebec City':'montreal'};
+
+const ARCH_ORDER=['pre_1980_detached','1980_2005_detached','post_2005_detached','townhouse_row'];
+const ARCH_LABEL={
+  pre_1980_detached:'Pre-1980 detached',
+  '1980_2005_detached':'1980–2005 detached',
+  post_2005_detached:'Post-2005 detached',
+  townhouse_row:'Townhouse / row',
+};
+const TIER_BLURB={
+  high:'Holds capacity best through deep cold and locks out the coldest — the closest thing to "backup rarely needed" in this data.',
+  mid:'Middle of the pack on cold-weather capacity retention and lock-out temperature.',
+  low:'Capacity fades fastest through the cold and locks out warmest of the three tiers.',
+};
+const BAND_LABEL={'<18k':'<18,000 Btu/h','18-30k':'18,000–30,000 Btu/h','30-42k':'30,000–42,000 Btu/h'};
+
+const UPSTREAM_METHANE_PCT=2.14; // unused here (no combustion in a cooling scenario) — kept only so lineLossPctFor's sibling constant block matches heatpump.html's sourcing comments
+const LINELOSS_PCT_BY_PROV={on:7.4, ab:7.68, qc:7.5};
+const LINELOSS_PCT_FALLBACK=5.0;
+function lineLossPctFor(city){return LINELOSS_PCT_BY_PROV[CITY_PROV[city]] || LINELOSS_PCT_FALLBACK;}
+
+let ARCH=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, AC_CURVE=null;
+const EF_CACHE={};
+const WEATHER_CACHE={};
+const weatherSlug=c=>c.toLowerCase().replace(/[^a-z]/g,'');
+
+function ensureWeather(city){
+  const s=weatherSlug(city);
+  if(WEATHER_CACHE[s]!==undefined) return Promise.resolve(WEATHER_CACHE[s]);
+  return fetch(DATA+'weather_'+s+'.json')
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{WEATHER_CACHE[s]=j;return j;})
+    .catch(()=>{WEATHER_CACHE[s]=null;return null;});
+}
+function tempSeriesFor(city,weatherYear){
+  if(weatherYear&&weatherYear!=='tmy'){
+    const w=WEATHER_CACHE[weatherSlug(city)];
+    const y=w&&w.years&&w.years[weatherYear];
+    if(y) return y.temps_tenthsC.map(t=>t/10);
+  }
+  return TMY[city];
+}
+const PRICES_CACHE={};
+let charts={};
+function ensurePrices(prov){
+  if(PRICES_CACHE[prov]!==undefined) return Promise.resolve(PRICES_CACHE[prov]);
+  return fetch(`${BASE_URL}prices_json/${prov}.json`)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{PRICES_CACHE[prov]=j;return j;})
+    .catch(()=>{PRICES_CACHE[prov]=null;return null;});
+}
+const HOUSE_PROFILES_CACHE={};
+const houseProfileSlug=c=>c.toLowerCase().replace(/ /g,'_');
+function ensureHouseProfiles(city){
+  const s=houseProfileSlug(city);
+  if(HOUSE_PROFILES_CACHE[s]!==undefined) return Promise.resolve(HOUSE_PROFILES_CACHE[s]);
+  return fetch(DATA+'house_profiles_'+s+'.json')
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{HOUSE_PROFILES_CACHE[s]=j;return j;})
+    .catch(()=>{HOUSE_PROFILES_CACHE[s]=null;return null;});
+}
+
+const $=id=>document.getElementById(id);
+const fmtI=n=>Math.round(n).toLocaleString('en-CA');
+const fmt1=n=>n.toLocaleString('en-CA',{minimumFractionDigits:1,maximumFractionDigits:1});
+function fmtGHG(kg){ if(Math.abs(kg)>=1000) return fmt1(kg/1000)+' t'; return fmtI(kg)+' kg'; }
+const fmt$=n=>'$'+Math.round(n).toLocaleString('en-CA');
+function fmtSigned(n){return (n<0?'−':'')+Math.abs(n);}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+const THEMES=['light','dark','cb'];
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  syncThemeButtons(t);
+  if(lastResAC) buildOptsAndRun();
+}
+syncThemeButtons(document.documentElement.dataset.theme||'light');
+
+// ---- state ----
+const state={
+  city:'Ottawa', designLoad:14, weatherYear:'tmy', efBasis:'average',
+  includeLineLoss:true, lineloss:LINELOSS_PCT_BY_PROV.on,
+  tier:'high', band:'18-30k', plan:null,
+};
+let lastArch=null,lastResAC=null,lastResHP=null,lastHpLabel=null,lastCosts=null,lastElec=null,lastPlanKey=null,lastAcEquip=null,lastHpEquip=null;
+
+function cityDesignLoadDefault(city){
+  const c=ARCH[city];
+  const rows=ARCH_ORDER.filter(k=>c[k]).map(k=>({v:c[k].design_heat_loss_kW,w:c[k].n_homes})).sort((a,b)=>a.v-b.v);
+  const total=rows.reduce((s,r)=>s+r.w,0);
+  let acc=0;
+  for(const r of rows){acc+=r.w;if(acc>=total/2)return Math.round(r.v*2)/2;}
+  return rows.length?rows[rows.length-1].v:10;
+}
+
+// ==========================================================================
+// Boot
+// ==========================================================================
+Promise.all([
+  fetch(DATA+'archetypes.json').then(r=>r.json()),
+  fetch(DATA+'tmy_temps.json').then(r=>r.json()),
+  fetch(DATA+'grid_ef_annual.json').then(r=>r.json()).catch(()=>null),
+  fetch(DATA+'hp_cell_curves.json').then(r=>r.json()),
+  fetch(DATA+'ac_curves.json').then(r=>r.json()).catch(()=>null),
+]).then(([a,t,ann,cc,acj])=>{
+  ARCH=a; TMY=t; ANNUAL_EF=ann; CELL_CURVES=cc;
+  AC_CURVE=acj&&acj.models&&acj.models['Goodman_GLXS4BA3610'];
+  buildInputs();
+  return Promise.all([ensureEF(CITY_PROV[state.city]),ensurePrices(CITY_PROV[state.city]),ensureWeather(state.city),ensureHouseProfiles(state.city)]);
+}).then(()=>{
+  populateWeatherSelector(state.city);
+  $('loading').style.display='none';
+  $('results').style.display='';
+  buildOptsAndRun();
+}).catch(err=>{
+  console.error(err);
+  $('loading').style.display='none';
+  const e=$('err'); e.style.display=''; e.textContent='Could not load data files ('+err.message+'). If you are viewing this locally, serve the repository root with a static server (e.g. python -m http.server in C:\\Energy) so HeatPump/data/processed/*.json is reachable.';
+});
+
+const HAS_SURFACE={on:1,qc:1,ab:1};
+function ensureEF(prov){
+  if(!HAS_SURFACE[prov]) return Promise.resolve(null);
+  if(EF_CACHE[prov]) return Promise.resolve(EF_CACHE[prov]);
+  return fetch(DATA+'ef_surface_'+prov+'.json').then(r=>r.json()).then(j=>{EF_CACHE[prov]=j;return j;});
+}
+function flatSurface(prov,avgLevel,margLevel){
+  return {meta:{province:prov.toUpperCase(),thin_bin_min_hours:20,flat:true},
+          global:[1,1],
+          reference_level_g_per_kWh:[avgLevel,margLevel]};
+}
+function annualAvgFor(prov){
+  const p=ANNUAL_EF&&ANNUAL_EF.provinces&&ANNUAL_EF.provinces[prov];
+  if(!p) return null;
+  return {value:p.avg_g_per_kWh[p.latest_year], year:p.latest_year,
+          marginal:p.marginal_estimate_g_per_kWh, note:p.marginal_note};
+}
+function efObjectFor(prov,basis){
+  const hasSurf=!!EF_CACHE[prov];
+  const ann=annualAvgFor(prov);
+  if(basis==='annual'){
+    const lvl=ann?ann.value:(hasSurf?EF_CACHE[prov].reference_level_g_per_kWh[0]:0);
+    return {ef:flatSurface(prov,lvl,lvl), efMode:'average'};
+  }
+  if(hasSurf){
+    return {ef:EF_CACHE[prov], efMode:basis==='marginal'?'marginal':'average'};
+  }
+  const avg=ann?ann.value:0;
+  const marg=(ann&&ann.marginal!=null)?ann.marginal:avg;
+  return {ef:flatSurface(prov,avg,marg), efMode:basis==='marginal'?'marginal':'average'};
+}
+function basisAdj(basis){
+  return basis==='marginal'?'marginal':basis==='annual'?'ECCC annual-average':'hourly-average';
+}
+function syncEfSeg(){
+  const prov=CITY_PROV[state.city], hasSurf=!!HAS_SURFACE[prov];
+  const sel=document.getElementById('in-ef'); if(!sel) return;
+  const avgOpt=sel.querySelector('option[value=average]');
+  if(avgOpt){
+    avgOpt.disabled=!hasSurf;
+    avgOpt.title=!hasSurf?'No hourly grid data for this province — use ECCC yearly or marginal.':'';
+  }
+  if(!hasSurf&&state.efBasis==='average') state.efBasis='annual';
+  sel.value=state.efBasis;
+  const btn=document.getElementById('ef-info'); if(!btn) return;
+  const ann=annualAvgFor(prov);
+  const base='Marginal (default) prices new load at the generator the grid ramps to meet it — usually gas in ON/AB. Hourly average uses this tool\'s temp×hour×season fleet-average surface. ECCC yearly is the province\'s flat published inventory average.';
+  let dyn='';
+  if(!hasSurf){
+    dyn=ann?` ${prov.toUpperCase()} has no hourly grid pipeline — showing ECCC's ${ann.year} annual average (${fmt1(ann.value)} g/kWh)`+(ann.marginal!=null&&ann.marginal!==ann.value?` and a flat marginal estimate (${fmt1(ann.marginal)} g/kWh).`:'.'):'';
+  } else {
+    dyn=ann?` ECCC yearly = ${prov.toUpperCase()} ${ann.year} inventory average (${fmt1(ann.value)} g/kWh).`:'';
+  }
+  btn.dataset.info=base+dyn;
+}
+
+function updateDesignLoadRef(){
+  const c=ARCH[state.city];
+  const parts=ARCH_ORDER.filter(k=>c[k]).map(k=>`${ARCH_LABEL[k]} ${fmt1(c[k].design_heat_loss_kW)} kW`);
+  $('arch-info').title=`For reference, this city's audited-home medians: ${parts.join(' · ')}. Click for the full breakdown.`;
+  if($('arch-helper').classList.contains('open'))renderArchHelper();
+}
+function renderArchHelper(){
+  const c=ARCH[state.city];
+  let h=`<div class="hp-row"><b>Picking a design heat load</b> — figures below are the median audited home of each type in ${state.city} (4 reference points, not a full distribution). This is the same design-load input the Heat Pump Explorer uses; the cooling estimate below is derived from it, not from a separate cooling-specific input.</div>`;
+  ARCH_ORDER.forEach(k=>{if(!c[k])return;const a=c[k];
+    h+=`<div class="hp-row">• <b>${ARCH_LABEL[k]}</b> <span style="color:var(--light)">(${fmtI(a.floor_area_m2)} m², ${fmt1(a.design_heat_loss_kW)} kW design load)</span></div>`;});
+  $('arch-helper').innerHTML=h;
+}
+
+function cellFor(tier,band){ return CELL_CURVES.cells[tier+'_'+band]; }
+function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':'value';}
+
+function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function polyline(pts,x,y,color,w,dash){
+  if(!pts.length)return'';
+  return `<polyline points="${pts.map(p=>x(p[0])+','+y(p[1])).join(' ')}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:''}/>`;
+}
+function niceTicks(max,n){const raw=max/n;const mag=Math.pow(10,Math.floor(Math.log10(raw)));const norm=raw/mag;let step;if(norm<1.5)step=1;else if(norm<3)step=2;else if(norm<7)step=5;else step=10;step*=mag;const out=[];for(let v=0;v<=max+1e-9;v+=step)out.push(Math.round(v*100)/100);return out;}
+function stepAxes(s,m,W,H,pW,pH,Tmin,Tmax,skipTitle){
+  const light=css('--light'),muted=css('--muted');
+  for(let t=Tmin;t<=Tmax;t+=5){s.v+=`<line x1="${m.l+(t-Tmin)/(Tmax-Tmin)*pW}" y1="${m.t}" x2="${m.l+(t-Tmin)/(Tmax-Tmin)*pW}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l+(t-Tmin)/(Tmax-Tmin)*pW}" y="${H-m.b+18}" text-anchor="middle" font-size="11" fill="${light}">${fmtSigned(t)}</text>`;}
+  if(!skipTitle)s.v+=`<text x="${m.l+pW/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="${muted}">Outdoor temperature (°C)</text>`;
+}
+const stepCard=(lbl,val,sub,cls)=>`<div class="stat-card"><div class="stat-label">${lbl}</div><div class="stat-value ${cls||''}">${val}</div><div class="stat-sub">${sub}</div></div>`;
+
+function planEnergyPrice(plan,m,h){
+  if(plan.type==='flat')return plan.price_cad_per_kwh;
+  const cal=plan.calendar,prices=plan.prices_cad_per_kwh;
+  const periodFor=isWd=>{
+    for(const r of cal.rules){
+      if(r.months&&!r.months.includes(m+1))continue;
+      if(r.days==='weekday'&&!isWd)continue;
+      if(!r.hours.includes(h))continue;
+      return r.period;
+    }
+    return cal.default_period;
+  };
+  return (5/7)*prices[periodFor(true)]+(2/7)*prices[periodFor(false)];
+}
+function costElectricity(matrix,elec,planKey){
+  const plan=elec.plans[planKey];
+  let cost=0;
+  for(let m=0;m<12;m++)for(let h=0;h<24;h++){
+    const e=matrix[m][h];if(!e)continue;
+    cost+=e*(planEnergyPrice(plan,m,h)+elec.volumetric_adders_cad_per_kwh);
+  }
+  return cost;
+}
+
+// ==========================================================================
+// Inputs
+// ==========================================================================
+function buildInputs(){
+  const citySel=$('in-city');
+  CITIES.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;citySel.appendChild(o);});
+  citySel.value=state.city;
+  updateDesignLoadRef();
+  state.designLoad=cityDesignLoadDefault(state.city);
+  $('in-designload').value=state.designLoad;$('designload-val').textContent=fmt1(state.designLoad)+' kW';
+
+  citySel.addEventListener('change',e=>{
+    state.city=e.target.value;
+    state.plan=null;
+    state.designLoad=cityDesignLoadDefault(state.city);
+    $('in-designload').value=state.designLoad;$('designload-val').textContent=fmt1(state.designLoad)+' kW';
+    updateDesignLoadRef();
+    const p=CITY_PROV[state.city];
+    state.lineloss=state.includeLineLoss?lineLossPctFor(state.city):0;
+    state.weatherYear='tmy';
+    Promise.all([ensureEF(p),ensurePrices(p),ensureWeather(state.city),ensureHouseProfiles(state.city)]).then(()=>{
+      syncEfSeg();populateWeatherSelector(state.city);buildOptsAndRun();
+    });
+  });
+  $('in-weather').addEventListener('change',e=>{state.weatherYear=e.target.value;updateWeatherHint();buildOptsAndRun();});
+  $('in-designload').addEventListener('input',e=>{state.designLoad=+e.target.value;$('designload-val').textContent=fmt1(state.designLoad)+' kW';buildOptsAndRun();});
+  $('in-ef').addEventListener('change',e=>{state.efBasis=e.target.value;buildOptsAndRun();});
+  $('in-tier').addEventListener('change',e=>{state.tier=e.target.value;$('tier-info').dataset.info=TIER_BLURB[state.tier];buildOptsAndRun();});
+  $('in-band').addEventListener('change',e=>{state.band=e.target.value;buildOptsAndRun();});
+  document.querySelectorAll('#lineloss-seg button').forEach(b=>b.addEventListener('click',()=>{
+    state.includeLineLoss=b.dataset.val==='yes';
+    state.lineloss=state.includeLineLoss?lineLossPctFor(state.city):0;
+    document.querySelectorAll('#lineloss-seg button').forEach(x=>x.classList.toggle('active',x===b));
+    buildOptsAndRun();
+  }));
+  $('arch-info').addEventListener('click',()=>{$('arch-helper').classList.toggle('open');renderArchHelper();});
+
+  $('in-tier').value=state.tier;$('in-band').value=state.band;
+  $('tier-info').dataset.info=TIER_BLURB[state.tier];
+  syncEfSeg();
+}
+
+function populateWeatherSelector(city){
+  const sel=$('in-weather'),w=WEATHER_CACHE[weatherSlug(city)];
+  if(!w||!w.years){
+    sel.innerHTML='<option value="tmy">Typical (TMY)</option>';
+    sel.value='tmy'; state.weatherYear='tmy';
+    sel.parentElement.style.display='none'; updateWeatherHint(); return;
+  }
+  sel.parentElement.style.display='';
+  const t=w.meta.tags||{};
+  const tag=y=>{const n=+y;return n===t.coldest?' — coldest':n===t.mildest?' — mildest':n===t.representative?' — typical-like':'';};
+  let html='<option value="tmy">Typical (TMY)</option>';
+  html+=w.meta.years.slice().reverse().map(y=>`<option value="${y}">${y}${tag(y)}</option>`).join('');
+  sel.innerHTML=html;
+  if(state.weatherYear!=='tmy'&&!w.years[state.weatherYear]) state.weatherYear='tmy';
+  sel.value=state.weatherYear;
+  updateWeatherHint();
+}
+function updateWeatherHint(){
+  const w=WEATHER_CACHE[weatherSlug(state.city)],btn=$('weather-info');
+  if(!btn)return;
+  if(state.weatherYear==='tmy'){
+    btn.dataset.info=w?`Typical meteorological year (CWEC2020). ${w.meta.years.length} real years also available (${w.meta.years[0]}–${w.meta.years[w.meta.years.length-1]}).`:'Typical meteorological year (CWEC2020).';
+  }else if(w&&w.years[state.weatherYear]){
+    const y=w.years[state.weatherYear];
+    btn.dataset.info=`${state.weatherYear}: HDD18 ${fmtI(y.hdd18)}, coldest hour ${fmt1(y.min_C)} °C (TMY HDD18 ${fmtI(w.meta.tmy_hdd18)}).`;
+  }
+}
+
+// ==========================================================================
+// Cooling — the whole page. cool_peak_kW = 0.2789*heat_peak_kW + 1.3254
+// (r=0.683, n=209,272 ERS homes); annual_cool_kWh = 838.3*cool_peak_kW
+// (r=0.778). Same correlations as heatpump.html's "potential AC" add-on —
+// see its METHODOLOGY.md entry "Cooling / 'potential AC' scenario" — just
+// promoted here from an optional add-on to the whole page, with an explicit
+// "no AC today" (0) pre-state on every chart.
+// ==========================================================================
+function coolPeakEstKW(){ return 0.2789*state.designLoad + 1.3254; }
+function coolEnergyEstKWh(peakKW){ return 838.3*peakKW; }
+let COOL_BP_CACHE={};
+function coolingArchetype(){
+  const prof=HOUSE_PROFILES_CACHE[houseProfileSlug(state.city)];
+  const designCoolC=prof&&prof.meta&&prof.meta.design_cooling_temp_C;
+  if(designCoolC==null)return null;
+  const key=state.city+'|'+state.weatherYear+'|'+state.designLoad.toFixed(2);
+  if(COOL_BP_CACHE[key])return COOL_BP_CACHE[key];
+  const peak=coolPeakEstKW(), energy=coolEnergyEstKWh(peak);
+  const temps=tempSeriesFor(state.city,state.weatherYear);
+  const bp=E.solveCoolingBalancePoint(temps,designCoolC,peak,energy);
+  const result={peak_kW:peak,energy_kWh:energy,design_cooling_temp_C:designCoolC,
+    UA_cool_kW_per_K:bp.UA_cool_kW_per_K,Tc_C:bp.Tc_C};
+  COOL_BP_CACHE[key]=result;
+  return result;
+}
+const COOL_Tmin=14,COOL_Tmax_DEFAULT=42;
+function coolStepCurves(UA,Tc,equip,Tmax){
+  const T=[],load=[],cap=[],cop=[];
+  for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
+    const L=UA*Math.max(0,t-Tc);
+    let cf=null,cp=null,cv=0;
+    if(equip){ cf=E.interp(equip.curve.T_C,equip.curve.cap_frac_of_rated95,t); cp=E.interp(equip.curve.T_C,equip.curve.COP,t); cv=cf==null?0:equip.nominalCap_kW*cf; }
+    T.push(t);load.push(L);cap.push(cv);cop.push(cp);
+  }
+  return {T,load,cap,cop};
+}
+function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC){
+  const W=740,H=320,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
+  const Tmin=COOL_Tmin,Tmax=Math.min(COOL_Tmax_DEFAULT,Math.max(28,Math.round(designCoolingTempC)+3));
+  const Cac=coolStepCurves(UA,Tc,acEquip,Tmax);
+  const Chp=hpEquip?coolStepCurves(UA,Tc,hpEquip,Tmax):null;
+  const maxKW=Math.max(1,...Cac.load,...Cac.cap,...(Chp?Chp.cap:[0]))*1.1;
+  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, yL=v=>m.t+pH-(v/maxKW)*pH;
+  const blue=css('--blue'),purple=css('--purple'),muted=css('--muted'),light=css('--light'),green=css('--green');
+  const s={v:''};
+  niceTicks(maxKW,5).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${yL(v)}" x2="${W-m.r}" y2="${yL(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+    s.v+=`<text x="${m.l-8}" y="${yL(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
+  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW cooling</text>`;
+  stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
+  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.load[i]]),x,yL,muted,1.6,'3 4');
+  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cap[i]]),x,yL,blue,2.2);
+  if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cap[i]]),x,yL,purple,2.2,'5 3');
+  s.v+=`<line x1="${x(Tc)}" y1="${m.t}" x2="${x(Tc)}" y2="${m.t+pH}" stroke="${green}" stroke-width="1.3" stroke-dasharray="4 4"/>`;
+  s.v+=`<text x="${x(Tc)+4}" y="${m.t+12}" font-size="10.5" fill="${green}">balance point ${fmt1(Tc)}°</text>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=s.v;
+  $('cooling-legend').innerHTML=[
+    `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${muted}"></span>Cooling load</span>`,
+    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC capacity</span>`,
+    Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} capacity</span>`:'',
+  ].join('');
+}
+
+function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec){
+  const beats=resHP?resHP.energy.electricity_kWh<resAC.energy.electricity_kWh:null;
+  $('verdict-main').innerHTML=resHP
+    ? `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here; ${hpLabel} in cooling mode would use <b>${fmtI(resHP.energy.electricity_kWh)} kWh</b> — ${beats?'less':'more'}.`
+    : `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here.`;
+  $('verdict-sub').innerHTML=resHP
+    ? `The selected heat pump's own cooling curve is on file for this tier/size — its cooling-mode electricity, GHG and cost are compared against the standard-AC baseline throughout.`
+    : `This tier/size cell has no published cooling curve — only the standard-AC baseline is shown below. Try a different tier or size.`;
+  $('stats').innerHTML=`<div class="stats-grid">${[
+    stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW',`from this home's ${fmt1(state.designLoad)}-kW design heat load`,'accent'),
+    stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`balance point ${fmt1(arch.Tc_C)} °C`,'accent'),
+    stepCard('Standard AC adds',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e${costs.ac_$!=null?` · ${fmt$(costs.ac_$)}/yr`:''}`,'green'),
+    resHP
+      ? stepCard(hpLabel+' adds',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resHP.ghg.total)} CO₂e${costs.hp_$!=null?` · ${fmt$(costs.hp_$)}/yr`:''}`,beats?'green':'red')
+      : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'),
+  ].join('')}</div>`;
+}
+
+function renderLoadSection(arch){
+  $('load-kpis').innerHTML=[
+    stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW','via a validated correlation — not measured','accent'),
+    stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`design cooling temp ${fmt1(arch.design_cooling_temp_C)} °C`,'accent'),
+    stepCard('Balance point',fmt1(arch.Tc_C)+' °C','above this, the home needs cooling','muted'),
+  ].join('');
+}
+
+function threeBarChart(canvasId,labels,data,colors,unitSuffix,fmtFn){
+  destroy(canvasId);
+  const ds=[{data,backgroundColor:colors}];
+  charts[canvasId]=new Chart($(canvasId),{type:'bar',data:{labels,datasets:ds},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    scales:{x:{title:{display:true,text:unitSuffix,color:css('--muted'),font:{size:11}},ticks:{color:css('--light')},grid:{color:css('--surface')}},y:{ticks:{color:css('--text')},grid:{display:false}}},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtFn(c.parsed.x)}}}
+  }});
+}
+
+function renderElectricitySection(resAC,resHP,hpLabel){
+  const labels=['No AC (today)','Standard AC'], data=[0,resAC.energy.electricity_kWh], colors=[css('--light'),css('--blue')];
+  if(resHP){labels.push(hpLabel+' (cooling mode)');data.push(resHP.energy.electricity_kWh);colors.push(css('--purple'));}
+  threeBarChart('elecChart',labels,data,colors,'kWh / summer',v=>fmtI(v)+' kWh/yr');
+  const kpis=[
+    stepCard('No AC (today)','0 kWh/yr','baseline — nothing to cool with','muted'),
+    stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr','Goodman GLXS4B, 3-ton reference unit','accent'),
+  ];
+  kpis.push(resHP
+    ? stepCard(hpLabel+' (cooling mode)',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'uses less than':'uses more than'} the standard AC`,resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'green':'red')
+    : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
+  $('elec-kpis').innerHTML=kpis.join('');
+}
+
+function renderGhgSection(resAC,resHP,hpLabel){
+  $('ghg-basis-note').innerHTML=`Each hour's added electricity × the grid intensity at that hour (${basisAdj(state.efBasis)} basis), summed over the summer.`;
+  const labels=['No AC (today)','Standard AC'], data=[0,resAC.ghg.total], colors=[css('--light'),css('--blue')];
+  if(resHP){labels.push(hpLabel+' (cooling mode)');data.push(resHP.ghg.total);colors.push(css('--purple'));}
+  threeBarChart('ghgChart',labels,data,colors,'CO₂e / summer',v=>fmtGHG(v)+'/yr');
+  const kpis=[
+    stepCard('No AC (today)','0 kg CO₂e/yr','baseline','muted'),
+    stepCard('Standard AC',fmtGHG(resAC.ghg.total)+' CO₂e/yr',`${basisAdj(state.efBasis)} grid basis`,'green'),
+  ];
+  kpis.push(resHP
+    ? stepCard(hpLabel+' (cooling mode)',fmtGHG(resHP.ghg.total)+' CO₂e/yr',`${resHP.ghg.total<resAC.ghg.total?'less than':'more than'} the standard AC`,resHP.ghg.total<resAC.ghg.total?'green':'red')
+    : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
+  $('ghg-kpis').innerHTML=kpis.join('');
+}
+
+function renderCostSection(resAC,resHP,hpLabel,costs,elec){
+  const body=$('cost-body');
+  destroy('costChart');
+  if(!elec){
+    body.innerHTML='<div class="cost-hook"><div class="ch-title">Current rates unavailable</div><div class="ch-body">The energy-prices file for this province could not be loaded, or this city has no modelled rate entry, so cost is omitted (electricity and GHG above are unaffected).</div></div>';
+    return;
+  }
+  const labels=['No AC (today)','Standard AC'], data=[0,costs.ac_$], colors=[css('--light'),css('--blue')];
+  if(resHP&&costs.hp_$!=null){labels.push(hpLabel+' (cooling mode)');data.push(costs.hp_$);colors.push(css('--purple'));}
+  body.innerHTML='<div class="cw cw-lg"><canvas id="costChart"></canvas></div><div class="stats-grid" id="cost-kpis" style="margin-top:1rem"></div><div class="note">The number to trust is the added cost, not an absolute bill — the fixed monthly service charge is identical with or without AC and excluded here.</div>';
+  threeBarChart('costChart',labels,data,colors,'$ / summer',v=>fmt$(v)+'/yr');
+  const kpis=[
+    stepCard('No AC (today)','$0/yr','baseline','muted'),
+    stepCard('Standard AC',fmt$(costs.ac_$)+'/yr',`${fmtI(resAC.energy.electricity_kWh)} kWh @ current rates`,'green'),
+  ];
+  kpis.push((resHP&&costs.hp_$!=null)
+    ? stepCard(hpLabel+' (cooling mode)',fmt$(costs.hp_$)+'/yr',`${costs.hp_$<costs.ac_$?'cheaper than':'costlier than'} the standard AC`,costs.hp_$<costs.ac_$?'green':'red')
+    : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
+  $('cost-kpis').innerHTML=kpis.join('');
+}
+
+function buildOptsAndRun(){
+  if(!AC_CURVE){
+    ['verdict-main'].forEach(id=>$(id).textContent='Standard-AC reference data failed to load.');
+    return;
+  }
+  const cityAtCall=state.city;
+  if(HOUSE_PROFILES_CACHE[houseProfileSlug(state.city)]===undefined){
+    ensureHouseProfiles(state.city).then(()=>{ if(state.city===cityAtCall) buildOptsAndRun(); });
+    return;
+  }
+  const arch=coolingArchetype();
+  if(!arch){
+    $('verdict-main').textContent=`Cooling data not available for ${state.city}.`;
+    $('verdict-sub').textContent='';
+    return;
+  }
+
+  const temps=tempSeriesFor(state.city,state.weatherYear);
+  const efObj=efObjectFor(CITY_PROV[state.city],state.efBasis);
+  const acEquip={curve:AC_CURVE.curve,nominalCap_kW:AC_CURVE.rated_cap_kW};
+  const resAC=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
+    equipment:acEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
+
+  const cell=cellFor(state.tier,state.band);
+  const hasHPCurve=cell&&cell.cooling;
+  let resHP=null,hpEquip=null,hpLabel=null;
+  if(hasHPCurve){
+    hpEquip={curve:cell.cooling.curve,nominalCap_kW:cell.cooling.rated_cap_95f_btuh/3412};
+    hpLabel=cell.brand_model||bucketShort()+' pump';
+    resHP=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
+      equipment:hpEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
+  }
+
+  const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],ck=CITY_KEY[state.city];
+  const elec=ck&&P&&P.electricity[ck];
+  const planKey=elec?((state.plan&&elec.plans[state.plan])?state.plan:elec.default_plan):null;
+  const costs={
+    ac_$: elec&&planKey ? costElectricity(resAC.energy.elec_month_hour,elec,planKey) : null,
+    hp_$: (elec&&planKey&&resHP) ? costElectricity(resHP.energy.elec_month_hour,elec,planKey) : null,
+  };
+
+  lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;
+
+  renderVerdict(arch,resAC,resHP,hpLabel,costs,elec);
+  renderLoadSection(arch);
+  renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
+  renderElectricitySection(resAC,resHP,hpLabel);
+  renderGhgSection(resAC,resHP,hpLabel);
+  renderCostSection(resAC,resHP,hpLabel,costs,elec);
+}
+
+// ==========================================================================
+// Methodology open/flash + shared info "?" tooltip — identical pattern to
+// heatpump.html and retrofits.html.
+// ==========================================================================
+function openMethodology(e,id){
+  if(e)e.preventDefault();
+  hideInfoTip();
+  $('method-details').open=true;
+  const el=id&&document.getElementById(id);
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('method-flash');
+  void el.offsetWidth;
+  el.classList.add('method-flash');
+}
+let _infoTipEl=null,_infoTipFor=null,_infoHideTimer=null;
+function cancelInfoHide(){if(_infoHideTimer){clearTimeout(_infoHideTimer);_infoHideTimer=null;}}
+function scheduleInfoHide(){cancelInfoHide();_infoHideTimer=setTimeout(hideInfoTip,160);}
+function showInfoTip(btn){
+  cancelInfoHide();
+  if(!_infoTipEl){
+    _infoTipEl=document.createElement('div');_infoTipEl.id='info-tip';document.body.appendChild(_infoTipEl);
+    _infoTipEl.addEventListener('mouseenter',cancelInfoHide);
+    _infoTipEl.addEventListener('mouseleave',scheduleInfoHide);
+  }
+  _infoTipEl.textContent='';
+  const body=document.createElement('span');
+  body.textContent=btn.dataset.info||'';
+  _infoTipEl.appendChild(body);
+  const method=btn.dataset.method;
+  if(method){
+    const a=document.createElement('a');
+    a.className='info-tip-link';a.href='#'+method;
+    a.textContent='Full details in methodology →';
+    a.addEventListener('click',ev=>openMethodology(ev,method));
+    _infoTipEl.appendChild(a);
+  }
+  _infoTipEl.style.display='block';
+  const r=btn.getBoundingClientRect();
+  const tw=_infoTipEl.offsetWidth,th=_infoTipEl.offsetHeight;
+  const x=Math.min(Math.max(8,r.left+r.width/2-tw/2),window.innerWidth-tw-8);
+  let y=r.bottom+8;
+  if(y+th>window.innerHeight-8)y=r.top-th-8;
+  _infoTipEl.style.left=x+'px';_infoTipEl.style.top=y+'px';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  btn.classList.add('open');_infoTipFor=btn;
+}
+function hideInfoTip(){
+  cancelInfoHide();
+  if(_infoTipEl)_infoTipEl.style.display='none';
+  if(_infoTipFor)_infoTipFor.classList.remove('open');
+  _infoTipFor=null;
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#info-tip'))return;
+  const b=e.target.closest('.info-btn');
+  if(b&&b.dataset.info){(_infoTipFor===b)?hideInfoTip():showInfoTip(b);return;}
+  hideInfoTip();
+});
+document.addEventListener('mouseover',e=>{
+  const b=e.target.closest('.info-btn');
+  if(b&&b.dataset.info&&_infoTipFor!==b)showInfoTip(b);
+});
+document.addEventListener('mouseout',e=>{
+  if(e.target.closest&&e.target.closest('.info-btn')&&e.target.closest('.info-btn').dataset.info)scheduleInfoHide();
+});
+window.addEventListener('scroll',hideInfoTip,{passive:true});
+
+let _ctrlCompact=false;
+function updateControlsCompact(){
+  const compact=window.scrollY>72;
+  if(compact===_ctrlCompact)return;
+  _ctrlCompact=compact;
+  const el=document.querySelector('.controls');
+  if(el)el.classList.toggle('is-compact',compact);
+}
+window.addEventListener('scroll',updateControlsCompact,{passive:true});
+</script>
+</body>
+</html>
