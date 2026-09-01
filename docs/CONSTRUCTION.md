@@ -239,8 +239,45 @@ footnotes:
   ~$7-10M custom detached-home permits (990-1,143 sqm each, individually
   verified), not an error — with only ~140-190 qualifying permits a year, a
   handful of genuine luxury builds can swing the median, and the card says
-  so. See `Python/municipal_permits_etl.py`'s module docstring for the full
-  writeup on all five cities.
+  so.
+- **Ottawa (added 2026-09-01)** joins as a sixth city, the only one with **no
+  API at all** — 15 annual XLSX workbooks (2011–present) on open.ottawa.ca,
+  discovered live from the DCAT feed (not a hardcoded item list, so a newly
+  published year is picked up automatically) and cached locally like
+  `ewrb_etl.py`'s XLSX pattern. An earlier evaluation had ruled Ottawa out
+  entirely; re-checked live this session because the earlier Edmonton
+  rejection had already turned out to be wrong once, and it was — the data
+  itself is rich (real contractor names, application type, ward and
+  community), just not API-reachable. Real per-permit **contractor** names
+  (55.7% of rows; the rest are `CONTRACTOR UNKNOWN`/`***CONTRACTOR***`
+  placeholders the city itself uses when the contractor is the property
+  owner) give a genuine concentration panel — no applicant field exists, so
+  only half of that card's usual pair renders (the page now shows each half
+  independently rather than assuming both always exist). No processing-time
+  or build-time panel: only one date (issuance) exists in this data. Two
+  schema eras, detected **per sheet**, not per year: 2011–2025 files have
+  `CONTRACTOR`/`APPL. TYPE` columns and area already in square feet; the
+  current in-progress 2026 file drops both and reports area in square
+  metres (converted). A live-caught bug reshaped the parsing strategy
+  entirely: an early version tried to pick "the" full-year detail sheet per
+  file by name, and broke silently on the 2024–2025 combined workbook, whose
+  named rollup sheet turned out to be **stale** — it only covers Jan–Aug
+  2024, while Sep 2024 through Dec 2025 exist only in that file's monthly
+  sheets. Fixed by reading and parsing *every* sheet in every file
+  unconditionally (a pivot "Summary" sheet, or any sheet with no real
+  per-permit data, correctly parses to nothing on its own — no column named
+  `WARD` to build a header from) and de-duplicating by permit number, rather
+  than trying to guess which single sheet is authoritative. A second finding
+  shaped the unit-economics panel's caveat rather than its logic: checked
+  live, a large share of the declared `VALUE` field for residential permits
+  clusters tightly on a handful of near-identical $/sqft rates (hundreds of
+  permits within cents of $167.22/sqft or $185.87/sqft in a single year, not
+  seen on office/retail/institutional permits in the same file) — consistent
+  with a standard municipal fee-assessment schedule rather than each
+  builder's independently reported project cost, so the card says $/sqft
+  here likely tracks Ottawa's own rate table more than the real market. See
+  `Python/municipal_permits_etl.py`'s module docstring for the full writeup
+  on all six cities.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The

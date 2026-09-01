@@ -167,6 +167,7 @@ USAGE
 Exits non-zero on any fetch failure (safe for the scheduled refresh).
 """
 
+import re
 import sys
 import json
 import argparse
@@ -175,9 +176,11 @@ from datetime import datetime
 from collections import defaultdict
 
 import requests
+import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = REPO_ROOT / "construction_json"
+OTT_CACHE = REPO_ROOT / "Python" / "ottawa_cache"
 
 VAN_API = ("https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/"
            "issued-building-permits/records")
@@ -1057,12 +1060,333 @@ def fetch_mississauga():
     }
 
 
+# =============================================================================
+# Ottawa — no API at all. 15 annual XLSX workbooks (2011-present) on
+# open.ottawa.ca, discovered live from the DCAT feed (not a hardcoded item-id
+# list, so a newly published year is picked up automatically) and cached
+# locally like ewrb_etl.py's XLSX pattern. Two real schema eras, detected per
+# SHEET rather than assumed by year or by sheet name:
+#   - 2011-2025 ("rich"): CONTRACTOR and APPL. TYPE columns the 2026 format
+#     lacks, area already in square FEET. Most years carry one full-year
+#     detail sheet ("Sheet1"/"Details"/"Detail"/"Permits"/"Permits 2020"
+#     depending on the year) alongside redundant monthly sheets that are
+#     pivot/summary tables, not per-permit rows.
+#   - 2026 (current, in-progress year): no full-year sheet at all, only
+#     monthly detail sheets. No contractor, no appl. type, area in square
+#     METRES (converted via SQM_TO_SQFT).
+# Every sheet in every file is read and parsed; a sheet with no per-permit
+# WARD column (a pivot "Summary" table, or -- checked live -- a normal-
+# looking monthly sheet that just has none) correctly parses to nothing and
+# contributes zero rows, so there is no need to pick "the right sheet" by
+# name at all. This was NOT the original design: an earlier version tried to
+# prefer a named full-year sheet over the monthly ones, and broke silently
+# on the "2024 to 2025" combined workbook, whose "Permits" rollup sheet
+# turned out to be STALE -- it only covers Jan-Aug 2024, while Sep 2024
+# through Dec 2025 exist only in that file's monthly sheets. Concatenating
+# every parseable sheet and dropping duplicate permit numbers is robust to
+# that kind of per-file inconsistency without needing to know about it in
+# advance. Every sheet is read via a header-row FINDER (scans for a cell
+# that is exactly "WARD"), not a fixed skiprows count -- checked live, at
+# least one rich-era file (2017's "Detail" sheet) also carries a banner
+# offset, so a fixed offset would have broken silently on that year alone.
+# =============================================================================
+
+OTT_DCAT = "https://open.ottawa.ca/api/feed/dcat-us/1.1.json"
+OTT_ITEM_DATA = "https://www.arcgis.com/sharing/rest/content/items/{id}/data"
+
+# Raw header text (after stripping to [A-Z0-9]) -> canonical field. Built
+# from every header variant actually seen across the 15 files, e.g.
+# "ST # "->address (dropped, not needed), "D.U."->"DU", "FT2"->"FT2",
+# "PERMIT#"->"PERMIT", "Permit Number"->"PERMITNUMBER".
+OTT_COLMAP = {
+    "WARD": "ward",
+    "CONTRACTOR": "contractor",
+    "BLGTYPE": "building_type", "BUILDINGTYPE": "building_type",
+    "MUNICIPALITY": "community", "COMMUNITY": "community",
+    "DU": "units",
+    "VALUE": "value",
+    "FT2": "area_sqft", "SQFT": "area_sqft",
+    "SQUAREMETRES": "area_sqm", "SQUAREMETRE": "area_sqm",
+    "PERMIT": "permit_number", "PERMITNUMBER": "permit_number",
+    "APPLTYPE": "appl_type", "APPLICATIONTYPE": "appl_type",
+    "ISSUEDDATE": "issued_date", "PERMITISSUEDDATE": "issued_date",
+}
+# Contractor values that mean "not disclosed", not a real filer -- excluded
+# from the concentration panel, not counted as a distinct contractor.
+OTT_CONTRACTOR_PLACEHOLDERS = {"CONTRACTOR UNKNOWN", "***CONTRACTOR***", "NAN", ""}
+
+
+def discover_ottawa_files():
+    """Query the DCAT feed live for every "Construction, demolition..."
+    annual workbook and return [(item_id, title)]. Not hardcoded: a newly
+    published year is picked up automatically on the next run."""
+    d = get(OTT_DCAT)
+    out = []
+    for ds in d.get("dataset", []):
+        title = ds.get("title") or ""
+        if "construction, demolition" not in title.lower():
+            continue
+        m = re.search(r"id=([a-f0-9]{32})", ds.get("identifier") or "")
+        if m:
+            out.append((m.group(1), title))
+    return out
+
+
+def download_ottawa_file(item_id, refresh=False):
+    OTT_CACHE.mkdir(parents=True, exist_ok=True)
+    path = OTT_CACHE / f"{item_id}.xlsx"
+    if refresh or not path.exists() or path.stat().st_size == 0:
+        r = requests.get(OTT_ITEM_DATA.format(id=item_id), headers=HEADERS, timeout=300)
+        r.raise_for_status()
+        path.write_bytes(r.content)
+    return path
+
+
+def find_header_row(raw_rows, max_scan=15):
+    """Row index containing a cell that is exactly 'WARD' -- the one column
+    label present, unchanged, in every schema era and every file checked,
+    and never present in the report-banner prose above it (which says
+    'WARDS: All', not 'WARD')."""
+    for i, row in enumerate(raw_rows[:max_scan]):
+        for cell in row:
+            if isinstance(cell, str) and cell.strip().upper() == "WARD":
+                return i
+    return None
+
+
+def parse_ottawa_sheet(df_raw):
+    """One raw (header=None) sheet -> a DataFrame with canonical columns
+    only. Returns None if no header row (e.g. a 'Summary' pivot sheet with
+    no 'WARD' column) is found."""
+    rows = df_raw.values.tolist()
+    hdr = find_header_row(rows)
+    if hdr is None:
+        return None
+    header = [re.sub(r"[^A-Z0-9]", "", str(c).upper()) for c in rows[hdr]]
+    colmap = {i: OTT_COLMAP[h] for i, h in enumerate(header) if h in OTT_COLMAP}
+    if "ward" not in colmap.values():
+        return None
+    data = rows[hdr + 1:]
+    out = {canon: [] for canon in set(colmap.values())}
+    for row in data:
+        if all(pd.isna(v) for v in row):
+            continue
+        for i, canon in colmap.items():
+            out[canon].append(row[i] if i < len(row) else None)
+    return pd.DataFrame(out)
+
+
+def load_ottawa_year(item_id, refresh=False, force=False):
+    """Read and concatenate EVERY sheet in the workbook, not just an assumed
+    full-year rollup sheet -- checked live, the "2024 to 2025" combined
+    workbook's "Permits" rollup sheet is stale (only Jan-Aug 2024), while
+    its monthly sheets separately cover Sep 2024 through Dec 2025; trusting
+    the rollup alone would have silently dropped 16 months. Most years' non-
+    detail sheets (pivot "Summary" tables, or a stale rollup's own gaps)
+    correctly parse to nothing -- no WARD column to find a header on -- so
+    concatenating everything and dropping duplicate permit numbers is robust
+    to whichever sheet(s) in a given file actually hold the real data."""
+    path = download_ottawa_file(item_id, refresh or force)
+    xl = pd.ExcelFile(path)
+    frames = []
+    for s in xl.sheet_names:
+        raw = pd.read_excel(path, sheet_name=s, header=None)
+        parsed = parse_ottawa_sheet(raw)
+        if parsed is not None and len(parsed):
+            frames.append(parsed)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    if "permit_number" in df:
+        df = df.drop_duplicates(subset="permit_number", keep="first")
+    return df
+
+
+def fetch_ottawa(refresh=False):
+    files = discover_ottawa_files()
+    print(f"  ottawa: discovered {len(files)} annual workbooks")
+    cur_year = str(datetime.now().year)
+    frames = []
+    for item_id, title in files:
+        # A closed historical year's workbook never changes once published,
+        # so it's cached indefinitely and only re-fetched with --refresh.
+        # The CURRENT calendar year's workbook is a moving target -- it
+        # updates monthly at the source (per the dataset's own "Update
+        # Frequency: Monthly" note) -- so it's always re-downloaded
+        # regardless of --refresh, or the scheduled monthly CI run (which
+        # never passes --refresh) would cache it once and go stale forever.
+        force = cur_year in title
+        print(f"    ...{title}{' (current year, forcing re-download)' if force else ''}", flush=True)
+        frames.append(load_ottawa_year(item_id, refresh, force))
+    df = pd.concat(frames, ignore_index=True)
+
+    df["issued_date"] = pd.to_datetime(df.get("issued_date"), errors="coerce")
+    df["value"] = pd.to_numeric(df.get("value"), errors="coerce")
+    df["units"] = pd.to_numeric(df.get("units"), errors="coerce").fillna(0)
+    if "area_sqft" not in df:
+        df["area_sqft"] = None
+    if "area_sqm" in df:
+        need = df["area_sqft"].isna() & df["area_sqm"].notna()
+        df.loc[need, "area_sqft"] = pd.to_numeric(df.loc[need, "area_sqm"], errors="coerce") * SQM_TO_SQFT
+    df["area_sqft"] = pd.to_numeric(df["area_sqft"], errors="coerce")
+
+    df = df[df["issued_date"].notna()]
+    df["ym"] = df["issued_date"].dt.strftime("%Y-%m")
+    df["yr"] = df["issued_date"].dt.strftime("%Y")
+    scoped = df[df["ym"] >= FLOOR]
+
+    by_month_n = scoped.groupby("ym").size().to_dict()
+    by_month_v = (scoped.groupby("ym")["value"].sum() / 1e6).round(2).to_dict()
+
+    def top(field, limit=None):
+        g = scoped.dropna(subset=[field])
+        g = g[g[field].astype(str).str.strip() != ""]
+        agg = g.groupby(field).agg(n=("value", "size"), val=("value", "sum"))
+        agg = agg.sort_values("val", ascending=False)
+        out = [[k, int(r["n"]), round(r["val"] / 1e6, 1)] for k, r in agg.iterrows()]
+        return out[:limit] if limit else out
+
+    areas = top("community", TOP_AREAS)
+    # "work" = building type (fine-grained, matches other cities' convention
+    # for that panel); "use" = application type (Construction/Demolition/
+    # Pool Enclosure/..., the broad category, absent for 2026's in-progress
+    # rows since that format dropped the column).
+    work = top("building_type")[:8]
+    use = top("appl_type")[:8] if "appl_type" in scoped else []
+
+    # Concentration: real contractor names only, placeholder values (a
+    # redacted "contractor is the owner", or genuinely blank) excluded from
+    # both the ranking and the distinct-filer count. Not available for 2026
+    # rows (no contractor column that year) -- those rows simply don't
+    # contribute, same as any other missing-field row elsewhere on this page.
+    conc = None
+    if "contractor" in scoped:
+        c = scoped.dropna(subset=["contractor"]).copy()
+        c["contractor"] = c["contractor"].astype(str).str.strip()
+        named = c[~c["contractor"].str.upper().isin(OTT_CONTRACTOR_PLACEHOLDERS)]
+        has_field = len(c)
+        agg = named.groupby("contractor").agg(n=("value", "size"), val=("value", "sum"))
+        threshold = 20
+        qualifying = agg[agg["n"] >= threshold].sort_values("n", ascending=False)
+        conc = {
+            "contractors": {
+                "threshold": threshold,
+                "coverage_reason": ("the city redacts this field to "
+                                    "\"CONTRACTOR UNKNOWN\" or "
+                                    "\"***CONTRACTOR***\" when the "
+                                    "contractor is the property owner, or "
+                                    "leaves it blank"),
+                "field_coverage_pct": round(len(named) / has_field * 100, 1) if has_field else 0,
+                "total_distinct": agg.shape[0],
+                "qualifying": qualifying.shape[0],
+                "permits_covered": int(qualifying["n"].sum()),
+                "pct_of_field_permits": round(qualifying["n"].sum() / len(named) * 100, 1) if len(named) else 0,
+                "top": [[k, int(r["n"]), round(r["val"] / 1e6, 1)]
+                       for k, r in qualifying.head(15).iterrows()],
+            },
+        }
+
+    # Unit economics: residential building types with dwelling units added.
+    # Ottawa has no "new construction only" flag the way Mississauga's SCOPE
+    # or Calgary's workclass do -- checked live, appl_type='Construction' is
+    # the broadest category (covers additions and alterations too, not just
+    # new builds), so units>0 on a residential building type is the closest
+    # available proxy and is stated as such, not presented as more precise
+    # than it is. Learned from Mississauga: medians of each permit's own
+    # ratio, not sum(cost)/sum(units), and floor area already in sqft for
+    # every era except 2026 (converted above).
+    RES_TYPES = {"SINGLE", "SEMI-DETACHED", "SEMI", "ROWHOUSE", "ROW", "DUPLEX",
+                "TRIPLEX", "APARTMENT", "TOWNHOUSE"}
+    econ_scope = scoped[scoped["units"] > 0].copy()
+    if "building_type" in econ_scope:
+        econ_scope = econ_scope[econ_scope["building_type"].astype(str).str.upper()
+                                .str.strip().isin(RES_TYPES)]
+    econ_scope = econ_scope[econ_scope["value"] > 0]
+    unit_economics = {
+        "scope_note": ("Residential building types (single/semi/row/duplex/"
+                      f"triplex/apartment/townhouse) with dwelling units "
+                      f"added, {FLOOR} forward. Ottawa has no 'new "
+                      "construction only' flag the way other cities' data "
+                      "does -- units added on a residential permit is the "
+                      "closest available proxy, and may include some large "
+                      "additions/conversions alongside new builds. Figures "
+                      "are the MEDIAN of each permit's own $/unit, $/sqft "
+                      "and sqft/unit, not a sum(cost)/sum(units) aggregate, "
+                      "the same reasoning as Mississauga's equivalent panel. "
+                      "Floor area is recorded in square feet for 2011-2025 "
+                      "and square metres for 2026 (converted here). "
+                      "IMPORTANT, checked live: a large share of this "
+                      "declared VALUE clusters tightly on a small number of "
+                      "near-identical $/sqft rates (hundreds of permits "
+                      "within cents of $167.22/sqft or $185.87/sqft in a "
+                      "single year) -- not seen on office/retail/"
+                      "institutional permits in the same file -- consistent "
+                      "with a standard municipal fee-assessment schedule for "
+                      "new residential construction rather than each "
+                      "builder's independently reported project cost. So "
+                      "$/sqft here likely tracks Ottawa's own rate table "
+                      "more than the real market, and $/unit (which depends "
+                      "on the same VALUE field) inherits the same caveat."),
+        "by_year": [],
+    }
+    for yr, grp in econ_scope.groupby("yr"):
+        per_unit = (grp["value"] / grp["units"]).tolist()
+        row = [yr, len(grp), round(pd.Series(per_unit).median()) if per_unit else None,
+              None, None, None]
+        sq = grp.dropna(subset=["area_sqft"])
+        sq = sq[sq["area_sqft"] > 0]
+        if len(sq):
+            row[3] = round((sq["value"] / sq["area_sqft"]).median(), 1)
+            row[4] = round((sq["area_sqft"] / sq["units"]).median())
+            row[5] = len(sq)
+        unit_economics["by_year"].append(row)
+    unit_economics["by_year"].sort(key=lambda r: r[0])
+
+    total = len(scoped)
+    has_value = int(scoped["value"].notna().sum())
+
+    result = {
+        "label": "City of Ottawa",
+        "cma": "ottawa",
+        "coverage": ("Full City of Ottawa (post-amalgamation boundary), "
+                    "which is very close to the Ottawa-Gatineau CMA's "
+                    "Ontario side -- but the CMA also includes Gatineau and "
+                    "other Quebec municipalities this data does not cover."),
+        "licence": "City of Ottawa Open Data Terms of Use",
+        "count": months_to_series(by_month_n),
+        "value": months_to_series(by_month_v),
+        "areas": areas,
+        "areas_label": "community",
+        "work": work,
+        "use": use,
+        "quality": {
+            "rows": total,
+            "has_value": has_value,
+            "value_coverage_pct": round(has_value / total * 100, 1) if total else 0,
+            "note": ("No live API -- 15 annual Excel workbooks with two "
+                    "schema eras (see Python/municipal_permits_etl.py). No "
+                    "processing-time or build-time panel: only one date "
+                    "(issuance) exists in this data, unlike cities with "
+                    "application/completion dates too."),
+        },
+        "unit_economics": unit_economics,
+    }
+    if conc:
+        result["concentration"] = conc
+    return result
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
-                    help="accepted for symmetry with the other ETLs; these "
-                         "portals are queried live and never cached")
-    ap.parse_args()
+                    help="Vancouver/Toronto/Calgary/Edmonton/Mississauga are "
+                         "always queried live and never cached, so this flag "
+                         "only affects Ottawa: force re-download every "
+                         "cached historical-year XLSX workbook, not just the "
+                         "current year (which is always re-downloaded "
+                         "regardless, since it updates monthly at the "
+                         "source and closed years never change)")
+    args = ap.parse_args()
 
     cities = {}
     try:
@@ -1084,6 +1408,10 @@ def main():
         cities["mississauga"] = fetch_mississauga()
         print(f"  mississauga: {len(cities['mississauga']['areas'])} wards, "
               f"{len(cities['mississauga']['work'])} building types")
+        print("fetching Ottawa (15 annual XLSX workbooks, no API)...")
+        cities["ottawa"] = fetch_ottawa(args.refresh)
+        print(f"  ottawa: {len(cities['ottawa']['areas'])} communities, "
+              f"{len(cities['ottawa']['work'])} building types")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1102,6 +1430,8 @@ def main():
                         "(Socrata SODA API)",
             "mississauga": "City of Mississauga open data, Issued Building "
                           "Permits (Esri ArcGIS FeatureServer)",
+            "ottawa": "City of Ottawa open data, Construction/Demolition/Pool "
+                     "Permits (15 annual XLSX workbooks, no API)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "

@@ -1814,12 +1814,12 @@ function muniCityBlockHTML(k){
     '</div>'+
   '</div>'+
   '<div class="chart-grid" id="muni-concentration-card-'+k+'">'+
-    '<div class="card">'+
+    '<div class="card" id="muni-conc-applicants-card-'+k+'">'+
       '<div class="card-title">Top applicants (20+ permits)</div>'+
       '<div id="muni-conc-applicants-'+k+'"></div>'+
       '<p class="note" id="muni-conc-applicants-note-'+k+'"></p>'+
     '</div>'+
-    '<div class="card">'+
+    '<div class="card" id="muni-conc-contractors-card-'+k+'">'+
       '<div class="card-title">Top contractors (20+ permits)</div>'+
       '<div id="muni-conc-contractors-'+k+'"></div>'+
       '<p class="note" id="muni-conc-contractors-note-'+k+'"></p>'+
@@ -1975,8 +1975,12 @@ function renderOneMuniCity(k, city){
 
   var cc=document.getElementById('muni-concentration-card-'+k);
   var conc=city.concentration;
-  if(conc){
-    cc.style.display='';
+  /* Not every city has both fields -- Ottawa's schema only ever had
+     CONTRACTOR, never an applicant/design-professional column, so each half
+     of this card is shown or hidden independently rather than assuming a
+     concentration object always carries both. */
+  if(conc&&conc.applicants){
+    document.getElementById('muni-conc-applicants-card-'+k).style.display='';
     var ap=conc.applicants;
     hBars('muni-conc-applicants-'+k,ap.top.map(function(a){
       return {label:a[0], v:a[1]};
@@ -1990,16 +1994,27 @@ function renderOneMuniCity(k, city){
       'name one. "Applicant" is "often the design professional or their firm" per the field\'s own definition — '+
       'the names atop this list are architecture, design and building firms, not individual homeowners, since a '+
       'private owner rarely files enough permits to clear a 20-permit bar. Bars show permit count, not dollar value.';
+  }else{
+    document.getElementById('muni-conc-applicants-card-'+k).style.display='none';
+  }
+  if(conc&&conc.contractors){
+    document.getElementById('muni-conc-contractors-card-'+k).style.display='';
     var co=conc.contractors;
     hBars('muni-conc-contractors-'+k,co.top.map(function(c){
       return {label:c[0], v:c[1]};
     }),{fmt:fmtInt});
     document.getElementById('muni-conc-contractors-note-'+k).innerHTML=
-      'Contractor is named on only <strong>'+co.field_coverage_pct+'%</strong> of permits — often not yet '+
-      'chosen at issuance — so this scopes to permits that name one. <strong>'+fmtInt(co.qualifying)+
-      '</strong> contractors ('+(co.qualifying/co.total_distinct*100).toFixed(1)+'% of '+fmtInt(co.total_distinct)+
-      ' named) have <strong>'+co.threshold+'+</strong> permits each, covering <strong>'+co.pct_of_field_permits+
-      '%</strong> of permits that name a contractor.';
+      'Contractor is named on only <strong>'+co.field_coverage_pct+'%</strong> of permits'+
+      (co.coverage_reason?' ('+co.coverage_reason+')':' — often not yet chosen at issuance')+
+      ' — so this scopes to permits that name one, excluding placeholder values where present. '+
+      '<strong>'+fmtInt(co.qualifying)+'</strong> contractors ('+(co.qualifying/co.total_distinct*100).toFixed(1)+
+      '% of '+fmtInt(co.total_distinct)+' named) have <strong>'+co.threshold+'+</strong> permits each, covering '+
+      '<strong>'+co.pct_of_field_permits+'%</strong> of permits that name a contractor.';
+  }else{
+    document.getElementById('muni-conc-contractors-card-'+k).style.display='none';
+  }
+  if(conc){
+    cc.style.display='';
   }else{
     cc.style.display='none';
   }
