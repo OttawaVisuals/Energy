@@ -275,9 +275,37 @@ footnotes:
   seen on office/retail/institutional permits in the same file) — consistent
   with a standard municipal fee-assessment schedule rather than each
   builder's independently reported project cost, so the card says $/sqft
-  here likely tracks Ottawa's own rate table more than the real market. See
-  `Python/municipal_permits_etl.py`'s module docstring for the full writeup
-  on all six cities.
+  here likely tracks Ottawa's own rate table more than the real market.
+- **Montreal (added 2026-09-01)** joins as a seventh city, on the field list
+  the user gave directly from `donnees.montreal.ca` (date_debut, date_emission,
+  code_type_base_demande, nb_logements, longitude/latitude). CKAN
+  `datastore_search_sql` server-side aggregation — 558,874 rows since 1997 is
+  the largest dataset of any city here, too many to page raw. The endpoint
+  blocks the `CAST` function outright but allows PostgreSQL's `::type`
+  shorthand and `percentile_cont` for server-side medians, so processing time
+  (date_debut → date_emission, real signal: only 27% same-day, zero negative
+  rows) needed no client-side date-diffing at all, unlike every other city
+  with that panel. **No cost field anywhere in this resource's schema** —
+  re-confirmed live, not an undercount like Toronto's — so areas and work
+  panels are ranked and labelled by **permit count**, not dollar value, the
+  only city on this page where that's true (`"value_basis": "count"`, which
+  the page reads to switch the areas panel's title/format instead of
+  assuming every city has a $ figure to rank by). No concentration panel (no
+  contractor/applicant field) and no build-time or unit-economics panel (no
+  completion date, no cost). An earlier evaluation had rejected Montreal
+  outright over two findings; re-checked live and one turned out to be
+  **stale**: the dataset's own methodology page still says Lachine and
+  Saint-Léonard borough data "n'est pas disponible actuellement" pending an
+  in-progress system migration, but checked live, both boroughs have permits
+  dated exactly as recently (2026-08-24) as an actively-updated borough like
+  Le Plateau-Mont-Royal — the migration evidently finished and nobody updated
+  the caveat text, so both are included. The no-cost-field half of the
+  rejection held up on re-check. `description_type_batiment` (used for the
+  page's unused-but-computed `use` field) carries real casing duplicates
+  across boroughs (`"Commercial"`/`"commercial"`/`"Commerce"` all appear
+  separately) — normalized to uppercase for grouping rather than picking one
+  casing arbitrarily. See `Python/municipal_permits_etl.py`'s module
+  docstring for the full writeup on all seven cities.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The

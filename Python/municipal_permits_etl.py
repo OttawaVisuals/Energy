@@ -1,63 +1,67 @@
 """
 municipal_permits_etl.py
 
-Permit-level open data from four city portals plus one Esri FeatureServer,
-aggregated into construction_json/municipal.json for the Construction
-Tracker's municipal deep-dive card.
+Permit-level open data from six city portals/APIs plus one no-API workbook
+pipeline, aggregated into construction_json/municipal.json for the
+Construction Tracker's municipal deep-dive card.
 
-WHY THESE FIVE CITIES
+WHY THESE SEVEN CITIES
     Every other source on this page is a national aggregate on one schema.
     Municipal permits are the opposite: one schema, refresh cadence and set of
-    coverage caveats per city. Vancouver, Toronto, Calgary, Edmonton and
-    Mississauga earn their keep — Vancouver has the cleanest schema and
-    refreshes daily, Toronto is the only portal found that publishes
+    coverage caveats per city. Vancouver has the cleanest schema and
+    refreshes daily; Toronto is the only portal found that publishes
     dedicated GREEN ROOF and SOLAR HOT WATER permit datasets (the one
-    municipal energy signal in the country), Calgary is both the richest
+    municipal energy signal in the country); Calgary is both the richest
     schema of any Socrata city evaluated (a real status field, a clean cost
     field, dwelling units, full community-level geography) and the only one
-    where the city boundary is close to its CMA (see below), Edmonton has the
+    where the city boundary is close to its CMA (see below); Edmonton has the
     longest clean history of any city here (back to 2009, though this ETL
     floors it to 2017 like the rest) on a dataset the city explicitly labels
-    its "Primary" building permits view — deduplicated, verified for
-    accuracy, updated daily — and Mississauga is the richest schema of any
-    city here full stop: a real STATUS field, three genuinely distinct dates
-    (application/issue/complete, unlike Edmonton's two identical ones), and
-    it is the only city where "Inside one city" shows more than one city at
-    once — Mississauga sits inside the Toronto CMA alongside the City of
-    Toronto's own permit desk, so both render together when Toronto is the
-    selected geo.
+    its "Primary" building permits view; Mississauga has a real STATUS field
+    and three genuinely distinct dates (application/issue/complete), and is
+    the only city where "Inside one city" shows more than one city at once —
+    it sits inside the Toronto CMA alongside the City of Toronto's own permit
+    desk, so both render together when Toronto is the selected geo; Ottawa is
+    the only city here reachable through no API at all, just 15 annual XLSX
+    workbooks, and still clears the bar because the underlying data is rich
+    (real contractor names among them); and Montreal has the largest single
+    dataset by row count (558,874 rows since 1997) and, alongside Vancouver
+    and Calgary, a genuine processing-time signal, despite having no cost
+    field whatsoever — the only city on this page ranked by permit count
+    rather than dollar value.
 
-    Edmonton was re-evaluated 2026-09-01 after an earlier pass (see below)
-    wrongly rejected it. What's genuinely different about Edmonton, checked
-    live: it has NO applicant or contractor field, and NOT because the data
-    is missing — the city's own dataset description states plainly that
-    applicant information was deliberately excluded as a privacy measure
-    (naming a permit applicant would make a private individual's name and,
-    by extension, address, searchable). So Edmonton gets no concentration
-    panel, full stop, and that is the right call on the city's part, not a
-    gap to work around. Edmonton's two date columns are also confusingly
-    inverted: the UI displays a column labelled "PERMIT_DATE" that is
-    actually the API's `issue_date` field, and one labelled
-    "REPORT_PERMIT_DATE" that is actually `permit_date`. Checked live: the
-    two are IDENTICAL on every single row (143,693 of 143,693 since 2017) —
-    there is no separate application-to-issuance interval to measure, so
-    Edmonton gets no processing-time panel either, unlike Vancouver and
-    Calgary. It does have `occupancy_granted_date`, which supports a
-    Calgary-style build-time panel, but with much narrower coverage: the city
-    only started populating it for residential permits finalized on/after
-    2022-01-01 and non-residential completed on/after 2024-01-01 — the card
-    states this rather than implying full history.
+    Three of these seven were rejected in an earlier pass and only shipped
+    after being RE-evaluated live, each time because a previous rejection
+    elsewhere in this same investigation had already turned out to be wrong
+    once actually re-checked rather than trusted from memory:
 
-    Montreal (CKAN, `datastore_search_sql` works there) was evaluated and is
-    reachable, but was left out: its per-permit rows carry no cost or status
-    field (cost only exists pre-aggregated by year/borough, not joinable back
-    to individual permits) and two boroughs are currently missing from an
-    in-progress system migration. Ottawa was assumed reachable via ArcGIS in
-    an earlier pass of this evaluation — that was wrong. Ottawa's open-data
-    portal publishes permits only as ~10+ separate annual .xlsx bulk-download
-    workbooks with no API and no server-side aggregation at all. More schemas
-    is maintenance, not insight, unless a city's data clears a real bar —
-    Calgary and Edmonton did; these did not, yet.
+    Edmonton (re-evaluated 2026-09-01): the earlier pass called its dataset
+    "several overlapping/redundant" — wrong; the real dataset is explicitly
+    the city's "Primary Dataset or View" (deduplicated, verified, daily
+    updates). What IS genuinely true, checked live: no applicant or
+    contractor field, and not because the data is missing — the city's own
+    dataset description states plainly that applicant information was
+    deliberately excluded as a privacy measure. So Edmonton gets no
+    concentration panel, and that is the right call on the city's part, not
+    a gap to work around. Its two date columns are also confusingly
+    inverted (the UI's "PERMIT_DATE" is actually the API's `issue_date`,
+    and "REPORT_PERMIT_DATE" is actually `permit_date`) and, checked live,
+    IDENTICAL on every row since 2017 — no processing-time panel either.
+
+    Ottawa (added 2026-09-01): the earlier pass was right that there is no
+    API (confirmed live: every resource is `type: "Microsoft Excel"`, no
+    queryable url), but wrong that this made the data a dead end — it just
+    meant a different pipeline (15 annual workbooks, discovered live from
+    the DCAT feed, cached locally). See the Ottawa section below for the
+    live-caught stale-rollup-sheet bug this uncovered.
+
+    Montreal (added 2026-09-01): the earlier pass was right that there is no
+    cost field (still true, re-confirmed against the live schema) but wrong
+    that two boroughs (Lachine, Saint-Léonard) were unavailable — the
+    dataset's own methodology text still claims this, but checked live, both
+    boroughs have permits dated as recently as any actively-updated borough.
+    The migration evidently finished and the caveat text was never updated;
+    both are included here.
 
 THE COVERAGE CAVEAT THAT MATTERS
     A city is not its census metropolitan area. The City of Vancouver is a
@@ -125,6 +129,24 @@ SOURCES
                field exists in this schema at all (not excluded for privacy
                like Edmonton — it was simply never collected), so no
                concentration panel.
+    Ottawa     No API. 15 annual XLSX workbooks (2011-present) on
+               open.ottawa.ca, discovered live from the DCAT feed and cached
+               locally (Python/ottawa_cache/, gitignored). Two schema eras
+               detected per SHEET, not per year — see the dedicated Ottawa
+               section below for the full parsing strategy and the live-
+               caught stale-rollup-sheet bug that shaped it. City of Ottawa
+               Open Data Terms of Use.
+    Montreal   CKAN `datastore_search_sql`, server-side SQL aggregation —
+               558,874 rows since 1997 is too many to page raw the way
+               Toronto's smaller dataset is. The endpoint blocks the `CAST`
+               function outright ("Not authorized to call function CAST")
+               but allows the `::type` shorthand and `percentile_cont` for
+               server-side medians. No cost field anywhere in this resource's
+               schema (a separate pre-aggregated stats CSV exists but isn't
+               joinable back to individual permits), so areas/work panels
+               here are ranked by permit count, not dollar value — see the
+               dedicated Montreal section below. Creative Commons Attribution
+               4.0 International (Ville de Montréal).
 
 DATA QUALITY
     Toronto's EST_CONST_COST column contains a literal placeholder string,
@@ -1376,6 +1398,154 @@ def fetch_ottawa(refresh=False):
     return result
 
 
+# =============================================================================
+# Montreal — CKAN datastore_search_sql, server-side SQL aggregation (like
+# Calgary/Edmonton) rather than paging raw records (Toronto's approach):
+# 558,874 rows is too many to page economically, and this portal's SQL
+# endpoint handles GROUP BY, percentile_cont (server-side median) and date
+# arithmetic on the TEXT-typed date columns via `::date` casts fine -- just
+# not the `CAST(...AS...)` function form, which the endpoint blocks outright
+# ("Not authorized to call function CAST"; the `::type` shorthand works).
+#
+# NO COST FIELD AT ALL -- re-confirmed live 2026-09-01, matching an earlier
+# evaluation: this resource's schema has no per-permit value/cost column of
+# any kind (the separate "Statistiques..." CSV has cost, but only
+# pre-aggregated by year/borough/type, not joinable back to an individual
+# permit). So Montreal gets no $-based cross-chart (falls back to dwelling
+# units created, like Toronto), no unit-economics table, and its areas/work/
+# use panels are ranked and formatted by PERMIT COUNT rather than dollar
+# value -- the only city on this page where that's true, signalled via
+# "value_basis": "count" for the page to read instead of assuming dollars.
+#
+# The other half of that earlier evaluation -- Lachine and Saint-Léonard
+# excluded due to an in-progress system migration -- turned out to be STALE:
+# the dataset's own methodology text still says their data "n'est pas
+# disponible actuellement", but checked live, both boroughs have permits
+# with the exact same most-recent date (2026-08-24) as an actively-updated
+# borough like Le Plateau-Mont-Royal. The migration evidently finished and
+# nobody updated the caveat text; both boroughs are included here.
+# =============================================================================
+
+MTL_SQL_API = "https://donnees.montreal.ca/api/3/action/datastore_search_sql"
+MTL_RID = "5232a72d-235a-48eb-ae20-bb9d501300ad"
+
+# code_type_base_demande -> human label (confirmed against the live data's
+# own distinct values: TR dominates at 345,588 of 558,874 rows).
+MTL_WORK_LABELS = {
+    "TR": "Transformation",
+    "CA": "Certificat d'autorisation",
+    "CO": "Construction",
+    "DE": "Démolition",
+}
+
+
+def mtl_sql(sql):
+    return get(MTL_SQL_API, {"sql": sql})["result"]["records"]
+
+
+def fetch_montreal():
+    since_floor = f"date_emission >= '{FLOOR}-01'"
+
+    monthly_n = mtl_sql(f'SELECT substr(date_emission,1,7) as ym, count(*) as n '
+                       f'FROM "{MTL_RID}" WHERE {since_floor} GROUP BY ym')
+    by_month_n = {r["ym"]: int(r["n"]) for r in monthly_n if r.get("ym")}
+
+    # nb_logements is TEXT; '^[0-9]+$' excludes blanks and non-numeric junk
+    # (checked live: the field is otherwise clean, no placeholder strings).
+    monthly_u = mtl_sql(f"SELECT substr(date_emission,1,7) as ym, "
+                       f"sum(nb_logements::integer) as units "
+                       f'FROM "{MTL_RID}" WHERE {since_floor} '
+                       f"AND nb_logements ~ '^[0-9]+$' GROUP BY ym")
+    by_month_u = {r["ym"]: int(float(r["units"] or 0)) for r in monthly_u if r.get("ym")}
+
+    areas_raw = mtl_sql(f'SELECT arrondissement, count(*) as n FROM "{MTL_RID}" '
+                       f"WHERE {since_floor} AND arrondissement IS NOT NULL "
+                       f"GROUP BY arrondissement ORDER BY n DESC")
+    work_raw = mtl_sql(f'SELECT code_type_base_demande, count(*) as n FROM "{MTL_RID}" '
+                      f"WHERE {since_floor} GROUP BY code_type_base_demande ORDER BY n DESC")
+    # description_type_batiment carries real casing duplicates across
+    # boroughs (checked live: "Commercial"/"commercial"/"Commerce" all
+    # appear separately) -- upper()'d here rather than picking one casing
+    # arbitrarily, so the grouping is honest about being normalized.
+    use_raw = mtl_sql(f"SELECT upper(description_type_batiment) as bt, count(*) as n "
+                     f'FROM "{MTL_RID}" WHERE {since_floor} '
+                     f"AND description_type_batiment IS NOT NULL "
+                     f"GROUP BY bt ORDER BY n DESC LIMIT 8")
+
+    def tidy_count(rows, key):
+        # val = n (count), same convention as every other city's [name,n,val]
+        # tuple, but here val IS the count -- see "value_basis" below.
+        return [[r[key], int(r["n"]), int(r["n"])] for r in rows if r.get(key)]
+
+    areas = tidy_count(areas_raw, "arrondissement")[:TOP_AREAS]
+    work = [[MTL_WORK_LABELS.get(r["code_type_base_demande"], r["code_type_base_demande"]),
+            int(r["n"]), int(r["n"])] for r in work_raw if r.get("code_type_base_demande")]
+    use = [[r["bt"], int(r["n"]), int(r["n"])] for r in use_raw if r.get("bt")]
+
+    # Processing time: date_debut -> date_emission, median via server-side
+    # percentile_cont. Real signal (checked live: only 27% same-day, zero
+    # negative-day rows), unlike Edmonton's identical-date dead end.
+    proc_type = mtl_sql(f"SELECT code_type_base_demande, "
+                       f"percentile_cont(0.5) within group "
+                       f"(order by (date_emission::date - date_debut::date)) as med, "
+                       f"count(*) as n FROM \"{MTL_RID}\" WHERE {since_floor} "
+                       f"AND date_emission::date >= date_debut::date "
+                       f"GROUP BY code_type_base_demande")
+    proc_year = mtl_sql(f"SELECT substr(date_debut,1,4) as yr, "
+                       f"percentile_cont(0.5) within group "
+                       f"(order by (date_emission::date - date_debut::date)) as med, "
+                       f"count(*) as n FROM \"{MTL_RID}\" WHERE {since_floor} "
+                       f"AND date_emission::date >= date_debut::date "
+                       f"GROUP BY yr ORDER BY yr")
+
+    total = int(mtl_sql(f'SELECT count(*) as n FROM "{MTL_RID}" '
+                       f"WHERE {since_floor}")[0]["n"])
+
+    return {
+        "label": "City of Montreal",
+        "cma": "montreal",
+        "coverage": ("Full City of Montreal (all 19 boroughs, including "
+                    "Lachine and Saint-Léonard), which is close to but not "
+                    "the same as the Montréal CMA -- the CMA also includes "
+                    "Laval, Longueuil and dozens of off-island municipalities "
+                    "this data does not cover."),
+        "licence": "Creative Commons Attribution 4.0 International "
+                  "(Ville de Montréal)",
+        "count": months_to_series(by_month_n),
+        "units_created": months_to_series(by_month_u),
+        "areas": areas,
+        "areas_label": "borough",
+        "work": work,
+        "use": use,
+        "value_basis": "count",
+        "quality": {
+            "rows": total,
+            "unparseable_cost_pct": 100.0,
+            "note": ("This resource has no cost/value field at all -- "
+                    "confirmed against its own schema, not an undercount "
+                    "like Toronto's. Montréal separately publishes a "
+                    "PRE-AGGREGATED cost statistics file (by year, borough "
+                    "and permit type), but it cannot be joined back to "
+                    "individual permits, so it is not used here. Areas, work "
+                    "type and building-type panels are therefore ranked by "
+                    "PERMIT COUNT, not dollar value, unlike every other city "
+                    "on this page."),
+        },
+        "processing": {
+            "unit_note": ("Days from application to issuance (date_debut to "
+                          "date_emission). Median, not mean. Rows where "
+                          "issuance precedes application (a data-entry "
+                          "artifact, none found live as of this build) would "
+                          "be excluded, not zeroed."),
+            "by_type": [[MTL_WORK_LABELS.get(r["code_type_base_demande"], r["code_type_base_demande"]),
+                        int(r["n"]), round(float(r["med"]), 1)]
+                       for r in proc_type if r.get("med") is not None],
+            "by_year": [[r["yr"], int(r["n"]), round(float(r["med"]), 1)]
+                       for r in proc_year if r.get("yr") and r.get("med") is not None],
+        },
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
@@ -1412,6 +1582,10 @@ def main():
         cities["ottawa"] = fetch_ottawa(args.refresh)
         print(f"  ottawa: {len(cities['ottawa']['areas'])} communities, "
               f"{len(cities['ottawa']['work'])} building types")
+        print("fetching Montreal (CKAN datastore_search_sql, server-side aggregation)...")
+        cities["montreal"] = fetch_montreal()
+        print(f"  montreal: {len(cities['montreal']['areas'])} boroughs, "
+              f"{len(cities['montreal']['work'])} work types")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1432,6 +1606,8 @@ def main():
                           "Permits (Esri ArcGIS FeatureServer)",
             "ottawa": "City of Ottawa open data, Construction/Demolition/Pool "
                      "Permits (15 annual XLSX workbooks, no API)",
+            "montreal": "Ville de Montréal open data, Permis de construction, "
+                       "transformation et démolition (CKAN datastore_search_sql)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "
