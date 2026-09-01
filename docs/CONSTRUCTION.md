@@ -32,6 +32,22 @@ totals).
 Advanced mode also gains construction job vacancies and the average offered hourly
 wage, alongside the existing employment-vs-backlog chart.
 
+**CHBA Housing Market Index (added 2026-08-31):** a "Builder confidence" card
+in the pipeline section — national single-family and multi-family HMI (0–100
+sentiment scale, 50 = neutral), Q1 2021 through the current quarter, plus a
+regional tile for Ontario/BC/Prairies/Atlantic views (CHBA's only regional
+cuts; Quebec and the territories have no HMI region, so those views show the
+national chart alone). Hand-transcribed, same cite-only pattern as Greener
+Homes and CHBA Net Zero below — the HMI page's charts are static images with
+no data file, and a check of their auto-generated alt text found it
+unreliable (a mislabelled quarter on one chart, a swapped category on
+another), so the card is built from the page's own prose "Key Findings" text
+instead. Regional scores only go back to 2024 Q2 — CHBA reported them as
+qualitative description, not index numbers, before that quarter. Multi-family
+Atlantic Canada is never reported in any quarter checked. See
+`Python/cited_figures.json`'s `chba_hmi` entry for the full quarter-by-quarter
+figures and its documented gaps.
+
 **CaGBC LEED &amp; Zero Carbon (added 2026-08-28):** a "Certified green buildings"
 card — 9,952 LEED-family registrations (7,541 certified) and 461 certified
 Zero Carbon Buildings, nationally, broken out by province. Built after
@@ -73,6 +89,7 @@ Python/construction_context_etl.py  # context: 18-10-0205 NHPI, 17-10-0009 pop,
                                     #   + meta.json (key scheme, units, dates)
 
 Python/municipal_permits_etl.py     # Vancouver (Opendatasoft) + Toronto (CKAN)
+                                    #   + Calgary (Socrata SoQL)
         → construction_json/municipal.json
 
 Python/ewrb_etl.py                  # Ontario large-building energy disclosure
@@ -138,8 +155,22 @@ footnotes:
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The
   card says so and states the ratio (Vancouver ≈ 40% of its metro's permit value;
   Toronto ≈ 50% of its metro's dwelling units created) rather than implying the
-  lines should meet. Two cities only, deliberately: Calgary (Socrata) and Ottawa
-  (ArcGIS) are reachable but four schemas is maintenance, not insight.
+  lines should meet. **Calgary is the exception**: per the 2021 Census the City of
+  Calgary (1,306,784) is ≈88% of the Calgary CMA (1,481,806, which also covers
+  Airdrie, Cochrane, Chestermere and Rocky View County), so its series tracks the
+  CMA far more closely — still not identically, and the card states the live
+  ratio rather than assuming it. Three cities, deliberately: Montreal (CKAN,
+  `datastore_search_sql` works) has no cost or status field per permit — cost
+  only exists pre-aggregated by year/borough — and two boroughs (Lachine,
+  Saint-Léonard) are currently missing from an in-progress system migration.
+  Edmonton (Socrata) has several overlapping/redundant permit datasets needing
+  reconciliation first and no status or postal/ward field. Ottawa publishes
+  permits only as ~10+ separate annual `.xlsx` bulk-download workbooks — no API,
+  no server-side aggregation (an earlier pass of this evaluation wrongly assumed
+  an ArcGIS feature layer existed). Calgary cleared the bar the other three
+  didn't: a real status field, a clean cost field (~92-95% populated since
+  2016, no Toronto-style placeholder corruption), dwelling units, and daily
+  refresh via Socrata SoQL server-side aggregation.
 - **Toronto's `EST_CONST_COST` is placeholder text on ~45% of rows** (the literal
   string `DO NOT UPDATE OR DELETE THIS INFO FIELD`). Its permit *counts* and
   *dwelling-unit* series are sound; its dollar totals are an undercount of unknown

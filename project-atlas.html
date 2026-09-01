@@ -872,7 +872,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · building costs by trade 18-10-0289 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
     <div class="src">Demand<small>absorptions &amp; unsold inventory 34-10-0149 · rental vacancy 34-10-0127 (both CMA-only)</small></div>
     <div class="src">Program counts<small>NRCan Greener Homes · CHBA Net Zero labels — hand-transcribed, machine-verified against the live pages</small></div>
-    <div class="src">City permit desks<small>Vancouver (Opendatasoft) · Toronto (CKAN), incl. green-roof and solar-hot-water permits</small></div>
+    <div class="src">City permit desks<small>Vancouver (Opendatasoft) · Toronto (CKAN), incl. green-roof and solar-hot-water permits · Calgary (Socrata)</small></div>
     <div class="src">Building energy<small>Ontario EWRB — every Ontario building over 100,000 sq ft, self-reported</small></div>
     <div class="src">Certified buildings<small>CaGBC LEED &amp; Zero Carbon — one-time export, no sign-in required, aggregated to province/program counts</small></div>
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
@@ -947,14 +947,21 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     Ontario <i>starts</i> for July 2026 returns real data. The endpoint works; the series is gone.
     It is a genuine CMHC discontinuation, and the page's caveat stands with two independent
     confirmations behind it.</p>
-    <h4>Two cities, and what their data will and won't support</h4>
+    <h4>Three cities, and what their data will and won't support</h4>
     <p>City permit desks are the only address-level data on the page, and a city is not its metro
     area — so the card states the ratio rather than implying the lines should meet. Toronto's cost
     column turns out to hold the literal text <code>DO NOT UPDATE OR DELETE THIS INFO FIELD</code>
     on about 45% of rows, so its dollar totals are an undercount; its permit counts and dwelling-unit
     counts are sound. The cross-check therefore compares Toronto on dwelling units created and
     Vancouver on permit value. Toronto also needs both its permit datasets: "cleared" means closed,
-    so on its own the recent months collapse to a fraction of the true count.</p>
+    so on its own the recent months collapse to a fraction of the true count. Calgary (added
+    2026-09-01, evaluated against Ottawa, Montreal and Edmonton first) is the outlier: its city
+    boundary is ≈88% of its CMA's population rather than the ≈25-50% of Vancouver and Toronto, and
+    its cost field is clean enough (≈92-95% populated, no placeholder corruption) to compare on
+    permit value like Vancouver. Its API also had its own trap: Socrata sorts <code>NULL</code> as
+    the largest value under <code>ORDER BY ... DESC</code>, so an unordered pull with too small a
+    <code>$limit</code> silently dropped Calgary's single largest community by value before the fix —
+    sorting by parsed value client-side, over the full distinct-value count, not the API's order.</p>
     <h4>The one hand-typed number set on the page</h4>
     <p>NRCan's Greener Homes progress page has no data file, and each province's name sits
     <i>after</i> its figures in the markup — so a positional parser pairs them off by one and
@@ -1468,6 +1475,18 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
     <ul>
       <li>Real operating costs are wired in: TOU priced exactly from the engine's new month×hour electricity matrix, tiered plans priced marginally over a documented baseline, AB flagged as a screening estimate. See METHODOLOGY.md §Operating cost.</li>
       <li>Tool linked in README.md's tool list.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>🔨 In progress (2026-08-31) — "potential AC" cooling scenario, data layer only</h3>
+    <ul>
+      <li><b>Not yet on the live page.</b> Everything below is built and verified at the data layer (Python pipeline + JSON outputs); <code>heatpump.html</code>'s UI and simulation engine have not been touched to surface it.</li>
+      <li>Two correlations, checked directly against ERS data, let every heating-solved home get an estimated cooling profile with no separate AC-sizing control: peak heat ↔ peak cool (r=0.683) and peak cool ↔ annual cool energy (r=0.778, used as a through-origin ratio — annual heat/cool energy barely correlate with each other, r≈0.2). Folded into <code>build_city_house_profiles.py</code> as new <code>cool_peak_est_kW</code> / <code>cool_energy_est_kWh</code> / <code>balance_point_Tc_est_C</code> columns.</li>
+      <li>A standard-AC baseline (Goodman GLXS4B 3-ton, <code>build_ac_curves.py</code> → <code>ac_curves.json</code>) covers 92–99.5% of real homes at their own city design temperature.</li>
+      <li>Real cooling curves (not assumed SEER) now exist for 5 of 8 <code>hp_curves.json</code> heat pump models and 5 of 9 live <code>hp_cell_curves.json</code>/<code>hp_tier_selection.json</code> cells.</li>
+      <li><b>Headline finding:</b> SEER/SEER2 badges don't predict which unit actually uses less cooling electricity in a real climate — confirmed on 3 independent real units (GREE, Tosot, Fujitsu ducted), each carrying a higher badge than the Goodman AC baseline while sitting below it once integrated against real weather. Reconciled with an actual AHRI 210/240 bin-method reconstruction.</li>
+      <li>See <code>ROADMAP.md</code>'s 2026-08-31 entry and <code>HeatPump/METHODOLOGY.md</code> "Cooling / potential AC scenario" + "Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance" for full detail.</li>
     </ul>
   </div>
 </section>
