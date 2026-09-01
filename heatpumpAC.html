@@ -475,6 +475,16 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <p>Where the selected heat pump's own spec sheet publishes a temperature-indexed cooling table (5 of the 9 tier×size cells on this page, checked directly against each manufacturer's datasheet: Tosot 36k, GREE 24k/36k, Fujitsu 15k and 36k — the other 4 genuinely have no published cooling curve, not an extraction gap), that real curve is used for the "heat pump (cooling mode)" comparison instead of a second generic assumption. Both curves are normalized the same way as heating's, but on <b>95 °F</b> (the cooling AHRI/SEER anchor) rather than heating's 47 °F — the two <code>cap_frac</code> scales are not interchangeable.</p>
       <div class="caveats"><b>SEER/SEER2 badges do not predict this comparison's outcome.</b> Two of the three real heat-pump cooling curves checked (Tosot, GREE) carry a <i>higher</i> published SEER/SEER2 than the Goodman baseline, yet both use <i>more</i> electricity once their real measured points are integrated against a full year of real weather. The reconciliation: SEER is a standardized average across a published outdoor-temperature distribution that barely samples above 35 °C (the hottest standard AHRI bin, 38.9 °C, is weighted at only 0.4% of assumed cooling hours) — a unit can post a strong badge from shoulder-season performance while degrading faster than a competitor above that range, which is exactly where a real climate's cooling load is concentrated (load grows with outdoor temperature, so the biggest hours are near the design condition, not the mild ones SEER weights most). Use the kWh/GHG/cost numbers this page computes, not the equipment's badge, to judge which unit actually costs less to run here.</div>
 
+      <h5 id="m-undersized">When the equipment is undersized</h5>
+      <p>Neither piece of equipment is scaled to the home's estimated peak — by design, matching the rest of this page's "no archetype auto-sizing" stance (see above). The engine handles a temperature where <code>capacity &lt; load</code> by running the unit flat-out (<code>delivered = min(load, capacity)</code>) and pricing/emitting exactly that — a maxed-out unit really does draw exactly this much electricity, so the kWh/GHG/cost figures stay accurate for those hours. What's <i>not</i> represented is comfort: the home doesn't reach setpoint that hour, and this model has no cost or discomfort penalty for that shortfall.</p>
+      <p>This shows up most in mild-summer cities: the cooling balance point is solved against a <b>fixed 25 °C</b> indoor setpoint, so <code>UA_cool = peak_kW ÷ (design_cooling_temp − 25)</code> — for a city whose design cooling temperature sits only slightly above 25 °C (Vancouver, ≈25.7 °C, is the worst case among the 14 tracked cities), that denominator is small and UA_cool is large, so the load line climbs steeply just past the balance point while both the standard AC's and every heat pump's capacity curve stay close to flat (real cooling capacity barely changes with outdoor temperature). The two cross at some point, and the shortfall grows quickly above it.</p>
+      <div class="caveats">When either unit crosses this line, a red shaded zone appears on the Step 1 chart, a "Hours unmet" KPI reports what share of the cooling season is affected, and every stat card for that unit is flagged "undersized above X °C." If you don't see any of that, the selected equipment covers the full estimated load for this city/design-load combination.</div>
+
+      <h5 id="m-ac-refrig">Refrigerant leakage (standard AC only)</h5>
+      <p>The Goodman GLXS4B spec sheet (<code>SS-GLXS4B-R32</code>, "Product Specifications" table) states the refrigerant directly: <b>R-32</b>, factory charged for 15' of liquid line. The 36,000 Btu/h (3-ton) unit modelled here — <code>GLXS4BA3610A*</code> — is listed at <b>69 oz</b> (≈1.96 kg). This is a real spec-sheet figure for the exact unit used, not an estimate.</p>
+      <p>Annual leakage uses the same amortization the Heat Pump Explorer's heating side uses: a fixed 2%/yr in-service leak plus a 15%-of-charge end-of-life loss spread over a 15-year life, weighted by R-32's GWP100 (771, IPCC AR6 WG1 Ch.7 Table 7.SM.7) — <code>1.96 kg × (0.02 + 0.15⁄15) × 771 ≈ 45 kg CO₂e/yr</code>. Unlike the heating side, this isn't a user-adjustable slider here; it's a fixed figure baked into the standard AC's totals, disclosed in its own stat-card line rather than hidden inside "electricity."</p>
+      <div class="caveats">Not added to the heat pump's cooling-mode comparison — that would double-count against the same physical unit's refrigerant charge already priced into the Heat Pump Explorer's heating-side numbers for a real heat pump, and no per-model charge mass has been sourced for the Tosot/GREE/Fujitsu cooling cells this page draws on. It also isn't part of the by-temperature/weighted/daily/hourly detail charts in Step 4 — leakage isn't tied to a particular operating hour, so it's a flat annual addition to the totals only, the same convention the Heat Pump Explorer's own refrigerant term already uses.</div>
+
       <h4 id="m-grid">Grid emissions &amp; line loss</h4>
       <p>Hourly grid intensity: a temperature × hour-of-day × season surface, calibrated against published provincial intensities (within ±6%). <i>Source: 2019–2026 <a href="https://reports-public.ieso.ca/public/GenOutputbyFuelHourly/" target="_blank" rel="noopener">IESO</a> / <a href="https://www.aeso.ca/market/market-and-system-reporting/data-requests/historical-generation-data/" target="_blank" rel="noopener">AESO</a> / Hydro-Québec generation-by-fuel data.</i></p>
       <table class="ht-table">
@@ -492,7 +502,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <tr><td>Quebec</td><td class="ht-num">7.5%</td><td>Régie de l'énergie, blended transmission+distribution loss factor</td></tr>
         <tr><td>BC / MB / NS / SK</td><td class="ht-num">5%</td><td>World Bank/IEA Canada-wide transmission-and-distribution loss estimate</td></tr>
       </table>
-      <div class="caveats">The Ontario, Alberta and Quebec figures are the most specific sources found; all three are dated 2002–2008, not current-year measurements. Neither the standard AC nor the heat pump's cooling mode has a refrigerant-leakage term modelled here — unlike the Heat Pump Explorer's heating side, this cooling scenario counts electricity emissions only.</div>
+      <div class="caveats">The Ontario, Alberta and Quebec figures are the most specific sources found; all three are dated 2002–2008, not current-year measurements. The heat pump's cooling mode has no refrigerant-leakage term here (see "Refrigerant leakage" above) — only the standard AC's electricity and refrigerant leak are both counted.</div>
 
       <h4>Cost</h4>
       <ul>
@@ -507,7 +517,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <ul>
         <li>No equipment or installation cost — only annual operating cost, not payback.</li>
         <li>No humidity/latent-load modelling — sensible cooling load only, same simplification as the heating side's zero-heat temperature standing in for gains.</li>
-        <li>No refrigerant-leakage term for either unit (see caveat above).</li>
+        <li>No refrigerant-leakage term for the heat pump's cooling mode (only the standard AC has one — see caveat above).</li>
+        <li>No cost or discomfort penalty when equipment is undersized — see "When the equipment is undersized" above.</li>
         <li>This is a standalone spinoff of the Heat Pump Explorer's "potential AC" add-on — the two pages don't share live state; changing a value here doesn't affect <a href="heatpump.html">heatpump.html</a>.</li>
       </ul>
       <p>Every number here is a modelled estimate with a margin of error, not a guarantee.</p>
@@ -519,6 +530,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <li>IESO, AESO &amp; Hydro-Québec generation-by-fuel data</li>
         <li>ECCC National Inventory Report &amp; climate datasets (CWEC2020)</li>
         <li>Ontario Energy Board, Alberta CEA Electricity Consumption Report, Régie de l'énergie (line loss)</li>
+        <li>Goodman SS-GLXS4B-R32 spec sheet (03/26), "Product Specifications" table (refrigerant type &amp; factory charge)</li>
+        <li>IPCC AR6 WG1 Chapter 7, Table 7.SM.7 (refrigerant GWP)</li>
         <li><a href="https://github.com/MaxPr1me/canada-utility-rates" target="_blank" rel="noopener">canada-utility-rates</a> (residential tariffs)</li>
       </ul>
     </div>
@@ -1502,7 +1515,7 @@ const state={
   ghgView:'plain', ghgMonth:null, ghgWeek:null,
   costView:'plain', costMonth:null, costWeek:null,
 };
-let lastArch=null,lastResAC=null,lastResHP=null,lastHpLabel=null,lastCosts=null,lastElec=null,lastPlanKey=null,lastAcEquip=null,lastHpEquip=null,lastTemps=null,lastCostSeries=null,lastTmax=null;
+let lastArch=null,lastResAC=null,lastResHP=null,lastHpLabel=null,lastCosts=null,lastElec=null,lastPlanKey=null,lastAcEquip=null,lastHpEquip=null,lastTemps=null,lastCostSeries=null,lastTmax=null,lastAcCrossover=null,lastHpCrossover=null;
 
 function cityDesignLoadDefault(city){
   const c=ARCH[city];
@@ -2031,6 +2044,41 @@ function coolingArchetype(){
   return result;
 }
 const COOL_Tmin=14,COOL_Tmax_DEFAULT=42;
+
+// Refrigerant leakage — standard AC only. The Goodman GLXS4BA3610A* spec
+// sheet (SS-GLXS4B-R32, p.3 "Product Specifications" table, "Refrigerant
+// Charge" row) states R-32 and a factory charge of 69 oz for 15' of liquid
+// line -- a real spec-sheet figure, not estimated. Same annual amortization
+// heatpump.html's heating side uses: in-service leak (fixed 2%/yr, not
+// user-adjustable here) + end-of-life loss (15% of charge over a 15-year
+// life), weighted by GWP100 (IPCC AR6 WG1 Ch.7 Table 7.SM.7: R-32 = 771).
+// NOT added to the heat pump's cooling-mode comparison: that would double-
+// count against the same physical unit's refrigerant already charged on the
+// Heat Pump Explorer's heating side, and no per-model charge mass has been
+// sourced for the Tosot/GREE/Fujitsu cooling cells. Also not part of any
+// hourly array (leakage isn't tied to a particular operating hour), so it
+// shows up in annual totals but not in the by-temperature/weighted/daily/
+// hourly detail charts -- same convention heatpump.html's own refrigerant
+// term already uses.
+const AC_REFRIG_CHARGE_KG=69*0.0283495; // 69 oz factory charge -> kg
+const AC_REFRIG_GWP100=771; // R-32, IPCC AR6 WG1 Ch.7 Table 7.SM.7
+const AC_REFRIG_LEAK_FRAC=0.02, AC_REFRIG_EOL_FRAC=0.15, AC_REFRIG_LIFE_YEARS=15;
+const AC_REFRIG_GHG_KG_PER_YR=AC_REFRIG_CHARGE_KG*(AC_REFRIG_LEAK_FRAC+AC_REFRIG_EOL_FRAC/AC_REFRIG_LIFE_YEARS)*AC_REFRIG_GWP100;
+
+// First outdoor temperature (0.5 °C step) at which this equipment's capacity
+// falls short of the estimated cooling load -- null if it never does across
+// the displayed range. Used to disclose undersized-equipment hours rather
+// than silently absorb them into "delivered = min(load, capacity)".
+function findCrossoverTemp(UA,Tc,equip,Tmax){
+  if(!equip) return null;
+  for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
+    const load=UA*Math.max(0,t-Tc);
+    const cf=E.interp(equip.curve.T_C,equip.curve.cap_frac_of_rated95,t);
+    const cap=cf==null?0:equip.nominalCap_kW*cf;
+    if(load>cap+1e-9) return t;
+  }
+  return null;
+}
 function coolStepCurves(UA,Tc,equip,Tmax){
   const T=[],load=[],cap=[],cop=[];
   for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
@@ -2054,44 +2102,78 @@ function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC
     s.v+=`<text x="${m.l-8}" y="${yL(v)+4}" text-anchor="end" font-size="11" fill="${light}">${v}</text>`;});
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW cooling</text>`;
   stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
+  // Shade the standard AC's undersized zone: wherever the load line runs
+  // above the AC's own capacity, the unit is maxed out and can't fully meet
+  // the load that hour (see findCrossoverTemp / diagnostics.unmet_hours) --
+  // shown, not silently absorbed into "delivered = min(load, capacity)".
+  const red=css('--red');
+  const acCrossover=findCrossoverTemp(UA,Tc,acEquip,Tmax);
+  if(acCrossover!=null){
+    const pts=Cac.T.map((t,i)=>[t,Math.max(Cac.load[i],Cac.cap[i])]).filter(([t])=>t>=acCrossover);
+    const bottom=Cac.T.map((t,i)=>[t,Cac.cap[i]]).filter(([t])=>t>=acCrossover);
+    if(pts.length){
+      const top=pts.map(p=>x(p[0])+','+yL(p[1])).join(' L');
+      const bot=bottom.slice().reverse().map(p=>x(p[0])+','+yL(p[1])).join(' L');
+      s.v+=`<path d="M${top} L${bot} Z" fill="${red}" fill-opacity="0.14"/>`;
+    }
+  }
   s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.load[i]]),x,yL,muted,1.6,'3 4');
   s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cap[i]]),x,yL,blue,2.2);
   if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cap[i]]),x,yL,purple,2.2,'5 3');
   s.v+=`<line x1="${x(Tc)}" y1="${m.t}" x2="${x(Tc)}" y2="${m.t+pH}" stroke="${green}" stroke-width="1.3" stroke-dasharray="4 4"/>`;
   s.v+=`<text x="${x(Tc)+4}" y="${m.t+12}" font-size="10.5" fill="${green}">balance point ${fmt1(Tc)}°</text>`;
+  if(acCrossover!=null){
+    s.v+=`<line x1="${x(acCrossover)}" y1="${m.t}" x2="${x(acCrossover)}" y2="${m.t+pH}" stroke="${red}" stroke-width="1.2" stroke-dasharray="2 3"/>`;
+    s.v+=`<text x="${x(acCrossover)+4}" y="${m.t+pH-8}" font-size="10.5" fill="${red}">AC undersized above ${fmt1(acCrossover)}°</text>`;
+  }
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.innerHTML=s.v;
   $('cooling-legend').innerHTML=[
     `<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${muted}"></span>Cooling load</span>`,
     `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC capacity</span>`,
     Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} capacity</span>`:'',
+    acCrossover!=null?`<span class="kc-leg"><span class="kc-swatch fill" style="background:${red};opacity:.35"></span>Standard AC undersized (load &gt; capacity)</span>`:'',
   ].join('');
 }
 
-function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec){
+// Human-readable "X% of cooling hours unmet above Y°C" clause, or '' if the
+// unit never falls short across the displayed range.
+function undersizedClause(res,crossoverT,label){
+  if(crossoverT==null) return '';
+  const d=res.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.unmet_hours/d.cooling_hours):0;
+  return ` ${label} is undersized above ${fmt1(crossoverT)} °C — it runs flat-out but ${pct}% of this summer's cooling hours (${fmtI(d.unmet_hours)} of ${fmtI(d.cooling_hours)}) don't fully reach setpoint. kWh/GHG/cost below still reflect real electricity draw (a maxed-out unit uses exactly this much) — what's missing those hours is comfort, not energy.`;
+}
+function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover){
   const beats=resHP?resHP.energy.electricity_kWh<resAC.energy.electricity_kWh:null;
   $('verdict-main').innerHTML=resHP
     ? `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here; ${hpLabel} in cooling mode would use <b>${fmtI(resHP.energy.electricity_kWh)} kWh</b> — ${beats?'less':'more'}.`
     : `Standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh</b> a summer here.`;
-  $('verdict-sub').innerHTML=resHP
-    ? `The selected heat pump's own cooling curve is on file for this tier/size — its cooling-mode electricity, GHG and cost are compared against the standard-AC baseline throughout.`
-    : `This tier/size cell has no published cooling curve — only the standard-AC baseline is shown below. Try a different tier or size.`;
+  $('verdict-sub').innerHTML=(resHP
+    ? `The selected heat pump's own cooling curve is on file for this tier/size — its cooling-mode electricity, GHG and cost are compared against the standard-AC baseline throughout. Standard AC figures include ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet); the heat pump's cooling-mode figures don't (see methodology).`
+    : `This tier/size cell has no published cooling curve — only the standard-AC baseline is shown below. Try a different tier or size. Standard AC figures include ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} CO₂e/yr of amortized refrigerant leakage (R-32, from the unit's own spec sheet).`)
+    + undersizedClause(resAC,acCrossover,'The standard AC') + undersizedClause(resHP||{diagnostics:{}},hpCrossover,hpLabel||'');
   $('stats').innerHTML=`<div class="stats-grid">${[
     stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW',`from this home's ${fmt1(state.designLoad)}-kW design heat load`,'accent'),
     stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`balance point ${fmt1(arch.Tc_C)} °C`,'accent'),
-    stepCard('Standard AC adds',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e${costs.ac_$!=null?` · ${fmt$(costs.ac_$)}/yr`:''}`,'green'),
+    stepCard('Standard AC adds',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e${costs.ac_$!=null?` · ${fmt$(costs.ac_$)}/yr`:''}${acCrossover!=null?' · undersized above '+fmt1(acCrossover)+'°C':''}`,acCrossover!=null?'red':'green'),
     resHP
-      ? stepCard(hpLabel+' adds',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resHP.ghg.total)} CO₂e${costs.hp_$!=null?` · ${fmt$(costs.hp_$)}/yr`:''}`,beats?'green':'red')
+      ? stepCard(hpLabel+' adds',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resHP.ghg.total)} CO₂e${costs.hp_$!=null?` · ${fmt$(costs.hp_$)}/yr`:''}${hpCrossover!=null?' · undersized above '+fmt1(hpCrossover)+'°C':''}`,hpCrossover!=null?'red':(beats?'green':'red'))
       : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'),
   ].join('')}</div>`;
 }
 
 function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
-  $('load-kpis').innerHTML=[
+  const acCrossover=findCrossoverTemp(arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,Tmax);
+  const kpis=[
     stepCard('Estimated cooling peak',fmt1(arch.peak_kW)+' kW','via a validated correlation — not measured','accent'),
     stepCard('Estimated cooling energy',fmtI(arch.energy_kWh)+' kWh/yr',`design cooling temp ${fmt1(arch.design_cooling_temp_C)} °C`,'accent'),
     stepCard('Balance point',fmt1(arch.Tc_C)+' °C','above this, the home needs cooling','muted'),
-  ].join('');
+  ];
+  if(acCrossover!=null){
+    const d=resAC.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.unmet_hours/d.cooling_hours):0;
+    kpis.push(stepCard('Hours unmet (standard AC)',pct+'%',`${fmtI(d.unmet_hours)} of ${fmtI(d.cooling_hours)} cooling hours, above ${fmt1(acCrossover)} °C`,'red'));
+  }
+  $('load-kpis').innerHTML=kpis.join('');
   const view=state.loadView;
   const monthSel=$('load-view-seg-month'),weekSel=$('load-view-seg-week');
   if(monthSel)monthSel.classList.toggle('show',view==='daily');
@@ -2099,7 +2181,8 @@ function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
   const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
   if(view==='plain'){
     renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
-    $('load-note').innerHTML=`Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.`;
+    $('load-note').innerHTML=`Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.`
+      +(acCrossover!=null?` The shaded red zone above ${fmt1(acCrossover)} °C is where the estimated load exceeds the standard AC's capacity — see the "Hours unmet" card.`:'');
   } else if(view==='freq'){
     renderGroupedBinChart($('cooling-chart'),'cooling-legend','load',[{label:'Cooling load',color:css('--ink'),arr:resAC.hourly.load_kW}],lastTemps,COOL_Tmin,Tmax,'kWh, load × hours per 1 °C bin',v=>fmtI(v)+' kWh');
     $('load-note').innerHTML=`Each bar is <code>load × hours at that temperature</code> — kWh of cooling needed while it was that hot, in 1 °C bins. Shows where the summer's cooling demand actually comes from.`;
@@ -2121,16 +2204,16 @@ function threeBarChart(canvasId,labels,data,colors,unitSuffix,fmtFn){
   }});
 }
 
-function renderElectricitySection(resAC,resHP,hpLabel){
+function renderElectricitySection(resAC,resHP,hpLabel,acCrossover,hpCrossover){
   const labels=['No AC (today)','Standard AC'], data=[0,resAC.energy.electricity_kWh], colors=[css('--light'),css('--blue')];
   if(resHP){labels.push(hpLabel+' (cooling mode)');data.push(resHP.energy.electricity_kWh);colors.push(css('--purple'));}
   threeBarChart('elecChart',labels,data,colors,'kWh / summer',v=>fmtI(v)+' kWh/yr');
   const kpis=[
     stepCard('No AC (today)','0 kWh/yr','baseline — nothing to cool with','muted'),
-    stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr','Goodman GLXS4B, 3-ton reference unit','accent'),
+    stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`Goodman GLXS4B, 3-ton reference unit${acCrossover!=null?' · undersized above '+fmt1(acCrossover)+'°C':''}`,acCrossover!=null?'red':'accent'),
   ];
   kpis.push(resHP
-    ? stepCard(hpLabel+' (cooling mode)',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'uses less than':'uses more than'} the standard AC`,resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'green':'red')
+    ? stepCard(hpLabel+' (cooling mode)',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',`${resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'uses less than':'uses more than'} the standard AC${hpCrossover!=null?' · undersized above '+fmt1(hpCrossover)+'°C':''}`,hpCrossover!=null?'red':(resHP.energy.electricity_kWh<resAC.energy.electricity_kWh?'green':'red'))
     : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
   $('elec-kpis').innerHTML=kpis.join('');
 }
@@ -2142,7 +2225,7 @@ function renderGhgSection(resAC,resHP,hpLabel){
   threeBarChart('ghgChart',labels,data,colors,'CO₂e / summer',v=>fmtGHG(v)+'/yr');
   const kpis=[
     stepCard('No AC (today)','0 kg CO₂e/yr','baseline','muted'),
-    stepCard('Standard AC',fmtGHG(resAC.ghg.total)+' CO₂e/yr',`${basisAdj(state.efBasis)} grid basis`,'green'),
+    stepCard('Standard AC',fmtGHG(resAC.ghg.total)+' CO₂e/yr',`${basisAdj(state.efBasis)} grid basis, incl. ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)} refrigerant leak`,'green'),
   ];
   kpis.push(resHP
     ? stepCard(hpLabel+' (cooling mode)',fmtGHG(resHP.ghg.total)+' CO₂e/yr',`${resHP.ghg.total<resAC.ghg.total?'less than':'more than'} the standard AC`,resHP.ghg.total<resAC.ghg.total?'green':'red')
@@ -2150,7 +2233,7 @@ function renderGhgSection(resAC,resHP,hpLabel){
   $('ghg-kpis').innerHTML=kpis.join('');
 }
 
-function renderCostSection(resAC,resHP,hpLabel,costs,elec){
+function renderCostSection(resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover){
   const body=$('cost-body');
   destroy('costChart');
   if(!elec){
@@ -2163,10 +2246,10 @@ function renderCostSection(resAC,resHP,hpLabel,costs,elec){
   threeBarChart('costChart',labels,data,colors,'$ / summer',v=>fmt$(v)+'/yr');
   const kpis=[
     stepCard('No AC (today)','$0/yr','baseline','muted'),
-    stepCard('Standard AC',fmt$(costs.ac_$)+'/yr',`${fmtI(resAC.energy.electricity_kWh)} kWh @ current rates`,'green'),
+    stepCard('Standard AC',fmt$(costs.ac_$)+'/yr',`${fmtI(resAC.energy.electricity_kWh)} kWh @ current rates${acCrossover!=null?' · undersized above '+fmt1(acCrossover)+'°C':''}`,acCrossover!=null?'red':'green'),
   ];
   kpis.push((resHP&&costs.hp_$!=null)
-    ? stepCard(hpLabel+' (cooling mode)',fmt$(costs.hp_$)+'/yr',`${costs.hp_$<costs.ac_$?'cheaper than':'costlier than'} the standard AC`,costs.hp_$<costs.ac_$?'green':'red')
+    ? stepCard(hpLabel+' (cooling mode)',fmt$(costs.hp_$)+'/yr',`${costs.hp_$<costs.ac_$?'cheaper than':'costlier than'} the standard AC${hpCrossover!=null?' · undersized above '+fmt1(hpCrossover)+'°C':''}`,hpCrossover!=null?'red':(costs.hp_$<costs.ac_$?'green':'red'))
     : stepCard(bucketShort()+' pump (cooling mode)','no data','no cooling curve on file for this cell','red'));
   $('cost-kpis').innerHTML=kpis.join('');
 }
@@ -2250,13 +2333,14 @@ function ghgSeriesFor(resAC,resHP,hpLabel){
 }
 function renderGhgDetailSection(resAC,resHP,hpLabel,Tmax){
   const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  const refrigNote=` Electricity only — the standard AC's ${fmtGHG(AC_REFRIG_GHG_KG_PER_YR)}/yr refrigerant leak is a flat annual figure, not tied to any hour, so it's in the annual totals above but not here.`;
   renderDetailChart('ghg',state.ghgView,'ghgMonth','ghgWeek',ghgSeriesFor(resAC,resHP,hpLabel),COOL_Tmin,Tmax,
     'kg CO₂e/hr (mean)','kg CO₂e, sum per 1 °C bin','kg CO₂e, daily total',
     {rate:v=>fmt1(v)+' kg',sum:v=>fmtGHG(v)},true,'ghg-detail-note',view=>{
-      if(view==='hourly')return `Emissions from each unit's electricity, every hour of ${yr} in ${state.city}, at the ${basisAdj(state.efBasis)} grid basis.`;
-      if(view==='daily')return `Each point is a day's total emissions for each unit, over ${yr} in ${state.city}.`;
-      if(view==='freq')return `Each bar is the actual kg CO₂e emitted while it was that outdoor temperature, summed per 1 °C bin.`;
-      return `Average emissions rate (kg CO₂e/hr) at each outdoor temperature, from the real hour-by-hour dispatch at the ${basisAdj(state.efBasis)} grid basis.`;
+      if(view==='hourly')return `Emissions from each unit's electricity, every hour of ${yr} in ${state.city}, at the ${basisAdj(state.efBasis)} grid basis.`+refrigNote;
+      if(view==='daily')return `Each point is a day's total emissions for each unit, over ${yr} in ${state.city}.`+refrigNote;
+      if(view==='freq')return `Each bar is the actual kg CO₂e emitted while it was that outdoor temperature, summed per 1 °C bin.`+refrigNote;
+      return `Average emissions rate (kg CO₂e/hr) at each outdoor temperature, from the real hour-by-hour dispatch at the ${basisAdj(state.efBasis)} grid basis.`+refrigNote;
     });
 }
 function buildCoolingHourlyCost(res,elec,planKey){
@@ -2325,6 +2409,15 @@ function buildOptsAndRun(){
       equipment:hpEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
   }
 
+  // Refrigerant leakage (standard AC only, annual lump-sum — see the
+  // AC_REFRIG_* constants). Folded into resAC.ghg here, once, so every
+  // consumer (verdict, annual bar chart, KPI cards) picks it up automatically
+  // via .ghg.total; the per-hour detail charts intentionally keep reading
+  // .hourly.ghg_kg (electricity only), same convention heatpump.html's own
+  // refrigerant term already uses.
+  resAC.ghg.refrigerant=AC_REFRIG_GHG_KG_PER_YR;
+  resAC.ghg.total+=AC_REFRIG_GHG_KG_PER_YR;
+
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],ck=CITY_KEY[state.city];
   const elec=ck&&P&&P.electricity[ck];
   const planKey=elec?((state.plan&&elec.plans[state.plan])?state.plan:elec.default_plan):null;
@@ -2334,16 +2427,18 @@ function buildOptsAndRun(){
   };
 
   const Tmax=Math.min(COOL_Tmax_DEFAULT,Math.max(28,Math.round(arch.design_cooling_temp_C)+3));
-  lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;lastTemps=temps;lastTmax=Tmax;
+  const acCrossover=findCrossoverTemp(arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,Tmax);
+  const hpCrossover=hpEquip?findCrossoverTemp(arch.UA_cool_kW_per_K,arch.Tc_C,hpEquip,Tmax):null;
+  lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;lastTemps=temps;lastTmax=Tmax;lastAcCrossover=acCrossover;lastHpCrossover=hpCrossover;
 
-  renderVerdict(arch,resAC,resHP,hpLabel,costs,elec);
+  renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover);
   renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax);
   renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax);
-  renderElectricitySection(resAC,resHP,hpLabel);
+  renderElectricitySection(resAC,resHP,hpLabel,acCrossover,hpCrossover);
   renderEnergyDetailSection(resAC,resHP,hpLabel,Tmax);
   renderGhgSection(resAC,resHP,hpLabel);
   renderGhgDetailSection(resAC,resHP,hpLabel,Tmax);
-  renderCostSection(resAC,resHP,hpLabel,costs,elec);
+  renderCostSection(resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover);
   renderCostDetailSection(resAC,resHP,hpLabel,elec,planKey,Tmax);
 }
 
