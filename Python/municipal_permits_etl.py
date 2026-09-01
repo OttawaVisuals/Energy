@@ -1,11 +1,11 @@
 """
 municipal_permits_etl.py
 
-Permit-level open data from six city portals/APIs plus one no-API workbook
-pipeline, aggregated into construction_json/municipal.json for the
+Permit-level open data from seven city portals/APIs plus one no-API
+workbook pipeline, aggregated into construction_json/municipal.json for the
 Construction Tracker's municipal deep-dive card.
 
-WHY THESE SEVEN CITIES
+WHY THESE EIGHT CITIES
     Every other source on this page is a national aggregate on one schema.
     Municipal permits are the opposite: one schema, refresh cadence and set of
     coverage caveats per city. Vancouver has the cleanest schema and
@@ -24,11 +24,17 @@ WHY THESE SEVEN CITIES
     desk, so both render together when Toronto is the selected geo; Ottawa is
     the only city here reachable through no API at all, just 15 annual XLSX
     workbooks, and still clears the bar because the underlying data is rich
-    (real contractor names among them); and Montreal has the largest single
+    (real contractor names among them); Montreal has the largest single
     dataset by row count (558,874 rows since 1997) and, alongside Vancouver
     and Calgary, a genuine processing-time signal, despite having no cost
     field whatsoever — the only city on this page ranked by permit count
-    rather than dollar value.
+    rather than dollar value; and Halifax has the cleanest cost field of any
+    city here (Estimated_Project_Value populated on 99.3% of rows, no fee-
+    schedule artifact like Ottawa's, no scope-mixing problem like
+    Mississauga's) plus a genuine three-date chain like Mississauga's,
+    giving it both a processing-time AND a build-time panel on top of a
+    real unit-economics table — and it is the only city whose own boundary
+    is close enough to its full CMA that the two are nearly the same city.
 
     Three of these seven were rejected in an earlier pass and only shipped
     after being RE-evaluated live, each time because a previous rejection
@@ -147,6 +153,18 @@ SOURCES
                here are ranked by permit count, not dollar value — see the
                dedicated Montreal section below. Creative Commons Attribution
                4.0 International (Ville de Montréal).
+    Halifax    Esri ArcGIS FeatureServer, a plain TABLE with no geometry at
+               all (no lat/long anywhere in this resource, unlike every
+               other city here) — `Community` is the only geography.
+               18,817 rows since 2020-12, small enough to page raw like
+               Mississauga. Richest cost/unit data of any city on this
+               page: Estimated_Project_Value populated on 99.3% of rows,
+               Net_New_Units pre-computed and 100% populated (no need to
+               derive it from separate existing/end-unit counts), and a
+               genuine three-date chain (submission/issuance/completed)
+               with zero negative-day rows on either interval. See the
+               dedicated Halifax section below. Open Government Licence -
+               Halifax.
 
 DATA QUALITY
     Toronto's EST_CONST_COST column contains a literal placeholder string,
@@ -871,6 +889,13 @@ MIS_FIELDS = ["STATUS", "FILE_TYPE", "BLDG_TYPE", "SCOPE", "WARD",
              "ISSUE_DATE", "COMPLETE_DATE"]
 SQM_TO_SQFT = 10.7639
 
+HFX_API = ("https://services2.arcgis.com/11XBiaBYA9Ep0yNJ/arcgis/rest/"
+          "services/PPLC_Issued_Building_Permits/FeatureServer/0/query")
+HFX_FIELDS = ["Work_Type", "Permit_Status", "Community", "Type_of_Structure",
+             "Occupancy_Type", "Estimated_Project_Value", "Net_New_Units",
+             "Building_Footprint_Area", "Date_of_Submission",
+             "Date_of_Permit_Issuance", "Completed_Date"]
+
 
 def page_arcgis(url, out_fields, page=2000):
     """Yield feature attribute dicts, paging an Esri FeatureServer query
@@ -1546,6 +1571,198 @@ def fetch_montreal():
     }
 
 
+# =============================================================================
+# Halifax (HRM) — Esri ArcGIS FeatureServer, small enough (18,817 rows since
+# 2020-12) to page raw like Mississauga rather than build outStatistics
+# calls. This is a TABLE, not a feature layer -- no geometry, no lat/long at
+# all, unlike every other city here, so Community stands in as the only
+# geography. Richest cost/unit data of any city on this page: a real
+# THREE-date chain (submission/issuance/completed, all populated and none of
+# Edmonton's identical-dates trap -- checked live, zero negative-day rows on
+# either interval) giving both a processing-time and a build-time panel, a
+# clean 3-value Work_Type field ('New Building' is a real new-construction
+# scope filter, unlike Mississauga's messier SCOPE or Ottawa's total lack of
+# one), Estimated_Project_Value populated on 99.3% of rows (the cleanest cost
+# field of any city here), and Net_New_Units pre-computed and 100% populated
+# -- no need to derive it from separate existing/end-unit counts the way
+# Mississauga's RES_UNITS or Calgary's housingunits are used directly.
+# Building_Footprint_Area is in square METRES (confirmed live from sample
+# rows' magnitudes, same trap as Mississauga/Ottawa's 2026 file -- converted
+# via SQM_TO_SQFT). Occupancy_Type='Residential Use' scopes unit economics
+# more precisely than Type_of_Structure alone: checked live, a permit can
+# carry Type_of_Structure='Dwelling - Single Detached' with
+# Occupancy_Type='Garage' (an accessory structure on a residential lot, not
+# a home), which Occupancy_Type correctly excludes.
+#
+# Most_Recent_Inspection / Inspection_Outcome (the user flagged these as
+# "interesting to see if there's more data on that somewhere else") turned
+# out to be a workflow-status snapshot, not a separate dataset or a
+# meaningfully aggregable metric -- checked live, they're just this same
+# permit's own most recent inspection stage/result (e.g. "Building - Part 9 -
+# Final" / "Passed"), no external inspections table found. Not built into a
+# panel: a status snapshot doesn't trend the way a date interval or a dollar
+# figure does, and forcing one would manufacture insight the data doesn't
+# actually support.
+# =============================================================================
+
+def fetch_halifax():
+    from collections import defaultdict as _dd
+    from datetime import date as _date
+
+    def _dateobj(s):
+        return _date.fromisoformat(s)
+
+    def median(vals):
+        vals = sorted(vals)
+        n = len(vals)
+        if n == 0:
+            return None
+        return vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+
+    rows = list(page_arcgis(HFX_API, HFX_FIELDS))
+
+    by_month_n, by_month_v, by_month_u = _dd(int), _dd(float), _dd(int)
+    areas_n, areas_v = _dd(int), _dd(float)
+    work_n, work_v = _dd(int), _dd(float)
+
+    sub_to_issue_by_type, sub_to_issue_by_year = _dd(list), _dd(list)
+    issue_to_complete_by_type, issue_to_complete_by_year = _dd(list), _dd(list)
+    econ_by_year = _dd(lambda: {"per_unit": [], "per_sqft": [], "unit_size": []})
+    neg_sub_issue = neg_issue_complete = 0
+    issued_total = 0
+
+    for r in rows:
+        val = float(r.get("Estimated_Project_Value") or 0)
+        iss = edate(r.get("Date_of_Permit_Issuance"))
+        sub = edate(r.get("Date_of_Submission"))
+        comp = edate(r.get("Completed_Date"))
+        work, area = r.get("Work_Type"), r.get("Community")
+        units = r.get("Net_New_Units")
+
+        # Only ISSUED permits (a real Date_of_Permit_Issuance) count toward
+        # the main series -- this dataset also carries applications still in
+        # review, withdrawn or expired before issuance, unlike every other
+        # city's "issued permits" framing on this page.
+        if iss and iss >= FLOOR:
+            issued_total += 1
+            ym = iss[:7]
+            by_month_n[ym] += 1
+            by_month_v[ym] += val / 1e6
+            by_month_u[ym] += int(units or 0)
+            if area:
+                areas_n[area] += 1
+                areas_v[area] += val / 1e6
+            if work:
+                work_n[work] += 1
+                work_v[work] += val / 1e6
+
+        if sub and iss and sub >= FLOOR:
+            d = (_dateobj(iss) - _dateobj(sub)).days
+            if d < 0:
+                neg_sub_issue += 1
+            else:
+                sub_to_issue_by_type[work or "(unspecified)"].append(d)
+                sub_to_issue_by_year[sub[:4]].append(d)
+
+        if iss and comp and iss >= FLOOR:
+            d = (_dateobj(comp) - _dateobj(iss)).days
+            if d < 0:
+                neg_issue_complete += 1
+            else:
+                issue_to_complete_by_type[work or "(unspecified)"].append(d)
+                issue_to_complete_by_year[iss[:4]].append(d)
+
+        if (work == "New Building" and r.get("Occupancy_Type") == "Residential Use"
+                and (units or 0) > 0 and iss and iss >= FLOOR):
+            yr = iss[:4]
+            if val > 0:
+                econ_by_year[yr]["per_unit"].append(val / units)
+            sqft_m2 = r.get("Building_Footprint_Area")
+            sqft = sqft_m2 * SQM_TO_SQFT if sqft_m2 is not None else None
+            if sqft is not None and sqft > 0 and val > 0:
+                econ_by_year[yr]["per_sqft"].append(val / sqft)
+                econ_by_year[yr]["unit_size"].append(sqft / units)
+
+    def top(n_map, v_map, limit=None):
+        out = [[k, n_map[k], round(v_map[k], 1)] for k in n_map]
+        out.sort(key=lambda row: -row[2])
+        return out[:limit] if limit else out
+
+    def stage(by_type, by_year):
+        return {
+            "by_type": [[k, len(v), round(median(v), 1)]
+                       for k, v in sorted(by_type.items(), key=lambda kv: -len(kv[1]))[:12]],
+            "by_year": [[y, len(v), round(median(v), 1)]
+                       for y, v in sorted(by_year.items())],
+        }
+
+    unit_economics = {
+        "scope_note": ("New-building residential permits with net new units "
+                      f"added (Work_Type = 'New Building', Occupancy_Type = "
+                      f"'Residential Use', Net_New_Units > 0), {FLOOR} "
+                      "forward. Occupancy_Type rather than Type_of_Structure "
+                      "alone excludes accessory structures like garages that "
+                      "share a residential structure type but are not "
+                      "dwellings. Figures are the MEDIAN of each permit's "
+                      "own $/unit, $/sqft and sqft/unit, the same reasoning "
+                      "as every other right-skewed field on this page. "
+                      "Building_Footprint_Area is recorded in square metres "
+                      "on the source portal, not square feet -- converted "
+                      "here."),
+        "by_year": [],
+    }
+    for yr in sorted(econ_by_year):
+        e = econ_by_year[yr]
+        row = [yr, len(e["per_unit"]), median(e["per_unit"]), None, None, None]
+        if row[2] is not None:
+            row[2] = round(row[2])
+        if e["per_sqft"]:
+            row[3] = round(median(e["per_sqft"]), 1)
+            row[4] = round(median(e["unit_size"])) if e["unit_size"] else None
+            row[5] = len(e["per_sqft"])
+        unit_economics["by_year"].append(row)
+
+    return {
+        "label": "Halifax Regional Municipality",
+        "cma": "halifax",
+        "coverage": ("Halifax Regional Municipality, which -- unusually for "
+                    "this page -- IS essentially the whole Halifax CMA "
+                    "(HRM's boundary is the amalgamated former cities of "
+                    "Halifax and Dartmouth plus surrounding county area, "
+                    "close to StatCan's CMA definition), so this series "
+                    "should track the metro figures elsewhere on this page "
+                    "more closely than most other cities here."),
+        "licence": "Open Government Licence - Halifax",
+        "count": months_to_series(dict(by_month_n)),
+        "value": months_to_series({k: round(v, 2) for k, v in by_month_v.items()}),
+        "units_created": months_to_series(dict(by_month_u)),
+        "areas": top(areas_n, areas_v, TOP_AREAS),
+        "areas_label": "community",
+        "work": top(work_n, work_v),
+        "quality": {
+            "rows": issued_total,
+            "note": ("Only permits with a real issuance date count toward "
+                    "these figures -- this dataset also carries applications "
+                    "still in review, withdrawn, expired or cancelled before "
+                    "issuance, unlike most other cities' data here."),
+        },
+        "processing": dict(
+            {"unit_note": ("Days from submission to issuance. Median, not "
+                          f"mean. {neg_sub_issue} rows with a negative "
+                          "day-count excluded, not zeroed.")},
+            **stage(sub_to_issue_by_type, sub_to_issue_by_year)),
+        "build_time": dict(
+            {"group_label": "work type",
+             "unit_note": ("Days from issuance to the Completed_Date field. "
+                          f"Median, not mean. {neg_issue_complete} rows with "
+                          "a negative day-count excluded, not zeroed. Only "
+                          "58% of issued permits have a completion date -- "
+                          "many are still in progress.")},
+            **stage(issue_to_complete_by_type, issue_to_complete_by_year)),
+        "unit_economics": unit_economics,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
@@ -1586,6 +1803,10 @@ def main():
         cities["montreal"] = fetch_montreal()
         print(f"  montreal: {len(cities['montreal']['areas'])} boroughs, "
               f"{len(cities['montreal']['work'])} work types")
+        print("fetching Halifax (Esri ArcGIS FeatureServer, paged)...")
+        cities["halifax"] = fetch_halifax()
+        print(f"  halifax: {len(cities['halifax']['areas'])} communities, "
+              f"{len(cities['halifax']['work'])} work types")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1608,6 +1829,8 @@ def main():
                      "Permits (15 annual XLSX workbooks, no API)",
             "montreal": "Ville de Montréal open data, Permis de construction, "
                        "transformation et démolition (CKAN datastore_search_sql)",
+            "halifax": "Halifax Regional Municipality open data, PPL&C "
+                      "Building Permits (Esri ArcGIS FeatureServer)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "
