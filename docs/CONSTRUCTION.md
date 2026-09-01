@@ -342,8 +342,37 @@ footnotes:
   full CMA (the amalgamated former cities of Halifax and Dartmouth plus
   surrounding county), so unlike most cities here its series should track
   the metro figures elsewhere on the page closely rather than being a small
-  fraction of them. See `Python/municipal_permits_etl.py`'s module
-  docstring for the full writeup on all eight cities.
+  fraction of them.
+- **Winnipeg (added 2026-09-01)** joins as a ninth city — the last of the
+  eight CMAs this page tracks to get a matching city-level permit desk
+  (Montreal was passed over in an earlier evaluation and added anyway
+  later the same day, so Mississauga is the only city here without its
+  own CMA). Socrata SoQL, server-side aggregation like Calgary, 162,558
+  rows since 2010. **No cost field at all** — the dataset's own
+  description says so plainly ("containing most information about the
+  permit WITH THE EXCEPTION OF declared construction value") — matching
+  it to a separate aggregate dataset (by year, neighbourhood and permit
+  type; single-permit cells have their value stripped for privacy and
+  rolled into a `WINNIPEG OMITTED CONSTRUCTION VALUE` bucket) with no
+  permit-level key to join back to individual rows, so areas/work/use
+  panels here are ranked by permit count, the second city on this page
+  where that's true after Montreal. What IS unusually clean:
+  `applicant_business_name` carries real, unredacted business names
+  (Qualico Developments, A&S Homes, Randall Homes, Kensington Homes...)
+  with none of Ottawa's placeholder-redaction pattern, so the
+  concentration panel needed no string filtering beyond excluding blanks.
+  A genuine three-date chain (application received/issued/final, 100%/
+  100%/91.6% populated, only 3 and 30 negative-day rows respectively out
+  of 162,558) gives both a processing-time and a build-time panel,
+  computed entirely server-side via SoQL's `median()` and `date_diff_d()`.
+  One caveat disclosed on the dataset's own page rather than found by
+  inspection: the city revised its dwelling-unit counting methodology and
+  states plainly that data before November 14, 2022 was not updated to
+  match, so `dwelling_units_created` before and after that date may not
+  be perfectly comparable — stated in the card's quality note rather than
+  silently plotted as one continuous series. See
+  `Python/municipal_permits_etl.py`'s module docstring for the full
+  writeup on all nine cities.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The
