@@ -406,74 +406,9 @@ footer a:hover{color:var(--amber2)}
     <div data-mode="advanced" id="muni-section">
       <div class="section-head">
         <h2>Inside one city</h2>
-        <p class="sec-sub">Every chart above counts a whole metro area. These come straight from the city's own permit desk — the only address-level data on the page.</p>
+        <p class="sec-sub">Every chart above counts a whole metro area. These come straight from the city's own permit desk — the only address-level data on the page. A metro can hold more than one city with its own permit desk — Mississauga sits inside the Toronto CMA alongside the City of Toronto itself, so both appear together here.</p>
       </div>
-      <div class="card">
-        <div class="card-title-row">
-          <div class="card-title" id="muni-title">City permits</div>
-          <div class="chart-legend-inline" id="muni-legend"></div>
-        </div>
-        <div class="cw cw-md" id="muni-cross-chart"></div>
-        <p class="note" id="muni-cross-note"></p>
-      </div>
-      <div class="chart-grid">
-        <div class="card">
-          <div class="card-title" id="muni-areas-title">Where the money goes</div>
-          <div id="muni-areas"></div>
-          <p class="note" id="muni-areas-note"></p>
-        </div>
-        <div class="card">
-          <div class="card-title">Permits by type of work</div>
-          <div id="muni-work"></div>
-          <p class="note" id="muni-work-note"></p>
-        </div>
-      </div>
-      <div class="card" id="muni-energy-card">
-        <div class="card-title">Energy-measure permits</div>
-        <div class="cw cw-sm" id="muni-energy-chart"></div>
-        <p class="note" id="muni-energy-note"></p>
-      </div>
-      <div class="chart-grid" id="muni-processing-card">
-        <div class="card">
-          <div class="card-title">Time to get a permit — by type of work</div>
-          <div id="muni-proc-type"></div>
-          <p class="note" id="muni-proc-type-note"></p>
-        </div>
-        <div class="card">
-          <div class="card-title">Time to get a permit — by year issued</div>
-          <div id="muni-proc-year"></div>
-          <p class="note" id="muni-proc-year-note"></p>
-        </div>
-      </div>
-      <div class="chart-grid" id="muni-concentration-card">
-        <div class="card">
-          <div class="card-title">Top applicants (20+ permits)</div>
-          <div id="muni-conc-applicants"></div>
-          <p class="note" id="muni-conc-applicants-note"></p>
-        </div>
-        <div class="card">
-          <div class="card-title">Top contractors (20+ permits)</div>
-          <div id="muni-conc-contractors"></div>
-          <p class="note" id="muni-conc-contractors-note"></p>
-        </div>
-      </div>
-      <div class="chart-grid" id="muni-buildtime-card">
-        <div class="card">
-          <div class="card-title" id="muni-build-type-title">Time to build</div>
-          <div id="muni-build-type"></div>
-          <p class="note" id="muni-build-type-note"></p>
-        </div>
-        <div class="card">
-          <div class="card-title">Time to build — by year issued</div>
-          <div id="muni-build-year"></div>
-          <p class="note" id="muni-build-year-note"></p>
-        </div>
-      </div>
-      <div class="card" id="muni-econ-card">
-        <div class="card-title">New-construction cost per unit and per square foot</div>
-        <div id="muni-econ-table"></div>
-        <p class="note" id="muni-econ-note"></p>
-      </div>
+      <div id="muni-cities"></div>
     </div>
 
     <!-- 10 ▸ Rate cycle (advanced) -->
@@ -1836,197 +1771,286 @@ function loadMuni(){
     .catch(function(e){ console.warn('municipal.json unavailable:',e.message); return null; });
   return muniPromise;
 }
+/* One city's card block, ids suffixed with `k` so several can coexist —
+   Mississauga sits inside the Toronto CMA alongside the City of Toronto
+   itself, so a metro can match more than one city's own permit desk. */
+function muniCityBlockHTML(k){
+  return ''+
+  '<div class="card">'+
+    '<div class="card-title-row">'+
+      '<div class="card-title" id="muni-title-'+k+'">City permits</div>'+
+      '<div class="chart-legend-inline" id="muni-legend-'+k+'"></div>'+
+    '</div>'+
+    '<div class="cw cw-md" id="muni-cross-chart-'+k+'"></div>'+
+    '<p class="note" id="muni-cross-note-'+k+'"></p>'+
+  '</div>'+
+  '<div class="chart-grid">'+
+    '<div class="card">'+
+      '<div class="card-title" id="muni-areas-title-'+k+'">Where the money goes</div>'+
+      '<div id="muni-areas-'+k+'"></div>'+
+      '<p class="note" id="muni-areas-note-'+k+'"></p>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Permits by type of work</div>'+
+      '<div id="muni-work-'+k+'"></div>'+
+      '<p class="note" id="muni-work-note-'+k+'"></p>'+
+    '</div>'+
+  '</div>'+
+  '<div class="card" id="muni-energy-card-'+k+'">'+
+    '<div class="card-title">Energy-measure permits</div>'+
+    '<div class="cw cw-sm" id="muni-energy-chart-'+k+'"></div>'+
+    '<p class="note" id="muni-energy-note-'+k+'"></p>'+
+  '</div>'+
+  '<div class="chart-grid" id="muni-processing-card-'+k+'">'+
+    '<div class="card">'+
+      '<div class="card-title">Time to get a permit — by type of work</div>'+
+      '<div id="muni-proc-type-'+k+'"></div>'+
+      '<p class="note" id="muni-proc-type-note-'+k+'"></p>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Time to get a permit — by year issued</div>'+
+      '<div id="muni-proc-year-'+k+'"></div>'+
+      '<p class="note" id="muni-proc-year-note-'+k+'"></p>'+
+    '</div>'+
+  '</div>'+
+  '<div class="chart-grid" id="muni-concentration-card-'+k+'">'+
+    '<div class="card">'+
+      '<div class="card-title">Top applicants (20+ permits)</div>'+
+      '<div id="muni-conc-applicants-'+k+'"></div>'+
+      '<p class="note" id="muni-conc-applicants-note-'+k+'"></p>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Top contractors (20+ permits)</div>'+
+      '<div id="muni-conc-contractors-'+k+'"></div>'+
+      '<p class="note" id="muni-conc-contractors-note-'+k+'"></p>'+
+    '</div>'+
+  '</div>'+
+  '<div class="chart-grid" id="muni-buildtime-card-'+k+'">'+
+    '<div class="card">'+
+      '<div class="card-title" id="muni-build-type-title-'+k+'">Time to build</div>'+
+      '<div id="muni-build-type-'+k+'"></div>'+
+      '<p class="note" id="muni-build-type-note-'+k+'"></p>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Time to build — by year issued</div>'+
+      '<div id="muni-build-year-'+k+'"></div>'+
+      '<p class="note" id="muni-build-year-note-'+k+'"></p>'+
+    '</div>'+
+  '</div>'+
+  '<div class="card" id="muni-econ-card-'+k+'">'+
+    '<div class="card-title">New-construction cost per unit and per square foot</div>'+
+    '<div id="muni-econ-table-'+k+'"></div>'+
+    '<p class="note" id="muni-econ-note-'+k+'"></p>'+
+  '</div>';
+}
+
 function renderMunicipal(){
   var sec=document.getElementById('muni-section');
   loadMuni().then(function(){
-    var city=muniData&&muniData.cities&&muniData.cities[state.geo];
-    if(!city){ sec.style.display='none'; return; }
+    if(!muniData||!muniData.cities){ sec.style.display='none'; return; }
+    /* A city matches the selected geo if the geo itself is that city's own
+       key (Vancouver/Toronto/Calgary/Edmonton, each its own StatCan CMA) OR
+       the city's `cma` field names the geo (Mississauga's cma is 'toronto',
+       so it matches when state.geo is 'toronto', alongside Toronto itself). */
+    var keys=Object.keys(muniData.cities).filter(function(k){
+      var c=muniData.cities[k];
+      return k===state.geo||c.cma===state.geo;
+    });
+    if(!keys.length){ sec.style.display='none'; return; }
     sec.style.display='';
-    var dayFmt=function(v){return Math.round(v)+'d'};
-    document.getElementById('muni-title').textContent=city.label+' — permits issued';
-
-    /* Cross-check against the StatCan CMA series. Which measure depends on
-       what each city's data can actually support: Vancouver publishes a
-       complete project value, Toronto does not (see the quality note), so
-       Toronto is compared on dwelling units created instead of dollars. */
-    var useUnits=!!(city.quality&&city.quality.unparseable_cost_pct>10);
-    var cityPts, cmaPts, unitLabel, fmt;
-    if(useUnits){
-      cityPts=roll12(pts(city.units_created));
-      cmaPts=roll12(pts(S('permits.created.total.total.nsa')));
-      unitLabel='dwelling units created on permits'; fmt=fmtInt;
-    }else{
-      cityPts=roll12(pts(city.value));
-      cmaPts=roll12(pts(S('permits.value.total.total.sa_current')));
-      unitLabel='permit value'; fmt=fmtM;
-    }
-    var series=[
-      {label:city.label+' (city)',color:PAL.amber,type:'area',pts:cityPts},
-      {label:geoLabel(state.geo)+' (whole metro, StatCan)',color:PAL.navy,type:'line',pts:cmaPts}
-    ];
-    buildLegend(document.getElementById('muni-legend'),series);
-    timeChart('muni-cross-chart',{series:series,money:!useUnits,fmt:fmt});
-
-    /* State the ratio rather than implying the two lines should meet. */
-    var share='';
-    if(cityPts.length&&cmaPts.length){
-      var cm={}; cmaPts.forEach(function(d){cm[d.m]=d.v});
-      var last=null;
-      for(var i=cityPts.length-1;i>=0;i--){ if(cm[cityPts[i].m]>0){ last=cityPts[i]; break; } }
-      if(last) share=' Over the latest 12 months the city accounts for about <strong>'+
-        Math.round(last.v/cm[last.m]*100)+'%</strong> of its metro area\'s '+unitLabel+'.';
-    }
-    document.getElementById('muni-cross-note').innerHTML=
-      '<strong>These two lines are not meant to match.</strong> '+city.coverage+
-      ' Both are trailing-12-month sums of '+unitLabel+'; the city figure comes from its own permit '+
-      'desk and the metro figure from StatCan, which use different definitions and coverage as well as '+
-      'different boundaries.'+share+' Licence: '+city.licence+'.';
-
-    var areaLabel=city.areas_label||'neighbourhood';
-    document.getElementById('muni-areas-title').textContent=
-      'Permit value by '+areaLabel+' — since 2017';
-    hBars('muni-areas',city.areas.map(function(a){
-      return {label:a[0], v:a[2]};
-    }),{fmt:fmtM});
-    document.getElementById('muni-areas-note').innerHTML=
-      'Top '+city.areas.length+' by total declared construction value since 2017, in millions. '+
-      (city.quality?'<strong>Undercounted:</strong> '+city.quality.note:'Values as declared on the permit.');
-
-    hBars('muni-work',city.work.slice(0,8).map(function(w){
-      return {label:w[0], v:w[1]};
-    }),{fmt:fmtInt});
-    document.getElementById('muni-work-note').innerHTML=
-      'Permit <em>counts</em> by the city\'s own work classification since 2017 — counts, not dollars, '+
-      'so this panel is unaffected by any cost-field problems. '+
-      (useUnits?'':'Vancouver\'s "Addition / Alteration" is the closest municipal analogue to the '+
-       'renovation investment shown further up the page.');
-
-    /* Toronto is the only city found publishing energy-measure permits. */
-    var ec=document.getElementById('muni-energy-card');
-    var en=city.energy;
-    if(en){
-      ec.style.display='';
-      var yrs=Object.keys(en.green_roof_permits).sort();
-      var gr={label:'Green roof permits',color:PAL.green,type:'line',
-              pts:yrs.map(function(y){return {m:+y*12, v:en.green_roof_permits[y]}})};
-      var sh={label:'Solar hot water permits',color:PAL.amber,type:'line',
-              pts:Object.keys(en.solar_hot_water_permits).sort().map(function(y){
-                return {m:+y*12, v:en.solar_hot_water_permits[y]};})};
-      timeChart('muni-energy-chart',{series:[gr,sh],fmt:fmtInt});
-      var grTotal=yrs.reduce(function(a,y){return a+en.green_roof_permits[y]},0);
-      var shTotal=Object.keys(en.solar_hot_water_permits).reduce(
-        function(a,y){return a+en.solar_hot_water_permits[y]},0);
-      document.getElementById('muni-energy-note').innerHTML=
-        'Toronto publishes dedicated green-roof and solar-hot-water permit datasets — the only municipal '+
-        'energy-measure permit counts found anywhere in the country. <strong>'+fmtInt(grTotal)+'</strong> '+
-        'green-roof permits and <strong>'+fmtInt(shTotal)+'</strong> solar hot water permits in total. '+
-        'The scale is the point: against roughly three thousand permits a month of every kind, these are '+
-        'rounding errors, and solar hot water has all but stopped. Green roofs are driven by Toronto\'s '+
-        'Green Roof Bylaw rather than by voluntary uptake.';
-    }else{
-      ec.style.display='none';
-    }
-
-    /* Vancouver and Calgary both carry a per-permit elapsed-days field and
-       an applicant/contractor field; Toronto and Montreal do not. */
-    var pc=document.getElementById('muni-processing-card');
-    var proc=city.processing;
-    if(proc){
-      pc.style.display='';
-      hBars('muni-proc-type',proc.by_type.map(function(t){
-        return {label:t[0], v:t[2]};
-      }),{fmt:dayFmt});
-      document.getElementById('muni-proc-type-note').innerHTML=
-        'Median days to issuance by work category, since 2017 — new buildings and demolitions take months; '+
-        'additions/alterations and temporary structures move far faster. '+proc.unit_note;
-      hBars('muni-proc-year',proc.by_year.map(function(y){
-        return {label:y[0], v:y[2]};
-      }),{fmt:dayFmt});
-      document.getElementById('muni-proc-year-note').innerHTML=
-        'Median days to issuance by year issued, all work types combined (the current year is partial).';
-    }else{
-      pc.style.display='none';
-    }
-
-    var cc=document.getElementById('muni-concentration-card');
-    var conc=city.concentration;
-    if(conc){
-      cc.style.display='';
-      var ap=conc.applicants;
-      hBars('muni-conc-applicants',ap.top.map(function(a){
-        return {label:a[0], v:a[1]};
-      }),{fmt:fmtInt});
-      document.getElementById('muni-conc-applicants-note').innerHTML=
-        (ap.field_coverage_pct<99?'Applicant is named on only <strong>'+ap.field_coverage_pct+'%</strong> of '+
-         'permits, so this scopes to permits that name one. ':'')+
-        '<strong>'+fmtInt(ap.qualifying)+'</strong> applicants ('+(ap.qualifying/ap.total_distinct*100).toFixed(1)+
-        '% of '+fmtInt(ap.total_distinct)+' distinct filers since 2017) have filed <strong>'+ap.threshold+
-        '+</strong> permits each, accounting for <strong>'+ap.pct_of_field_permits+'%</strong> of permits that '+
-        'name one. "Applicant" is "often the design professional or their firm" per the field\'s own definition — '+
-        'the names atop this list are architecture, design and building firms, not individual homeowners, since a '+
-        'private owner rarely files enough permits to clear a 20-permit bar. Bars show permit count, not dollar value.';
-      var co=conc.contractors;
-      hBars('muni-conc-contractors',co.top.map(function(c){
-        return {label:c[0], v:c[1]};
-      }),{fmt:fmtInt});
-      document.getElementById('muni-conc-contractors-note').innerHTML=
-        'Contractor is named on only <strong>'+co.field_coverage_pct+'%</strong> of permits — often not yet '+
-        'chosen at issuance — so this scopes to permits that name one. <strong>'+fmtInt(co.qualifying)+
-        '</strong> contractors ('+(co.qualifying/co.total_distinct*100).toFixed(1)+'% of '+fmtInt(co.total_distinct)+
-        ' named) have <strong>'+co.threshold+'+</strong> permits each, covering <strong>'+co.pct_of_field_permits+
-        '%</strong> of permits that name a contractor.';
-    }else{
-      cc.style.display='none';
-    }
-
-    /* Calgary and Edmonton only: issue-to-completed build time, and $/unit +
-       $/sqft for residential new construction. The grouping dimension on
-       "by_type" differs by city — Calgary groups by work category (its
-       work_type is meaningful across the whole build-time population),
-       Edmonton groups by building type (its scope is New-construction-only,
-       so work_type would be constant and uninformative there). */
-    var bc=document.getElementById('muni-buildtime-card');
-    var bt=city.build_time;
-    if(bt){
-      bc.style.display='';
-      var groupLabel=bt.group_label||'type of work';
-      document.getElementById('muni-build-type-title').textContent='Time to build — by '+groupLabel;
-      hBars('muni-build-type',bt.by_type.map(function(t){
-        return {label:t[0], v:t[2]};
-      }),{fmt:dayFmt});
-      document.getElementById('muni-build-type-note').innerHTML=
-        'Median days to completion by '+groupLabel+', since 2017. '+bt.unit_note+
-        (bt.coverage_note?' '+bt.coverage_note:'');
-      hBars('muni-build-year',bt.by_year.map(function(y){
-        return {label:y[0], v:y[2]};
-      }),{fmt:dayFmt});
-      document.getElementById('muni-build-year-note').innerHTML=
-        'Median days from issuance to completion, by year issued (the current year is partial and skews low — '+
-        'recently issued permits have had less time to reach completion).'+
-        (bt.coverage_note?' '+bt.coverage_note:'');
-    }else{
-      bc.style.display='none';
-    }
-
-    var ecC=document.getElementById('muni-econ-card');
-    var econ=city.unit_economics;
-    if(econ && econ.by_year && econ.by_year.length){
-      ecC.style.display='';
-      var econRows=econ.by_year.map(function(r){
-        return '<tr><td>'+r[0]+'</td><td>'+fmtInt(r[1])+'</td><td>'+
-          (r[2]==null?'—':'$'+fmtInt(r[2]))+'</td><td>'+
-          (r[3]==null?'—':'$'+r[3])+'</td><td>'+
-          (r[4]==null?'—':fmtInt(r[4])+' sqft')+'</td></tr>';
-      }).join('');
-      document.getElementById('muni-econ-table').innerHTML=
-        '<div class="data-tbl-wrap"><table class="data-tbl"><thead><tr><th>Year issued</th><th>Permits</th>'+
-        '<th>$ / unit</th><th>$ / sqft</th><th>Avg. unit size</th></tr></thead><tbody>'+econRows+'</tbody></table></div>';
-      document.getElementById('muni-econ-note').innerHTML=econ.scope_note+
-        ' Declared construction cost only — excludes land, and is not a market sale price.';
-    }else{
-      ecC.style.display='none';
-    }
+    var container=document.getElementById('muni-cities');
+    container.innerHTML=keys.map(muniCityBlockHTML).join('');
+    keys.forEach(function(k){ renderOneMuniCity(k, muniData.cities[k]); });
   });
+}
+
+function renderOneMuniCity(k, city){
+  var dayFmt=function(v){return Math.round(v)+'d'};
+  document.getElementById('muni-title-'+k).textContent=city.label+' — permits issued';
+
+  /* Cross-check against the StatCan CMA series. Which measure depends on
+     what each city's data can actually support: Vancouver publishes a
+     complete project value, Toronto does not (see the quality note), so
+     Toronto is compared on dwelling units created instead of dollars. */
+  var useUnits=!!(city.quality&&city.quality.unparseable_cost_pct>10);
+  var cityPts, cmaPts, unitLabel, fmt;
+  if(useUnits){
+    cityPts=roll12(pts(city.units_created));
+    cmaPts=roll12(pts(S('permits.created.total.total.nsa')));
+    unitLabel='dwelling units created on permits'; fmt=fmtInt;
+  }else{
+    cityPts=roll12(pts(city.value));
+    cmaPts=roll12(pts(S('permits.value.total.total.sa_current')));
+    unitLabel='permit value'; fmt=fmtM;
+  }
+  var series=[
+    {label:city.label+' (city)',color:PAL.amber,type:'area',pts:cityPts},
+    {label:geoLabel(state.geo)+' (whole metro, StatCan)',color:PAL.navy,type:'line',pts:cmaPts}
+  ];
+  buildLegend(document.getElementById('muni-legend-'+k),series);
+  timeChart('muni-cross-chart-'+k,{series:series,money:!useUnits,fmt:fmt});
+
+  /* State the ratio rather than implying the two lines should meet. */
+  var share='';
+  if(cityPts.length&&cmaPts.length){
+    var cm={}; cmaPts.forEach(function(d){cm[d.m]=d.v});
+    var last=null;
+    for(var i=cityPts.length-1;i>=0;i--){ if(cm[cityPts[i].m]>0){ last=cityPts[i]; break; } }
+    if(last) share=' Over the latest 12 months the city accounts for about <strong>'+
+      Math.round(last.v/cm[last.m]*100)+'%</strong> of its metro area\'s '+unitLabel+'.';
+  }
+  document.getElementById('muni-cross-note-'+k).innerHTML=
+    '<strong>These two lines are not meant to match.</strong> '+city.coverage+
+    ' Both are trailing-12-month sums of '+unitLabel+'; the city figure comes from its own permit '+
+    'desk and the metro figure from StatCan, which use different definitions and coverage as well as '+
+    'different boundaries.'+share+' Licence: '+city.licence+'.';
+
+  var areaLabel=city.areas_label||'neighbourhood';
+  document.getElementById('muni-areas-title-'+k).textContent=
+    'Permit value by '+areaLabel+' — since 2017';
+  hBars('muni-areas-'+k,city.areas.map(function(a){
+    return {label:a[0], v:a[2]};
+  }),{fmt:fmtM});
+  document.getElementById('muni-areas-note-'+k).innerHTML=
+    'Top '+city.areas.length+' by total declared construction value since 2017, in millions. '+
+    (city.quality?'<strong>Undercounted:</strong> '+city.quality.note:'Values as declared on the permit.');
+
+  hBars('muni-work-'+k,city.work.slice(0,8).map(function(w){
+    return {label:w[0], v:w[1]};
+  }),{fmt:fmtInt});
+  document.getElementById('muni-work-note-'+k).innerHTML=
+    'Permit <em>counts</em> by the city\'s own work classification since 2017 — counts, not dollars, '+
+    'so this panel is unaffected by any cost-field problems. '+
+    (useUnits?'':'Vancouver\'s "Addition / Alteration" is the closest municipal analogue to the '+
+     'renovation investment shown further up the page.');
+
+  /* Toronto is the only city found publishing energy-measure permits. */
+  var ec=document.getElementById('muni-energy-card-'+k);
+  var en=city.energy;
+  if(en){
+    ec.style.display='';
+    var yrs=Object.keys(en.green_roof_permits).sort();
+    var gr={label:'Green roof permits',color:PAL.green,type:'line',
+            pts:yrs.map(function(y){return {m:+y*12, v:en.green_roof_permits[y]}})};
+    var sh={label:'Solar hot water permits',color:PAL.amber,type:'line',
+            pts:Object.keys(en.solar_hot_water_permits).sort().map(function(y){
+              return {m:+y*12, v:en.solar_hot_water_permits[y]};})};
+    timeChart('muni-energy-chart-'+k,{series:[gr,sh],fmt:fmtInt});
+    var grTotal=yrs.reduce(function(a,y){return a+en.green_roof_permits[y]},0);
+    var shTotal=Object.keys(en.solar_hot_water_permits).reduce(
+      function(a,y){return a+en.solar_hot_water_permits[y]},0);
+    document.getElementById('muni-energy-note-'+k).innerHTML=
+      'Toronto publishes dedicated green-roof and solar-hot-water permit datasets — the only municipal '+
+      'energy-measure permit counts found anywhere in the country. <strong>'+fmtInt(grTotal)+'</strong> '+
+      'green-roof permits and <strong>'+fmtInt(shTotal)+'</strong> solar hot water permits in total. '+
+      'The scale is the point: against roughly three thousand permits a month of every kind, these are '+
+      'rounding errors, and solar hot water has all but stopped. Green roofs are driven by Toronto\'s '+
+      'Green Roof Bylaw rather than by voluntary uptake.';
+  }else{
+    ec.style.display='none';
+  }
+
+  /* Vancouver, Calgary, Edmonton and Mississauga carry a per-permit
+     elapsed-days field; Toronto and Montreal do not. Only Vancouver and
+     Calgary have applicant/contractor fields — Edmonton excludes them for
+     privacy and Mississauga's schema never had them. */
+  var pc=document.getElementById('muni-processing-card-'+k);
+  var proc=city.processing;
+  if(proc){
+    pc.style.display='';
+    hBars('muni-proc-type-'+k,proc.by_type.map(function(t){
+      return {label:t[0], v:t[2]};
+    }),{fmt:dayFmt});
+    document.getElementById('muni-proc-type-note-'+k).innerHTML=
+      'Median days to issuance by work category, since 2017 — new buildings and demolitions take months; '+
+      'additions/alterations and temporary structures move far faster. '+proc.unit_note;
+    hBars('muni-proc-year-'+k,proc.by_year.map(function(y){
+      return {label:y[0], v:y[2]};
+    }),{fmt:dayFmt});
+    document.getElementById('muni-proc-year-note-'+k).innerHTML=
+      'Median days to issuance by year issued, all work types combined (the current year is partial).';
+  }else{
+    pc.style.display='none';
+  }
+
+  var cc=document.getElementById('muni-concentration-card-'+k);
+  var conc=city.concentration;
+  if(conc){
+    cc.style.display='';
+    var ap=conc.applicants;
+    hBars('muni-conc-applicants-'+k,ap.top.map(function(a){
+      return {label:a[0], v:a[1]};
+    }),{fmt:fmtInt});
+    document.getElementById('muni-conc-applicants-note-'+k).innerHTML=
+      (ap.field_coverage_pct<99?'Applicant is named on only <strong>'+ap.field_coverage_pct+'%</strong> of '+
+       'permits, so this scopes to permits that name one. ':'')+
+      '<strong>'+fmtInt(ap.qualifying)+'</strong> applicants ('+(ap.qualifying/ap.total_distinct*100).toFixed(1)+
+      '% of '+fmtInt(ap.total_distinct)+' distinct filers since 2017) have filed <strong>'+ap.threshold+
+      '+</strong> permits each, accounting for <strong>'+ap.pct_of_field_permits+'%</strong> of permits that '+
+      'name one. "Applicant" is "often the design professional or their firm" per the field\'s own definition — '+
+      'the names atop this list are architecture, design and building firms, not individual homeowners, since a '+
+      'private owner rarely files enough permits to clear a 20-permit bar. Bars show permit count, not dollar value.';
+    var co=conc.contractors;
+    hBars('muni-conc-contractors-'+k,co.top.map(function(c){
+      return {label:c[0], v:c[1]};
+    }),{fmt:fmtInt});
+    document.getElementById('muni-conc-contractors-note-'+k).innerHTML=
+      'Contractor is named on only <strong>'+co.field_coverage_pct+'%</strong> of permits — often not yet '+
+      'chosen at issuance — so this scopes to permits that name one. <strong>'+fmtInt(co.qualifying)+
+      '</strong> contractors ('+(co.qualifying/co.total_distinct*100).toFixed(1)+'% of '+fmtInt(co.total_distinct)+
+      ' named) have <strong>'+co.threshold+'+</strong> permits each, covering <strong>'+co.pct_of_field_permits+
+      '%</strong> of permits that name a contractor.';
+  }else{
+    cc.style.display='none';
+  }
+
+  /* Calgary, Edmonton and Mississauga: issue-to-completed build time, and
+     $/unit + $/sqft for residential new construction. The grouping
+     dimension on "by_type" differs by city — Calgary and Mississauga group
+     by work/building category (a meaningful split across their whole
+     build-time population), Edmonton groups by building type only (its
+     scope is New-construction-only, so work_type is constant there). */
+  var bc=document.getElementById('muni-buildtime-card-'+k);
+  var bt=city.build_time;
+  if(bt){
+    bc.style.display='';
+    var groupLabel=bt.group_label||'type of work';
+    document.getElementById('muni-build-type-title-'+k).textContent='Time to build — by '+groupLabel;
+    hBars('muni-build-type-'+k,bt.by_type.map(function(t){
+      return {label:t[0], v:t[2]};
+    }),{fmt:dayFmt});
+    document.getElementById('muni-build-type-note-'+k).innerHTML=
+      'Median days to completion by '+groupLabel+', since 2017. '+bt.unit_note+
+      (bt.coverage_note?' '+bt.coverage_note:'');
+    hBars('muni-build-year-'+k,bt.by_year.map(function(y){
+      return {label:y[0], v:y[2]};
+    }),{fmt:dayFmt});
+    document.getElementById('muni-build-year-note-'+k).innerHTML=
+      'Median days from issuance to completion, by year issued (the current year is partial and skews low — '+
+      'recently issued permits have had less time to reach completion).'+
+      (bt.coverage_note?' '+bt.coverage_note:'');
+  }else{
+    bc.style.display='none';
+  }
+
+  var ecC=document.getElementById('muni-econ-card-'+k);
+  var econ=city.unit_economics;
+  if(econ && econ.by_year && econ.by_year.length){
+    ecC.style.display='';
+    var econRows=econ.by_year.map(function(r){
+      return '<tr><td>'+r[0]+'</td><td>'+fmtInt(r[1])+'</td><td>'+
+        (r[2]==null?'—':'$'+fmtInt(r[2]))+'</td><td>'+
+        (r[3]==null?'—':'$'+r[3])+'</td><td>'+
+        (r[4]==null?'—':fmtInt(r[4])+' sqft')+'</td></tr>';
+    }).join('');
+    document.getElementById('muni-econ-table-'+k).innerHTML=
+      '<div class="data-tbl-wrap"><table class="data-tbl"><thead><tr><th>Year issued</th><th>Permits</th>'+
+      '<th>$ / unit</th><th>$ / sqft</th><th>Avg. unit size</th></tr></thead><tbody>'+econRows+'</tbody></table></div>';
+    document.getElementById('muni-econ-note-'+k).innerHTML=econ.scope_note+
+      ' Declared construction cost only — excludes land, and is not a market sale price.';
+  }else{
+    ecC.style.display='none';
+  }
 }
 
 /* ── comparison sections (need all geos) ────────────────────────── */

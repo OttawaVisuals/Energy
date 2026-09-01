@@ -208,6 +208,39 @@ footnotes:
   also carries overlapping labels for the same concept (`(01) New` and
   `(01) Building - New` both mean new construction), matched explicitly
   wherever new-construction scoping matters rather than picking one.
+- **Mississauga (added 2026-09-01)** joins as a fifth city, on a different
+  platform than the rest — an Esri ArcGIS FeatureServer, not Socrata. Its
+  schema is the richest of any city here: a real STATUS field and three
+  genuinely distinct dates (application/issue/complete — checked live, only
+  488 of 34,615 rows share an application and issue date, unlike Edmonton's
+  identical pair), so it's the only city with **both** a processing-time
+  panel and a build-time panel. No concentration panel — this schema never
+  had an applicant/contractor field at all, unlike Edmonton's deliberate
+  exclusion. Unlike the other four cities, **Mississauga is not its own
+  StatCan CMA** — it's part of the Toronto CMA, so it can't be a standalone
+  selectable geo without breaking every StatCan-driven section of the page
+  for a "Mississauga" geo that doesn't exist in StatCan's tables. Instead,
+  "Inside one city" now supports more than one city per geo: selecting
+  Toronto renders both the City of Toronto's card and the City of
+  Mississauga's card together (`renderMunicipal()` matches every city whose
+  own key *or* `cma` field equals the selected geo, and generates a
+  full card block per match with ids suffixed by city key). Two data-quality
+  finds shaped its unit-economics panel. **(1)** `APPL_AREA` is recorded in
+  **square metres**, per its own field description — every other city's
+  floor-area field on this page is sqft, and treating it the same way
+  produced a physically impossible ~100 sqft "average unit size" before the
+  conversion was added. **(2)** Scoping to every RESIDENTIAL permit with
+  units added (no further filter) mixes new subdivisions with
+  ALTERATION/ADDITION permits that merely add a secondary suite — checked
+  live, that broader population's $/sqft came out over $2,000, another
+  impossibility. Restricting to `SCOPE = 'NEW BUILDING'` fixed both at once
+  (median $223-253/sqft for 2018-2023). The resulting 2024-2026 jump to a
+  $2.7M+ median $/unit was checked row-by-row, not assumed: a real run of
+  ~$7-10M custom detached-home permits (990-1,143 sqm each, individually
+  verified), not an error — with only ~140-190 qualifying permits a year, a
+  handful of genuine luxury builds can swing the median, and the card says
+  so. See `Python/municipal_permits_etl.py`'s module docstring for the full
+  writeup on all five cities.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The
