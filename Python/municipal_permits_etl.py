@@ -1,24 +1,31 @@
 """
 municipal_permits_etl.py
 
-Permit-level open data from two city portals, aggregated into
-construction_json/municipal.json for the Construction Tracker's municipal
-deep-dive card.
+Permit-level open data from four city portals plus one Esri FeatureServer,
+aggregated into construction_json/municipal.json for the Construction
+Tracker's municipal deep-dive card.
 
-WHY ONLY FOUR CITIES
+WHY THESE FIVE CITIES
     Every other source on this page is a national aggregate on one schema.
     Municipal permits are the opposite: one schema, refresh cadence and set of
-    coverage caveats per city. Vancouver, Toronto, Calgary and Edmonton earn
-    their keep — Vancouver has the cleanest schema and refreshes daily,
-    Toronto is the only portal found that publishes dedicated GREEN ROOF and
-    SOLAR HOT WATER permit datasets (the one municipal energy signal in the
-    country), Calgary is both the richest schema of any city evaluated (a
-    real status field, a clean cost field, dwelling units, full
-    community-level geography) and the only one where the city boundary is
-    close to its CMA (see below), and Edmonton has the longest clean history
-    of any city here (back to 2009, though this ETL floors it to 2017 like
-    the rest) on a dataset the city explicitly labels its "Primary" building
-    permits view — deduplicated, verified for accuracy, updated daily.
+    coverage caveats per city. Vancouver, Toronto, Calgary, Edmonton and
+    Mississauga earn their keep — Vancouver has the cleanest schema and
+    refreshes daily, Toronto is the only portal found that publishes
+    dedicated GREEN ROOF and SOLAR HOT WATER permit datasets (the one
+    municipal energy signal in the country), Calgary is both the richest
+    schema of any Socrata city evaluated (a real status field, a clean cost
+    field, dwelling units, full community-level geography) and the only one
+    where the city boundary is close to its CMA (see below), Edmonton has the
+    longest clean history of any city here (back to 2009, though this ETL
+    floors it to 2017 like the rest) on a dataset the city explicitly labels
+    its "Primary" building permits view — deduplicated, verified for
+    accuracy, updated daily — and Mississauga is the richest schema of any
+    city here full stop: a real STATUS field, three genuinely distinct dates
+    (application/issue/complete, unlike Edmonton's two identical ones), and
+    it is the only city where "Inside one city" shows more than one city at
+    once — Mississauga sits inside the Toronto CMA alongside the City of
+    Toronto's own permit desk, so both render together when Toronto is the
+    selected geo.
 
     Edmonton was re-evaluated 2026-09-01 after an earlier pass (see below)
     wrongly rejected it. What's genuinely different about Edmonton, checked
@@ -97,6 +104,27 @@ SOURCES
                Toronto's, just genuinely blank on permit types that don't
                require a cost estimate (e.g. hot tubs) — so it is a real,
                stated undercount rather than a data-quality defect.
+    Mississauga  Esri ArcGIS FeatureServer (`Issued_Building_Permits`,
+               services6.arcgis.com), not Socrata — a different query
+               mechanism (`outStatistics`/`groupByFieldsForStatistics`
+               instead of SoQL `$select`/`$group`). Terms of Use (linked from
+               the item's `licenseInfo`) grant a "world-wide, royalty-free,
+               non-exclusive... licence to use, modify, and distribute" with
+               attribution optional. Only 34,615 rows since 2018-01-02 — an
+               order of magnitude smaller than the Socrata cities — so this
+               pages raw records (`page_arcgis()`, 2000/request, the
+               service's `maxRecordCount`) and aggregates client-side in
+               Python, the same shape as Toronto's approach, rather than
+               building ArcGIS `outStatistics` calls for every cut this card
+               needs. Has three genuinely distinct dates
+               (APPLICATION_DATE/ISSUE_DATE/COMPLETE_DATE, confirmed live:
+               only 488 of 34,615 rows share the same application and issue
+               date), so it gets both a processing-time panel (like Vancouver
+               and Calgary) and a build-time panel (like Calgary and
+               Edmonton) — the only city with both. No applicant/contractor
+               field exists in this schema at all (not excluded for privacy
+               like Edmonton — it was simply never collected), so no
+               concentration panel.
 
 DATA QUALITY
     Toronto's EST_CONST_COST column contains a literal placeholder string,
@@ -114,6 +142,25 @@ DATA QUALITY
     likely from a schema change at some point rather than two real categories.
     Both are matched explicitly wherever "new construction" scoping matters
     (unit economics, build time) rather than silently picking one.
+
+    Mississauga's APPL_AREA field is recorded in SQUARE METRES, per its own
+    field description ("Applicable permit area of work in square metres") —
+    every other city's floor-area field on this page is sqft, and this one
+    was initially treated the same way by mistake, producing a physically
+    impossible ~100 sqft "average unit size" before the conversion was added
+    (SQM_TO_SQFT = 10.7639). Separately, scoping unit economics to every
+    RESIDENTIAL permit with RES_UNITS > 0 (no further filter) mixes genuine
+    new subdivisions in with ALTERATION/ADDITION permits that merely add a
+    secondary suite — checked live, that broader population's $/sqft came out
+    over $2,000, another physical impossibility. Restricting to
+    SCOPE = 'NEW BUILDING' fixed both problems at once (median $223-253/sqft
+    for 2018-2023, in a normal range for Ontario residential construction).
+    The resulting 2024-2026 jump to $750K+ over $2.7M median $/unit was
+    checked row-by-row rather than assumed away: it tracks a real run of
+    ~$7-10M custom detached-home permits (990-1,143 sqm each, verified
+    individually), not a data error — with only ~140-190 qualifying permits a
+    year in this narrower scope, a handful of genuine luxury builds can swing
+    the annual median noticeably, and the card's note says so.
 
 USAGE
     python municipal_permits_etl.py [--refresh]
@@ -783,6 +830,233 @@ def fetch_edmonton():
     }
 
 
+# =============================================================================
+# Mississauga — Esri ArcGIS FeatureServer, not Socrata. No server-side
+# GROUP BY on date-truncated expressions available on this hosted layer, and
+# the row count (34,615 since 2018) is small enough that paging raw records
+# and aggregating in Python (like Toronto) is simpler and just as cheap as
+# building ArcGIS `outStatistics`/`groupByFieldsForStatistics` calls for
+# every cut this card needs.
+# =============================================================================
+
+MIS_API = ("https://services6.arcgis.com/hM5ymMLbxIyWTjn2/arcgis/rest/"
+          "services/Issued_Building_Permits/FeatureServer/0/query")
+MIS_FIELDS = ["STATUS", "FILE_TYPE", "BLDG_TYPE", "SCOPE", "WARD",
+             "EST_CON_VALUE", "RES_UNITS", "APPL_AREA", "APPLICATION_DATE",
+             "ISSUE_DATE", "COMPLETE_DATE"]
+SQM_TO_SQFT = 10.7639
+
+
+def page_arcgis(url, out_fields, page=2000):
+    """Yield feature attribute dicts, paging an Esri FeatureServer query
+    with resultOffset/resultRecordCount (maxRecordCount on this service is
+    2000)."""
+    offset = 0
+    while True:
+        d = get(url, {"where": "1=1", "outFields": ",".join(out_fields),
+                      "orderByFields": "OBJECTID", "resultOffset": offset,
+                      "resultRecordCount": page, "f": "json"})
+        feats = d.get("features", [])
+        if not feats:
+            break
+        for f in feats:
+            yield f["attributes"]
+        offset += len(feats)
+        print(f"    ...{offset:,}", flush=True)
+        if len(feats) < page:
+            break
+
+
+def edate(ms):
+    """Esri epoch-millisecond date -> 'YYYY-MM-DD', or None."""
+    if ms is None:
+        return None
+    from datetime import date as _date, timezone as _tz, datetime as _dt
+    return _dt.fromtimestamp(ms / 1000, tz=_tz.utc).date().isoformat()
+
+
+def fetch_mississauga():
+    from collections import defaultdict as _dd
+    from datetime import date as _date
+
+    def _dateobj(s):
+        return _date.fromisoformat(s)
+
+    def median(vals):
+        vals = sorted(vals)
+        n = len(vals)
+        if n == 0:
+            return None
+        return vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+
+    rows = list(page_arcgis(MIS_API, MIS_FIELDS))
+    total = len(rows)
+
+    by_month_n, by_month_v, by_month_u = _dd(int), _dd(float), _dd(int)
+    areas_n, areas_v = _dd(int), _dd(float)
+    work_n, work_v = _dd(int), _dd(float)   # BLDG_TYPE (fine-grained)
+    use_n, use_v = _dd(int), _dd(float)     # FILE_TYPE (broad category)
+
+    app_to_issue_by_type, app_to_issue_by_year = _dd(list), _dd(list)
+    issue_to_complete_by_type, issue_to_complete_by_year = _dd(list), _dd(list)
+    econ_by_year = _dd(lambda: {"per_unit": [], "per_sqft": [], "unit_size": []})
+    neg_app_issue, neg_issue_complete = 0, 0
+
+    for r in rows:
+        val = float(r.get("EST_CON_VALUE") or 0)
+        iss = edate(r.get("ISSUE_DATE"))
+        app = edate(r.get("APPLICATION_DATE"))
+        comp = edate(r.get("COMPLETE_DATE"))
+        bldg, use = r.get("BLDG_TYPE"), r.get("FILE_TYPE")
+        ward = r.get("WARD")
+
+        if iss and iss >= FLOOR:
+            ym = iss[:7]
+            by_month_n[ym] += 1
+            by_month_v[ym] += val / 1e6
+            by_month_u[ym] += int(r.get("RES_UNITS") or 0)
+            if ward:
+                areas_n[f"Ward {ward}"] += 1
+                areas_v[f"Ward {ward}"] += val / 1e6
+            if bldg:
+                work_n[bldg] += 1
+                work_v[bldg] += val / 1e6
+            if use:
+                use_n[use] += 1
+                use_v[use] += val / 1e6
+
+        if app and iss and app >= FLOOR:
+            d = (_dateobj(iss) - _dateobj(app)).days
+            if d < 0:
+                neg_app_issue += 1
+            else:
+                app_to_issue_by_type[bldg or "(unspecified)"].append(d)
+                app_to_issue_by_year[app[:4]].append(d)
+
+        if iss and comp and iss >= FLOOR:
+            d = (_dateobj(comp) - _dateobj(iss)).days
+            if d < 0:
+                neg_issue_complete += 1
+            else:
+                issue_to_complete_by_type[bldg or "(unspecified)"].append(d)
+                issue_to_complete_by_year[iss[:4]].append(d)
+
+        # Unit economics: NEW-BUILDING residential permits with dwelling
+        # units added. Two live findings shaped this scope. (1) APPL_AREA's
+        # own field description reads "Applicable permit area of work in
+        # SQUARE METRES" -- easy to miss, since every other city's floor-area
+        # field on this page is in sqft; converted via SQM_TO_SQFT below. (2)
+        # Scoping to FILE_TYPE='RESIDENTIAL' and RES_UNITS>0 alone (no SCOPE
+        # filter) mixes genuine new subdivisions in with ALTERATION/ADDITION
+        # permits that merely add a secondary suite -- checked live, that
+        # broader population's $/unit and $/sqft came out physically
+        # impossible (median area/unit ~100 sqft, $/sqft over $2,000).
+        # Restricting to SCOPE='NEW BUILDING' fixes it: median $902K/unit,
+        # 3,264 sqft/unit, $247/sqft -- all in a plausible range for new
+        # Mississauga construction. Even within that cleaner population the
+        # tail is real (p90 $/unit is still $3.2M, custom/luxury builds), so
+        # this still medians per-row ratios rather than summing cost/units,
+        # same reasoning as the rest of this project's right-skewed fields.
+        if (use == "RESIDENTIAL" and r.get("SCOPE") == "NEW BUILDING"
+                and (r.get("RES_UNITS") or 0) > 0 and iss and iss >= FLOOR):
+            yr = iss[:4]
+            units = int(r["RES_UNITS"])
+            if val > 0:
+                econ_by_year[yr]["per_unit"].append(val / units)
+            sqft_m2 = r.get("APPL_AREA")
+            sqft = sqft_m2 * SQM_TO_SQFT if sqft_m2 is not None else None
+            if sqft is not None and sqft > 0 and val > 0:
+                econ_by_year[yr]["per_sqft"].append(val / sqft)
+                econ_by_year[yr]["unit_size"].append(sqft / units)
+
+    def top(n_map, v_map, limit=None):
+        out = [[k, n_map[k], round(v_map[k], 1)] for k in n_map]
+        out.sort(key=lambda row: -row[2])
+        return out[:limit] if limit else out
+
+    def stage(by_type, by_year):
+        return {
+            "by_type": [[k, len(v), round(median(v), 1)]
+                       for k, v in sorted(by_type.items(), key=lambda kv: -len(kv[1]))[:12]],
+            "by_year": [[y, len(v), round(median(v), 1)]
+                       for y, v in sorted(by_year.items())],
+        }
+
+    unit_economics = {
+        "scope_note": ("New-building residential permits with dwelling "
+                      f"units added (SCOPE = 'NEW BUILDING', RES_UNITS > 0), "
+                      f"{FLOOR} forward -- broadening the scope to every "
+                      "RESIDENTIAL permit with units (including additions "
+                      "and secondary-suite alterations) was checked live and "
+                      "produced physically impossible figures (median area "
+                      "under 100 sqft), so this is restricted to genuine new "
+                      "construction. Figures are the MEDIAN of each permit's "
+                      "own $/unit, $/sqft and sqft/unit, not a sum(cost)/"
+                      "sum(units) aggregate -- even within this narrower "
+                      "scope the tail is real (90th percentile $/unit is "
+                      "still ~3.5x the median, custom/luxury builds). "
+                      "APPL_AREA is recorded in square METRES on the source "
+                      "portal, not square feet like every other city's floor-"
+                      "area field on this page -- converted here. 2024 "
+                      "onward's higher $/unit was checked row by row, not "
+                      "assumed: it tracks a real run of ~$7-10M custom "
+                      "detached-home permits (990-1,143 sqm / ~10,600-12,300 "
+                      "sqft each), not a data error -- with only ~140-190 "
+                      "qualifying permits a year, a handful of these can "
+                      "swing the annual median noticeably."),
+        "by_year": [],
+    }
+    for yr in sorted(econ_by_year):
+        e = econ_by_year[yr]
+        row = [yr, len(e["per_unit"]), median(e["per_unit"]), None, None, None]
+        if row[2] is not None:
+            row[2] = round(row[2])
+        if e["per_sqft"]:
+            row[3] = round(median(e["per_sqft"]), 1)
+            row[4] = round(median(e["unit_size"])) if e["unit_size"] else None
+            row[5] = len(e["per_sqft"])
+        unit_economics["by_year"].append(row)
+
+    return {
+        "label": "City of Mississauga",
+        "cma": "toronto",
+        "coverage": ("City of Mississauga only, part of the Toronto CMA "
+                    "(not its own metro area) — compare cautiously against "
+                    "the Toronto CMA figures elsewhere on this page."),
+        "licence": "City of Mississauga Terms of Use (open licence — "
+                  "use, modify and redistribute permitted)",
+        "count": months_to_series(dict(by_month_n)),
+        "value": months_to_series({k: round(v, 2) for k, v in by_month_v.items()}),
+        "units_created": months_to_series(dict(by_month_u)),
+        "areas": top(areas_n, areas_v, TOP_AREAS),
+        "areas_label": "ward",
+        "work": top(work_n, work_v)[:8],
+        "use": top(use_n, use_v)[:8],
+        "quality": {
+            "rows": total,
+            "note": ("Only ISSUED permits are published here (dataset title: "
+                    "\"Issued Building Permits\") — applications that were "
+                    "refused or withdrawn before issuance are not included, "
+                    "so this is not a full application-to-outcome funnel."),
+        },
+        "processing": dict(
+            {"unit_note": ("Days from application to issuance (APPLICATION_DATE "
+                          "to ISSUE_DATE). Median, not mean, since the "
+                          f"distribution is right-skewed. {neg_app_issue} rows "
+                          "with a negative day-count excluded, not zeroed.")},
+            **stage(app_to_issue_by_type, app_to_issue_by_year)),
+        "build_time": dict(
+            {"group_label": "building type",
+             "unit_note": ("Days from issuance to completion (ISSUE_DATE to "
+                          "COMPLETE_DATE, populated once STATUS reaches "
+                          "'COMPLETED - ALL INSP SIGNED OFF'). Median, not "
+                          f"mean. {neg_issue_complete} rows with a negative "
+                          "day-count excluded, not zeroed.")},
+            **stage(issue_to_complete_by_type, issue_to_complete_by_year)),
+        "unit_economics": unit_economics,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
@@ -806,6 +1080,10 @@ def main():
         cities["edmonton"] = fetch_edmonton()
         print(f"  edmonton: {len(cities['edmonton']['areas'])} neighbourhoods, "
               f"{len(cities['edmonton']['work'])} work types")
+        print("fetching Mississauga (Esri ArcGIS FeatureServer, paged)...")
+        cities["mississauga"] = fetch_mississauga()
+        print(f"  mississauga: {len(cities['mississauga']['areas'])} wards, "
+              f"{len(cities['mississauga']['work'])} building types")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -822,6 +1100,8 @@ def main():
                        "(Socrata SODA API)",
             "edmonton": "City of Edmonton open data, General Building Permits "
                         "(Socrata SODA API)",
+            "mississauga": "City of Mississauga open data, Issued Building "
+                          "Permits (Esri ArcGIS FeatureServer)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "

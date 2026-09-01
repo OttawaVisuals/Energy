@@ -113,6 +113,53 @@ processing/concentration cards correctly hidden, build-time/unit-economics
 cards correctly shown with accurate per-city labels. See
 [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) for the full writeup.)
 
+Same day, fifth pass: **Mississauga added as a fifth city**, on the exact
+schema the user described a session earlier — that field list (STATUS,
+FILE_TYPE, BLDG_TYPE, STOREYS, EST_CON_VALUE, RES_UNITS, coordinates,
+application/issue/completion dates) had been paired with Edmonton by
+mistake; it's Mississauga's actual ArcGIS FeatureServer schema, confirmed
+live once the user supplied the real dataset link. It's the richest schema
+of any city here — a real STATUS field, three genuinely distinct dates
+(only 488 of 34,615 rows share an application and issue date, unlike
+Edmonton's identical pair) — so it's the only city with both a
+processing-time panel and a build-time panel; no concentration panel, since
+this schema never had an applicant/contractor field at all. The bigger
+change: **Mississauga is not its own StatCan CMA** — it's part of the
+Toronto CMA — so it can't be a standalone selectable geo without every
+StatCan-driven section of the page (KPIs, pipeline, dwelling types, ...)
+having nothing to show for a "Mississauga" geo that doesn't exist in
+StatCan's tables. Asked the user how to handle this rather than guessing;
+they chose nesting it under the Toronto CMA view over a standalone section.
+`renderMunicipal()` was refactored from one-city-per-geo to
+possibly-multiple-cities-per-geo: it now matches every city whose own key
+*or* `cma` field equals the selected geo, generates a full card block per
+match (`muniCityBlockHTML()`, ids suffixed by city key), and runs the
+existing per-city render logic (`renderOneMuniCity()`) against each —
+selecting Toronto now shows both the City of Toronto's card and the City of
+Mississauga's card together. Two data-quality problems caught live before
+shipping, both in the unit-economics panel. **(1)** `APPL_AREA` is recorded
+in **square metres**, per its own field description — every other city's
+floor-area field on this page is sqft, and treating it the same way
+produced a physically impossible ~100 sqft "average unit size" and
+$2,000+/sqft. **(2)** Scoping to every RESIDENTIAL permit with units added
+(no further filter) mixes new subdivisions with ALTERATION/ADDITION permits
+that merely add a secondary suite; restricting to `SCOPE = 'NEW BUILDING'`
+alongside the unit fix brought $/sqft down to a plausible $223-253 for
+2018-2023. The resulting 2024-2026 jump to a $2.7M+ median $/unit was
+checked row-by-row rather than assumed away: a real run of ~$7-10M custom
+detached-home permits (990-1,143 sqm each, individually verified), not an
+error — with only ~140-190 qualifying permits a year, a handful of genuine
+luxury builds can swing the median, and the card's note says so. Unit
+economics also switched from a sum(cost)/sum(units) aggregate to the
+median of each permit's own ratio, after checking Calgary's equivalent
+distribution was tame enough (median $285K vs p90 $439K) to keep its
+existing simpler aggregate — this is a Mississauga-data problem, not a
+reason to change the general method everywhere. Verified live across all
+five cities: zero console errors, Toronto view renders both cities' full
+card sets, Ontario (a province, no CMA match) correctly hides the section
+entirely. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) for the full
+writeup.)
+
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.
