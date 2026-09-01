@@ -5,15 +5,31 @@ Permit-level open data from two city portals, aggregated into
 construction_json/municipal.json for the Construction Tracker's municipal
 deep-dive card.
 
-WHY ONLY TWO CITIES
+WHY ONLY THREE CITIES
     Every other source on this page is a national aggregate on one schema.
     Municipal permits are the opposite: one schema, refresh cadence and set of
-    coverage caveats per city. Vancouver and Toronto earn their keep —
-    Vancouver has the cleanest schema and refreshes daily, and Toronto is the
-    only portal found that publishes dedicated GREEN ROOF and SOLAR HOT WATER
-    permit datasets, which is the one municipal energy signal in the country.
-    Calgary (Socrata) and Ottawa (ArcGIS) are reachable and deliberately not
-    wired up: four schemas is maintenance, not insight.
+    coverage caveats per city. Vancouver, Toronto and Calgary earn their
+    keep — Vancouver has the cleanest schema and refreshes daily, Toronto is
+    the only portal found that publishes dedicated GREEN ROOF and SOLAR HOT
+    WATER permit datasets (the one municipal energy signal in the country),
+    and Calgary is both the richest schema of any city evaluated (a real
+    status field, a clean cost field, dwelling units, full community-level
+    geography) and the only one where the city boundary is close to its CMA
+    (see below), so its series is the most directly comparable to the
+    StatCan figures already on the page.
+
+    Montreal (CKAN, `datastore_search_sql` works there) and Edmonton (Socrata)
+    were evaluated and are reachable, but were left out: Montreal's per-permit
+    rows carry no cost or status field (cost only exists pre-aggregated by
+    year/borough, not joinable back to individual permits) and two boroughs
+    are currently missing from an in-progress system migration; Edmonton has
+    several overlapping/redundant permit datasets that would need reconciling
+    first and no status or postal/ward field. Ottawa was assumed reachable via
+    ArcGIS in an earlier pass of this evaluation — that was wrong. Ottawa's
+    open-data portal publishes permits only as ~10+ separate annual .xlsx
+    bulk-download workbooks with no API and no server-side aggregation at all.
+    More schemas is maintenance, not insight, unless a city's data clears a
+    real bar — Calgary did; these did not, yet.
 
 THE COVERAGE CAVEAT THAT MATTERS
     A city is not its census metropolitan area. The City of Vancouver is a
@@ -21,6 +37,12 @@ THE COVERAGE CAVEAT THAT MATTERS
     Durham and Halton. These series therefore CANNOT be reconciled with the
     StatCan CMA permit values already on the page, and the card says so and
     plots the ratio rather than pretending they measure the same thing.
+    Calgary is the exception that proves the rule useful: per the 2021 Census,
+    the City of Calgary (1,306,784) is about 88% of the Calgary CMA
+    (1,481,806, which also covers Airdrie, Cochrane, Chestermere and Rocky
+    View County), so its series tracks the CMA figures far more closely than
+    Vancouver's or Toronto's city series do — but it is still not identical,
+    and the card states the live ratio rather than assuming it.
 
 SOURCES
     Vancouver  Opendatasoft Explore API v2.1, dataset `issued-building-permits`
@@ -34,6 +56,13 @@ SOURCES
                `datastore_search_sql` is NOT enabled on this portal (404), and
                the bulk CSV is 146 MB, so this pages `datastore_search` with an
                explicit field list: ~20 requests, ~6 MB each.
+    Calgary    Socrata SODA API, dataset `Building Permits` (Open Calgary Terms
+               of Use — redistribution permitted, attribution not required).
+               Server-side SoQL aggregation (`$select`/`$group`/`$order`), same
+               cost profile as Vancouver. `estprojectcost` is populated on
+               ~92-95% of rows since 2016 (no Toronto-style placeholder-string
+               corruption found), so it is treated as a normal, usable cost
+               field rather than flagged as an undercount.
 
 DATA QUALITY
     Toronto's EST_CONST_COST column contains a literal placeholder string,
@@ -75,6 +104,7 @@ TOR_PERMITS_CLEARED = "a96c0ba4-3026-402b-b09d-5b1268b8f810"
 TOR_PERMITS_ACTIVE = "6d0229af-bc54-46de-9c2b-26759b01dd05"
 TOR_GREEN_ROOF = "936ea65d-2ed3-4243-8cf5-10d1c28194c6"
 TOR_SOLAR_HW = "220001bd-0279-477f-bb22-1379077aac6f"
+CAL_API = "https://data.calgary.ca/resource/c2es-76ed.json"
 
 HEADERS = {"User-Agent": "OttawaVisuals-EnergySuite/1.0 (construction tracker)"}
 FLOOR = "2017-01"          # both portals' usable history starts here
@@ -290,6 +320,74 @@ def fetch_toronto():
     }
 
 
+# =============================================================================
+# Calgary — Socrata SoQL, server-side aggregation like Vancouver
+# =============================================================================
+
+def fetch_calgary():
+    def agg(select, group_by=None, order_by=None, where=None, limit=200):
+        params = {"$select": select, "$limit": limit}
+        if group_by:
+            params["$group"] = group_by
+        if order_by:
+            params["$order"] = order_by
+        if where:
+            params["$where"] = where
+        return get(CAL_API, params)
+
+    monthly = agg("date_trunc_ym(issueddate) as ym,count(*) as n,"
+                  "sum(estprojectcost) as val,sum(housingunits) as units",
+                  "ym", "ym", limit=400)
+    by_month_n = {r["ym"][:7]: int(r["n"]) for r in monthly if r.get("ym")}
+    by_month_v = {r["ym"][:7]: round(float(r.get("val") or 0) / 1e6, 2)
+                  for r in monthly if r.get("ym")}
+    by_month_u = {r["ym"][:7]: int(float(r.get("units") or 0))
+                  for r in monthly if r.get("ym")}
+
+    # No `$order=val DESC` here: Socrata sorts NULL as the largest value in
+    # descending order, so null-cost groups (e.g. Demolition, which records
+    # almost no cost data) would otherwise float to the top. Sorting
+    # client-side instead means `$limit` must be >= the true distinct-value
+    # count (checked live: 317 communities, 10 workclasses, 3 use classes),
+    # or an unordered result can silently truncate before a high-value group
+    # is ever returned — confirmed live: an unordered limit=40 pull dropped
+    # Downtown Commercial Core (Calgary's single largest community by value).
+    areas = agg("communityname,count(*) as n,sum(estprojectcost) as val",
+                "communityname", limit=500)
+    # `workclass` (New/Alteration/Addition/Repair/...) is far finer-grained
+    # than `workclassgroup` or `workclassmapped`, which only split New vs
+    # Existing — checked live against the API before picking this field.
+    work = agg("workclass,count(*) as n,sum(estprojectcost) as val",
+               "workclass", limit=50)
+    use = agg("permitclassmapped,count(*) as n,sum(estprojectcost) as val",
+              "permitclassmapped", limit=50)
+
+    def tidy(rows, k):
+        out = [[r[k], int(r["n"]), round(float(r.get("val") or 0) / 1e6, 1)]
+               for r in rows if r.get(k)]
+        out.sort(key=lambda row: -row[2])
+        return out
+    return {
+        "label": "City of Calgary",
+        "cma": "calgary",
+        "coverage": ("City of Calgary only, but the City is about 88% of the "
+                     "Calgary CMA's population (2021 Census: 1,306,784 of "
+                     "1,481,806) — the CMA also covers Airdrie, Cochrane, "
+                     "Chestermere and Rocky View County. This tracks the CMA "
+                     "figures far more closely than Vancouver's or Toronto's "
+                     "city series do, but it is still not the same boundary."),
+        "licence": "Open Calgary Terms of Use",
+        "count": months_to_series(by_month_n),
+        "value": months_to_series(by_month_v),
+        "units_created": months_to_series(by_month_u),
+        "areas": tidy(areas, "communityname")[:TOP_AREAS],
+        "areas_label": "community",
+        "work": tidy(work, "workclass"),
+        "use": tidy(use, "permitclassmapped")[:8],
+        "quality": None,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--refresh", action="store_true",
@@ -305,6 +403,10 @@ def main():
               f"{len(cities['vancouver']['work'])} work types")
         print("fetching Toronto (CKAN datastore, paged)...")
         cities["toronto"] = fetch_toronto()
+        print("fetching Calgary (Socrata SoQL, server-side aggregation)...")
+        cities["calgary"] = fetch_calgary()
+        print(f"  calgary: {len(cities['calgary']['areas'])} communities, "
+              f"{len(cities['calgary']['work'])} work classes")
     except Exception as e:
         print(f"\n!! municipal fetch failed: {e}", file=sys.stderr)
         sys.exit(1)
@@ -317,6 +419,8 @@ def main():
             "toronto": "City of Toronto open data, Cleared Building Permits "
                        "since 2017, plus green-roof and solar-hot-water permit "
                        "datasets (CKAN datastore)",
+            "calgary": "City of Calgary open data, Building Permits "
+                       "(Socrata SODA API)",
         },
         "caveat": ("City boundaries, not census metropolitan areas. These "
                    "series are a SUBSET of the CMA figures elsewhere on this "

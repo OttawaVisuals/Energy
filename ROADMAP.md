@@ -1,7 +1,35 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
+Updated **2026-09-01** (**Construction Tracker** — added Calgary to the "Inside
+one city" municipal-permits card, after re-evaluating the earlier "two cities,
+deliberately" call against Ottawa, Montreal and Edmonton. Calgary (Socrata SoQL)
+cleared the bar the other three didn't: a real permit-status field, a clean cost
+field (`estprojectcost` ~92-95% populated since 2016, no Toronto-style
+placeholder corruption), dwelling units, full community-level geography, and
+daily refresh with cheap server-side aggregation. Its city boundary is also
+unusually close to its CMA — ≈88% of the Calgary CMA's population per the 2021
+Census, versus ≈24-28% for Vancouver and Toronto — so its cross-check line
+tracks the metro series far more closely, though the card still states the
+live ratio rather than assuming it. Montreal (CKAN, `datastore_search_sql`
+works) was ruled out for now: no cost or status field on individual permit
+rows, cost only exists pre-aggregated by year/borough, and Lachine +
+Saint-Léonard are currently missing from an in-progress system migration.
+Edmonton (Socrata) was ruled out for having several overlapping/redundant
+permit datasets to reconcile first and no status or postal/ward field. Ottawa
+was ruled out outright: the earlier "reachable via ArcGIS" note in
+`Python/municipal_permits_etl.py`'s docstring was **wrong** — there is no
+ArcGIS feature layer, only ~10+ separate annual `.xlsx` bulk-download
+workbooks with no API and no server-side aggregation. One live bug caught
+before shipping: Socrata sorts `NULL` as the *largest* value under
+`ORDER BY ... DESC`, so an unordered `$limit`-bounded pull silently dropped
+Calgary's single largest community by permit value (Downtown Commercial Core,
+$9.1B) before the fix — sort by parsed value client-side over the full
+distinct-value count (317 communities), never trust the API's own order when
+nulls are present. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
+`Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
+
+Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.
 **Now wired into the live page**, not just the data layer: an opt-in "Show
