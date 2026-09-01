@@ -160,6 +160,66 @@ card sets, Ontario (a province, no CMA match) correctly hides the section
 entirely. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) for the full
 writeup.)
 
+Same day, sixth pass: **Ottawa added as a sixth city — the only one with no
+API at all.** An earlier evaluation (this same session, earlier today) had
+ruled Ottawa out entirely, on record in this file and in the module
+docstring. Re-checked live anyway, on the reasoning that the Edmonton
+rejection earlier in this same session had *also* turned out to be wrong
+once actually re-verified rather than trusted from memory — and this one
+was too, partially: there is genuinely no API (confirmed live: 15 annual
+XLSX workbooks, `item.type == "Microsoft Excel"`, no queryable `url` on any
+of them), but the underlying data itself is rich, not the "just bulk
+downloads" dead end the old rejection implied. Discovered live from
+open.ottawa.ca's DCAT feed (not a hardcoded item-id list) rather than
+scraping the catalog page, so a newly published year is picked up on the
+next run automatically. Real per-permit **contractor** names (55.7% of
+rows; the rest are `CONTRACTOR UNKNOWN`/`***CONTRACTOR***` placeholders the
+city itself substitutes when the contractor is the property owner) support
+a genuine concentration panel — no applicant field exists in this schema at
+all, so only half of that card's usual pair renders. The concentration
+card's two halves (applicants/contractors) were previously assumed to
+always come as a pair; fixed to show or hide each independently, and gave
+the contractor note a per-city `coverage_reason` field instead of Vancouver/
+Calgary's hardcoded "not yet chosen at issuance" wording, which would have
+been wrong for Ottawa's real reason (privacy redaction, not timing). No
+processing-time or build-time panel: only one date (issuance) exists in
+this data.
+
+Two schema eras exist, detected **per sheet**, not assumed by year: 2011-
+2025 files carry `CONTRACTOR`/`APPL. TYPE` columns and area already in
+square feet; the current in-progress 2026 file drops both and reports area
+in square metres (converted, same SQM_TO_SQFT lesson as Mississauga). A
+live-caught bug reshaped the whole parsing strategy: the first working
+version picked "the" full-year detail sheet per file by name priority
+(`Sheet1`/`Details`/`Detail`/`Permits`), and it broke silently on the
+2024-2025 combined workbook — its named "Permits" rollup sheet turned out
+to be **stale**, covering only Jan-Aug 2024, while Sep 2024 through Dec
+2025 existed only in that file's monthly sheets, which the priority-pick
+logic was skipping as presumed-redundant. Caught by cross-checking the
+output's monthly series and finding 2025 almost entirely empty. Fixed by
+reading and parsing *every* sheet in every file unconditionally instead of
+picking one — a pivot "Summary" sheet, or any sheet with no real per-permit
+rows, correctly parses to nothing on its own (there's no cell reading
+exactly `WARD` to build a header from), so concatenating everything and
+de-duplicating by permit number is robust to whichever sheet(s) in a given
+file actually hold the data, without needing to know in advance. A second
+finding shaped a caveat rather than the logic: checked live, a large share
+of the declared `VALUE` field for residential permits clusters tightly on a
+handful of near-identical $/sqft rates (hundreds of permits within cents of
+$167.22/sqft or $185.87/sqft in a single year — not seen on office/retail/
+institutional permits in the same file), consistent with a standard
+municipal fee-assessment schedule rather than each builder's independently
+reported project cost. Rather than strip or "correct" it (no reliable way
+to separate schedule-driven from real declared values row by row), the
+unit-economics scope note says so plainly: $/sqft here likely tracks
+Ottawa's own rate table more than the real market, and $/unit inherits the
+same caveat since it depends on the same field. Verified live across all
+six cities: zero console errors, Ottawa's applicants panel correctly
+hidden while contractors renders, unit-economics and areas/work/use panels
+populated and plausible. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)
+and `Python/municipal_permits_etl.py`'s module docstring for the full
+writeup.)
+
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.
