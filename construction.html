@@ -1905,15 +1905,21 @@ function renderOneMuniCity(k, city){
     'desk and the metro figure from StatCan, which use different definitions and coverage as well as '+
     'different boundaries.'+share+' Licence: '+city.licence+'.';
 
+  /* Montreal has no cost field at all (value_basis:'count'), unlike every
+     other city here, which are dollar-ranked (undercounted for some, but
+     always a real $ figure) -- so its areas panel is ranked and labelled by
+     permit count instead of assuming a dollar value exists to rank by. */
+  var byCount=city.value_basis==='count';
   var areaLabel=city.areas_label||'neighbourhood';
   document.getElementById('muni-areas-title-'+k).textContent=
-    'Permit value by '+areaLabel+' — since 2017';
+    (byCount?'Permits by ':'Permit value by ')+areaLabel+' — since 2017';
   hBars('muni-areas-'+k,city.areas.map(function(a){
     return {label:a[0], v:a[2]};
-  }),{fmt:fmtM});
+  }),{fmt:byCount?fmtInt:fmtM});
   document.getElementById('muni-areas-note-'+k).innerHTML=
-    'Top '+city.areas.length+' by total declared construction value since 2017, in millions. '+
-    (city.quality?'<strong>Undercounted:</strong> '+city.quality.note:'Values as declared on the permit.');
+    (byCount?('Top '+city.areas.length+' by permit count since 2017. '+city.quality.note):
+      ('Top '+city.areas.length+' by total declared construction value since 2017, in millions. '+
+       (city.quality?'<strong>Undercounted:</strong> '+city.quality.note:'Values as declared on the permit.')));
 
   hBars('muni-work-'+k,city.work.slice(0,8).map(function(w){
     return {label:w[0], v:w[1]};

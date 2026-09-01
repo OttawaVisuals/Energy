@@ -220,6 +220,50 @@ populated and plausible. See [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)
 and `Python/municipal_permits_etl.py`'s module docstring for the full
 writeup.)
 
+Same day, seventh pass: **Montreal added as a seventh city**, this time on
+a field list the user supplied directly from `donnees.montreal.ca` (not a
+memory mix-up like Mississauga's fields were) — CKAN `datastore_search_sql`,
+server-side aggregation over 558,874 rows since 1997, the largest dataset
+of any city here. Real signal for a processing-time panel (only 27%
+same-day, zero negative-day rows, unlike Edmonton's identical-date dead
+end), computed entirely server-side via `percentile_cont` for the median —
+the endpoint blocks the `CAST` function outright ("Not authorized to call
+function CAST") but allows PostgreSQL's `::type` shorthand, so no client-
+side date-diffing was needed at all, a first for this card's processing-
+time panels. **No cost field anywhere in this resource's schema**, matching
+an earlier evaluation's finding, re-confirmed live rather than assumed
+still true — so areas and work panels are ranked and labelled by permit
+count, not dollar value, the only city on this page where that's true.
+Added a `"value_basis": "count"` flag the page reads to switch the areas
+panel's title/format, rather than hardcoding a dollar assumption across
+every city as the code had done up to now. No concentration panel (no
+contractor/applicant field), no build-time or unit-economics panel (no
+completion date, no cost).
+
+The other half of that earlier evaluation — Lachine and Saint-Léonard
+boroughs excluded over an in-progress system migration — turned out to be
+**stale**, the same pattern as Ottawa's rejection the pass before it: the
+dataset's own methodology page still says their data "n'est pas disponible
+actuellement", but checked live, both boroughs have permits dated exactly
+as recently (2026-08-24) as an actively-updated borough like Le
+Plateau-Mont-Royal. The migration evidently finished and nobody updated the
+caveat text; both boroughs are included here. One data-quality note carried
+into the docstring rather than silently worked around:
+`description_type_batiment` carries real casing duplicates across boroughs
+(`"Commercial"`/`"commercial"`/`"Commerce"` all appear as separate values,
+since each borough's service counter enters data somewhat independently,
+per the dataset's own methodology text) — normalized to uppercase for
+grouping rather than picking one casing arbitrarily. Also used this pass to
+fill in two gaps in the module docstring's top-level city roster and
+per-city SOURCES list that Ottawa's own addition had left behind — its
+SOURCES entry and full seven-city count were missing, added now alongside
+Montreal's. Verified live across all seven cities plus Quebec (a province,
+no CMA match): zero console errors, Montreal's areas panel renders as
+"Permits by borough" in plain counts rather than "$M", processing panel
+populated, concentration/build-time/econ correctly absent. See
+[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) and
+`Python/municipal_permits_etl.py`'s module docstring for the full writeup.)
+
 Prior update **2026-08-31** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario, built end to end: what a home without AC would emit/cost if it got
 one, and how a standard AC compares to a heat pump for cooling specifically.
