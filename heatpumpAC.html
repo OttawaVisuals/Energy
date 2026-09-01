@@ -350,7 +350,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           <div class="step-chart-col">
             <div class="keychart-wrap"><svg id="cop-chart" viewBox="0 0 740 220" role="img" aria-label="Coefficient of performance versus outdoor temperature"></svg><div class="kc-tip" id="cop-tip"></div></div>
             <div class="kc-legend" id="cop-legend"></div>
-            <div class="note">COP here is <code>capacity ÷ electricity</code> at that outdoor temperature, read off each unit's own manufacturer datasheet curve — not measured in this home.</div>
+            <div class="note">COP here is each unit's full/rated-speed curve, calibrated to its own certified SEER2/EER2 badge (RESNET HERS Addendum 82) — not measured in this home, and not the same as the max-speed-only number a manufacturer's extended-ratings table would show. See methodology.</div>
           </div>
           <div class="step-kpi-col" id="cop-kpis"></div>
         </div>
@@ -477,14 +477,30 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <p>The cooling balance point (the outdoor temperature above which the home needs cooling) is then solved the same way a heating balance point is: cooling-degree-hours are integrated against this city's own weather year until they match the estimated annual energy, anchored on the fixed 25 °C HOT2000 indoor cooling setpoint (<code>ThermostatCooling</code> — a program constant, confirmed zero-variance across 620,107 real audit records, not an assumption standing in for a missing field).</p>
       <div class="caveats">These are always <b>estimated</b> fields — two correlations removed from measurement (a correlation-estimated peak, run through a ratio-estimated energy, run through a balance-point solve). They are not shown with the confidence of a real per-house measurement, and are not intended to be: their entire purpose is giving a home with <i>no</i> installed AC — the population a "what would adding AC cost" question is actually about — a plausible cooling profile at all.</div>
 
-      <h5>The standard AC and the heat pump's own cooling curve</h5>
-      <p>The "standard AC" baseline is one representative unit — a <b>Goodman GLXS4B, 3-ton (36,000 Btu/h), up to 15.2 SEER2</b> — extracted the same way the heat pump curves are: capacity and power draw read directly off the manufacturer's own Performance Data table (75–115 °F outdoor, fixed 80 °F/67 °F indoor condition), not a digitized chart and not an assumed SEER. One size covers 92–99.5% of homes by peak cooling load across the 14 tracked cities (worst case Vancouver, small sample), so a single baseline is a reasonable stand-in for "a typical central AC," not a claim that every home needs exactly this unit. Outside its published 23.9–46.1 °C range the curve is held flat, not linearly extrapolated — a deliberately conservative, bounded choice given how little margin sits between that range and a typical solved balance point (17–21 °C).</p>
-      <p>Where the selected heat pump's own spec sheet publishes a temperature-indexed cooling table (5 of the 9 tier×size cells on this page, checked directly against each manufacturer's datasheet: Tosot 36k, GREE 24k/36k, Fujitsu 15k and 36k — the other 4 genuinely have no published cooling curve, not an extraction gap), that real curve is used for the "heat pump (cooling mode)" comparison instead of a second generic assumption. Both curves are normalized the same way as heating's, but on <b>95 °F</b> (the cooling AHRI/SEER anchor) rather than heating's 47 °F — the two <code>cap_frac</code> scales are not interchangeable.</p>
-      <div class="caveats"><b>SEER/SEER2 badges do not predict this comparison's outcome.</b> Two of the three real heat-pump cooling curves checked (Tosot, GREE) carry a <i>higher</i> published SEER/SEER2 than the Goodman baseline, yet both use <i>more</i> electricity once their real measured points are integrated against a full year of real weather. The reconciliation: SEER is a standardized average across a published outdoor-temperature distribution that barely samples above 35 °C (the hottest standard AHRI bin, 38.9 °C, is weighted at only 0.4% of assumed cooling hours) — a unit can post a strong badge from shoulder-season performance while degrading faster than a competitor above that range, which is exactly where a real climate's cooling load is concentrated (load grows with outdoor temperature, so the biggest hours are near the design condition, not the mild ones SEER weights most). Use the kWh/GHG/cost numbers this page computes, not the equipment's badge, to judge which unit actually costs less to run here.</div>
+      <h5 id="m-hers-cooling">Cooling curves — RESNET HERS Addendum 82</h5>
+      <p>Both the standard AC's and the heat pump's cooling-mode capacity/COP curves are built the same way — not by digitizing a manufacturer's own extended-ratings table (this page's earlier approach). Manufacturer "Extended Ratings" tables (the ones with a full 5–129 °F sweep) exist for equipment sizing and electrical-circuit design, not efficiency characterization — they report <b>MAX OUTPUT</b>, the compressor running flat-out at every temperature, which for a variable-speed unit is its <i>least</i> efficient operating point, not its typical one. Reading that table as "the unit's efficiency" made variable-speed heat pumps look worse than a single-stage AC even when their own certified SEER2/EER2 badge said the opposite.</p>
+      <p>Instead this page uses <b>RESNET/ICC 301 HERS Addendum 82</b> (2023) — the current U.S. national standard method for deriving a full temperature-and-load performance curve from just the two numbers every unit's badge publishes, <b>SEER2 and EER2</b>, plus its compressor type:</p>
+      <ul>
+        <li>A <b>generic biquadratic temperature-response shape</b> — the same fixed coefficients for capacity and energy-input-ratio (EIR) vs. temperature, for every brand and every unit — normalized to 1.0 at the AHRI test condition (67 °F indoor wet-bulb, 95 °F outdoor).</li>
+        <li>That shape is <b>calibrated to each unit's own certified rated point</b> (from EER2) rather than left anchored to an uncalibrated Max-Output extreme.</li>
+        <li>For <b>variable-speed</b> equipment (every heat pump cell on this page), a documented set of fixed ratios and a SEER2/(SEER2÷EER2)-indexed lookup table derive <b>Min, Full and Max</b> capacity-and-COP points — the same three-point structure NEEP's own directory tabulates — instead of one Max-only curve.</li>
+        <li>The simulation now <b>dispatches across those three speeds</b> hour by hour: below the minimum speed's capacity, the compressor cycles on/off (modelled with HERS's own linear part-load-fraction degradation, <code>PLF = 1 − c_d(1 − PLR)</code>, <code>c_d</code> = 0.08 single-stage / 0.40 variable-speed); between speeds it modulates continuously (EIR interpolated linearly between the two bracketing speeds — the standard simplification absent a full compressor map); above the top speed it's undersized (see below).</li>
+      </ul>
+      <p>The <b>Step 1</b> and <b>Step 2</b> charts draw the <i>Full/rated</i> speed's curve — the badge-representative point — while the underlying simulation uses all three speeds, so a unit's annual kWh can beat another's even at a similar or lower single-point COP, if its part-load modulation is what wins the season.</p>
+      <table class="ht-table">
+        <tr><th>Unit</th><th class="ht-num">SEER2</th><th class="ht-num">EER2</th><th>Compressor</th><th>Source</th></tr>
+        <tr><td>Goodman GLXS4BA3610 (standard AC)</td><td class="ht-num">15.2</td><td class="ht-num">11.63</td><td>Single-stage</td><td>SEER2 from the unit's own spec sheet headline; EER2 self-computed from that same sheet's Performance Data table at the AHRI condition (34,200 Btu/h ÷ 2,940 W)</td></tr>
+        <tr><td>Tosot TUD36W2/D-D(U) (low_30-42k)</td><td class="ht-num">15.5</td><td class="ht-num">10.0</td><td>Variable-speed</td><td>Exact AHRI-number match (211078855), unit's own spec sheet p.1</td></tr>
+        <tr><td>GREE GUD36W/A-D(U) (mid_18-30k, mid_30-42k)</td><td class="ht-num">18</td><td class="ht-num">11</td><td>Variable-speed</td><td>Closely-related sibling AHRI pairing (206249117) of the same physical FLEXX36HP230V1BH/AO hardware this cell cites (AHRI 206249116) — not an exact AHRI-number match</td></tr>
+        <tr><td>Fujitsu AOUG15LZAH1 (high_&lt;18k)</td><td class="ht-num">25.3</td><td class="ht-num">13.9</td><td>Variable-speed</td><td>Retailer-listed (not independently verified against Fujitsu's own datasheet or the AHRI directory)</td></tr>
+        <tr><td>Fujitsu AOUG36LMAS1 (high_30-42k)</td><td class="ht-num">17.1</td><td class="ht-num">10.7</td><td>Variable-speed</td><td>Retailer-listed (same caveat)</td></tr>
+      </table>
+      <p><i>Method source: RESNET/ICC 301 HERS Addendum 82 (2023). Implementation ported directly from NREL's <a href="https://github.com/NREL/OpenStudio-HPXML" target="_blank" rel="noopener">OpenStudio-HPXML</a> (the engine behind the U.S. national ResStock residential building-stock model and official HERS energy ratings) — <code>HPXMLtoOpenStudio/resources/defaults.rb</code> method <code>set_hvac_cooling_performance</code>, and <code>math.rb</code>'s interpolation helpers — BSD-3-Clause licensed, verified against that source 2026-09-01.</i></p>
+      <div class="caveats">The GREE and both Fujitsu badge figures aren't exact-AHRI-number matches for the specific cells this page models (see table) — treat their absolute kWh/COP as good-faith, not certified-exact. Two-stage equipment isn't modelled (none of this page's cells are two-stage). The continuous-modulation segment between speeds uses linear EIR interpolation, a simplification — real compressor efficiency maps aren't perfectly linear, though HERS Addendum 82 itself doesn't publish a finer curve either.</div>
 
       <h5 id="m-undersized">When the equipment is undersized</h5>
-      <p>Neither piece of equipment is scaled to the home's estimated peak — by design, matching the rest of this page's "no archetype auto-sizing" stance (see above). The engine handles a temperature where <code>capacity &lt; load</code> by running the unit flat-out (<code>delivered = min(load, capacity)</code>) and pricing/emitting exactly that — a maxed-out unit really does draw exactly this much electricity, so the kWh/GHG/cost figures stay accurate for those hours. What's <i>not</i> represented is comfort: the home doesn't reach setpoint that hour, and this model has no cost or discomfort penalty for that shortfall.</p>
-      <p>This shows up most in mild-summer cities: the cooling balance point is solved against a <b>fixed 25 °C</b> indoor setpoint, so <code>UA_cool = peak_kW ÷ (design_cooling_temp − 25)</code> — for a city whose design cooling temperature sits only slightly above 25 °C (Vancouver, ≈25.7 °C, is the worst case among the 14 tracked cities), that denominator is small and UA_cool is large, so the load line climbs steeply just past the balance point while both the standard AC's and every heat pump's capacity curve stay close to flat (real cooling capacity barely changes with outdoor temperature). The two cross at some point, and the shortfall grows quickly above it.</p>
+      <p>Neither piece of equipment is scaled to the home's estimated peak — by design, matching the rest of this page's "no archetype auto-sizing" stance (see above). The engine handles an hour where the load exceeds the equipment's <b>top speed's</b> capacity by running flat-out there (<code>delivered = min(load, capacity)</code>) and pricing/emitting exactly that — a maxed-out unit really does draw exactly this much electricity, so the kWh/GHG/cost figures stay accurate for those hours. What's <i>not</i> represented is comfort: the home doesn't reach setpoint that hour, and this model has no cost or discomfort penalty for that shortfall.</p>
+      <p>This shows up most in mild-summer cities: the cooling balance point is solved against a <b>fixed 25 °C</b> indoor setpoint, so <code>UA_cool = peak_kW ÷ (design_cooling_temp − 25)</code> — for a city whose design cooling temperature sits only slightly above 25 °C (Vancouver, ≈25.7 °C, is the worst case among the 14 tracked cities), that denominator is small and UA_cool is large, so the load line climbs steeply just past the balance point while equipment capacity stays close to flat (real cooling capacity barely changes with outdoor temperature). The two cross at some point, and the shortfall grows quickly above it.</p>
       <div class="caveats">When either unit crosses this line, a red shaded zone appears on the Step 1 chart, a "Hours unmet" KPI reports what share of the cooling season is affected, and every stat card for that unit is flagged "undersized above X °C." If you don't see any of that, the selected equipment covers the full estimated load for this city/design-load combination.</div>
 
       <h5 id="m-ac-refrig">Refrigerant leakage (standard AC only)</h5>
@@ -533,7 +549,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <h4>Sources</h4>
       <ul>
         <li>NRCan EnerGuide / ERS retrofit audit records (209,272 homes, cooling correlations; house-level design cooling temperatures)</li>
-        <li>Manufacturer datasheets (Goodman, Tosot, GREE, Fujitsu) and AHRI certificates</li>
+        <li>RESNET/ICC 301 HERS Addendum 82 (2023) — cooling curve methodology, via NREL's <a href="https://github.com/NREL/OpenStudio-HPXML" target="_blank" rel="noopener">OpenStudio-HPXML</a> (BSD-3-Clause)</li>
+        <li>Manufacturer spec sheets (Goodman, Tosot, GREE, Fujitsu) and AHRI certificates — SEER2/EER2 badge values, refrigerant charge</li>
         <li>IESO, AESO &amp; Hydro-Québec generation-by-fuel data</li>
         <li>ECCC National Inventory Report &amp; climate datasets (CWEC2020)</li>
         <li>Ontario Energy Board, Alberta CEA Electricity Consumption Report, Régie de l'énergie (line loss)</li>
@@ -1308,8 +1325,9 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     var leap = N === 8784;
     var UA = opts.archetype.UA_cool_kW_per_K;
     var Tc = opts.archetype.Tc_C;
-    var curve = opts.equipment.curve;
+    var curves = opts.equipment.curves || [opts.equipment.curve];
     var nominalCap = opts.equipment.nominalCap_kW;
+    var c_d = opts.equipment.c_d || 0;
     var lc = opts.lifecycle || {};
     var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
     var efMode = opts.efMode === "marginal" ? "marginal" : "average";
@@ -1344,17 +1362,57 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       var season = SEASON_BY_MONTH[month];
       var tbin = tempBinLeft(T);
 
-      var capFrac = interp(curve.T_C, curve.cap_frac_of_rated95, T);
-      var cop = interp(curve.T_C, curve.COP, T);
-      var capacity = capFrac == null ? 0 : nominalCap * capFrac;
-      h_cap[i] = capacity; h_cop[i] = cop;
-      var delivered = cop ? Math.min(load, capacity) : 0;
+      // Per-speed capacity & COP at this hour's temperature -- 1 entry for
+      // single-stage equipment, 3 (min/full/max) for variable-speed, per
+      // the RESNET HERS Addendum 82 model built in buildHersEquip(). See
+      // METHODOLOGY.md "Cooling curves -- HERS Addendum 82".
+      var nSpeeds = curves.length;
+      var caps = new Array(nSpeeds), cops = new Array(nSpeeds);
+      for (var s = 0; s < nSpeeds; s++) {
+        var cf = interp(curves[s].T_C, curves[s].cap_frac_of_rated95, T);
+        caps[s] = cf == null ? 0 : nominalCap * cf;
+        cops[s] = interp(curves[s].T_C, curves[s].COP, T);
+      }
+      var capTop = caps[nSpeeds - 1], copTop = cops[nSpeeds - 1];
+      var capBottom = caps[0], copBottom = cops[0];
+      h_cap[i] = capTop; h_cop[i] = copTop;
+
+      var delivered, eir;
+      if (load >= capTop) {
+        // Undersized -- runs flat-out at its top speed, doesn't fully meet the load.
+        delivered = capTop;
+        eir = copTop ? 1 / copTop : null;
+      } else if (nSpeeds === 1) {
+        // Single-stage: no modulation below full capacity.
+        delivered = load;
+        eir = copBottom ? 1 / copBottom : null;
+      } else if (load <= capBottom) {
+        // Below minimum speed: the compressor cycles on/off at min speed to
+        // average out to the lower load. PLF (part-load fraction) models the
+        // resulting efficiency loss -- HERS Addendum 82's own linear PLF
+        // model, PLF = 1 - c_d*(1-PLR).
+        delivered = load;
+        var plr = capBottom > 0 ? load / capBottom : 0;
+        var plf = 1 - c_d * (1 - plr);
+        eir = copBottom ? (1 / copBottom) / plf : null;
+      } else {
+        // Continuous modulation between two bracketing speeds: interpolate
+        // EIR (not COP -- EIR is the physically additive quantity) linearly
+        // by capacity fraction between them.
+        var bi = 0;
+        for (var k = 0; k < nSpeeds - 1; k++) { if (load >= caps[k] && load <= caps[k + 1]) { bi = k; break; } }
+        var lo = caps[bi], hi = caps[bi + 1], loC = cops[bi], hiC = cops[bi + 1];
+        var f = (hi - lo) > 1e-9 ? (load - lo) / (hi - lo) : 0;
+        var eirLo = loC ? 1 / loC : null, eirHi = hiC ? 1 / hiC : null;
+        eir = (eirLo != null && eirHi != null) ? eirLo * (1 - f) + eirHi * f : null;
+        delivered = load;
+      }
       deliveredKWh += delivered;
       if (delivered + 1e-9 >= load) metHours++;
       else unmetHours++;
 
-      if (delivered > 0 && cop) {
-        var elec = delivered / cop;
+      if (delivered > 0 && eir != null) {
+        var elec = delivered * eir;
         elecKWh += elec;
         m_elec[mi] += elec;
         h_elec[i] = elec;
@@ -2078,15 +2136,139 @@ function acRefrigGhgKgPerYr(){
   return AC_REFRIG_CHARGE_KG*(state.leakRate/100+AC_REFRIG_EOL_FRAC/AC_REFRIG_LIFE_YEARS)*AC_REFRIG_GWP100;
 }
 
-// First outdoor temperature (0.5 °C step) at which this equipment's capacity
-// falls short of the estimated cooling load -- null if it never does across
-// the displayed range. Used to disclose undersized-equipment hours rather
-// than silently absorb them into "delivered = min(load, capacity)".
+// ==========================================================================
+// Cooling curves — RESNET/ICC 301 HERS Addendum 82 (2023).
+//
+// Replaces this page's earlier approach (digitizing each manufacturer's own
+// "MAX OUTPUT" extended-ratings table as a single capacity/COP curve) with
+// the current US national standard method for deriving full-range AC/heat-
+// pump cooling performance from just the two numbers every unit's badge
+// publishes — SEER2 and EER2 — plus compressor type. A generic biquadratic
+// temperature-response shape (same for every unit) is calibrated to each
+// unit's own certified rated point, rather than reading capacity/COP
+// straight off one brand's uncalibrated "run flat-out at every temperature"
+// engineering table. Variable-speed units get a real Min/Full/Max capacity
+// structure (matching what NEEP's own directory tabulates) instead of one
+// max-speed curve, so the simulation below can model load-following
+// modulation instead of always running at the compressor's least-efficient
+// extreme.
+//
+// Ported line-for-line from NREL's OpenStudio-HPXML (the engine behind the
+// US national ResStock residential building-stock model and official HERS
+// ratings), HPXMLtoOpenStudio/resources/defaults.rb `set_hvac_cooling_
+// performance` + math.rb `interp2/interp4/find_array_neighbor_indices`,
+// BSD-3-Clause licensed, github.com/NREL/OpenStudio-HPXML, verified against
+// that source 2026-09-01. See METHODOLOGY "Cooling curves — HERS Addendum
+// 82" for the full derivation, per-unit SEER2/EER2 sourcing, and caveats.
+// ==========================================================================
+const HERS_COOL_CAP_FT=[3.717717741,-0.09918866,0.000964488,0.005887776,-0.000012808,-0.000132822];
+const HERS_COOL_EIR_FT=[-3.400341169,0.135184783,-0.001037932,-0.007852322,0.000183438,-0.000142548];
+const HERS_INDOOR_WB_F=67.0; // fixed indoor wet-bulb, the AHRI A/B-test condition both curves are normalized against
+function hersBiquad(c,xF,yF){ return c[0]+c[1]*xF+c[2]*xF*xF+c[3]*yF+c[4]*yF*yF+c[5]*xF*yF; }
+function hersFindNeighbors(arr,v){
+  if(v<=arr[0]) return [0,1];
+  for(let i=0;i<arr.length-1;i++){ if(arr[i]<=v && v<=arr[i+1]) return [i,i+1]; }
+  return [arr.length-2,arr.length-1];
+}
+function hersInterp4(x,y,x1,x2,y1,y2,fx1y1,fx1y2,fx2y1,fx2y2){
+  const d=(x2-x1)*(y2-y1);
+  return (fx1y1/d)*(x2-x)*(y2-y) + (fx2y1/d)*(x-x1)*(y2-y) + (fx1y2/d)*(x2-x)*(y-y1) + (fx2y2/d)*(x-x1)*(y-y1);
+}
+// COP82min from SEER2 + the SEER2/EER2 ratio, variable-speed units only --
+// fixed lookup table, RESNET HERS Addendum 82.
+const HERS_VS_SEER2_ARR=[14.0,24.5,35.0];
+const HERS_VS_RATIO_ARR=[1.000,1.747,2.120,2.307,2.400];
+const HERS_VS_COP82MIN=[[4.047,6.175,14.240,19.508,23.029],
+                         [7.061,10.289,23.262,31.842,37.513],
+                         [10.058,14.053,30.962,42.388,49.863]];
+function hersCop82min(seer2,eer2){
+  const ratio=seer2/eer2;
+  const [xi0,xi1]=hersFindNeighbors(HERS_VS_SEER2_ARR,seer2);
+  const [yi0,yi1]=hersFindNeighbors(HERS_VS_RATIO_ARR,ratio);
+  return hersInterp4(seer2,ratio,HERS_VS_SEER2_ARR[xi0],HERS_VS_SEER2_ARR[xi1],HERS_VS_RATIO_ARR[yi0],HERS_VS_RATIO_ARR[yi1],
+    HERS_VS_COP82MIN[xi0][yi0],HERS_VS_COP82MIN[xi0][yi1],HERS_VS_COP82MIN[xi1][yi0],HERS_VS_COP82MIN[xi1][yi1]);
+}
+// One speed level's {T_C[],cap_frac_of_rated95[],COP[]} curve: the SAME
+// generic biquadratic temperature shape for every speed and every unit;
+// only the 95°F anchor (this speed's own capacity ratio and COP) differs,
+// calibrated to the real badge number.
+function hersSpeedCurve(cap95Ratio,cop95,Tmin_C,Tmax_C,stepC){
+  const capFt95=hersBiquad(HERS_COOL_CAP_FT,HERS_INDOOR_WB_F,95);
+  const eirFt95=hersBiquad(HERS_COOL_EIR_FT,HERS_INDOOR_WB_F,95);
+  const eir95=1/cop95;
+  const T=[],cap=[],cop=[];
+  for(let tC=Tmin_C;tC<=Tmax_C+1e-9;tC+=stepC){
+    const tF=tC*9/5+32;
+    const capFt=hersBiquad(HERS_COOL_CAP_FT,HERS_INDOOR_WB_F,tF);
+    const eirFt=hersBiquad(HERS_COOL_EIR_FT,HERS_INDOOR_WB_F,tF);
+    T.push(Math.round(tC*100)/100);
+    cap.push(cap95Ratio*capFt/capFt95);
+    const eir=eir95*(eirFt/eirFt95);
+    cop.push(eir>0?1/eir:null);
+  }
+  return {T_C:T,cap_frac_of_rated95:cap,COP:cop};
+}
+// Full derivation: given a unit's own SEER2, EER2 and compressor type,
+// return its speed levels (1 for single-stage, 3 -- min/full/max -- for
+// variable-speed) as {T_C,cap_frac_of_rated95,COP} curves, plus the
+// degradation coefficient for below-min-speed cycling.
+function hersCoolingModel(seer2,eer2,compressorType,Tmin_C,Tmax_C,stepC){
+  const cop95full=eer2/3.412;
+  if(compressorType==='variable-speed'){
+    const qr95full=0.934, eirr95full=0.928, eirm95max=1.326, eirm95min=1.315;
+    const cop82min=hersCop82min(seer2,eer2);
+    const cop95max=cop95full*eirr95full;
+    const cop95min=cop82min/eirm95min;
+    const cop82max=cop95max*eirm95max;
+    const qr95min=1.0/qr95full*(0.029+0.369*cop82max/cop82min); // Q95min/Q95max
+    const q95maxRatio=1.0/qr95full; // relative to Q95full = 1.0
+    const q95minRatio=qr95min*q95maxRatio;
+    const curves=[
+      hersSpeedCurve(q95minRatio,cop95min,Tmin_C,Tmax_C,stepC),
+      hersSpeedCurve(1.0,cop95full,Tmin_C,Tmax_C,stepC),
+      hersSpeedCurve(q95maxRatio,cop95max,Tmin_C,Tmax_C,stepC),
+    ];
+    return {c_d:0.40,curves};
+  }
+  return {c_d:0.08,curves:[hersSpeedCurve(1.0,cop95full,Tmin_C,Tmax_C,stepC)]};
+}
+// Cooling badge inputs (SEER2, EER2, compressor type) for the HERS model --
+// one entry per equipment cell this page can select. See METHODOLOGY
+// "Cooling curves — HERS Addendum 82" for exact sourcing and caveats per
+// unit (some are exact-AHRI-number matches, some are closely-related
+// sibling pairings or retailer-listed figures).
+const HERS_COOL_INPUTS={
+  ac_goodman:{seer2:15.2, eer2:11.63, compressorType:'single-stage'},
+  'mid_18-30k':{seer2:18, eer2:11, compressorType:'variable-speed'},
+  'mid_30-42k':{seer2:18, eer2:11, compressorType:'variable-speed'},
+  'low_30-42k':{seer2:15.5, eer2:10, compressorType:'variable-speed'},
+  'high_<18k':{seer2:25.3, eer2:13.9, compressorType:'variable-speed'},
+  'high_30-42k':{seer2:17.1, eer2:10.7, compressorType:'variable-speed'},
+};
+const HERS_COOL_TMIN=8, HERS_COOL_TMAX=55, HERS_COOL_STEP=0.5;
+// Builds an equipment object for the engine: `curves`+`c_d` drive the real
+// multi-speed dispatch in E.simulateCooling; `curve` (the full/rated speed)
+// is what the Step 1/2 charts draw as "the" COP curve (the badge-
+// representative point, not the max-speed extreme); `curveMax` (the top
+// speed) is the true physical ceiling used for capacity/undersized checks.
+function buildHersEquip(hersIn,nominalCap_kW){
+  const model=hersCoolingModel(hersIn.seer2,hersIn.eer2,hersIn.compressorType,HERS_COOL_TMIN,HERS_COOL_TMAX,HERS_COOL_STEP);
+  const fullIdx=model.curves.length===1?0:1;
+  return {curves:model.curves, c_d:model.c_d, nominalCap_kW,
+    curve:model.curves[fullIdx], curveMax:model.curves[model.curves.length-1]};
+}
+
+// First outdoor temperature (0.5 °C step) at which this equipment's true
+// ceiling capacity (its top speed) falls short of the estimated cooling
+// load -- null if it never does across the displayed range. Used to
+// disclose undersized-equipment hours rather than silently absorb them
+// into "delivered = min(load, capacity)".
 function findCrossoverTemp(UA,Tc,equip,Tmax){
   if(!equip) return null;
+  const c=equip.curveMax||equip.curve;
   for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
     const load=UA*Math.max(0,t-Tc);
-    const cf=E.interp(equip.curve.T_C,equip.curve.cap_frac_of_rated95,t);
+    const cf=E.interp(c.T_C,c.cap_frac_of_rated95,t);
     const cap=cf==null?0:equip.nominalCap_kW*cf;
     if(load>cap+1e-9) return t;
   }
@@ -2094,10 +2276,11 @@ function findCrossoverTemp(UA,Tc,equip,Tmax){
 }
 function coolStepCurves(UA,Tc,equip,Tmax){
   const T=[],load=[],cap=[],cop=[];
+  const cCap=equip&&(equip.curveMax||equip.curve), cCop=equip&&equip.curve;
   for(let t=COOL_Tmin;t<=Tmax+1e-9;t+=0.5){
     const L=UA*Math.max(0,t-Tc);
     let cf=null,cp=null,cv=0;
-    if(equip){ cf=E.interp(equip.curve.T_C,equip.curve.cap_frac_of_rated95,t); cp=E.interp(equip.curve.T_C,equip.curve.COP,t); cv=cf==null?0:equip.nominalCap_kW*cf; }
+    if(equip){ cf=E.interp(cCap.T_C,cCap.cap_frac_of_rated95,t); cp=E.interp(cCop.T_C,cCop.COP,t); cv=cf==null?0:equip.nominalCap_kW*cf; }
     T.push(t);load.push(L);cap.push(cv);cop.push(cp);
   }
   return {T,load,cap,cop};
@@ -2416,15 +2599,16 @@ function buildOptsAndRun(){
 
   const temps=tempSeriesFor(state.city,state.weatherYear);
   const efObj=efObjectFor(CITY_PROV[state.city],state.efBasis);
-  const acEquip={curve:AC_CURVE.curve,nominalCap_kW:AC_CURVE.rated_cap_kW};
+  const acEquip=buildHersEquip(HERS_COOL_INPUTS.ac_goodman,AC_CURVE.rated_cap_kW);
   const resAC=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
     equipment:acEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
 
   const cell=cellFor(state.tier,state.band);
-  const hasHPCurve=cell&&cell.cooling;
+  const cellKey=state.tier+'_'+state.band;
+  const hasHPCurve=cell&&cell.cooling&&HERS_COOL_INPUTS[cellKey];
   let resHP=null,hpEquip=null,hpLabel=null;
   if(hasHPCurve){
-    hpEquip={curve:cell.cooling.curve,nominalCap_kW:cell.cooling.rated_cap_95f_btuh/3412};
+    hpEquip=buildHersEquip(HERS_COOL_INPUTS[cellKey],cell.cooling.rated_cap_95f_btuh/3412);
     hpLabel=cell.brand_model||bucketShort()+' pump';
     resHP=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
       equipment:hpEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
