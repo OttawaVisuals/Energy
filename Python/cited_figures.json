@@ -13,7 +13,25 @@
     "NOT INCLUDED, deliberately: any CaGBC LEED or Zero Carbon count. CaGBC publishes",
     "no running total on its public pages and its project database is behind a",
     "sign-in, so there is no figure here that could be verified the way the two",
-    "below are. Getting one means asking CaGBC, not guessing."
+    "below are. Getting one means asking CaGBC, not guessing.",
+    "",
+    "chba_hmi: transcribed from CHBA's own quarterly narrative text (the",
+    "'Key Findings' accordion on the HMI page), NOT from that page's chart",
+    "images. The charts are static PNG/JPG with no underlying data file, and",
+    "their auto-generated alt text was checked and found unreliable on",
+    "2026-08-31 -- one bar chart's alt text swapped which selling-condition",
+    "category (Good vs Fair) a percentage belonged to, and a line chart's alt",
+    "text mislabelled a quarter. The prose sentences are self-consistent",
+    "across all 21 quarters checked and are the only source used here.",
+    "Regional (Ontario/BC/Prairies/Atlantic) scores are included only from",
+    "2024 Q2 onward -- CHBA reported them as qualitative description only",
+    "before that quarter, not as index scores, so earlier quarters have no",
+    "regional figure to transcribe. Quebec and the territories have no CHBA",
+    "HMI region at all: the survey's only regional cuts are Ontario, BC,",
+    "Prairies (AB+SK+MB) and Atlantic Canada. Multi-family Atlantic scores",
+    "are never reported in any quarter checked -- presumed too few",
+    "respondents for the association to publish a number, not a transcription",
+    "gap on our side."
   ],
   "sources": {
     "greener_homes": {
@@ -165,14 +183,14 @@
       "label": "CHBA Net Zero Home Labelling Program",
       "publisher": "Canadian Home Builders' Association",
       "source_url": "https://www.chba.ca/about-the-net-zero-home-labelling-program/",
-      "as_of": "2026-08-27",
-      "transcribed": "2026-08-27",
-      "note": "Association-reported cumulative counts, published as a running total on CHBA's own page with its own last-updated date. Cited with attribution; CHBA publishes no data file and the underlying register is not open, so this is a citation, not a dataset.",
+      "as_of": "2026-08-28",
+      "transcribed": "2026-08-31",
+      "note": "Association-reported cumulative counts, published as a running total on CHBA's own page with its own last-updated date. Cited with attribution; CHBA publishes no data file and the underlying register is not open, so this is a citation, not a dataset. A separate CHBA page (chba.ca/net-zero/) embeds a Power BI report with a per-builder map/table (units, province, city, named contact per company) -- deliberately not used as a source: it is a business directory with personal contact details, not an aggregate figure, and sits well past the aggregates-only line this project holds for CaGBC's project database too.",
       "programme_since": 2015,
-      "total_labels": 3979,
+      "total_labels": 3982,
       "houses": {
-        "total": 3606,
-        "single_detached": 2415,
+        "total": 3609,
+        "single_detached": 2418,
         "row_semi": 1191
       },
       "murbs": {
@@ -199,13 +217,72 @@
         "murb_units": 19
       },
       "verify_strings": [
-        "3979",
-        "3,606",
-        "2,415",
+        "3982",
+        "3,609",
+        "2,418",
         "1,191",
         "328",
         "74",
         "45"
+      ]
+    },
+    "chba_hmi": {
+      "label": "CHBA Housing Market Index",
+      "publisher": "Canadian Home Builders' Association",
+      "source_url": "https://www.chba.ca/housing-market-index/",
+      "as_of": "2026 Q1",
+      "transcribed": "2026-08-31",
+      "note": "A quarterly builder-sentiment survey, not a StatCan series: CHBA panels its own homebuilder/developer members and runs proprietary statistical analysis on their responses. Modelled on NAHB's US HMI. Scale is 0-100; 50 is neutral (share rating conditions 'Good' equals share rating 'Poor'). CHBA frames it as a leading indicator of housing starts roughly six months out. Hand-transcribed from the page's own prose, not scraped or OCR'd from its chart images -- see cited_figures_verify.py and the top-of-file comment for why.",
+      "scale_min": 0,
+      "scale_max": 100,
+      "scale_neutral": 50,
+      "national": {
+        "quarters": ["2021 Q1","2021 Q2","2021 Q3","2021 Q4","2022 Q1","2022 Q2","2022 Q3","2022 Q4",
+                     "2023 Q1","2023 Q2","2023 Q3","2023 Q4","2024 Q1","2024 Q2","2024 Q3","2024 Q4",
+                     "2025 Q1","2025 Q2","2025 Q3","2025 Q4","2026 Q1"],
+        "single_family": [83.2,82.9,77.8,84.9,89.4,65.7,43.4,26.2,34.3,39.9,33.9,24.6,34.9,29.9,27.4,25.1,
+                           26.4,24.9,23.3,19.6,20.9],
+        "multi_family": [81.6,83.9,77.6,87.1,88.8,59.9,35.9,26.0,33.5,41.0,33.6,29.1,37.9,32.5,28.5,22.0,
+                          22.3,22.8,16.8,14.7,13.4]
+      },
+      "regional": {
+        "coverage_note": "CHBA's only regional cuts are Ontario, British Columbia, Prairies (Alberta+Saskatchewan+Manitoba combined) and Atlantic Canada (NB+NS+PE+NL combined) -- no Quebec, no territories, no per-province detail within Prairies/Atlantic. Numeric regional scores were reported only as qualitative description (e.g. 'Ontario builders held the most downbeat views') before 2024 Q2, so this series starts there rather than backfilling a guess. null = not reported that quarter.",
+        "quarters": ["2024 Q2","2024 Q3","2024 Q4","2025 Q1","2025 Q2","2025 Q3","2025 Q4","2026 Q1"],
+        "single_family": {
+          "on":       [11.6, 14.3, 11.3, 7.4, 10.2, 7.1, 10.4, 10.2],
+          "bc":       [17.8, 17.1, 10.5, 17.2, 12.1, 11.7, 7.5, 5.8],
+          "prairies": [null, null, 48.2, 49.0, 45.1, null, 32.8, 38.6],
+          "atlantic": [null, null, 44.9, 66.3, 60.8, 47.6, 50.7, 43.5]
+        },
+        "multi_family": {
+          "on":       [11.6, 12.5, 6.2, 2.9, 7.4, 4.4, 2.5, 3.8],
+          "bc":       [32.5, 29.3, 25.0, 24.8, 27.4, 14.7, 11.9, 13.9],
+          "prairies": [73.2, 64.3, 53.7, 61.3, 47.3, 52.9, 40.7, 37.6],
+          "atlantic": [null, null, null, null, null, null, null, null]
+        },
+        "irregularities": [
+          {"quarter":"2024 Q2","field":"single_family.prairies",
+           "issue":"CHBA said only that the score 'breached the neutral sentiment mark of 50' -- no exact figure given. Recorded null rather than guessing a value from the word 'breached'."},
+          {"quarter":"2024 Q2","field":"single_family.atlantic",
+           "issue":"CHBA said only 'sentiment...has held steady and is modestly positive' -- no exact figure given."},
+          {"quarter":"2024 Q3","field":"single_family.prairies",
+           "issue":"CHBA said only 'fell...to marginally pessimistic readings in the mid-40s' for both Prairies and Atlantic -- no per-region figure given."},
+          {"quarter":"2024 Q3","field":"single_family.atlantic",
+           "issue":"Same 'mid-40s' phrasing as Prairies this quarter -- no per-region figure given."},
+          {"quarter":"2025 Q3","field":"single_family.prairies",
+           "issue":"CHBA reported Alberta specifically this quarter instead of the Prairies aggregate: 'Alberta's single-family HMI was 47.1'. Recorded null rather than substituting a different geography into the Prairies series."}
+        ]
+      },
+      "verify_strings": [
+        "single-family index is 20.9 out of 100",
+        "multi-family index is 13.4 out of 100",
+        "score of 10.2",
+        "score of 5.8",
+        "index score of 38.6",
+        "Atlantic Canada score of 43.5",
+        "weakest score, at 3.8",
+        "score of 13.9",
+        "score of 37.6"
       ]
     }
   }

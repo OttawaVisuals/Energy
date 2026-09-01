@@ -150,6 +150,64 @@ footnotes:
   excludes smaller centres and rural areas), and hides itself entirely on a provincial
   view. Vacancy is annual (October survey) while the columns beside it in the CMA
   table are monthly, which the table note states.
+- **Vancouver's schema supports two extra panels the other cities can't (yet)**:
+  processing time (`PermitElapsedDays`, permit-number assignment to issuance —
+  median, not mean, since it's right-skewed: mean runs 40-70 days higher) by
+  work type and by year, and applicant/contractor concentration (who files and
+  who builds the most permits). The concentration panel is thresholded to 20+
+  permits deliberately: `applicant` is "often the design professional or their
+  firm" per the field's own description, and no private homeowner personally
+  files dozens of permits, so the threshold keeps the published list to
+  genuine repeat filers rather than surfacing an individual's name for a
+  one-off renovation permit — nothing here is legally restricted (Open
+  Government Licence - Vancouver permits reuse), this is a deliberate editorial
+  choice. `buildingcontractor` is populated on only ~62% of permits (often not
+  yet chosen at issuance), so its stats are scoped to permits naming one, with
+  that coverage rate stated on the card. Toronto and Montreal do not have
+  applicant/contractor fields at all.
+- **Calgary's schema goes further still**: alongside the same processing-time
+  and applicant/contractor-concentration panels as Vancouver (thresholded the
+  same way, but with lower field coverage stated on the card — applicant
+  ~66%, contractor ~60%, versus Vancouver's ~100%/~62%), Calgary has an
+  `applieddate`→`issueddate`→`completeddate` chain Vancouver lacks, so it also
+  gets a **time to build** panel (issuance to the permit's completed date —
+  an administrative closure date that should track physical completion
+  closely but may lag it) and a **$/unit, $/sqft and average unit size**
+  table, scoped to residential new-construction permits with dwelling units:
+  `totalsqft` is recorded on 0% of non-residential rows and only ~38% of all
+  residential rows, but checked live within that exact scope it is ~91%
+  populated, so $/sqft uses only the rows that have it while $/unit uses
+  every qualifying row (`housingunits` is 100% populated). One fix caught
+  before shipping: Calgary's dataset runs back to 1999, not 2017 like
+  Vancouver's — its areas/work/concentration/processing queries were
+  originally unfiltered, so they silently covered 27 years of history under
+  a card that says "since 2017" everywhere else. All of them are now
+  explicitly floored to 2017, mirroring Toronto's existing `d >= FLOOR` filter.
+- **Edmonton (added 2026-09-01)** joins as a fourth city, re-evaluated after
+  an earlier pass wrongly rejected it — its "General Building Permits"
+  dataset is explicitly labelled the city's "Primary Dataset or View"
+  (deduplicated, verified for accuracy, daily updates, clean back to 2009).
+  What it genuinely can't support, checked live: **no concentration panel**
+  — Edmonton deliberately excludes applicant/contractor names from this
+  dataset as a stated privacy measure, not a data gap — and **no
+  processing-time panel** — the UI column labelled "PERMIT_DATE" is actually
+  the API's `issue_date` field, and "REPORT_PERMIT_DATE" is actually
+  `permit_date`; checked live, the two are identical on every row (143,693 of
+  143,693 since 2017), so there is no application-to-issuance interval to
+  measure. It does get a **time to build** panel (permit date to
+  `occupancy_granted_date`) and the same **$/unit, $/sqft and average unit
+  size** table as Calgary, scoped to residential new construction — but with
+  a real coverage caveat the card states: Edmonton only began systematically
+  recording occupancy dates for residential permits finalized on/after
+  2022-01-01 (non-residential: 2024-01-01), so the build-time panel covers a
+  recent subset (22,543 of 45,374 residential-new permits since 2017 have an
+  occupancy date), not the full history the rest of the card uses. Its
+  `occupancy_granted_date` is stored as TEXT rather than a proper
+  `calendar_date`, so Socrata's `date_diff_d` 400s on it — those rows are
+  pulled raw and diffed client-side in Python instead. Its `work_type` field
+  also carries overlapping labels for the same concept (`(01) New` and
+  `(01) Building - New` both mean new construction), matched explicitly
+  wherever new-construction scoping matters rather than picking one.
 - **Municipal permits are city boundaries, not CMAs.** The City of Vancouver is a
   fraction of its CMA and the City of Toronto excludes Peel, York, Durham and
   Halton, so these series cannot be reconciled with the StatCan CMA figures. The
