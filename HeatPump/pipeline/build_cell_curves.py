@@ -85,17 +85,38 @@ COOL_GRID = np.round(np.arange(-15.0, 55.0 + 1e-9, 0.5), 2)
 # --------------------------------------------------------------------------
 UNITS = {
     "low_<18k": {
-        "brand_model": "Cooper & Hunter CH-12SPH-230VO", "ahri": "205263878", "w": 123,
-        "rank": "#7 of 158 (Lennox/Panasonic/Zephyr/Elios/Moovair/Napoleon all lacked datasheets)",
-        "source": "C&H submittal, indoor 70F, MAX-speed column of a min/rated/max table",
-        "cap_points": [(-15.0, 8611), (-8.33, 11225), (8.33, 13764)],
-        "cop_points": [(-15.0, 1.83), (-8.33, 2.28), (8.33, 3.57)],
-        "lockout_C": -15.0,
-        "flags": ["Lockout not published; using coldest tested point (5F) as the floor -- no "
-                  "dotted extrapolation drawn below it.",
-                  "COP peaks at the RATED (mid) speed at 17F (2.67), not at max speed (2.28) -- "
-                  "the only unit in this set where that's true. Using max-speed points throughout "
-                  "for consistency with every other cell."],
+        "brand_model": "GE Appliances ASH112PRDWA/ASYW12PRDWB", "ahri": "202588311", "w": 846,
+        "rank": "highest-w candidate in this band with BOTH a real heating and cooling "
+                "datasheet -- swapped in 2026-09-02 for Cooper & Hunter CH-12SPH-230VO "
+                "(w=123, no cooling table at all), a ~7x jump in ERS representativeness. "
+                "LG/GREE/Tosot/GE-15k/ACD/Lennox all sit above it by install count in the "
+                "broader <18k pool but are claimed by mid_<18k or were already checked as "
+                "lacking a datasheet.",
+        "source": "Altitude_Series_Spec_Sheet.pdf p.6 (GE Appliances, rev. Aug. 2023), "
+                  "HEATING CAPACITY DATA, 70F(21C) indoor set-temperature column, "
+                  "MAX Heating Capacity, 5-pt",
+        "cap_points": [(-26.11, 7500), (-20.0, 10000), (-15.0, 13000), (-8.33, 15000),
+                        (8.33, 20000)],
+        "cop_points": [(-26.11, 1.278), (-20.0, 1.724), (-15.0, 2.117), (-8.33, 2.176),
+                        (8.33, 3.663)],
+        "lockout_C": -26.11,
+        "flags": ["Lockout confirmed from spec page: 'Heating -15~75F (-26~24C)', and matches "
+                  "the coldest tested point.",
+                  "Datasheet MAX capacity at 47F (20,000 Btu/h) is 1.67x the AHRI-certified "
+                  "rated 47F capacity (12,000 Btu/h) used for normalization -- the datasheet's "
+                  "own nominal 'Rated Heating Capacity' badge (13,000 Btu/h) is much closer, so "
+                  "this is a real, if unusually large, variable-speed max-output boost, not a "
+                  "wrong-combination mismatch (model number matches the AHRI record exactly). "
+                  "Flagged for the same reason build_unit_curves.py flags ratios above 1.35x, "
+                  "not silently accepted."],
+        "cool_cap_points": [(18.33, 8650), (23.89, 9850), (29.44, 11540), (35.0, 12500),
+                        (40.56, 11500), (46.11, 9550)],
+        "cool_cop_points": [(18.33, 4.528), (23.89, 4.442), (29.44, 3.801), (35.0, 3.301),
+                        (40.56, 2.808), (46.11, 2.568)],
+        "cool_source": "Altitude_Series_Spec_Sheet.pdf p.6, COOLING CAPACITY DATA, "
+                       "80F(27C) indoor set-temperature column, Total Capacity, 6-pt "
+                       "(indoor RH ~50%, no WB condition published -- cited as-is)",
+        "rated_cap_95f_btuh": 12500.0,
     },
     "low_18-30k": {
         "brand_model": "Tosot TUD24W2/D-D(U)", "ahri": "211078853", "w": 122,

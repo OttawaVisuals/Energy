@@ -23,6 +23,27 @@ path (only that one file touched). See
 [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "`hp_cell_curves.json`
 heating refresh, and Tosot 24k upgraded to a full curve".)
 
+Same-day follow-up **2026-09-02** (**Heat Pump Explorer** — `low_<18k` swapped
+from Cooper & Hunter CH-12SPH-230VO to **GE Appliances ASH112PRDWA**, the
+first of three cells found to have no cooling curve at all (the other two,
+`mid_<18k` LG and `high_18-30k` Moovair, remain open). Queried
+`hp_units_joined.csv`/`hp_buckets.csv` — the real ERS install-count data —
+for plausible alternates in each of the three gaps before asking Simon to
+go spec-sheet hunting, rather than guessing candidates. Simon found and
+added GE's Altitude Series submittal (`data/raw/AC/`), covering the exact
+model already flagged as a lead. This is a **swap, not a supplement**: GE
+and Cooper & Hunter are different physical hardware, so the decision (GE
+is ~7x more ERS-representative, w=846 vs. 123, and has richer data on
+both heating and cooling) was put to Simon explicitly rather than assumed,
+since it changes which real-world unit the cell claims to represent. One
+thing flagged, not hidden: the datasheet's own max heating capacity at
+47°F is 1.67x the AHRI-certified rated capacity used for normalization —
+recorded in the cell's own `flags` array, the same review-not-reject
+convention `build_unit_curves.py` already uses for high ratios. Published
+to `gh-pages` (regenerated `hp_cell_curves.json` only). See
+[HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "`low_<18k` swapped to
+GE Appliances ASH112PRDWA".)
+
 Prior update **2026-09-01** (**Construction Tracker** — added Calgary to the "Inside
 one city" municipal-permits card, after re-evaluating the earlier "two cities,
 deliberately" call against Ottawa, Montreal and Edmonton. Calgary (Socrata SoQL)
