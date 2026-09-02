@@ -1,7 +1,29 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-01** (**Construction Tracker** — added Calgary to the "Inside
+Updated **2026-09-02** (**Heat Pump Explorer** — heating-curve refresh for three
+of the 9 live `hp_cell_curves.json` cells, prompted by new manufacturer spec
+sheets added to `data/raw/spec_sheets/NewSelection/`. `high_<18k` (Fujitsu
+AOUG15LZAH1) and `mid_18-30k`/`mid_30-42k` (GREE GUD36W/A-D(U)) already had
+real datasheet heating curves wired into `build_cell_curves.py` from earlier
+work — the generated JSON had just drifted 28 minutes stale against its own
+source script, fixed with a rebuild, no code change needed. `low_18-30k`
+(Tosot TUD24W2/D-D(U)) was a genuine gap: its 3-point heating transcription is
+now a full 17-point curve (5–75°F), and it gains a real 23-point cooling curve
+it previously lacked entirely — both digitized from
+`TOSOT_TUD24W2DDU_Specification_Sheet.pdf`'s extended-ratings tables (read via
+rendered PNG pages, not `pdftotext`, which badly mangles this table's
+multi-line cells). Also added the Fujitsu AOUG15LZAH1/ASUG15LZAS real cooling
+extended-ratings table to `heatpumpAC.html` as a sourcing/verification
+display — its 95°F rated point (COP 4.09) exactly matches NEEP's
+independently republished figure for the same AHRI certificate. Published:
+code + doc changes to `main` ([f3d29de](https://github.com/OttawaVisuals/Energy/commit/f3d29de)),
+regenerated `hp_cell_curves.json` to `gh-pages` via the incremental-update
+path (only that one file touched). See
+[HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "`hp_cell_curves.json`
+heating refresh, and Tosot 24k upgraded to a full curve".)
+
+Prior update **2026-09-01** (**Construction Tracker** — added Calgary to the "Inside
 one city" municipal-permits card, after re-evaluating the earlier "two cities,
 deliberately" call against Ottawa, Montreal and Edmonton. Calgary (Socrata SoQL)
 cleared the bar the other three didn't: a real permit-status field, a clean cost
