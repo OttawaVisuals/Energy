@@ -492,11 +492,37 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <tr><td>Goodman GLXS4BA3610 (standard AC)</td><td class="ht-num">15.2</td><td class="ht-num">11.63</td><td>Single-stage</td><td>SEER2 from the unit's own spec sheet headline; EER2 self-computed from that same sheet's Performance Data table at the AHRI condition (34,200 Btu/h ÷ 2,940 W)</td></tr>
         <tr><td>Tosot TUD36W2/D-D(U) (low_30-42k)</td><td class="ht-num">15.5</td><td class="ht-num">10.0</td><td>Variable-speed</td><td>Exact AHRI-number match (211078855), unit's own spec sheet p.1</td></tr>
         <tr><td>GREE GUD36W/A-D(U) (mid_18-30k, mid_30-42k)</td><td class="ht-num">18</td><td class="ht-num">11</td><td>Variable-speed</td><td>Closely-related sibling AHRI pairing (206249117) of the same physical FLEXX36HP230V1BH/AO hardware this cell cites (AHRI 206249116) — not an exact AHRI-number match</td></tr>
-        <tr><td>Fujitsu AOUG15LZAH1 (high_&lt;18k)</td><td class="ht-num">25.3</td><td class="ht-num">13.9</td><td>Variable-speed</td><td>Retailer-listed (not independently verified against Fujitsu's own datasheet or the AHRI directory)</td></tr>
-        <tr><td>Fujitsu AOUG36LMAS1 (high_30-42k)</td><td class="ht-num">17.1</td><td class="ht-num">10.7</td><td>Variable-speed</td><td>Retailer-listed (same caveat)</td></tr>
+        <tr><td>Fujitsu AOUG15LZAH1 (high_&lt;18k)</td><td class="ht-num">25.3</td><td class="ht-num">13.9</td><td>Variable-speed</td><td>Retailer-listed badge; the unit's own extended-ratings table (below) independently confirms the 95°F rated point against NEEP</td></tr>
+        <tr><td>Fujitsu AOUG36LMAS1 (high_30-42k)</td><td class="ht-num">17.1</td><td class="ht-num">10.7</td><td>Variable-speed</td><td>Retailer-listed (not yet cross-checked)</td></tr>
       </table>
       <p><i>Method source: RESNET/ICC 301 HERS Addendum 82 (2023). Implementation ported directly from NREL's <a href="https://github.com/NREL/OpenStudio-HPXML" target="_blank" rel="noopener">OpenStudio-HPXML</a> (the engine behind the U.S. national ResStock residential building-stock model and official HERS energy ratings) — <code>HPXMLtoOpenStudio/resources/defaults.rb</code> method <code>set_hvac_cooling_performance</code>, and <code>math.rb</code>'s interpolation helpers — BSD-3-Clause licensed, verified against that source 2026-09-01.</i></p>
       <div class="caveats">The GREE and both Fujitsu badge figures aren't exact-AHRI-number matches for the specific cells this page models (see table) — treat their absolute kWh/COP as good-faith, not certified-exact. Two-stage equipment isn't modelled (none of this page's cells are two-stage). The continuous-modulation segment between speeds uses linear EIR interpolation, a simplification — real compressor efficiency maps aren't perfectly linear, though HERS Addendum 82 itself doesn't publish a finer curve either.</div>
+
+      <details class="method-sub">
+        <summary>Fujitsu AOUG15LZAH1/ASUG15LZAS — real extended-ratings table (verified against NEEP, not yet wired into the simulation)</summary>
+        <div class="method-sub-body">
+          <p>Unlike the GREE and other Fujitsu cell, this unit's own extended-ratings table publishes <b>Total Capacity, Sensible Capacity and Input Power at six indoor conditions × twelve outdoor temperatures</b> — a real multi-point performance map, not a single MAX-output sweep. Column shown: <b>26.7°C DB / 19.4°C WB indoor</b> (=80°F DB/67°F WB, the standard AHRI indoor test condition).</p>
+          <p>At 35.0°C outdoor (95°F), this table gives TC = 4.25 kW, IP = 1.04 kW → <b>COP = 4.09</b>, which matches the rated COP on <a href="https://ashp.neep.org/#!/product/438623/7/25000/95/7500/0///0" target="_blank" rel="noopener">NEEP's Cold Climate ASHP listing</a> for this model — independent confirmation that this table already reports <i>rated</i>, not max-output, performance.</p>
+          <div class="tv-tblwrap">
+            <table class="ht-table">
+              <tr><th>Outdoor T</th><th class="ht-num">TC (kW)</th><th class="ht-num">SHC (kW)</th><th class="ht-num">IP (kW)</th><th class="ht-num">COP</th><th>Regime</th></tr>
+              <tr><td>−10.0°C (14°F)</td><td class="ht-num">4.72</td><td class="ht-num">3.63</td><td class="ht-num">0.37</td><td class="ht-num">12.76</td><td rowspan="6">Min-speed (load-limited — see note)</td></tr>
+              <tr><td>−5.0°C (23°F)</td><td class="ht-num">4.65</td><td class="ht-num">3.57</td><td class="ht-num">0.40</td><td class="ht-num">11.63</td></tr>
+              <tr><td>0.0°C (32°F)</td><td class="ht-num">4.57</td><td class="ht-num">3.52</td><td class="ht-num">0.42</td><td class="ht-num">10.88</td></tr>
+              <tr><td>5.0°C (41°F)</td><td class="ht-num">4.50</td><td class="ht-num">3.46</td><td class="ht-num">0.42</td><td class="ht-num">10.71</td></tr>
+              <tr><td>10.0°C (50°F)</td><td class="ht-num">4.43</td><td class="ht-num">3.41</td><td class="ht-num">0.43</td><td class="ht-num">10.30</td></tr>
+              <tr><td>15.0°C (59°F)</td><td class="ht-num">4.35</td><td class="ht-num">3.34</td><td class="ht-num">0.46</td><td class="ht-num">9.46</td></tr>
+              <tr><td>19.4°C (67°F)</td><td class="ht-num">5.00</td><td class="ht-num">3.85</td><td class="ht-num">0.75</td><td class="ht-num">6.67</td><td rowspan="6">Rated regime</td></tr>
+              <tr><td>25.0°C (77°F)</td><td class="ht-num">4.77</td><td class="ht-num">3.66</td><td class="ht-num">0.84</td><td class="ht-num">5.68</td></tr>
+              <tr><td>30.6°C (87°F)</td><td class="ht-num">4.52</td><td class="ht-num">3.48</td><td class="ht-num">0.95</td><td class="ht-num">4.76</td></tr>
+              <tr><td>35.0°C (95°F)</td><td class="ht-num">4.25</td><td class="ht-num">3.27</td><td class="ht-num">1.04</td><td class="ht-num">4.09</td></tr>
+              <tr><td>40.0°C (104°F)</td><td class="ht-num">3.73</td><td class="ht-num">2.87</td><td class="ht-num">1.02</td><td class="ht-num">3.66</td></tr>
+              <tr><td>46.1°C (115°F)</td><td class="ht-num">3.40</td><td class="ht-num">2.61</td><td class="ht-num">1.01</td><td class="ht-num">3.37</td></tr>
+            </table>
+          </div>
+          <div class="caveats">There's a sharp discontinuity between 15.0°C and 19.4°C (Input Power roughly doubles) that's too large to be a smooth capacity/COP curve — most likely the ≤15°C rows report the compressor throttled to <b>minimum speed</b> for a naturally small cooling load at those outdoor temperatures, while ≥19.4°C are standard AHRI-style rated-speed test points. Treat this as two segments, not one continuous curve, if/when it's digitized into the simulation. Not yet wired into the page's calculation — this table is a sourcing/verification step; the live simulation still uses the RESNET HERS Addendum 82 model above for this cell.</div>
+        </div>
+      </details>
 
       <h5 id="m-undersized">When the equipment is undersized</h5>
       <p>Neither piece of equipment is scaled to the home's estimated peak — by design, matching the rest of this page's "no archetype auto-sizing" stance (see above). The engine handles an hour where the load exceeds the equipment's <b>top speed's</b> capacity by running flat-out there (<code>delivered = min(load, capacity)</code>) and pricing/emitting exactly that — a maxed-out unit really does draw exactly this much electricity, so the kWh/GHG/cost figures stay accurate for those hours. What's <i>not</i> represented is comfort: the home doesn't reach setpoint that hour, and this model has no cost or discomfort penalty for that shortfall.</p>

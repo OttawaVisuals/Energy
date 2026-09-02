@@ -100,11 +100,38 @@ UNITS = {
     "low_18-30k": {
         "brand_model": "Tosot TUD24W2/D-D(U)", "ahri": "211078853", "w": 122,
         "rank": "#9 of 178 (ACD/GREE/Tosot-18k/Samsung/KingHome all lacked datasheets)",
-        "source": "Tosot UNIX 24K submittal (tosotclima.com), indoor 70F implied, 3-pt",
-        "cap_points": [(-15.0, 13100), (-8.33, 14600), (8.33, 23000)],
-        "cop_points": [(-15.0, 1.8), (8.33, 3.1)],   # no COP published at 17F
+        "source": "TOSOT_TUD24W2DDU_Specification_Sheet.pdf p.5 EXTENDED RATINGS HEATING "
+                  "PERFORMANCE, 70F/59F return-air column, MAX OUTPUT, 17-pt (replaces the "
+                  "earlier 3-anchor transcription -- those 3 points are an exact subset of "
+                  "this table's 5F/17F/47F rows, same underlying source, now with the full curve)",
+        "cap_points": [(-15.0, 13100), (-12.22, 13500), (-9.44, 14000), (-8.33, 14600),
+                        (-6.67, 15500), (-3.89, 15800), (-1.11, 16200), (1.67, 16700),
+                        (4.44, 19000), (7.22, 21000), (8.33, 23000), (10.0, 24300),
+                        (12.78, 25600), (15.56, 27000), (18.33, 27000), (21.11, 27000),
+                        (23.89, 27000)],
+        "cop_points": [(-15.0, 1.75), (-12.22, 1.89), (-9.44, 2.07), (-8.33, 2.30),
+                        (-6.67, 2.54), (-3.89, 2.54), (-1.11, 2.58), (1.67, 2.65),
+                        (4.44, 2.83), (7.22, 2.93), (8.33, 3.08), (10.0, 3.22),
+                        (12.78, 3.36), (15.56, 3.52), (18.33, 3.72), (21.11, 3.90),
+                        (23.89, 4.10)],
         "lockout_C": -15.0,
         "flags": ["Lockout confirmed from spec page: 'Heating Temperature Range 5-75F'."],
+        "cool_cap_points": [(-15.00, 24000), (-12.22, 24000), (-9.44, 24000), (-6.67, 24000),
+                        (-3.89, 24000), (-1.11, 24000), (1.67, 24000), (4.44, 24000),
+                        (7.22, 24000), (10.00, 24000), (12.78, 24000), (15.56, 24000),
+                        (18.33, 24500), (21.11, 25000), (23.89, 25000), (26.67, 24000),
+                        (29.44, 23000), (32.22, 23000), (35.00, 23000), (37.78, 22000),
+                        (40.56, 21000), (43.33, 20100), (46.11, 19100)],
+        "cool_cop_points": [(-15.00, 3.974), (-12.22, 3.951), (-9.44, 3.930), (-6.67, 3.907),
+                        (-3.89, 3.886), (-1.11, 3.866), (1.67, 3.822), (4.44, 3.781),
+                        (7.22, 3.743), (10.00, 3.684), (12.78, 3.625), (15.56, 3.570),
+                        (18.33, 3.590), (21.11, 3.611), (23.89, 3.558), (26.67, 3.534),
+                        (29.44, 3.274), (32.22, 3.165), (35.00, 3.078), (37.78, 2.840),
+                        (40.56, 2.620), (43.33, 2.424), (46.11, 2.230)],
+        "cool_source": "TOSOT_TUD24W2DDU_Specification_Sheet.pdf p.4 EXTENDED RATINGS "
+                       "COOLING PERFORMANCE, 80F/67F return-air column, MAX OUTPUT, 23-pt "
+                       "(COP = EER / 3.412, no COP column published directly)",
+        "rated_cap_95f_btuh": 23000.0,
     },
     "low_30-42k": {
         "brand_model": "Tosot TUD36W2/D-D(U)", "ahri": "211078855", "w": 156,
