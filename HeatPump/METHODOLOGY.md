@@ -3993,3 +3993,65 @@ via `hp_cell_curves.json`) — cross-checked its 95°F/35°C rated point
 republished "max" column for the same AHRI certificate: an exact match,
 confirming the table reports genuine max-capacity data consistent with
 the certified record, not a marketing figure.
+
+## `low_<18k` swapped to GE Appliances ASH112PRDWA (2026-09-02)
+
+Follow-on to the section above. Of the 9 live cells, 3 had no cooling
+curve at all: `low_<18k` (Cooper & Hunter CH-12SPH-230VO), `mid_<18k` (LG
+LSU120HSV5), `high_18-30k` (Moovair DMA24HOS20230E7). Queried
+`hp_units_joined.csv`/`hp_buckets.csv` (real ERS install counts, `w`) for
+plausible alternates in each band before asking Simon to go looking for
+spec sheets, rather than guessing:
+
+- **`low_<18k`**: the code's own existing flag already said the
+  higher-`w` candidates near Cooper & Hunter (Lennox, Panasonic, Zephyr,
+  Elios, Moovair, Napoleon) were checked and have no datasheet at all.
+  Two names hadn't been checked: GREE GWH12QC-D3DNA1D/O (w=2,113) and GE
+  Appliances ASH115PRDWA/ASH112PRDWA (w=868/846).
+- **`mid_<18k`**: LG LSU120HSV5 is already the single most-installed unit
+  in its class (w=4,182 vs. next-highest 2,113) — no better-represented
+  alternative exists; the gap is just that LG's own submittal hasn't been
+  found yet.
+- **`high_18-30k`**: MDV MOD30-24HFN1-MW (w=4,389, even more installs than
+  the current Moovair pick) was already on record as having "real data,
+  2-pt only" for heating — worth checking whether its cooling table is
+  richer even though its heating table lost out to Moovair's on richness.
+
+Simon found and added `data/raw/AC/Altitude_Series_Spec_Sheet.pdf` — GE
+Appliances' Altitude Series submittal, covering ASH109/112/115/118/124PRDWA.
+**ASH112PRDWA** (w=846, matching Cooper & Hunter's ~12k nominal size) has
+clean HEATING CAPACITY DATA (5 outdoor temps × 3 indoor set-points) and
+COOLING CAPACITY DATA (6 × 3) tables reporting Btu/h and Watts directly
+(`COP = Btu/h / (3.412 × W)`).
+
+**Decision: swap the cell's representative unit**, not just add cooling
+data — GE and Cooper & Hunter are different physical hardware, so GE's
+cooling curve can't simply be attached to C&H's existing heating curve.
+Simon chose the swap explicitly (asked rather than assumed, given this
+changes which real-world unit the cell claims to represent) on two
+grounds: GE is ~7x more ERS-representative (w=846 vs. 123), and it has
+richer data on *both* sides (5-pt heating vs. C&H's 3-pt; 6-pt cooling
+vs. C&H's none).
+
+One thing flagged, not hidden: the datasheet's own MAX heating capacity at
+47°F (20,000 Btu/h) is 1.67x the AHRI-certified rated 47°F capacity used
+for normalization (12,000 Btu/h, from `hp_units_joined.csv` `c47` — unchanged
+by the swap, since it happens to already match this unit's own cert). The
+datasheet's own nominal "Rated Heating Capacity" badge (13,000 Btu/h) is
+much closer to the AHRI figure, so this reads as a genuine, if unusually
+large, variable-speed boost margin rather than a wrong-combination
+mismatch (the model number is an exact match to the AHRI record, unlike
+the documented GREE 24k/36k-pairing case) — recorded in the cell's own
+`flags` array per the data-honesty rail, the same way `build_unit_curves.py`
+flags any ratio above 1.35x for review rather than silently accepting it.
+
+Cooling's own AHRI-rated capacity (`rated_cap_95f_btuh`) is set from the
+datasheet's own 95°F reading (12,500 Btu/h) — `cap_frac_of_rated95 = 1.0`
+exactly at that anchor, no normalization mismatch there. Rebuilt and
+verified against `hp_cell_curves.json` directly (not just the source
+script): heating `cap_frac_of_rated47 = 1.667` and `COP = 3.663` at 47°F,
+cooling `cap_frac_of_rated95 = 1.0` and `COP = 3.301` at 95°F, both
+matching the hand-computed values above.
+
+`mid_<18k` (LG) and `high_18-30k` (Moovair) remain open — no cooling
+curve found for either yet.
