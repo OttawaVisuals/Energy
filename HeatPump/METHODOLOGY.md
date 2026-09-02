@@ -3933,3 +3933,63 @@ tool: use the TMY-integrated result for any real cooling-scenario
 comparison; treat the SEER/SEER2 badge as a shopping-label number, not a
 predictor of which unit will actually use less electricity in a specific
 climate.**
+
+## `hp_cell_curves.json` heating refresh, and Tosot 24k upgraded to a full curve (2026-09-02)
+
+Simon added new spec sheets to `data/raw/spec_sheets/NewSelection/` and
+asked whether they improve the *heating* side (COP/capacity), a follow-on
+question to work already done on the cooling side. Checking triggered two
+different findings.
+
+**`high_<18k` (Fujitsu AOUG15LZAH1) and `mid_18-30k`/`mid_30-42k` (GREE
+GUD36W/A-D(U))** already had real, full manufacturer heating curves wired
+into `build_cell_curves.py`'s `UNITS` dict from earlier work — the new PDFs
+turned out to be the same underlying documents (Fujitsu's
+`DR_AS117EF_03` design & technical manual; GREE's FLEXX Ultra 18 SEER2
+submittal), re-added to the folder. The only real gap was that
+`hp_cell_curves.json` predated the last edit to its own source script (28
+minutes stale by file mtime) — rebuilt via `python
+pipeline/build_cell_curves.py`, no code change needed.
+
+**`low_18-30k` (Tosot TUD24W2/D-D(U))** was a genuine gap: its heating
+curve was a 3-point transcription (5°F/17°F/47°F anchors only, "no COP
+published at 17F"), and it had **no cooling curve at all**. Today's new
+`TOSOT_TUD24W2DDU_Specification_Sheet.pdf` has full "EXTENDED RATINGS"
+tables for both — a genuine multi-point curve neither side of this cell
+had before. Extracted directly from the rendered PDF pages (pdftotext's
+`-layout` mode badly mangles this table — cells span multiple text lines
+and columns bleed into each other — so pages were rendered to PNG via
+PyMuPDF/`fitz` and read visually instead, same approach the Fujitsu 15k
+table used originally).
+
+**Heating**: 17 points, 5°F to 75°F, 70°F/59°F return-air column (the
+standard AHRI indoor condition), MAX OUTPUT rows. The old 3-point curve's
+values are an exact subset of this table's 5°F/17°F/47°F rows — same
+underlying source, confirming this is a refinement, not a source change.
+COP at the old anchors shifted slightly (5°F: 1.8→1.75, 47°F: 3.1→3.08),
+consistent with the earlier figures having come from a rounder/secondary
+citation rather than this primary table directly.
+
+**Cooling**: 23 points, −15°C to 46.1°C (5°F to 115°F), 80°F/67°F
+return-air column, matching the indoor condition convention every other
+cell's cooling curve already uses. This table publishes EER, not COP
+directly — `COP = EER / 3.412` per the standard conversion, same as
+every other cooling curve in this file. `rated_cap_95f_btuh` set to the
+table's own 95°F point (23,000 Btu/h), which is also this cell's
+AHRI-certified rated capacity, so `cap_frac_of_rated95 = 1.0` exactly at
+the anchor — no normalization mismatch.
+
+Both cells' curves verified against `hp_cell_curves.json` post-rebuild:
+`low_18-30k` heating cap_frac ≈ 1.006 at 47°F (expected, since the
+datasheet's own 47°F MAX OUTPUT reading — 23,000 Btu/h — sits almost
+exactly on the AHRI-certified rated capacity used as the normalization
+denominator), and cooling cap_frac = 1.0 exactly at 95°F.
+
+Separately, added the Fujitsu AOUG15LZAH1/ASUG15LZAS real cooling
+extended-ratings table to `heatpumpAC.html` as a **verification** display
+(not feeding the live simulation, which already carried this same data
+via `hp_cell_curves.json`) — cross-checked its 95°F/35°C rated point
+(TC=4.25 kW, IP=1.04 kW, COP=4.09) against NEEP's independently
+republished "max" column for the same AHRI certificate: an exact match,
+confirming the table reports genuine max-capacity data consistent with
+the certified record, not a marketing figure.
