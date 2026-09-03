@@ -71,6 +71,16 @@ inventory, with a months-of-inventory mode) closing the pipeline past completion
 doors, HVAC, electrical, concrete, wood — with a building-type picker); and a rental
 vacancy column on the CMA table.
 
+**Permits Explorer (added 2026-09-02):** the municipal permit data on this page
+is the *summary* -- nine cities floored at 2017 so they stay comparable with each
+other and with the metro figures above. The record itself now lives on its own
+page, [`permits.html`](PERMITS.md): each city back to its own first month
+(Montreal 1990, Calgary 1999-06), a 0.004-degree density map of where building
+actually happens, category-by-year matrices, a filer word cloud, and Toronto's
+approval/build intervals. "Inside one city" is **no longer advanced-only and no
+longer renders as nothing** when the selected geography has no matching permit
+desk; it always shows a cross-reference card to the full page.
+
 ## Data pipeline
 
 ```
@@ -163,8 +173,10 @@ footnotes:
   Government Licence - Vancouver permits reuse), this is a deliberate editorial
   choice. `buildingcontractor` is populated on only ~62% of permits (often not
   yet chosen at issuance), so its stats are scoped to permits naming one, with
-  that coverage rate stated on the card. Toronto and Montreal do not have
-  applicant/contractor fields at all.
+  that coverage rate stated on the card. Toronto has a `BUILDER_NAME` field, but checked live on a
+  6,000-row sample it is populated on only **2.2%** of rows and is mostly
+  individuals rather than firms, so it supports no concentration panel either;
+  Montreal has no such field at all.
 - **Calgary's schema goes further still**: alongside the same processing-time
   and applicant/contractor-concentration panels as Vancouver (thresholded the
   same way, but with lower field coverage stated on the card — applicant
@@ -279,8 +291,10 @@ footnotes:
 - **Montreal (added 2026-09-01)** joins as a seventh city, on the field list
   the user gave directly from `donnees.montreal.ca` (date_debut, date_emission,
   code_type_base_demande, nb_logements, longitude/latitude). CKAN
-  `datastore_search_sql` server-side aggregation — 558,874 rows since 1997 is
-  the largest dataset of any city here, too many to page raw. The endpoint
+  `datastore_search_sql` server-side aggregation — 558,874 rows is the largest dataset of any
+  city here, running back to **1990** (the "since 1997" in an earlier draft
+  was wrong -- checked live 2026-09-02, 1990-1996 carry 7,000-9,300 permits a
+  year, a normal level, not a sparse tail), too many to page raw. The endpoint
   blocks the `CAST` function outright but allows PostgreSQL's `::type`
   shorthand and `percentile_cont` for server-side medians, so processing time
   (date_debut → date_emission, real signal: only 27% same-day, zero negative

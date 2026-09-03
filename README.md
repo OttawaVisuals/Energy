@@ -24,6 +24,7 @@ tool, the public front door.
 | 🌍 **Ottawa Geothermal Map** | Ground-source heat pump screening for Ottawa: conductivity from 55k water wells, drilling difficulty, grid capacity | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) |
 | 📊 **CEUD Explorer** | NRCan's Comprehensive Energy Use Database, browsable — all 5 sectors, national + provincial | [/ceud](https://ottawavisuals.github.io/Energy/ceud) |
 | 🏗️ **Construction Tracker** | Permits, housing starts and construction investment — national / provincial / metro | [/construction](https://ottawavisuals.github.io/Energy/construction) |
+| 🧱 **Permits Explorer** | Nine municipal permit desks at permit level — full history, density maps of where building happens, who files the permits, approval and build times | [/permits](https://ottawavisuals.github.io/Energy/permits) |
 | ⚡ **Grid Dashboard** | Ontario/Alberta generation mix & emissions intensity, plus the average-vs-marginal emissions explainer | [/grid](https://ottawavisuals.github.io/Energy/grid) |
 | 🗺️ **Project Atlas** | Internal status & assumptions page for the suite | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) |
 
@@ -43,6 +44,7 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 | Ottawa Case Study / heat demand | [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) (active plan) |
 | CEUD Explorer | [docs/CEUD.md](docs/CEUD.md) |
 | Construction Tracker | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) |
+| Permits Explorer | [docs/PERMITS.md](docs/PERMITS.md) |
 | *(cross-cutting)* Open questions for NRCan | [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md) — consolidated EnerGuide/HOT2000 questions across all ERS-based tools |
 | Grid Dashboard | [docs/GRID.md](docs/GRID.md) |
 | Completed plans (archive) | [docs/archive/](docs/archive/README.md) |
@@ -76,6 +78,7 @@ Energy/
 ├─ newhomes_json/  newhomes_fsa/     # New Homes Explorer
 ├─ ceud_json/                        # CEUD Explorer
 ├─ construction_json/                # Construction Tracker (auto-refresh monthly)
+├─ permits_json/                     # Permits Explorer (nine municipal permit desks)
 ├─ grid_json/                        # grid dashboard data (auto-refresh weekly)
 ├─ prices_json/                      # energy prices (auto-refresh monthly)
 ├─ census_json/  geo_json/  lookup/  # shared lookups (census, geometry, AHRI, windows)

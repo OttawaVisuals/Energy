@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Permits Explorer — Canadian Building Permits, City by City</title>
+<meta name="description" content="Nine Canadian municipal permit desks at permit-level detail: full history, a density map of where building actually happens, who files the permits, how long approval takes, and what a unit costs to build.">
+<meta property="og:title" content="Permits Explorer — Canadian building permits, city by city">
+<meta property="og:description" content="Nine municipal permit desks in detail — full history, density maps, who builds each city, and how long approval takes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/permits">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/construction.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Permits Explorer social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/construction.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M7 25V14h4v11zm7 0V7h4v18zm7 0V18h4v7z' fill='%23E8A124'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08);gap:12px;flex-wrap:wrap}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:center;gap:14px;min-width:0}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+.mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:20px;padding:2px}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:5px 12px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--white)}
+#city-sel{height:32px;border:1px solid rgba(255,255,255,.2);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none;max-width:250px}
+#city-sel option{color:#1C2B3A;background:#fff}
+body.mode-simple [data-mode="advanced"]{display:none!important}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:2.25rem 1.5rem 2rem;text-align:center}
+.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:760px;margin:0 auto 1rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:640px;margin:0 auto}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--navy);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:720px}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
+.card-title-row .card-title{margin-bottom:0}
+.card-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg-toggle{display:inline-flex;background:var(--surface);border-radius:20px;padding:2px;gap:2px}
+.seg-btn{font-size:12px;padding:6px 12px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .15s}
+.seg-btn.active{background:var(--navy);color:#fff}
+.seg-btn:not(.active):hover{color:var(--navy)}
+.seg-btn:disabled{opacity:.35;cursor:not-allowed}
+.card-select{height:28px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 24px 0 8px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;cursor:pointer;appearance:none;max-width:220px}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.note strong{color:var(--muted)}
+.gap-note{background:var(--surface);border-left:3px solid var(--amber2);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:.7rem .9rem;font-size:13px;color:var(--muted);line-height:1.55}
+.gap-note b{color:var(--navy);font-weight:500}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px;display:flex;align-items:center;gap:8px}
+.yoy-badge{font-size:11px;font-weight:500;padding:1px 7px;border-radius:10px}
+.yoy-badge.up{background:rgba(26,122,85,.12);color:var(--green)}
+.yoy-badge.down{background:rgba(179,58,46,.12);color:var(--red)}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-xl{height:340px}
+.cw-md{height:240px}
+.cw-sm{height:190px}
+.cw svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-tip{display:none;position:fixed;background:rgba(11,37,69,0.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:8px 12px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap}
+.chart-tip .tip-row{display:flex;align-items:center;gap:6px}
+.chart-tip .tip-dot{width:7px;height:7px;border-radius:2px;flex:none;display:inline-block}
+.hover-line{stroke:rgba(11,37,69,.35);stroke-width:1;stroke-dasharray:3,3;pointer-events:none}
+.axis-line{stroke:var(--border);stroke-width:1}
+.axis-text{font-family:'Inter',sans-serif;font-size:10px;fill:var(--muted)}
+
+/* ── Map ── */
+.map-wrap{position:relative;width:100%;height:560px;background:#EDEBE6;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border)}
+.map-wrap svg{width:100%;height:100%;display:block;cursor:grab}
+.map-wrap svg.is-panning{cursor:grabbing}
+.map-cell{stroke:none}
+.map-ctrls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:5}
+.map-btn{width:30px;height:30px;border:1px solid var(--border);background:rgba(255,255,255,.94);border-radius:var(--r-sm);color:var(--navy);font-size:15px;line-height:1;cursor:pointer;font-family:Inter,sans-serif;box-shadow:var(--shadow)}
+.map-btn:hover{background:#fff;color:var(--amber)}
+.map-attrib{position:absolute;bottom:4px;right:6px;font-size:10px;color:#5C6E82;background:rgba(255,255,255,.75);padding:1px 6px;border-radius:4px;z-index:5}
+.map-attrib a{color:#5C6E82}
+.map-legend{display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.map-legend .sw{width:30px;height:11px;display:inline-block}
+.map-legend .lbl{margin:0 8px 0 3px;font-variant-numeric:tabular-nums}
+.year-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.7rem}
+.year-row input[type=range]{flex:1;min-width:180px;accent-color:var(--amber)}
+.year-badge{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;color:var(--navy);min-width:58px;font-weight:300}
+
+/* ── Word cloud ── */
+.cloud-wrap{width:100%;height:420px;position:relative}
+.cloud-wrap svg{width:100%;height:100%;display:block}
+.cloud-word{font-family:'Inter',sans-serif;cursor:default}
+.cloud-word:hover{fill:var(--amber)!important}
+
+/* ── HBar ── */
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.hbar-label{width:150px;flex:none;font-size:12px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{flex:1;height:18px;position:relative;background:var(--surface);border-radius:0 4px 4px 0}
+.hbar-fill{height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.hbar-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;width:82px;flex:none;text-align:right}
+.hbar-delta{font-size:11px;width:62px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.hbar-delta.up{color:var(--green)}.hbar-delta.down{color:var(--red)}
+
+/* ── Tables ── */
+details.data-details{margin-top:10px}
+details.data-details summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+details.data-details summary::-webkit-details-marker{display:none}
+details.data-details summary::before{content:'▸ ';color:var(--amber)}
+details.data-details[open] summary::before{content:'▾ '}
+.data-tbl-wrap{overflow-x:auto;margin-top:8px;max-height:360px;overflow-y:auto}
+table.data-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.data-tbl th{font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--white)}
+table.data-tbl th:first-child{text-align:left}
+table.data-tbl td{padding:5px 8px;border-bottom:1px solid var(--surface);text-align:right;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.data-tbl td:first-child{text-align:left;color:var(--muted)}
+
+table.city-tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.city-tbl th{font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+table.city-tbl th:first-child{text-align:left}
+table.city-tbl th.sorted{color:var(--navy)}
+table.city-tbl td{padding:7px 10px;border-bottom:1px solid var(--surface);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.city-tbl td:first-child{text-align:left;font-weight:500;color:var(--navy)}
+table.city-tbl tbody tr{cursor:pointer}
+table.city-tbl tbody tr:hover td{background:#FBF7EF}
+table.city-tbl tr.is-selected td{background:#FDF1DC}
+.city-tbl-wrap{overflow-x:auto}
+.cap{display:inline-block;font-size:10px;padding:1px 6px;border-radius:9px;margin-right:3px;letter-spacing:.03em}
+.cap.on{background:rgba(26,122,85,.13);color:var(--green)}
+.cap.off{background:var(--surface);color:var(--light)}
+.spark-cell{width:110px}
+.spark-cell svg{width:100%;height:26px;display:block}
+
+/* ── Methodology ── */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}
+.method-card h3{font-family:'Fraunces',Georgia,serif;font-size:1.1rem;font-weight:400;color:var(--navy);margin-bottom:.5rem}
+.method-card p{font-size:13px;color:var(--muted);margin-bottom:.6rem}
+.method-card ul{font-size:13px;color:var(--muted);margin:0 0 .6rem 1.1rem}
+.method-card li{margin-bottom:.3rem}
+.method-card code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--navy)}
+
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1rem}
+.chart-grid .card{margin-bottom:0}
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.section-loading{padding:1.5rem 1rem;text-align:center;color:var(--muted);font-size:13px}
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1.25rem 1rem;line-height:1.8;margin-top:2rem}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}
+
+@media(max-width:600px){
+  header{padding:0 1rem;height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}
+  .hero{padding:1.75rem 1rem 1.5rem}
+  main{padding:1rem 1rem 2rem}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+  .sibling-link{display:none}
+  .map-wrap{height:420px}
+  .hbar-label{width:96px}
+}
+@media(max-width:420px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body class="mode-simple">
+<script>
+(function(){
+  var m=localStorage.getItem('permitsViewMode')||'simple';
+  if(m!=='advanced')m='simple';
+  document.body.className='mode-'+m;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">permits<span>explorer</span></div>
+  </div>
+  <div class="header-right">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="construction.html">↳ Construction Tracker</a>
+    <a class="sibling-link" href="newhomes.html">↳ New Homes</a>
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+      <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+    </div>
+    <select id="city-sel" aria-label="City"></select>
+  </div>
+</header>
+
+<div class="hero">
+  <p class="hero-eyebrow">Nine municipal permit desks · open city data</p>
+  <h1>Every building permit a city <em>issues</em> — mapped, counted and named</h1>
+  <p class="hero-sub">The Construction Tracker counts whole metro areas. This page goes inside the city: address-level permit records aggregated into a density map, a full record back to each city's own first month, and the firms that file the most.</p>
+</div>
+
+<main>
+  <div id="loading-msg" class="state-msg"><strong>Loading…</strong> Fetching municipal permit data.</div>
+  <div id="error-msg" class="state-msg" style="display:none"><strong>Couldn't load data.</strong> <span id="error-detail"></span></div>
+
+  <div id="app-body" style="display:none">
+
+    <!-- 1 ▸ All nine, no selection required -->
+    <div class="section-head">
+      <h2>Nine permit desks</h2>
+      <p class="sec-sub">Every city on the page at once — you don't have to pick one to see anything. Each row is a city's entire permit record; click a row to open it below. The capability chips say what that city's data can and can't support, because no two of these schemas are alike.</p>
+    </div>
+    <div class="card">
+      <div class="city-tbl-wrap" id="city-table"><div class="section-loading">Loading cities…</div></div>
+      <p class="note" id="city-table-note"></p>
+    </div>
+
+    <!-- 2 ▸ The record -->
+    <div class="section-head">
+      <h2 id="record-head">The whole record</h2>
+      <p class="sec-sub" id="record-sub"></p>
+    </div>
+    <div class="stats-grid" id="kpi-grid"></div>
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title" id="hist-title">Permits issued, every month on record</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="hist-legend"></div>
+          <div class="seg-toggle" id="hist-metric">
+            <button type="button" class="seg-btn active" data-metric="count">Permits</button>
+            <button type="button" class="seg-btn" data-metric="value">Value</button>
+            <button type="button" class="seg-btn" data-metric="units">Dwelling units</button>
+          </div>
+          <div class="seg-toggle" id="hist-smooth">
+            <button type="button" class="seg-btn" data-smooth="raw">Monthly</button>
+            <button type="button" class="seg-btn active" data-smooth="ma12">12-mo avg</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="hist-chart"></div>
+      <p class="note" id="hist-note"></p>
+      <div id="hist-table"></div>
+    </div>
+
+    <!-- 3 ▸ Map -->
+    <div class="section-head">
+      <h2>Where the building actually happens</h2>
+      <p class="sec-sub">Every geocoded permit binned to a fixed 0.004° cell — roughly 445&nbsp;m north-south — and counted by the year it was issued. Drag the year slider to watch activity move across the city.</p>
+    </div>
+    <div class="card" id="map-card">
+      <div class="card-title-row">
+        <div class="card-title" id="map-title">Permit density</div>
+        <div class="card-controls">
+          <div class="seg-toggle" id="map-metric">
+            <button type="button" class="seg-btn active" data-mm="n">Permits</button>
+            <button type="button" class="seg-btn" data-mm="v">Value</button>
+          </div>
+        </div>
+      </div>
+      <div class="year-row" id="map-year-row">
+        <span class="year-badge" id="map-year-badge">All</span>
+        <input type="range" id="map-year" min="0" max="1" step="1" value="0" aria-label="Year">
+        <button type="button" class="seg-btn" id="map-play">▶ Play</button>
+      </div>
+      <div class="map-wrap" id="map-wrap">
+        <svg id="map-svg" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="map-ctrls">
+          <button type="button" class="map-btn" id="map-in" title="Zoom in">+</button>
+          <button type="button" class="map-btn" id="map-out" title="Zoom out">−</button>
+          <button type="button" class="map-btn" id="map-reset" title="Reset view">⤢</button>
+        </div>
+        <div class="map-attrib">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
+      </div>
+      <div class="map-legend" id="map-legend"></div>
+      <p class="note" id="map-note"></p>
+    </div>
+    <div class="card" id="map-gap-card" style="display:none">
+      <div class="card-title">No map for this city</div>
+      <div class="gap-note" id="map-gap-note"></div>
+    </div>
+
+    <!-- 3b ▸ Areas over time -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title" id="area-title">Busiest areas</div>
+          <select id="area-year" class="card-select" aria-label="Year"></select>
+        </div>
+        <div id="area-bars"></div>
+        <p class="note" id="area-note"></p>
+      </div>
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Where building moved — area share by year</div>
+          <div class="chart-legend-inline" id="areatrend-legend"></div>
+        </div>
+        <div class="cw cw-md" id="areatrend-chart"></div>
+        <p class="note" id="areatrend-note"></p>
+      </div>
+    </div>
+
+    <!-- 4 ▸ What's being permitted -->
+    <div class="section-head">
+      <h2>What's being permitted</h2>
+      <p class="sec-sub">Each city classifies its own permits, so these categories are the city's words, not a shared national scheme — read them within a city, never across two.</p>
+    </div>
+    <div class="card">
+      <div class="card-title-row">
+        <div class="card-title" id="work-title">By type of work</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="work-legend"></div>
+          <div class="seg-toggle" id="work-share">
+            <button type="button" class="seg-btn active" data-share="abs">Absolute</button>
+            <button type="button" class="seg-btn" data-share="share">100% share</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="work-chart"></div>
+      <p class="note" id="work-note"></p>
+      <div id="work-table"></div>
+    </div>
+    <div class="card" id="use-card">
+      <div class="card-title-row">
+        <div class="card-title" id="use-title">By building type</div>
+        <div class="card-controls">
+          <div class="chart-legend-inline" id="use-legend"></div>
+          <div class="seg-toggle" id="use-share">
+            <button type="button" class="seg-btn active" data-share="abs">Absolute</button>
+            <button type="button" class="seg-btn" data-share="share">100% share</button>
+          </div>
+        </div>
+      </div>
+      <div class="cw cw-xl" id="use-chart"></div>
+      <p class="note" id="use-note"></p>
+      <div id="use-table"></div>
+    </div>
+
+    <!-- 5 ▸ Who builds -->
+    <div class="section-head">
+      <h2>Who builds the city</h2>
+      <p class="sec-sub">The firms that file the most permits. Only names on 20 or more permits appear — a deliberate threshold, not a data limit: these fields routinely carry a private individual's name on their own renovation permit, and a name set in large type is more exposed than a row in a table.</p>
+    </div>
+    <div class="card" id="cloud-card">
+      <div class="card-title-row">
+        <div class="card-title" id="cloud-title">Top filers</div>
+        <div class="card-controls">
+          <div class="seg-toggle" id="cloud-side">
+            <button type="button" class="seg-btn active" data-side="applicants">Applicants</button>
+            <button type="button" class="seg-btn" data-side="contractors">Contractors</button>
+          </div>
+          <div class="seg-toggle" id="cloud-metric">
+            <button type="button" class="seg-btn active" data-cm="n">By permits</button>
+            <button type="button" class="seg-btn" data-cm="v">By value</button>
+          </div>
+        </div>
+      </div>
+      <div class="cloud-wrap" id="cloud"></div>
+      <p class="note" id="cloud-note"></p>
+      <div id="cloud-table"></div>
+    </div>
+    <div class="card" id="cloud-gap-card" style="display:none">
+      <div class="card-title">No names for this city</div>
+      <div class="gap-note" id="cloud-gap-note"></div>
+    </div>
+
+    <!-- 6 ▸ Timelines -->
+    <div class="section-head" id="timing-head">
+      <h2>How long it takes</h2>
+      <p class="sec-sub">Two intervals a city's own records can measure that no national statistic can: how long a permit waits for approval, and how long the building then takes. Medians, not means — both distributions have long right tails.</p>
+    </div>
+    <div class="chart-grid" id="proc-cards">
+      <div class="card">
+        <div class="card-title">Time to get a permit — by type</div>
+        <div id="proc-type"></div>
+        <p class="note" id="proc-type-note"></p>
+      </div>
+      <div class="card">
+        <div class="card-title">Time to get a permit — by year</div>
+        <div id="proc-year"></div>
+        <p class="note" id="proc-year-note"></p>
+      </div>
+    </div>
+    <div class="chart-grid" id="build-cards">
+      <div class="card">
+        <div class="card-title">Time to build — by type</div>
+        <div id="build-type"></div>
+        <p class="note" id="build-type-note"></p>
+      </div>
+      <div class="card">
+        <div class="card-title">Time to build — by year</div>
+        <div id="build-year"></div>
+        <p class="note" id="build-year-note"></p>
+      </div>
+    </div>
+    <div class="card" id="timing-gap-card" style="display:none">
+      <div class="card-title">No timing data for this city</div>
+      <div class="gap-note" id="timing-gap-note"></div>
+    </div>
+
+    <!-- 7 ▸ Unit economics -->
+    <div class="card" id="econ-card">
+      <div class="card-title">What a new home costs to build, per the permit</div>
+      <div id="econ-table"></div>
+      <p class="note" id="econ-note"></p>
+    </div>
+
+    <!-- 8 ▸ Quality -->
+    <div class="section-head">
+      <h2>What this data can't tell you</h2>
+      <p class="sec-sub">Every card above is one city's administrative record, published as-is. These are the limits that matter before you quote any of it.</p>
+    </div>
+    <div class="card">
+      <div id="quality-body"></div>
+    </div>
+
+    <!-- 9 ▸ Methodology -->
+    <div class="section-head">
+      <h2>How this page was built</h2>
+      <p class="sec-sub">Two versions of the same explanation.</p>
+    </div>
+    <div class="method-grid">
+      <div class="card method-card">
+        <h3>In plain language</h3>
+        <p>When someone wants to build, renovate or demolish, they need a permit from the city. Cities publish those permits as open data — every one, with a date, a location, what the work is, and usually what it's expected to cost.</p>
+        <p>We download nine cities' permit records and count them up in a few different ways:</p>
+        <ul>
+          <li><b>The record over time</b> — how many permits a city issued each month, going back as far as that city publishes. Some go back to the 1990s; one only starts in late 2020.</li>
+          <li><b>The map</b> — we lay a grid of roughly 445-metre squares over the city and count the permits in each square, year by year. We do <em>not</em> show individual permits: putting somebody's home renovation on a public map by address isn't something the data being open makes okay.</li>
+          <li><b>Who builds</b> — some cities record the firm that filed each permit. We show the ones that appear on 20 or more permits, so a homeowner who pulled a single permit never shows up.</li>
+          <li><b>How long it takes</b> — where a city records both an application date and an issue date, we can measure the wait. Where it also records a completion date, we can measure the build.</li>
+        </ul>
+        <p>The most important thing to know: <b>a city is not its metro area</b>. The City of Toronto is well under half the Toronto region. These numbers can't be added to, or compared with, the metro figures on the <a href="construction.html">Construction Tracker</a>.</p>
+      </div>
+      <div class="card method-card">
+        <h3>For the technical reader</h3>
+        <p><b>Sources.</b> Nine municipal open-data endpoints on five different platforms: Opendatasoft Explore v2.1 (Vancouver), CKAN <code>datastore_search</code> (Toronto) and <code>datastore_search_sql</code> (Montreal), Socrata SODA/SoQL (Calgary, Edmonton, Winnipeg), Esri ArcGIS FeatureServer (Mississauga, Halifax), and 15 annual XLSX workbooks with no API at all (Ottawa). Each city's licence is stated in its row above.</p>
+        <p><b>Aggregation.</b> Where the platform supports it, cuts are computed server-side (SoQL <code>date_trunc_ym</code>/<code>date_trunc_y</code> with two-dimensional <code>$group</code>; PostgreSQL <code>round(x::numeric,3)</code> and <code>percentile_cont</code> on Montreal's SQL endpoint). Socrata has no <code>round()</code> function — verified live, it returns <code>400 no-such-function</code> — so coordinate binning is done client-side in Python after paging raw rows ordered by <code>:id</code>.</p>
+        <p><b>The grid.</b> Cells are <code>0.004°</code>, indexed as integers against that step; a cell holds a permit count and, where the city has a cost field, a dollar total. Nothing else. Cell size was chosen by measurement: on Calgary (498,889 geocoded rows, 28 years) 0.002° produced 156,695 cell-year rows / 3.04&nbsp;MB against 81,454 / 1.61&nbsp;MB at 0.004°. Colour breaks are quantiles of the <em>displayed</em> year's non-empty cells, printed in the legend.</p>
+        <p><b>Category matrices.</b> Each cut keeps the top 14 labels by all-time weight and rolls the remainder into an explicit <code>Other (N categories)</code> row, so a year column still sums to the city's true total. Labels are each city's own raw field values, normalised only for casing where a city carries genuine duplicates (Montreal's <code>description_type_batiment</code>).</p>
+        <p><b>Weighting basis.</b> Montreal and Winnipeg publish <em>no cost field at all</em>, so everything there is weighted by permit count and the page says so per card rather than showing an empty dollar axis. Toronto's <code>EST_CONST_COST</code> carries a literal placeholder string on roughly half its rows; those are counted and excluded, never coerced to zero.</p>
+        <p><b>Pipeline.</b> <code>Python/permits_detail_etl.py</code> → <code>permits_json/</code>; the carried-over processing/build-time and unit-economics panels come from <code>Python/municipal_permits_etl.py</code> → <code>construction_json/municipal.json</code>, which stays the single producer for those. Full writeup: <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/PERMITS.md">docs/PERMITS.md</a>.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="chart-tip" id="chart-tip"></div>
+
+<footer>
+  Built by <a href="https://github.com/OttawaVisuals/Energy">Ottawa Visuals</a> ·
+  Municipal open data from nine Canadian cities, each under its own open licence ·
+  Basemap © OpenStreetMap contributors, © CARTO ·
+  <a href="construction.html">Construction Tracker</a> ·
+  <span id="footer-stamp"></span>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Permits Explorer
+   Data: permits_json/ (this page's own tree, from permits_detail_etl.py)
+       + construction_json/municipal.json (shared with construction.html;
+         the single producer of the processing / build-time / unit-economics
+         panels, deliberately not recomputed here)
+   ═══════════════════════════════════════════════════════════════════ */
+var PJ = 'permits_json/';
+var MJ = 'construction_json/municipal.json';
+
+var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',
+           purple:'#533AB7',red:'#B33A2E',gray:'#8A9BB0'};
+/* Categorical ramp for the matrices. 15 slots = 14 real labels + "Other",
+   which always renders in gray so it never reads as a category. */
+var CAT = ['#245A96','#E8A124','#1A7A55','#B33A2E','#533AB7','#378ADD','#C8881A',
+           '#2E7D6E','#8E4585','#5B7C99','#9C6B1F','#3F6B3F','#7A3B5E','#4A5D7E'];
+var OTHER_COLOR = '#B9C3CF';
+/* Sequential ramp for the map. Light-to-dark warm, readable over a pale
+   basemap and distinguishable in greyscale by lightness alone. */
+var HEAT = ['#FDE9C8','#F6C879','#E8A124','#CE6E1F','#A83C22','#6E1F17'];
+
+var state = {city:null, histMetric:'count', histSmooth:'ma12',
+             mapMetric:'n', mapYear:'all', workShare:'abs', useShare:'abs',
+             cloudSide:'applicants', cloudMetric:'n', areaYear:'all',
+             citySort:{col:'rows', dir:-1}};
+var IDX=null, DETAIL={}, MUNI=null, GRID={}, playTimer=null;
+
+/* ── month math ─────────────────────────────────────────────────── */
+function mi(s){ return parseInt(s.slice(0,4),10)*12 + (parseInt(s.slice(5,7),10)-1); }
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function miLabel(i){ return MONTHS[i%12]+' '+Math.floor(i/12); }
+function pts(s){
+  if(!s) return [];
+  var m0=mi(s.start), out=[];
+  for(var i=0;i<s.values.length;i++) if(s.values[i]!=null) out.push({m:m0+i,v:s.values[i]});
+  return out;
+}
+/* Moving average over CALENDAR months, not over the compacted point array.
+   pts() drops null months, so averaging the array directly would quietly
+   span a gap and report a 12-month average computed from 12 scattered
+   observations. A window missing any month yields no point — a visible gap,
+   which is what the data actually says. */
+function maPts(p,k){
+  if(!p.length) return [];
+  var by={}; p.forEach(function(d){ by[d.m]=d.v; });
+  var m0=p[0].m, m1=p[p.length-1].m, out=[];
+  for(var m=m0+k-1;m<=m1;m++){
+    var sum=0,ok=true;
+    for(var j=m-k+1;j<=m;j++){ if(by[j]==null){ ok=false; break; } sum+=by[j]; }
+    if(ok) out.push({m:m,v:sum/k});
+  }
+  return out;
+}
+function roll12Last(p){
+  if(p.length<12) return null;
+  var s=0; for(var i=p.length-12;i<p.length;i++) s+=p[i].v; return s;
+}
+function roll12Prev(p){
+  if(p.length<24) return null;
+  var s=0; for(var i=p.length-24;i<p.length-12;i++) s+=p[i].v; return s;
+}
+
+/* ── formatting ─────────────────────────────────────────────────── */
+function fmtInt(v){ return v==null?'—':Math.round(v).toLocaleString('en-CA'); }
+function fmtM(v){
+  if(v==null) return '—';
+  if(Math.abs(v)>=1000) return '$'+(v/1000).toLocaleString('en-CA',{maximumFractionDigits:1})+'B';
+  if(Math.abs(v)<1) return '$'+(v*1000).toLocaleString('en-CA',{maximumFractionDigits:0})+'k';
+  return '$'+v.toLocaleString('en-CA',{maximumFractionDigits:0})+'M';
+}
+function fmtK(v){ /* thousands of dollars */
+  if(v==null) return '—';
+  return fmtM(v/1000);
+}
+function fmtPct(v){ return v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%'; }
+function fmtAxis(v,money){
+  if(money) return Math.abs(v)>=1000?'$'+(v/1000)+'B':'$'+v+'M';
+  return Math.abs(v)>=1000?(v/1000)+'k':''+v;
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function titleCase(s){
+  return String(s).toLowerCase().replace(/\b([a-z])/g,function(m,c){return c.toUpperCase()})
+    .replace(/\b(Ltd|Inc|Llc|Bc|Dba)\b/g,function(m){return m.toUpperCase()});
+}
+
+/* ── generic SVG helpers ────────────────────────────────────────── */
+var NS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs,parent){
+  var el=document.createElementNS(NS,tag);
+  for(var k in attrs) el.setAttribute(k,attrs[k]);
+  if(parent) parent.appendChild(el);
+  return el;
+}
+function niceTicks(max,n){
+  n=n||4;
+  if(max<=0) return [0];
+  var raw=max/n, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  var step=[1,2,2.5,5,10].map(function(x){return x*mag})
+    .filter(function(x){return x>=raw})[0]||10*mag;
+  var out=[]; for(var v=0;v<=max+1e-9;v+=step) out.push(+v.toFixed(6));
+  return out;
+}
+var tipEl=document.getElementById('chart-tip');
+function showTip(html,x,y){
+  tipEl.innerHTML=html; tipEl.style.display='block';
+  var w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  var px=x+14, py=y-h-10;
+  if(px+w>window.innerWidth-8) px=x-w-14;
+  if(py<8) py=y+16;
+  tipEl.style.left=px+'px'; tipEl.style.top=py+'px';
+}
+function hideTip(){ tipEl.style.display='none'; }
+function tipRow(color,label,val){
+  return '<div class="tip-row"><span class="tip-dot" style="background:'+color+'"></span>'+
+    esc(label)+': <strong style="margin-left:3px">'+val+'</strong></div>';
+}
+function buildLegend(el,items){
+  if(!el) return;
+  el.innerHTML=items.map(function(it){
+    return '<span class="chart-legend-item"><span class="chart-legend-dot" style="background:'+
+      it.color+'"></span>'+esc(it.label)+'</span>';
+  }).join('');
+}
+function sparkSVG(vals,color,w,h){
+  w=w||120;h=h||26;
+  var v=vals.filter(function(x){return x!=null});
+  if(v.length<2) return '';
+  var min=Math.min.apply(null,v),max=Math.max.apply(null,v),d='';
+  vals.forEach(function(x,i){
+    if(x==null) return;
+    var px=i/(vals.length-1)*w, py=h-2-((x-min)/(max-min||1))*(h-4);
+    d+=(d?' L':'M')+px.toFixed(1)+' '+py.toFixed(1);
+  });
+  return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path d="'+d+
+    '" fill="none" stroke="'+color+'" stroke-width="1.5"/></svg>';
+}
+
+/* ── timeChart ──────────────────────────────────────────────────── */
+function timeChart(mountId,cfg){
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  mount.innerHTML='';
+  var W=mount.clientWidth||800,H=mount.clientHeight||240,M={t:8,r:14,b:20,l:52};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var all=[]; cfg.series.forEach(function(s){ all=all.concat(s.pts); });
+  if(!all.length){ mount.innerHTML='<div class="section-loading">No data for this city.</div>'; return; }
+  var x0=Math.min.apply(null,all.map(function(d){return d.m}));
+  var x1=Math.max.apply(null,all.map(function(d){return d.m}));
+  var yMax=Math.max.apply(null,all.map(function(d){return d.v}))*1.05||1;
+  var X=function(m){ return M.l+(m-x0)/(x1-x0||1)*(W-M.l-M.r); };
+  var Y=function(v){ return M.t+(1-v/(yMax||1))*(H-M.t-M.b); };
+  niceTicks(yMax).forEach(function(t){
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg)
+      .textContent=fmtAxis(t,cfg.money);
+  });
+  var yrSpan=Math.ceil((x1-x0)/12), yrStep=yrSpan>24?5:(yrSpan>12?2:1);
+  for(var y=Math.ceil(x0/12);y*12<=x1;y++){
+    if(y%yrStep!==0) continue;
+    svgEl('text',{x:X(y*12),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+  }
+  cfg.series.forEach(function(s){
+    if(!s.pts.length) return;
+    var d='',prev=null,gap=(s.pts[1]?s.pts[1].m-s.pts[0].m:1);
+    s.pts.forEach(function(p){
+      d+=(prev==null||p.m-prev>gap)?' M'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1)
+                                   :' L'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1);
+      prev=p.m;
+    });
+    if(s.type==='area'){
+      var ad='M'+X(s.pts[0].m).toFixed(1)+' '+Y(0).toFixed(1);
+      s.pts.forEach(function(p){ ad+=' L'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1); });
+      ad+=' L'+X(s.pts[s.pts.length-1].m).toFixed(1)+' '+Y(0).toFixed(1)+' Z';
+      svgEl('path',{d:ad,fill:s.color,opacity:.13},svg);
+    }
+    svgEl('path',{d:d.trim(),fill:'none',stroke:s.color,'stroke-width':2,
+      'stroke-dasharray':s.dash||'','stroke-linejoin':'round','stroke-linecap':'round'},svg);
+  });
+  var hover=svgEl('line',{y1:M.t,y2:H-M.b,'class':'hover-line',style:'display:none'},svg);
+  var ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',function(e){
+    var r=svg.getBoundingClientRect();
+    var m=Math.round(x0+(e.clientX-r.left)/r.width*(W)-M.l);
+    m=Math.round(x0+((e.clientX-r.left)/r.width*W-M.l)/(W-M.l-M.r)*(x1-x0));
+    m=Math.max(x0,Math.min(x1,m));
+    hover.style.display=''; hover.setAttribute('x1',X(m)); hover.setAttribute('x2',X(m));
+    var rows='<strong>'+miLabel(m)+'</strong>';
+    cfg.series.forEach(function(s){
+      for(var i=0;i<s.pts.length;i++) if(s.pts[i].m===m){
+        rows+=tipRow(s.color,s.label,(cfg.fmt||fmtInt)(s.pts[i].v)); break; }
+    });
+    showTip(rows,e.clientX,e.clientY);
+  });
+  ov.addEventListener('mouseleave',function(){ hover.style.display='none'; hideTip(); });
+}
+
+/* ── stacked annual bars from a label×year matrix ───────────────── */
+function matrixBars(mountId,mat,opts){
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  mount.innerHTML='';
+  if(!mat||!mat.years||!mat.years.length){
+    mount.innerHTML='<div class="section-loading">No breakdown published for this city.</div>'; return; }
+  var W=mount.clientWidth||800,H=mount.clientHeight||340,M={t:8,r:14,b:22,l:54};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var share=opts.share, rows=opts.rows, ys=mat.years;
+  var totals=ys.map(function(_,yi){
+    return rows.reduce(function(a,r){ return a+(r.vals[yi]||0); },0); });
+  var yMax=share?100:Math.max.apply(null,totals)*1.05||1;
+  var slot=(W-M.l-M.r)/ys.length, bw=Math.min(slot*.74,38);
+  var Y=function(v){ return M.t+(1-v/(yMax||1))*(H-M.t-M.b); };
+  niceTicks(yMax).forEach(function(t){
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg)
+      .textContent=share?t+'%':fmtAxis(t,opts.money);
+  });
+  var lblStep=ys.length>22?4:(ys.length>12?2:1);
+  ys.forEach(function(y,yi){
+    var cx=M.l+slot*(yi+.5);
+    if(yi%lblStep===0)
+      svgEl('text',{x:cx,y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+    var cum=0;
+    rows.forEach(function(r,ri){
+      var v=r.vals[yi]||0;
+      if(share) v=totals[yi]?v/totals[yi]*100:0;
+      if(v<=0) return;
+      var yTop=Y(cum+v),yBot=Y(cum);
+      var isTop=rows.slice(ri+1).every(function(k){ return !(k.vals[yi]>0); });
+      svgEl('rect',{x:cx-bw/2,y:yTop,width:bw,height:Math.max(yBot-yTop-1.2,0.5),
+        fill:r.color,rx:isTop?3:0},svg);
+      cum+=v;
+    });
+    var hit=svgEl('rect',{x:cx-slot/2,y:M.t,width:slot,height:H-M.t-M.b,fill:'transparent'},svg);
+    hit.addEventListener('mousemove',function(e){
+      var out='<strong>'+y+'</strong>';
+      for(var i=rows.length-1;i>=0;i--){
+        var v=rows[i].vals[yi];
+        if(!v) continue;
+        out+=tipRow(rows[i].color,rows[i].label,
+          share?(totals[yi]?(v/totals[yi]*100).toFixed(1)+'%':'—'):(opts.fmt||fmtInt)(v));
+      }
+      if(!share) out+=tipRow('#5C6E82','Total',(opts.fmt||fmtInt)(totals[yi]));
+      showTip(out,e.clientX,e.clientY);
+    });
+    hit.addEventListener('mouseleave',hideTip);
+  });
+}
+
+/* ── horizontal bars ────────────────────────────────────────────── */
+function hBars(mountId,items,opts){
+  opts=opts||{};
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  if(!items.length){ mount.innerHTML='<div class="section-loading">No data.</div>'; return; }
+  var max=Math.max.apply(null,items.map(function(d){return d.v}))||1;
+  mount.innerHTML=items.map(function(d){
+    var pct=Math.max(d.v/max*100,1);
+    var delta='';
+    if(opts.showDelta&&d.delta!=null&&isFinite(d.delta))
+      delta='<div class="hbar-delta '+(d.delta>=0?'up':'down')+'">'+fmtPct(d.delta)+'</div>';
+    else if(opts.showDelta) delta='<div class="hbar-delta"></div>';
+    return '<div class="hbar-row">'+
+      '<div class="hbar-label" title="'+esc(d.label)+'">'+esc(d.label)+'</div>'+
+      '<div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;background:'+
+        (d.color||PAL.navy)+'"></div></div>'+
+      '<div class="hbar-val">'+(opts.fmt||fmtInt)(d.v)+'</div>'+delta+'</div>';
+  }).join('');
+}
+
+/* ── data table ─────────────────────────────────────────────────── */
+function matrixTable(mountId,mat,rows,fmt,label){
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  if(!mat){ mount.innerHTML=''; return; }
+  var head='<tr><th>'+esc(label)+'</th>'+mat.years.map(function(y){return '<th>'+y+'</th>'}).join('')+'</tr>';
+  var body=rows.map(function(r){
+    return '<tr><td>'+esc(r.label)+'</td>'+r.vals.map(function(v){
+      return '<td>'+(v?fmt(v):'—')+'</td>'; }).join('')+'</tr>';
+  }).join('');
+  mount.innerHTML='<details class="data-details"><summary>View as table</summary>'+
+    '<div class="data-tbl-wrap"><table class="data-tbl">'+head+body+'</table></div></details>';
+}
+
+/* ── loading ────────────────────────────────────────────────────── */
+function loadJSON(url){
+  return fetch(url,{cache:'default'}).then(function(r){
+    if(!r.ok) throw new Error(url+' → HTTP '+r.status);
+    return r.json();
+  });
+}
+function loadCity(k){
+  if(DETAIL[k]) return Promise.resolve(DETAIL[k]);
+  return loadJSON(PJ+k+'.json').then(function(d){ DETAIL[k]=d; return d; });
+}
+function loadGrid(k){
+  if(GRID[k]!==undefined) return Promise.resolve(GRID[k]);
+  return loadJSON(PJ+k+'_grid.json')
+    .then(function(d){ GRID[k]=d; return d; })
+    .catch(function(){ GRID[k]=null; return null; });
+}
+
+/* ═══ 1 ▸ city roster table ═════════════════════════════════════ */
+var CITY_COLS=[
+  {k:'label', t:'City', fmt:function(c){return esc(c.label)}, txt:true},
+  {k:'start', t:'Record starts', fmt:function(c){return c.start||'—'}, txt:true},
+  {k:'rows',  t:'Permits plotted', fmt:function(c){
+      var gap=(c.rows_all_time||c.rows)-c.rows;
+      return fmtInt(c.rows)+(gap>0?
+        '<span style="color:var(--light)"> +'+fmtInt(gap)+'*</span>':''); }},
+  {k:'last12',t:'Last 12 months', fmt:function(c){return fmtInt(c.last12)}},
+  {k:'yoy',   t:'y/y', fmt:function(c){
+      return c.yoy==null?'—':'<span class="yoy-badge '+(c.yoy>=0?'up':'down')+'">'+fmtPct(c.yoy)+'</span>'; }},
+  {k:'spark', t:'Since 2015', fmt:function(c){
+      return '<div class="spark-cell">'+(c.spark||'')+'</div>'; }, txt:true},
+  {k:'caps',  t:'Supports', fmt:function(c){
+      return ['<span class="cap '+(c.has_map?'on':'off')+'">map</span>',
+              '<span class="cap '+(c.has_names?'on':'off')+'">names</span>',
+              '<span class="cap '+(c.has_value?'on':'off')+'">$</span>',
+              '<span class="cap '+(c.has_timing?'on':'off')+'">timing</span>'].join(''); }, txt:true}
+];
+
+function renderCityTable(){
+  var rows=IDX.cities.slice();
+  var s=state.citySort;
+  rows.sort(function(a,b){
+    var x=a[s.col],y=b[s.col];
+    if(x==null) return 1; if(y==null) return -1;
+    if(typeof x==='string') return s.dir*(x<y?-1:x>y?1:0);
+    return s.dir*(x-y);
+  });
+  var head='<tr>'+CITY_COLS.map(function(c){
+    return '<th data-col="'+c.k+'"'+(s.col===c.k?' class="sorted"':'')+'>'+c.t+
+      (s.col===c.k?(s.dir<0?' ▾':' ▴'):'')+'</th>'; }).join('')+'</tr>';
+  var body=rows.map(function(c){
+    return '<tr data-city="'+c.key+'"'+(c.key===state.city?' class="is-selected"':'')+'>'+
+      CITY_COLS.map(function(col){ return '<td>'+col.fmt(c)+'</td>'; }).join('')+'</tr>';
+  }).join('');
+  var el=document.getElementById('city-table');
+  el.innerHTML='<table class="city-tbl"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
+  el.querySelectorAll('th').forEach(function(th){
+    th.addEventListener('click',function(){
+      var col=th.dataset.col;
+      if(state.citySort.col===col) state.citySort.dir*=-1;
+      else state.citySort={col:col,dir:col==='label'||col==='start'?1:-1};
+      renderCityTable();
+    });
+  });
+  el.querySelectorAll('tbody tr').forEach(function(tr){
+    tr.addEventListener('click',function(){ selectCity(tr.dataset.city); });
+  });
+  var mapped=IDX.cities.filter(function(c){return c.has_map}).length;
+  var named=IDX.cities.filter(function(c){return c.has_names}).length;
+  var undated=IDX.cities.reduce(function(a,c){return a+(c.undated_dropped||0)},0);
+  document.getElementById('city-table-note').innerHTML=
+    'Nine cities, nine different schemas. <b>'+mapped+' of 9</b> publish coordinates and get a map; '+
+    '<b>'+named+' of 9</b> record who filed the permit; two (Montreal, Winnipeg) publish '+
+    'no cost field at all, so everything for them is weighted by permit count. '+
+    '"Record starts" is that city\'s own first month of published data, not a shared cutoff — '+
+    'the Construction Tracker\'s version of these series is floored at 2017 so the nine are '+
+    'comparable, and this page deliberately is not. A grey <b>+n*</b> is the count of permits in '+
+    'the file that the plotted record leaves out — a still-running current month, or dates before '+
+    'the point where a city\'s coverage actually begins. Toronto\'s pre-2017 rows are only the '+
+    'permits that stayed open, not a record of what was issued, and charting them would show a '+
+    '350-fold rise in building that never happened. Each city\'s card says which applies. '+
+    (undated?'Across the nine, <b>'+fmtInt(undated)+'</b> published rows carry no usable issue '+
+      'date and so appear nowhere on this page — each city\'s card names its own share. ':'')+
+    '<b>These are city boundaries, not metro areas</b>, and cannot be reconciled with the '+
+    'CMA figures on the <a href="construction.html">Construction Tracker</a>.';
+}
+
+/* ═══ 2 ▸ KPIs + full history ══════════════════════════════════ */
+function metricSeries(d,metric){
+  var m=d.monthly||{};
+  if(metric==='value')  return {s:m.value, money:true,  fmt:fmtM,   label:'Permit value'};
+  if(metric==='units')  return {s:m.units_created, money:false, fmt:fmtInt, label:'Dwelling units created'};
+  return {s:m.count, money:false, fmt:fmtInt, label:'Permits issued'};
+}
+function metricAvailable(d,metric){
+  var g=metricSeries(d,metric);
+  return !!(g.s&&g.s.values&&g.s.values.some(function(v){return v!=null&&v!==0}));
+}
+
+function renderKPIs(d,cityMeta){
+  var g=document.getElementById('kpi-grid');
+  var cards=[];
+  var cnt=pts(d.monthly.count);
+  var l12=roll12Last(cnt), p12=roll12Prev(cnt);
+  var inSeries=(d.rows_in_series!=null)?d.rows_in_series:d.rows;
+  cards.push({l:'Permits issued, last 12 months', v:fmtInt(l12),
+              sub:'of '+fmtInt(inSeries)+' in the plotted record',
+              yoy:(l12!=null&&p12)?((l12-p12)/p12*100):null});
+  if(metricAvailable(d,'value')){
+    var vp=pts(d.monthly.value), v12=roll12Last(vp), vp12=roll12Prev(vp);
+    cards.push({l:'Declared value, last 12 months', v:fmtM(v12), sub:'as reported on permits',
+                yoy:(v12!=null&&vp12)?((v12-vp12)/vp12*100):null});
+  } else {
+    cards.push({l:'Declared value', v:'n/a',
+                sub:'this city publishes no cost field'});
+  }
+  if(metricAvailable(d,'units')){
+    var up=pts(d.monthly.units_created), u12=roll12Last(up), up12=roll12Prev(up);
+    cards.push({l:'Dwelling units created, last 12 months', v:fmtInt(u12), sub:'on permits issued',
+                yoy:(u12!=null&&up12)?((u12-up12)/up12*100):null});
+  }
+  var yrs=d.history.start&&d.history.end
+    ? (parseInt(d.history.end.slice(0,4),10)-parseInt(d.history.start.slice(0,4),10)+1) : null;
+  cards.push({l:'Record spans', v:yrs?yrs+' yrs':'—',
+              sub:(d.history.start||'?')+' → '+(d.history.end||'?')});
+  if(d.map&&d.map.available)
+    cards.push({l:'Permits on the map', v:fmtInt(d.map.geocoded),
+                sub:(d.map.ungeocoded?fmtInt(d.map.ungeocoded)+' without coordinates':'all geocoded')});
+  g.innerHTML=cards.map(function(c){
+    return '<div class="stat-card"><div class="stat-label">'+esc(c.l)+'</div>'+
+      '<div class="stat-value">'+c.v+'</div><div class="stat-sub">'+esc(c.sub||'')+
+      (c.yoy!=null&&isFinite(c.yoy)?'<span class="yoy-badge '+(c.yoy>=0?'up':'down')+'">'+
+        fmtPct(c.yoy)+'</span>':'')+'</div></div>';
+  }).join('');
+}
+
+function renderHistory(d){
+  /* Disable a metric this city genuinely doesn't publish rather than
+     drawing an empty axis for it. */
+  ['count','value','units'].forEach(function(m){
+    var b=document.querySelector('#hist-metric [data-metric="'+m+'"]');
+    if(!b) return;
+    var ok=metricAvailable(d,m);
+    b.disabled=!ok;
+    b.title=ok?'':'This city publishes no such field.';
+  });
+  if(!metricAvailable(d,state.histMetric)) state.histMetric='count';
+  syncSeg('hist-metric','metric',state.histMetric);
+
+  var g=metricSeries(d,state.histMetric);
+  var p=pts(g.s);
+  var smooth=state.histSmooth==='ma12'&&p.length>=12;
+  var shown=smooth?maPts(p,12):p;
+  buildLegend(document.getElementById('hist-legend'),
+    [{color:PAL.navy,label:g.label+(smooth?' (12-mo avg)':' (monthly)')}]);
+  document.getElementById('hist-title').textContent=
+    g.label+' — every month on record';
+  timeChart('hist-chart',{series:[{label:g.label,color:PAL.navy,pts:shown,type:'area'}],
+    money:g.money, fmt:g.fmt});
+
+  var start=d.history.start,end=d.history.end;
+  var extra='';
+  if(d.series_floor)
+    extra=' <b>This series starts at '+esc(d.series_floor.floor)+' on purpose.</b> '+
+      esc(d.series_floor.reason)+' A further <b>'+fmtInt(d.series_floor.permits_excluded)+
+      '</b> permits carry earlier dates — they stay in the all-time file total of '+
+      fmtInt(d.rows)+' and in every category breakdown below, and only the time series is '+
+      'floored, because a line is a claim about change over time and that one would be false.';
+  if(state.histMetric==='value'&&d.unparseable_cost)
+    extra+=' <b>'+fmtInt(d.unparseable_cost)+'</b> permits carry an unparseable cost cell and are '+
+           'excluded from the dollar total — counted, not silently zeroed.';
+  var inSeries=(d.rows_in_series!=null)?d.rows_in_series:d.rows;
+  document.getElementById('hist-note').innerHTML=
+    '<b>'+esc(d.label)+'</b> plots <b>'+esc(start)+'</b> to <b>'+esc(end)+'</b> — '+
+    fmtInt(inSeries)+' permits. '+
+    (d.series_floor?'':'This is the city\'s own full record; the same series on the '+
+      '<a href="construction.html">Construction Tracker</a> is floored at 2017 so all nine cities '+
+      'line up. ')+(d.partial_month_dropped?'The record ends at the last <b>complete</b> month: '+
+    esc(d.partial_month_dropped)+' is still in progress at the source and is excluded, because a '+
+    'three-day-old month plotted beside full ones reads as a collapse in building rather than as a '+
+    'month that has barely started. ':'')+
+    (smooth?'The 12-month average removes the strong seasonal cycle every permit '+
+    'desk has (spring and summer issue far more than January).':'Raw monthly counts — the '+
+    'sawtooth is seasonality, not noise.')+extra;
+
+  var tbl=document.getElementById('hist-table');
+  var last=shown.slice(-36).reverse();
+  tbl.innerHTML='<details class="data-details"><summary>View as table (last 36 points)</summary>'+
+    '<div class="data-tbl-wrap"><table class="data-tbl"><tr><th>Month</th><th>'+esc(g.label)+'</th></tr>'+
+    last.map(function(p){ return '<tr><td>'+miLabel(p.m)+'</td><td>'+g.fmt(p.v)+'</td></tr>'; }).join('')+
+    '</table></div></details>';
+}
+
+/* ═══ 3 ▸ map ═══════════════════════════════════════════════════ */
+var TILE_SUB=['a','b','c','d'];
+function lon2x(lon,z){ return (lon+180)/360*Math.pow(2,z)*256; }
+function lat2y(lat,z){
+  var r=lat*Math.PI/180;
+  return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*256;
+}
+function tileUrl(z,x,y){
+  return 'https://'+TILE_SUB[(x+y)%4]+'.basemaps.cartocdn.com/light_all/'+z+'/'+x+'/'+y+'.png';
+}
+var MAP=null;
+
+function mapCells(grid,year){
+  /* year 'all' sums every year's cells into one lattice. */
+  if(year!=='all') return (grid.by_year[year]||[]).map(function(c){return c;});
+  var agg={};
+  Object.keys(grid.by_year).forEach(function(y){
+    grid.by_year[y].forEach(function(c){
+      var k=c[0]+','+c[1], a=agg[k]||(agg[k]=[c[0],c[1],0,0]);
+      a[2]+=c[2]; a[3]+=c[3];
+    });
+  });
+  return Object.keys(agg).map(function(k){return agg[k]});
+}
+function quantileBreaks(vals,n){
+  var v=vals.filter(function(x){return x>0}).sort(function(a,b){return a-b});
+  if(!v.length) return [];
+  var out=[];
+  for(var i=1;i<n;i++) out.push(v[Math.floor(v.length*i/n)]);
+  return out;
+}
+function heatColor(v,breaks){
+  if(v<=0) return null;
+  for(var i=0;i<breaks.length;i++) if(v<=breaks[i]) return HEAT[i];
+  return HEAT[breaks.length];
+}
+
+function renderMap(d){
+  var card=document.getElementById('map-card'), gap=document.getElementById('map-gap-card');
+  if(!d.map||!d.map.available){
+    card.style.display='none'; gap.style.display='';
+    clearMounts(['map-svg','map-legend','map-note']); MAP=null;
+    document.getElementById('map-gap-note').innerHTML=
+      '<b>'+esc(d.label)+' publishes no coordinates.</b> '+esc(d.map&&d.map.reason||'')+
+      ' The area breakdown below is the finest geography this city\'s data supports.';
+    stopPlay();
+    return;
+  }
+  card.style.display=''; gap.style.display='none';
+  loadGrid(d.key).then(function(grid){
+    if(!grid){ card.style.display='none'; gap.style.display='';
+      document.getElementById('map-gap-note').textContent='Grid file unavailable.'; return; }
+    MAP={grid:grid, city:d.key};
+    var yrs=grid.years.slice();
+    var sl=document.getElementById('map-year');
+    sl.min=0; sl.max=yrs.length; sl.value=yrs.length;   /* last slot = All */
+    state.mapYear='all';
+    /* Value mode is meaningless where the city has no cost field. */
+    var hasVal=(d.value_basis!=='count');
+    var vb=document.querySelector('#map-metric [data-mm="v"]');
+    vb.disabled=!hasVal;
+    vb.title=hasVal?'':'This city publishes no cost field.';
+    if(!hasVal) state.mapMetric='n';
+    syncSeg('map-metric','mm',state.mapMetric);
+    drawMap();
+  });
+}
+
+function drawMap(){
+  if(!MAP) return;
+  var grid=MAP.grid, d=DETAIL[MAP.city];
+  var yrs=grid.years, yi=parseInt(document.getElementById('map-year').value,10);
+  var year=(yi>=yrs.length)?'all':String(yrs[yi]);
+  state.mapYear=year;
+  document.getElementById('map-year-badge').textContent=(year==='all'?'All':year);
+
+  var cells=mapCells(grid,year);
+  var vi=state.mapMetric==='n'?2:3;
+  var vals=cells.map(function(c){return c[vi]});
+  var breaks=quantileBreaks(vals,HEAT.length);
+
+  var wrap=document.getElementById('map-wrap');
+  var W=wrap.clientWidth||900, H=wrap.clientHeight||560;
+  var b=grid.bounds, pad=grid.cell_deg;
+  var minLat=b[0]-pad,minLon=b[1]-pad,maxLat=b[2]+pad,maxLon=b[3]+pad;
+  /* A city's bounding box is rarely the card's shape. With preserveAspectRatio
+     the SVG letterboxes — Vancouver drew into the middle 606 of 1186 px,
+     leaving half the card blank — so the short axis is expanded symmetrically
+     until the drawn extent matches the container's aspect and the surrounding
+     streets fill the gap instead of nothing.
+
+     The zoom must be chosen against that EXPANDED extent, not the raw bbox:
+     picking it first and expanding after left the drawn box smaller than the
+     card, so the SVG scaled it up and the tiles came out blurry (Montreal was
+     rendering 681 px of map into 1186 px, a 1.74x upscale of 256 px tiles).
+     Tile zooms are powers of two, so an extent that merely *fits* can still be
+     far smaller than the card — Montreal's largest fitting zoom gave 681 px for
+     an 1186 px box, a 1.74x upscale. The smallest zoom that COVERS the card is
+     taken instead: the SVG then scales the extent down to fit, and downscaled
+     tiles are sharp where upscaled ones are not. Worst case that is 2x the card
+     per axis, so at most about four times the tiles. */
+  var aspect=W/H, z=18;
+  function expanded(zz){
+    var w=lon2x(maxLon,zz)-lon2x(minLon,zz), h=lat2y(minLat,zz)-lat2y(maxLat,zz);
+    return [Math.max(w,h*aspect), Math.max(h,w/aspect), w, h];
+  }
+  for(var zz=2;zz<=18;zz++){
+    var e=expanded(zz);
+    if(e[0]>=W&&e[1]>=H){ z=zz; break; }
+  }
+  var ex=expanded(z);
+  var ox=lon2x(minLon,z)-(ex[0]-ex[2])/2, oy=lat2y(maxLat,z)-(ex[1]-ex[3])/2;
+  var fullW=ex[0], fullH=ex[1];
+
+  var svg=document.getElementById('map-svg');
+  if(!MAP.viewBox||MAP.z!==z) MAP.viewBox=[0,0,fullW,fullH];
+  MAP.z=z; MAP.origin=[ox,oy]; MAP.full=[0,0,fullW,fullH];
+  svg.setAttribute('viewBox',MAP.viewBox.join(' '));
+
+  /* basemap tiles for the full extent at this zoom */
+  var t0x=Math.floor(ox/256), t1x=Math.floor((ox+fullW)/256);
+  var t0y=Math.floor(oy/256), t1y=Math.floor((oy+fullH)/256);
+  var tiles='';
+  for(var ty=t0y;ty<=t1y;ty++) for(var tx=t0x;tx<=t1x;tx++)
+    tiles+='<image href="'+tileUrl(z,tx,ty)+'" x="'+(tx*256-ox)+'" y="'+(ty*256-oy)+
+           '" width="256" height="256"></image>';
+
+  var cd=grid.cell_deg, rects='';
+  cells.forEach(function(c){
+    var v=c[vi];
+    var col=heatColor(v,breaks);
+    if(!col) return;
+    var la=c[0]*cd, lo=c[1]*cd;
+    var x1=lon2x(lo-cd/2,z)-ox, x2=lon2x(lo+cd/2,z)-ox;
+    var y1=lat2y(la+cd/2,z)-oy, y2=lat2y(la-cd/2,z)-oy;
+    rects+='<rect class="map-cell" x="'+x1.toFixed(1)+'" y="'+y1.toFixed(1)+
+      '" width="'+Math.max(x2-x1,.8).toFixed(1)+'" height="'+Math.max(y2-y1,.8).toFixed(1)+
+      '" fill="'+col+'" fill-opacity="0.72" data-n="'+c[2]+'" data-v="'+c[3]+'"></rect>';
+  });
+  svg.innerHTML='<g>'+tiles+'</g><g id="map-cells">'+rects+'</g>';
+  wireMap(svg);
+
+  /* legend, with the real break values printed */
+  var money=(state.mapMetric==='v');
+  var lg=document.getElementById('map-legend');
+  var labs=[];
+  for(var i=0;i<HEAT.length;i++){
+    var lo2=i===0?1:breaks[i-1];
+    labs.push('<span class="sw" style="background:'+HEAT[i]+'"></span>');
+    if(i<breaks.length) labs.push('<span class="lbl">'+(money?fmtK(breaks[i]):fmtInt(breaks[i]))+'</span>');
+  }
+  lg.innerHTML='<span style="margin-right:6px">'+(money?'Value per cell':'Permits per cell')+
+    ', low → high&nbsp;</span>'+labs.join('')+
+    '<span class="lbl">'+(vals.length?(money?fmtK(Math.max.apply(null,vals)):fmtInt(Math.max.apply(null,vals))):'—')+' max</span>';
+
+  var shown=cells.reduce(function(a,c){return a+c[2]},0);
+  /* On the value scale a cell with permits but no declared dollar figure has
+     nowhere to sit, so it goes unshaded. That is a real omission from what
+     the reader sees and is stated rather than left to be noticed. */
+  var unshaded=cells.filter(function(c){return c[2]>0&&!(c[vi]>0)}).length;
+  document.getElementById('map-title').textContent=
+    d.label+' — permit density'+(year==='all'?', all years':', '+year);
+  document.getElementById('map-note').innerHTML=
+    '<b>'+fmtInt(shown)+'</b> permits in <b>'+fmtInt(cells.length)+'</b> occupied cells'+
+    (year==='all'?' across '+yrs.length+' years':' in '+year)+'. Cells are '+cd+'° '+
+    '(about 445&nbsp;m north-south, 260-290&nbsp;m east-west at this latitude) and hold a count and, '+
+    'where the city publishes one, a dollar total — never an address, permit number or name. '+
+    'Colour breaks are quantiles of <em>this view\'s</em> non-empty cells and are printed above, '+
+    'so a colour means different absolute numbers between two years — read the legend, not the hue. '+
+    (unshaded?'<b>'+fmtInt(unshaded)+'</b> cell'+(unshaded===1?'':'s')+' here hold permits but no '+
+      'declared dollar value, so they are unshaded on this scale — switch to Permits to see them. ':'')+
+    (d.map.ungeocoded?'<b>'+fmtInt(d.map.ungeocoded)+'</b> permits carry no usable coordinate and are '+
+      'absent from the map though present in every other chart on this page. ':'')+
+    (d.map.note?esc(d.map.note):'');
+}
+
+function wireMap(svg){
+  if(svg.dataset.wired) { attachCellHover(svg); return; }
+  svg.dataset.wired='1';
+  var drag=null;
+  svg.addEventListener('mousedown',function(e){
+    drag={x:e.clientX,y:e.clientY,vb:MAP.viewBox.slice()};
+    svg.classList.add('is-panning');
+  });
+  window.addEventListener('mouseup',function(){ drag=null; svg.classList.remove('is-panning'); });
+  window.addEventListener('mousemove',function(e){
+    if(!drag) return;
+    var r=svg.getBoundingClientRect();
+    var sx=drag.vb[2]/r.width, sy=drag.vb[3]/r.height;
+    MAP.viewBox=[drag.vb[0]-(e.clientX-drag.x)*sx, drag.vb[1]-(e.clientY-drag.y)*sy,
+                 drag.vb[2], drag.vb[3]];
+    svg.setAttribute('viewBox',MAP.viewBox.join(' '));
+  });
+  svg.addEventListener('wheel',function(e){ e.preventDefault(); zoomMap(e.deltaY>0?1.2:1/1.2); },
+    {passive:false});
+  attachCellHover(svg);
+}
+function attachCellHover(svg){
+  svg.addEventListener('mousemove',function(e){
+    var t=e.target;
+    if(!t||t.tagName!=='rect'||!t.classList.contains('map-cell')){ hideTip(); return; }
+    var n=+t.dataset.n, v=+t.dataset.v;
+    var rows='<strong>One '+MAP.grid.cell_deg+'° cell</strong>'+
+      tipRow(PAL.amber,'Permits',fmtInt(n));
+    if(v) rows+=tipRow(PAL.navy,'Declared value',fmtK(v));
+    showTip(rows,e.clientX,e.clientY);
+  });
+  svg.addEventListener('mouseleave',hideTip);
+}
+function zoomMap(f){
+  if(!MAP) return;
+  var vb=MAP.viewBox, cx=vb[0]+vb[2]/2, cy=vb[1]+vb[3]/2;
+  var nw=Math.max(MAP.full[2]*0.02,Math.min(MAP.full[2],vb[2]*f));
+  var nh=vb[3]*(nw/vb[2]);
+  MAP.viewBox=[cx-nw/2,cy-nh/2,nw,nh];
+  document.getElementById('map-svg').setAttribute('viewBox',MAP.viewBox.join(' '));
+}
+function stopPlay(){
+  if(playTimer){ clearInterval(playTimer); playTimer=null;
+    document.getElementById('map-play').textContent='▶ Play'; }
+}
+
+/* ═══ 3b ▸ areas over time ═════════════════════════════════════ */
+function matRows(mat,basis){
+  /* basis 'v' uses dollars, 'n' uses permit counts. Falls back to counts
+     when the city has no cost field at all. */
+  if(!mat) return [];
+  var use=(basis==='v'&&mat.has_value)?mat.v:mat.n;
+  return mat.labels.map(function(l,i){
+    var isOther=/^Other \(/.test(l);
+    return {label:l, vals:use[i], color:isOther?OTHER_COLOR:CAT[i%CAT.length]};
+  });
+}
+
+function renderAreas(d){
+  var mat=d.matrices&&d.matrices.area;
+  var sel=document.getElementById('area-year');
+  if(!mat){ document.getElementById('area-bars').innerHTML=
+      '<div class="section-loading">No area breakdown for this city.</div>';
+    document.getElementById('areatrend-chart').innerHTML=''; sel.innerHTML=''; return; }
+  var basis=(d.value_basis==='count')?'n':'v';
+  var rows=matRows(mat,basis);
+  var money=(basis==='v'&&mat.has_value);
+
+  sel.innerHTML='<option value="all">All years</option>'+
+    mat.years.slice().reverse().map(function(y){return '<option value="'+y+'">'+y+'</option>'}).join('');
+  sel.value=state.areaYear;
+  if(sel.value!==state.areaYear){ state.areaYear='all'; sel.value='all'; }
+
+  var yi=(state.areaYear==='all')?-1:mat.years.indexOf(+state.areaYear);
+  var items=rows.filter(function(r){ return !/^Other \(/.test(r.label); }).map(function(r){
+    var v=(yi<0)?r.vals.reduce(function(a,b){return a+b},0):(r.vals[yi]||0);
+    var first=r.vals.slice(0,Math.min(3,r.vals.length)).reduce(function(a,b){return a+b},0)/Math.min(3,r.vals.length);
+    var lastN=r.vals.slice(-3), last=lastN.reduce(function(a,b){return a+b},0)/lastN.length;
+    return {label:titleCase(r.label), v:v, color:r.color,
+            delta:(first>0)?((last-first)/first*100):null};
+  }).sort(function(a,b){return b.v-a.v}).slice(0,12);
+  hBars('area-bars',items,{fmt:money?fmtM:fmtInt, showDelta:state.areaYear==='all'});
+  document.getElementById('area-title').textContent=
+    'Busiest '+(mat.label||'areas')+(state.areaYear==='all'?' — all years':' — '+state.areaYear);
+  document.getElementById('area-note').innerHTML=
+    'Ranked by '+(money?'declared permit value':'permit count')+'. '+
+    (state.areaYear==='all'
+      ? 'The right-hand figure is the change from this city\'s first three years on record to its '+
+        'last three — a coarse direction, not a trend line, and it is meaningless for a '+
+        (mat.label||'area')+' that barely existed at the start of the record.'
+      : 'Switch to "All years" to see how each '+(mat.label||'area')+' has moved over the record.')+
+    ' <b>'+fmtInt(mat.distinct)+'</b> distinct '+(mat.label||'area')+' values appear in this city\'s data.'+
+    partialYearNote(d,mat);
+
+  var top=rows.slice(0,8);
+  buildLegend(document.getElementById('areatrend-legend'),
+    top.map(function(r){return {color:r.color,label:titleCase(r.label)}}));
+  matrixBars('areatrend-chart',mat,{rows:top,share:true,money:money,
+    fmt:money?fmtM:fmtInt});
+  document.getElementById('areatrend-note').innerHTML=
+    'Share of each year\'s total held by the eight largest '+(mat.label||'areas')+
+    ' plus everything else. A band that widens is an area taking a growing slice of the city\'s '+
+    'building — which can happen while its absolute numbers fall, if the rest of the city falls faster.';
+}
+
+/* ═══ 4 ▸ work / use matrices ══════════════════════════════════ */
+/* The newest year column is a year-to-date column: it is short because the
+   year is not over, not because building stopped. Annotated rather than
+   dropped — dropping it would discard up to eleven real months. */
+function partialYearNote(d,mat){
+  if(!mat||!mat.years||!mat.years.length||!d.history||!d.history.end) return '';
+  var last=mat.years[mat.years.length-1];
+  var endY=parseInt(d.history.end.slice(0,4),10), endM=parseInt(d.history.end.slice(5,7),10);
+  if(last!==endY||endM>=12) return '';
+  return ' <b>'+last+' is year-to-date</b> ('+endM+' month'+(endM===1?'':'s')+
+    ' of data), so its column is short because the year is unfinished — not because building fell.';
+}
+
+function renderMatrixCard(d,which,ids){
+  var mat=d.matrices&&d.matrices[which];
+  var card=document.getElementById(ids.card);
+  if(!mat||!mat.years||!mat.years.length){
+    if(card) card.style.display='none';
+    clearMounts([ids.chart,ids.note,ids.table,ids.legend]);
+    return;
+  }
+  if(card) card.style.display='';
+  var basis=(d.value_basis==='count')?'n':'v';
+  var money=(basis==='v'&&mat.has_value);
+  var rows=matRows(mat,basis);
+  var share=state[ids.stateKey]==='share';
+  buildLegend(document.getElementById(ids.legend),
+    rows.map(function(r){return {color:r.color,label:titleCase(r.label)}}));
+  document.getElementById(ids.title).textContent=
+    'By '+(mat.label||which)+' — '+(money?'declared value':'permit count')+' per year';
+  matrixBars(ids.chart,mat,{rows:rows,share:share,money:money,fmt:money?fmtM:fmtInt});
+  var other=rows.filter(function(r){return /^Other \(/.test(r.label)})[0];
+  /* A field can start later than the city's record — Winnipeg only began
+     recording type_of_structure in 2020 on a series running from 2010 — and
+     a chart that just starts late reads as "nothing was built", so say it. */
+  var recStart=d.history&&d.history.start?parseInt(d.history.start.slice(0,4),10):null;
+  var lateNote='';
+  if(recStart&&mat.years[0]>recStart)
+    lateNote=' <b>This field only appears from '+mat.years[0]+'</b>, though '+esc(d.label)+
+      '\'s permit record starts in '+recStart+' — the earlier permits exist, they just carry '+
+      'no value in this column, so the chart begins late rather than showing a real gap in building.';
+  document.getElementById(ids.note).innerHTML=
+    'These are <b>'+esc(d.label)+'\'s own category labels</b>, not a national classification — '+
+    'they are not comparable with another city\'s. '+fmtInt(mat.distinct)+' distinct values exist; '+
+    'the '+Math.min(14,mat.labels.length)+' largest are shown'+
+    (other?' and the remaining '+(mat.distinct-14)+' are pooled into the grey "Other" band, so '+
+      'each year still sums to the city\'s real total':'')+'. '+
+    (money?'':'Weighted by permit count — '+esc(d.label)+
+      (d.value_basis==='count'?' publishes no cost field at all.':' has no usable cost on this cut.'))+
+    lateNote+partialYearNote(d,mat)+(mat.caveat?' <b>'+esc(mat.caveat)+'</b>':'');
+  matrixTable(ids.table,mat,rows,money?fmtM:fmtInt,mat.label||which);
+}
+
+/* ═══ 5 ▸ word cloud ═══════════════════════════════════════════ */
+function renderCloud(d){
+  var card=document.getElementById('cloud-card'), gap=document.getElementById('cloud-gap-card');
+  var names=d.names||{};
+  var haveA=!!(names.applicants&&names.applicants.cloud&&names.applicants.cloud.length);
+  var haveC=!!(names.contractors&&names.contractors.cloud&&names.contractors.cloud.length);
+  if(!haveA&&!haveC){
+    card.style.display='none'; gap.style.display='';
+    clearMounts(['cloud','cloud-note','cloud-table']);
+    document.getElementById('cloud-gap-note').innerHTML=
+      '<b>'+esc(d.label)+' publishes no usable filer names.</b> '+
+      esc(d.names_gap||'No applicant or contractor field exists in this dataset.');
+    return;
+  }
+  card.style.display=''; gap.style.display='none';
+  document.querySelector('#cloud-side [data-side="applicants"]').disabled=!haveA;
+  document.querySelector('#cloud-side [data-side="contractors"]').disabled=!haveC;
+  if(state.cloudSide==='applicants'&&!haveA) state.cloudSide='contractors';
+  if(state.cloudSide==='contractors'&&!haveC) state.cloudSide='applicants';
+  syncSeg('cloud-side','side',state.cloudSide);
+
+  var c=names[state.cloudSide];
+  var hasVal=c.cloud.some(function(r){return r[2]>0});
+  var vb=document.querySelector('#cloud-metric [data-cm="v"]');
+  vb.disabled=!hasVal;
+  if(!hasVal) state.cloudMetric='n';
+  syncSeg('cloud-metric','cm',state.cloudMetric);
+
+  var vi=state.cloudMetric==='n'?1:2;
+  var words=c.cloud.map(function(r){ return {t:titleCase(r[0]),n:r[1],v:r[2],w:r[vi]}; })
+                   .filter(function(w){return w.w>0})
+                   .sort(function(a,b){return b.w-a.w});
+  drawCloud('cloud',words,state.cloudMetric==='n'?fmtInt:fmtM);
+
+  document.getElementById('cloud-title').textContent=
+    d.label+' — top '+state.cloudSide+', sized by '+(state.cloudMetric==='n'?'permit count':'declared value');
+  document.getElementById('cloud-note').innerHTML=
+    'Of <b>'+fmtInt(c.total_distinct)+'</b> distinct '+state.cloudSide+' in the record, '+
+    '<b>'+fmtInt(c.qualifying)+'</b> filed '+c.threshold+' or more permits; those account for '+
+    '<b>'+c.pct_of_field_permits+'%</b> of permits that name one. The field itself is populated on '+
+    '<b>'+c.field_coverage_pct+'%</b> of this city\'s permits, so everything here describes that '+
+    'subset, not the whole city. <b>The 20-permit floor is deliberate</b>: these fields routinely '+
+    'carry a private individual\'s name on their own renovation permit, and no homeowner files '+
+    'dozens. A cloud is a headline, not a measurement — the exact figures are in the table below, '+
+    'and they are what to quote.'+
+    (function(){ var sk=+(document.getElementById('cloud').dataset.skipped||0);
+      return sk? ' '+fmtInt(words.length-sk)+' of the '+fmtInt(words.length)+
+        ' qualifying names fit in the space available; the rest are in the table, not dropped.':''; })();
+
+  var t=document.getElementById('cloud-table');
+  t.innerHTML='<details class="data-details"><summary>View as ranked table ('+
+    words.length+' names)</summary><div class="data-tbl-wrap"><table class="data-tbl">'+
+    '<tr><th>#</th><th>Name</th><th>Permits</th><th>Declared value</th></tr>'+
+    words.map(function(w,i){
+      return '<tr><td>'+(i+1)+'</td><td>'+esc(w.t)+'</td><td>'+fmtInt(w.n)+'</td><td>'+
+        (w.v?fmtM(w.v):'—')+'</td></tr>'; }).join('')+
+    '</table></div></details>';
+}
+
+/* Spiral word cloud with rectangle collision. Deterministic: the same data
+   always lays out the same way, so a redraw never reshuffles the page. */
+function drawCloud(mountId,words,fmt){
+  var mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  if(!words.length){ mount.innerHTML='<div class="section-loading">No names.</div>'; return; }
+  var W=mount.clientWidth||900, H=mount.clientHeight||420;
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var maxW=words[0].w, minW=words[words.length-1].w;
+  /* sqrt scaling: area, not height, tracks the value -- linear height makes
+     the biggest name look ~n times bigger than it is. */
+  function size(w){
+    var t=(Math.sqrt(w)-Math.sqrt(minW))/((Math.sqrt(maxW)-Math.sqrt(minW))||1);
+    return 10+t*30;
+  }
+  var placed=[], cx=W/2, cy=H/2, canvas=document.createElement('canvas').getContext('2d');
+  var skipped=0;
+  words.forEach(function(word,i){
+    var fs=size(word.w);
+    canvas.font='500 '+fs+'px Inter, sans-serif';
+    var tw=canvas.measureText(word.t).width, th=fs*1.06;
+    var placedOk=false, a=0, r=0;
+    /* Archimedean spiral out from the centre until a gap fits. The step has
+       to be fine: at 0.35 rad / 0.42 px per step the spiral skipped over
+       most of the usable gaps and only 38 of 120 names landed. */
+    for(var step=0; step<20000; step++){
+      a+=0.12; r=0.75*a;
+      var x=cx+r*Math.cos(a)*1.9-tw/2, y=cy+r*Math.sin(a)-th/2;
+      if(x<2||y<2||x+tw>W-2||y+th>H-2){ if(r>Math.max(W,H)*1.6) break; continue; }
+      var hit=false;
+      for(var j=0;j<placed.length;j++){
+        var p=placed[j];
+        if(x<p.x+p.w+2&&x+tw+2>p.x&&y<p.y+p.h+1&&y+th+1>p.y){ hit=true; break; }
+      }
+      if(hit) continue;
+      placed.push({x:x,y:y,w:tw,h:th});
+      var col=i<3?PAL.navy:(i<12?'#31597F':(i<30?'#5C6E82':'#8A9BB0'));
+      var t=svgEl('text',{x:(x+tw/2).toFixed(1),y:(y+th*0.79).toFixed(1),
+        'text-anchor':'middle','class':'cloud-word','font-size':fs.toFixed(1),
+        'font-weight':i<12?'500':'400',fill:col},svg);
+      t.textContent=word.t;
+      t.addEventListener('mousemove',function(e){
+        showTip('<strong>'+esc(word.t)+'</strong>'+
+          tipRow(PAL.amber,'Permits',fmtInt(word.n))+
+          (word.v?tipRow(PAL.navy,'Declared value',fmtM(word.v)):''),e.clientX,e.clientY);
+      });
+      t.addEventListener('mouseleave',hideTip);
+      placedOk=true; break;
+    }
+    if(!placedOk) skipped++;
+  });
+  mount.dataset.skipped=skipped;
+}
+
+/* ═══ 6 ▸ timing (municipal.json) + Toronto (permits_json) ═════ */
+function dayBars(mountId,rows,noteId,noteHTML){
+  var mount=document.getElementById(mountId);
+  if(!mount) return;
+  if(!rows||!rows.length){
+    mount.innerHTML='<div class="section-loading">Not published for this city.</div>';
+    if(noteId) document.getElementById(noteId).innerHTML='';
+    return;
+  }
+  hBars(mountId,rows.map(function(r){
+    return {label:titleCase(r[0]),v:r[2],color:PAL.navy}; }),
+    {fmt:function(v){return Math.round(v)+' d'}});
+  if(noteId) document.getElementById(noteId).innerHTML=noteHTML||'';
+}
+
+function clearMounts(ids){
+  ids.forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML=''; });
+}
+
+function renderTiming(d,mun){
+  var proc=d.processing||(mun&&mun.processing);
+  var build=d.build_time||(mun&&mun.build_time);
+  if(!proc) clearMounts(['proc-type','proc-year','proc-type-note','proc-year-note']);
+  if(!build) clearMounts(['build-type','build-year','build-type-note','build-year-note']);
+  var pc=document.getElementById('proc-cards'), bc=document.getElementById('build-cards');
+  var gapCard=document.getElementById('timing-gap-card');
+  var head=document.getElementById('timing-head');
+  if(!proc&&!build){
+    pc.style.display='none'; bc.style.display='none';
+    gapCard.style.display=''; head.style.display='';
+    document.getElementById('timing-gap-note').innerHTML=
+      '<b>'+esc(d.label)+' records only one date per permit</b> — the day it was issued. '+
+      'With no application date there is no approval interval to measure, and with no completion '+
+      'date there is no build interval. Nothing here is estimated to fill the gap.';
+    return;
+  }
+  gapCard.style.display='none'; head.style.display='';
+  var counts=function(rows){ return rows?rows.reduce(function(a,r){return a+r[1]},0):0; };
+
+  pc.style.display=proc?'':'none';
+  if(proc){
+    dayBars('proc-type',proc.by_type,'proc-type-note',
+      'Median days from application to issuance, by permit type. <b>Median, not mean</b> — this '+
+      'distribution has a long right tail and the mean runs tens of days higher. '+
+      fmtInt(counts(proc.by_type))+' permits with both dates.'+
+      (proc.negative_excluded?' '+fmtInt(proc.negative_excluded)+' rows record an issue date before '+
+        'the application date and are excluded as data-entry artifacts, not zeroed.':''));
+    dayBars('proc-year',proc.by_year&&proc.by_year.map(function(r){return [r[0],r[1],r[2]]}),
+      'proc-year-note','The same interval by year of issuance — the shape of a permit desk under load.');
+  }
+  bc.style.display=build?'':'none';
+  if(build){
+    var censor=d.build_time_censored
+      ? ' <b>Right-censored by construction:</b> this city only publishes a completion date once '+
+        'the permit closes, so recent years contain only the projects that finished fast — the '+
+        'slow ones are still open and absent. Read the early years, not the last two.'
+      : '';
+    dayBars('build-type',build.by_type,'build-type-note',
+      'Median days from issuance to the permit\'s recorded completion. This is an administrative '+
+      'closure date, which should track physical completion closely but can lag it.'+censor);
+    dayBars('build-year',build.by_year,'build-year-note',
+      'The same interval by year.'+censor);
+  }
+}
+
+/* ═══ 7 ▸ unit economics (municipal.json) ══════════════════════ */
+function renderEcon(d,mun){
+  var card=document.getElementById('econ-card');
+  var ue=mun&&mun.unit_economics;
+  if(!ue||!ue.by_year||!ue.by_year.length){
+    card.style.display='none'; clearMounts(['econ-table','econ-note']); return; }
+  card.style.display='';
+  var head='<tr><th>Year</th><th>Permits</th><th>Units</th><th>Median $/unit</th>'+
+           '<th>Median $/sq ft</th><th>Avg unit size</th></tr>';
+  var body=ue.by_year.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td>'+fmtInt(r[1])+'</td><td>'+fmtInt(r[2])+'</td><td>'+
+      (r[3]?'$'+fmtInt(r[3]):'—')+'</td><td>'+(r[4]?'$'+r[4].toFixed(0):'—')+'</td><td>'+
+      (r[5]?fmtInt(r[5])+' sq ft':'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('econ-table').innerHTML=
+    '<div class="data-tbl-wrap"><table class="data-tbl">'+head+body+'</table></div>';
+  document.getElementById('econ-note').innerHTML=
+    esc(ue.scope_note||'')+' Medians, not means — a handful of very large custom builds move a '+
+    'mean badly in a population this small. These are <b>declared</b> costs on a permit '+
+    'application, which is what the builder told the city, not an audited construction cost.';
+}
+
+/* ═══ 8 ▸ quality ══════════════════════════════════════════════ */
+function renderQuality(d,mun){
+  var out=[];
+  out.push('<p style="font-size:13px;color:var(--muted);margin-bottom:.8rem">'+
+    '<b style="color:var(--navy)">'+esc(d.label)+'</b> — '+
+    esc((mun&&mun.coverage)||'')+'</p>');
+  var items=[];
+  items.push(['Boundary','This is the city, not the metro area. It cannot be added to or '+
+    'reconciled with the CMA figures on the Construction Tracker.']);
+  var inSeries=(d.rows_in_series!=null)?d.rows_in_series:d.rows;
+  items.push(['Record','From '+esc(d.history.start)+' to '+esc(d.history.end)+', '+
+    fmtInt(inSeries)+' permits. Each city publishes a different span; this is '+esc(d.label)+'\'s own.']);
+  if(d.undated_dropped)
+    items.push(['Permits with no issue date',
+      '<b>'+fmtInt(d.undated_dropped)+'</b> of the '+fmtInt(d.source_rows)+' rows this portal '+
+      'publishes ('+(d.undated_dropped/d.source_rows*100).toFixed(1)+'%) carry no usable issue '+
+      'date. Every series here is keyed on that date, so those permits appear nowhere on this '+
+      'page — counted and named here rather than quietly absent.']);
+  if(d.partial_month_dropped)
+    items.push(['Current month excluded','This portal updates continuously, so '+
+      esc(d.partial_month_dropped)+' holds only the permits issued so far. Plotted beside full '+
+      'months it reads as a collapse in building rather than as a month that has barely started, '+
+      'so it is dropped — not zeroed, and not extrapolated. The record ends at the last complete '+
+      'month.']);
+  if(d.series_floor)
+    items.push(['Series floored at '+esc(d.series_floor.floor),
+      esc(d.series_floor.reason)+' A further <b>'+fmtInt(d.series_floor.permits_excluded)+
+      '</b> permits carry earlier dates and are counted in the all-time file total of '+
+      fmtInt(d.rows)+', but are kept out of every time series on this page.']);
+  if(d.value_basis==='count')
+    items.push(['No cost field','This city publishes no per-permit cost or value at all, so every '+
+      'ranking here is by permit count. A count treats a garage and a tower as one permit each.']);
+  if(d.unparseable_cost)
+    items.push(['Cost quality',fmtInt(d.unparseable_cost)+' permits carry a cost cell that cannot '+
+      'be parsed. They are counted and excluded from dollar totals, never coerced to zero — so the '+
+      'dollar series is an undercount of a stated size.']);
+  if(mun&&mun.quality&&mun.quality.note) items.push(['Publisher note',esc(mun.quality.note)]);
+  if(d.map&&!d.map.available) items.push(['No map',esc(d.map.reason)]);
+  else if(d.map&&d.map.ungeocoded)
+    items.push(['Map coverage',fmtInt(d.map.geocoded)+' of '+fmtInt(d.rows)+' permits carry a usable '+
+      'coordinate. The rest appear in every chart except the map.']);
+  if(!d.names||!(d.names.applicants||d.names.contractors))
+    items.push(['No filer names',esc(d.names_gap||'No applicant or contractor field.')]);
+  items.push(['Declared, not audited','Every dollar figure on this page is what an applicant '+
+    'declared to the city when applying. It is not an audited construction cost and cities do not '+
+    'reconcile it afterward.']);
+  items.push(['What would change the answer','A permit is permission to build, not a building. '+
+    'Some are never acted on, some are revised, and a city\'s counting rules change over time '+
+    '(Winnipeg restated its dwelling-unit method in November 2022 and did not backfill).']);
+  out.push('<table class="data-tbl" style="width:100%">'+items.map(function(it){
+    return '<tr><td style="width:170px;vertical-align:top;color:var(--navy);font-weight:500">'+
+      it[0]+'</td><td style="text-align:left;white-space:normal;line-height:1.55">'+it[1]+'</td></tr>';
+  }).join('')+'</table>');
+  if(mun&&mun.licence)
+    out.push('<p class="note">Licence: '+esc(mun.licence)+'. Retrieved '+esc(d.retrieved)+'.</p>');
+  document.getElementById('quality-body').innerHTML=out.join('');
+}
+
+/* ═══ orchestration ════════════════════════════════════════════ */
+function syncSeg(groupId,attr,val){
+  var g=document.getElementById(groupId);
+  if(!g) return;
+  g.querySelectorAll('.seg-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset[attr]===val);
+  });
+}
+function setViewMode(m){
+  document.body.className='mode-'+m;
+  localStorage.setItem('permitsViewMode',m);
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset.view===m);
+  });
+  if(state.city) renderCity();
+}
+
+function selectCity(k){
+  if(!k||k===state.city) { if(k) document.getElementById('record-head').scrollIntoView(); return; }
+  state.city=k;
+  state.areaYear='all'; state.mapYear='all';
+  document.getElementById('city-sel').value=k;
+  try{ localStorage.setItem('permitsCity',k); }catch(e){}
+  stopPlay();
+  renderCityTable();
+  renderCity();
+}
+
+function renderCity(){
+  var k=state.city;
+  loadCity(k).then(function(d){
+    var mun=(MUNI&&MUNI.cities&&MUNI.cities[k])||null;
+    document.getElementById('record-head').textContent=d.label+' — the whole record';
+    document.getElementById('record-sub').textContent=
+      (mun&&mun.coverage)||'One city\'s own permit desk.';
+    renderKPIs(d,k);
+    renderHistory(d);
+    renderMap(d);
+    renderAreas(d);
+    renderMatrixCard(d,'work',{card:null,title:'work-title',legend:'work-legend',
+      chart:'work-chart',note:'work-note',table:'work-table',stateKey:'workShare'});
+    renderMatrixCard(d,'use',{card:'use-card',title:'use-title',legend:'use-legend',
+      chart:'use-chart',note:'use-note',table:'use-table',stateKey:'useShare'});
+    renderCloud(d);
+    renderTiming(d,mun);
+    renderEcon(d,mun);
+    renderQuality(d,mun);
+  }).catch(function(e){
+    console.error(e);
+    document.getElementById('error-msg').style.display='';
+    document.getElementById('error-detail').textContent=e.message;
+  });
+}
+
+function wireControls(){
+  document.getElementById('city-sel').addEventListener('change',function(){
+    selectCity(this.value);
+  });
+  function seg(groupId,attr,fn){
+    var g=document.getElementById(groupId);
+    if(!g) return;
+    g.addEventListener('click',function(e){
+      var b=e.target.closest('.seg-btn');
+      if(!b||b.disabled) return;
+      syncSeg(groupId,attr,b.dataset[attr]);
+      fn(b.dataset[attr]);
+    });
+  }
+  seg('hist-metric','metric',function(v){ state.histMetric=v; renderHistory(DETAIL[state.city]); });
+  seg('hist-smooth','smooth',function(v){ state.histSmooth=v; renderHistory(DETAIL[state.city]); });
+  seg('map-metric','mm',function(v){ state.mapMetric=v; drawMap(); });
+  seg('work-share','share',function(v){ state.workShare=v;
+    renderMatrixCard(DETAIL[state.city],'work',{card:null,title:'work-title',legend:'work-legend',
+      chart:'work-chart',note:'work-note',table:'work-table',stateKey:'workShare'}); });
+  seg('use-share','share',function(v){ state.useShare=v;
+    renderMatrixCard(DETAIL[state.city],'use',{card:'use-card',title:'use-title',legend:'use-legend',
+      chart:'use-chart',note:'use-note',table:'use-table',stateKey:'useShare'}); });
+  seg('cloud-side','side',function(v){ state.cloudSide=v; renderCloud(DETAIL[state.city]); });
+  seg('cloud-metric','cm',function(v){ state.cloudMetric=v; renderCloud(DETAIL[state.city]); });
+
+  document.getElementById('area-year').addEventListener('change',function(){
+    state.areaYear=this.value; renderAreas(DETAIL[state.city]);
+  });
+  document.getElementById('map-year').addEventListener('input',function(){ drawMap(); });
+  document.getElementById('map-in').addEventListener('click',function(){ zoomMap(1/1.4); });
+  document.getElementById('map-out').addEventListener('click',function(){ zoomMap(1.4); });
+  document.getElementById('map-reset').addEventListener('click',function(){
+    if(!MAP) return; MAP.viewBox=MAP.full.slice();
+    document.getElementById('map-svg').setAttribute('viewBox',MAP.viewBox.join(' '));
+  });
+  document.getElementById('map-play').addEventListener('click',function(){
+    if(playTimer){ stopPlay(); return; }
+    this.textContent='❚❚ Pause';
+    var sl=document.getElementById('map-year');
+    playTimer=setInterval(function(){
+      var v=parseInt(sl.value,10)+1;
+      if(v>parseInt(sl.max,10)) v=0;
+      sl.value=v; drawMap();
+    },900);
+  });
+  var rt;
+  window.addEventListener('resize',function(){
+    clearTimeout(rt);
+    rt=setTimeout(function(){ if(state.city) renderCity(); },250);
+  });
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.classList.toggle('active',document.body.className==='mode-'+b.dataset.view);
+  });
+}
+
+/* ── boot ───────────────────────────────────────────────────────── */
+Promise.all([
+  loadJSON(PJ+'_index.json'),
+  loadJSON(MJ).catch(function(){ return null; })
+]).then(function(res){
+  IDX=res[0]; MUNI=res[1];
+  /* Enrich the roster with the derived columns the table sorts on. Each
+     city's own detail file is fetched lazily, so the sparkline and the
+     trailing-12-month figures come from the small monthly series carried
+     in the index build below rather than nine full payloads. */
+  return Promise.all(IDX.cities.map(function(c){
+    return loadCity(c.key).then(function(d){
+      var p=pts(d.monthly.count);
+      c.last12=roll12Last(p);
+      var prev=roll12Prev(p);
+      c.yoy=(c.last12!=null&&prev)?((c.last12-prev)/prev*100):null;
+      var from=mi('2015-01');
+      var vals=p.filter(function(x){return x.m>=from}).map(function(x){return x.v});
+      c.spark=sparkSVG(vals,PAL.navy,110,26);
+      c.has_value=(d.value_basis!=='count');
+      var mun=(MUNI&&MUNI.cities&&MUNI.cities[c.key])||null;
+      c.has_timing=!!(d.processing||d.build_time||(mun&&(mun.processing||mun.build_time)));
+      return c;
+    });
+  }));
+}).then(function(){
+  document.getElementById('loading-msg').style.display='none';
+  document.getElementById('app-body').style.display='';
+  var sel=document.getElementById('city-sel');
+  sel.innerHTML=IDX.cities.map(function(c){
+    return '<option value="'+c.key+'">'+esc(c.label)+'</option>'; }).join('');
+  var saved=null;
+  try{ saved=localStorage.getItem('permitsCity'); }catch(e){}
+  var first=(saved&&IDX.cities.some(function(c){return c.key===saved}))?saved:IDX.cities[0].key;
+  document.getElementById('footer-stamp').textContent='Data retrieved '+IDX.generated;
+  wireControls();
+  renderCityTable();
+  state.city=null;
+  selectCity(first);
+}).catch(function(e){
+  console.error(e);
+  document.getElementById('loading-msg').style.display='none';
+  document.getElementById('error-msg').style.display='';
+  document.getElementById('error-detail').textContent=e.message;
+});
+</script>
+</body>
+</html>

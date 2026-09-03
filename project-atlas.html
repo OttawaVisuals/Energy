@@ -185,6 +185,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <a href="#newhomes">🏡 New Homes</a>
       <a href="#ceud">📊 CEUD</a>
       <a href="#construction">🏗️ Construction</a>
+      <a href="#permits">🧱 Permits</a>
       <a href="#geothermal">🌍 Geothermal</a>
       <a href="#heatpump">🔥 Heat Pump</a>
       <a href="#grid">⚡ Grid</a>
@@ -219,6 +220,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏠 Retrofit Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">📊 CEUD Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏗️ Construction Tracker</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🧱 Permits Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🌍 Geothermal Map</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🔥 Heat Pump Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">⚡ Grid Dashboard</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
@@ -854,6 +856,77 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
   </div>
 </section>
 
+<!-- ══════════════════ PERMITS ══════════════════ -->
+<section id="permits" class="card">
+  <div class="proj-head">
+    <h2>🧱 Permits Explorer</h2>
+    <span class="chip done">✅ Live · manual refresh</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/permits" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> nine Canadian cities' own building-permit records at permit level —
+  the full history each city publishes, a density map of where building actually happens, the firms
+  that file the most permits, and how long approval and construction take.</p>
+
+  <p><b>Why it exists.</b> This data was already being fetched, but it lived in the Construction
+  Tracker's <em>Inside one city</em> section, which was advanced-mode-only <em>and</em> filtered to
+  cities matching the page's geography selector — so on a Canada or provincial view, nine cities'
+  permit desks rendered as nothing at all. What did render was the summary: one monthly line, an
+  all-time top-12 area list, a top-15 name table.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Nine municipal portals<small>five different platforms: Opendatasoft (Vancouver) · CKAN (Toronto, Montreal) · Socrata (Calgary, Edmonton, Winnipeg) · Esri ArcGIS (Mississauga, Halifax) · 15 annual XLSX workbooks with no API at all (Ottawa)</small></div>
+    <div class="src">Carried over, not recomputed<small>approval/build times, unit economics, quality and coverage notes come from construction_json/municipal.json — one producer per panel</small></div>
+    <div class="src">Basemap<small>CARTO light tiles over OpenStreetMap, the same optional-tile pattern newhomes.html already uses</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Detail ETL</b><span>nine portals → permits_json/ (permits_detail_etl.py), reusing municipal_permits_etl.py's transport</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Density grid</b><span>every geocoded permit binned to a 0.004° cell, per year, per city</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>permits.html</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Three cities get no map, and it is not worked around</h4>
+    <p>Six publish per-permit coordinates. Toronto has none (postal codes would support a far coarser
+    FSA choropleth, which answers a different question and is not drawn beside six real density
+    grids); Ottawa publishes spreadsheets with ward and community only; Halifax's source is a plain
+    table with no geometry anywhere. Each city's card says which, and why.</p>
+    <h4>The map holds no addresses, deliberately</h4>
+    <p>Cells carry a permit count and, where the city publishes one, a dollar total — never an
+    address, permit number or name. Individual permit points would put private home-renovation
+    addresses on a public map. The 0.004° cell (~445 m north-south) was chosen by measuring
+    Calgary's grid at three resolutions, not by taste.</p>
+    <h4>Four findings that would each have shipped a wrong chart</h4>
+    <p><b>CKAN truncates silently at 32,000 rows.</b> Montreal's grid covered 60,394 of 540,855
+    geocoded permits — an 89% loss, no error, and a map that looked complete. Now paged and
+    reconciled against the source count, raising on mismatch.</p>
+    <p><b>Toronto's pre-2017 rows are a survivorship sample</b>, not history — only the permits still
+    open when the dataset was cut. Plotted, they rise smoothly from 94 permits in 1990 to 33,017 in
+    2016, which would read as a 350-fold increase in Toronto's building. The series is floored at
+    2017-01, the 173,236 excluded permits are disclosed and still counted in totals, and an automatic
+    guard now screens every city for the same shape on every run.</p>
+    <p><b>The current month is always partial.</b> Vancouver's newest month showed 14 permits against
+    a ~330 norm — a month three days old, which plots as a collapse. Dropped, with the record
+    labelled as ending at the last complete month.</p>
+    <p><b>Vancouver's property-use field is multi-valued</b> — a mixed-use tower is dwelling, parking
+    and retail at once — producing 153 combination pseudo-categories. The first-listed use is taken
+    as primary so each permit lands in one category and columns still sum to the true permit count,
+    with the limit stated on the card.</p>
+    <h4>Names: the 20-permit floor is an editorial choice</h4>
+    <p>Only filers appearing on 20 or more permits are shown. These fields routinely carry a private
+    individual's name on their own renovation permit, and a name set in large type in a word cloud is
+    more exposed than a row in a table — so the cloud is the headline and the ranked table beneath it
+    is what the page tells you to quote.</p>
+    <h4>A city is not its metro area</h4>
+    <p>The City of Toronto excludes Peel, York, Durham and Halton. These series cannot be reconciled
+    with the CMA figures on the Construction Tracker, and every card says so.</p>
+  </div></details>
+</section>
+
 <!-- ══════════════════ CONSTRUCTION ══════════════════ -->
 <section id="construction" class="card">
   <div class="proj-head">
@@ -872,7 +945,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · building costs by trade 18-10-0289 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
     <div class="src">Demand<small>absorptions &amp; unsold inventory 34-10-0149 · rental vacancy 34-10-0127 (both CMA-only)</small></div>
     <div class="src">Program counts<small>NRCan Greener Homes · CHBA Net Zero labels — hand-transcribed, machine-verified against the live pages</small></div>
-    <div class="src">City permit desks<small>Vancouver (Opendatasoft) · Toronto (CKAN), incl. green-roof and solar-hot-water permits · Calgary (Socrata)</small></div>
+    <div class="src">City permit desks<small>nine cities — Vancouver, Toronto (incl. green-roof and solar-hot-water permits), Calgary, Edmonton, Mississauga, Ottawa, Montreal, Halifax, Winnipeg. Summary cards here; the full record is on the <a href="permits.html">Permits Explorer</a></small></div>
     <div class="src">Building energy<small>Ontario EWRB — every Ontario building over 100,000 sq ft, self-reported</small></div>
     <div class="src">Certified buildings<small>CaGBC LEED &amp; Zero Carbon — one-time export, no sign-in required, aggregated to province/program counts</small></div>
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
