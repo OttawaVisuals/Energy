@@ -1,7 +1,113 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-02** (**Heat Pump Explorer** — heating-curve refresh for three
+Updated **2026-09-03** (**Grid Dashboard** — deep-history section added: six new
+charts (generation mix by fuel, capacity factor by fuel, demand, HOEP wholesale
+price, intertie imports/exports, Global Adjustment) covering years of real IESO/
+AESO history rather than the page's existing recent/live layer (last 24h + ~12mo).
+Trigger: user wanted "a lot more detail about generation type and potential usage
+(% of capacity)" and, told the first capacity-data source found (`GenOutputCapability`,
+~90 days retained) didn't look complete, asked to look deeper — that pushback led to
+finding `GenOutputCapabilityMonth` (per-generator hourly Output+Capability back to
+2019-05, no fuel-level pre-aggregation, so `Python/grid_history_etl.py` does the
+fuel rollup) and, browsing the full IESO reports directory, five more usable sources
+(`GenOutputbyFuelMonthly`, `Demand`, `PriceHOEPAverage`, `IntertieScheduleFlowYear`,
+`GlobalAdjustment`) discovered simply by reading `reports-public.ieso.ca/public/`'s
+own directory listing, not documented anywhere else.
+
+Each chart's history starts wherever its own source's real archive starts, stated
+plainly rather than padded to match the others: ON generation mix from 2015-01
+(`GenOutputbyFuelMonthly`, a year earlier than the hourly report the live layer
+uses), capacity from 2019-05, demand/HOEP from 2002-05, interties from 2018-01.
+Global Adjustment is the one exception worth flagging on its own: its endpoint
+retains only a rolling ~13-14 month window with no yearly archive at all — checked
+live twice (the user pushed back once on "no deeper history exists," asking to look
+harder at the parent directory; the second check confirmed the same limit, just via
+the correct per-month files instead of one wrongly-assumed rolling document) — so
+it ships as a short trailing-window chart, explicitly not part of the same historical
+array as the other five, so the page can't accidentally imply years of GA history
+that don't exist at the source.
+
+One live bug caught before shipping: the first parse of `GlobalAdjustment` assumed
+its un-suffixed `PUB_GlobalAdjustment.xml` was a multi-month rolling document (it
+looked that way from one sample fetch) — it's actually just the *current* month,
+and the ~13 "months" seen in the directory listing are 13 separate per-month files.
+Produced 1 GA month instead of 14 until caught by checking the output row count
+against the directory listing rather than assuming the parse matched the source.
+
+Capacity-factor methodology required a real decision, not a rename: Ontario's
+`GenOutputCapabilityMonth` gives dispatchable fuels (GAS/HYDRO/NUCLEAR/BIOFUEL) a
+registered `Capability` figure, but WIND/SOLAR have no such row — only `Available
+Capacity`, IESO's own weather-adjusted forecast of what those assets could produce
+that hour. So ON's wind/solar capacity-factor answers "share of available wind/sun
+actually used" (typically high), not "share of nameplate capacity ran" (typically
+low) — a different question from every other fuel on the same chart, stated on the
+page rather than blurred together. Checked live whether Alberta's AESO data has the
+same split before assuming it did: it doesn't — `Maximum Capability` is a fixed,
+nameplate-like figure per asset for every fuel including wind (confirmed constant
+across ~4,300 hourly readings for a sample wind asset), so AB's wind/solar
+capacity-factor and ON's aren't directly comparable without accounting for that.
+
+Shipped as a new manual/occasional script (`Python/grid_history_etl.py`, not on the
+weekly Action — ~120MB of IESO capacity CSVs cache to `HeatPump/data/raw/
+ieso_history/` on first run) rather than growing `grid_etl.py`, since the two have
+different fetch volumes and cadences. Outputs `grid_json/grid_{on,ab}_history.json`
+(80.9 KB / 33.6 KB, well under the 300KB budget). `grid.html` gained six new chart
+sections plus two new generic chart-engine functions (`monthStackedShare`,
+`monthLineChart` — month-indexed, arbitrary row count, `monthLineChart` supports
+negative values for intertie net-flow and the occasional negative GA rate) built
+alongside the existing hour-indexed ones rather than replacing them, since the
+recent/live layer still needs its fixed 1-24-hour axis. Verified live via a local
+static server: all six charts render with real data, ON/AB toggle correctly hides
+the four ON-only sections (demand/HOEP/intertie/GA) for Alberta, Simple/Advanced
+toggle correctly gates the intertie section, zero console errors after fixing one
+bug caught in testing (chart methods referenced `g.fuels`/`g.sources` when the
+payload actually nests those under `g.meta`). See [docs/GRID.md](docs/GRID.md) for
+the full source-to-chart mapping.)
+
+Prior update **2026-09-02** (**Permits Explorer** — new page `permits.html`, splitting
+the municipal permit data out of the Construction Tracker. The trigger was a
+usability problem that turned out to be a data problem: "Inside one city" was
+`data-mode="advanced"` *and* filtered to cities matching the selected geography,
+so nine cities' permit desks rendered as nothing at all on a Canada or provincial
+view, and what did render was a summary — one line, an all-time top-12 list, a
+top-15 name table.
+
+New `Python/permits_detail_etl.py` (imports its transport/paging helpers from
+`municipal_permits_etl.py` rather than re-implementing nine portal integrations;
+that script is unmodified and stays the single producer of the processing /
+build-time / unit-economics / quality panels, which the new page reads from
+`municipal.json`). Adds full per-city history, category×year matrices, a
+0.004° density grid, a 120-deep filer list, and Toronto's two interval panels.
+
+**Five data-quality finds, each of which would have shipped a wrong chart:**
+(1) **CKAN silently truncates `datastore_search_sql` at 32,000 rows** — Montreal's
+grid covered 60,394 of 540,855 geocoded permits, an 89% loss with no error and a
+map that looked complete; now paged and *reconciled against the source count*,
+raising on mismatch. (2) **Toronto's pre-2017 rows are a survivorship sample**,
+not history — only permits still open when the dataset was cut, rising smoothly
+94 (1990) → 33,017 (2016) → 45,431 (2017); floored at 2017-01 with the 173,236
+excluded permits disclosed and still counted in totals, and a `check_leading_ramp()`
+guard now screens every city on every run. (3) **The current month is always
+partial** — Vancouver's showed 14 against a ~330 norm, reading as a collapse;
+dropped, with the record labelled as ending at the last complete month.
+(4) **Vancouver's `propertyuse` is multi-valued**, producing 153 combination
+pseudo-categories; first-listed use taken as primary so column totals still
+equal the permit count, with the limit stated on the card. (5) **The issue-date
+gate was dropping 66,481 rows silently** — every series is keyed on that date,
+and Toronto (45,652, 8.0%), Calgary (18,340, 3.7%), Halifax (2,478, 13.2%) and
+Ottawa (11) publish permits without one. Now counted per city, printed by the
+run, and named on each card and on the roster, per the repo's own
+never-silently-drop rule.
+
+Also corrected two claims in `docs/CONSTRUCTION.md` that live checks disproved:
+Toronto *does* have a `BUILDER_NAME` field (2.2% populated, mostly individuals —
+so still no concentration panel, but the field exists), and Montreal's record
+starts **1990**, not 1997. `construction.html` keeps its summary cards, drops the
+advanced-only gate on that section, and always shows a cross-reference card.
+`permits_json/` (~4.9 MB, 9 cities) is gitignored on `main`, added to `deploy.sh` and to the monthly `construction-refresh.yml` workflow.)
+
+Previously **2026-09-02** (**Heat Pump Explorer** — heating-curve refresh for three
 of the 9 live `hp_cell_curves.json` cells, prompted by new manufacturer spec
 sheets added to `data/raw/spec_sheets/NewSelection/`. `high_<18k` (Fujitsu
 AOUG15LZAH1) and `mid_18-30k`/`mid_30-42k` (GREE GUD36W/A-D(U)) already had
@@ -1279,6 +1385,7 @@ lifecycle-update candidates logged — see
 | 🏗️ **Construction Tracker** | [/construction](https://ottawavisuals.github.io/Energy/construction) | [docs/CONSTRUCTION.md](docs/CONSTRUCTION.md) | monthly auto-refresh; **first scheduled run 2026-07-20 — watch it go green** |
 | 🌍 **Ottawa Geothermal Map** | [/Geothermal/output/](https://ottawavisuals.github.io/Energy/Geothermal/output/) | [Geothermal/README.md](Geothermal/README.md) | v2 complete: conductivity sensitivity, drilling difficulty, segment suitability |
 | 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09); propane backup + per-chart month/week zoom on all 7 full-year charts + two-color backup (fossil vs. electric) + hourly-methane bug fix; axis-label cleanup, daily-sum vs. daily-mean split, Step 6 reference lines, Final-numbers tidy-up, one-page PDF summary button (2026-08-21); ON grid-EF proxy city Toronto→London + cold/warm-tail extrapolation (2026-08-24); full 8,760-hour data table with CSV export, before the methodology section, virtualized same-day after a live perf report (2026-08-27) |
+| 🧱 **Permits Explorer** | [/permits](https://ottawavisuals.github.io/Energy/permits) | [docs/PERMITS.md](docs/PERMITS.md) | shipped 2026-09-02 — nine municipal permit desks at permit level, lifted out of the Construction Tracker's advanced-only "Inside one city" section (which rendered as *nothing* on a Canada or provincial view). Full history per city from its own first month (Montreal 1990, Calgary 1999-06, Edmonton 2009, Winnipeg 2010, Ottawa 2011) instead of the shared 2017 floor; a 0.004° permit-density map with a year slider for the six cities that publish coordinates; category×year matrices; a filer word cloud (4 cities, 20+ permit threshold kept); and Toronto's approval/build intervals, which `municipal.json` has no panel for. Four data-quality finds shaped it — see docs |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
@@ -1291,6 +1398,7 @@ lifecycle-update candidates logged — see
 | Grid mix ETL (`grid_json/`) | weekly, Mon — `grid-refresh.yml` | ✅ first scheduled run went **green 2026-07-13** |
 | AHRI cert lookup (`lookup/ahri_numbers.json`) | weekly, Mon 15:00 UTC — `ahri-refresh.yml` | ✅ shipped 2026-07-22; replaces manual `build_ahri_lookup.py` reruns |
 | Construction data (`construction_json/`) | monthly, 20th — `construction-refresh.yml` | ✅ first scheduled run confirmed **green 2026-07-20** |
+| Municipal permits detail (`permits_json/`) | monthly, 20th — `construction-refresh.yml` | ✅ shipped 2026-09-02; ~4.9 MB across 9 cities, `gh-pages` only; wired into `construction-refresh.yml` (monthly, 20th) alongside `construction_json/`; first scheduled run **2026-09-20** |
 | Utility rates for bill cards (`utility_rates_reference.json`) | manual (`Python/utility_rates_reference.py`) | ✅ shipped 2026-07-18 |
 
 ### In flight 🔨

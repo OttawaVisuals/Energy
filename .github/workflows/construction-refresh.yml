@@ -1,6 +1,7 @@
 name: Refresh construction data
 
-# Monthly refresh of construction_json/ from StatCan WDS + Bank of Canada.
+# Monthly refresh of construction_json/ AND permits_json/ from StatCan WDS,
+# Bank of Canada and nine municipal open-data portals.
 # Runs after StatCan's building-permits release (~6 weeks after the reference
 # month, mid-month). Both ETL scripts exit non-zero on any fetch failure, so
 # a partial pull never reaches the commit step.
@@ -28,8 +29,15 @@ jobs:
           ref: gh-pages
           path: .ghpages
 
+      # permits_json/ may not exist on gh-pages yet on the first run after
+      # the Permits Explorer shipped, so seeding it is best-effort. The ETL
+      # rebuilds every city from scratch anyway; the seed only matters for
+      # construction_json, whose cited-figures step can legitimately no-op
+      # and needs the previous file left in place.
       - name: Seed existing data from gh-pages
-        run: cp -r .ghpages/construction_json ./construction_json
+        run: |
+          cp -r .ghpages/construction_json ./construction_json
+          cp -r .ghpages/permits_json ./permits_json 2>/dev/null || true
 
       - uses: actions/setup-python@v5
         with:
@@ -46,9 +54,18 @@ jobs:
         working-directory: Python
         run: python construction_context_etl.py --refresh
 
-      - name: Run municipal permits ETL (Vancouver/Toronto/Calgary/Edmonton/Mississauga/Ottawa)
+      - name: Run municipal permits ETL (nine cities, 2017-floored summary)
         working-directory: Python
         run: python municipal_permits_etl.py
+
+      # The Permits Explorer's own tree. Separate from municipal.json above:
+      # that one is the 2017-floored summary for construction.html, this is
+      # the full per-city record (history, category matrices, density grids,
+      # filer lists). Runs after it so a portal outage fails the cheaper
+      # script first.
+      - name: Run permits detail ETL (nine city permit desks)
+        working-directory: Python
+        run: python permits_detail_etl.py
 
       - name: Run Ontario EWRB ETL (large-building energy)
         working-directory: Python
@@ -82,12 +99,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           rsync -a --delete ../construction_json/ ./construction_json/
-          git add construction_json
+          rsync -a --delete ../permits_json/ ./permits_json/
+          git add construction_json permits_json
           if git diff --cached --quiet; then
             echo "No data changes this month."
           else
             git commit --amend --date=now \
-              -m "Deploy site + data ($(date +%F)) — monthly construction refresh" \
+              -m "Deploy site + data ($(date +%F)) — monthly construction & permits refresh" \
               -m "Single-commit branch; source and history live on main."
             git push --force origin HEAD:gh-pages
           fi

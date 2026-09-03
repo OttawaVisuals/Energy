@@ -181,6 +181,7 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="header-right">
     <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="permits.html">↳ Permits Explorer</a>
     <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
     <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
     <div class="mode-toggle" role="group" aria-label="View mode">
@@ -402,11 +403,16 @@ footer a:hover{color:var(--amber2)}
       <p class="note">Starts and under-construction from CMHC (34-10-0154); permit value and investment are trailing-12-month sums (34-10-0292/0293, unadjusted where noted). Ottawa-Gatineau combines the Ontario and Quebec parts. Rental vacancy is the apartment (6+ units) vacancy rate from CMHC's annual October survey (34-10-0127) — a different vintage from the monthly columns beside it, so read it as context rather than as this month's figure.</p>
     </div>
 
-    <!-- 9b ▸ Inside one city (advanced) -->
-    <div data-mode="advanced" id="muni-section">
+    <!-- 9b ▸ Inside one city -->
+    <div id="muni-section">
       <div class="section-head">
         <h2>Inside one city</h2>
         <p class="sec-sub">Every chart above counts a whole metro area. These come straight from the city's own permit desk — the only address-level data on the page. A metro can hold more than one city with its own permit desk — Mississauga sits inside the Toronto CMA alongside the City of Toronto itself, so both appear together here.</p>
+      </div>
+      <div class="card" id="permits-xref">
+        <div class="card-title">The full permit record</div>
+        <p style="font-size:13px;color:var(--muted)">These cards are the summary: nine cities, all floored at 2017 so they line up with each other and with the metro figures above. <strong>The <a href="permits.html">Permits Explorer</a></strong> carries the record itself — each city back to its own first month (Montreal to 1990, Calgary to 1999), a density map of where the building actually happens, the firms that file the most permits, and how long approval and construction take. It needs no geography selection: all nine cities are on it at once.</p>
+        <p class="note" id="permits-xref-note"></p>
       </div>
       <div id="muni-cities"></div>
     </div>
@@ -1846,6 +1852,7 @@ function muniCityBlockHTML(k){
 
 function renderMunicipal(){
   var sec=document.getElementById('muni-section');
+  var xnote=document.getElementById('permits-xref-note');
   loadMuni().then(function(){
     if(!muniData||!muniData.cities){ sec.style.display='none'; return; }
     /* A city matches the selected geo if the geo itself is that city's own
@@ -1856,9 +1863,26 @@ function renderMunicipal(){
       var c=muniData.cities[k];
       return k===state.geo||c.cma===state.geo;
     });
-    if(!keys.length){ sec.style.display='none'; return; }
+    /* The section itself stays visible even when this geography has no
+       matching permit desk — on a Canada or provincial view it used to
+       render as nothing at all, which hid nine cities of data behind a
+       dropdown. The cross-reference card is always shown; only the per-city
+       cards depend on the selection. */
     sec.style.display='';
     var container=document.getElementById('muni-cities');
+    var n=Object.keys(muniData.cities).length;
+    if(!keys.length){
+      container.innerHTML='';
+      if(xnote) xnote.innerHTML='No city permit desk matches <strong>'+geoLabel(state.geo)+
+        '</strong>. '+n+' cities publish permit-level data — Vancouver, Toronto, Calgary, '+
+        'Edmonton, Mississauga, Ottawa, Montreal, Halifax and Winnipeg — and all of them are on '+
+        'the <a href="permits.html">Permits Explorer</a> at once. Pick one of those metro areas '+
+        'above to see its summary card here.';
+      return;
+    }
+    if(xnote) xnote.innerHTML='Showing the summary card'+(keys.length>1?'s':'')+
+      ' for '+keys.length+' of '+n+' cities, floored at 2017 to stay comparable with the metro '+
+      'figures above.';
     container.innerHTML=keys.map(muniCityBlockHTML).join('');
     keys.forEach(function(k){ renderOneMuniCity(k, muniData.cities[k]); });
   });
