@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Energy Suite — Project Atlas</title>
+<meta property="og:title" content="Energy Suite — Project Atlas">
+<meta property="og:description" content="Status, data sources and standing assumptions behind every tool in the suite.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/project-atlas">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/project-atlas.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Project Atlas social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/project-atlas.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+<style>
+:root{
+  --navy:#0B2545; --amber:#E8A124; --cream:#F7F4EE; --card:#FFFFFF;
+  --ink:#1C2530; --muted:#5A6472; --line:#E4DED4;
+  --data-navy:#245A96;            /* validated series colour (construction pass) */
+  --done:#1A7A55;  --done-bg:#E7F2EC;
+  --build:#9A6A00; --build-bg:#FBF0DA;
+  --plan:#6E675E;  --plan-bg:#EEEBE5;
+  --warn:#B33A2E;  --warn-bg:#FAEAE8;
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:120px}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.55}
+h1,h2,h3,h4{font-family:var(--serif);line-height:1.15;margin:0 0 .4em}
+h1{font-size:2rem} h2{font-size:1.45rem} h3{font-size:1.08rem} h4{font-size:.98rem;margin-top:1em}
+a{color:var(--data-navy)} a:hover{color:var(--navy)}
+code{background:#EFEAE0;border-radius:4px;padding:.08em .35em;font-size:.86em}
+p{margin:.35em 0 .8em}
+.formula{display:block;background:#0B2545;color:#F3E9D4;border-radius:8px;padding:.5rem .8rem;font-size:.84rem;font-family:ui-monospace,Consolas,monospace;margin:.4rem 0;overflow-x:auto;white-space:pre}
+
+/* ── header ── */
+header{position:sticky;top:0;z-index:50;background:var(--navy);color:#fff;box-shadow:0 2px 10px rgba(11,37,69,.25)}
+.hwrap{max-width:1060px;margin:0 auto;padding:.7rem 1.2rem .55rem}
+.htitle{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+.htitle .logo{font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.htitle .logo em{color:var(--amber);font-style:normal}
+.htitle .sub{font-size:.8rem;opacity:.75}
+nav{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}
+nav a{color:#fff;text-decoration:none;font-size:.78rem;font-weight:600;padding:.22rem .6rem;border-radius:99px;background:rgba(255,255,255,.12);white-space:nowrap}
+nav a:hover{background:var(--amber);color:var(--navy)}
+
+main{max-width:1060px;margin:0 auto;padding:1.4rem 1.2rem 4rem}
+
+/* ── cards & layout ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.3rem 1.4rem;margin:1.2rem 0;box-shadow:0 1px 4px rgba(11,37,69,.06)}
+.muted{color:var(--muted)} .small{font-size:.83rem}
+
+/* ── status chips (icon + label, never colour alone) ── */
+.chip{display:inline-flex;align-items:center;gap:.35em;font-size:.78rem;font-weight:700;padding:.2em .65em;border-radius:99px;white-space:nowrap;vertical-align:middle}
+.chip.done{background:var(--done-bg);color:var(--done)}
+.chip.build{background:var(--build-bg);color:var(--build)}
+.chip.plan{background:var(--plan-bg);color:var(--plan)}
+
+/* ── progress bars ── */
+.pb{display:flex;align-items:center;gap:.6rem;margin:.3rem 0}
+.pb .track{flex:1;height:10px;background:#ECE7DC;border-radius:99px;overflow:hidden}
+.pb .fill{height:100%;border-radius:99px;background:var(--data-navy)}
+.pb .fill.f-done{background:var(--done)}
+.pb .fill.f-build{background:var(--amber)}
+.pb .pct{font-size:.8rem;font-weight:700;min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── TLDR band ── */
+.tldr{background:var(--navy);color:#fff;border-radius:12px;padding:.85rem 1.1rem;font-size:1rem;margin:.4rem 0 1rem}
+.tldr b{color:var(--amber)}
+
+/* ── overview tiles ── */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin:.8rem 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;text-align:center}
+.tile .n{font-family:var(--serif);font-size:1.9rem;font-weight:700;color:var(--navy)}
+.tile .l{font-size:.78rem;color:var(--muted);font-weight:600}
+
+/* ── project header row ── */
+.proj-head{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.2rem}
+.proj-head h2{margin:0}
+.proj-head .live-link{font-size:.8rem;font-weight:600;margin-left:auto}
+
+/* ── pipeline diagram ── */
+.pipe{display:flex;flex-wrap:wrap;align-items:stretch;gap:.45rem;margin:.6rem 0 .9rem}
+.pipe .step{background:#F2EEE5;border:1px solid var(--line);border-radius:9px;padding:.45rem .7rem;font-size:.8rem;max-width:200px;position:relative}
+.pipe .step b{display:block;font-size:.8rem;color:var(--navy)}
+.pipe .step span{color:var(--muted);font-size:.74rem;line-height:1.35;display:block}
+.pipe .arr{align-self:center;color:var(--amber);font-weight:700;font-size:1.05rem}
+
+/* ── source badges ── */
+.srcs{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 .8rem}
+.src{background:#EFF3F8;border:1px solid #D8E1EC;color:var(--navy);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;font-weight:600}
+.src small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+
+/* ── assumption list with verify checkboxes ── */
+.assump-box{background:var(--build-bg);border:1px solid #EFD9A8;border-radius:12px;padding:.9rem 1rem;margin:.8rem 0}
+.assump-box>h3{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
+ul.assump{list-style:none;margin:0;padding:0}
+ul.assump li{display:flex;gap:.6rem;padding:.55rem 0;border-top:1px dashed #E4CF9C;align-items:flex-start}
+ul.assump li:first-child{border-top:0}
+ul.assump input[type=checkbox]{width:19px;height:19px;margin-top:.15rem;accent-color:var(--done);flex:none;cursor:pointer}
+ul.assump .a-body{flex:1;min-width:0}
+ul.assump .a-body b{font-size:.92rem}
+ul.assump .a-body p{margin:.15rem 0 0;font-size:.85rem;color:#4a4234}
+ul.assump .where{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+ul.assump .where::before{content:"📄 Documented in: ";font-weight:600}
+li.checked .a-body{opacity:.5}
+li.checked .a-body b::after{content:" ✓ verified";color:var(--done);font-size:.78rem}
+
+/* options + verify blocks inside assumptions */
+.alt{font-size:.83rem;color:#4a4234;margin-top:.35rem;padding-left:.6rem;border-left:3px solid var(--amber)}
+.alt b{color:var(--build)}
+.verify{background:var(--done-bg);border-left:3px solid var(--done);border-radius:0 8px 8px 0;padding:.5rem .7rem;margin-top:.45rem;font-size:.83rem}
+.verify>b{color:var(--done)}
+.verify ol,.verify ul{margin:.25rem 0 0 1.1rem;padding:0}
+ul.assump .verify li{margin:.2rem 0;display:list-item;padding:0;border:0;gap:0}
+
+/* ── validation / todo blocks ── */
+.check-box{background:var(--done-bg);border:1px solid #BFDCCB;border-radius:12px;padding:.8rem 1rem;margin:.8rem 0}
+.check-box h3{color:var(--done)}
+.check-box ul{margin:.3rem 0 .2rem 1.2rem;padding:0;font-size:.87rem}
+.check-box li{margin:.25rem 0}
+.todo-box{background:#EFF3F8;border:1px solid #D8E1EC;border-radius:12px;padding:.8rem 1rem;margin:.8rem 0}
+.todo-box h3{color:var(--data-navy)}
+.todo-box ul{margin:.3rem 0 .2rem 1.2rem;padding:0;font-size:.87rem}
+.todo-box li{margin:.25rem 0}
+
+/* ── details / progressive disclosure ── */
+details{margin:.6rem 0}
+details summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--data-navy);padding:.35rem 0;user-select:none}
+details summary:hover{color:var(--navy)}
+details[open] summary{margin-bottom:.3rem}
+details .d-inner{border-left:3px solid var(--line);padding:.2rem 0 .2rem 1rem;font-size:.88rem}
+details .d-inner table{border-collapse:collapse;font-size:.82rem;margin:.4rem 0;max-width:100%}
+details .d-inner td,details .d-inner th{border:1px solid var(--line);padding:.3rem .55rem;text-align:left}
+details .d-inner th{background:#F2EEE5}
+details.method>summary{font-size:.95rem;background:#F2EEE5;border-radius:8px;padding:.5rem .8rem}
+details.method>summary::before{content:"📖 "}
+.tblwrap{overflow-x:auto}
+
+/* ── timeline ── */
+.tl-wrap{overflow-x:auto}
+.tl-svg{min-width:680px;width:100%;height:auto;display:block}
+
+/* ── remaining-work table ── */
+table.remain{width:100%;border-collapse:collapse;font-size:.88rem}
+table.remain th{background:var(--navy);color:#fff;text-align:left;padding:.5rem .7rem;font-size:.8rem}
+table.remain td{border-bottom:1px solid var(--line);padding:.55rem .7rem;vertical-align:top}
+table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:nowrap}
+
+.footer-note{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);margin-top:2.5rem;padding-top:1rem}
+.reset-btn{background:none;border:1px solid var(--line);border-radius:8px;padding:.3rem .7rem;font-size:.78rem;color:var(--muted);cursor:pointer}
+.reset-btn:hover{border-color:var(--warn);color:var(--warn)}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="htitle">
+      <span class="logo">energy<em>·</em>atlas</span>
+      <span class="chip build" style="font-size:.7rem">v2 · expanded methodology</span>
+      <span class="sub">every project, how it was built, what was assumed — updated 2026-08-03</span>
+    </div>
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#retrofits">🏠 Retrofits</a>
+      <a href="#retrofit-costs">💰 Costs</a>
+      <a href="#insights">📈 Insights</a>
+      <a href="#newhomes">🏡 New Homes</a>
+      <a href="#ceud">📊 CEUD</a>
+      <a href="#construction">🏗️ Construction</a>
+      <a href="#permits">🧱 Permits</a>
+      <a href="#geothermal">🌍 Geothermal</a>
+      <a href="#heatpump">🔥 Heat Pump</a>
+      <a href="#grid">⚡ Grid</a>
+      <a href="#districtenergy">🏙️ District Energy</a>
+      <a href="#todo">🗺️ What's left</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════════════ OVERVIEW ══════════════════ -->
+<section id="overview">
+  <div class="tldr">
+    <b>TL;DR:</b> Eight tools are live plus the landing-page hub (plus the prices and
+    AHRI-lookup automation layers) — the Grid Dashboard and the landing page both shipped
+    2026-07-24, closing out everything that was queued. The Ottawa Case Study (3 of 6
+    phases in) is the only thing left on the board. Every assumption anyone made is listed
+    below with a checkbox, the alternatives that existed, and concrete steps to verify it
+    yourself. Ticks are saved on this computer.
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="n">8</div><div class="l">✅ tools live</div></div>
+    <div class="tile"><div class="n">1</div><div class="l">🔨 in progress</div></div>
+    <div class="tile"><div class="n">0</div><div class="l">🆕 not started</div></div>
+    <div class="tile"><div class="n" id="assump-count">—</div><div class="l">⚠️ assumptions to verify</div></div>
+    <div class="tile"><div class="n" id="assump-done">0</div><div class="l">✓ verified by you</div></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:.6rem">Progress at a glance</h2>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏠 Retrofit Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">📊 CEUD Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏗️ Construction Tracker</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🧱 Permits Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🌍 Geothermal Map</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🔥 Heat Pump Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">⚡ Grid Dashboard</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">💲 Energy Prices layer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏡 New Homes Explorer</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🏙️ Ottawa Case Study</span><div class="track"><div class="fill f-build" style="width:60%"></div></div><span class="pct">60%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">📈 Retrofit Insights</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">🚪 Landing page</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">100%</span></div>
+    <p class="small muted" style="margin-top:.6rem">Status as of 2026-07-24 (same day, in order: Grid Dashboard shipped,
+    then the landing page hub — see below). Ottawa Case Study = heat-demand
+    Phases 0–3 of 6 done (stock, load, electrified load; next: feeder aggregation → map → case-study page) —
+    no movement since the 2026-07-17 session, still the next thing to build. Retrofit Insights
+    (national big-picture page) shipped 2026-07-19; New Homes Explorer shipped 2026-07-15 and had its
+    pipeline substantially extended 2026-07-22/23 (per-fuel energy, per-component heat loss, full
+    heat-pump detail — see its section below). Retrofit Explorer gained a theme system, a reworked
+    census card, and a combo-chart fix 2026-07-19–21; its AHRI badge lookup now refreshes itself
+    weekly instead of needing a manual rerun (shipped 2026-07-22). Construction Tracker's first
+    scheduled monthly refresh ran clean 2026-07-20. <code>ROADMAP.md</code> remains the day-to-day
+    tracker; this page is the deeper "how and why" reference, refreshed alongside it.</p>
+  </div>
+
+  <div class="card">
+    <h2>How to read the tags on each assumption</h2>
+    <p class="small" style="margin-bottom:.3rem">
+      <span class="tag choice">judgment call</span> a modelling choice Claude made — these now list the <b>alternatives</b> that existed and a <b>hands-on way to verify</b>.<br>
+      <span class="tag data">source limit</span> a limitation baked into the source data — nobody chose it, but you should know it.<br>
+      <span class="tag calib">calibrated</span> a number that was cross-checked against an independent published figure.<br>
+      <span class="tag std">standard factor</span> a published constant (unit conversion, emission factor) taken from literature.
+    </p>
+    <p class="small muted">Verification effort is marked ⏱️ <b>2 min</b> (click something / open a page),
+    ⏱️ <b>15 min</b> (compare against a published source), or ⏱️ <b>deeper</b> (re-run a script with a changed setting).</p>
+  </div>
+</section>
+
+<!-- ══════════════════ TIMELINE ══════════════════ -->
+<section id="timeline" class="card">
+  <h2>Build timeline <span class="small muted">(from git history — dates are approximate for uncommitted work)</span></h2>
+  <div class="tl-wrap">
+  <svg class="tl-svg" viewBox="0 0 900 330" role="img" aria-label="Timeline of project builds from June 23 to July 10, 2026">
+    <line x1="60" y1="290" x2="880" y2="290" stroke="#C9C2B4" stroke-width="1"/>
+    <g font-family="Inter,system-ui,sans-serif" font-size="11" fill="#5A6472">
+      <text x="101" y="308" text-anchor="middle">Jun 23</text>
+      <text x="306" y="308" text-anchor="middle">Jun 28</text>
+      <text x="511" y="308" text-anchor="middle">Jul 3</text>
+      <text x="716" y="308" text-anchor="middle">Jul 8</text>
+      <text x="839" y="308" text-anchor="middle">Jul 11</text>
+    </g>
+    <g stroke="#E4DED4" stroke-width="1">
+      <line x1="101" y1="30" x2="101" y2="290"/><line x1="306" y1="30" x2="306" y2="290"/>
+      <line x1="511" y1="30" x2="511" y2="290"/><line x1="716" y1="30" x2="716" y2="290"/>
+      <line x1="839" y1="30" x2="839" y2="290"/>
+    </g>
+    <g font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="600" fill="#1C2530">
+      <rect x="101" y="38" width="410" height="14" rx="7" fill="#245A96"/>
+      <rect x="757" y="38" width="41" height="14" rx="7" fill="#245A96"/>
+      <text x="106" y="30">🏠 Retrofit Explorer <tspan font-weight="400" fill="#5A6472">(then a July accuracy pass)</tspan></text>
+      <circle cx="798" cy="45" r="5" fill="#1A7A55"/><text x="808" y="49" font-size="10" fill="#1A7A55">live</text>
+      <rect x="347" y="78" width="451" height="14" rx="7" fill="#245A96"/>
+      <text x="352" y="70">📊 CEUD Explorer</text>
+      <circle cx="798" cy="85" r="5" fill="#1A7A55"/><text x="808" y="89" font-size="10" fill="#1A7A55">live</text>
+      <rect x="675" y="118" width="164" height="14" rx="7" fill="#245A96"/>
+      <text x="670" y="110" text-anchor="end">🌍 Geothermal Map</text>
+      <circle cx="839" cy="125" r="5" fill="#1A7A55"/><text x="849" y="129" font-size="10" fill="#1A7A55">live</text>
+      <rect x="716" y="158" width="82" height="14" rx="7" fill="#245A96"/>
+      <text x="711" y="150" text-anchor="end">🏗️ Construction Tracker</text>
+      <circle cx="798" cy="165" r="5" fill="#1A7A55"/><text x="808" y="169" font-size="10" fill="#1A7A55">live</text>
+      <rect x="634" y="198" width="205" height="14" rx="7" fill="#245A96"/>
+      <text x="629" y="190" text-anchor="end">🔥 Heat Pump Explorer</text>
+      <circle cx="839" cy="205" r="5" fill="#1A7A55"/><text x="849" y="209" font-size="10" fill="#1A7A55">live</text>
+      <rect x="798" y="238" width="41" height="14" rx="7" fill="#E8A124"/>
+      <text x="793" y="230" text-anchor="end">⚡ Grid Dashboard <tspan font-weight="400" fill="#5A6472">(as of Jul 10 — page shipped 2026-07-24)</tspan></text>
+    </g>
+  </svg>
+  </div>
+  <p class="small muted">Everything was built between <b>June 23 and July 10, 2026</b> — about 2½ weeks.
+  Green dot = the day it went live on GitHub Pages. <b>Not pictured:</b> the suite kept shipping after
+  this chart was drawn — Retrofit Insights (2026-07-19), New Homes Explorer (2026-07-15) and the
+  Grid Dashboard page (2026-07-24) all went live, and the Ottawa Case Study, Retrofit Explorer polish
+  and grid/AHRI automation continued through
+  2026-07-24. See the timestamps in each section above, or <code>git log</code>, for the current
+  picture — redrawing this SVG accurately for a 5-week-and-growing history is due for a rebuild rather
+  than a patch.</p>
+</section>
+
+<!-- ══════════════════ RETROFITS ══════════════════ -->
+<section id="retrofits" class="card">
+  <div class="proj-head">
+    <h2>🏠 Retrofit Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofits" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> pick your province or postal area and see what energy retrofits real
+  Canadian homes actually did, and how much energy their audits say they saved.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">NRCan EnerGuide / ERS audits<small>2004–2026, home energy audits modelled in HOT2000</small></div>
+    <div class="src">Census population<small>for map tooltips</small></div>
+    <div class="src">AHRI directory<small>heat-pump model lookup badges</small></div>
+    <div class="src">ECCC emission factors<small>the calculated GHG bases (see below)</small></div>
+    <div class="src">Utility tariffs + PNNL/DOE REMDB<small>the energy-bill card and the cost POC — no dollars exist in ERS</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Pair audits</b><span>Match each home's "before" audit to its "after" audit (ers_web_pipeline.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Split by area</b><span>One small JSON file per postal area (split_fsa_json.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · Pre-compute</b><span>Province summaries with ready-to-plot histograms (precompute_province_stats.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · One web page</b><span>retrofits.html reads the JSON — no server needed</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Step 1 — turning raw audits into before/after pairs</h4>
+    <p>Every audit record carries an evaluation type: <b>D</b> = the initial "before" audit,
+    <b>E</b> = the follow-up "after" audit. The pipeline keeps homes with <b>at least one D and at
+    least one E</b>, reducing a re-audited home to its <b>earliest D and latest E</b> (changed
+    2026-07-24 — it previously required exactly one of each, which discarded 149,145 re-audited
+    homes; see the open questions on retrofits.html). It requires the E to be dated later, then
+    applies "same home?" sanity checks:
+    floor area changed ≤ 10%, and house type / storeys / number of units identical. Anything failing
+    is dropped — better to lose a real pair than to compare two different houses. About 45 source
+    columns are then mapped to friendly names and all fuels converted to kWh so they share one chart:</p>
+    <div class="tblwrap"><table>
+      <tr><th>Fuel</th><th>Source unit</th><th>→ kWh factor</th></tr>
+      <tr><td>Natural gas</td><td>m³</td><td>× 10.361</td></tr>
+      <tr><td>Oil</td><td>L</td><td>× 10.2</td></tr>
+      <tr><td>Propane</td><td>L</td><td>× 7.092</td></tr>
+      <tr><td>Wood</td><td>tonne</td><td>× 4,166.7</td></tr>
+      <tr><td>Total/heating energy</td><td>MJ</td><td>× 0.27778</td></tr>
+    </table></div>
+    <h4>Step 1 also computes the "what did they do?" flags</h4>
+    <p>Insulation upgrade = post R-value &gt; 1.10 × pre. Air-tightness upgrade = post leakage
+    &lt; 0.90 × pre. Deep retrofit = ≥ 50% energy saved; medium 10–50%; shallow 0–10%.
+    Heat pump added = none before, one after. Fuel switch = primary heating fuel differs.
+    Saving % = (before − after) ÷ before, so <b>positive always means energy saved</b>.</p>
+    <h4>Steps 2–3 — why the data is pre-chewed</h4>
+    <p>The province view never touches raw rows: a Python script pre-computes every median, count
+    and histogram and ships them as one summary file per province. The postal-area (FSA) view
+    <em>does</em> get raw rows (one compact file per area — arrays instead of objects, ~77% smaller)
+    so you can browse individual homes. This creates the suite's one sharp edge: <b>the bin-width
+    contract</b>. Python bins the province histograms; JavaScript bins the FSA ones live. Both must
+    use identical bucket widths (10-yr year bins, 50 m² area bins, 20 kWh/m² EUI bins, …) or the same
+    data looks different in the two views. The widths live in one <code>BINS</code> object in the page
+    and matching <code>step=</code> arguments in the Python — change one, change both.</p>
+    <h4>Front end</h4>
+    <p>One self-contained file. A fetch-token guard stops a slow older request from overwriting a
+    newer selection; payloads are cached so revisiting is instant. Postal-code quick-find, shareable
+    URLs (<code>?prov=ON&amp;fsa=K0A</code>), colour-blind-safe pre/post palette, keyboard-accessible
+    Sankey. A July 2026 accuracy pass fixed a mislabelled unit (design heat loss is <b>kW</b>, peak
+    demand — not GJ/yr) and a bin mismatch, and added the selection-bias disclosure.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & judgment calls — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="rf-modelled"><div class="a-body">
+        <span class="tag data">source limit</span><b>Savings are computer-modelled, not measured from utility bills.</b>
+        <p>Every energy number comes from NRCan's HOT2000 model of the house, not real meter readings. Real usage varies with weather and behaviour — studies of modelled-vs-metered typically find models overpredict savings for deep retrofits.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open the tool, enter your own postal code, and find a home similar to yours in the table.</li>
+          <li>Compare its pre-retrofit total energy (kWh/yr) to your own annual gas + hydro bills converted to kWh (gas m³ × 10.36). Same ballpark = the modelling is sane; a big gap tells you how much to trust absolute numbers vs comparisons.</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats"; also stated on the page itself.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-selection"><div class="a-body">
+        <span class="tag data">source limit</span><b>The sample is self-selected — savings likely look better than average.</b>
+        <p>Only homes that finished their retrofit AND booked a follow-up audit are counted — mostly rebate-program participants (e.g. Greener Homes required the follow-up). A random renovation would probably save less.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Compare the tool's median saving (~13% ON) against a published program evaluation — NRCan's Greener Homes reporting or Efficiency Canada's program reviews quote similar per-participant figures, which confirms the data is program participants, not typical renovators.</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "The sample is self-selected".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-matching"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>What counts as "the same home": area change ≤ 10%, same type/storeys/units.</b>
+        <p>Pairs are dropped unless the before and after audits agree on these.</p>
+        <p class="alt"><b>Other options:</b> stricter (≤ 5% area — fewer homes, cleaner pairs), looser (≤ 20% — more homes, more risk an addition or a different building sneaks in), or no area check at all. There's no "right" number; 10% balances sample size against contamination.</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: in any FSA view, expand a few homes and eyeball that pre/post floor area, type and storeys genuinely match.</li>
+          <li>⏱️ deeper: edit the 10% constant in <code>Python/ers_web_pipeline.py</code>, re-run one province, and compare the median saving. If it barely moves (±1–2 points), the choice doesn't matter — that's the robustness test.</li>
+        </ul></div>
+        <div class="where">docs/RETROFITS.md §"The data pipeline" step 1, rules 2–3.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-thresholds"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>What counts as an "upgrade": &gt;10% more insulation, &gt;10% tighter air, ≥50% saved = "deep retrofit".</b>
+        <p>These cutoffs decide the headline counts ("X% added insulation"). A 9% insulation increase counts as nothing.</p>
+        <p class="alt"><b>Other options:</b> absolute thresholds (e.g. +0.5 RSI regardless of starting point), any-positive-change (noisy — audit measurement wobble would count), or the industry convention for "deep retrofit" (some use ≥40%, some ≥60%; 50% is the common midpoint and matches NRCan's usage).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: expand a home flagged "roof insulation upgraded" in the FSA table and check its pre/post RSI values — is the flag intuitive?</li>
+          <li>⏱️ 15 min: compare the "deep retrofit" definition against NRCan / Pembina publications ("deep retrofit" ≈ 50%+ energy reduction is the standard usage).</li>
+        </ul></div>
+        <div class="where">docs/RETROFITS.md §"How each measure is flagged" (full table of rules).</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-units"><div class="a-body">
+        <span class="tag std">standard factor</span><b>All fuels converted to kWh with published factors (gas 10.36 kWh/m³, oil 10.2 kWh/L, wood 4,167 kWh/t…).</b>
+        <p>Standard higher-heating-value energy contents.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Cross-check against the published conversion-factor tables (natural gas ≈ 37.30 MJ/m³ ÷ 3.6 = 10.36 kWh/m³ ✓; light fuel oil ≈ 38.80 MJ/L ÷ 3.6 ≈ 10.78 ✓ — StatCan RESD 57-003-X, the same value ECCC's National Inventory Report uses). Any energy-content reference will do.</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"Unit conversions" table.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-solar"><div class="a-body">
+        <span class="tag data">source limit</span><b>"Solar added" may slightly overcount.</b>
+        <p>Before-audits rarely record existing panels, so panels present at the after-audit all look "added".</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>In an FSA view, look at homes with solar: the pre-audit PV column is almost always 0 even in areas where some homes certainly had panels before — that's the tell.</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Solar pre vs post".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-clip"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Extreme outliers are clipped from charts</b> (energy intensity &gt; 500 kWh/m², emissions &gt; 30 t/yr, heat loss &gt; 150 kW).
+        <p>Purely for chart readability — the homes still exist in the data and in the medians.</p>
+        <p class="alt"><b>Other options:</b> log-scale axes (keeps everything visible but harder to read), percentile-based clipping (99th), or an explicit "+N above range" bar.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Check that a clipped chart's total count still matches the header's "matched homes" count — clipping only hides bars, it doesn't drop homes from the stats.</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Outliers clipped".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rf-ghgbasis"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Emissions default to a calculated basis, not the audit's own reported figure.</b>
+        <p>The audit's <code>ERSGHG</code> field is only filled for 50.5% of matched homes (Quebec ~78%, Saskatchewan ~9%), so building every emissions chart on it would have quietly halved the sample. The page now offers 4 bases and defaults to <b>"corrected, at year of audit"</b> — each home's emissions recomputed from its own recorded fuel use, at factors calibrated against the ERS data for that audit year.</p>
+        <p class="alt"><b>Other options:</b> show only the reported figure (honest but half the data, and biased by which provinces report it); use ECCC's official current factors flat across all years (comparable across eras, but overstates Ontario's historic gas and understates Alberta/Newfoundland electricity by 18–49%); or scale the reported subset up to the full population (assumes the reporting homes are representative, which is exactly what isn't known).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 3 min<ol>
+          <li>Switch the "GHG basis" dropdown to "as reported" and watch the home count under the chart drop — that gap is the coverage problem this exists to solve.</li>
+          <li>The calibrated basis was validated against the reported one where both exist: national aggregate within −0.66%, every large-sample province within ~±2% except Quebec (−5.3% on a small base).</li>
+        </ol></div>
+        <div class="where">docs/RETROFITS.md §"GHG scenarios"; retrofits.html Methodology J; open question in docs/ENERGUIDE_QUESTIONS.md §5.4.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>A July 2026 accuracy pass audited every label against the source columns — found and fixed a mislabelled unit (design heat loss is kW, not GJ/yr) and a chart-binning mismatch between the two views.</li>
+      <li>The province view and postal-area view are computed two different ways (Python vs JavaScript) and must agree — a documented "bin-width contract" keeps them in sync.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>✅ Done since launch</h3>
+    <ul>
+      <li><b>2026-07-19/20:</b> reworked the census card around a coverage gauge, added a Sources section, added a light/dark/colour-blind theme system, reworded the hero and trimmed the heat-pump aside.</li>
+      <li><b>2026-07-21:</b> fixed the pre/post combo-chart's bar/area draw order and switched pre/post colours to red/green for clarity.</li>
+      <li><b>2026-07-22:</b> the AHRI heat-pump badge lookup (<code>lookup/ahri_numbers.json</code>) is now refreshed automatically every Monday via <code>ahri-refresh.yml</code>, re-checking existing certificates on a rolling basis (catches AHRI amending a certificate after the fact) instead of needing a manual rerun.</li>
+      <li><b>2026-07-31:</b> the <b>Retrofit Costs</b> proof of concept went live inside the page — an estimated retrofit cost and payback per home, priced from outside the ERS data. See its own section below.</li>
+      <li><b>2026-08-02:</b> emissions rebuilt on <b>4 selectable bases</b> instead of the audit's own half-populated figure (assumption card above), and a survivorship-bias bug in the factor derivation fixed — it had been overstating the national total by 12.8%.</li>
+      <li><b>2026-08-03:</b> a hoverable <b>pipeline-overview diagram</b> added at the top of the advanced methodology, so the CSV → parquet → JSON → page path (and its emission-factor and cost branches) can be read at a glance rather than reconstructed from prose.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ RETROFIT COSTS ══════════════════ -->
+<section id="retrofit-costs" class="card">
+  <div class="proj-head">
+    <h2>💰 Retrofit Costs</h2>
+    <span class="chip build">🔨 Proof of concept</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofits" target="_blank">inside the Retrofit Explorer ↗</a>
+  </div>
+  <p><b>In one sentence:</b> what a home's recorded upgrades would have cost, and how long they
+  take to pay back — the one question the audit data itself cannot answer, answered from an
+  outside source and labelled as such everywhere it appears.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">PNNL/DOE REMDB<small>US per-measure cost regressions, vintage 2024.12.23, 2023 USD</small></div>
+    <div class="src">The same ERS audit pairs<small>which measures each home actually did</small></div>
+    <div class="src">Provincial utility tariffs<small>the annual $ saved that payback divides into</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Extra fields</b><span>Pull the ERS columns the main pipeline doesn't carry — footprint, window counts, heat-pump config, existing A/C (retrofit_cost_extract_fields.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Price each measure</b><span>Match to REMDB rows, net against business-as-usual, compute payback (retrofit_cost_estimate.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · Split by area</b><span>A companion JSON tree per postal area (build_retrofit_costs_json.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · Joined in the browser</b><span>retrofits.html merges it onto the audit rows by house ID</span></div>
+  </div>
+
+  <div class="assump-box">
+    <h3>⚠️ What had to be assumed</h3>
+    <p class="small muted">This is the least settled thing on the site. Every item below is a
+    reason the numbers are directional, not quotable.</p>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="rc-us"><div class="a-body">
+        <span class="tag data">source limit</span><b>The cost data is American, unconverted.</b>
+        <p>REMDB is a US database in 2023 USD. No currency conversion and no Canadian-labour adjustment has been applied anywhere — the figures are used as-is. Canadian installed costs differ by trade, region and season in ways a flat multiplier would not capture honestly, so none was invented.</p>
+        <p class="alt"><b>Other options:</b> apply a headline FX rate (cheap, but implies a precision the underlying regression doesn't have); commission or source Canadian per-measure costs (the right answer, no public dataset found); or show ranges only, no point estimates.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 5 min<ol>
+          <li>Compare a mid-band heat-pump figure on the page against any Canadian contractor quote you have. Expect the page to read low — that gap is roughly the size of what's missing.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md; retrofits.html Methodology H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-footprint"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>House shape is assumed, because ERS records no envelope areas.</b>
+        <p>Insulation is priced per square metre, but the public ERS extract carries no wall or roof area anywhere. Areas are derived from the recorded footprint under an assumed <b>2:3 rectangle</b> — a stated judgement call, not a sourced distribution of Canadian house shapes.</p>
+        <p class="alt"><b>Other options:</b> a square footprint (simpler, slightly lower wall area); source a real footprint-aspect distribution from assessment or building-permit data (the intended fix, on the roadmap); or decline to price envelope measures at all.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Measure your own house's footprint and compare its true wall area against a 2:3 rectangle of the same floor area. The error is usually small; on a long narrow or L-shaped house it is not.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Area proxies".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-coverage"><div class="a-body">
+        <span class="tag data">source limit</span><b>Coverage is partial, in three separate ways.</b>
+        <p>Eight measures are priced (roof/wall/foundation insulation, air sealing, windows, heat pump, solar PV, HRV/ERV). Furnaces, boilers, floor insulation and doors are <b>not priced at all</b>. Apartments, duplexes and triplexes are <b>excluded entirely</b> — 31,389 of the 1,451,433 matched pairs — because REMDB's regressions assume single-dwelling geometry. Of the 1,420,044 that remain, 13% end up with no priced measure. Yukon has no ERS records at all.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>In a postal-area view, compare the "homes with a cost estimate" count against the matched-home count. The difference is this gap, not a rendering bug.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Measures explicitly NOT priced"; retrofits.html Methodology H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-rates"><div class="a-body">
+        <span class="tag data">source limit</span><b>The payback denominator rests on utility rates we don't fully trust.</b>
+        <p>Payback = cost ÷ annual dollars saved, so it inherits every weakness of the rate table. The electricity source was replaced in July 2026 after the previous one was caught quoting a Saskatchewan rate ~67% below SaskPower's own schedule while flagged "high confidence"; the replacement has been cross-checked <b>only</b> for Saskatchewan. Natural gas rates are frozen at a 2024-10-01 effective date across every province, ~21 months stale, with no verified replacement found. Oil, propane and wood are single national screening constants. Every affected home carries a machine-readable flag.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Look up your own utility's current residential rate and compare it to what the page uses for your province. Where they diverge, the payback figure moves proportionally.</li>
+        </ol></div>
+        <div class="where">docs/RETROFIT_COSTS.md §"Utility rates"; retrofits.html Methodology F and H.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="rc-hrv"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The HRV/ERV price is a class average, not a per-home fit.</b>
+        <p>REMDB fits ventilation cost on recovery efficiency and airflow. Neither field survives the main pipeline, so every HRV is priced at fixed midpoint metrics (0.70 SRE, 150 CFM) and tagged <code>flat_placeholder_metrics</code> in the data rather than presented as a per-home number.</p>
+        <div class="where">retrofits.html Methodology H.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>Each priced measure's REMDB area basis was audited against the raw REMDB data sheets rather than assumed — air sealing bills on house floor area, windows on the window's own area, wall and roof on surface area, all three confirmed.</li>
+      <li>The heat pump is netted against the home's <em>own</em> pre-audit heating system where ERS records one, not a blanket gas-furnace assumption; two REMDB rows the database never fitted (oil furnace, electric boiler) were derived from its raw line-item workbook instead of guessed.</li>
+      <li>Checked directly against the NRCan data dictionary that ERS carries no wall-construction-type field, so Wood/Steel Stud + Batt stays an explicitly stated assumption rather than an oversight.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>🔨 What's next</h3>
+    <ul>
+      <li>Band-specific payback (currently the mid band only).</li>
+      <li>A better utility-rate source — electricity verified beyond Saskatchewan, and something current for natural gas.</li>
+      <li>A real footprint aspect-ratio dataset to retire the 2:3 assumption.</li>
+      <li>Verify the province-mode UI against deployed data.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ RETROFIT INSIGHTS ══════════════════ -->
+<section id="insights" class="card">
+  <div class="proj-head">
+    <h2>📈 Retrofit Insights</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/retrofit-insights" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> the national, cross-sectional sibling of the Retrofit Explorer — the
+  same 1,451,433 matched retrofit pairs, but zoomed out to "what actually works, and where" instead
+  of one postal area at a time. Shipped 2026-07-19.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Same ERS retrofit pairs<small>row-level source is the raw parquets, not the shipped fsa_json split</small></div>
+    <div class="src">StatCan 2021 Census Profile<small>per-FSA income, extracted for this page (extract_fsa_census.py extension)</small></div>
+    <div class="src">ECCC Climate Normals<small>per-FSA heating/cooling degree-days, new build_fsa_climate.py join</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>0 · Fill 2 data gaps</b><span>per-FSA income (extract_fsa_census.py) + per-FSA HDD/CDD (build_fsa_climate.py, ECCC normals)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>1 · Analyse</b><span>build_insights.py → insights_json/ (~1.3 MB, 7 files): metrics, success, climate, equity, opportunity, timeline</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · One web page</b><span>retrofit-insights.html — KPIs, choropleth, leaderboards, methodology accordion</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>What's actually new vs. the Retrofit Explorer</h4>
+    <p>retrofits.html is deep on <em>one area</em> at a time; this page is the cross-sectional view —
+    leaderboards, a Canada-wide FSA choropleth with a metric switcher, a "what makes a retrofit
+    successful" breakdown, climate and income-equity lenses, heat-pump geography, cold-climate
+    equipment (an AHRI COP-vs-capacity-maintenance scatter plus a screen against the US DOE Cold
+    Climate Heat Pump Challenge specifications — added 2026-07-30), a missed-opportunity
+    ranking, and a program-era timeline (EnerGuide for Houses → ecoENERGY Retrofit–Homes → Canada
+    Greener Homes Grant). Scope was deliberately kept descriptive + stratified — no fitted regression
+    models in v1.</p>
+    <h4>The single most robust finding: savings scale with # of measures</h4>
+    <p>Zero-measure pairs (118,282, 8.6% of all pairs) are the audit-noise population flagged in
+    docs/RETROFITS.md — a re-audit with no tracked upgrade, median "saving" 3.3%. Every "what worked"
+    statistic on the page (bundles, top-decile, climate/equity medians) excludes them and instead
+    quotes the 1,251,023 nonzero-measure pairs; the zero-measure count is reported separately, never
+    silently dropped. Above that floor, savings rise cleanly with measure count — 1 measure ≈16%
+    median saving, 4 measures ≈34%, 7–8 measures ≈62–69% — and heat pump alone (141,677 pairs, 25.5%
+    median saving) clearly outperforms windows alone (66,744 pairs, 6.1%).</p>
+    <h4>The missed-opportunity composite ranking</h4>
+    <p>A per-FSA score combining worst stock (high pre-retrofit EUI, high GHG, older vintage) and
+    lowest program uptake so far — "where should a program look next?" All factors are
+    percentile-ranked 0–1 first so different units combine fairly. Reworked 2026-07-20 from continuous
+    weights (0.30/0.25/0.20/0.25) to the same ordinal scale (Off/Low/Medium/High → 0/1/2/3, normalised
+    to sum to 1) the page's own reader-facing priority controls use, so the shipped default ranking is
+    something a reader can actually reproduce from the UI rather than a number they can't reach. The
+    rework barely moved the ranking (18 of the top 20 FSAs unchanged, same #1, median rank shift 22
+    places out of 1,509) — evidence the reweighting was cosmetic, not a substantive change to "who's
+    flagged".</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & judgment calls — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="ri-zero"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Zero-measure pairs are excluded from every "what worked" statistic, reported only as a count.</b>
+        <p>118,282 pairs (8.6%) logged no tracked upgrade between audits — re-audits, not retrofits. Including them would dilute every measure-effectiveness number with noise.</p>
+        <p class="alt"><b>Other options:</b> include them as a "0 measures" bucket in the bundle table (the previous approach in retrofits.html's own stats — muddies the "what worked" question this page asks); or try to reclassify some as real (untracked) retrofits (no reliable signal to do so).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>On the page, the "what worked" section states its denominator (1,326,144) explicitly — check it's smaller than the 1,451,433 hero number, and the gap (125,289) matches the zero-measure count called out in the methodology accordion.</li>
+        </ol></div>
+        <div class="where">Python/insights_notes.md §1; docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-opportunity"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The missed-opportunity ranking is a reader-adjustable weighted composite</b> — the reader can re-weight all 5 factors live and the table re-sorts client-side from stored per-FSA percentiles.
+        <p>Default weights: pre-EUI High, pre-GHG Medium, pre-1980 share Low, low participation Medium, low income Off (income is emitted but not weighted by default — see next assumption).</p>
+        <p class="alt"><b>Other options:</b> a fixed, non-adjustable formula (simpler, but hides the judgment call instead of exposing it); a single "priority score" with no factor breakdown.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Open the missed-opportunity section and change a factor's priority slider — the ranking should visibly re-sort without a page reload (nothing is recomputed server-side, it's arithmetic over the stored percentiles).</li>
+        </ol></div>
+        <div class="where">Python/build_insights.py "opportunity.json" section (OPP_WEIGHTS + comment); the page's priority controls.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-income"><div class="a-body">
+        <span class="tag data">source limit</span><b>Income correlations are ecological (FSA-level), not household-level.</b>
+        <p>"This FSA's median income is $X" describes the postal area, not the specific households that got audited. "Rich FSA" ≠ "rich participant" — a common mixing-of-levels trap the page states on-page.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Cross-check the national dwelling-weighted median income the page implies (~$82,000) against StatCan's 2020 published Canada median (~$84,000) — close but not identical, since this is a dwelling-weighted FSA aggregate, not a direct household survey figure.</li>
+        </ol></div>
+        <div class="where">Python/insights_notes.md intro cross-checks; equity section methodology note on-page.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-participation"><div class="a-body">
+        <span class="tag data">source limit</span><b>Participation rate mixes ~20 years of cumulative audits over a single 2021 census dwelling snapshot — it can exceed 100%.</b>
+        <p>A FSA where more homes have EVER been audited (2004–2026) than existed as dwellings in the 2021 census will show &gt;100% participation. Not a bug; stated on-page wherever the metric appears.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Sort the participation leaderboard and check whether any FSA sits above 100% — if so, confirm the page's own caveat text next to that metric explains why.</li>
+        </ol></div>
+        <div class="where">docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ri-cchp"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>"Screened against the DOE Challenge specifications" — never "meets" or "certified for" the Challenge.</b>
+        <p>The screen checks published AHRI/ENERGY STAR certificate ratings against Table II-3 of the US DOE Cold Climate Heat Pump Challenge specifications. The Challenge itself is a verification programme with its own H11/H1N lab test protocol we do not hold, so a unit clearing every checkable criterion has rating-consistent performance and nothing more — the output column is named <code>screen_pass</code>, deliberately not "meets" or "certified". Only 4 of 8 Table II-3 criteria are checkable from the ratings we hold; the other 4 (turndown ratio, compressor cut-out/cut-in, electric-heat staging, ENERGY STAR CACHP sections) are shown as explicitly not checkable rather than silently dropped. Of 15,148 models / 439,975 ERS appearances, 4 certificate rows (3 distinct models, 8 appearances, 0.00%) clear every checkable criterion — three of the four sit exactly on the COP threshold, which is expected since Challenge-qualifying products only reached market in 2024–25 and this is a historical audit record.</p>
+        <p class="alt"><b>Other options:</b> say a passing unit "qualifies for" or "meets" the Challenge (overclaims a lab verification test we never ran); silently drop the 4 uncheckable criteria instead of showing them (hides how much of the spec we can't actually check).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 3 min<ol>
+          <li>Search the "Cold-climate equipment" section and its methodology text for the word "meets" or "certified" next to "Challenge" — it should not appear; the wording is always "screened against the specifications".</li>
+          <li>Check the qualifying-models table: it should show 4 rows but call out 3 distinct models, since GREE's GUD60W2/NHE-D(U) is AHRI-certified under two reference numbers.</li>
+        </ol></div>
+        <div class="where">HeatPump/pipeline/screen_cchp.py docstring; HeatPump/METHODOLOGY.md "US DOE Cold Climate Heat Pump Challenge screen"; docs/archive/ROADMAP_COMPLETED.md item 14.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>National matched total in insights_json (1,451,433) cross-checked against the sum of the retrofit-explorer province files — exact match.</li>
+      <li>Spot-checked FSAs (L3R, K2P, M5V) reproduce the same median saving % as retrofits.html's own <code>fsa_json</code> for those areas.</li>
+      <li>National dwelling-weighted median household income (~$82,000) lands close to StatCan's 2020 published Canada figure (~$84,000) — same-ballpark sanity check, not an exact match (different weighting methods).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ NEW HOMES ══════════════════ -->
+<section id="newhomes" class="card">
+  <div class="proj-head">
+    <h2>🏡 New Homes Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/newhomes" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> how efficient Canada's brand-new homes actually are — as-designed
+  (Plan) vs. as-built (blower-door-tested) EnerGuide evaluations, 223,052 matched rows. Shipped
+  2026-07-15; pipeline substantially extended 2026-07-22/23.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Same NRCan EnerGuide/ERS audits<small>as the Retrofit Explorer, but the P (Plan) and N (As-built) evaluation types instead of D/E</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Pair P/N records</b><span>raw ERS CSVs → per-province parquet, plan left-joined to its matching as-built (newhomes_pipeline.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Pre-compute</b><span>parquet → newhomes_json/ (province summaries) + newhomes_fsa/ (per-FSA drill-down) (newhomes_precompute.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>newhomes.html — same architecture as retrofits.html, fully separate data trees</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>P vs. N — two very different snapshots of the same house</h4>
+    <p><b>P ("Plan")</b> is evaluated from architectural drawings before a shovel hits the ground —
+    no blower-door test, purely modelled. <b>N ("As-built")</b> is evaluated after construction with
+    a real blower-door air-leakage test. One row per finished, tested new home, with its matching
+    plan record left-joined so as-designed can be compared to as-built. Homes with a plan but no
+    matching as-built record are excluded — they're either still under construction or the paperwork
+    never got filed, and neither case has a real "as-built" number to show.</p>
+    <h4>Small enough to pair in memory</h4>
+    <p>New construction is a small slice of ERS activity (~30k homes/yr, 223,052 total P/N rows
+    nationally vs. 1.45M retrofit pairs) — the whole pairing job runs in memory, no chunking needed.</p>
+    <h4>2026-07-22/23 rework: parity with the Retrofit Explorer's per-fuel detail</h4>
+    <p>The Retrofit Explorer's fsa_json already carries per-fuel heating energy, per-building-component
+    heat loss and ventilation type (shipped 2026-07-17). This session pulled ~35 more source columns
+    into newhomes_pipeline.py to give New Homes the same depth: whole-house and space-heating energy
+    split per fuel (elec/gas/oil/propane/wood, with wood using the same
+    EGHFCONWOODGJ-first-then-tonnage-fallback derivation as the retrofit pipeline), annual heat loss by
+    component (air, ceiling, walls, foundation, exposed floor, windows/doors), insulation R-values,
+    window code, ventilation system type, heating-equipment efficiency (AFUE/seasonal), and full
+    heat-pump detail (type, COP, HSPF/SEER, capacity, AHRI certificate number). All of it now
+    flows into the "most efficient new homes" table's expandable per-home detail
+    (<code>top20_lowest_eui</code> in newhomes_json), which previously only showed year, floor area,
+    fuel and a plain heat-pump flag. A byproduct data-quality audit
+    (<code>Python/ers_pn_column_fill.csv</code>) confirms population rates per source column so gaps
+    are visible rather than silently null.</p>
+    <h4>Year-coverage caveat baked into the page</h4>
+    <p>Tier, ACH (air-changes-per-hour) and ERS-rating fields weren't collected in every audit year —
+    the page states which years each metric actually covers rather than showing a flat "N/A" that
+    looks like a data error.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & data quirks — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="nh-excluded"><div class="a-body">
+        <span class="tag data">source limit</span><b>Plan-only homes (no matching as-built record) are excluded entirely.</b>
+        <p>Homes still under construction, or where the as-built evaluation was never filed, don't appear anywhere in the tool — there's no "as-built" number to show them with.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Compare the total P (plan) record count in a raw ERS CSV for a recent year against newhomes_json's row count for that year — plan-only homes explain the gap.</li>
+        </ol></div>
+        <div class="where">docs/NEWHOMES.md "One row per finished, tested new home".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="nh-coverage"><div class="a-body">
+        <span class="tag data">source limit</span><b>Tier / ACH / ERS-rating availability varies by audit year.</b>
+        <p>These fields weren't consistently collected across the full history; the page states year coverage per metric rather than implying full history everywhere.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Filter the page to an early audit year and check whether Tier/ACH show real values or an explicit "not collected this year" state.</li>
+        </ol></div>
+        <div class="where">docs/NEWHOMES.md "Notes".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="nh-shared"><div class="a-body">
+        <span class="tag data">source limit</span><b>Shares every caveat the Retrofit Explorer has about modelled (not metered) energy and self-selection.</b>
+        <p>Same HOT2000-modelled energy numbers, same "only audited homes appear" sampling logic — see the Retrofit Explorer section above for the full detail rather than repeating it here.</p>
+        <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" (shared conventions); docs/NEWHOMES.md.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>223,052 matched P/N rows nationally (newhomes_json/CA.json total_rows) — cross-referenced against the raw ERS new-construction row counts per province during the pipeline build.</li>
+      <li>Refreshes on the same ERS CSV drops as the Retrofit Explorer — no separate download; rerun both pipeline scripts after ers_web_pipeline.py's source files update.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ CEUD ══════════════════ -->
+<section id="ceud" class="card">
+  <div class="proj-head">
+    <h2>📊 CEUD Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/ceud" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> Canada's official "where does our energy go" database (~400 government
+  web tables) turned into one interactive page — all 5 sectors, all provinces, 2000–2023.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">NRCan CEUD<small>Comprehensive Energy Use Database — per-table .xls downloads from the OEE site</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Scout</b><span>Found the hidden per-table .xls download links (no bulk download exists)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · ETL</b><span>Download + parse all sectors × regions into tidy JSON (ceud_json/)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>ceud.html — pick a slice, the page pivots the data</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>The design insight</h4>
+    <p>NRCan publishes CEUD as ~50 static tables per sector × 5 sectors × 8 regions — roughly 400
+    pages. But every table is just a different 2-D slice of <em>one</em> underlying cube:
+    year × energy source × end-use × building type, plus explanatory variables (households, floor
+    space, equipment stock, heating degree-days). So the tool stores the cube once and lets you pick
+    the slice — one interface replaces the tables. Energy intensity per household (which the raw
+    tables make you compute yourself) is a first-class metric.</p>
+    <h4>Finding a machine-readable source (Phase 0 detective work)</h4>
+    <p>The CEUD landing page offers no bulk download. The copy on open.canada.ca turned out to be a
+    stale 2015-vintage "handbook", not the live database. The usable source: each table page has a
+    Download button pointing at a real <code>.xls</code> file containing <b>all years at once</b> —
+    one file per table per region, with a predictable URL pattern. The ETL fetches those.</p>
+    <h4>The ETL's shape and safety rails</h4>
+    <p>Everything is parsed into tidy long-format records ({year, energy source, end-use, value…})
+    and emitted as one compact JSON per sector × region (target &lt; 200 KB, values rounded to 3
+    significant digits). Suppressed/confidential cells ("X") become <b>null, never 0</b>. Each run
+    prints a validation report: provinces must sum to the Canada total within ~2%, end-uses must sum
+    to the sector total, no negative values.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & judgment calls — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="ce-suppressed"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Suppressed/confidential cells become gaps, never zero.</b>
+        <p>Government tables hide some provincial cells ("X"). Treating them as 0 would understate totals; they're shown as missing instead.</p>
+        <p class="alt"><b>Other options:</b> impute them (Canada total minus the visible provinces) — more complete but invents numbers; or drop the whole series. Null-with-a-gap is the honest middle.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open a provincial table on the OEE site (oee.nrcan.gc.ca → Comprehensive Energy Use Database → any provincial sector table) and find a suppressed cell.</li>
+          <li>Check the same slice in ceud.html shows a gap, not a zero bar.</li>
+        </ol></div>
+        <div class="where">Python/ceud_source_notes.md; the ETL's suppressed-cell handling.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ce-sanity"><div class="a-body">
+        <span class="tag calib">calibrated</span><b>Provinces are checked to sum to the Canada total (within ~2%).</b>
+        <p>A built-in sanity check on every ETL run.</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: pick one number on ceud.html (say, Ontario residential energy in 2023) and compare it to the same cell in NRCan's own Table 1 web page — they should match exactly.</li>
+          <li>⏱️ deeper: run <code>python Python/ceud_etl.py</code> and read its printed validation report.</li>
+        </ul></div>
+        <div class="where">Python/ceud_etl.py validation printout.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ce-nocost"><div class="a-body">
+        <span class="tag data">source limit</span><b>No dollar figures anywhere — CEUD tracks energy and emissions, not cost.</b>
+        <p>Cost context is a planned separate project (Energy Prices layer, below).</p>
+        <div class="where">docs/archive/CEUD_PLAN.md; the source database itself.</div>
+      </div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ PERMITS ══════════════════ -->
+<section id="permits" class="card">
+  <div class="proj-head">
+    <h2>🧱 Permits Explorer</h2>
+    <span class="chip done">✅ Live · manual refresh</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/permits" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> nine Canadian cities' own building-permit records at permit level —
+  the full history each city publishes, a density map of where building actually happens, the firms
+  that file the most permits, and how long approval and construction take.</p>
+
+  <p><b>Why it exists.</b> This data was already being fetched, but it lived in the Construction
+  Tracker's <em>Inside one city</em> section, which was advanced-mode-only <em>and</em> filtered to
+  cities matching the page's geography selector — so on a Canada or provincial view, nine cities'
+  permit desks rendered as nothing at all. What did render was the summary: one monthly line, an
+  all-time top-12 area list, a top-15 name table.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Nine municipal portals<small>five different platforms: Opendatasoft (Vancouver) · CKAN (Toronto, Montreal) · Socrata (Calgary, Edmonton, Winnipeg) · Esri ArcGIS (Mississauga, Halifax) · 15 annual XLSX workbooks with no API at all (Ottawa)</small></div>
+    <div class="src">Carried over, not recomputed<small>approval/build times, unit economics, quality and coverage notes come from construction_json/municipal.json — one producer per panel</small></div>
+    <div class="src">Basemap<small>CARTO light tiles over OpenStreetMap, the same optional-tile pattern newhomes.html already uses</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Detail ETL</b><span>nine portals → permits_json/ (permits_detail_etl.py), reusing municipal_permits_etl.py's transport</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Density grid</b><span>every geocoded permit binned to a 0.004° cell, per year, per city</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>permits.html</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Three cities get no map, and it is not worked around</h4>
+    <p>Six publish per-permit coordinates. Toronto has none (postal codes would support a far coarser
+    FSA choropleth, which answers a different question and is not drawn beside six real density
+    grids); Ottawa publishes spreadsheets with ward and community only; Halifax's source is a plain
+    table with no geometry anywhere. Each city's card says which, and why.</p>
+    <h4>The map holds no addresses, deliberately</h4>
+    <p>Cells carry a permit count and, where the city publishes one, a dollar total — never an
+    address, permit number or name. Individual permit points would put private home-renovation
+    addresses on a public map. The 0.004° cell (~445 m north-south) was chosen by measuring
+    Calgary's grid at three resolutions, not by taste.</p>
+    <h4>Four findings that would each have shipped a wrong chart</h4>
+    <p><b>CKAN truncates silently at 32,000 rows.</b> Montreal's grid covered 60,394 of 540,855
+    geocoded permits — an 89% loss, no error, and a map that looked complete. Now paged and
+    reconciled against the source count, raising on mismatch.</p>
+    <p><b>Toronto's pre-2017 rows are a survivorship sample</b>, not history — only the permits still
+    open when the dataset was cut. Plotted, they rise smoothly from 94 permits in 1990 to 33,017 in
+    2016, which would read as a 350-fold increase in Toronto's building. The series is floored at
+    2017-01, the 173,236 excluded permits are disclosed and still counted in totals, and an automatic
+    guard now screens every city for the same shape on every run.</p>
+    <p><b>The current month is always partial.</b> Vancouver's newest month showed 14 permits against
+    a ~330 norm — a month three days old, which plots as a collapse. Dropped, with the record
+    labelled as ending at the last complete month.</p>
+    <p><b>Vancouver's property-use field is multi-valued</b> — a mixed-use tower is dwelling, parking
+    and retail at once — producing 153 combination pseudo-categories. The first-listed use is taken
+    as primary so each permit lands in one category and columns still sum to the true permit count,
+    with the limit stated on the card.</p>
+    <h4>Names: the 20-permit floor is an editorial choice</h4>
+    <p>Only filers appearing on 20 or more permits are shown. These fields routinely carry a private
+    individual's name on their own renovation permit, and a name set in large type in a word cloud is
+    more exposed than a row in a table — so the cloud is the headline and the ranked table beneath it
+    is what the page tells you to quote.</p>
+    <h4>A city is not its metro area</h4>
+    <p>The City of Toronto excludes Peel, York, Durham and Halton. These series cannot be reconciled
+    with the CMA figures on the Construction Tracker, and every card says so.</p>
+  </div></details>
+</section>
+
+<!-- ══════════════════ CONSTRUCTION ══════════════════ -->
+<section id="construction" class="card">
+  <div class="proj-head">
+    <h2>🏗️ Construction Tracker</h2>
+    <span class="chip done">✅ Live · auto-refreshes monthly</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/construction" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> building permits → housing starts → completions for Canada, every
+  province and 8 metro areas — plus what the building costs, who is available to build it, and how
+  the finished homes actually perform — refreshed automatically on the 20th of each month.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">StatCan tables<small>permits 34-10-0292 · investment 34-10-0293 · starts 34-10-0151/0154/0158 · market 34-10-0148</small></div>
+    <div class="src">Context series<small>house prices (NHPI), population, employment, mortgage rates, building costs (BCPI)</small></div>
+    <div class="src">Cost &amp; capacity<small>renovation prices by project 18-10-0286 · building costs by trade 18-10-0289 · Housing Economic Account 36-10-0677 · construction job vacancies 14-10-0442</small></div>
+    <div class="src">Demand<small>absorptions &amp; unsold inventory 34-10-0149 · rental vacancy 34-10-0127 (both CMA-only)</small></div>
+    <div class="src">Program counts<small>NRCan Greener Homes · CHBA Net Zero labels — hand-transcribed, machine-verified against the live pages</small></div>
+    <div class="src">City permit desks<small>nine cities — Vancouver, Toronto (incl. green-roof and solar-hot-water permits), Calgary, Edmonton, Mississauga, Ottawa, Montreal, Halifax, Winnipeg. Summary cards here; the full record is on the <a href="permits.html">Permits Explorer</a></small></div>
+    <div class="src">Building energy<small>Ontario EWRB — every Ontario building over 100,000 sq ft, self-reported</small></div>
+    <div class="src">Certified buildings<small>CaGBC LEED &amp; Zero Carbon — one-time export, no sign-in required, aggregated to province/program counts</small></div>
+    <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
+    <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Core ETL</b><span>6 StatCan tables → one compact JSON per geography (construction_etl.py)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Context ETL</b><span>rates, prices, jobs → context.json</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>construction.html</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · Automation</b><span>GitHub Action re-runs it monthly; no commit if a fetch fails</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Wrangling StatCan's delivery quirks</h4>
+    <p>StatCan's bulk downloads are awkward at this scale — the permits table alone unzips to a
+    ~9 GB CSV, so the ETL streams it rather than loading it in memory. Seasonally-adjusted variants
+    only exist for aggregate series; where none exists, the unadjusted series ships and the page says
+    so. The seasonally-adjusted-at-annual-rates (SAAR) starts figure lives in its own separate table
+    (34-10-0158). Downloads are cached; <code>--refresh</code> forces a re-fetch.</p>
+    <h4>Storage conventions (so nothing is ambiguous)</h4>
+    <p>Dollar series stored in <b>millions</b>; unit counts as integers; every series' units recorded
+    in <code>construction_json/meta.json</code>. Output is one compact JSON per geography (21 files,
+    64–95 KB each) — the page never queries StatCan live.</p>
+    <h4>The provincial pipeline-gap investigation</h4>
+    <p>Provincial "under construction" and "completions" appeared to stop at Dec 2022. Before
+    accepting that, four candidate tables were queried live (34-10-0151, 0136, 0139, annual 0126) —
+    all null after 2022. Conclusion: CMHC genuinely discontinued provincial-level reporting of those
+    stages; only metro areas continue. The dashboard annotates the gap rather than hiding the series.
+    <p>Re-verified 2026-08-27 against 34-10-0136 and 34-10-0143 through 2026-07 — still null for
+    every province <i>and</i> for Canada, including the Toronto and Montréal members inside 0143.
+    The caveat stands.</p>
+    <h4>Coverage rules that shape what each card can show</h4>
+    <p>Two of the newer series are published unevenly, and the page is built around that rather than
+    papering over it. <b>Renovation prices by project</b> (18-10-0286) publish the 45 project types
+    for census metropolitan areas <i>only</i> — provinces and the national composite carry the
+    all-projects composite alone, and Prince Edward Island has no member at all — so that card
+    carries its own metro picker instead of following the page geography into an empty cell.
+    <b>New-home energy ratings</b> come from EnerGuide, which covers only the evaluated share of new
+    construction, so years with fewer than 30 evaluations are suppressed rather than plotted, and the
+    card states plainly that the two panels are not a like-for-like ratio.</p>
+    <p>Two more from the Tier-2 pass. The building-cost divisions all share one reference period,
+    <b>2023 = 100</b>, so the index is plotted as published; an earlier draft re-based every line to
+    2017 = 100, which was removed because it amplified whichever trade started lowest (wood, off a
+    lumber-cycle trough) and read as a claim about the trades rather than their starting points.
+    And the absorptions and rental-vacancy tables have <b>no provincial members at all</b> — they are
+    census-metropolitan-area tables — so that card shows metros directly, shows the all-CMA aggregate
+    on a Canada view with the label saying so, and hides itself on a provincial view.</p>
+    <h4>A "not built" call, reversed after actually reading the terms</h4>
+    <p>Tier 3 declined to build a CaGBC count, on the assumption that their project database needed a
+    sign-in and carried a redistribution restriction. Both assumptions were wrong. The LEED
+    project-search tool needs no sign-in and exports its full national list on request; and reading
+    CaGBC's actual Terms and Conditions page plus their Member Terms &amp; Conditions PDF in full — not
+    just searching for the word "data" — showed the PDF is entirely about members misusing the
+    certification <i>mark</i>, and the site-wide "All rights reserved" footer is the same boilerplate
+    every page carries, not a term attached to the export function. The lesson generalizes: "I didn't
+    find a restriction" and "I read the actual document and it doesn't address this" are different
+    claims, and only the second should close a licence question.</p>
+    <p>Even so, the result published here is more conservative than the licence question alone
+    required — aggregate province/program/year counts, never a project name or address — because a
+    compiled list of names and addresses is closer to what CaGBC actually built than any single fact
+    inside it is.</p>
+    <h4>Settling the provincial pipeline gap for good</h4>
+    <p>Tier 1 raised the possibility that CMHC still had the provincial under-construction series
+    even though StatCan had stopped publishing it. Tested directly against CMHC's own portal export
+    endpoint: Ontario under-construction for July 2026 comes back <i>"This data series is now
+    archived."</i>, while the same request for December 2022 returns real data (162,813 units) and
+    Ontario <i>starts</i> for July 2026 returns real data. The endpoint works; the series is gone.
+    It is a genuine CMHC discontinuation, and the page's caveat stands with two independent
+    confirmations behind it.</p>
+    <h4>Three cities, and what their data will and won't support</h4>
+    <p>City permit desks are the only address-level data on the page, and a city is not its metro
+    area — so the card states the ratio rather than implying the lines should meet. Toronto's cost
+    column turns out to hold the literal text <code>DO NOT UPDATE OR DELETE THIS INFO FIELD</code>
+    on about 45% of rows, so its dollar totals are an undercount; its permit counts and dwelling-unit
+    counts are sound. The cross-check therefore compares Toronto on dwelling units created and
+    Vancouver on permit value. Toronto also needs both its permit datasets: "cleared" means closed,
+    so on its own the recent months collapse to a fraction of the true count. Calgary (added
+    2026-09-01, evaluated against Ottawa, Montreal and Edmonton first) is the outlier: its city
+    boundary is ≈88% of its CMA's population rather than the ≈25-50% of Vancouver and Toronto, and
+    its cost field is clean enough (≈92-95% populated, no placeholder corruption) to compare on
+    permit value like Vancouver. Its API also had its own trap: Socrata sorts <code>NULL</code> as
+    the largest value under <code>ORDER BY ... DESC</code>, so an unordered pull with too small a
+    <code>$limit</code> silently dropped Calgary's single largest community by value before the fix —
+    sorting by parsed value client-side, over the full distinct-value count, not the API's order.</p>
+    <h4>The one hand-typed number set on the page</h4>
+    <p>NRCan's Greener Homes progress page has no data file, and each province's name sits
+    <i>after</i> its figures in the markup — so a positional parser pairs them off by one and
+    mis-assigns every province while looking perfectly plausible. The figures are therefore
+    transcribed by hand into the repo, and a checker re-confirms each one still appears verbatim on
+    the live page before publishing, failing loudly when NRCan posts an update. The card labels
+    itself as transcribed and carries its as-of date.</p>
+    The status doc says: <em>do not go looking for a replacement table</em> — it was a saga.</p>
+    <h4>Chart design</h4>
+    <p>Where two measures share a story (e.g. starts vs interest rates), the page uses a
+    <b>chart pair</b> — two stacked panels with a shared x-axis and linked hover — never a dual-axis
+    chart. The data palette was validated for colour-blind separation; the brand navy failed as a
+    <em>data</em> colour and was swapped for a lighter navy (#245A96) in charts only.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & data quirks — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="co-gap"><div class="a-body">
+        <span class="tag data">source limit</span><b>Provincial "under construction" and "completions" STOP at December 2022.</b>
+        <p>CMHC discontinued those provincial series entirely — verified against four different StatCan tables before concluding it's the source, not a bug. Metro areas still have current data. The page annotates the gap.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open StatCan table 34-10-0151 (statcan.gc.ca → search the table number), pick any province, "Under construction".</li>
+          <li>Confirm the values end at 2022-12 while "Starts" continues — exactly what the dashboard annotates.</li>
+        </ol></div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md §"The provincial pipeline-gap saga"; meta.json's <code>provincial_pipeline_gap</code>.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="co-history"><div class="a-body">
+        <span class="tag data">source limit</span><b>Permit and investment history only starts 2017–2018.</b>
+        <p>StatCan redesigned those programs; older data isn't comparable. Housing starts go back to 1990. Charts mix the two histories.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>On the dashboard, note where the permits line begins vs the starts line — then confirm on StatCan table 34-10-0292 that its reference period genuinely begins in 2017.</li>
+        </ol></div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md milestones; docs/CONSTRUCTION.md.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="co-conventions"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Storage conventions: dollars in millions, unit counts as integers, seasonally-adjusted series preferred.</b>
+        <p>Chosen to keep files small and charts smooth.</p>
+        <p class="alt"><b>Other options:</b> raw unadjusted series everywhere (shows real seasonality but every chart becomes a sawtooth), or shipping both (double the file size). SA-preferred with unadjusted only as fallback is the standard dashboard convention.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Open <code>construction_json/meta.json</code> — every series' units and SA status are declared there. Spot-check one against the page.</li>
+        </ol></div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md "Decisions log"; construction_json/meta.json.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="co-boc"><div class="a-body">
+        <span class="tag data">source limit</span><b>The Bank of Canada overnight-rate series only reaches back to 2009.</b>
+        <p>Accepted as-is for the rate-cycle chart.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Visit the BoC Valet API page for series V39079 — its earliest observation is 2009.</li>
+        </ol></div>
+        <div class="where">docs/archive/CONSTRUCTION_STATUS.md Phase 4a note.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>Canada and Ottawa views were compared against published StatCan figures (SAAR 261,377; permits $12.5B; under-construction 347,543 at its discontinuation) — matched.</li>
+      <li>Zero console errors in browser verification; every toggle and view exercised.</li>
+      <li><b>Ongoing check you can do monthly:</b> after StatCan's monthly permits release (The Daily), the dashboard's headline should match The Daily's number within rounding once the 20th-of-month refresh runs.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ GEOTHERMAL ══════════════════ -->
+<section id="geothermal" class="card">
+  <div class="proj-head">
+    <h2>🌍 Ottawa Geothermal Map</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/Geothermal/output/" target="_blank">open the map ↗</a>
+  </div>
+  <p><b>In one sentence:</b> a screening map of where ground-source heat pumps look promising in
+  Ottawa — built from 55,903 water-well drilling records, the City's own data, and Hydro Ottawa's
+  grid capacity. <b>Screening, not engineering:</b> a real project still needs an on-site test.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">Ontario WWIS<small>Water Well Information System — 55,903 Ottawa wells, drillers' logs (1.4 GB Access database)</small></div>
+    <div class="src">City of Ottawa ArcGIS<small>zoning, sewers, the City's own geothermal-potential rating</small></div>
+    <div class="src">OEB / Hydro Ottawa<small>3,884 feeder-capacity polygons (Centralized Capacity Information Map)</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Combine wells</b><span>Raw well records + code tables → one clean database (gpkg, 5 linked layers)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Fetch city layers</b><span>zoning, sewers, City potential rating</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · Interpolate</b><span>per-well conductivity → smooth 500 m grid</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · Merge + map</b><span>6 toggleable layers in one self-contained HTML file</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>5 · Validate</b><span>cross-check against the City's own rating</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Step 1 — from 1980s drillers' paperwork to a clean database</h4>
+    <p>Ontario's well archive stores depths in a mix of feet/metres/centimetres/inches with a
+    per-row unit column (missing unit = feet, the WWIS default); everything is normalized to metres
+    and L/min. Categorical fields are numeric codes — seven lookup tables were exported from the
+    Access database (the formation-material table alone has 82 codes; codes 60–92 are texture
+    modifiers like "coarse" and are deliberately not treated as rock types). Unresolvable codes pass
+    through visibly as <code>code:NN</code> rather than being silently mislabelled. The result is a
+    GeoPackage with 5 linked layers: wells (55,903), formations (144,719 intervals), water strikes
+    (62,324), pump tests (44,026), construction details (125,495).</p>
+    <h4>How a well gets a conductivity estimate</h4>
+    <p>Each well's "primary lithology" = its thickest <em>bedrock</em> layer if it has one, else its
+    thickest layer with a usable material. That material maps to a bucket, and each bucket carries a
+    mid-range thermal conductivity from GSHP design literature (see the assumption below for the full
+    table). Exporting the real code tables + smarter bucketing recovered ~4,800 wells; 9,180 remain
+    "unknown", of which 7,872 have no formation record at all — irreducible.</p>
+    <h4>The open-loop screen</h4>
+    <p><code>viable</code> = has a static water level AND pump-test yield ≥ 15 L/min ·
+    <code>possible</code> = has a level, yield unknown · <code>unlikely</code> = otherwise
+    (dominated by missing data, not proven unsuitability).
+    Result: 31,775 viable / 3,602 possible / 15,431 unlikely.</p>
+    <h4>Step 3 — the smooth surface</h4>
+    <p>Inverse-distance weighting (12 nearest wells, distance², i.e. closer wells dominate) on a
+    500 m grid in UTM zone 18N. Wells are first clipped to the Ottawa bounding box — 17 mis-located
+    records were scattering cells across Ontario. A cell is only drawn if its nearest well is ≤ 2 km
+    away; it's flagged <b>high confidence</b> only when ≥ 5 wells sit within 1.5 km. Output:
+    13,383 cells, 1.40–3.20 W/m·K, 89% high-confidence.</p>
+    <h4>Steps 4–5 — one file, and an honest check</h4>
+    <p>The map embeds the grid as compact number-tuples and wells as flat arrays (that's how 132k
+    features fit in a 6.8 MB self-contained file); only trunk sewers are embedded, and everything
+    renders on canvas so 51k points stay responsive. Then the validation script joins every well to
+    the City of Ottawa's own potential rating: measured yields order the City's classes correctly
+    (High 76 → Average 37 → Low/None 27 L/min), and where the two disagree it's mostly our
+    missing-data wells inside the City's good polygons — reassuring in both directions.</p>
+    <h4>Server quirks worth remembering</h4>
+    <p>The City ArcGIS server rejects GeoJSON output for sewer layers (fetched as esriJSON and
+    converted); the zoning layer mislabels General Industrial as "Transportation Zones" (fixed from
+    the actual by-law); everything is paged 1,000 records at a time.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Assumptions & judgment calls — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="ge-lith"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Ground conductivity is GUESSED from the words in drillers' logs.</b>
+        <p>A driller wrote "limestone" in 1985 → the map assigns 2.8 W/m·K. Full table: limestone 2.8 · dolostone 3.0 · sandstone 2.3 · shale 1.9 · granite 3.2 · gneiss 3.0 · clay 1.4 · silt 1.5 · sand 2.4 · gravel 2.0 · till 1.8 · fill 1.5 · basalt 2.0 · generic "rock" 2.5. Literature mid-range values, not measurements. Good enough to compare neighbourhoods; NOT good enough to size a borehole field.</p>
+        <p class="alt"><b>Other options:</b> use the GSC's mapped bedrock geology instead of per-well logs (smoother, ignores real local variation — it's actually the planned fallback for well-sparse areas); carry min–max ranges per rock instead of one value (more honest, harder to map); or use only wells with actual thermal tests (there are essentially none public).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 15 min: compare the bucket values against a published GSHP design table — the standard references are ASHRAE Applications ch. 35, IGSHPA design guides, or the widely-cited VDI 4640 ranges (e.g. limestone 2.5–4.0, granite 2.1–4.1, clay 0.9–2.3 W/m·K). Every bucket value should sit inside its published range.</li>
+          <li>⏱️ 2 min: on the live map, click wells and check the lithology shown in the popup against the conductivity class it got — do a granite well and a clay well disagree the right way?</li>
+        </ul></div>
+        <div class="where">Geothermal/README.md §3.1 "Lithology buckets"; §5 caveat 1.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ge-buckets"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Rock-name groupings were decided by Claude</b> (marble counts as limestone, schist as gneiss, "quicksand" as sand, generic "ROCK" gets 2.5 W/m·K…).
+        <p>These mappings recovered ~4,800 wells that would otherwise read "unknown". Each is defensible geology (marble IS metamorphosed limestone), but they're calls someone should sanity-check.</p>
+        <p class="alt"><b>Other options:</b> leave unmapped names as "unknown" (loses 4,800 wells but assumes nothing); or have a geologist review the mapping table (the strongest option, and cheap — it's ~15 lines).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 15 min: open the bucket dictionary in <code>Geothermal/scripts/combine_wells.py</code> and check each folded rock against any geology reference: marble→limestone ✓ metamorphic equivalent; schist→gneiss ✓ both foliated metamorphics ~3 W/m·K; conglomerate→sandstone ✓ both clastic. The one to scrutinize: generic "ROCK" = 2.5 (a guess that it's average bedrock).</li>
+          <li>⏱️ deeper: re-run the chain with "ROCK" excluded instead, and see if the map's class counts move materially.</li>
+        </ul></div>
+        <div class="where">Geothermal/README.md §3.1; the bucket dict in combine_wells.py.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ge-idw"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Interpolation settings: 500 m grid, 12 nearest wells, distance-squared weighting, no cell further than 2 km from a well.</b>
+        <p>Tighter settings = patchier map; looser = smoother but more made-up.</p>
+        <p class="alt"><b>Other options:</b> kriging (statistically fancier, needs variogram fitting, harder to explain), natural-neighbour interpolation, a finer 250 m grid (4× the cells for little gain at this data density), or no interpolation at all (wells only — honest but unreadable at city scale).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: on the map, turn on BOTH the grid and the wells layer and zoom somewhere you know — the grid colour should visibly track the nearby wells' colours.</li>
+          <li>⏱️ deeper: in <code>interpolate_conductivity.py</code> change k from 12 to 6 (or power 2 → 1), re-run, and compare the printed class counts (medium/high/low cell totals). Small movement = robust choice.</li>
+        </ul></div>
+        <div class="where">Geothermal/README.md §3.3; interpolate_conductivity.py.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ge-unlikely"><div class="a-body">
+        <span class="tag data">source limit</span><b>"Unlikely" for open-loop mostly means "no data", not "proven bad".</b>
+        <p>A well screens "viable" only if it has both a water level and a decent pump-test yield (≥ 15 L/min). Most "unlikely" wells are simply missing one of those records.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Click a handful of red "unlikely" wells on the map — the popups will mostly show blank yield or blank static level rather than bad values.</li>
+        </ol></div>
+        <div class="where">Geothermal/README.md §3.1 "Open-loop screen" + §5 caveat 2.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ge-bias"><div class="a-body">
+        <span class="tag data">source limit</span><b>Wells are rural-biased and Ontario-only.</b>
+        <p>Downtown has municipal water (few wells), so urban estimates lean on sparse, older records — watch the confidence flag. The Gatineau side is blank because the well database is Ontario's.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Toggle the wells layer and look at Centretown vs rural Osgoode — the density difference is obvious, and downtown grid cells should show the low-confidence flag in their popups.</li>
+        </ol></div>
+        <div class="where">Geothermal/README.md §5 caveats 3–4.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="ge-classes"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The colour classes: low &lt; 2.0 ≤ medium ≤ 2.8 &lt; high (W/m·K).</b>
+        <p>These cutoffs decide which cells look green vs red on the map.</p>
+        <p class="alt"><b>Other options:</b> a continuous colour ramp (no arbitrary cutoffs, but harder to read "is my area good?"), or data-driven terciles (would move with the data rather than meaning something physical). 2.0 ≈ "below this, boreholes get long"; 2.8 ≈ "solid rock territory" — physically meaningful lines.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Check the cutoffs against the same GSHP design references as above: soils/clays cluster below 2.0, competent limestone/granite above 2.8 — the classes should separate "overburden" from "good bedrock".</li>
+        </ol></div>
+        <div class="where">Geothermal/README.md §3.3.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="check-box">
+    <h3>✓ How it was checked</h3>
+    <ul>
+      <li>Every well was compared against the <b>City of Ottawa's own</b> geothermal potential rating: where they overlap, measured well yields order the City's classes correctly (76 L/min in "High" → 37 "Average" → 27 "Low/None"). Disagreements are mostly our missing-data cases, not contradictions. Full crosstab: <code>Geothermal/Data/processed/city_validation.csv</code>.</li>
+      <li>Verified live in a browser: all 6 layers toggle, popups show real data, no errors.</li>
+      <li><b>A check you can do:</b> pick a well ID from a popup and look it up in Ontario's public Well Records search (ontario.ca → "well records") — the depth/yield/lithology should match the map's popup.</li>
+    </ul>
+  </div>
+  <details><summary>More depth: layer list & numbers</summary><div class="d-inner">
+    <table><tr><th>Layer</th><th>Features</th></tr>
+    <tr><td>Conductivity grid (500 m cells)</td><td>13,383</td></tr>
+    <tr><td>Wells (coloured by open-loop status)</td><td>50,808</td></tr>
+    <tr><td>Hydro Ottawa feeder capacity</td><td>3,884</td></tr>
+    <tr><td>Industrial/employment zoning</td><td>618</td></tr>
+    <tr><td>Sewer lines (trunk embedded)</td><td>63,300</td></tr>
+    <tr><td>City open-loop potential rating</td><td>158</td></tr></table>
+    <p>Build log with every session: <code>GEOTHERMAL_STATUS.md</code>. Full method: <code>Geothermal/README.md</code>.</p>
+  </div></details>
+</section>
+
+<!-- ══════════════════ HEAT PUMP ══════════════════ -->
+<section id="heatpump" class="card">
+  <div class="proj-head">
+    <h2>🔥 Heat Pump Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/heatpump" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> pick your city, house type and heat pump — the page simulates all
+  8,760 hours of a typical year in your browser and shows whether switching cuts emissions,
+  and by how much. The most methodology-heavy project in the suite (7 build phases).</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">IESO / AESO / Hydro-Québec<small>hourly electricity generation by fuel</small></div>
+    <div class="src">The Atmospheric Fund<small>Ontario grid emission factors (calibration)</small></div>
+    <div class="src">ECCC weather + CWEC<small>hourly temperatures + typical-year files, 5 cities</small></div>
+    <div class="src">NEEP ccASHP list<small>180,279 certified heat-pump ratings → 11,357 unique units</small></div>
+    <div class="src">NRCan ERS audits<small>house archetypes + which heat pumps Canadians actually install</small></div>
+    <div class="src">WaterFurnace catalogs<small>ground-source performance tables</small></div>
+    <div class="src">ECCC National Inventory<small>combustion & refrigerant emission factors</small></div>
+  </div>
+
+  <h3>How it was built (7 phases)</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Grid emissions</b><span>hourly g CO₂e per kWh for ON/AB/QC, average AND marginal</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Weather</b><span>hourly temps + typical year; emissions looked up by temp × hour × season</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · Equipment</b><span>11,357 heat pumps sorted into 3 tiers + an "average installed" blend; performance curves per tier</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>4 · Houses</b><span>4 archetypes × 5 cities from 100k+ real audits</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>5 · Engine</b><span>hour-by-hour simulation (JS + Python twin)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>6 · Page</b><span>heatpump.html</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>7 · Validate</b><span>vs NRCan, Climate Institute, Efficiency Canada</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language (all 7 phases)</summary><div class="d-inner">
+    <h4>Phase 1 — how dirty is a kWh, hour by hour?</h4>
+    <p>Hourly generation by fuel was fetched for Ontario (IESO), Alberta (AESO) and Quebec (HQ).
+    Nuclear, hydro, wind, solar and biofuel count as zero combustion emissions; all direct emissions
+    are attributed to the fossil fleet. For Ontario:</p>
+    <span class="formula">average EF(hour)  = gas share of generation × 500 g CO₂e/kWh
+marginal EF(hour) = 500 whenever any gas is running (≈ every hour)</span>
+    <p>The 500 wasn't plucked from air: The Atmospheric Fund publishes official Ontario factors, and
+    backing the implied gas intensity out of four separate years gives 526 / 496 / 474 / 502 — a
+    tight cluster around 500. Alberta gets coal 1050 / gas 540 the same way; Quebec's thermal
+    remainder gets 700 (uncalibrated, but it's 0.5% of a ~99.9% clean grid — immaterial).
+    The computed annual averages reproduce TAF's published values within 5.6% for all four
+    overlapping years.</p>
+    <h4>Phase 2 — weather, and connecting it to the grid</h4>
+    <p>Two temperature datasets per city: real hourly history (ECCC, 2019–2026) and a "typical
+    meteorological year" (CWEC2020) that the simulation runs on. The grid factors are then binned
+    into a lookup surface by <b>temperature (2 °C bins) × hour of day × season</b> — so a −20 °C
+    7 a.m. January hour gets the emissions intensity such hours historically had. Bins with under
+    20 hours of history fall back to coarser bins. Check: reconstructing each year's annual average
+    from the surface lands within ±10% of the directly-computed value.</p>
+    <h4>Phase 3a — sorting 11,357 heat pumps into tiers</h4>
+    <p>The NEEP cold-climate list has 180,279 rows, but that's every indoor/outdoor pairing — Carrier
+    alone is ~110k. Collapsing to unique outdoor units (median across pairings) gives 11,357. Each
+    gets two scores: <b>efficiency at −15 °C</b> (COP@5°F) and <b>capacity retention</b> (heat output
+    at −15 °C ÷ rated output at +8 °C). Units are ranked on the equal-weight blend of the two
+    percentiles and cut into equal thirds: Tier 1 "cold-climate premium" (COP ~2.07, retention ~93%),
+    Tier 2 "mid-market" (~1.97 / 80%), Tier 3 "baseline" (~1.84 / 70%). K-means clustering was tried
+    first and rejected — the COP scale is compressed (NEEP's own 1.75 floor) so it produced
+    incoherent groups.</p>
+    <h4>Phase 3b — from 4 test points to a full curve</h4>
+    <p>Each representative model's certified points (capacity + COP at 8.3 / −8.3 / −15 °C and its
+    coldest catalogued temperature, at max compressor speed) are connected piecewise-linearly on a
+    −30…+15 °C grid. Below the coldest point: capacity extrapolates on the last slope, COP floors at
+    (coldest COP − 0.3), and output is zero below the model's minimum operating temperature. A 7%
+    defrost penalty applies on −7…+4 °C with smooth 1 °C ramps at the edges. Real quirk kept: some
+    units' certified max capacity genuinely dips at −8 °C (a rating artefact); per-model curves stay
+    faithful, but tier aggregates are forced monotone so the UI's "capacity rises with temperature"
+    logic holds. Ground-source units get COP-vs-water-temperature curves digitized from two
+    WaterFurnace catalogs, with a 9% antifreeze penalty.</p>
+    <h4>Phase 4 — what is "a pre-1980 Ottawa detached home"?</h4>
+    <p>From ~100k+ real audit records, filtered to each city by postal prefix, split into 4 archetypes
+    (pre-1980 / 1980–2005 / post-2005 detached + townhouse). Each archetype's physics comes from two
+    audited medians:</p>
+    <span class="formula">UA (heat-loss rate, W/K) = design heat loss ÷ (21 °C − design temp)
+hourly load = UA × max(0, Tbalance − outdoor temp)
+Tbalance = solved so the simulated year reproduces the audited annual energy</span>
+    <p>The solved balance points came out 8–12 °C — lower than the textbook 15–16 °C — which is
+    flagged openly as a finding (thermostat setbacks and conservative audit heat-loss values are the
+    likely causes). Audited "heating energy" is fuel input, so it's converted to delivered heat via
+    each home's recorded furnace efficiency before calibration — otherwise gas homes would look
+    artificially hungry vs electric ones.</p>
+    <h4>Phase 5 — the hourly engine</h4>
+    <p>For each of 8,760 hours: compute the load; the heat pump (scaled to the chosen size) delivers
+    up to its capacity at that temperature; backup covers any gap; below the unit's lockout
+    temperature backup takes everything. Electricity × that hour's grid factor (average or marginal,
+    your toggle) + the base case's combustion + refrigerant leakage + upstream methane = the
+    comparison. The engine exists twice — JavaScript (in the page) and an independent Python twin —
+    and both must produce identical results to 4 decimal places on 5 hand-computed scenarios.
+    The live page re-runs all 15 test vectors every time it loads.</p>
+    <h4>Phase 6 — the page</h4>
+    <p>One self-contained file inlining the engine; data fetched from the repo's JSON. Inputs
+    auto-size the unit to the archetype's design load; Advanced mode exposes the average/marginal
+    toggle, refrigerant choice and lifecycle sliders. The centrepiece chart shows heating load vs
+    heat-pump capacity across temperature, with the balance point, cutoff and backup region shaded.</p>
+    <h4>Phase 7 — does it agree with the literature?</h4>
+    <p>Seasonal COP 2.32–2.54 vs 2.41 field-measured (Efficiency Canada) — direct hit. Backup share
+    &lt;0.5% vs "0.3% of hours" published. Ontario gas→HP on the average grid −68…−74% vs NRCan's
+    "significant reduction". Alberta ~break-even, matching NRCan's direction. Every gap has a named
+    cause: the marginal-vs-average choice, the 2025 grid being ~3× dirtier than the 2020 grid older
+    studies used, and the archetype being the population median (~200 m²) vs NRCan's single smaller
+    reference house. One real bug was found by this exercise and fixed (Quebec's near-zero baseline
+    produced a −107,887% headline; now guarded with plain language).</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ The 5 assumptions that matter most</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="hp-marginal"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>THE BIG ONE: by default, heat-pump electricity is priced at the "marginal" grid rate (~500 g CO₂e/kWh in Ontario), not the much cleaner average (~97 g).</b>
+        <p>The reasoning: plugging in a new load makes the gas plants run more — the nuclear/hydro was already spoken for. This single toggle flips the Ontario gas-vs-heat-pump answer from "−68% emissions" to "+11%".</p>
+        <p class="alt"><b>Other options:</b> average EF (what most published studies use — flattering to heat pumps); a time-varying hourly marginal (more precise, but Ontario's margin is gas nearly every hour anyway, so it converges to ~flat 500); or a long-run marginal that credits future clean builds (speculative). The chosen flat-500-when-gas-runs is the deliberately pessimistic upper bound — honest for "what does MY new load cause today", harsh vs every headline you've read.</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: flip the Average/Marginal toggle in the page's Advanced mode and watch the verdict flip — then decide which question you're asking.</li>
+          <li>⏱️ 15 min: open the saved TAF guideline (<code>HeatPump/data/raw/TAF-Ontario-Emissions-Factors-2024.pdf</code>) — it states marginal factors are the correct basis for fuel-switching decisions, average for inventories. The tool's default follows that guidance.</li>
+          <li>⏱️ 15 min: sanity-check that gas really is Ontario's marginal fuel: IESO's public generator output pages show gas plants ramping with demand while nuclear/hydro run flat.</li>
+        </ul></div>
+        <div class="where">HeatPump/METHODOLOGY.md §Phase 1 "Emission factor model"; PLAN.md methodology decision #1; the in-page explainer.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-gasef"><div class="a-body">
+        <span class="tag calib">calibrated</span><b>Ontario gas plants = a flat 500 g CO₂e/kWh, every hour, every year.</b>
+        <p>Backed out from The Atmospheric Fund's published factors for 4 separate years (came out 474–526 each time). A constant was chosen over a per-year value for simplicity. Alberta uses coal 1050 / gas 540; Quebec's tiny thermal fleet 700 (NOT independently calibrated — it's 0.5% of QC generation, immaterial).</p>
+        <p class="alt"><b>Other options:</b> a year-varying factor from the National Inventory Report directly (the documented TODO — the NIR PDF wasn't machine-readable this pass), or per-plant factors (overkill for a screening tool).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open the TAF PDF's factor table (p.11): 2023 average = 67 g/kWh.</li>
+          <li>Divide by the 2023 gas share of Ontario generation (13.3%, in METHODOLOGY.md's table): 67 ÷ 0.133 ≈ 502. That's the whole calibration — one division you can redo for any year.</li>
+        </ol></div>
+        <div class="where">HeatPump/METHODOLOGY.md §"Gas emission factor: 500 g — calibration"; the TAF PDF is saved in the repo.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-curves"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Heat-pump performance curves rest on 4 certified test points per model, connected with straight lines.</b>
+        <p>The plan was to digitize manufacturers' detailed engineering tables, but most are locked behind contractor logins (Lennox and Gree documents were downloaded and checked — no temperature tables). Fallback: the 4 AHRI-certified points every unit publishes. Real certified data, but the straight line across the 16 °C gap between −8 °C and +8 °C is an approximation.</p>
+        <p class="alt"><b>Other options:</b> get contractor-portal access and digitize the full tables (the upgrade path — the pipeline is built to accept more points); fit a physical compressor model (more assumptions, not fewer); or use NREL/EnergyPlus generic curves (not model-specific).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: look at the sanity plots in <code>HeatPump/data/interim/hp_curve_tier1.png</code> (etc.) — certified points overlaid on each curve.</li>
+          <li>⏱️ 15 min: open the one public datasheet (<code>HeatPump/data/raw/spec_sheets/mitsubishi/…202401.pdf</code>, Performance table p.2) and compare its numbers to the same model's curve — they agree within ~3% except one 12% COP gap explained by a different indoor unit pairing.</li>
+          <li>⏱️ deeper: run <code>python HeatPump/pipeline/test_hp_curves.py</code> — 7 automated checks including "curve passes through certified points within 3%".</li>
+        </ul></div>
+        <div class="where">HeatPump/METHODOLOGY.md §Phase 3b "Data acquisition — what is public and what is not".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-tbal"><div class="a-body">
+        <span class="tag calib">calibrated</span><b>Houses stop needing heat above ~8–12 °C outdoors — noticeably lower than the textbook 15–16 °C.</b>
+        <p>This "balance point" wasn't assumed — it was solved so each archetype's simulated year reproduces the real audited median energy use. The textbook value would predict ~1.8× too much heating (Ottawa pre-1980: ~41,000 kWh vs the observed 22,990). Likely causes: thermostat setbacks and conservative audit heat-loss figures. Flagged openly as a finding.</p>
+        <p class="alt"><b>Other options:</b> force 15–16 °C and scale down UA instead (same annual energy, different cold-weather shape — would change the backup-sizing story); or model setbacks explicitly (needs occupancy assumptions nobody has).</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 15 min: check against your own home — your gas bills likely drop to ~pilot-light levels by the time daily means hit 10–12 °C (May/June), not 15–16 °C. That's the same effect.</li>
+          <li>⏱️ deeper: open <code>HeatPump/data/interim/archetype_validation.csv</code> — all 20 archetypes reproduce their audited energy, and the solved Tbalance values are listed per archetype.</li>
+        </ul></div>
+        <div class="where">HeatPump/METHODOLOGY.md §Phase 4 "Finding: calibrated Tbalance (8–12 °C)…".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-defrost"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>A 7% efficiency penalty is applied between −7 °C and +4 °C for defrost cycles.</b>
+        <p>Frost forms on outdoor coils in that band and the unit must periodically melt it. 7% is a literature default, not a per-model measurement.</p>
+        <p class="alt"><b>Other options:</b> 0% (assume the certified ratings already include defrost — they don't for the max-capacity points used here, which was checked); or a per-model measured penalty (data doesn't exist publicly). Field studies report anywhere from ~3% to ~15%, so 7% is mid-range.</p>
+        <div class="verify"><b>✅ Verify it yourself</b><ul>
+          <li>⏱️ 2 min: on the tier sanity plots (data/interim/), see the visible COP dip across the −7…+4 °C band.</li>
+          <li>⏱️ 15 min: search "defrost penalty cold climate heat pump field study" — NRCan/CanmetENERGY field monitoring reports land in the 3–15% range.</li>
+        </ul></div>
+        <div class="where">HeatPump/METHODOLOGY.md §Phase 3b "Curve construction" item 3.</div>
+      </div></li>
+    </ul>
+  </div>
+
+  <details><summary>All remaining assumptions (12 more, with verification steps)</summary><div class="d-inner">
+    <ul class="assump">
+      <li><input type="checkbox" data-key="hp-tiers"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The 3 performance tiers are equal thirds of a composite score</b> (cold-weather efficiency + capacity retention, equally weighted).
+        <p class="alt"><b>Other options:</b> k-means clustering (tried, rejected — 55% agreement, incoherent groups because NEEP's 1.75 COP floor compresses the scale); fixed physical thresholds (e.g. ENERGY STAR cold-climate criteria); or unequal weights favouring retention.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open <code>HeatPump/data/interim/neep_tier_report.md</code> — tier stats and candidate models are tabulated.</li>
+          <li>Smell test: known premium units (Mitsubishi hyper-heat, −30 °C rated) should sit in Tier 1; builder-grade minimum units in Tier 3. They do.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 3a "Tiering method"; neep_tier_report.md.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-avg"><div class="a-body">
+        <span class="tag calib">calibrated</span><b>The "average installed" option = the 10 most-installed units in real Canadian retrofit audits, blended by popularity.</b>
+        <p>All 10 matched to certified ratings (100% match rate). What Canadians actually buy leans bottom-tier (weighted COP@−15 °C ≈ 1.87).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Open <code>Python/ahri_numbers_seen.csv</code> — the top AHRI number appears 5,465 times.</li>
+          <li>Search that number (206249117) on ahridirectory.org — it's the GREE GUD36, matching the report's table.</li>
+        </ol></div>
+        <div class="where">neep_tier_report.md §"AHRI popularity cross-match".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-city"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>"Ottawa" = postal codes K1, K2, K4</b> (rural K0/K6/K7… excluded); Toronto = M; Montreal = H (incl. Laval); Calgary = T2/T3; Edmonton = T5/T6.
+        <p class="alt"><b>Other options:</b> official census-metro boundaries (would pull in Gatineau for Ottawa — wrong province, wrong grid); include rural K0 (different housing stock would skew archetypes rural).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Check any FSA map (Wikipedia "List of K postal codes") — K1/K2/K4 cover urban Ottawa; K0 is the rural valley. Judge whether that's the "Ottawa" you'd want.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 4 "City selection: FSA prefix" (has the reasoning per city).</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-pre"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>House archetypes use PRE-retrofit audit values</b> — the tool models replacing heating in an as-found home, not an upgraded one.
+        <p class="alt"><b>Other options:</b> post-retrofit values (models a heat pump AFTER envelope work — a different, also-valid tool; loads would be ~15% lower), or offering both as a toggle (a possible future feature).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>In <code>HeatPump/pipeline/build_archetypes.py</code>, confirm only <code>Pre_*</code> columns are read.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 4 "PRE-retrofit values, not POST".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-tdesign"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Design temperatures computed from 8 years of weather data</b> (2.5th-percentile January hour) instead of the building code's published 30-year values.
+        <p class="alt"><b>Other options:</b> hard-code the NBC 2020 Appendix C values (authoritative but breaks the "everything reproducible from fetched data" property). The computed values (Ottawa −22.8, Toronto −17.1, Calgary −28.6…) land within 2–4 °C of published — and note 8 recent warm years give slightly milder design temps than the 30-year normals.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Look up NBC 2020 Appendix C (or any HVAC design-temperature table) for Ottawa: −25 °C at the 2.5% January level, vs the computed −22.8. Decide if that 2 °C matters for a screening tool (it shifts UA ~5%).</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 4 "UA from design heat loss" (has the full table + reasoning).</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-fuel2heat"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Audited "heating energy" is fuel INPUT; it's converted to heat DELIVERED</b> using each home's recorded furnace efficiency.
+        <p>Without this, gas homes (input = delivered ÷ 0.92) would look hungrier than electric ones and the calibration would skew.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Arithmetic check on the validation smoke run: Ottawa base gas fuel 24,985 kWh × 0.92 = 22,986 kWh delivered — exactly the archetype's annual load. The conversion is that one multiplication.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 4 "Fuel-input vs. delivered heat".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-filters"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Junk-data filters on the audits</b>: floor area 40–1,000 m², built 1900–2026, heat loss 1–50 kW. Townhouses aren't split by age (too few per cell); semi-detached homes are excluded entirely (~4–7% of rows).
+        <p class="alt"><b>Other options:</b> percentile-based trimming (1st–99th), or folding semis into "detached" (would slightly lower the detached medians).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ deeper<ol>
+          <li>In <code>build_archetypes.py</code>, widen a bound (e.g. floor area to 20–2,000) and re-run — medians are robust to filter choices when the filters only catch junk. The smallest archetype cell is n=143, so no cell is fragile.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 4 "Archetype definitions".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-refrig"><div class="a-body">
+        <span class="tag std">standard factor</span><b>Refrigerant leakage: 5%/year + 80% lost at end of a 15-year life</b>, at each refrigerant's global-warming potential (R-410A ≈ 2,256).
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>GWP: cross-check R-410A ≈ 2,256 against IPCC AR6 values (it's the 50/50 R-32/R-125 blend). Leak rates: compare against ECCC's halocarbon regulations assumptions or CARB's residential leak studies (2–10%/yr range; 5% is mid). It's a slider — try 2% and 10% and see how little the verdict moves for gas-heated homes.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 5 "Emission categories"; adjustable in the page's Advanced mode.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-methane"><div class="a-body">
+        <span class="tag std">standard factor</span><b>Upstream methane: 1–2% of gas leaks before it reaches the furnace</b> (default 1%, slider) — this penalizes the gas baseline, the mirror image of the marginal-grid choice penalizing electricity.
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Compare against ECCC's National Inventory (~1% Canadian supply-chain estimate) and satellite-based studies (often 1.5–2.5%). The slider covers the range — check how much the gas-vs-HP verdict moves between 0% and 2%.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 5; the in-page Advanced sliders.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-lineloss"><div class="a-body">
+        <span class="tag std">standard factor</span><b>5% of electricity is lost in transmission lines</b> before reaching the home.
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Hydro One / IESO publish Ontario transmission + distribution losses around 4–7%; StatCan's electricity supply-disposition table lets you compute it (losses ÷ generation).</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 5 constants.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-maxspeed"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Curves use maximum compressor speed</b> (the relevant point when a cold house calls for full heat); part-load cycling behaviour is simplified.
+        <p class="alt"><b>Other options:</b> full variable-speed modelling with min/rated/max curves (NEEP has the points; roughly triples the curve work; mostly affects mild weather where loads and emissions are small anyway). The simplification is conservative — real part-load COPs are usually <em>better</em>.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>On ashp.neep.org, open any unit's detail page: it lists min/rated/max points. Compare min-speed vs max-speed COP at 8 °C — min is typically higher, confirming the simplification undersells mild-weather efficiency (i.e. errs against the heat pump).</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 3b + §Phase 5 limitations.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-gshp"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Ground-source: Ottawa loop assumed to bottom out near 0 °C in winter</b> (undisturbed ground 8.5 °C), with a 9% antifreeze penalty — from WaterFurnace's own tables, 2 representative units.
+        <p class="alt"><b>Other options:</b> full borefield simulation (a different project); other manufacturers' units (WaterFurnace chosen because its full performance catalogs are public).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>The source PDFs are saved in <code>HeatPump/data/raw/spec_sheets/gshp/</code> — check the digitized COP-vs-water-temperature points against the catalog pages cited in METHODOLOGY (7 Series p.34, 5 Series p.62).</li>
+          <li>The 0 °C design-minimum matches CSA C448 / IGSHPA guidance for properly-sized Ottawa vertical loops — any local GSHP designer would confirm.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 3b "GSHP curves".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="hp-provef"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>One provincial grid factor applies to every city in that province</b> (Ottawa and Toronto share Ontario's), and "the current grid" = 2025 — whose intensity is ~3× the 2020 grid older studies used.
+        <p class="alt"><b>Other options:</b> nodal/zonal factors (data exists for ON but adds little for a screening tool); or letting the user pick the grid year (the historical levels are already stored in <code>ef_surface_*.json</code> — a cheap future feature).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Electricity is provincially pooled — Ottawa and Toronto genuinely share one grid mix, so this is mostly definitional. The part worth checking: TAF's table shows the average factor tripling 2017→2023 (18 → 67 g/kWh), which is why this tool reads harsher than 2020-era studies.</li>
+        </ol></div>
+        <div class="where">METHODOLOGY §Phase 2 "Province vs. city temperature" + §Phase 7.</div>
+      </div></li>
+    </ul>
+  </div></details>
+
+  <div class="check-box">
+    <h3>✓ How it was checked (unusually thoroughly)</h3>
+    <ul>
+      <li><b>Grid factors:</b> reproduce The Atmospheric Fund's published Ontario values within 5.6% for all 4 overlapping years (tolerance was 15%).</li>
+      <li><b>Engine:</b> the JavaScript engine and an independent Python twin run 5 hand-computed scenarios and must agree to 4 decimal places; the live page re-runs all 15 test vectors on every load — open the browser console (F12) on heatpump.html and look for the green "<i>all 15 Phase-5 vectors reproduced ✓</i>".</li>
+      <li><b>Curves:</b> 7 automated tests — run <code>python HeatPump/pipeline/test_hp_curves.py</code> yourself, takes seconds.</li>
+      <li><b>Whole tool vs literature (Phase 7):</b> seasonal efficiency 2.3–2.5 matches field studies (2.41); every gap vs NRCan / Climate Institute / Efficiency Canada is explained by a named cause. One real bug was found this way and fixed (an absurd percentage on Quebec's near-zero baseline).</li>
+      <li><b>Re-verified independently on 2026-07-10</b> in a live browser session: zero console errors, outputs match the validation tables exactly.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>✅ Done since (2026-07-12)</h3>
+    <ul>
+      <li>Real operating costs are wired in: TOU priced exactly from the engine's new month×hour electricity matrix, tiered plans priced marginally over a documented baseline, AB flagged as a screening estimate. See METHODOLOGY.md §Operating cost.</li>
+      <li>Tool linked in README.md's tool list.</li>
+    </ul>
+  </div>
+
+  <div class="todo-box">
+    <h3>🔨 In progress (2026-08-31) — "potential AC" cooling scenario, data layer only</h3>
+    <ul>
+      <li><b>Not yet on the live page.</b> Everything below is built and verified at the data layer (Python pipeline + JSON outputs); <code>heatpump.html</code>'s UI and simulation engine have not been touched to surface it.</li>
+      <li>Two correlations, checked directly against ERS data, let every heating-solved home get an estimated cooling profile with no separate AC-sizing control: peak heat ↔ peak cool (r=0.683) and peak cool ↔ annual cool energy (r=0.778, used as a through-origin ratio — annual heat/cool energy barely correlate with each other, r≈0.2). Folded into <code>build_city_house_profiles.py</code> as new <code>cool_peak_est_kW</code> / <code>cool_energy_est_kWh</code> / <code>balance_point_Tc_est_C</code> columns.</li>
+      <li>A standard-AC baseline (Goodman GLXS4B 3-ton, <code>build_ac_curves.py</code> → <code>ac_curves.json</code>) covers 92–99.5% of real homes at their own city design temperature.</li>
+      <li>Real cooling curves (not assumed SEER) now exist for 5 of 8 <code>hp_curves.json</code> heat pump models and 5 of 9 live <code>hp_cell_curves.json</code>/<code>hp_tier_selection.json</code> cells.</li>
+      <li><b>Headline finding:</b> SEER/SEER2 badges don't predict which unit actually uses less cooling electricity in a real climate — confirmed on 3 independent real units (GREE, Tosot, Fujitsu ducted), each carrying a higher badge than the Goodman AC baseline while sitting below it once integrated against real weather. Reconciled with an actual AHRI 210/240 bin-method reconstruction.</li>
+      <li>See <code>ROADMAP.md</code>'s 2026-08-31 entry and <code>HeatPump/METHODOLOGY.md</code> "Cooling / potential AC scenario" + "Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance" for full detail.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ GRID ══════════════════ -->
+<section id="grid" class="card">
+  <div class="proj-head">
+    <h2>⚡ Grid Dashboard</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/grid" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> "what's powering the grid right now" for Ontario and Alberta, plus the
+  average-vs-marginal emissions explainer the Heat Pump Explorer's default assumption rests on.
+  ETL shipped 2026-07-12; the page shipped 2026-07-24.</p>
+
+  <h3>Status</h3>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">ETL + weekly refresh</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">grid.html page</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>Reuse, not rebuild</h4>
+    <p>The heat pump project already knew how to fetch and emissions-rate IESO/AESO generation.
+    That logic was extracted into a shared module (<code>HeatPump/pipeline/grid_common.py</code>)
+    used by both pipelines — and the refactor was proven safe by re-running the heat pump's builds
+    and confirming byte-identical outputs.</p>
+    <h4>What the output holds</h4>
+    <p><code>grid_json/</code> carries, per province: <b>hourly</b> generation-by-fuel and intensity
+    for the last 14 days, and <b>daily min/mean/max</b> back one year (that compression keeps each
+    file ~170 KB). Ontario refreshes itself every Monday via GitHub Actions; a stale Alberta never
+    blocks the Ontario commit. Validation cross-checks overlapping months against the already-
+    validated heat-pump grid files, plus any full year against published annual references.</p>
+    <h4>The page: construction.html's chart engine, not Chart.js</h4>
+    <p>Page chrome (header, hero, Simple/Advanced + light/dark/colour-blind theme) reuses
+    <code>assets/site-theme.css</code>, same as retrofits.html/newhomes.html/retrofit-insights.html.
+    The charts themselves are hand-rolled SVG ported from construction.html's chart-pair engine
+    (<code>svgEl</code>/<code>niceTicks</code>/linked-hover tooltips) rather than retrofits.html's
+    Chart.js — the "stacked generation mix above, intensity line below, same x-axis, linked
+    crosshair" pattern the build brief asked for is exactly what that engine already does for
+    permits-vs-starts, so it was ported rather than rebuilt on a different library.</p>
+    <h4>The "typical day by season" panel needed a new precompute step</h4>
+    <p><code>grid_json/</code> only carries a rolling 14-day hourly window plus ~12 months of daily
+    min/mean/max — no way to derive a real seasonal hourly profile from that alone. The multi-year
+    hourly history required for it already existed, just not in a browser-shippable form: the Heat
+    Pump tool's own Phase-1 output (<code>HeatPump/data/processed/grid_ef_{on,ab}.json</code>,
+    2020–2026 ON / 2015–2026 AB) at 6–9 MB each. New script
+    <code>Python/build_grid_seasonal.py</code> reuses those files (no re-fetch, no re-derivation of
+    the EF model) and aggregates to <code>grid_json/typical_day_{on,ab}.json</code> — mean
+    AvgEF/MarginalEF/fossil-share per (season, hour-of-day), ~8 KB each. It's a manual rerun, not on
+    the weekly schedule.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Known limitations — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="gr-ab"><div class="a-body">
+        <span class="tag data">source limit</span><b>Alberta is NOT live.</b>
+        <p>There is no scriptable public source for recent Alberta data — the direct-CSV lead 404'd and AESO's API needs a registered key. Alberta updates only when the monthly files are manually dropped in (current through June 2026). Ontario IS fully live.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Try it: AESO's site offers the CSD downloads only interactively, and developer-apim.aeso.ca requires registration. If you want live AB, registering a free API key is the unblock — then the ETL can be extended.</li>
+        </ol></div>
+        <div class="where">docs/archive/ROADMAP_COMPLETED.md item 6; Python/grid_etl.py docstring; the page's own AB banner.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="gr-qc"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>Quebec is a static context card, not a live series.</b>
+        <p class="alt"><b>Other options:</b> plot HQ's manually-supplied export file as a live-looking series (misleading — it isn't refreshed), or drop QC entirely (loses useful context for the heat pump story).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
+          <li>Hydro-Québec's annual report: ~99.9% of generation is hydro/wind. A flat ~0 g/kWh card loses essentially nothing.</li>
+        </ol></div>
+        <div class="where">docs/archive/ROADMAP_COMPLETED.md item 6; grid_json/grid_qc.json; the page's Quebec context card.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="gr-refactor"><div class="a-body">
+        <span class="tag calib">calibrated</span><b>The refactor that shared code with the heat-pump pipeline was verified byte-identical.</b>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ deeper<ol>
+          <li>Re-run <code>python HeatPump/pipeline/build_grid_ef.py</code> and diff <code>data/processed/grid_ef_on.json</code> against git — no changes expected.</li>
+        </ol></div>
+        <div class="where">docs/archive/ROADMAP_COMPLETED.md item 6 "ETL" section.</div>
+      </div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="districtenergy" class="card">
+  <div class="proj-head">
+    <h2>🏙️ District Energy Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/districtenergy" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> what district energy is (definitions, the IEA 1G→4G generation ladder,
+  carriers, pipe configurations, fuels and plant equipment) plus every one of the 254 Canadian
+  systems in CEEDC's national inventory, mapped and filterable. Shipped 2026-09-03.</p>
+
+  <h3>Status</h3>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">ETL + JSON</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">districtenergy.html</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+
+  <h3>Where the data comes from</h3>
+  <p><b>CEEDC</b> — the Canadian Energy and Emissions Data Centre at Simon Fraser University, funded
+  by CanmetENERGY-Ottawa (NRCan). Their <b>Innovative Energy Facilities</b> database: 254 district
+  energy systems, plus a 3,644-facility superset covering cogeneration, renewable electricity and
+  biofuel production. The download links are <em>inside</em> their Tableau dashboard, not on
+  <code>sfu.ca/ceedc/databases.html</code> (which only embeds the viz). Published aggregates that the
+  public file cannot reproduce come from Griffin, B. (2023), <i>District Energy in Canada</i>.
+  Generation definitions come from IEA DHC (Feb 2024).</p>
+  <p><b>Licensing:</b> CEEDC states no terms anywhere — databases page, publications page, report,
+  main site (their <code>contact/terms-conditions.html</code> 404s). Confirmed with Simon 2026-09-03:
+  he works with people at CEEDC, no problem using it, the requirement is to <b>reference the
+  source</b>. Credited in the header badge, footer, both methodology blocks and the sources panel,
+  with links back to CEEDC's own dashboard and report.</p>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>The public file is not the published report</h4>
+    <p>CEEDC withheld respondent-confidential values from the public download, so every total derived
+    from the workbook comes out <em>lower, on a smaller n</em>, than their published analysis — steam
+    capacity 3,757 MW (n=50) against 3,990 MW (n=57), steam production 4.05M against 5.13M MWh. Both
+    are correct; they answer different questions. The pipeline <b>computes</b> the delta into
+    <code>meta.json</code> rather than asserting it, the page renders it as a table in Advanced mode,
+    and the two are never mixed: national headline KPIs use report figures, anything with a
+    per-system breakdown uses file figures, and each says which it is.</p>
+    <h4>Coverage is charted, not disclaimed</h4>
+    <p>38 of 238 systems completed the 2023 questionnaire (21%); <b>90 operating systems report zero
+    quantitative fields</b>; and <code>year_reported</code> runs 2014–2023 per row, so "the 2023
+    inventory" is really a decade of snapshots stacked together. Rather than a caveat paragraph,
+    these get their own section with their own charts, because they are the ceiling on every other
+    number on the page.</p>
+    <h4>Generation assignment, and the argument that was rejected</h4>
+    <p>IEA DHC's Feb-2024 ladder: 1G steam <em>by carrier</em>, 2G &gt;100 °C, 3G 70–100 °C, 4G
+    ≤70 °C, with "5G" replaced by <b>thermal source network</b> as a 4G subclass — IEA explicitly
+    recommends against the term "5G" because it implies an upgrade the evidence doesn't support for
+    heating alone. Applied to <code>de_hw_supply</code>, which only 27 systems report, giving n=26
+    on the ladder (2G 5, 3G 17, 4G 4, one TSN at 8 °C). The tempting alternative — inferring 1G from
+    the steam flag, taking n from 26 to ~120 — was considered and <b>rejected</b>: it conflates "uses
+    steam" with "is a 1G network" and mislabels every system running both carriers. The 94 steam
+    systems are reported separately as 1G-by-definition instead.</p>
+    <h4>Fuel sets rather than a primary fuel</h4>
+    <p>The workbook has no primary-fuel column; CEEDC derives one inside their Tableau
+    <code>.hyper</code> extract, which isn't published. Rather than guess their priority order the
+    pipeline keeps the complete fuel set per system and splits single-source from multi-source,
+    mirroring the report's own Table 8 — which is also the truer picture, since oil is overwhelmingly
+    a backup fuel sitting next to gas rather than a primary one.</p>
+    <h4>The map</h4>
+    <p>All 254 systems carry source coordinates (range-checked against Canada's bounding box, none
+    geocoded here). Lambert conformal conic, standard parallels 49°N/77°N — equirectangular is
+    unusable across 41–84°N. Province outlines are unioned from the repo's existing
+    <code>geo_json/</code> FSA polygons; Yukon still has no <code>geo_json</code> file, so it is
+    reprojected from <code>lfsa000b21a_e.json</code> using <code>canada_boundary.py</code>'s
+    inverse-Lambert, imported rather than copied.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Known limitations — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="de-response"><div class="a-body">
+        <span class="tag data">source limit</span><b>This is a survey with a 21% response rate, not a census.</b>
+        <p>238 operating systems are identified but only 38 completed the 2023 questionnaire; about 160 have detailed data from any survey year; 90 have no quantitative data at all. Every chart therefore states its own n, because coverage varies field by field.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Open the CEEDC 2023 report, "Data Validation and Analysis" — the 38/238 and ~160 figures are CEEDC's own.</li>
+          <li>Open <code>districtenergy_json/meta.json</code> → <code>qa.operating_with_no_quantitative_data</code>.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § Data honesty rails; the page's §06.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-delta"><div class="a-body">
+        <span class="tag data">source limit</span><b>Our totals are smaller than CEEDC's published totals, on purpose.</b>
+        <p>Confidential values were withheld from the public download. Report figures and file figures are kept apart everywhere on the page.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 5 min<ol>
+          <li>Switch the page to Advanced and read the "file vs published report" table in §05, or open <code>meta.json</code> → <code>file_vs_report</code>.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § "The thing that will bite you".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-gen"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The generation ladder covers 26 of 238 systems — 11%.</b>
+        <p class="alt"><b>Other options:</b> infer 1G from the steam flag to push n to ~120 (rejected — conflates carrier use with network generation, and mislabels hybrid systems), or drop Canadian classification entirely (rejected — loses the only place this data says something new). Chosen: classify what can be classified, state n loudly, and report the steam count separately.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Read the IEA DHC definitions PDF — 1G is defined by carrier "independent of its temperature", which is why it can't be read off a temperature axis.</li>
+          <li>Count non-null <code>de_hw_supply</code> in the workbook: 27 rows, 26 operating.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § IEA generation assignment; the page's §02 callout.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-suspect"><div class="a-body">
+        <span class="tag data">flagged, not dropped</span><b>Two "hot water" supply temperatures are almost certainly steam values.</b>
+        <p>Confederation Heights 175 °C and Cape Breton University 200 °C. They are kept in the data, ringed on the chart and listed in <code>meta.json</code> rather than deleted. Same treatment for the one Planned system carrying a 1970 commissioning year (University of Lethbridge — probably a planned conversion).</p>
+        <div class="where"><code>meta.json</code> → <code>qa.hw_supply_suspect</code>, <code>qa.planned_with_past_year</code>.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-stale"><div class="a-body">
+        <span class="tag data">source limit</span><b>The inventory is stale, and demonstrates it on itself.</b>
+        <p>CEEDC's dashboard last updated 2024-01-24. It records Confederation Heights as a 175 °C hot-water system — and Confederation Heights is one of four energy centres in the NCR DES, which launched 2026-06-23 as a $3.4B steam→low-temperature-hot-water conversion. §08 carries hand-curated, dated projects covering what happened after the cutoff.</p>
+        <div class="where">districtenergy/curated/projects.json (carries its own <code>reviewed</code> date).</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-noclaim"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>No efficiency or GHG-savings claim is made from this data.</b>
+        <p>CEEDC states plainly that their data cannot support it — provincial aggregates for heating and cooling supplied are hard to estimate, and many systems show energy per unit floor area <em>above</em> provincial averages. The page reproduces that limitation instead of working around it.</p>
+        <div class="where">docs/DISTRICT_ENERGY.md § What this page deliberately does not claim.</div>
+      </div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ REMAINING ══════════════════ -->
+<section id="todo" class="card">
+  <h2>🗺️ What's left, in the recommended order</h2>
+  <p class="small muted">From <code>ROADMAP.md</code> (each item there has a ready-to-paste build prompt). Nothing
+  is queued behind this — once it ships, the next move is picking from <code>ROADMAP.md</code>'s
+  "Project ideas" list.</p>
+  <table class="remain">
+    <tr><th>Order</th><th>What</th><th>Why / notes</th><th>Size</th></tr>
+    <tr><td>1</td><td><b>Ottawa Case Study Phases 4–6</b> — the flagship</td><td>Phases 0–3 done (stock, load, electrified load). Next: feeder aggregation + coincidence factor → map layers → the narrative case-study page. Prompts in <code>HEATDEMAND_PLAN.md</code> §5</td><td>3 sessions</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════════ ABOUT ══════════════════ -->
+<section id="about" class="card">
+  <h2>About this page</h2>
+  <p class="small">Generated by Claude on <b>2026-07-10</b> (expanded same day with full methodology
+  sections and per-assumption verification guides) by reading every project document in the repo
+  (<code>ROADMAP.md</code>, <code>HeatPump/PLAN.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
+  <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>docs/archive/CONSTRUCTION_PLAN/STATUS.md</code>,
+  <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Updated 2026-08-03
+  (two passes): first added the missing Retrofit Insights and New Homes Explorer sections (both had
+  shipped but were only reflected in the overview tiles, not full write-ups), refreshed every status
+  line against the current <code>ROADMAP.md</code> and commit history, and added the
+  <code>ahri-refresh.yml</code> automation layer nowhere else in the atlas mentioned it (sources:
+  <code>docs/NEWHOMES.md</code>, <code>docs/archive/ROADMAP_COMPLETED.md</code> item 13,
+  <code>Python/insights_notes.md</code>, <code>Python/build_insights.py</code>). Second pass, same day:
+  flipped the Grid Dashboard section to shipped once <code>grid.html</code> went live. Third pass, same
+  day: flipped the landing-page tile/todo row to shipped once <code>index.html</code> went live —
+  it has no dedicated section here (no data pipeline or assumptions to audit, just a card grid).
+  Regenerate it by asking
+  Claude to re-read those documents after major changes. Your ✓ checkmarks are stored in this browser
+  only (localStorage).</p>
+  <button class="reset-btn" id="reset-checks">Reset all my verification checkmarks</button>
+</section>
+
+<div class="footer-note">
+  Energy Suite · OttawaVisuals · design system shared with the live tools (navy / amber / cream).
+</div>
+
+</main>
+
+<script>
+// ── verification checkboxes persisted to localStorage ──
+const KEY='atlas-verified-v1';
+let state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){state={}}
+const boxes=[...document.querySelectorAll('ul.assump input[type=checkbox]')];
+function refreshCounts(){
+  const done=boxes.filter(b=>b.checked).length;
+  document.getElementById('assump-count').textContent=boxes.length;
+  document.getElementById('assump-done').textContent=done;
+}
+boxes.forEach(b=>{
+  const k=b.dataset.key;
+  if(state[k]){b.checked=true;b.closest('li').classList.add('checked');}
+  b.addEventListener('change',()=>{
+    state[k]=b.checked;
+    b.closest('li').classList.toggle('checked',b.checked);
+    localStorage.setItem(KEY,JSON.stringify(state));
+    refreshCounts();
+  });
+});
+refreshCounts();
+document.getElementById('reset-checks').addEventListener('click',()=>{
+  if(!confirm('Clear all your verification checkmarks?'))return;
+  state={};localStorage.setItem(KEY,'{}');
+  boxes.forEach(b=>{b.checked=false;b.closest('li').classList.remove('checked');});
+  refreshCounts();
+});
+</script>
+</body>
+</html>

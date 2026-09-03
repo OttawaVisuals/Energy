@@ -1,0 +1,794 @@
+{
+  "meta": {
+    "source": "NRCan CanmetENERGY, Cold-Climate Air Source Heat Pumps, Cat. M154-149/2022E-PDF. Table 1 (peak heating loads, 4 archetypes x 16 locations) and Figure 1 (load vs outdoor temperature).",
+    "design_temps": "NBC Appendix C via reference/nbc_station_design_temps.csv",
+    "indoor_design_temp_C": 21.0,
+    "method": "Each NRCan archetype is one house relocated to 16 cities, so UA is constant. Regressing the 16 published peaks against the 16 NBC design temperatures gives UA (slope) and T_balance (x-intercept) per archetype.",
+    "fits": {
+      "A_pre_1980": {
+        "UA_W_per_K": 339.1,
+        "Tbalance_C": 16.53,
+        "r2": 0.9206,
+        "max_abs_resid_kW": 1.64,
+        "fig1_readoff_C": 16.0
+      },
+      "B_post_1980_2stry": {
+        "UA_W_per_K": 290.9,
+        "Tbalance_C": 15.89,
+        "r2": 0.9049,
+        "max_abs_resid_kW": 1.65,
+        "fig1_readoff_C": 15.0
+      },
+      "C_post_1980_1stry": {
+        "UA_W_per_K": 187.0,
+        "Tbalance_C": 15.47,
+        "r2": 0.9206,
+        "max_abs_resid_kW": 1.02,
+        "fig1_readoff_C": 14.0
+      },
+      "D_net_zero_ready": {
+        "UA_W_per_K": 92.4,
+        "Tbalance_C": 10.26,
+        "r2": 0.9259,
+        "max_abs_resid_kW": 0.57,
+        "fig1_readoff_C": 12.0
+      }
+    },
+    "known_source_discrepancy": "Report section 3.1 text gives Toronto A = 10.7 kW and B = 9 kW; Table 1 gives 11.6 and 9.8. Table 1 is used.",
+    "table1_D_column_note": "The archetype-D column extracts misaligned from the PDF. Pairing verified by corr(A,D)=0.9945 and physical ordering."
+  },
+  "cities": {
+    "Kamloops": {
+      "design_temp_C": -17.8,
+      "nbc_station": "KAMLOOPS",
+      "has_tmy": false,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 291.3,
+          "Tbalance_C": 16.53,
+          "peak_kW": 10.0,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 11.64,
+          "single_UA_resid_kW": 1.64,
+          "annual_heat_kWh": null
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 243.4,
+          "Tbalance_C": 15.89,
+          "peak_kW": 8.2,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 9.8,
+          "single_UA_resid_kW": 1.6,
+          "annual_heat_kWh": null
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 156.3,
+          "Tbalance_C": 15.47,
+          "peak_kW": 5.2,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 6.22,
+          "single_UA_resid_kW": 1.02,
+          "annual_heat_kWh": null
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 78.4,
+          "Tbalance_C": 10.26,
+          "peak_kW": 2.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 2.59,
+          "single_UA_resid_kW": 0.39,
+          "annual_heat_kWh": null
+        }
+      }
+    },
+    "Prince George": {
+      "design_temp_C": -27.8,
+      "nbc_station": "PRINCE GEORGE",
+      "has_tmy": false,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 309.0,
+          "Tbalance_C": 16.53,
+          "peak_kW": 13.7,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 15.03,
+          "single_UA_resid_kW": 1.33,
+          "annual_heat_kWh": null
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 263.2,
+          "Tbalance_C": 15.89,
+          "peak_kW": 11.5,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 12.71,
+          "single_UA_resid_kW": 1.21,
+          "annual_heat_kWh": null
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 171.0,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.4,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 8.09,
+          "single_UA_resid_kW": 0.69,
+          "annual_heat_kWh": null
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 84.1,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.52,
+          "single_UA_resid_kW": 0.32,
+          "annual_heat_kWh": null
+        }
+      }
+    },
+    "Vancouver": {
+      "design_temp_C": -4.4,
+      "nbc_station": "VANCOUVER INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 305.8,
+          "Tbalance_C": 16.53,
+          "peak_kW": 6.4,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 7.1,
+          "single_UA_resid_kW": 0.7,
+          "annual_heat_kWh": 17295.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 261.2,
+          "Tbalance_C": 15.89,
+          "peak_kW": 5.3,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 5.9,
+          "single_UA_resid_kW": 0.6,
+          "annual_heat_kWh": 13606.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 171.1,
+          "Tbalance_C": 15.47,
+          "peak_kW": 3.4,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 3.72,
+          "single_UA_resid_kW": 0.32,
+          "annual_heat_kWh": 8428.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 75.0,
+          "Tbalance_C": 10.26,
+          "peak_kW": 1.1,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 1.35,
+          "single_UA_resid_kW": 0.25,
+          "annual_heat_kWh": 1519.0
+        }
+      }
+    },
+    "Victoria": {
+      "design_temp_C": -1.3,
+      "nbc_station": "VICTORIA GONZALES",
+      "has_tmy": false,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 330.9,
+          "Tbalance_C": 16.53,
+          "peak_kW": 5.9,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 6.05,
+          "single_UA_resid_kW": 0.15,
+          "annual_heat_kWh": null
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 279.2,
+          "Tbalance_C": 15.89,
+          "peak_kW": 4.8,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 5.0,
+          "single_UA_resid_kW": 0.2,
+          "annual_heat_kWh": null
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 178.9,
+          "Tbalance_C": 15.47,
+          "peak_kW": 3.0,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 3.14,
+          "single_UA_resid_kW": 0.14,
+          "annual_heat_kWh": null
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 86.5,
+          "Tbalance_C": 10.26,
+          "peak_kW": 1.0,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 1.07,
+          "single_UA_resid_kW": 0.07,
+          "annual_heat_kWh": null
+        }
+      }
+    },
+    "Calgary": {
+      "design_temp_C": -26.2,
+      "nbc_station": "CALGARY INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 334.7,
+          "Tbalance_C": 16.53,
+          "peak_kW": 14.3,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 14.49,
+          "single_UA_resid_kW": 0.19,
+          "annual_heat_kWh": 36224.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 287.5,
+          "Tbalance_C": 15.89,
+          "peak_kW": 12.1,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 12.24,
+          "single_UA_resid_kW": 0.14,
+          "annual_heat_kWh": 29734.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 184.8,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.7,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 7.79,
+          "single_UA_resid_kW": 0.09,
+          "annual_heat_kWh": 18538.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 87.8,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.37,
+          "single_UA_resid_kW": 0.17,
+          "annual_heat_kWh": 5782.0
+        }
+      }
+    },
+    "Edmonton": {
+      "design_temp_C": -30.8,
+      "nbc_station": "EDMONTON INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 355.0,
+          "Tbalance_C": 16.53,
+          "peak_kW": 16.8,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 16.05,
+          "single_UA_resid_kW": -0.75,
+          "annual_heat_kWh": 42950.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 302.0,
+          "Tbalance_C": 15.89,
+          "peak_kW": 14.1,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 13.58,
+          "single_UA_resid_kW": -0.52,
+          "annual_heat_kWh": 35076.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 194.5,
+          "Tbalance_C": 15.47,
+          "peak_kW": 9.0,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 8.65,
+          "single_UA_resid_kW": -0.35,
+          "annual_heat_kWh": 21980.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 95.0,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.9,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.79,
+          "single_UA_resid_kW": -0.11,
+          "annual_heat_kWh": 7373.0
+        }
+      }
+    },
+    "Regina": {
+      "design_temp_C": -32.4,
+      "nbc_station": "REGINA INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 343.3,
+          "Tbalance_C": 16.53,
+          "peak_kW": 16.8,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 16.59,
+          "single_UA_resid_kW": -0.21,
+          "annual_heat_kWh": 41649.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 300.3,
+          "Tbalance_C": 15.89,
+          "peak_kW": 14.5,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 14.05,
+          "single_UA_resid_kW": -0.45,
+          "annual_heat_kWh": 35070.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 188.0,
+          "Tbalance_C": 15.47,
+          "peak_kW": 9.0,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 8.95,
+          "single_UA_resid_kW": -0.05,
+          "annual_heat_kWh": 21405.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 93.8,
+          "Tbalance_C": 10.26,
+          "peak_kW": 4.0,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.94,
+          "single_UA_resid_kW": -0.06,
+          "annual_heat_kWh": 7603.0
+        }
+      }
+    },
+    "Winnipeg": {
+      "design_temp_C": -31.3,
+      "nbc_station": "WINNIPEG INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 340.8,
+          "Tbalance_C": 16.53,
+          "peak_kW": 16.3,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 16.22,
+          "single_UA_resid_kW": -0.08,
+          "annual_heat_kWh": 41123.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 292.4,
+          "Tbalance_C": 15.89,
+          "peak_kW": 13.8,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 13.73,
+          "single_UA_resid_kW": -0.07,
+          "annual_heat_kWh": 34033.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 183.9,
+          "Tbalance_C": 15.47,
+          "peak_kW": 8.6,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 8.75,
+          "single_UA_resid_kW": 0.15,
+          "annual_heat_kWh": 20899.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 93.8,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.9,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.84,
+          "single_UA_resid_kW": -0.06,
+          "annual_heat_kWh": 7756.0
+        }
+      }
+    },
+    "London": {
+      "design_temp_C": -18.4,
+      "nbc_station": "LONDON",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 355.0,
+          "Tbalance_C": 16.53,
+          "peak_kW": 12.4,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 11.84,
+          "single_UA_resid_kW": -0.56,
+          "annual_heat_kWh": 28296.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 303.3,
+          "Tbalance_C": 15.89,
+          "peak_kW": 10.4,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 9.97,
+          "single_UA_resid_kW": -0.43,
+          "annual_heat_kWh": 22967.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 194.9,
+          "Tbalance_C": 15.47,
+          "peak_kW": 6.6,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 6.33,
+          "single_UA_resid_kW": -0.27,
+          "annual_heat_kWh": 14260.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 97.7,
+          "Tbalance_C": 10.26,
+          "peak_kW": 2.8,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 2.65,
+          "single_UA_resid_kW": -0.15,
+          "annual_heat_kWh": 4444.0
+        }
+      }
+    },
+    "Ottawa": {
+      "design_temp_C": -24.3,
+      "nbc_station": "OTTAWA INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 338.0,
+          "Tbalance_C": 16.53,
+          "peak_kW": 13.8,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 13.85,
+          "single_UA_resid_kW": 0.05,
+          "annual_heat_kWh": 32452.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 286.1,
+          "Tbalance_C": 15.89,
+          "peak_kW": 11.5,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 11.69,
+          "single_UA_resid_kW": 0.19,
+          "annual_heat_kWh": 26312.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 183.6,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.3,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 7.44,
+          "single_UA_resid_kW": 0.14,
+          "annual_heat_kWh": 16411.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 92.6,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.19,
+          "single_UA_resid_kW": -0.01,
+          "annual_heat_kWh": 5626.0
+        }
+      }
+    },
+    "Toronto": {
+      "design_temp_C": -18.3,
+      "nbc_station": "TORONTO INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 333.0,
+          "Tbalance_C": 16.53,
+          "peak_kW": 11.6,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 11.81,
+          "single_UA_resid_kW": 0.21,
+          "annual_heat_kWh": 26157.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 286.6,
+          "Tbalance_C": 15.89,
+          "peak_kW": 9.8,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 9.95,
+          "single_UA_resid_kW": 0.15,
+          "annual_heat_kWh": 21394.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 180.6,
+          "Tbalance_C": 15.47,
+          "peak_kW": 6.1,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 6.31,
+          "single_UA_resid_kW": 0.21,
+          "annual_heat_kWh": 13029.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 91.0,
+          "Tbalance_C": 10.26,
+          "peak_kW": 2.6,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 2.64,
+          "single_UA_resid_kW": 0.04,
+          "annual_heat_kWh": 4092.0
+        }
+      }
+    },
+    "Montreal": {
+      "design_temp_C": -23.1,
+      "nbc_station": "MONTRÉAL INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 333.1,
+          "Tbalance_C": 16.53,
+          "peak_kW": 13.2,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 13.44,
+          "single_UA_resid_kW": 0.24,
+          "annual_heat_kWh": 29888.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 284.7,
+          "Tbalance_C": 15.89,
+          "peak_kW": 11.1,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 11.34,
+          "single_UA_resid_kW": 0.24,
+          "annual_heat_kWh": 24432.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 181.5,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.0,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 7.21,
+          "single_UA_resid_kW": 0.21,
+          "annual_heat_kWh": 15121.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 92.9,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.1,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.08,
+          "single_UA_resid_kW": -0.02,
+          "annual_heat_kWh": 5157.0
+        }
+      }
+    },
+    "Quebec City": {
+      "design_temp_C": -25.7,
+      "nbc_station": "QUÉBEC INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 317.3,
+          "Tbalance_C": 16.53,
+          "peak_kW": 13.4,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 14.32,
+          "single_UA_resid_kW": 0.92,
+          "annual_heat_kWh": 33367.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 271.7,
+          "Tbalance_C": 15.89,
+          "peak_kW": 11.3,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 12.1,
+          "single_UA_resid_kW": 0.8,
+          "annual_heat_kWh": 27368.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 189.5,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.8,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 7.7,
+          "single_UA_resid_kW": -0.1,
+          "annual_heat_kWh": 18550.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 89.0,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.32,
+          "single_UA_resid_kW": 0.12,
+          "annual_heat_kWh": 5959.0
+        }
+      }
+    },
+    "Fredericton": {
+      "design_temp_C": -23.3,
+      "nbc_station": "FREDERICTON",
+      "has_tmy": false,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 361.5,
+          "Tbalance_C": 16.53,
+          "peak_kW": 14.4,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 13.51,
+          "single_UA_resid_kW": -0.89,
+          "annual_heat_kWh": null
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 311.3,
+          "Tbalance_C": 15.89,
+          "peak_kW": 12.2,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 11.4,
+          "single_UA_resid_kW": -0.8,
+          "annual_heat_kWh": null
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 201.2,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.8,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 7.25,
+          "single_UA_resid_kW": -0.55,
+          "annual_heat_kWh": null
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 95.4,
+          "Tbalance_C": 10.26,
+          "peak_kW": 3.2,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 3.1,
+          "single_UA_resid_kW": -0.1,
+          "annual_heat_kWh": null
+        }
+      }
+    },
+    "Halifax": {
+      "design_temp_C": -18.0,
+      "nbc_station": "HALIFAX INTL",
+      "has_tmy": true,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 382.3,
+          "Tbalance_C": 16.53,
+          "peak_kW": 13.2,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 11.71,
+          "single_UA_resid_kW": -1.49,
+          "annual_heat_kWh": 32948.0
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 327.5,
+          "Tbalance_C": 15.89,
+          "peak_kW": 11.1,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 9.86,
+          "single_UA_resid_kW": -1.24,
+          "annual_heat_kWh": 26793.0
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 212.1,
+          "Tbalance_C": 15.47,
+          "peak_kW": 7.1,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 6.26,
+          "single_UA_resid_kW": -0.84,
+          "annual_heat_kWh": 16758.0
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 102.6,
+          "Tbalance_C": 10.26,
+          "peak_kW": 2.9,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 2.61,
+          "single_UA_resid_kW": -0.29,
+          "annual_heat_kWh": 4952.0
+        }
+      }
+    },
+    "St. Johns": {
+      "design_temp_C": -12.8,
+      "nbc_station": "ST-JOHN'S INTL",
+      "has_tmy": false,
+      "archetypes": {
+        "A_pre_1980": {
+          "label": "A: Pre-1980 detached, 2-storey",
+          "UA_W_per_K": 388.7,
+          "Tbalance_C": 16.53,
+          "peak_kW": 11.4,
+          "UA_single_fit_W_per_K": 339.1,
+          "peak_if_single_UA_kW": 9.95,
+          "single_UA_resid_kW": -1.45,
+          "annual_heat_kWh": null
+        },
+        "B_post_1980_2stry": {
+          "label": "B: Post-1980 detached, 2-storey (larger)",
+          "UA_W_per_K": 348.6,
+          "Tbalance_C": 15.89,
+          "peak_kW": 10.0,
+          "UA_single_fit_W_per_K": 290.9,
+          "peak_if_single_UA_kW": 8.35,
+          "single_UA_resid_kW": -1.65,
+          "annual_heat_kWh": null
+        },
+        "C_post_1980_1stry": {
+          "label": "C: Post-1980 detached, 1-storey (smaller)",
+          "UA_W_per_K": 215.8,
+          "Tbalance_C": 15.47,
+          "peak_kW": 6.1,
+          "UA_single_fit_W_per_K": 187.0,
+          "peak_if_single_UA_kW": 5.29,
+          "single_UA_resid_kW": -0.81,
+          "annual_heat_kWh": null
+        },
+        "D_net_zero_ready": {
+          "label": "D: Net-Zero-Energy-Ready, 2-storey",
+          "UA_W_per_K": 117.1,
+          "Tbalance_C": 10.26,
+          "peak_kW": 2.7,
+          "UA_single_fit_W_per_K": 92.4,
+          "peak_if_single_UA_kW": 2.13,
+          "single_UA_resid_kW": -0.57,
+          "annual_heat_kWh": null
+        }
+      }
+    }
+  }
+}

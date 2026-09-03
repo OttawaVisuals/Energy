@@ -1,0 +1,34 @@
+{
+ "generated": "2026-09-03",
+ "sources": {
+  "tariffs": {
+   "name": "MaxPr1me/canada-utility-rates (aggregates official utility/regulator rate pages; per-entry source_url is the originating page)",
+   "url": "https://raw.githubusercontent.com/MaxPr1me/canada-utility-rates/main/site/data/rates.json",
+   "cadence": "monthly (1st)"
+  },
+  "heating_oil": {
+   "name": "StatCan table 18-10-0001, household heating fuel, ¢/L by city",
+   "cadence": "monthly"
+  }
+ },
+ "units": {
+  "electricity": "CAD/kWh volumetric; CAD/month fixed",
+  "natural_gas": "CAD/m³ marginal (all volumetric lines summed); CAD/month fixed",
+  "heating_oil": "CAD/L"
+ },
+ "method": {
+  "dedupe": "latest effective_date per (utility, tariff)",
+  "carbon": "carbon components excluded (federal consumer fuel charge zero since 2025-04-01)",
+  "gj_to_m3": 0.03798,
+  "fixed_day_to_month": 30.4167,
+  "tou_calendars": "OEB seasonal TOU/ULO calendars hardcoded (upstream hours are free text); holidays follow the weekend rule; consumers ignoring holidays err <1%",
+  "ab_supplements": {
+   "elec_transmission_cad_per_kwh": 0.017,
+   "gas_commodity_cad_per_gj": 2.25,
+   "why": "absent from upstream exports; screening estimates, confidence set to 'low'"
+  }
+ },
+ "files": {
+  "on.json / qc.json / ab.json": "per-province: electricity{city}, natural_gas{city}, heating_oil{city}"
+ }
+}
