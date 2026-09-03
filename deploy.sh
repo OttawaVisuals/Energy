@@ -45,7 +45,7 @@ STAMP="$(date +%Y-%m-%d)"
 # tier cells are chosen.
 PATHS=(
   .nojekyll
-  index.html ceud.html construction.html grid.html heatpump.html
+  index.html ceud.html construction.html districtenergy.html grid.html heatpump.html
   newhomes.html permits.html project-atlas.html retrofit-insights.html retrofits.html
   tier-scatter.html
   assets
@@ -53,6 +53,7 @@ PATHS=(
   fsa_json newhomes_fsa newhomes_json province_json insights_json
   retrofit_costs_json
   ceud_json construction_json permits_json grid_json prices_json geo_json census_json
+  districtenergy_json
   lookup FSA_Maps GridCapacity
   HeatPump/data/processed
   Geothermal/output

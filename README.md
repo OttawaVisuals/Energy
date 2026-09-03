@@ -26,6 +26,7 @@ tool, the public front door.
 | 🏗️ **Construction Tracker** | Permits, housing starts and construction investment — national / provincial / metro | [/construction](https://ottawavisuals.github.io/Energy/construction) |
 | 🧱 **Permits Explorer** | Nine municipal permit desks at permit level — full history, density maps of where building happens, who files the permits, approval and build times | [/permits](https://ottawavisuals.github.io/Energy/permits) |
 | ⚡ **Grid Dashboard** | Ontario/Alberta generation mix & emissions intensity, plus the average-vs-marginal emissions explainer | [/grid](https://ottawavisuals.github.io/Energy/grid) |
+| 🏙️ **District Energy Explorer** | What district energy is, the IEA 1G→4G generation ladder, and all 254 Canadian systems in CEEDC's national inventory — mapped and filterable | [/districtenergy](https://ottawavisuals.github.io/Energy/districtenergy) |
 | 🗺️ **Project Atlas** | Internal status & assumptions page for the suite | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) |
 
 **Coming:** the Ottawa Case Study (heat demand → electrification → grid) —
@@ -47,6 +48,7 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 | Permits Explorer | [docs/PERMITS.md](docs/PERMITS.md) |
 | *(cross-cutting)* Open questions for NRCan | [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md) — consolidated EnerGuide/HOT2000 questions across all ERS-based tools |
 | Grid Dashboard | [docs/GRID.md](docs/GRID.md) |
+| District Energy Explorer | [docs/DISTRICT_ENERGY.md](docs/DISTRICT_ENERGY.md) — CEEDC sourcing, the file-vs-report gap, IEA generation assignment rules, source quirks |
 | Completed plans (archive) | [docs/archive/](docs/archive/README.md) |
 
 ## 🗂️ Repository layout
@@ -79,6 +81,7 @@ Energy/
 ├─ ceud_json/                        # CEUD Explorer
 ├─ construction_json/                # Construction Tracker (auto-refresh monthly)
 ├─ permits_json/                     # Permits Explorer (nine municipal permit desks)
+├─ districtenergy_json/              # District Energy Explorer (CEEDC inventory)
 ├─ grid_json/                        # grid dashboard data (auto-refresh weekly)
 ├─ prices_json/                      # energy prices (auto-refresh monthly)
 ├─ census_json/  geo_json/  lookup/  # shared lookups (census, geometry, AHRI, windows)
