@@ -189,6 +189,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <a href="#geothermal">🌍 Geothermal</a>
       <a href="#heatpump">🔥 Heat Pump</a>
       <a href="#grid">⚡ Grid</a>
+      <a href="#districtenergy">🏙️ District Energy</a>
       <a href="#todo">🗺️ What's left</a>
     </nav>
   </div>
@@ -1636,6 +1637,121 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
           <li>Re-run <code>python HeatPump/pipeline/build_grid_ef.py</code> and diff <code>data/processed/grid_ef_on.json</code> against git — no changes expected.</li>
         </ol></div>
         <div class="where">docs/archive/ROADMAP_COMPLETED.md item 6 "ETL" section.</div>
+      </div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="districtenergy" class="card">
+  <div class="proj-head">
+    <h2>🏙️ District Energy Explorer</h2>
+    <span class="chip done">✅ Live</span>
+    <a class="live-link" href="https://ottawavisuals.github.io/Energy/districtenergy" target="_blank">open the tool ↗</a>
+  </div>
+  <p><b>In one sentence:</b> what district energy is (definitions, the IEA 1G→4G generation ladder,
+  carriers, pipe configurations, fuels and plant equipment) plus every one of the 254 Canadian
+  systems in CEEDC's national inventory, mapped and filterable. Shipped 2026-09-03.</p>
+
+  <h3>Status</h3>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">ETL + JSON</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">districtenergy.html</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+
+  <h3>Where the data comes from</h3>
+  <p><b>CEEDC</b> — the Canadian Energy and Emissions Data Centre at Simon Fraser University, funded
+  by CanmetENERGY-Ottawa (NRCan). Their <b>Innovative Energy Facilities</b> database: 254 district
+  energy systems, plus a 3,644-facility superset covering cogeneration, renewable electricity and
+  biofuel production. The download links are <em>inside</em> their Tableau dashboard, not on
+  <code>sfu.ca/ceedc/databases.html</code> (which only embeds the viz). Published aggregates that the
+  public file cannot reproduce come from Griffin, B. (2023), <i>District Energy in Canada</i>.
+  Generation definitions come from IEA DHC (Feb 2024).</p>
+  <p><b>Licensing:</b> CEEDC states no terms anywhere — databases page, publications page, report,
+  main site (their <code>contact/terms-conditions.html</code> 404s). Confirmed with Simon 2026-09-03:
+  he works with people at CEEDC, no problem using it, the requirement is to <b>reference the
+  source</b>. Credited in the header badge, footer, both methodology blocks and the sources panel,
+  with links back to CEEDC's own dashboard and report.</p>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <h4>The public file is not the published report</h4>
+    <p>CEEDC withheld respondent-confidential values from the public download, so every total derived
+    from the workbook comes out <em>lower, on a smaller n</em>, than their published analysis — steam
+    capacity 3,757 MW (n=50) against 3,990 MW (n=57), steam production 4.05M against 5.13M MWh. Both
+    are correct; they answer different questions. The pipeline <b>computes</b> the delta into
+    <code>meta.json</code> rather than asserting it, the page renders it as a table in Advanced mode,
+    and the two are never mixed: national headline KPIs use report figures, anything with a
+    per-system breakdown uses file figures, and each says which it is.</p>
+    <h4>Coverage is charted, not disclaimed</h4>
+    <p>38 of 238 systems completed the 2023 questionnaire (21%); <b>90 operating systems report zero
+    quantitative fields</b>; and <code>year_reported</code> runs 2014–2023 per row, so "the 2023
+    inventory" is really a decade of snapshots stacked together. Rather than a caveat paragraph,
+    these get their own section with their own charts, because they are the ceiling on every other
+    number on the page.</p>
+    <h4>Generation assignment, and the argument that was rejected</h4>
+    <p>IEA DHC's Feb-2024 ladder: 1G steam <em>by carrier</em>, 2G &gt;100 °C, 3G 70–100 °C, 4G
+    ≤70 °C, with "5G" replaced by <b>thermal source network</b> as a 4G subclass — IEA explicitly
+    recommends against the term "5G" because it implies an upgrade the evidence doesn't support for
+    heating alone. Applied to <code>de_hw_supply</code>, which only 27 systems report, giving n=26
+    on the ladder (2G 5, 3G 17, 4G 4, one TSN at 8 °C). The tempting alternative — inferring 1G from
+    the steam flag, taking n from 26 to ~120 — was considered and <b>rejected</b>: it conflates "uses
+    steam" with "is a 1G network" and mislabels every system running both carriers. The 94 steam
+    systems are reported separately as 1G-by-definition instead.</p>
+    <h4>Fuel sets rather than a primary fuel</h4>
+    <p>The workbook has no primary-fuel column; CEEDC derives one inside their Tableau
+    <code>.hyper</code> extract, which isn't published. Rather than guess their priority order the
+    pipeline keeps the complete fuel set per system and splits single-source from multi-source,
+    mirroring the report's own Table 8 — which is also the truer picture, since oil is overwhelmingly
+    a backup fuel sitting next to gas rather than a primary one.</p>
+    <h4>The map</h4>
+    <p>All 254 systems carry source coordinates (range-checked against Canada's bounding box, none
+    geocoded here). Lambert conformal conic, standard parallels 49°N/77°N — equirectangular is
+    unusable across 41–84°N. Province outlines are unioned from the repo's existing
+    <code>geo_json/</code> FSA polygons; Yukon still has no <code>geo_json</code> file, so it is
+    reprojected from <code>lfsa000b21a_e.json</code> using <code>canada_boundary.py</code>'s
+    inverse-Lambert, imported rather than copied.</p>
+  </div></details>
+
+  <div class="assump-box">
+    <h3>⚠️ Known limitations — check these</h3>
+    <ul class="assump">
+      <li><input type="checkbox" data-key="de-response"><div class="a-body">
+        <span class="tag data">source limit</span><b>This is a survey with a 21% response rate, not a census.</b>
+        <p>238 operating systems are identified but only 38 completed the 2023 questionnaire; about 160 have detailed data from any survey year; 90 have no quantitative data at all. Every chart therefore states its own n, because coverage varies field by field.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Open the CEEDC 2023 report, "Data Validation and Analysis" — the 38/238 and ~160 figures are CEEDC's own.</li>
+          <li>Open <code>districtenergy_json/meta.json</code> → <code>qa.operating_with_no_quantitative_data</code>.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § Data honesty rails; the page's §06.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-delta"><div class="a-body">
+        <span class="tag data">source limit</span><b>Our totals are smaller than CEEDC's published totals, on purpose.</b>
+        <p>Confidential values were withheld from the public download. Report figures and file figures are kept apart everywhere on the page.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 5 min<ol>
+          <li>Switch the page to Advanced and read the "file vs published report" table in §05, or open <code>meta.json</code> → <code>file_vs_report</code>.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § "The thing that will bite you".</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-gen"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The generation ladder covers 26 of 238 systems — 11%.</b>
+        <p class="alt"><b>Other options:</b> infer 1G from the steam flag to push n to ~120 (rejected — conflates carrier use with network generation, and mislabels hybrid systems), or drop Canadian classification entirely (rejected — loses the only place this data says something new). Chosen: classify what can be classified, state n loudly, and report the steam count separately.</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 10 min<ol>
+          <li>Read the IEA DHC definitions PDF — 1G is defined by carrier "independent of its temperature", which is why it can't be read off a temperature axis.</li>
+          <li>Count non-null <code>de_hw_supply</code> in the workbook: 27 rows, 26 operating.</li>
+        </ol></div>
+        <div class="where">docs/DISTRICT_ENERGY.md § IEA generation assignment; the page's §02 callout.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-suspect"><div class="a-body">
+        <span class="tag data">flagged, not dropped</span><b>Two "hot water" supply temperatures are almost certainly steam values.</b>
+        <p>Confederation Heights 175 °C and Cape Breton University 200 °C. They are kept in the data, ringed on the chart and listed in <code>meta.json</code> rather than deleted. Same treatment for the one Planned system carrying a 1970 commissioning year (University of Lethbridge — probably a planned conversion).</p>
+        <div class="where"><code>meta.json</code> → <code>qa.hw_supply_suspect</code>, <code>qa.planned_with_past_year</code>.</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-stale"><div class="a-body">
+        <span class="tag data">source limit</span><b>The inventory is stale, and demonstrates it on itself.</b>
+        <p>CEEDC's dashboard last updated 2024-01-24. It records Confederation Heights as a 175 °C hot-water system — and Confederation Heights is one of four energy centres in the NCR DES, which launched 2026-06-23 as a $3.4B steam→low-temperature-hot-water conversion. §08 carries hand-curated, dated projects covering what happened after the cutoff.</p>
+        <div class="where">districtenergy/curated/projects.json (carries its own <code>reviewed</code> date).</div>
+      </div></li>
+      <li><input type="checkbox" data-key="de-noclaim"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>No efficiency or GHG-savings claim is made from this data.</b>
+        <p>CEEDC states plainly that their data cannot support it — provincial aggregates for heating and cooling supplied are hard to estimate, and many systems show energy per unit floor area <em>above</em> provincial averages. The page reproduces that limitation instead of working around it.</p>
+        <div class="where">docs/DISTRICT_ENERGY.md § What this page deliberately does not claim.</div>
       </div></li>
     </ul>
   </div>

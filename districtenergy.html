@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>District Energy Explorer — Canada's thermal networks</title>
+<meta name="description" content="What district energy is, how the generations differ, and every one of the 254 Canadian district energy systems in CEEDC's national inventory — mapped, filtered and honest about what the data can't tell you.">
+<meta property="og:title" content="District Energy Explorer — Canada's thermal networks">
+<meta property="og:description" content="238 operating district energy systems across Canada: fuels, capacity, vintage and the IEA 1G–4G ladder, built from CEEDC's national inventory.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/districtenergy">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/districtenergy.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="District Energy Explorer social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/districtenergy.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M6 20h20M6 24h20' stroke='%23E8A124' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M11 20V9a5 5 0 0 1 10 0v11' stroke='%23E8A124' stroke-width='2.4' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<style>
+/* Reset, theme vars (light/dark/cb), header, hero, Simple/Advanced toggle,
+   theme toggle, info tooltips and footer all come from assets/site-theme.css.
+   This page's charts DO read the --d-* data vars at paint time (readPalette
+   below), the pattern retrofits.html and grid.html established, so they stay
+   legible in dark and colour-blind themes. */
+
+main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.section-head{margin:2.4rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.4rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.25}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:760px}
+.sec-num{font-size:11px;letter-spacing:.14em;color:var(--amber-text);text-transform:uppercase;display:block;margin-bottom:3px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
+.card-title-row .card-title{margin-bottom:0}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.55}
+.prose{font-size:14px;line-height:1.7;max-width:820px}
+.prose p{margin-bottom:.8rem}
+.prose strong{font-weight:500;color:var(--ink)}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-bottom:1rem}
+.chart-grid .card{margin-bottom:0}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:default}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+svg{display:block;width:100%;overflow:visible}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.2rem}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.85rem .9rem;box-shadow:var(--shadow)}
+.kpi-val{font-family:'Fraunces',Georgia,serif;font-size:1.55rem;font-weight:300;color:var(--ink);line-height:1.1;letter-spacing:-.02em}
+.kpi-lab{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+.kpi-n{font-size:10px;color:var(--light);margin-top:3px;letter-spacing:.03em}
+
+/* Callout boxes */
+.callout{border-left:3px solid var(--amber);background:var(--surface);border-radius:0 var(--r-md) var(--r-md) 0;padding:.85rem 1rem;margin:1rem 0;font-size:13px;line-height:1.65}
+.callout b{color:var(--ink)}
+.callout.warn{border-left-color:var(--red)}
+.callout.info{border-left-color:var(--blue)}
+
+/* Generation ladder */
+.gen-ladder{display:flex;flex-direction:column;gap:.5rem}
+.gen-row{display:grid;grid-template-columns:58px 1fr;gap:.9rem;align-items:start;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem .9rem;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.gen-row:hover,.gen-row.open{border-color:var(--amber);box-shadow:var(--shadow)}
+.gen-badge{font-family:'Fraunces',Georgia,serif;font-size:1.4rem;font-weight:300;color:var(--on-navy);background:var(--navy);border-radius:var(--r-sm);text-align:center;padding:.45rem 0;line-height:1}
+.gen-badge small{display:block;font-family:'Inter',sans-serif;font-size:9px;letter-spacing:.08em;color:var(--amber2);margin-top:3px}
+.gen-h{font-size:14px;font-weight:500;color:var(--ink)}
+.gen-t{font-size:12px;color:var(--amber-text);margin-top:2px;letter-spacing:.02em}
+.gen-b{font-size:13px;color:var(--muted);margin-top:.45rem;line-height:1.6;display:none}
+.gen-row.open .gen-b{display:block}
+.gen-meta{font-size:11.5px;color:var(--light);margin-top:.5rem;display:none}
+.gen-row.open .gen-meta{display:block}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
+table.dt th{text-align:left;font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:.45rem .6rem;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--card);z-index:2}
+table.dt th.num,table.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.dt td{padding:.45rem .6rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+table.dt tbody tr:hover{background:var(--surface)}
+table.dt .dim{color:var(--light)}
+table.dt th.sortable{cursor:pointer;user-select:none}
+table.dt th.sortable:hover{color:var(--ink)}
+table.dt th.sortable::after{content:'';opacity:.4;margin-left:4px}
+table.dt th.sortable.asc::after{content:'▲'}
+table.dt th.sortable.desc::after{content:'▼'}
+
+/* Filters */
+.filters{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.9rem}
+.f-grp{display:flex;flex-direction:column;gap:3px}
+.f-lab{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.f-grp select,.f-grp input{font-family:'Inter',sans-serif;font-size:13px;padding:.4rem .55rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);color:var(--text);min-width:130px}
+.f-grp input{min-width:190px}
+.f-grp select:focus,.f-grp input:focus{outline:2px solid var(--amber);outline-offset:-1px}
+.btn-reset{font-family:'Inter',sans-serif;font-size:12px;padding:.42rem .7rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--muted);cursor:pointer}
+.btn-reset:hover{color:var(--ink);border-color:var(--ink)}
+.result-count{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+
+/* Map */
+.map-wrap{position:relative;background:var(--map-bg);border-radius:var(--r-md);overflow:hidden}
+.map-wrap svg{width:100%;height:auto}
+.map-prov{fill:var(--surface);stroke:var(--map-stroke);stroke-width:.6;stroke-linejoin:round}
+.map-pt{cursor:pointer;stroke:var(--map-stroke);stroke-width:.7}
+.map-pt.ctx{stroke:none;pointer-events:none}
+.map-legend{position:absolute;left:10px;bottom:10px;background:var(--map-attr-bg);border-radius:var(--r-sm);padding:.5rem .6rem;font-size:11px;color:var(--muted);line-height:1.7;backdrop-filter:blur(3px)}
+.map-legend .chart-legend-dot{border-radius:50%}
+
+/* Facility detail panel */
+.fac-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem 1rem;margin-top:.9rem;font-size:13px;display:none}
+.fac-panel.open{display:block}
+.fac-panel h4{font-family:'Fraunces',Georgia,serif;font-size:1.1rem;font-weight:400;color:var(--ink);margin-bottom:.15rem}
+.fac-panel .fp-sub{font-size:12px;color:var(--muted);margin-bottom:.7rem}
+.fp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem .9rem}
+.fp-item{font-size:12px}
+.fp-item .k{color:var(--muted);display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+.fp-item .v{color:var(--ink);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:.15rem}
+.chip{font-size:11px;padding:2px 8px;border-radius:11px;background:var(--card);border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.chip.fossil{background:var(--badge-neg-bg);color:var(--badge-neg-fg);border-color:transparent}
+.chip.renewable{background:var(--badge-deep-bg);color:var(--badge-deep-fg);border-color:transparent}
+.chip.recovered{background:var(--badge-med-bg);color:var(--badge-med-fg);border-color:transparent}
+.chip.purchased,.chip.shal{background:var(--badge-shal-bg);color:var(--badge-shal-fg);border-color:transparent}
+
+/* Projects */
+.proj{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:.9rem;box-shadow:var(--shadow)}
+.proj-head{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:baseline}
+.proj-name{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;font-weight:400;color:var(--ink)}
+.proj-date{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber-text);white-space:nowrap}
+.proj-where{font-size:12px;color:var(--muted);margin-top:2px}
+.proj-head-line{font-size:13.5px;color:var(--ink);margin:.55rem 0;font-weight:500}
+.proj-body{font-size:13px;color:var(--muted);line-height:1.7}
+.proj-why{font-size:12.5px;color:var(--text);background:var(--surface);border-radius:var(--r-sm);padding:.6rem .75rem;margin-top:.7rem;line-height:1.6}
+.proj-why b{color:var(--amber-text)}
+.proj-src{font-size:11.5px;color:var(--light);margin-top:.6rem}
+.proj-src a{color:var(--muted)}
+.proj-stats{display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.7rem}
+.proj-stat .v{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;color:var(--ink);font-weight:300}
+.proj-stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+
+details.data-details summary{cursor:pointer;font-size:13px;font-weight:500;color:var(--ink);list-style:none}
+details.data-details summary::-webkit-details-marker{display:none}
+details.data-details summary::before{content:'▸ ';color:var(--amber)}
+details.data-details[open] summary::before{content:'▾ '}
+
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.chart-tip{position:fixed;pointer-events:none;background:rgba(11,37,69,.95);color:#fff;font-size:11.5px;padding:6px 9px;border-radius:5px;z-index:400;opacity:0;transition:opacity .1s;line-height:1.5;max-width:250px}
+.chart-tip.on{opacity:1}
+.hero-actions{display:flex;gap:10px;justify-content:center;margin-top:.9rem;flex-wrap:wrap}
+.toolbar{display:flex;justify-content:flex-end;gap:0;margin-bottom:.5rem;flex-wrap:wrap}
+@media(max-width:640px){.gen-row{grid-template-columns:48px 1fr}.result-count{margin-left:0;width:100%}}
+</style>
+</head>
+<body class="mode-simple">
+
+<header>
+  <div class="header-left">
+    <div class="logo">district<span>·energy</span></div>
+    <div class="header-title">Canada's thermal networks</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <a class="sibling-link" href="index.html">← all tools</a>
+    <div class="header-badge">CEEDC · SFU</div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="eyebrow">District Energy Explorer</div>
+  <h1>One plant. One network of pipes. <em>Hundreds of buildings.</em></h1>
+  <p class="hero-sub">Canada has 238 operating district energy systems, from a steam loop commissioned in London, Ontario in 1880 to ambient-temperature networks being built now. This is every one of them, plus what the words on the industry's slides — 4th generation, two-pipe, thermal source network — actually mean.</p>
+</div>
+
+<main>
+
+<div class="toolbar">
+  <div class="mode-toggle" role="group" aria-label="Detail level">
+    <button class="mode-btn active" data-view="simple">Simple</button>
+    <button class="mode-btn" data-view="advanced">Advanced</button>
+  </div>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button class="theme-btn active" data-theme-set="light" title="Light" aria-label="Light theme">☀</button>
+    <button class="theme-btn" data-theme-set="dark" title="Dark" aria-label="Dark theme">☾</button>
+    <button class="theme-btn" data-theme-set="cb" title="Colour-blind friendly" aria-label="Colour-blind friendly theme">◐</button>
+  </div>
+</div>
+
+<div id="loading-msg" class="state-msg">Loading district energy data…</div>
+<div id="error-msg" class="state-msg" style="display:none">Couldn't load the district energy data.<span id="error-detail"></span></div>
+
+<div id="page-body" style="display:none">
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- ══ 01 What it is ══ -->
+  <div class="section-head">
+    <span class="sec-num">01</span>
+    <h2>What district energy actually is</h2>
+    <p class="sec-sub">Three parts, one idea: make the heat somewhere else, and pipe it.</p>
+  </div>
+
+  <div class="card">
+    <div class="prose">
+      <p>Instead of every building burning its own fuel in its own basement, a <strong>district energy system</strong> makes heat (and often chilled water, and sometimes electricity) at one or more central plants and distributes it through buried pipes to many buildings. Each building gets a heat exchanger instead of a boiler.</p>
+      <p>CEEDC's working definition, the one that decides what counts in the numbers on this page: a system that supplies <strong>thermal energy for space conditioning and water heating to more than one building</strong>. Campus systems — universities, hospitals, military bases — count. Industrial heat used inside the plant gate does not, because that energy is doing something other than conditioning space and heating water.</p>
+    </div>
+    <div style="margin-top:1rem"><svg id="dia-des" viewBox="0 0 900 250" role="img" aria-label="Diagram: central plant, distribution network, and building interfaces"></svg></div>
+    <p class="note">Every district energy system has these three parts plus an operational structure for control and, where customers are billed, an administrative one. Source: CEEDC, <em>District Energy in Canada</em> (2023).</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Why anyone builds one</div>
+      <div class="prose" style="font-size:13px">
+        <p><b>Fuel switching at scale.</b> Changing one plant from gas to biomass, sewage heat or a big industrial heat pump decarbonises every connected building at once. Doing that building by building means hundreds of separate retrofits.</p>
+        <p><b>Things that only work big.</b> Deep-lake cooling, sewage heat recovery and municipal waste heat are not viable for a single house. Spread across 180 buildings they are.</p>
+        <p><b>Nothing in the basement.</b> No boiler, no flue, no fuel storage, no combustion inspection — floor space and maintenance handed back to the building.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Why it isn't everywhere</div>
+      <div class="prose" style="font-size:13px">
+        <p><b>Pipe is expensive.</b> Thermal network piping runs on the order of $1,000 per foot installed. You need enough heat demand per metre of trench to pay for it, which is why district energy clusters in dense downtowns and campuses.</p>
+        <p><b>You have to dig.</b> Retrofitting a network into an existing street is disruptive and slow, so most growth happens in new development or on land already under one owner.</p>
+        <p><b>It is a long commitment.</b> Systems are financed over decades — CEEDC found the average commissioning year skews old, and Canada's oldest system has been running since 1880.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 02 Generations ══ -->
+  <div class="section-head">
+    <span class="sec-num">02</span>
+    <h2>The generations, and why "5G" is contested</h2>
+    <p class="sec-sub">The industry counts district heating in generations. As of 2024 the IEA's own committee says one of the labels should be retired.</p>
+  </div>
+
+  <div class="card">
+    <div class="prose">
+      <p>Generations are shorthand for <strong>how hot the water in the pipe is</strong> — and that one number drives almost everything else. Hotter networks lose more heat through the pipe wall, need more robust pipe, and can only be fed by sources hot enough to reach that temperature. Cooler networks lose less, can be built from cheaper plastic pipe, and open up sources that were previously useless: waste heat at 25 °C, a lake, a sewer.</p>
+      <p>In February 2024 the <strong>IEA's District Heating and Cooling technology programme</strong> published a deliberately simplified ladder, defined purely on network characteristics, so that the terminology means the same thing in everyone's slides. Tap a row to expand it.</p>
+    </div>
+    <div class="gen-ladder" id="gen-ladder" style="margin-top:1.1rem"></div>
+    <div class="callout warn">
+      <b>On "5th generation":</b> the IEA DHC Executive Committee explicitly <b>recommends not using the term</b>. Their reasoning is that "5G" reads as an upgrade over 4G, when for heating alone a 5G network can be <em>less</em> beneficial. They ask instead for <b>thermal source network (TSN)</b> — a pipe loop used mainly as a <em>source</em> for decentralised heat pumps in each building — and classify it as a <b>subclass of 4th generation</b>, not a successor to it. This page follows that recommendation.
+    </div>
+    <p class="note">Source: IEA DHC, <a href="https://www.iea-dhc.org/fileadmin/public_documents/2402_IEA_DHC_DH_generations_definitions.pdf" target="_blank" rel="noopener">District heating network generation definitions</a>, February 2024, drawing on Lund et al. (2014, 2021), Sulzer et al. (2021) and Werner (2022). The committee notes plainly that a later generation is <em>not necessarily better</em> for climate mitigation — that depends on emissions, exergy and life-cycle cost for the specific case.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title">Where Canadian systems sit on the ladder</span>
+      <div class="chart-legend-inline" id="gen-legend"></div>
+    </div>
+    <svg id="gen-scatter" viewBox="0 0 900 320" role="img" aria-label="Supply and return temperatures of Canadian hot-water district energy systems"></svg>
+    <p class="note" id="gen-scatter-note"></p>
+  </div>
+
+  <div class="callout warn" id="gen-caveat"></div>
+
+  <!-- ══ 03 Pipes and carriers ══ -->
+  <div class="section-head">
+    <span class="sec-num">03</span>
+    <h2>What's in the pipe, and how many pipes there are</h2>
+    <p class="sec-sub">Steam, hot water or chilled water — and whether the network bothers to bring it back.</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Heat carrier</div>
+      <div class="prose" style="font-size:13px">
+        <p><b>Steam.</b> The original carrier. Enormous heat capacity per kilogram, moves without pumping, and reaches any building temperature you like — but runs hot, leaks readily, needs licensed high-pressure operators, and loses a lot of heat to the ground. CEEDC's data shows steam systems need noticeably more staff than hot water ones, because provincial boiler and pressure-vessel rules demand closer supervision.</p>
+        <p><b>Hot water.</b> The modern default. Lower temperature, lower losses, cheaper pipe, and — crucially — it can be fed by heat pumps, solar thermal and waste heat, which cannot make steam economically.</p>
+        <p><b>Chilled water.</b> The cooling side. Supply is typically 4–8 °C; Canadian systems reporting it cluster tightly around 6 °C.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">One pipe, two pipes, or more</div>
+      <div class="prose" style="font-size:13px">
+        <p><b>Single-pipe.</b> Flow goes out and is consumed, not returned — classic steam district heating, where the condensate is sometimes dumped rather than piped back. Cheap to build, wasteful to run: you throw away both the water and the heat still in it. Only 9 Canadian systems reported their condensate return rate at all, and those ranged from 45% to 90%.</p>
+        <p><b>Two-pipe.</b> Supply and return. Every modern hot-water and chilled-water network. The <em>difference</em> between the two temperatures — the ΔT — is what actually determines how much energy each litre delivers, which is why a low return temperature is something operators chase.</p>
+        <p><b>Four-pipe and ambient loops.</b> Heating and cooling delivered simultaneously on separate pairs, or — in a thermal source network — a single uninsulated ambient loop that each building's heat pump draws from or rejects into, so one building's cooling becomes another's heating.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title">Services Canadian systems provide</span>
+      <div class="chart-legend-inline" id="svc-legend"></div>
+    </div>
+    <svg id="svc-chart" viewBox="0 0 900 210" role="img" aria-label="Number of systems providing steam heat, hot water heat and cooling"></svg>
+    <p class="note" id="svc-note"></p>
+  </div>
+
+  <!-- ══ 04 Fuels & equipment ══ -->
+  <div class="section-head">
+    <span class="sec-num">04</span>
+    <h2>Fuels and equipment</h2>
+    <p class="sec-sub">What Canadian plants actually burn, pump or recover — and what the industry is buying next.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title">Energy sources used by operating systems</span>
+      <div class="chart-legend-inline" id="fuel-legend"></div>
+    </div>
+    <svg id="fuel-chart" viewBox="0 0 900 420" role="img" aria-label="Energy sources used by Canadian district energy systems, split into single-fuel and multi-fuel systems"></svg>
+    <p class="note" id="fuel-note"></p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">The equipment that makes the heat</div>
+      <div class="prose" style="font-size:13px">
+        <p><b>Boilers</b> — gas, oil, biomass. Still the backbone: natural gas appears in most Canadian systems. Oil and diesel usually appear <em>alongside</em> gas rather than alone, because they serve as backup and peaking capacity.</p>
+        <p><b>Cogeneration (CHP).</b> An engine or turbine makes electricity, and the heat that would otherwise go up the stack is captured for the network. CEEDC counts these separately; at least 82 district energy systems in the harmonised database include cogeneration.</p>
+        <p><b>Heat pumps.</b> Increasingly the whole point. An industrial heat pump lifts low-grade heat — sewage, a lake, a data centre, ambient air — up to network temperature, and only works if the network temperature is low enough. This is the mechanism connecting sections 02 and 04.</p>
+        <p><b>Electric boilers.</b> Simple, cheap to install, expensive to run; useful for peaking and for soaking up cheap or surplus electricity.</p>
+        <p><b>Thermal storage.</b> A big insulated tank that decouples when heat is made from when it is used. Rare in Canada so far: of 31 systems asked, only 5 use it.</p>
+        <p><b>Free cooling.</b> Deep lake or sea water cold enough to cool buildings directly, with no chiller — Toronto's Deep Lake Water Cooling is the flagship.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">What operators say they're considering next</div>
+      <svg id="decarb-chart" viewBox="0 0 460 330" role="img" aria-label="Decarbonization options district energy operators are considering"></svg>
+      <p class="note" id="decarb-note"></p>
+    </div>
+  </div>
+
+  <!-- ══ 05 Canada by the numbers ══ -->
+  <div class="section-head">
+    <span class="sec-num">05</span>
+    <h2>Canada by the numbers</h2>
+    <p class="sec-sub">Everything below is computed from CEEDC's public file, with the sample size on every figure — because coverage varies enormously field by field.</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Systems by province</div>
+      <svg id="prov-chart" viewBox="0 0 460 340" role="img" aria-label="Operating district energy systems by province"></svg>
+      <p class="note" id="prov-note"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">When they were built</div>
+      <svg id="vintage-chart" viewBox="0 0 460 340" role="img" aria-label="Operating district energy systems by decade commissioned"></svg>
+      <p class="note" id="vintage-note"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title">Renewables arrive: fuel mix by construction era</span>
+      <div class="chart-legend-inline" id="era-legend"></div>
+    </div>
+    <svg id="era-chart" viewBox="0 0 900 260" role="img" aria-label="Share of systems including a renewable or recovered energy source, by construction era"></svg>
+    <p class="note" id="era-note"></p>
+  </div>
+
+  <div class="card" data-mode="advanced" style="display:none">
+    <div class="card-title">Installed capacity and energy delivered — file vs published report</div>
+    <div class="tbl-wrap"><table class="dt" id="delta-tbl"></table></div>
+    <p class="note">CEEDC's public download does not reproduce the totals in CEEDC's published report: respondent-confidential values were withheld from the public file, so file totals come out lower on a smaller n. Both are correct — they answer different questions. This page never mixes them, and never presents a file-derived total as the report's figure.</p>
+  </div>
+
+  <!-- ══ 06 Coverage honesty ══ -->
+  <div class="section-head">
+    <span class="sec-num">06</span>
+    <h2>How much of this do we actually know?</h2>
+    <p class="sec-sub">The most important chart on the page, and the one nobody puts on a slide.</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Quantitative fields reported, per operating system</div>
+      <svg id="density-chart" viewBox="0 0 460 300" role="img" aria-label="Distribution of how many quantitative fields each system reports"></svg>
+      <p class="note" id="density-note"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">What year is each system's data actually from?</div>
+      <svg id="dvintage-chart" viewBox="0 0 460 300" role="img" aria-label="Year each system's reported data refers to"></svg>
+      <p class="note" id="dvintage-note"></p>
+    </div>
+  </div>
+
+  <div class="callout warn" id="honesty-box"></div>
+
+  <!-- ══ 07 The map & explorer ══ -->
+  <div class="section-head">
+    <span class="sec-num">07</span>
+    <h2>Every system in the inventory</h2>
+    <p class="sec-sub">All 254 district energy systems CEEDC records — operating, planned and decommissioned. Click a point or a row for the full record.</p>
+  </div>
+
+  <div class="card">
+    <div class="filters">
+      <div class="f-grp"><label class="f-lab" for="f-search">Search</label><input type="search" id="f-search" placeholder="Name, city or owner…" autocomplete="off"></div>
+      <div class="f-grp"><label class="f-lab" for="f-prov">Province</label><select id="f-prov"></select></div>
+      <div class="f-grp"><label class="f-lab" for="f-fuel">Energy source</label><select id="f-fuel"></select></div>
+      <div class="f-grp"><label class="f-lab" for="f-svc">Service</label><select id="f-svc"></select></div>
+      <div class="f-grp"><label class="f-lab" for="f-status">Status</label><select id="f-status"></select></div>
+      <div class="f-grp"><label class="f-lab" for="f-era">Commissioned</label><select id="f-era"></select></div>
+      <button class="btn-reset" id="f-reset">Reset</button>
+      <span class="result-count" id="f-count"></span>
+    </div>
+
+    <div class="map-wrap">
+      <svg id="map" viewBox="0 0 900 520" role="img" aria-label="Map of Canadian district energy systems"></svg>
+      <div class="map-legend" id="map-legend"></div>
+    </div>
+
+    <div class="fac-panel" id="fac-panel"></div>
+
+    <div class="tbl-wrap" style="margin-top:1rem;max-height:520px;overflow-y:auto">
+      <table class="dt" id="fac-tbl"></table>
+    </div>
+    <p class="note" id="fac-note"></p>
+  </div>
+
+  <!-- ══ 08 What's next ══ -->
+  <div class="section-head">
+    <span class="sec-num">08</span>
+    <h2>What's being built now</h2>
+    <p class="sec-sub">CEEDC's inventory closed in 2023. Two things have happened since: the systems it already listed as planned, and the ones that opened after it went to press.</p>
+  </div>
+
+  <div id="projects"></div>
+
+  <div class="card">
+    <div class="card-title">Planned systems in the inventory</div>
+    <div class="tbl-wrap"><table class="dt" id="planned-tbl"></table></div>
+    <p class="note" id="planned-note"></p>
+  </div>
+
+  <!-- ══ 09 Methodology ══ -->
+  <div class="section-head">
+    <span class="sec-num">09</span>
+    <h2>How this page was built</h2>
+    <p class="sec-sub">Two versions — the short one, and the one with the field names in it.</p>
+  </div>
+
+  <div class="card cap-simple">
+    <div class="card-title">Methodology — plain language</div>
+    <div class="prose">
+      <p>Everything on this page comes from one national inventory, kept by the <strong>Canadian Energy and Emissions Data Centre</strong> at Simon Fraser University and paid for by Natural Resources Canada. CEEDC emails a questionnaire to district energy operators across Canada, checks the answers, and publishes both a report and a downloadable database. We used the database they publish, and their 2023 report for the figures the database doesn't contain.</p>
+      <p><strong>Three things are worth knowing before you trust a number here.</strong></p>
+      <p><strong>One: most systems didn't answer.</strong> CEEDC knows about 238 operating systems. In the 2023 round, 38 of them filled in the survey — about one in five. Roughly 160 have detailed information from any year. So a chart saying "45 systems do X" is telling you about the ones that replied, not about Canada.</p>
+      <p><strong>Two: the data isn't all from the same year.</strong> Each system's entry records the year its numbers refer to, and those run from 2014 to 2023. A third of the entries are from 2017. "The 2023 inventory" is really a decade of snapshots stacked together, which is CEEDC's own stated caveat, not a criticism.</p>
+      <p><strong>Three: the public file is smaller than the report.</strong> Some operators' figures are confidential, so they're in CEEDC's analysis but not in the file anyone can download. That means our totals are lower than the published ones. We show both, side by side, rather than picking whichever looks better.</p>
+      <p>Where a number could not be verified, it is left blank rather than estimated. Where a system reported "no", that is shown differently from a system that simply never answered.</p>
+    </div>
+  </div>
+
+  <div class="card cap-advanced" style="display:none">
+    <div class="card-title">Methodology — technical</div>
+    <div class="prose">
+      <p><b>Source.</b> CEEDC Innovative Energy Facilities database, district energy subset — <code>CEEDC_IEF_district energy.xlsx</code> (254 rows, <code>de == True</code>) and <code>CEEDC_IEF_public.xlsx</code> (3,644 rows, the full IEF superset used here only as a map context layer). Both are public downloads exposed inside CEEDC's own Tableau dashboard. Sheet layout: row 1 units, row 2 field names, row 3+ data. Dashboard last updated <b>2024-01-24</b>; report published <b>December 2023</b>.</p>
+      <p><b>Status split.</b> <code>status</code> ∈ {Operating (238), Planned (13), Decommissioned (3)}. Every aggregate on this page is computed over Operating only unless the chart says otherwise; the 238 matches the report's headline count exactly.</p>
+      <p><b>Tri-state flags.</b> <code>de_hs</code> / <code>de_hw</code> / <code>de_cw</code> and every <code>*_used</code> fuel column are Yes / No / empty. The empties are preserved as <code>null</code>, not coerced to false — 99 operating systems have <code>de_cw</code> empty and 98 have it explicitly "No", and collapsing those would invent 99 confirmed no-cooling systems. Charts show "unreported" as its own category.</p>
+      <p><b>Fuel sets, not a primary fuel.</b> The workbook has no primary-fuel column. CEEDC's dashboard derives one inside its Tableau <code>.hyper</code> extract, which is not published, so rather than guess at their priority order this page keeps the complete fuel set per system and reports single-fuel and multi-fuel counts separately, mirroring the report's own Table 8 structure.</p>
+      <p><b>IEA generation assignment.</b> Applied to <code>de_hw_supply</code> only. Thresholds from IEA DHC (Feb 2024): &gt;100 °C → 2G, &gt;70–100 °C → 3G, ≤70 °C → 4G. Exactly 70 °C is assigned to 4G, since the 4G rule ("maximum forward flow temperature of 70 °C") is more specific than the 3G range ("between 100 °C and 70 °C") and names 70 °C as the physical DHW-disinfection threshold. <b>1G is never inferred from a temperature</b> — IEA defines it by carrier (steam, independent of temperature), so the steam-network count is reported separately with its own n rather than folded into this ladder. Systems with <code>de_hw_supply</code> ≥ 150 °C are flagged as suspect (likely a steam temperature entered in the hot-water field) and drawn distinctly rather than dropped. Systems with supply ≤ 30 °C are flagged as thermal source networks.</p>
+      <p><b>Implied capacity factor</b> = <code>de_*_production</code> ÷ (<code>de_*_capacity</code> × 8760), computed only where both are present and non-zero. Values above 100% are flagged in <code>meta.json</code>, not silently clipped. CEEDC's own averages run 13–20%; their stated reasons are short seasons, redundancy, planned expansion and retired-but-retained capital.</p>
+      <p><b>Known source quirks, all handled in the pipeline and listed in <code>meta.json</code>:</b> the Metadata sheet's "Detail" column is offset from its "Field" column by 4 rows from row 60 onward (so <code>geo_used</code> reads as "Solid Biomass" and <code>waste_used</code> as "Spent Pulping Liquor" if taken at face value — the fuel labels here are the corrected mapping, cross-checked against the legend CEEDC's dashboard renders); the Metadata sheet documents an <code>npri</code> field the data sheet lacks and omits the <code>operator</code> field it has; <code>municipality_type</code> ships in mixed case; facility and city names carry stray double and trailing spaces.</p>
+      <p><b>Geometry.</b> Province outlines are unioned from the repo's existing per-province FSA polygons (<code>geo_json/*.json</code>) and simplified to 0.03°. Yukon has no <code>geo_json</code> file, so its outline is reprojected from the national FSA file with the same inverse-Lambert used by <code>Python/canada_boundary.py</code>. All 254 facilities carry coordinates in the source and all fall inside Canada; none are geocoded here.</p>
+      <p><b>Pipeline:</b> <a href="Python/district_energy_etl.py" target="_blank" rel="noopener">Python/district_energy_etl.py</a> · <b>Docs:</b> <a href="docs/DISTRICT_ENERGY.md" target="_blank" rel="noopener">docs/DISTRICT_ENERGY.md</a> · <b>QA counts and the file-vs-report delta:</b> <code>districtenergy_json/meta.json</code>.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <details class="data-details">
+      <summary>Sources &amp; limitations</summary>
+      <div style="margin-top:.7rem;font-size:13px;line-height:1.75">
+        <p><b>Inventory:</b> Canadian Energy and Emissions Data Centre (CEEDC), Simon Fraser University — <a href="https://www.sfu.ca/ceedc/databases.html" target="_blank" rel="noopener">Innovative Energy Facilities database</a>, district energy subset, via the <a href="https://cieedacdb.rem.sfu.ca:8006/district-energy-inventory/" target="_blank" rel="noopener">District Energy Inventory dashboard</a>. CEEDC is funded through government and industry sponsorship; this survey is funded primarily by CanmetENERGY-Ottawa, Natural Resources Canada.</p>
+        <p><b>Report:</b> Griffin, B. (2023). <a href="https://www.sfu.ca/content/dam/sfu/ceedc/publications/facilities/CEEDC%20-%20District%20Energy%20Report%202023.pdf" target="_blank" rel="noopener"><em>District Energy in Canada</em></a>. CEEDC, Simon Fraser University, prepared for CanmetENERGY-Ottawa, NRCan, December 2023.</p>
+        <p><b>Generation definitions:</b> IEA DHC (2024). <a href="https://www.iea-dhc.org/fileadmin/public_documents/2402_IEA_DHC_DH_generations_definitions.pdf" target="_blank" rel="noopener">District heating network generation definitions</a>, February 2024.</p>
+        <p><b>Building-stock context:</b> NRCan Comprehensive Energy Use Database, 2023 — also browsable in this suite's <a href="ceud.html">CEUD Explorer</a>.</p>
+        <p style="margin-top:.8rem"><b>What this data cannot tell you.</b> Whether district energy saves energy or emissions relative to the alternative — CEEDC says so directly: the available survey data are insufficient for that analysis, provincial aggregates for heating and cooling supplied are hard to estimate, and many systems show energy per unit floor area <em>above</em> provincial averages. What the costs and benefits are. Whether there is a demand-density threshold below which it stops making sense.</p>
+        <p><b>What we assumed.</b> That the 238 systems flagged Operating are currently operating, at whatever date each row's <code>year_reported</code> refers to. That coordinates in the source are correct — they were range-checked against Canada's bounding box but not verified individually. That the IEA's temperature thresholds can be applied to a single reported supply temperature, when a real network's forward temperature varies with outdoor conditions.</p>
+        <p><b>What would change the answer.</b> A higher response rate — CEEDC is explicit that as more systems are added, the averages come down, because newly identified systems are generally smaller. Temperature data for more than 27 systems, which would turn the generation section from illustrative into representative. A refreshed survey: this inventory predates the largest district energy conversion in Canadian history, which is in section 08.</p>
+        <p style="margin-top:.8rem" id="meta-generated"></p>
+      </div>
+    </details>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  Data: <a href="https://www.sfu.ca/ceedc.html" target="_blank" rel="noopener">CEEDC — Canadian Energy and Emissions Data Centre, Simon Fraser University</a>, funded by CanmetENERGY-Ottawa, Natural Resources Canada.<br>
+  Generation definitions: <a href="https://www.iea-dhc.org/" target="_blank" rel="noopener">IEA DHC</a>. Figures are CEEDC's survey results, not a census — see methodology for response rates and data vintages.<br>
+  Website, data pipeline and python scripts were developed using Claude AI.
+</footer>
+
+<div class="chart-tip" id="chart-tip"></div>
+
+<script>
+/* ── Data layer ───────────────────────────────────────────────────────────
+   districtenergy_json/* built by Python/district_energy_etl.py. Same-origin
+   on gh-pages, so BASE_URL is './' like every other page in the suite. */
+const BASE_URL='./';
+const DE=`${BASE_URL}districtenergy_json/`;
+const D={};
+
+function fetchJSON(url){
+  return fetch(url).then(r=>{
+    if(!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
+    return r.json();
+  });
+}
+
+/* ── Theme / mode ─────────────────────────────────────────────────────── */
+const THEME_KEY='energy-theme', MODE_KEY='energy-mode';
+function initTheme(){
+  const t=localStorage.getItem(THEME_KEY)||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.themeSet===t));
+  const m=localStorage.getItem(MODE_KEY)||'simple';
+  document.body.className='mode-'+m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===m));
+  applyMode(m);
+}
+function applyMode(m){
+  document.querySelectorAll('[data-mode="advanced"]').forEach(e=>{e.style.display=(m==='advanced')?'':'none';});
+  document.querySelectorAll('.cap-advanced').forEach(e=>{e.style.display=(m==='advanced')?'':'none';});
+  document.querySelectorAll('.cap-simple').forEach(e=>{e.style.display=(m==='advanced')?'none':'';});
+}
+document.querySelectorAll('.theme-btn').forEach(b=>b.addEventListener('click',()=>{
+  const t=b.dataset.themeSet;
+  localStorage.setItem(THEME_KEY,t);
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('.theme-btn').forEach(x=>x.classList.toggle('active',x===b));
+  if(D.agg) renderAll();
+}));
+document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
+  const m=b.dataset.view;
+  localStorage.setItem(MODE_KEY,m);
+  document.body.className='mode-'+m;
+  document.querySelectorAll('.mode-btn').forEach(x=>x.classList.toggle('active',x===b));
+  applyMode(m);
+  if(D.agg) renderAll();
+}));
+
+/* Charts bake colours in at paint time, so re-read the CSS vars on every
+   render rather than caching them — a theme switch re-renders. */
+function pal(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  return {
+    primary:g('--d-primary'), secondary:g('--d-secondary'),
+    pos:g('--d-pos'), neg:g('--d-neg'), blue:g('--d-blue'), purple:g('--d-purple'),
+    track:g('--d-track'), axis:g('--d-axis'), tick:g('--d-tick'), grid:g('--d-grid'),
+    ink:g('--ink'), muted:g('--muted'), card:g('--card'), border:g('--border'),
+    amber:g('--amber'), amber2:g('--amber2'),
+  };
+}
+const FUELCLASS_COLOR=p=>({fossil:p.neg,renewable:p.pos,recovered:p.blue,purchased:p.purple});
+
+/* ── SVG helpers ──────────────────────────────────────────────────────── */
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs={},txt){
+  const n=document.createElementNS(NS,tag);
+  for(const k in attrs) n.setAttribute(k,attrs[k]);
+  if(txt!=null) n.textContent=txt;
+  return n;
+}
+function clear(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+function vb(svg){const a=svg.getAttribute('viewBox').split(/\s+/).map(Number);return{w:a[2],h:a[3]};}
+const fmt=n=>n==null?'—':n.toLocaleString('en-CA',{maximumFractionDigits:0});
+const fmt1=n=>n==null?'—':n.toLocaleString('en-CA',{maximumFractionDigits:1});
+
+const tip=document.getElementById('chart-tip');
+function showTip(e,html){
+  tip.innerHTML=html; tip.classList.add('on');
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+14, y=e.clientY+14;
+  if(x+r.width>innerWidth-8) x=e.clientX-r.width-14;
+  if(y+r.height>innerHeight-8) y=e.clientY-r.height-14;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){tip.classList.remove('on');}
+function hoverable(node,html){
+  node.addEventListener('mousemove',e=>showTip(e,html));
+  node.addEventListener('mouseleave',hideTip);
+}
+function legend(id,items){
+  const box=document.getElementById(id); if(!box) return;
+  box.innerHTML='';
+  items.forEach(it=>{
+    const d=document.createElement('span'); d.className='chart-legend-item';
+    d.innerHTML=`<span class="chart-legend-dot" style="background:${it.c}"></span>${it.l}`;
+    box.appendChild(d);
+  });
+}
+
+/* Horizontal bars with a label gutter. Used for province, fuel, decarb. */
+function hBars(svgId,rows,opts={}){
+  const svg=document.getElementById(svgId); if(!svg) return;
+  clear(svg); const p=pal(); const {w,h}=vb(svg);
+  const L=opts.labelW||150, R=opts.rightW||46, T=opts.top||6, B=14;
+  if(!rows.length){svg.appendChild(el('text',{x:w/2,y:h/2,'text-anchor':'middle',fill:p.tick,'font-size':12},'No data'));return;}
+  const max=Math.max(...rows.map(r=>opts.stacked?(r.a+r.b):r.v))||1;
+  const band=(h-T-B)/rows.length, bh=Math.min(opts.barH||16,band*0.66);
+  rows.forEach((r,i)=>{
+    const y=T+i*band+(band-bh)/2;
+    svg.appendChild(el('text',{x:L-8,y:y+bh/2+4,'text-anchor':'end','font-size':11.5,fill:p.muted},r.l));
+    svg.appendChild(el('rect',{x:L,y,width:w-L-R,height:bh,rx:2,fill:p.track,opacity:.5}));
+    if(opts.stacked){
+      const wa=(r.a/max)*(w-L-R), wb=(r.b/max)*(w-L-R);
+      if(wa>0){const n=el('rect',{x:L,y,width:wa,height:bh,rx:2,fill:r.ca||p.primary});
+        hoverable(n,`<b>${r.l}</b><br>${opts.aLabel||'A'}: ${fmt(r.a)}`); svg.appendChild(n);}
+      if(wb>0){const n=el('rect',{x:L+wa,y,width:wb,height:bh,rx:2,fill:r.cb||p.secondary});
+        hoverable(n,`<b>${r.l}</b><br>${opts.bLabel||'B'}: ${fmt(r.b)}`); svg.appendChild(n);}
+      svg.appendChild(el('text',{x:L+wa+wb+7,y:y+bh/2+4,'font-size':11,fill:p.ink,'font-variant-numeric':'tabular-nums'},fmt(r.a+r.b)));
+    }else{
+      const bw=(r.v/max)*(w-L-R);
+      const n=el('rect',{x:L,y,width:Math.max(bw,r.v>0?1.5:0),height:bh,rx:2,fill:r.c||p.primary});
+      hoverable(n,r.t||`<b>${r.l}</b><br>${fmt(r.v)}`); svg.appendChild(n);
+      svg.appendChild(el('text',{x:L+bw+7,y:y+bh/2+4,'font-size':11,fill:p.ink,'font-variant-numeric':'tabular-nums'},r.vl!=null?r.vl:fmt(r.v)));
+    }
+  });
+}
+
+/* Vertical column chart with an x-axis of categories. */
+function vBars(svgId,rows,opts={}){
+  const svg=document.getElementById(svgId); if(!svg) return;
+  clear(svg); const p=pal(); const {w,h}=vb(svg);
+  const L=opts.left||34, R=8, T=10, B=opts.bottom||42;
+  if(!rows.length){svg.appendChild(el('text',{x:w/2,y:h/2,'text-anchor':'middle',fill:p.tick,'font-size':12},'No data'));return;}
+  const max=Math.max(...rows.map(r=>r.v))||1;
+  const innerW=w-L-R, innerH=h-T-B;
+  const band=innerW/rows.length, bw=Math.min(band*0.68,opts.maxBarW||46);
+  // gridlines
+  const ticks=4;
+  for(let i=0;i<=ticks;i++){
+    const val=max*i/ticks, y=T+innerH-(val/max)*innerH;
+    svg.appendChild(el('line',{x1:L,x2:w-R,y1:y,y2:y,stroke:p.grid,'stroke-width':1}));
+    svg.appendChild(el('text',{x:L-6,y:y+3.5,'text-anchor':'end','font-size':10,fill:p.tick},fmt(val)));
+  }
+  rows.forEach((r,i)=>{
+    const bh=(r.v/max)*innerH, x=L+i*band+(band-bw)/2, y=T+innerH-bh;
+    const n=el('rect',{x,y,width:bw,height:Math.max(bh,r.v>0?1.5:0),rx:2,fill:r.c||p.primary});
+    hoverable(n,r.t||`<b>${r.l}</b><br>${fmt(r.v)}`); svg.appendChild(n);
+    const lab=el('text',{x:x+bw/2,y:h-B+15,'text-anchor':'middle','font-size':10.5,fill:p.muted},r.l);
+    if(opts.rotate){lab.setAttribute('transform',`rotate(-40 ${x+bw/2} ${h-B+15})`);lab.setAttribute('text-anchor','end');}
+    svg.appendChild(lab);
+  });
+}
+
+/* ── 01: system diagram ───────────────────────────────────────────────── */
+function drawDiagram(){
+  const svg=document.getElementById('dia-des'); clear(svg); const p=pal();
+  const supply=p.neg, ret=p.blue;
+  // plant
+  svg.appendChild(el('rect',{x:22,y:78,width:150,height:96,rx:8,fill:p.card,stroke:p.primary,'stroke-width':1.6}));
+  svg.appendChild(el('rect',{x:52,y:44,width:18,height:38,rx:3,fill:p.primary,opacity:.85}));
+  svg.appendChild(el('rect',{x:80,y:56,width:14,height:26,rx:3,fill:p.primary,opacity:.55}));
+  svg.appendChild(el('text',{x:97,y:118,'text-anchor':'middle','font-size':13,fill:p.ink,'font-weight':500},'Energy plant'));
+  svg.appendChild(el('text',{x:97,y:136,'text-anchor':'middle','font-size':10.5,fill:p.muted},'boiler · CHP · heat pump'));
+  svg.appendChild(el('text',{x:97,y:151,'text-anchor':'middle','font-size':10.5,fill:p.muted},'chiller · storage'));
+  svg.appendChild(el('text',{x:97,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'1 · GENERATION'));
+  // pipes
+  svg.appendChild(el('path',{d:'M172 108 H620',stroke:supply,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
+  svg.appendChild(el('path',{d:'M620 144 H172',stroke:ret,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
+  svg.appendChild(el('text',{x:396,y:98,'text-anchor':'middle','font-size':11,fill:supply},'supply — hot water, steam or chilled water'));
+  svg.appendChild(el('text',{x:396,y:168,'text-anchor':'middle','font-size':11,fill:ret},'return — cooled, back to the plant'));
+  svg.appendChild(el('text',{x:396,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'2 · DISTRIBUTION NETWORK'));
+  [280,400,520].forEach(x=>{
+    svg.appendChild(el('path',{d:`M${x} 108 V126 H${x+0.01} V144`,stroke:p.tick,'stroke-width':2,fill:'none',opacity:.55}));
+  });
+  // buildings
+  const bx=640;
+  [[bx,52],[bx,110],[bx,168]].forEach(([x,y],i)=>{
+    svg.appendChild(el('rect',{x,y,width:52,height:44,rx:4,fill:p.card,stroke:p.primary,'stroke-width':1.3}));
+    for(let r=0;r<2;r++)for(let c=0;c<3;c++)
+      svg.appendChild(el('rect',{x:x+9+c*13,y:y+9+r*17,width:8,height:9,rx:1,fill:p.primary,opacity:.3}));
+    svg.appendChild(el('circle',{cx:x-14,cy:y+22,r:7,fill:p.card,stroke:p.secondary,'stroke-width':1.8}));
+    svg.appendChild(el('path',{d:`M${x-18} ${y+22} h8 M${x-10} ${y+18} v8`,stroke:p.secondary,'stroke-width':1.4}));
+    svg.appendChild(el('path',{d:`M620 ${i===0?108:i===2?144:126} V${y+22} H${x-21}`,stroke:p.tick,'stroke-width':1.6,fill:'none',opacity:.6}));
+  });
+  svg.appendChild(el('text',{x:722,y:118,'font-size':13,fill:p.ink,'font-weight':500},'Buildings'));
+  svg.appendChild(el('text',{x:722,y:136,'font-size':10.5,fill:p.muted},'energy transfer station'));
+  svg.appendChild(el('text',{x:722,y:151,'font-size':10.5,fill:p.muted},'in place of a boiler'));
+  svg.appendChild(el('text',{x:760,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'3 · BUILDING INTERFACE'));
+}
+
+/* ── 02: generations ──────────────────────────────────────────────────── */
+const GENERATIONS=[
+  {g:'1G',era:'1880s–1930s',t:'Steam',h:'Steam, at whatever temperature',
+   b:'The original. IEA defines 1G purely by the heat carrier — if the forward flow is steam, it is a 1G network, regardless of temperature. Enormous heat capacity, moves without pumping, and can serve any building temperature. Also leaky, hot, lossy, and subject to high-pressure boiler regulation that drives up staffing.',
+   m:'Canada\'s first system — London, Ontario, 1880 — was one of these, and steam is still the single largest slice of Canadian installed capacity.'},
+  {g:'2G',era:'1930s–1970s',t:'Water above 100 °C',h:'Pressurised superheated water',
+   b:'Liquid water held above its atmospheric boiling point under pressure. Built in situ, heavy, insulated in concrete ducts. The generation Canada built through the 1970s oil-crisis boom, and much of it is still in the ground.',
+   m:'In the CEEDC data these appear as hot-water systems reporting supply temperatures above 100 °C.'},
+  {g:'3G',era:'1980s–2010s',t:'70–100 °C',h:'Pre-fabricated, pre-insulated pipe',
+   b:'The workhorse. Factory-made bonded pipe — carrier, insulation and casing in one — dropped straight into a trench. Cheaper, faster and far less lossy than in-situ construction. Defined by not needing superheated water to operate.',
+   m:'This is what most people picture when they say "district heating".'},
+  {g:'4G',era:'2010s–',t:'≤ 70 °C',h:'Low temperature, two-way, heat-pump-ready',
+   b:'Defined by a maximum forward flow temperature of 70 °C — the threshold required for thermal disinfection of domestic hot water. Low enough that heat pumps, solar thermal, sewage heat and industrial waste heat can feed the network directly. "Two-way" because connected buildings can also inject heat, not only draw it.',
+   m:'IEA treats 4G as an umbrella: it encompasses low-temperature networks and thermal source networks alike.'},
+  {g:'TSN',era:'2010s–',t:'Near ambient',h:'Thermal source network (the artist formerly known as 5G)',
+   b:'An uninsulated loop held close to ground or ambient temperature. It does not deliver usable heat — each building\'s own heat pump lifts it, or rejects heat into it. One building\'s cooling becomes another\'s heating. Cheap pipe, near-zero distribution losses, inherently does heating and cooling at once.',
+   m:'IEA DHC classifies this as a SUBCLASS of 4G and asks the industry to stop calling it "5th generation", because the name implies an upgrade that the evidence does not support for heating alone.'},
+];
+function drawGenLadder(){
+  const box=document.getElementById('gen-ladder'); box.innerHTML='';
+  GENERATIONS.forEach((G,i)=>{
+    const row=document.createElement('div'); row.className='gen-row'+(i===3?' open':'');
+    row.innerHTML=`<div class="gen-badge">${G.g}<small>${G.era}</small></div>
+      <div><div class="gen-h">${G.h}</div><div class="gen-t">${G.t}</div>
+      <div class="gen-b">${G.b}</div><div class="gen-meta">${G.m}</div></div>`;
+    row.addEventListener('click',()=>row.classList.toggle('open'));
+    box.appendChild(row);
+  });
+}
+function drawGenScatter(){
+  const svg=document.getElementById('gen-scatter'); clear(svg); const p=pal();
+  const {w,h}=vb(svg); const g=D.agg.iea_generation;
+  const rows=g.systems;
+  const L=52,R=16,T=16,B=52, innerW=w-L-R, innerH=h-T-B;
+  const maxT=Math.max(220,...rows.map(r=>r.supply_c));
+  const x=v=>L+(v/maxT)*innerW;
+  const BANDS=[
+    {lo:0,hi:70,g:'4G',c:p.pos},
+    {lo:70,hi:100,g:'3G',c:p.blue},
+    {lo:100,hi:maxT,g:'2G',c:p.neg},
+  ];
+  BANDS.forEach(b=>{
+    svg.appendChild(el('rect',{x:x(b.lo),y:T,width:x(b.hi)-x(b.lo),height:innerH,fill:b.c,opacity:.07}));
+    svg.appendChild(el('text',{x:(x(b.lo)+x(b.hi))/2,y:T+15,'text-anchor':'middle','font-size':12,fill:b.c,'font-weight':500},b.g));
+  });
+  [70,100].forEach(t=>{
+    svg.appendChild(el('line',{x1:x(t),x2:x(t),y1:T,y2:T+innerH,stroke:p.axis,'stroke-width':1,'stroke-dasharray':'3 3',opacity:.6}));
+  });
+  // axis
+  for(let t=0;t<=maxT;t+=25){
+    svg.appendChild(el('line',{x1:x(t),x2:x(t),y1:T+innerH,y2:T+innerH+4,stroke:p.tick}));
+    svg.appendChild(el('text',{x:x(t),y:T+innerH+17,'text-anchor':'middle','font-size':10,fill:p.tick},t));
+  }
+  svg.appendChild(el('text',{x:L+innerW/2,y:h-14,'text-anchor':'middle','font-size':11,fill:p.muted},'Reported hot-water supply temperature (°C)'));
+  // jittered rows
+  const band=innerH/Math.max(rows.length,1);
+  rows.forEach((r,i)=>{
+    const cy=T+22+((innerH-30)*(i+0.5)/rows.length);
+    if(r.return_c!=null){
+      svg.appendChild(el('line',{x1:x(r.return_c),x2:x(r.supply_c),y1:cy,y2:cy,stroke:p.tick,'stroke-width':1.4,opacity:.45}));
+      svg.appendChild(el('circle',{cx:x(r.return_c),cy,r:2.6,fill:p.card,stroke:p.tick,'stroke-width':1.2}));
+    }
+    const gc=r.gen==='4G'?p.pos:(r.gen==='3G'?p.blue:p.neg);
+    const n=el('circle',{cx:x(r.supply_c),cy,r:r.tsn?6:4.6,fill:gc,
+      stroke:r.suspect?p.amber:p.card,'stroke-width':r.suspect?2:1});
+    hoverable(n,`<b>${r.name}</b><br>${r.city||''}${r.city?', ':''}${r.prov}${r.year?' · '+r.year:''}<br>
+      Supply ${r.supply_c} °C${r.return_c!=null?' · return '+r.return_c+' °C':''}<br>
+      IEA ${r.gen}${r.tsn?' · thermal source network':''}${r.suspect?'<br><b>⚠ suspect value</b>':''}`);
+    svg.appendChild(n);
+  });
+  legend('gen-legend',[
+    {c:p.pos,l:'4G ≤70 °C'},{c:p.blue,l:'3G 70–100 °C'},{c:p.neg,l:'2G >100 °C'},
+    {c:p.amber,l:'⚠ suspect value'},{c:p.tick,l:'— supply → return'},
+  ]);
+  const susp=rows.filter(r=>r.suspect).length, tsn=rows.filter(r=>r.tsn).length;
+  document.getElementById('gen-scatter-note').innerHTML=
+    `${rows.length} of ${D.agg.n_operating} operating systems report a hot-water supply temperature — <b>${Math.round(rows.length/D.agg.n_operating*100)}%</b>. `+
+    `Each dot is one system; the line runs back to its return temperature where reported. `+
+    (tsn?`${tsn} sits at or below 30 °C, making it a thermal source network rather than a delivery network. `:'')+
+    (susp?`${susp} values at or above 150 °C are ringed in amber: those are almost certainly steam temperatures entered in the hot-water field. They are kept and flagged rather than deleted. `:'')+
+    `1G is absent by design — IEA defines it by carrier, not temperature, so it cannot be read off this axis.`;
+  document.getElementById('gen-caveat').innerHTML=
+    `<b>Read this chart as illustrative, not representative.</b> It covers ${rows.length} systems out of ${D.agg.n_operating}. `+
+    `Separately, and by IEA's carrier-based definition rather than by temperature, <b>${g.n_steam_carrier} operating systems report using steam</b> — every one of those is a 1G network. `+
+    `Systems running steam <em>and</em> hot water cannot be reduced to a single generation at all, which is why the two counts are kept apart here instead of being summed into one tidy 1G–4G histogram.`;
+}
+
+/* ── 03: services ─────────────────────────────────────────────────────── */
+function drawServices(){
+  const svg=document.getElementById('svc-chart'); clear(svg); const p=pal();
+  const {w,h}=vb(svg); const S=D.agg.services.by_type;
+  const codes=['hs','hw','cw'];
+  const L=140,R=60,T=16,B=16;
+  const total=D.agg.n_operating;
+  const band=(h-T-B)/codes.length, bh=Math.min(30,band*.62);
+  codes.forEach((c,i)=>{
+    const s=S[c], y=T+i*band+(band-bh)/2, innerW=w-L-R;
+    svg.appendChild(el('text',{x:L-10,y:y+bh/2+4,'text-anchor':'end','font-size':12,fill:p.ink},s.label));
+    let x0=L;
+    [['yes',s.yes,p.primary,'provides'],['no',s.no,p.track,'does not'],['unreported',s.unreported,p.grid,'not reported']]
+      .forEach(([k,v,col,lab])=>{
+        const bw=(v/total)*innerW;
+        if(bw<=0) return;
+        const n=el('rect',{x:x0,y,width:bw,height:bh,fill:col, rx:0});
+        hoverable(n,`<b>${s.label}</b><br>${lab}: ${v} systems (${Math.round(v/total*100)}%)`);
+        svg.appendChild(n);
+        if(bw>34) svg.appendChild(el('text',{x:x0+bw/2,y:y+bh/2+4,'text-anchor':'middle','font-size':11,
+          fill:k==='yes'?'#fff':p.muted},v));
+        x0+=bw;
+      });
+  });
+  legend('svc-legend',[{c:p.primary,l:'Provides'},{c:p.track,l:'Explicitly does not'},{c:p.grid,l:'Not reported'}]);
+  const c=D.agg.services;
+  document.getElementById('svc-note').innerHTML=
+    `All ${D.agg.n_operating} operating systems, showing what the inventory actually records. `+
+    `"Not reported" is kept as its own category rather than folded into "does not": ${S.cw.unreported} systems never answered the cooling question and ${S.cw.no} answered no, and treating those as the same thing would invent ${S.cw.unreported} confirmed no-cooling systems. `+
+    `${c.n_with_any} systems have at least one service recorded.`;
+}
+
+/* ── 04: fuels + decarb ───────────────────────────────────────────────── */
+function drawFuels(){
+  const p=pal(); const F=D.agg.fuels; const cmap=FUELCLASS_COLOR(p);
+  const rows=F.rows.map(r=>({
+    l:r.label, a:r.single, b:r.multi,
+    ca:cmap[r.class]||p.primary, cb:cmap[r.class]||p.primary,
+  }));
+  // multi shown at lower opacity via a lighter fill: use the same hue, so
+  // build a two-tone by drawing the "multi" segment with reduced alpha.
+  const svg=document.getElementById('fuel-chart'); clear(svg);
+  const {w,h}=vb(svg); const L=170,R=52,T=6,B=14;
+  const max=Math.max(...rows.map(r=>r.a+r.b))||1;
+  const band=(h-T-B)/rows.length, bh=Math.min(18,band*.66);
+  rows.forEach((r,i)=>{
+    const y=T+i*band+(band-bh)/2, innerW=w-L-R;
+    svg.appendChild(el('text',{x:L-8,y:y+bh/2+4,'text-anchor':'end','font-size':11.5,fill:p.muted},r.l));
+    const wa=(r.a/max)*innerW, wb=(r.b/max)*innerW;
+    if(wa>0){const n=el('rect',{x:L,y,width:wa,height:bh,rx:2,fill:r.ca});
+      hoverable(n,`<b>${r.l}</b><br>Only energy source: ${r.a} systems`); svg.appendChild(n);}
+    if(wb>0){const n=el('rect',{x:L+wa,y,width:wb,height:bh,rx:2,fill:r.cb,opacity:.42});
+      hoverable(n,`<b>${r.l}</b><br>Used with other sources: ${r.b} systems`); svg.appendChild(n);}
+    svg.appendChild(el('text',{x:L+wa+wb+7,y:y+bh/2+4,'font-size':11,fill:p.ink,'font-variant-numeric':'tabular-nums'},r.a+r.b));
+  });
+  legend('fuel-legend',[
+    {c:p.neg,l:'Fossil'},{c:p.pos,l:'Renewable'},{c:p.blue,l:'Recovered'},{c:p.purple,l:'Purchased'},
+  ]);
+  const mix=F.mix.filter(m=>m.n_fuels>0);
+  const multi=mix.filter(m=>m.n_fuels>1).reduce((s,m)=>s+m.systems,0);
+  document.getElementById('fuel-note').innerHTML=
+    `${F.n_with_fuel} of ${D.agg.n_operating} operating systems have at least one energy source recorded; <b>${F.n_without_fuel} have none</b>. `+
+    `Solid bars are systems where that is the <em>only</em> source; faded bars are systems using it alongside others. `+
+    `<b>${multi} systems are multi-source</b> — oil most often appears as backup and peaking capacity next to gas, not on its own. `+
+    `Totals exceed the system count because a multi-source system is counted under each source it uses.`;
+}
+function drawDecarb(){
+  const p=pal(); const T=D.report.decarbonization_options;
+  const rows=T.rows.filter(r=>!r.option.startsWith('No option')).map(r=>({
+    l:r.option.replace(/ \(.*\)/,''), v:r.responses, c:p.primary,
+    vl:r.pct+'%', t:`<b>${r.option}</b><br>${r.responses} of ${T.n} respondents (${r.pct}%)`,
+  }));
+  hBars('decarb-chart',rows,{labelW:170,rightW:40,barH:15});
+  const none=T.rows.find(r=>r.option.startsWith('No option'));
+  document.getElementById('decarb-note').innerHTML=
+    `Options operators said they were assessing for the next five years. n = ${T.n} systems — about 70% of 2023 survey respondents answered, so this is <b>${T.n} operators, not ${D.agg.n_operating} systems</b>. `+
+    `Shares exceed 100% because operators could name several. ${none?`${none.responses} (${none.pct}%) named no option at all. `:''}`+
+    `Source: CEEDC 2023 report, Table 10.`;
+}
+
+/* ── 05: province / vintage / era ─────────────────────────────────────── */
+function drawProvince(){
+  const p=pal();
+  const rows=D.agg.provinces.map(r=>({
+    l:r.prov, v:r.systems, c:p.primary,
+    t:`<b>${r.name}</b><br>${r.systems} operating systems<br>${r.chp} with cogeneration<br>${r.renewable} using a renewable source<br>`+
+      `Capacity recorded: ${fmt1(r.capacity_mw)} MW across ${r.capacity_n} service entries`,
+  }));
+  hBars('prov-chart',rows,{labelW:38,rightW:36,barH:14});
+  const top2=D.agg.provinces.slice(0,2);
+  document.getElementById('prov-note').innerHTML=
+    `${D.agg.n_operating} operating systems. ${top2.map(t=>`<b>${t.name} ${t.systems}</b>`).join(' and ')} together hold `+
+    `${Math.round((top2[0].systems+top2[1].systems)/D.agg.n_operating*100)}% of them. `+
+    `Counts here are systems, not capacity — Alberta's systems are fewer and larger.`;
+}
+function drawVintage(){
+  const p=pal(); const V=D.agg.vintage_built;
+  const rows=V.decades.map(d=>({l:String(d.decade).slice(2)+'s',v:d.systems,c:p.primary,
+    t:`<b>${d.decade}s</b><br>${d.systems} systems commissioned`}));
+  vBars('vintage-chart',rows,{left:32,bottom:40,rotate:true,maxBarW:30});
+  document.getElementById('vintage-note').innerHTML=
+    `n = ${V.n} of ${D.agg.n_operating}; <b>${V.n_unknown} systems have no commissioning year</b>. `+
+    `Oldest on record: <b>${V.oldest}</b> — London, Ontario, heating neighbouring government, university and hospital buildings. `+
+    `The two humps are real history: the 1970s oil crisis, then the post-2000 revival on technology improvement and government support.`;
+}
+function drawEra(){
+  const p=pal(); const svg=document.getElementById('era-chart'); clear(svg);
+  const {w,h}=vb(svg); const rows=D.agg.renewables_by_era;
+  const L=44,R=14,T=14,B=52, innerW=w-L-R, innerH=h-T-B;
+  const max=Math.max(...rows.map(r=>r.systems))||1;
+  const band=innerW/rows.length, bw=Math.min(band*.6,74);
+  for(let i=0;i<=4;i++){
+    const y=T+innerH-(innerH*i/4);
+    svg.appendChild(el('line',{x1:L,x2:w-R,y1:y,y2:y,stroke:p.grid}));
+    svg.appendChild(el('text',{x:L-6,y:y+3.5,'text-anchor':'end','font-size':10,fill:p.tick},Math.round(max*i/4)));
+  }
+  rows.forEach((r,i)=>{
+    const x=L+i*band+(band-bw)/2;
+    const hAll=(r.systems/max)*innerH, hRen=(r.with_renewable/max)*innerH;
+    const nFoss=r.systems-r.with_renewable;
+    const n1=el('rect',{x,y:T+innerH-hAll,width:bw,height:hAll-hRen,rx:2,fill:p.neg,opacity:.75});
+    hoverable(n1,`<b>${r.era}</b><br>${nFoss} systems with no renewable or recovered source<br>of ${r.systems} built in this era`);
+    svg.appendChild(n1);
+    const n2=el('rect',{x,y:T+innerH-hRen,width:bw,height:hRen,rx:2,fill:p.pos});
+    hoverable(n2,`<b>${r.era}</b><br>${r.with_renewable} systems including a renewable or recovered source<br>${Math.round(r.with_renewable/r.systems*100)}% of the ${r.systems} built in this era`);
+    svg.appendChild(n2);
+    svg.appendChild(el('text',{x:x+bw/2,y:T+innerH-hAll-6,'text-anchor':'middle','font-size':11,fill:p.ink},
+      Math.round(r.with_renewable/r.systems*100)+'%'));
+    svg.appendChild(el('text',{x:x+bw/2,y:h-B+16,'text-anchor':'middle','font-size':10.5,fill:p.muted},r.era));
+    svg.appendChild(el('text',{x:x+bw/2,y:h-B+30,'text-anchor':'middle','font-size':10,fill:p.tick},'n='+r.systems));
+  });
+  legend('era-legend',[{c:p.pos,l:'Includes renewable or recovered energy'},{c:p.neg,l:'Fossil / purchased only'}]);
+  const recent=D.agg.renewables_by_era[D.agg.renewables_by_era.length-1];
+  document.getElementById('era-note').innerHTML=
+    `Share of systems built in each era whose recorded fuel set includes at least one renewable (biomass, biogas, geoexchange, solar) or recovered (heat recovery, waste, sea/lake water) source. `+
+    `Percentages are of systems built in that era <em>with a commissioning year and a recorded fuel set</em>, so each column has its own n. `+
+    `CEEDC's own finding — at least half of systems built since 2000 include some renewable energy, usually solid biomass or geothermal heat — is reproduced here from the public file.`;
+}
+function drawDelta(){
+  const t=document.getElementById('delta-tbl'); const rows=D.meta.file_vs_report.rows;
+  t.innerHTML=`<thead><tr><th>Energy type</th>
+    <th class="num">Capacity, public file</th><th class="num">n</th><th class="num">Capacity, report</th>
+    <th class="num">Energy, public file</th><th class="num">n</th><th class="num">Energy, report</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r.type}</td>
+      <td class="num">${fmt1(r.file_capacity_mw)} MW</td><td class="num dim">${r.file_capacity_n}</td>
+      <td class="num">${r.report_capacity_mw!=null?fmt(r.report_capacity_mw)+' MW':'—'}</td>
+      <td class="num">${fmt1(r.file_production_gwh)} GWh</td><td class="num dim">${r.file_production_n}</td>
+      <td class="num">${r.report_production_gwh!=null?fmt(r.report_production_gwh)+' GWh':'—'}</td></tr>`).join('')}</tbody>`;
+}
+
+/* ── 06: coverage honesty ─────────────────────────────────────────────── */
+function drawDensity(){
+  const p=pal(); const DD=D.agg.data_density;
+  const rows=DD.rows.map(r=>({l:String(r.fields),v:r.systems,
+    c:r.fields===0?p.neg:p.primary,
+    t:`<b>${r.fields} of ${DD.n_quant_fields} quantitative fields</b><br>${r.systems} systems`}));
+  vBars('density-chart',rows,{left:32,bottom:36,maxBarW:26});
+  document.getElementById('density-note').innerHTML=
+    `Each system can report up to ${DD.n_quant_fields} quantitative fields (capacity, energy, floor area and pipe length, for each of steam, hot water and cooling). `+
+    `<b>${DD.n_zero} of ${D.agg.n_operating} operating systems report none of them</b> — the inventory knows their name, city, province, fuel and often their year, and nothing measurable. `+
+    `That is the honest ceiling on every capacity and energy number on this page.`;
+}
+function drawDataVintage(){
+  const p=pal(); const V=D.agg.data_vintage;
+  const rows=V.years.map(y=>({l:String(y.year),v:y.systems,c:p.secondary,
+    t:`<b>${y.year}</b><br>${y.systems} systems' data refers to this year`}));
+  vBars('dvintage-chart',rows,{left:32,bottom:36,maxBarW:34});
+  const peak=V.years.reduce((a,b)=>b.systems>a.systems?b:a,V.years[0]);
+  document.getElementById('dvintage-note').innerHTML=
+    `The <code>year_reported</code> field: what year each system's numbers actually describe. n = ${V.n}; ${V.n_unknown} systems have no reported year. `+
+    `The largest single group is <b>${peak.year}</b> with ${peak.systems} systems. `+
+    `So "the 2023 inventory" is a decade of snapshots stacked together — CEEDC says so plainly, and it is why totals here should be read as an order of magnitude, not an accounting figure.`;
+}
+function drawHonesty(){
+  const q=D.meta.qa, a=D.agg;
+  document.getElementById('honesty-box').innerHTML=
+    `<b>The three numbers to keep in your head.</b> `+
+    `<b>${a.n_operating}</b> operating systems are identified, but only <b>38</b> completed the 2023 questionnaire — a <b>21%</b> response rate — and about <b>160</b> have detailed data from any survey year. `+
+    `<b>${q.operating_with_no_quantitative_data}</b> of the operating systems carry no quantitative data at all. `+
+    `And every total here is smaller than CEEDC's published one, because confidential values were withheld from the public file. `+
+    `None of that makes the inventory bad — it is the only national picture that exists, and CEEDC states each limitation itself. It does mean this page shows <em>what was reported</em>, never <em>what is out there</em>.`;
+}
+
+/* ── 07: map + explorer ───────────────────────────────────────────────── */
+/* Lambert conformal conic, standard parallels 49°N / 77°N, central meridian
+   -96°. Equirectangular would be unusable across 41–84°N; this is ~15 lines
+   and makes the country the shape people recognise.
+
+   NOTE the sign on y. The textbook LCC formula y = ρ0 − ρ·cos(θ) is written for
+   a maths axis where y increases NORTHWARD. SVG's y increases DOWNWARD, so
+   using it unflipped draws Canada upside down — and it still looks plausible
+   enough at a glance to pass a careless review (it did: the first version
+   shipped inverted, with Windsor above Arviat, and was only caught by comparing
+   the on-screen y of the northernmost and southernmost systems). Negating y
+   here rather than at the call sites keeps fitMap's bounds and the drawn points
+   derived from the same numbers. */
+const LCC=(()=>{
+  const R=Math.PI/180, p1=49*R, p2=77*R, l0=-96*R, p0=44*R;
+  const n=Math.log(Math.cos(p1)/Math.cos(p2))/
+          Math.log(Math.tan(Math.PI/4+p2/2)/Math.tan(Math.PI/4+p1/2));
+  const F=Math.cos(p1)*Math.pow(Math.tan(Math.PI/4+p1/2),n)/n;
+  const r0=F/Math.pow(Math.tan(Math.PI/4+p0/2),n);
+  return (lon,lat)=>{
+    const r=F/Math.pow(Math.tan(Math.PI/4+lat*R/2),n);
+    const th=n*(lon*R-l0);
+    return [r*Math.sin(th), r*Math.cos(th)-r0];   // y negated for SVG's y-down
+  };
+})();
+let MAPFIT=null;
+function fitMap(){
+  let xs=[],ys=[];
+  Object.values(D.outline).forEach(rings=>rings.forEach(ring=>ring.forEach(([lon,lat])=>{
+    const [x,y]=LCC(lon,lat); xs.push(x); ys.push(y);
+  })));
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const svg=document.getElementById('map'); const {w,h}=vb(svg);
+  const pad=10, s=Math.min((w-pad*2)/(x1-x0),(h-pad*2)/(y1-y0));
+  MAPFIT={x0,y0,s,ox:pad+((w-pad*2)-(x1-x0)*s)/2,oy:pad+((h-pad*2)-(y1-y0)*s)/2};
+}
+function proj(lon,lat){
+  const [x,y]=LCC(lon,lat);
+  return [MAPFIT.ox+(x-MAPFIT.x0)*MAPFIT.s, MAPFIT.oy+(y-MAPFIT.y0)*MAPFIT.s];
+}
+function drawMap(list){
+  const svg=document.getElementById('map'); clear(svg); const p=pal();
+  if(!MAPFIT) fitMap();
+  // provinces
+  const gProv=el('g',{});
+  Object.entries(D.outline).forEach(([prov,rings])=>{
+    rings.forEach(ring=>{
+      const d='M'+ring.map(([lon,lat])=>proj(lon,lat).map(v=>v.toFixed(1)).join(',')).join('L')+'Z';
+      gProv.appendChild(el('path',{d,class:'map-prov'}));
+    });
+  });
+  svg.appendChild(gProv);
+  // context layer (advanced only — 3,390 points is noise in simple mode)
+  if(document.body.classList.contains('mode-advanced') && D.ctx){
+    const g=el('g',{});
+    D.ctx.forEach(f=>{
+      const [x,y]=proj(f.lon,f.lat);
+      g.appendChild(el('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:1.4,fill:p.tick,opacity:.28,class:'map-pt ctx'}));
+    });
+    svg.appendChild(g);
+  }
+  // district energy points
+  const g=el('g',{});
+  const byStatus={Operating:p.primary,Planned:p.secondary,Decommissioned:p.tick};
+  [...list].sort((a,b)=>(a.status==='Operating'?0:1)-(b.status==='Operating'?0:1)).forEach(f=>{
+    if(f.lat==null||f.lon==null) return;
+    const [x,y]=proj(f.lon,f.lat);
+    const cap=totalCap(f);
+    const r=cap?Math.max(3.2,Math.min(13,Math.sqrt(cap)*0.85)):3.2;
+    const n=el('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:r.toFixed(1),
+      fill:byStatus[f.status]||p.primary,opacity:.78,class:'map-pt'});
+    hoverable(n,`<b>${f.name}</b><br>${f.city||''}${f.city?', ':''}${f.prov}`+
+      `${f.year?'<br>Commissioned '+f.year:''}`+
+      `${cap?'<br>'+fmt1(cap)+' MW recorded':'<br><span style="opacity:.7">no capacity recorded</span>'}`+
+      `${f.status!=='Operating'?'<br><b>'+f.status+'</b>':''}`);
+    n.addEventListener('click',()=>selectFacility(f.id));
+    g.appendChild(n);
+  });
+  svg.appendChild(g);
+  const adv=document.body.classList.contains('mode-advanced');
+  document.getElementById('map-legend').innerHTML=
+    `<span class="chart-legend-dot" style="background:${p.primary}"></span> Operating &nbsp;`+
+    `<span class="chart-legend-dot" style="background:${p.secondary}"></span> Planned &nbsp;`+
+    `<span class="chart-legend-dot" style="background:${p.tick}"></span> Decommissioned<br>`+
+    (adv?`<span class="chart-legend-dot" style="background:${p.tick};opacity:.35"></span> Other IEF facilities (${fmt(D.ctx.length)})<br>`:'')+
+    `<span style="opacity:.75">Circle area ∝ recorded capacity</span>`;
+}
+function totalCap(f){
+  if(!f.detail) return 0;
+  return ['hs','hw','cw'].reduce((s,c)=>s+((f.detail[c]&&f.detail[c].capacity_mw)||0),0);
+}
+
+const FUEL_LABELS={};
+function buildFilters(){
+  const provs=[...new Set(D.fac.map(f=>f.prov))].sort();
+  const sel=(id,opts,all)=>{
+    const s=document.getElementById(id);
+    s.innerHTML=`<option value="">${all}</option>`+opts.map(o=>`<option value="${o.v}">${o.l}</option>`).join('');
+  };
+  sel('f-prov',provs.map(p=>({v:p,l:p})),'All provinces');
+  const fuels=D.agg.fuels.rows.map(r=>{FUEL_LABELS[r.fuel]=r.label;return{v:r.fuel,l:`${r.label} (${r.total})`};});
+  sel('f-fuel',fuels,'Any source');
+  sel('f-svc',[{v:'hs',l:'Heat — steam'},{v:'hw',l:'Heat — hot water'},{v:'cw',l:'Cooling'},{v:'chp',l:'Cogeneration'}],'Any service');
+  sel('f-status',[{v:'Operating',l:'Operating'},{v:'Planned',l:'Planned'},{v:'Decommissioned',l:'Decommissioned'}],'All statuses');
+  sel('f-era',[{v:'pre1940',l:'Before 1940'},{v:'1940-1980',l:'1940–1980'},{v:'1981-2000',l:'1981–2000'},
+               {v:'2001-2010',l:'2001–2010'},{v:'2011-',l:'2011 onward'},{v:'none',l:'No year recorded'}],'Any era');
+  ['f-prov','f-fuel','f-svc','f-status','f-era'].forEach(id=>document.getElementById(id).addEventListener('change',applyFilters));
+  document.getElementById('f-search').addEventListener('input',applyFilters);
+  document.getElementById('f-reset').addEventListener('click',()=>{
+    ['f-prov','f-fuel','f-svc','f-status','f-era'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-search').value='';
+    applyFilters();
+  });
+}
+function applyFilters(){
+  const q=document.getElementById('f-search').value.trim().toLowerCase();
+  const prov=document.getElementById('f-prov').value;
+  const fuel=document.getElementById('f-fuel').value;
+  const svc=document.getElementById('f-svc').value;
+  const st=document.getElementById('f-status').value;
+  const era=document.getElementById('f-era').value;
+  const inEra=y=>{
+    if(era==='none') return y==null;
+    if(!era) return true;
+    if(y==null) return false;
+    if(era==='pre1940') return y<1940;
+    if(era==='1940-1980') return y>=1940&&y<=1980;
+    if(era==='1981-2000') return y>=1981&&y<=2000;
+    if(era==='2001-2010') return y>=2001&&y<=2010;
+    return y>=2011;
+  };
+  D.filtered=D.fac.filter(f=>{
+    if(prov&&f.prov!==prov) return false;
+    if(st&&f.status!==st) return false;
+    if(fuel&&!(f.fuels||[]).includes(fuel)) return false;
+    if(svc==='chp'&&!f.chp) return false;
+    if(svc&&svc!=='chp'&&!(f.services&&f.services[svc]===true)) return false;
+    if(!inEra(f.year)) return false;
+    if(q){
+      const hay=`${f.name||''} ${f.city||''} ${f.owner||''} ${f.operator||''} ${f.prov||''}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  document.getElementById('f-count').textContent=
+    `${D.filtered.length} of ${D.fac.length} systems`;
+  drawMap(D.filtered);
+  drawTable();
+}
+let SORT={k:'name',dir:1};
+function drawTable(){
+  const t=document.getElementById('fac-tbl');
+  const cols=[
+    {k:'name',l:'System'},{k:'prov',l:'Prov'},{k:'city',l:'City'},
+    {k:'year',l:'Built',num:true},{k:'fuels',l:'Energy sources'},
+    {k:'services',l:'Services'},{k:'cap',l:'Capacity MW',num:true},{k:'status',l:'Status'},
+  ];
+  const val=(f,k)=>k==='cap'?totalCap(f):(k==='fuels'?(f.fuels||[]).length:f[k]);
+  const rows=[...D.filtered].sort((a,b)=>{
+    let x=val(a,SORT.k), y=val(b,SORT.k);
+    if(x==null) return 1; if(y==null) return -1;
+    if(typeof x==='string') return SORT.dir*x.localeCompare(y,'en');
+    return SORT.dir*(x-y);
+  });
+  t.innerHTML=`<thead><tr>${cols.map(c=>
+    `<th class="sortable ${c.num?'num':''} ${SORT.k===c.k?(SORT.dir>0?'asc':'desc'):''}" data-k="${c.k}">${c.l}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(f=>{
+      const cap=totalCap(f);
+      const svcs=['hs','hw','cw'].filter(c=>f.services&&f.services[c]===true)
+        .map(c=>({hs:'Steam',hw:'Hot water',cw:'Cooling'})[c]);
+      if(f.chp) svcs.push('CHP');
+      return `<tr data-id="${f.id}" style="cursor:pointer">
+        <td>${f.name}</td><td>${f.prov}</td><td class="dim">${f.city||'—'}</td>
+        <td class="num">${f.year||'<span class="dim">—</span>'}</td>
+        <td class="dim">${(f.fuels||[]).map(c=>FUEL_LABELS[c]||c).join(', ')||'—'}</td>
+        <td class="dim">${svcs.join(', ')||'—'}</td>
+        <td class="num">${cap?fmt1(cap):'<span class="dim">—</span>'}</td>
+        <td class="${f.status==='Operating'?'':'dim'}">${f.status}</td></tr>`;
+    }).join('')}</tbody>`;
+  t.querySelectorAll('th.sortable').forEach(th=>th.addEventListener('click',()=>{
+    const k=th.dataset.k;
+    SORT.dir=(SORT.k===k)?-SORT.dir:1; SORT.k=k;
+    drawTable();
+  }));
+  t.querySelectorAll('tbody tr').forEach(tr=>tr.addEventListener('click',()=>selectFacility(+tr.dataset.id)));
+  document.getElementById('fac-note').innerHTML=
+    `Capacity is the sum of whichever of steam, hot-water and cooling capacity the system reported — a dash means it reported none, not that it has none. `+
+    `Sort any column; click a row or a map point for the full record.`;
+}
+function selectFacility(id){
+  const f=D.fac.find(x=>x.id===id); if(!f) return;
+  const panel=document.getElementById('fac-panel');
+  const cls=c=>(D.agg.fuels.rows.find(r=>r.fuel===c)||{}).class||'shal';
+  const item=(k,v)=>v==null||v===''?'':`<div class="fp-item"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+  const svcBlock=(code,label)=>{
+    const d=f.detail&&f.detail[code]; if(!d) return '';
+    const bits=[
+      d.capacity_mw!=null?`${fmt1(d.capacity_mw)} MW`:null,
+      d.production_mwh!=null?`${fmt(d.production_mwh)} MWh/yr`:null,
+      d.capacity_factor_pct!=null?`${d.capacity_factor_pct}% capacity factor`:null,
+      d.buildings!=null?`${fmt(d.buildings)} buildings`:null,
+      d.floor_ft2!=null?`${fmt(d.floor_ft2)} ft²`:null,
+      d.pipe_ft!=null?`${fmt(d.pipe_ft)} ft of pipe`:null,
+      d.supply_c!=null?`supply ${d.supply_c} °C`:null,
+      d.return_c!=null?`return ${d.return_c} °C`:null,
+      d.metered===true?'thermal metering':null,
+      d.storage===true?'thermal storage':null,
+    ].filter(Boolean);
+    return `<div class="fp-item" style="grid-column:1/-1"><span class="k">${label}</span><span class="v">${bits.join(' · ')||'recorded, no detail'}</span></div>`;
+  };
+  const planned=D.projects.planned_context&&D.projects.planned_context[f.name];
+  panel.innerHTML=`<h4>${f.name}</h4>
+    <div class="fp-sub">${[f.city,f.prov].filter(Boolean).join(', ')}${f.year?` · commissioned ${f.year}`:''} · <b>${f.status}</b>${f.year_reported?` · data reported for ${f.year_reported}`:''}</div>
+    ${planned?`<div class="callout info" style="margin:.2rem 0 .8rem">${planned}</div>`:''}
+    <div class="chips" style="margin-bottom:.8rem">${(f.fuels||[]).map(c=>
+      `<span class="chip ${cls(c)}">${FUEL_LABELS[c]||c}</span>`).join('')||'<span class="chip">No energy source recorded</span>'}</div>
+    <div class="fp-grid">
+      ${item('Owner',f.owner)}${item('Operator',f.operator)}
+      ${item('Municipality',f.muni?f.muni[0].toUpperCase()+f.muni.slice(1):null)}
+      ${item('Cogeneration',f.chp?'Yes':null)}
+      ${item('Electrical capacity',f.elec_capacity_mw!=null?fmt1(f.elec_capacity_mw)+' MW':null)}
+      ${item('IEA generation',f.iea_generation?f.iea_generation+(f.is_tsn?' · thermal source network':'')+(f.iea_temp_suspect?' ⚠ suspect temperature':''):null)}
+      ${svcBlock('hs','Heat — steam')}${svcBlock('hw','Heat — hot water')}${svcBlock('cw','Cooling — water')}
+      ${item('Customers',(f.users||[]).map(u=>u.replace(/_/g,' ')).join(', ')||null)}
+      ${item('CEEDC source',f.source)}
+    </div>`;
+  panel.classList.add('open');
+  panel.scrollIntoView({behavior:'instant',block:'nearest'});
+}
+
+/* ── 08: projects + planned ───────────────────────────────────────────── */
+function drawProjects(){
+  const box=document.getElementById('projects'); box.innerHTML='';
+  D.projects.projects.forEach(pr=>{
+    const stats=[
+      pr.capacity_heat_mw?{k:'Heating',v:pr.capacity_heat_mw+' MW'}:null,
+      pr.capacity_cool_mw?{k:'Cooling',v:pr.capacity_cool_mw+' MW'}:null,
+      pr.capacity_added_mw?{k:'Added',v:'+'+pr.capacity_added_mw+' MW'}:null,
+      pr.investment_cad?{k:'Investment',v:'$'+(pr.investment_cad/1e9).toFixed(1)+'B'}:null,
+      pr.generation_change?{k:'Generation',v:pr.generation_change}:null,
+    ].filter(Boolean);
+    const d=document.createElement('div'); d.className='proj';
+    d.innerHTML=`<div class="proj-head">
+        <div><div class="proj-name">${pr.name}</div>
+        <div class="proj-where">${pr.operator} · ${pr.city}, ${pr.province}${pr.also_serves?' and '+pr.also_serves:''}</div></div>
+        <div class="proj-date">${pr.date}</div></div>
+      <div class="proj-head-line">${pr.headline}</div>
+      ${stats.length?`<div class="proj-stats">${stats.map(s=>
+        `<div class="proj-stat"><div class="v">${s.v}</div><div class="k">${s.k}</div></div>`).join('')}</div>`:''}
+      <div class="proj-body" style="margin-top:.7rem">${pr.body}</div>
+      ${pr.why_it_matters?`<div class="proj-why"><b>Why it matters here:</b> ${pr.why_it_matters}</div>`:''}
+      <div class="proj-src">Sources: ${pr.sources.map(s=>
+        `<a href="${s.url}" target="_blank" rel="noopener">${s.publisher}</a>`).join(' · ')} — checked ${pr.checked}</div>`;
+    box.appendChild(d);
+  });
+}
+function drawPlanned(){
+  const planned=D.fac.filter(f=>f.status==='Planned')
+    .sort((a,b)=>(a.prov+a.name).localeCompare(b.prov+b.name));
+  const t=document.getElementById('planned-tbl');
+  t.innerHTML=`<thead><tr><th>System</th><th>Prov</th><th>City</th><th>Energy sources</th><th>Context</th></tr></thead>
+    <tbody>${planned.map(f=>`<tr data-id="${f.id}" style="cursor:pointer">
+      <td>${f.name}</td><td>${f.prov}</td><td class="dim">${f.city||'—'}</td>
+      <td class="dim">${(f.fuels||[]).map(c=>FUEL_LABELS[c]||c).join(', ')||'—'}</td>
+      <td class="dim">${(D.projects.planned_context&&D.projects.planned_context[f.name])||''}</td></tr>`).join('')}</tbody>`;
+  t.querySelectorAll('tbody tr').forEach(tr=>tr.addEventListener('click',()=>selectFacility(+tr.dataset.id)));
+  const dec=D.fac.filter(f=>f.status==='Decommissioned');
+  document.getElementById('planned-note').innerHTML=
+    `${planned.length} systems CEEDC recorded as planned as of the 2023 inventory. Most have no fuel or year recorded yet — that is normal for a system that has not been built. `+
+    `The inventory also lists <b>${dec.length} decommissioned</b> systems (${dec.map(f=>f.name).join(', ')}), which is worth noting because inventories rarely track what closes. `+
+    `One entry, University of Lethbridge, is flagged Planned with a 1970 commissioning year — almost certainly a planned expansion or conversion of an existing system. It is left as CEEDC recorded it and flagged in <code>meta.json</code>, not silently reclassified.`;
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────────── */
+function drawKPIs(){
+  const a=D.agg, r=D.report.headline;
+  const capTot=['hs','hw','cw'].reduce((s,c)=>s+a.capacity[c].total_mw,0);
+  const capN=['hs','hw','cw'].reduce((s,c)=>s+a.capacity[c].n,0);
+  // Provenance is spelled out on every tile. This page's whole argument is that
+  // report figures and public-file figures are different numbers answering
+  // different questions, so the KPI row is the last place to blur them.
+  const k=[
+    {v:a.n_operating,l:'Operating district energy systems',n:'public file · matches the report exactly'},
+    {v:fmt(r.thermal_capacity_mw)+' MW',l:'Installed thermal capacity',n:'report figure — the file totals '+fmt1(capTot)+' MW on n='+capN},
+    {v:(r.thermal_energy_delivered_mwh/1e6).toFixed(1)+'M MWh',l:'Thermal energy delivered a year',n:'report figure · ≈'+r.thermal_energy_delivered_pj+' PJ'},
+    {v:r.share_of_building_thermal_energy_pct+'%',l:'Of Canadian building space & water conditioning',n:'report figure · apartment, commercial, institutional'},
+    {v:fmt(r.buildings_served),l:'Buildings connected',n:'report figure · '+fmt(Math.round(r.floor_space_ft2/1e6))+'M ft² ≈ '+fmt(r.floor_space_household_equivalent)+' homes'},
+    {v:a.iea_generation.n_steam_carrier,l:'Systems still running steam',n:'public file · 1G by the IEA definition'},
+  ];
+  document.getElementById('kpi-row').innerHTML=k.map(x=>
+    `<div class="kpi"><div class="kpi-val">${x.v}</div><div class="kpi-lab">${x.l}</div><div class="kpi-n">${x.n}</div></div>`).join('');
+}
+
+/* ── render / boot ────────────────────────────────────────────────────── */
+function renderAll(){
+  drawKPIs();
+  drawDiagram();
+  drawGenLadder();
+  drawGenScatter();
+  drawServices();
+  drawFuels();
+  drawDecarb();
+  drawProvince();
+  drawVintage();
+  drawEra();
+  drawDelta();
+  drawDensity();
+  drawDataVintage();
+  drawHonesty();
+  applyFilters();
+  drawProjects();
+  drawPlanned();
+}
+function boot(){
+  Promise.all([
+    fetchJSON(DE+'facilities.json'),
+    fetchJSON(DE+'aggregates.json'),
+    fetchJSON(DE+'canada_outline.json'),
+    fetchJSON(DE+'report_2023.json'),
+    fetchJSON(DE+'projects.json'),
+    fetchJSON(DE+'meta.json'),
+    fetchJSON(DE+'ief_context.json').catch(()=>[]),
+  ]).then(([fac,agg,outline,report,projects,meta,ctx])=>{
+    D.fac=fac; D.agg=agg; D.outline=outline; D.report=report;
+    D.projects=projects; D.meta=meta; D.ctx=ctx; D.filtered=fac;
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('page-body').style.display='block';
+    document.getElementById('meta-generated').innerHTML=
+      `Data generated ${new Date(meta.generated_at).toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'})} `+
+      `from CEEDC's published files (dashboard last updated ${meta.source.dashboard_last_updated}; report ${meta.source.report_published}).`;
+    buildFilters();
+    renderAll();
+  }).catch(err=>{
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('error-msg').style.display='block';
+    document.getElementById('error-detail').textContent=' '+err.message;
+    console.error(err);
+  });
+}
+
+initTheme();
+boot();
+
+let rt=null;
+addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(D.agg)renderAll();},200);});
+</script>
+</body>
+</html>

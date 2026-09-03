@@ -1,6 +1,67 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-09-03** (**District Energy Explorer** — new tool shipped:
+`districtenergy.html` + `Python/district_energy_etl.py` + `districtenergy_json/`
++ [docs/DISTRICT_ENERGY.md](docs/DISTRICT_ENERGY.md). Trigger: user asked for a
+district energy page covering definitions (generations, single/double pipe,
+fuels, equipment), the Simon Fraser dataset, project news and any other usable
+stats.
+
+The dataset turned out to be **CEEDC**'s (Canadian Energy and Emissions Data
+Centre, SFU, funded by CanmetENERGY-Ottawa) Innovative Energy Facilities
+database. `sfu.ca/ceedc/databases.html` only embeds a Tableau dashboard — the
+actual **public download links are inside the rendered viz**
+(`CEEDC_IEF_district energy.xlsx`, 254 systems; `CEEDC_IEF_public.xlsx`, 3,644
+IEF facilities; plus the `.twbx`). Licensing: CEEDC states no terms anywhere
+(their `contact/terms-conditions.html` 404s); user confirmed he works with
+people at CEEDC, no problem using it, **reference the source** — done in the
+header badge, footer, both methodologies and the sources panel.
+
+**Three findings shaped the build.** (1) *The public file does not reproduce the
+published report's totals* — respondent-confidential values were withheld, so
+file totals come out lower on a smaller n (steam capacity 3,757 MW n=50 vs
+3,990 MW n=57; steam production 4.05M vs 5.13M MWh). Both are correct; the
+pipeline **computes** the delta into `meta.json` rather than asserting it, the
+page shows it as a table in Advanced, and report figures vs file figures are
+never mixed. (2) *Coverage is far thinner than "238 systems" implies* — 38 of
+238 completed the 2023 survey (21%), and **90 operating systems report zero
+quantitative fields**; `year_reported` runs 2014–2023 per row (82 rows are
+2017), so "the 2023 inventory" is a decade of snapshots. Both are charted as
+first-class content in §06 rather than buried in a caveat. (3) *IEA generation
+classification is possible but only for n=26* — `de_hw_supply` is populated for
+27 systems spanning 8 °C to 200 °C.
+
+Generation methodology decided explicitly with the user: use the **IEA DHC
+Feb-2024** ladder (1G steam by carrier · 2G >100 °C · 3G 70–100 °C · 4G ≤70 °C),
+follow IEA's own recommendation **against the term "5G"** in favour of *thermal
+source network* as a 4G subclass, and **do not** inflate n by inferring 1G from
+the steam flag — that conflates "uses steam" with "is a 1G network" and
+mislabels hybrids. So the ladder shows n=26 (2G 5, 3G 17, 4G 4, one TSN: UBC
+Okanagan at 8 °C supply) with an explicit "illustrative, not representative"
+callout, and the 94 steam systems are reported separately as 1G-by-definition.
+Two hot-water supply temperatures ≥150 °C (Confederation Heights 175 °C, Cape
+Breton University 200 °C) are almost certainly steam values in the wrong field —
+kept, ringed on the chart, and flagged in `meta.json`, not dropped.
+
+Map: all 254 systems have source coordinates, so the page plots them on a
+**Lambert conformal conic** (49°N/77°N, −96°) against province outlines unioned
+from the repo's own `geo_json/` — with Yukon reprojected from
+`lfsa000b21a_e.json` via `canada_boundary.py`'s inverse-Lambert, imported rather
+than copied, since `geo_json/` still has no YT file. User chose to include the
+**full IEF superset as a context layer** — 3,390 non-district-energy facilities
+drawn behind the district energy points, Advanced mode only.
+
+Nice accident worth keeping: the inventory records **Confederation Heights** as
+a 175 °C hot-water system, and Confederation Heights is one of the four energy
+centres in the **NCR DES**, which launched 2026-06-23 as a $3.4B steam→
+low-temperature-hot-water conversion. The data's staleness demonstrates itself.
+
+Verified live at localhost:8123 — no console errors, all 11 charts paint, 254
+map points, LCC projection sanity-checked by east/west and north/south ordering
+of known cities, filters/search/sort/detail-panel all exercised, and all three
+themes plus both detail modes re-render. Previous entry below.
+
 Updated **2026-09-03** (**Grid Dashboard** — deep-history section added: six new
 charts (generation mix by fuel, capacity factor by fuel, demand, HOEP wholesale
 price, intertie imports/exports, Global Adjustment) covering years of real IESO/
@@ -1387,6 +1448,7 @@ lifecycle-update candidates logged — see
 | 🔥 **Heat Pump Explorer** | [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) | v2 complete: 14 cities, weather-year lens, sizing sweep, lifecycle sourcing, operating costs; page re-organised 2026-07-30 (outcome-first 7-section flow, KPI tiers, before→after bars); Step 1 chart gets zero-heat/switch-off markers + controls box condensed to a sticky, 7-col bar (2026-08-07); migrated onto shared `assets/site-theme.css` with light/dark/colour-blind toggle, matching every other advanced page (2026-08-09); propane backup + per-chart month/week zoom on all 7 full-year charts + two-color backup (fossil vs. electric) + hourly-methane bug fix; axis-label cleanup, daily-sum vs. daily-mean split, Step 6 reference lines, Final-numbers tidy-up, one-page PDF summary button (2026-08-21); ON grid-EF proxy city Toronto→London + cold/warm-tail extrapolation (2026-08-24); full 8,760-hour data table with CSV export, before the methodology section, virtualized same-day after a live perf report (2026-08-27) |
 | 🧱 **Permits Explorer** | [/permits](https://ottawavisuals.github.io/Energy/permits) | [docs/PERMITS.md](docs/PERMITS.md) | shipped 2026-09-02 — nine municipal permit desks at permit level, lifted out of the Construction Tracker's advanced-only "Inside one city" section (which rendered as *nothing* on a Canada or provincial view). Full history per city from its own first month (Montreal 1990, Calgary 1999-06, Edmonton 2009, Winnipeg 2010, Ottawa 2011) instead of the shared 2017 floor; a 0.004° permit-density map with a year slider for the six cities that publish coordinates; category×year matrices; a filer word cloud (4 cities, 20+ permit threshold kept); and Toronto's approval/build intervals, which `municipal.json` has no panel for. Four data-quality finds shaped it — see docs |
 | ⚡ **Grid Dashboard** | [/grid](https://ottawavisuals.github.io/Energy/grid) | [docs/GRID.md](docs/GRID.md) | ON/AB generation mix + emissions intensity, average-vs-marginal explainer, Advanced typical-day-by-season panel; shipped 2026-07-24 |
+| 🏙️ **District Energy Explorer** | [/districtenergy](https://ottawavisuals.github.io/Energy/districtenergy) | [docs/DISTRICT_ENERGY.md](docs/DISTRICT_ENERGY.md) | shipped 2026-09-03 — definitions (IEA 1G→4G ladder incl. their objection to "5G", carriers, single/two-pipe/ambient loops, fuels, plant equipment) + CEEDC's full national inventory: 254 systems mapped on a Lambert conic with the 3,390-facility IEF superset as an Advanced context layer, filterable by province/source/service/status/era, per-system detail panel. Data-honesty content is a first-class section, not a footnote: 21% response rate, 90 of 238 operating systems with zero quantitative data, `year_reported` spanning 2014–2023, and a computed file-vs-report delta table. Static data — CEEDC surveys periodically; no auto-refresh |
 | 🚪 **Landing page** | [/](https://ottawavisuals.github.io/Energy/) | — | one card per tool, cross-linked from every tool's header (`↳ All tools`); shipped 2026-07-24 |
 | 🗺️ **Project Atlas** | [/project-atlas](https://ottawavisuals.github.io/Energy/project-atlas) | — | internal status/assumptions page — keep in sync when items ship |
 
@@ -1786,6 +1848,7 @@ GEOTHERMAL_STATUS.md's 2026-07-31 and 2026-08-03 entries.
 | 5 | Landing page hub (`index.html`) | 2026-07-24 |
 | — | New Homes Explorer (built outside the roadmap) | 2026-07-15 |
 | 14 | Heat Pump — methodology-audit fixes (upstream-oil, fuel constants, default basis) | 2026-08-19 |
+| — | District Energy Explorer (built outside the roadmap, from a direct request) | 2026-09-03 |
 
 ---
 

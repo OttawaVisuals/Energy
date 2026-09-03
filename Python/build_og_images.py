@@ -66,7 +66,7 @@ def wrap(draw, text, font, max_width):
 CARDS = {
     "index": (
         "Canadian energy data, made explorable",
-        "Eight interactive tools built from public data — how Canadians heat "
+        "Ten interactive tools built from public data — how Canadians heat "
         "their homes, what gets built, and what powers the grid.",
         "Open data · no backend",
         "/",
@@ -119,6 +119,13 @@ CARDS = {
         "why marginal emissions are the number that matters.",
         "IESO · AESO · updated weekly",
         "/grid",
+    ),
+    "districtenergy": (
+        "District Energy Explorer",
+        "Canada's 238 operating thermal networks — what district energy is, "
+        "how the generations differ, and every system on the map.",
+        "CEEDC · Simon Fraser University",
+        "/districtenergy",
     ),
     "project-atlas": (
         "Project Atlas",
