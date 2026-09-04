@@ -13,23 +13,47 @@ Created 2026-09-03. Restructured 2026-09-04.
 ## What it is
 
 An explainer *and* an explorer for Canadian district energy, aimed at both
-audiences at once, in three parts:
+audiences at once, in five sections:
 
 - **§01 District Energy 101** — what a district energy system is, the IEA
   1G→4G generation ladder (including the IEA's own objection to the term
   "5G", displayed on the page as "1st Gen"–"4th Gen"), heat carriers, single-
   vs two-pipe vs ambient-loop networks, and a quick description of every
   energy source and piece of equipment (including geothermal, waste heat and
-  solar thermal, added 2026-09-04 alongside the diagram). Closes with a
-  cost/emissions subsection — see **Non-CEEDC content**, below.
-- **§02 What's happening in Canada** — the national inventory (all 254 systems
-  CEEDC records, mapped and filterable, against a background layer of
-  Canada's whole innovative-energy fleet), the coverage-honesty charts, what's
-  being built, and a Policy subsection on Vancouver's mandatory-connection
-  bylaw.
-- **§03 World leaders** — four short country profiles (Denmark, Sweden,
-  Germany, Finland) contrasting how other mature district-energy markets got
-  there. New 2026-09-04; see **Non-CEEDC content**.
+  solar thermal, added 2026-09-04 alongside the diagram).
+- **§02 What Canada has built, and what's coming** — the national inventory
+  (all 254 systems CEEDC records, mapped and filterable, against a background
+  layer of Canada's whole innovative-energy fleet), the coverage-honesty
+  charts, the projects that postdate the inventory, and what operators say
+  they're considering next.
+- **§03 Policy, and why it isn't scaling** — municipal, provincial and federal
+  levers, then the barriers, then what the evidence actually supports on cost
+  and emissions. See **Non-CEEDC content**, below.
+- **§04 World leaders** — four country profiles (Denmark, Sweden, Germany,
+  Finland) contrasting how other mature markets got there, each tied back to a
+  specific Canadian gap. See **Non-CEEDC content**.
+- **§05 How this page was built** — the two methodologies.
+
+### Layout rules, after the 2026-09-04 restructure
+
+Worth knowing before editing, because two of these were bugs:
+
+1. **Boxes are for charts, diagrams, tables and the generation ladder.**
+   Descriptive prose is unboxed (`.plain` / `.prose`) and **single column** —
+   no side-by-side text.
+2. **`.prose` is `max-width:1000px` at `15px`.** It was 820px/14px, which
+   rendered at 72% of a 1,140px column. Do not "fix" text width with a
+   descendant selector like `.plain .prose` — the markup is
+   `class="prose plain"` on a single element, so a descendant selector silently
+   does nothing. That exact mistake shipped once.
+3. **A chart is either full-width with a ~900-wide viewBox authored for it, or
+   two-up in `.chart-grid`.** Never a 460-wide viewBox stretched full width:
+   the decarb chart rendered 869×623px that way, ~2.4× intended.
+4. **The sticky section nav is rect-based, not IntersectionObserver.** IO
+   callbacks are dispatched from the rendering pipeline, which doesn't run
+   frames in this repo's preview renderer, so an IO-driven nav highlights
+   nothing there. A `scroll` handler plus `getBoundingClientRect` works in
+   both.
 
 ---
 
@@ -41,27 +65,48 @@ static HTML, hand-written and hand-sourced — there is no JSON round-trip and
 no curated-input file, the same pattern the "why anyone builds one" prose
 already used before this restructure:
 
-- **Cost & emissions subsection (§01).** Looked for a rigorous Canadian
-  cost/GHG comparison of district energy against individual furnaces; none
-  exists publicly. What's on the page instead, each labelled for what it is:
-  the federal government's measured **63% emissions cut** from modernising
-  the National Capital Region District Energy System (one project's
-  engineering estimate — steam→low-temperature-hot-water conversion plus
-  electrified chillers — not a national average); and the Building
-  Decarbonization Alliance's and Boltzmann Institute's general cost arguments
-  for thermal energy networks, explicitly flagged as advocacy position
-  statements without a publishable $/GJ figure to verify, not independent
-  studies. CEEDC's own stated limitation (**What this page deliberately does
-  not claim**, below) is cross-referenced rather than repeated.
-- **Policy subsection (§02).** Vancouver's False Creek Neighbourhood Energy
-  Utility — mandatory connection for new buildings in its service area under
-  [Energy Utility System By-law No. 9552](https://bylaws.vancouver.ca/9552c.pdf),
-  enforced via a connectivity review at the permit stage — as the clearest
-  Canadian example of *required* rather than voluntary connection, contrasted
-  with the [Building Decarbonization Alliance's 2025 report](https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/)
-  finding ~70% of Canadians live where thermal networks could serve their
-  heating, against ~3% actually served today.
-- **World leaders (§03).** Denmark (~70% of households, cost-based municipal
+- **Policy and barriers (§03).** Primary source is the **Building
+  Decarbonization Alliance + Dunsky Energy + Climate white paper**,
+  [*Thermal Energy Networks in Canada*](https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/)
+  (2025, 42pp). ⚠️ **WebFetch returns this PDF as unparseable binary.** It was
+  extracted with `pymupdf` against the cached download instead — do that again
+  rather than concluding the report has no usable content, which is what
+  happened on the first attempt. The chapters used are *Policy and Regulatory
+  Landscape Across Canada* (pp. 14–21) and *Why TENs Aren't Scaling (Yet)*
+  (pp. 22–25). Facts drawn from it: only the **BCUC** has a provincial
+  thermal-utility regulatory framework as of May 2025, against **15 US states**
+  with legislation passed or in development; Vancouver has Canada's only active
+  building emissions performance standard, with Montréal and Toronto at
+  disclosure stage; Alberta rolled back municipal authority to exceed code in
+  2023 and Ontario's Bill 17 may do likewise; the federal consumer carbon price
+  was repealed April 2025; the Canada Green Buildings Strategy "has little to
+  say on" thermal networks; **the national model code treats network heat as
+  purchased energy at an assumed COP of 1.0**, penalising a plant-side heat
+  pump against an identical basement-side one; and the barrier set (financing
+  asymmetry vs gas rate-base recovery, unclear stakeholder roles, municipal
+  capacity and awareness). Vancouver's mandatory connection is cited to the
+  primary document,
+  [Energy Utility System By-law No. 9552](https://bylaws.vancouver.ca/9552c.pdf).
+- **The UK consumer survey (§03).** Via the same paper: a 2022 national survey
+  of 2,244 heat-network customers against 1,733 matched non-users found a lower
+  average bill (£600 vs £960) but **1 in 10 paying £2,000+**, more outages
+  (50% vs 29%) and 39% satisfaction with complaint handling. Kept because it is
+  the only consumer-side evidence found that cuts against the technology, and
+  it comes from a report advocating for it.
+- **Cost & emissions (§03).** No rigorous Canadian cost/GHG comparison against
+  individual furnaces exists publicly. What's on the page instead: the white
+  paper's own hedged framing (networks are *"not inherently low carbon"* and
+  *"may not always reduce energy costs compared to the current fossil-fired
+  status quo"* while often beating **other low-carbon pathways**); the federal
+  government's measured **63% emissions cut** at the NCR DES (one project's
+  engineering estimate, not a national average); and the potential figures —
+  ~3% of Canadian heating demand served today, **70% of Canadians living where
+  networks could serve them (McMaster University's finding, cited by BDA — not
+  BDA's own)**, and Québec's recoverable waste heat at ~40% of residential
+  heating demand (64–81 PJ) — all labelled technical potential, not forecast.
+  CEEDC's own stated limitation (**What this page deliberately does not
+  claim**, below) is cross-referenced rather than repeated.
+- **World leaders (§04).** Denmark (~70% of households, cost-based municipal
   pricing — [RAP, Jan. 2025](https://www.raponline.org/wp-content/uploads/2025/01/RAP-Oxenaar-Making-Europes-homes-Hygge-January-2025.pdf));
   Sweden (~90% of multi-family/public buildings, density-limited —
   [Stockholm Environment Institute](https://www.sei.org/publications/swedish-heat-energy-system-new-tensions-and-lock-ins-after-a-successful-transition/));
@@ -301,8 +346,15 @@ CEEDC is explicit that its data **cannot** answer whether district energy saves
 energy or emissions versus the alternative: provincial aggregates for heating
 and cooling supplied are hard to estimate, and many systems show energy per unit
 floor area *above* provincial averages. The page reproduces that limitation
-rather than working around it. No efficiency comparison, no GHG-savings claim,
-no cost-benefit number is made from this data.
+rather than working around it. **No efficiency comparison, no GHG-savings claim
+and no cost-benefit number is derived from the CEEDC data.**
+
+§03 does discuss cost and emissions, but every figure there is attributed to an
+outside source and labelled for what it is — one project's engineering estimate,
+a technical-potential study, or an advocacy organization's own hedged wording.
+Keep that separation if you edit it: the moment a CEEDC-derived number is used
+to argue a savings case, the page is making a claim its own data explicitly
+cannot support.
 
 ---
 
