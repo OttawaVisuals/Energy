@@ -1,6 +1,26 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-09-04** (**District Energy Explorer** — restructured per user
+feedback on the first build. Three changes: (1) *layout* — every pure-text
+description (why build one, heat carrier, one/two-pipe, types of energy
+sources & equipment) lost its card box; boxes are now reserved for the
+diagram, charts, tables and the interactive generation ladder. (2) *labels* —
+generation badges/legends/tooltips now read "1st Gen"–"4th Gen" instead of
+"1G"–"4G" everywhere a general reader sees them; the advanced-mode methodology
+prose keeps IEA's own "1G"–"4G" shorthand alongside the friendly name. The
+diagram gained solar thermal, waste heat and geothermal source icons feeding
+the plant. (3) *new content, three sections, none pipeline-derived* — a
+cost/emissions subsection (honest that no rigorous Canadian district-energy-
+vs-furnace comparison exists publicly; cites the NCR DES's measured 63%
+emissions cut and two advocacy orgs' cost arguments, each labelled for what it
+is); a Policy subsection on Vancouver's mandatory-connection False Creek NEU
+bylaw; and a new **World Leaders** section — four sourced country profiles
+(Denmark, Sweden, Germany, Finland). See
+[docs/DISTRICT_ENERGY.md → Non-CEEDC content](docs/DISTRICT_ENERGY.md#non-ceedc-content-added-2026-09-04)
+for the full source list. Verified in-browser: no console errors, all charts
+paint, dark theme and Advanced mode both re-render correctly.
+
 Updated **2026-09-03** (**District Energy Explorer** — new tool shipped:
 `districtenergy.html` + `Python/district_energy_etl.py` + `districtenergy_json/`
 + [docs/DISTRICT_ENERGY.md](docs/DISTRICT_ENERGY.md). Trigger: user asked for a

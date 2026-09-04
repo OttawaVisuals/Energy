@@ -46,6 +46,15 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .prose strong{font-weight:500;color:var(--ink)}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-bottom:1rem}
 .chart-grid .card{margin-bottom:0}
+
+/* Plain description text — no box. Boxes are reserved for charts, diagrams,
+   tables and the interactive generation ladder; a paragraph explaining what
+   a heat carrier is doesn't need a border around it. */
+.plain{margin-bottom:1.6rem}
+.plain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 2.4rem;margin-bottom:1.6rem}
+.subhead{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.05rem;color:var(--ink);margin:1.3rem 0 .4rem;letter-spacing:-.005em}
+.subhead:first-child{margin-top:0}
+.plain .prose,.plain-grid .prose{max-width:none}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:default}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
@@ -66,9 +75,9 @@ svg{display:block;width:100%;overflow:visible}
 
 /* Generation ladder */
 .gen-ladder{display:flex;flex-direction:column;gap:.5rem}
-.gen-row{display:grid;grid-template-columns:58px 1fr;gap:.9rem;align-items:start;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem .9rem;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.gen-row{display:grid;grid-template-columns:78px 1fr;gap:.9rem;align-items:start;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem .9rem;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .gen-row:hover,.gen-row.open{border-color:var(--amber);box-shadow:var(--shadow)}
-.gen-badge{font-family:'Fraunces',Georgia,serif;font-size:1.4rem;font-weight:300;color:var(--on-navy);background:var(--navy);border-radius:var(--r-sm);text-align:center;padding:.45rem 0;line-height:1}
+.gen-badge{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;font-weight:400;color:var(--on-navy);background:var(--navy);border-radius:var(--r-sm);text-align:center;padding:.5rem 2px;line-height:1.15}
 .gen-badge small{display:block;font-family:'Inter',sans-serif;font-size:9px;letter-spacing:.08em;color:var(--amber2);margin-top:3px}
 .gen-h{font-size:14px;font-weight:500;color:var(--ink)}
 .gen-t{font-size:12px;color:var(--amber-text);margin-top:2px;letter-spacing:.02em}
@@ -153,7 +162,18 @@ details.data-details[open] summary::before{content:'▾ '}
 .chart-tip.on{opacity:1}
 .hero-actions{display:flex;gap:10px;justify-content:center;margin-top:.9rem;flex-wrap:wrap}
 .toolbar{display:flex;justify-content:flex-end;gap:0;margin-bottom:.5rem;flex-wrap:wrap}
-@media(max-width:640px){.gen-row{grid-template-columns:48px 1fr}.result-count{margin-left:0;width:100%}}
+/* World leaders */
+.leader-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem}
+.leader{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow)}
+.leader-flag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-text);margin-bottom:.15rem}
+.leader-name{font-family:'Fraunces',Georgia,serif;font-size:1.2rem;font-weight:400;color:var(--ink);margin-bottom:.55rem}
+.leader-stat{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);line-height:1.1}
+.leader-stat-lab{font-size:11px;color:var(--muted);margin:2px 0 .7rem}
+.leader p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:.6rem}
+.leader-src{font-size:11px;color:var(--light);margin-top:.5rem}
+.leader-src a{color:var(--muted)}
+
+@media(max-width:640px){.gen-row{grid-template-columns:60px 1fr}.result-count{margin-left:0;width:100%}}
 </style>
 </head>
 <body class="mode-simple">
@@ -196,33 +216,34 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div class="kpi-row" id="kpi-row"></div>
 
-  <!-- ══ 01 What it is ══ -->
+  <!-- ══ 01 District Energy 101 ══ -->
   <div class="section-head">
     <span class="sec-num">01</span>
-    <h2>What district energy actually is</h2>
-    <p class="sec-sub">Three parts, one idea: make the heat somewhere else, and pipe it.</p>
+    <h2>District Energy 101</h2>
+    <p class="sec-sub">The physics and the vocabulary, before the data: what it is, how it's classified, what's in the pipe, and what feeds the plant.</p>
   </div>
 
   <div class="card">
+    <div class="card-title">What district energy actually is</div>
     <div class="prose">
       <p>Instead of every building burning its own fuel in its own basement, a <strong>district energy system</strong> makes heat (and often chilled water, and sometimes electricity) at one or more central plants and distributes it through buried pipes to many buildings. Each building gets a heat exchanger instead of a boiler.</p>
       <p>CEEDC's working definition, the one that decides what counts in the numbers on this page: a system that supplies <strong>thermal energy for space conditioning and water heating to more than one building</strong>. Campus systems — universities, hospitals, military bases — count. Industrial heat used inside the plant gate does not, because that energy is doing something other than conditioning space and heating water.</p>
     </div>
-    <div style="margin-top:1rem"><svg id="dia-des" viewBox="0 0 900 250" role="img" aria-label="Diagram: central plant, distribution network, and building interfaces"></svg></div>
+    <div style="margin-top:1rem"><svg id="dia-des" viewBox="0 0 900 300" role="img" aria-label="Diagram: energy sources including solar, waste heat and geothermal feeding a central plant, a distribution network, and building interfaces"></svg></div>
     <p class="note">Every district energy system has these three parts plus an operational structure for control and, where customers are billed, an administrative one. Source: CEEDC, <em>District Energy in Canada</em> (2023).</p>
   </div>
 
-  <div class="chart-grid">
-    <div class="card">
-      <div class="card-title">Why anyone builds one</div>
+  <div class="plain-grid">
+    <div class="plain">
+      <h3 class="subhead">Why anyone builds one</h3>
       <div class="prose" style="font-size:13px">
         <p><b>Fuel switching at scale.</b> Changing one plant from gas to biomass, sewage heat or a big industrial heat pump decarbonises every connected building at once. Doing that building by building means hundreds of separate retrofits.</p>
         <p><b>Things that only work big.</b> Deep-lake cooling, sewage heat recovery and municipal waste heat are not viable for a single house. Spread across 180 buildings they are.</p>
         <p><b>Nothing in the basement.</b> No boiler, no flue, no fuel storage, no combustion inspection — floor space and maintenance handed back to the building.</p>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Why it isn't everywhere</div>
+    <div class="plain">
+      <h3 class="subhead">Why it isn't everywhere</h3>
       <div class="prose" style="font-size:13px">
         <p><b>Pipe is expensive.</b> Thermal network piping runs on the order of $1,000 per foot installed. You need enough heat demand per metre of trench to pay for it, which is why district energy clusters in dense downtowns and campuses.</p>
         <p><b>You have to dig.</b> Retrofitting a network into an existing street is disruptive and slow, so most growth happens in new development or on land already under one owner.</p>
@@ -231,21 +252,16 @@ details.data-details[open] summary::before{content:'▾ '}
     </div>
   </div>
 
-  <!-- ══ 02 Generations ══ -->
-  <div class="section-head">
-    <span class="sec-num">02</span>
-    <h2>The generations, and why "5G" is contested</h2>
-    <p class="sec-sub">The industry counts district heating in generations. As of 2024 the IEA's own committee says one of the labels should be retired.</p>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">The generations, and why "5th Gen" is contested</h3>
+  <div class="prose plain" style="margin-bottom:1rem">
+    <p>The industry counts district heating in generations — shorthand for <strong>how hot the water in the pipe is</strong>, and that one number drives almost everything else. Hotter networks lose more heat through the pipe wall, need more robust pipe, and can only be fed by sources hot enough to reach that temperature. Cooler networks lose less, can be built from cheaper plastic pipe, and open up sources that were previously useless: waste heat at 25 °C, a lake, a sewer.</p>
+    <p>In February 2024 the <strong>IEA's District Heating and Cooling technology programme</strong> published a deliberately simplified ladder, defined purely on network characteristics, so that the terminology means the same thing in everyone's slides — and recommended retiring one of the labels. Tap a row to expand it.</p>
   </div>
 
   <div class="card">
-    <div class="prose">
-      <p>Generations are shorthand for <strong>how hot the water in the pipe is</strong> — and that one number drives almost everything else. Hotter networks lose more heat through the pipe wall, need more robust pipe, and can only be fed by sources hot enough to reach that temperature. Cooler networks lose less, can be built from cheaper plastic pipe, and open up sources that were previously useless: waste heat at 25 °C, a lake, a sewer.</p>
-      <p>In February 2024 the <strong>IEA's District Heating and Cooling technology programme</strong> published a deliberately simplified ladder, defined purely on network characteristics, so that the terminology means the same thing in everyone's slides. Tap a row to expand it.</p>
-    </div>
-    <div class="gen-ladder" id="gen-ladder" style="margin-top:1.1rem"></div>
+    <div class="gen-ladder" id="gen-ladder"></div>
     <div class="callout warn">
-      <b>On "5th generation":</b> the IEA DHC Executive Committee explicitly <b>recommends not using the term</b>. Their reasoning is that "5G" reads as an upgrade over 4G, when for heating alone a 5G network can be <em>less</em> beneficial. They ask instead for <b>thermal source network (TSN)</b> — a pipe loop used mainly as a <em>source</em> for decentralised heat pumps in each building — and classify it as a <b>subclass of 4th generation</b>, not a successor to it. This page follows that recommendation.
+      <b>On "5th generation":</b> the IEA DHC Executive Committee explicitly <b>recommends not using the term</b>. Their reasoning is that "5th Gen" reads as an upgrade over 4th Gen, when for heating alone a network like that can be <em>less</em> beneficial. They ask instead for <b>thermal source network (TSN)</b> — a pipe loop used mainly as a <em>source</em> for decentralised heat pumps in each building — and classify it as a <b>subclass of 4th generation</b>, not a successor to it. This page follows that recommendation.
     </div>
     <p class="note">Source: IEA DHC, <a href="https://www.iea-dhc.org/fileadmin/public_documents/2402_IEA_DHC_DH_generations_definitions.pdf" target="_blank" rel="noopener">District heating network generation definitions</a>, February 2024, drawing on Lund et al. (2014, 2021), Sulzer et al. (2021) and Werner (2022). The committee notes plainly that a later generation is <em>not necessarily better</em> for climate mitigation — that depends on emissions, exergy and life-cycle cost for the specific case.</p>
   </div>
@@ -261,24 +277,19 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div class="callout warn" id="gen-caveat"></div>
 
-  <!-- ══ 03 Pipes and carriers ══ -->
-  <div class="section-head">
-    <span class="sec-num">03</span>
-    <h2>What's in the pipe, and how many pipes there are</h2>
-    <p class="sec-sub">Steam, hot water or chilled water — and whether the network bothers to bring it back.</p>
-  </div>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What's in the pipe, and how many pipes there are</h3>
 
-  <div class="chart-grid">
-    <div class="card">
-      <div class="card-title">Heat carrier</div>
+  <div class="plain-grid">
+    <div class="plain">
+      <h3 class="subhead">Heat carrier</h3>
       <div class="prose" style="font-size:13px">
         <p><b>Steam.</b> The original carrier. Enormous heat capacity per kilogram, moves without pumping, and reaches any building temperature you like — but runs hot, leaks readily, needs licensed high-pressure operators, and loses a lot of heat to the ground. CEEDC's data shows steam systems need noticeably more staff than hot water ones, because provincial boiler and pressure-vessel rules demand closer supervision.</p>
         <p><b>Hot water.</b> The modern default. Lower temperature, lower losses, cheaper pipe, and — crucially — it can be fed by heat pumps, solar thermal and waste heat, which cannot make steam economically.</p>
         <p><b>Chilled water.</b> The cooling side. Supply is typically 4–8 °C; Canadian systems reporting it cluster tightly around 6 °C.</p>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">One pipe, two pipes, or more</div>
+    <div class="plain">
+      <h3 class="subhead">One pipe, two pipes, or more</h3>
       <div class="prose" style="font-size:13px">
         <p><b>Single-pipe.</b> Flow goes out and is consumed, not returned — classic steam district heating, where the condensate is sometimes dumped rather than piped back. Cheap to build, wasteful to run: you throw away both the water and the heat still in it. Only 9 Canadian systems reported their condensate return rate at all, and those ranged from 45% to 90%.</p>
         <p><b>Two-pipe.</b> Supply and return. Every modern hot-water and chilled-water network. The <em>difference</em> between the two temperatures — the ΔT — is what actually determines how much energy each litre delivers, which is why a low return temperature is something operators chase.</p>
@@ -296,11 +307,17 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="svc-note"></p>
   </div>
 
-  <!-- ══ 04 Fuels & equipment ══ -->
-  <div class="section-head">
-    <span class="sec-num">04</span>
-    <h2>Fuels and equipment</h2>
-    <p class="sec-sub">What Canadian plants actually burn, pump or recover — and what the industry is buying next.</p>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Types of energy sources and equipment</h3>
+  <div class="prose plain" style="margin-bottom:1rem">
+    <p><b>Boilers</b> — gas, oil, biomass. Still the backbone: natural gas appears in most Canadian systems. Oil and diesel usually appear <em>alongside</em> gas rather than alone, because they serve as backup and peaking capacity.</p>
+    <p><b>Cogeneration (CHP).</b> An engine or turbine makes electricity, and the heat that would otherwise go up the stack is captured for the network. CEEDC counts these separately; at least 82 district energy systems in the harmonised database include cogeneration.</p>
+    <p><b>Heat pumps.</b> Increasingly the whole point. An industrial heat pump lifts low-grade heat up to network temperature, and only works if the network temperature is low enough — the mechanism connecting the generations above to the sources below.</p>
+    <p><b>Geothermal (geoexchange).</b> Ground-source heat pumps drawing on the near-constant temperature a few metres down, or, in a handful of Canadian cases, deeper geothermal wells. Steady and weather-independent, but slow and expensive to drill.</p>
+    <p><b>Waste heat and heat recovery.</b> Sewage, industrial process heat, data-centre servers, a subway tunnel — heat that already exists as a by-product and would otherwise be vented or dumped. Only usable by a network cool enough to accept it, which is why this is a low-temperature-generation story as much as a fuels one.</p>
+    <p><b>Solar thermal.</b> Collectors heating water or glycol directly into the network, rather than solar PV making electricity for it. Rare in Canada so far but growing internationally as a summer-load source that leaves fuel-fired capacity for winter peaks.</p>
+    <p><b>Electric boilers.</b> Simple, cheap to install, expensive to run; useful for peaking and for soaking up cheap or surplus electricity.</p>
+    <p><b>Thermal storage.</b> A big insulated tank that decouples when heat is made from when it is used. Rare in Canada so far: of 31 systems asked, only 5 use it.</p>
+    <p><b>Free cooling.</b> Deep lake or sea water cold enough to cool buildings directly, with no chiller — Toronto's Deep Lake Water Cooling is the flagship.</p>
   </div>
 
   <div class="card">
@@ -312,30 +329,24 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="fuel-note"></p>
   </div>
 
-  <div class="chart-grid">
-    <div class="card">
-      <div class="card-title">The equipment that makes the heat</div>
-      <div class="prose" style="font-size:13px">
-        <p><b>Boilers</b> — gas, oil, biomass. Still the backbone: natural gas appears in most Canadian systems. Oil and diesel usually appear <em>alongside</em> gas rather than alone, because they serve as backup and peaking capacity.</p>
-        <p><b>Cogeneration (CHP).</b> An engine or turbine makes electricity, and the heat that would otherwise go up the stack is captured for the network. CEEDC counts these separately; at least 82 district energy systems in the harmonised database include cogeneration.</p>
-        <p><b>Heat pumps.</b> Increasingly the whole point. An industrial heat pump lifts low-grade heat — sewage, a lake, a data centre, ambient air — up to network temperature, and only works if the network temperature is low enough. This is the mechanism connecting sections 02 and 04.</p>
-        <p><b>Electric boilers.</b> Simple, cheap to install, expensive to run; useful for peaking and for soaking up cheap or surplus electricity.</p>
-        <p><b>Thermal storage.</b> A big insulated tank that decouples when heat is made from when it is used. Rare in Canada so far: of 31 systems asked, only 5 use it.</p>
-        <p><b>Free cooling.</b> Deep lake or sea water cold enough to cool buildings directly, with no chiller — Toronto's Deep Lake Water Cooling is the flagship.</p>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">What operators say they're considering next</div>
-      <svg id="decarb-chart" viewBox="0 0 460 330" role="img" aria-label="Decarbonization options district energy operators are considering"></svg>
-      <p class="note" id="decarb-note"></p>
-    </div>
+  <div class="card">
+    <div class="card-title">What operators say they're considering next</div>
+    <svg id="decarb-chart" viewBox="0 0 460 330" role="img" aria-label="Decarbonization options district energy operators are considering"></svg>
+    <p class="note" id="decarb-note"></p>
   </div>
 
-  <!-- ══ 05 Canada by the numbers ══ -->
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What the evidence says about cost and emissions</h3>
+  <div class="prose plain" style="margin-bottom:.5rem">
+    <p>The honest answer: <strong>it depends, and no single Canadian study settles it for every case.</strong> The IEA committee quoted above makes the same point about generations — a later, lower-temperature network is not automatically a better one, because the benefit comes from what feeds the plant, not from the pipe itself. CEEDC says something similar about this inventory directly: the available survey data are insufficient for a rigorous savings analysis, and some systems report energy use per unit floor area <em>above</em> the provincial average for the buildings they serve — see the limitations note at the foot of this page.</p>
+    <p><b>The strongest measured case is a fuel-switching project, not a distribution-efficiency one.</b> The federal government's modernization of the National Capital Region District Energy System — converting Ottawa's downtown steam loop to low-temperature hot water and replacing steam-driven chillers with electric ones, cooled by the Ottawa River — is projected to cut emissions <b>63% against a 2005 baseline</b> once complete, roughly half of that from the plant conversion itself. That is one project's engineering estimate, not a national average, and it says more about switching what burns in the plant than about pipes being inherently efficient.</p>
+    <p><b>Two Canadian advocacy organizations argue the cost case in general terms, without a public $/GJ figure to check.</b> The <a href="https://buildingdecarbonization.ca/thermal-energy-networks/" target="_blank" rel="noopener">Building Decarbonization Alliance</a> argues thermal energy networks can decarbonise buildings "often at a lower cost than other low-carbon alternatives"; the <a href="https://bi-ib.ca/district-energy/" target="_blank" rel="noopener">Boltzmann Institute</a> argues district energy avoids the grid upgrades, deep retrofits and storage costs that electrifying every building individually would require. Both are position statements from organizations promoting the technology, not independent head-to-head studies, and neither publishes a comparable cost-per-building or cost-per-tonne number this page could cite and verify. They are included here because they are the most-cited Canadian voices on the question, with that caveat attached rather than left implicit.</p>
+  </div>
+
+  <!-- ══ 02 What's happening in Canada ══ -->
   <div class="section-head">
-    <span class="sec-num">05</span>
-    <h2>Canada by the numbers</h2>
-    <p class="sec-sub">Everything below is computed from CEEDC's public file, with the sample size on every figure — because coverage varies enormously field by field.</p>
+    <span class="sec-num">02</span>
+    <h2>What's happening in Canada</h2>
+    <p class="sec-sub">The national picture from CEEDC's inventory, what's being built since it closed, and the policy starting to require the connection.</p>
   </div>
 
   <div class="chart-grid">
@@ -366,12 +377,8 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note">CEEDC's public download does not reproduce the totals in CEEDC's published report: respondent-confidential values were withheld from the public file, so file totals come out lower on a smaller n. Both are correct — they answer different questions. This page never mixes them, and never presents a file-derived total as the report's figure.</p>
   </div>
 
-  <!-- ══ 06 Coverage honesty ══ -->
-  <div class="section-head">
-    <span class="sec-num">06</span>
-    <h2>How much of this do we actually know?</h2>
-    <p class="sec-sub">The most important chart on the page, and the one nobody puts on a slide.</p>
-  </div>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">How much of this do we actually know?</h3>
+  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">The most important chart on this page, and the one nobody puts on a slide.</p>
 
   <div class="chart-grid">
     <div class="card">
@@ -388,12 +395,8 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div class="callout warn" id="honesty-box"></div>
 
-  <!-- ══ 07 The map & explorer ══ -->
-  <div class="section-head">
-    <span class="sec-num">07</span>
-    <h2>Every system in the inventory</h2>
-    <p class="sec-sub">All 254 district energy systems CEEDC records — operating, planned and decommissioned. Click a point or a row for the full record.</p>
-  </div>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Every system in the inventory</h3>
+  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">All 254 district energy systems CEEDC records — operating, planned and decommissioned. Click a point or a row for the full record.</p>
 
   <div class="card">
     <div class="filters">
@@ -420,12 +423,8 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="fac-note"></p>
   </div>
 
-  <!-- ══ 08 What's next ══ -->
-  <div class="section-head">
-    <span class="sec-num">08</span>
-    <h2>What's being built now</h2>
-    <p class="sec-sub">CEEDC's inventory closed in 2023. Two things have happened since: the systems it already listed as planned, and the ones that opened after it went to press.</p>
-  </div>
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What's being built now</h3>
+  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">CEEDC's inventory closed in 2023. Two things have happened since: the systems it already listed as planned, and the ones that opened after it went to press.</p>
 
   <div id="projects"></div>
 
@@ -435,9 +434,57 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="planned-note"></p>
   </div>
 
-  <!-- ══ 09 Methodology ══ -->
+  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Policy: from voluntary to required</h3>
+  <div class="prose plain" style="margin-bottom:.5rem">
+    <p>Almost everything above describes systems built because an owner chose to. Vancouver is the clearest Canadian example of the alternative: buildings inside the <b>False Creek Neighbourhood Energy Utility</b> service area are <em>required</em> to connect for space heating and domestic hot water under the city's <a href="https://bylaws.vancouver.ca/9552c.pdf" target="_blank" rel="noopener">Energy Utility System By-law No. 9552</a>. A developer applies to the city-owned utility, and the NEU's engineer runs a connectivity review of the building's HVAC design against the network's operating parameters before a permit issues — a two-to-three-month step now built into how buildings get approved in that part of the city, not an optional add-on.</p>
+    <p>That model — mandatory connection inside a defined service area, run by a municipally owned utility — is still the exception rather than the rule in Canada; most of the systems mapped above were built voluntarily, one project at a time. The national policy conversation is trying to change that: the <a href="https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/" target="_blank" rel="noopener">Building Decarbonization Alliance's 2025 report</a> argues an estimated 70% of Canadians live in areas where thermal networks could meet home heating needs, against roughly 3% of heating demand actually served today, and lays out the utility-regulation, cost-recovery and permitting barriers standing in the way — the same categories of rule Vancouver has already written down for one neighbourhood.</p>
+  </div>
+
+  <!-- ══ 03 World leaders ══ -->
   <div class="section-head">
-    <span class="sec-num">09</span>
+    <span class="sec-num">03</span>
+    <h2>World leaders</h2>
+    <p class="sec-sub">Canada's newest systems are borrowing ideas other countries adopted first — some of them decades ago. None of these transplants directly; different climates, ownership models and electricity prices see to that. Each shows a different lever.</p>
+  </div>
+
+  <div class="leader-grid">
+    <div class="leader">
+      <div class="leader-flag">Denmark</div>
+      <div class="leader-name">Coverage, by seven decades of municipal build-out</div>
+      <div class="leader-stat">~70%</div>
+      <div class="leader-stat-lab">of Danish households heated by district energy</div>
+      <p>Denmark is the reference case because it started earliest and never stopped: two out of three Danish homes now run on district heating, most of it municipally or cooperatively owned and regulated to be run on a not-for-profit, cost-covering basis rather than for a return. That single pricing rule — heat sold at cost, not marked up — is credited with keeping public trust in the system through decades of fuel switching, from oil to coal to biomass and waste to, increasingly, large heat pumps.</p>
+      <div class="leader-src">Sources: <a href="https://www.raponline.org/wp-content/uploads/2025/01/RAP-Oxenaar-Making-Europes-homes-Hygge-January-2025.pdf" target="_blank" rel="noopener">RAP, Jan. 2025</a> · <a href="https://dbdh.org/wp-content/uploads/2024/11/SoG_WhitePaper_DistrictEnergy2024_210x297_V09.pdf" target="_blank" rel="noopener">DBDH, 2024</a></div>
+    </div>
+    <div class="leader">
+      <div class="leader-flag">Sweden</div>
+      <div class="leader-name">Targeting the building stock where it works</div>
+      <div class="leader-stat">~90%</div>
+      <div class="leader-stat-lab">of Swedish multi-family and public buildings</div>
+      <p>Sweden shows the honest limit of the model rather than hiding it: virtually every town has a network, and nearly all multi-family and public buildings are on it, but single-family homes mostly still heat with electricity and heat pumps. Density decides the boundary. Canada's own inventory follows the identical pattern — campuses and dense downtowns, not detached suburbs — so Sweden is less a template to copy than a preview of where the ceiling probably sits here too.</p>
+      <div class="leader-src">Source: <a href="https://www.sei.org/publications/swedish-heat-energy-system-new-tensions-and-lock-ins-after-a-successful-transition/" target="_blank" rel="noopener">Stockholm Environment Institute</a></div>
+    </div>
+    <div class="leader">
+      <div class="leader-flag">Germany</div>
+      <div class="leader-name">A national mandate, not a project-by-project choice</div>
+      <div class="leader-stat">100,000</div>
+      <div class="leader-stat-lab">buildings a year, required by law to connect</div>
+      <p>Germany's 2024 <em>Wärmeplanungsgesetz</em> (Heat Planning Act) is the sharpest contrast with how Canada builds district energy: every city over 100,000 people must publish a municipal heat plan by June 2026, every new network must run on at least 65% renewable heat from day one, and existing networks must reach 30% renewable or waste heat by 2030, rising to 100% by 2045. It is regulation forcing expansion and decarbonisation on a timetable, in a country that — like Canada — still has plenty of individually heated buildings left to convert.</p>
+      <div class="leader-src">Sources: <a href="https://www.cleanenergywire.org/news/germany-connect-100000-buildings-district-heating-annually" target="_blank" rel="noopener">Clean Energy Wire</a> · <a href="https://www.districtenergy.org/blogs/district-energy/2024/07/24/germany-needs-435-bln-district-heating-investment" target="_blank" rel="noopener">IDEA</a></div>
+    </div>
+    <div class="leader">
+      <div class="leader-flag">Finland</div>
+      <div class="leader-name">Waste heat as a primary source, not an afterthought</div>
+      <div class="leader-stat">~40%</div>
+      <div class="leader-stat-lab">of local district heat capacity, from recovered server heat</div>
+      <p>Fortum's heat-recovery plants in Espoo, Kauniainen and Kirkkonummi will route Microsoft data-centre waste heat into the district network at up to 350 MW combined — on track to supply roughly 40% of that network's capacity once complete, part of Finland's wider practice of treating server and sewage heat as a genuine energy source rather than something to vent. Helsinki already does this at smaller scale: recovered heat from one data centre alone covers roughly 14,000 apartments. Canada's own inventory records comparatively little of this (section 01's fuel chart), which is as much an opportunity as a gap.</p>
+      <div class="leader-src">Sources: <a href="https://www.hitachienergy.com/us/en/news-and-events/features/2024/03/fortum-to-use-waste-heat-from-data-centers-to-heat-premises-and-homes" target="_blank" rel="noopener">Hitachi Energy</a> · <a href="https://www.helen.fi/en/companies/cooling-for-companies/Heat-recovery-service-for-data-centers" target="_blank" rel="noopener">Helen, Helsinki</a></div>
+    </div>
+  </div>
+
+  <!-- ══ 04 Methodology ══ -->
+  <div class="section-head">
+    <span class="sec-num">04</span>
     <h2>How this page was built</h2>
     <p class="sec-sub">Two versions — the short one, and the one with the field names in it.</p>
   </div>
@@ -461,7 +508,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><b>Status split.</b> <code>status</code> ∈ {Operating (238), Planned (13), Decommissioned (3)}. Every aggregate on this page is computed over Operating only unless the chart says otherwise; the 238 matches the report's headline count exactly.</p>
       <p><b>Tri-state flags.</b> <code>de_hs</code> / <code>de_hw</code> / <code>de_cw</code> and every <code>*_used</code> fuel column are Yes / No / empty. The empties are preserved as <code>null</code>, not coerced to false — 99 operating systems have <code>de_cw</code> empty and 98 have it explicitly "No", and collapsing those would invent 99 confirmed no-cooling systems. Charts show "unreported" as its own category.</p>
       <p><b>Fuel sets, not a primary fuel.</b> The workbook has no primary-fuel column. CEEDC's dashboard derives one inside its Tableau <code>.hyper</code> extract, which is not published, so rather than guess at their priority order this page keeps the complete fuel set per system and reports single-fuel and multi-fuel counts separately, mirroring the report's own Table 8 structure.</p>
-      <p><b>IEA generation assignment.</b> Applied to <code>de_hw_supply</code> only. Thresholds from IEA DHC (Feb 2024): &gt;100 °C → 2G, &gt;70–100 °C → 3G, ≤70 °C → 4G. Exactly 70 °C is assigned to 4G, since the 4G rule ("maximum forward flow temperature of 70 °C") is more specific than the 3G range ("between 100 °C and 70 °C") and names 70 °C as the physical DHW-disinfection threshold. <b>1G is never inferred from a temperature</b> — IEA defines it by carrier (steam, independent of temperature), so the steam-network count is reported separately with its own n rather than folded into this ladder. Systems with <code>de_hw_supply</code> ≥ 150 °C are flagged as suspect (likely a steam temperature entered in the hot-water field) and drawn distinctly rather than dropped. Systems with supply ≤ 30 °C are flagged as thermal source networks.</p>
+      <p><b>IEA generation assignment.</b> Applied to <code>de_hw_supply</code> only. Thresholds from IEA DHC (Feb 2024): &gt;100 °C → 2nd Gen (2G), &gt;70–100 °C → 3rd Gen (3G), ≤70 °C → 4th Gen (4G) — this page displays the ordinal names, but the underlying data and this paragraph use IEA's own 1G–4G shorthand. Exactly 70 °C is assigned to 4G, since the 4G rule ("maximum forward flow temperature of 70 °C") is more specific than the 3G range ("between 100 °C and 70 °C") and names 70 °C as the physical DHW-disinfection threshold. <b>1G is never inferred from a temperature</b> — IEA defines it by carrier (steam, independent of temperature), so the steam-network count is reported separately with its own n rather than folded into this ladder. Systems with <code>de_hw_supply</code> ≥ 150 °C are flagged as suspect (likely a steam temperature entered in the hot-water field) and drawn distinctly rather than dropped. Systems with supply ≤ 30 °C are flagged as thermal source networks.</p>
       <p><b>Implied capacity factor</b> = <code>de_*_production</code> ÷ (<code>de_*_capacity</code> × 8760), computed only where both are present and non-zero. Values above 100% are flagged in <code>meta.json</code>, not silently clipped. CEEDC's own averages run 13–20%; their stated reasons are short seasons, redundancy, planned expansion and retired-but-retained capital.</p>
       <p><b>Known source quirks, all handled in the pipeline and listed in <code>meta.json</code>:</b> the Metadata sheet's "Detail" column is offset from its "Field" column by 4 rows from row 60 onward (so <code>geo_used</code> reads as "Solid Biomass" and <code>waste_used</code> as "Spent Pulping Liquor" if taken at face value — the fuel labels here are the corrected mapping, cross-checked against the legend CEEDC's dashboard renders); the Metadata sheet documents an <code>npri</code> field the data sheet lacks and omits the <code>operator</code> field it has; <code>municipality_type</code> ships in mixed case; facility and city names carry stray double and trailing spaces.</p>
       <p><b>Geometry.</b> Province outlines are unioned from the repo's existing per-province FSA polygons (<code>geo_json/*.json</code>) and simplified to 0.03°. Yukon has no <code>geo_json</code> file, so its outline is reprojected from the national FSA file with the same inverse-Lambert used by <code>Python/canada_boundary.py</code>. All 254 facilities carry coordinates in the source and all fall inside Canada; none are geocoded here.</p>
@@ -653,56 +700,100 @@ function vBars(svgId,rows,opts={}){
 function drawDiagram(){
   const svg=document.getElementById('dia-des'); clear(svg); const p=pal();
   const supply=p.neg, ret=p.blue;
-  // plant
-  svg.appendChild(el('rect',{x:22,y:78,width:150,height:96,rx:8,fill:p.card,stroke:p.primary,'stroke-width':1.6}));
-  svg.appendChild(el('rect',{x:52,y:44,width:18,height:38,rx:3,fill:p.primary,opacity:.85}));
-  svg.appendChild(el('rect',{x:80,y:56,width:14,height:26,rx:3,fill:p.primary,opacity:.55}));
-  svg.appendChild(el('text',{x:97,y:118,'text-anchor':'middle','font-size':13,fill:p.ink,'font-weight':500},'Energy plant'));
-  svg.appendChild(el('text',{x:97,y:136,'text-anchor':'middle','font-size':10.5,fill:p.muted},'boiler · CHP · heat pump'));
-  svg.appendChild(el('text',{x:97,y:151,'text-anchor':'middle','font-size':10.5,fill:p.muted},'chiller · storage'));
-  svg.appendChild(el('text',{x:97,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'1 · GENERATION'));
+
+  // ── sources feeding the plant: solar, waste heat, geothermal — sit above
+  // the plant, untranslated, in the 52px of headroom the plant group leaves
+  // clear (plant top sits at y=130 once shifted, see below).
+  const sources=[
+    {label:'Solar thermal',cx:35,kind:'sun'},
+    {label:'Waste heat',cx:97,kind:'waste'},
+    {label:'Geothermal',cx:159,kind:'geo'},
+  ];
+  sources.forEach(sc=>{
+    const cy=30;
+    svg.appendChild(el('path',{d:`M${sc.cx} ${cy+20} V78`,stroke:p.tick,'stroke-width':1.3,fill:'none',opacity:.5,'stroke-dasharray':'2 3'}));
+    if(sc.kind==='sun'){
+      svg.appendChild(el('circle',{cx:sc.cx,cy,r:8,fill:'none',stroke:p.amber,'stroke-width':1.8}));
+      for(let a=0;a<8;a++){
+        const rad=a*Math.PI/4;
+        svg.appendChild(el('line',{
+          x1:sc.cx+Math.cos(rad)*11,y1:cy+Math.sin(rad)*11,
+          x2:sc.cx+Math.cos(rad)*15,y2:cy+Math.sin(rad)*15,
+          stroke:p.amber,'stroke-width':1.5,'stroke-linecap':'round'}));
+      }
+    }else if(sc.kind==='waste'){
+      svg.appendChild(el('rect',{x:sc.cx-10,y:cy-9,width:20,height:15,rx:2,fill:'none',stroke:p.secondary,'stroke-width':1.6}));
+      svg.appendChild(el('path',{d:`M${sc.cx-9} ${cy-9} l9 -7 9 7`,stroke:p.secondary,'stroke-width':1.4,fill:'none','stroke-linejoin':'round'}));
+      svg.appendChild(el('path',{d:`M${sc.cx-4} ${cy+5} q4 6 8 0`,stroke:p.secondary,'stroke-width':1.4,fill:'none','stroke-linecap':'round'}));
+    }else{
+      svg.appendChild(el('path',{d:`M${sc.cx-8} ${cy-8} H${sc.cx+8} L${sc.cx+4} ${cy+10} H${sc.cx-4} Z`,fill:'none',stroke:p.pos,'stroke-width':1.6,'stroke-linejoin':'round'}));
+      svg.appendChild(el('path',{d:`M${sc.cx-3} ${cy-2} q3 4 0 7 M${sc.cx+3} ${cy-2} q-3 4 0 7`,stroke:p.pos,'stroke-width':1.2,fill:'none'}));
+    }
+    svg.appendChild(el('text',{x:sc.cx,y:cy+27,'text-anchor':'middle','font-size':9.5,fill:p.muted},sc.label));
+  });
+
+  // ── plant, pipes and buildings — the original layout, shifted down 52px
+  // as a group to make room for the sources row above it. Coordinates below
+  // are untouched from before; only the wrapping group's translate changed.
+  const g=el('g',{transform:'translate(0,52)'});
+  g.appendChild(el('rect',{x:22,y:78,width:150,height:96,rx:8,fill:p.card,stroke:p.primary,'stroke-width':1.6}));
+  g.appendChild(el('rect',{x:52,y:44,width:18,height:38,rx:3,fill:p.primary,opacity:.85}));
+  g.appendChild(el('rect',{x:80,y:56,width:14,height:26,rx:3,fill:p.primary,opacity:.55}));
+  g.appendChild(el('text',{x:97,y:118,'text-anchor':'middle','font-size':13,fill:p.ink,'font-weight':500},'Energy plant'));
+  g.appendChild(el('text',{x:97,y:136,'text-anchor':'middle','font-size':10.5,fill:p.muted},'boiler · CHP · heat pump'));
+  g.appendChild(el('text',{x:97,y:151,'text-anchor':'middle','font-size':10.5,fill:p.muted},'chiller · storage'));
+  g.appendChild(el('text',{x:97,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'1 · GENERATION'));
   // pipes
-  svg.appendChild(el('path',{d:'M172 108 H620',stroke:supply,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
-  svg.appendChild(el('path',{d:'M620 144 H172',stroke:ret,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
-  svg.appendChild(el('text',{x:396,y:98,'text-anchor':'middle','font-size':11,fill:supply},'supply — hot water, steam or chilled water'));
-  svg.appendChild(el('text',{x:396,y:168,'text-anchor':'middle','font-size':11,fill:ret},'return — cooled, back to the plant'));
-  svg.appendChild(el('text',{x:396,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'2 · DISTRIBUTION NETWORK'));
+  g.appendChild(el('path',{d:'M172 108 H620',stroke:supply,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
+  g.appendChild(el('path',{d:'M620 144 H172',stroke:ret,'stroke-width':6,fill:'none','stroke-linecap':'round'}));
+  g.appendChild(el('text',{x:396,y:98,'text-anchor':'middle','font-size':11,fill:supply},'supply — hot water, steam or chilled water'));
+  g.appendChild(el('text',{x:396,y:168,'text-anchor':'middle','font-size':11,fill:ret},'return — cooled, back to the plant'));
+  g.appendChild(el('text',{x:396,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'2 · DISTRIBUTION NETWORK'));
   [280,400,520].forEach(x=>{
-    svg.appendChild(el('path',{d:`M${x} 108 V126 H${x+0.01} V144`,stroke:p.tick,'stroke-width':2,fill:'none',opacity:.55}));
+    g.appendChild(el('path',{d:`M${x} 108 V126 H${x+0.01} V144`,stroke:p.tick,'stroke-width':2,fill:'none',opacity:.55}));
   });
   // buildings
   const bx=640;
   [[bx,52],[bx,110],[bx,168]].forEach(([x,y],i)=>{
-    svg.appendChild(el('rect',{x,y,width:52,height:44,rx:4,fill:p.card,stroke:p.primary,'stroke-width':1.3}));
+    g.appendChild(el('rect',{x,y,width:52,height:44,rx:4,fill:p.card,stroke:p.primary,'stroke-width':1.3}));
     for(let r=0;r<2;r++)for(let c=0;c<3;c++)
-      svg.appendChild(el('rect',{x:x+9+c*13,y:y+9+r*17,width:8,height:9,rx:1,fill:p.primary,opacity:.3}));
-    svg.appendChild(el('circle',{cx:x-14,cy:y+22,r:7,fill:p.card,stroke:p.secondary,'stroke-width':1.8}));
-    svg.appendChild(el('path',{d:`M${x-18} ${y+22} h8 M${x-10} ${y+18} v8`,stroke:p.secondary,'stroke-width':1.4}));
-    svg.appendChild(el('path',{d:`M620 ${i===0?108:i===2?144:126} V${y+22} H${x-21}`,stroke:p.tick,'stroke-width':1.6,fill:'none',opacity:.6}));
+      g.appendChild(el('rect',{x:x+9+c*13,y:y+9+r*17,width:8,height:9,rx:1,fill:p.primary,opacity:.3}));
+    g.appendChild(el('circle',{cx:x-14,cy:y+22,r:7,fill:p.card,stroke:p.secondary,'stroke-width':1.8}));
+    g.appendChild(el('path',{d:`M${x-18} ${y+22} h8 M${x-10} ${y+18} v8`,stroke:p.secondary,'stroke-width':1.4}));
+    g.appendChild(el('path',{d:`M620 ${i===0?108:i===2?144:126} V${y+22} H${x-21}`,stroke:p.tick,'stroke-width':1.6,fill:'none',opacity:.6}));
   });
-  svg.appendChild(el('text',{x:722,y:118,'font-size':13,fill:p.ink,'font-weight':500},'Buildings'));
-  svg.appendChild(el('text',{x:722,y:136,'font-size':10.5,fill:p.muted},'energy transfer station'));
-  svg.appendChild(el('text',{x:722,y:151,'font-size':10.5,fill:p.muted},'in place of a boiler'));
-  svg.appendChild(el('text',{x:760,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'3 · BUILDING INTERFACE'));
+  g.appendChild(el('text',{x:722,y:118,'font-size':13,fill:p.ink,'font-weight':500},'Buildings'));
+  g.appendChild(el('text',{x:722,y:136,'font-size':10.5,fill:p.muted},'energy transfer station'));
+  g.appendChild(el('text',{x:722,y:151,'font-size':10.5,fill:p.muted},'in place of a boiler'));
+  g.appendChild(el('text',{x:760,y:196,'text-anchor':'middle','font-size':10,fill:p.tick,'letter-spacing':'.08em'},'3 · BUILDING INTERFACE'));
+  svg.appendChild(g);
 }
 
 /* ── 02: generations ──────────────────────────────────────────────────── */
+/* Display labels only — internal data codes (D.agg / D.fac use "2G","3G","4G")
+   stay untouched, since they're the IEA's own technical shorthand and the
+   advanced-mode methodology text still uses them precisely. genLabel() maps
+   a code to the friendlier "4th Gen" wording used everywhere a general
+   reader sees a generation, per feedback on the first version of this page. */
+const GEN_LABEL={'1G':'1st Gen','2G':'2nd Gen','3G':'3rd Gen','4G':'4th Gen'};
+const genLabel=c=>GEN_LABEL[c]||c;
+
 const GENERATIONS=[
-  {g:'1G',era:'1880s–1930s',t:'Steam',h:'Steam, at whatever temperature',
-   b:'The original. IEA defines 1G purely by the heat carrier — if the forward flow is steam, it is a 1G network, regardless of temperature. Enormous heat capacity, moves without pumping, and can serve any building temperature. Also leaky, hot, lossy, and subject to high-pressure boiler regulation that drives up staffing.',
+  {g:'1st Gen',era:'1880s–1930s',t:'Steam',h:'Steam, at whatever temperature',
+   b:'The original. IEA defines 1st Gen purely by the heat carrier — if the forward flow is steam, it is a 1st Gen network, regardless of temperature. Enormous heat capacity, moves without pumping, and can serve any building temperature. Also leaky, hot, lossy, and subject to high-pressure boiler regulation that drives up staffing.',
    m:'Canada\'s first system — London, Ontario, 1880 — was one of these, and steam is still the single largest slice of Canadian installed capacity.'},
-  {g:'2G',era:'1930s–1970s',t:'Water above 100 °C',h:'Pressurised superheated water',
+  {g:'2nd Gen',era:'1930s–1970s',t:'Water above 100 °C',h:'Pressurised superheated water',
    b:'Liquid water held above its atmospheric boiling point under pressure. Built in situ, heavy, insulated in concrete ducts. The generation Canada built through the 1970s oil-crisis boom, and much of it is still in the ground.',
    m:'In the CEEDC data these appear as hot-water systems reporting supply temperatures above 100 °C.'},
-  {g:'3G',era:'1980s–2010s',t:'70–100 °C',h:'Pre-fabricated, pre-insulated pipe',
+  {g:'3rd Gen',era:'1980s–2010s',t:'70–100 °C',h:'Pre-fabricated, pre-insulated pipe',
    b:'The workhorse. Factory-made bonded pipe — carrier, insulation and casing in one — dropped straight into a trench. Cheaper, faster and far less lossy than in-situ construction. Defined by not needing superheated water to operate.',
    m:'This is what most people picture when they say "district heating".'},
-  {g:'4G',era:'2010s–',t:'≤ 70 °C',h:'Low temperature, two-way, heat-pump-ready',
+  {g:'4th Gen',era:'2010s–',t:'≤ 70 °C',h:'Low temperature, two-way, heat-pump-ready',
    b:'Defined by a maximum forward flow temperature of 70 °C — the threshold required for thermal disinfection of domestic hot water. Low enough that heat pumps, solar thermal, sewage heat and industrial waste heat can feed the network directly. "Two-way" because connected buildings can also inject heat, not only draw it.',
-   m:'IEA treats 4G as an umbrella: it encompasses low-temperature networks and thermal source networks alike.'},
-  {g:'TSN',era:'2010s–',t:'Near ambient',h:'Thermal source network (the artist formerly known as 5G)',
+   m:'IEA treats 4th Gen as an umbrella: it encompasses low-temperature networks and thermal source networks alike.'},
+  {g:'TSN',era:'2010s–',t:'Near ambient',h:'Thermal source network (the artist formerly known as "5th Gen")',
    b:'An uninsulated loop held close to ground or ambient temperature. It does not deliver usable heat — each building\'s own heat pump lifts it, or rejects heat into it. One building\'s cooling becomes another\'s heating. Cheap pipe, near-zero distribution losses, inherently does heating and cooling at once.',
-   m:'IEA DHC classifies this as a SUBCLASS of 4G and asks the industry to stop calling it "5th generation", because the name implies an upgrade that the evidence does not support for heating alone.'},
+   m:'IEA DHC classifies this as a SUBCLASS of 4th Gen and asks the industry to stop calling it "5th generation", because the name implies an upgrade that the evidence does not support for heating alone.'},
 ];
 function drawGenLadder(){
   const box=document.getElementById('gen-ladder'); box.innerHTML='';
@@ -729,7 +820,7 @@ function drawGenScatter(){
   ];
   BANDS.forEach(b=>{
     svg.appendChild(el('rect',{x:x(b.lo),y:T,width:x(b.hi)-x(b.lo),height:innerH,fill:b.c,opacity:.07}));
-    svg.appendChild(el('text',{x:(x(b.lo)+x(b.hi))/2,y:T+15,'text-anchor':'middle','font-size':12,fill:b.c,'font-weight':500},b.g));
+    svg.appendChild(el('text',{x:(x(b.lo)+x(b.hi))/2,y:T+15,'text-anchor':'middle','font-size':12,fill:b.c,'font-weight':500},genLabel(b.g)));
   });
   [70,100].forEach(t=>{
     svg.appendChild(el('line',{x1:x(t),x2:x(t),y1:T,y2:T+innerH,stroke:p.axis,'stroke-width':1,'stroke-dasharray':'3 3',opacity:.6}));
@@ -753,11 +844,11 @@ function drawGenScatter(){
       stroke:r.suspect?p.amber:p.card,'stroke-width':r.suspect?2:1});
     hoverable(n,`<b>${r.name}</b><br>${r.city||''}${r.city?', ':''}${r.prov}${r.year?' · '+r.year:''}<br>
       Supply ${r.supply_c} °C${r.return_c!=null?' · return '+r.return_c+' °C':''}<br>
-      IEA ${r.gen}${r.tsn?' · thermal source network':''}${r.suspect?'<br><b>⚠ suspect value</b>':''}`);
+      IEA ${genLabel(r.gen)}${r.tsn?' · thermal source network':''}${r.suspect?'<br><b>⚠ suspect value</b>':''}`);
     svg.appendChild(n);
   });
   legend('gen-legend',[
-    {c:p.pos,l:'4G ≤70 °C'},{c:p.blue,l:'3G 70–100 °C'},{c:p.neg,l:'2G >100 °C'},
+    {c:p.pos,l:'4th Gen ≤70 °C'},{c:p.blue,l:'3rd Gen 70–100 °C'},{c:p.neg,l:'2nd Gen >100 °C'},
     {c:p.amber,l:'⚠ suspect value'},{c:p.tick,l:'— supply → return'},
   ]);
   const susp=rows.filter(r=>r.suspect).length, tsn=rows.filter(r=>r.tsn).length;
@@ -766,10 +857,10 @@ function drawGenScatter(){
     `Each dot is one system; the line runs back to its return temperature where reported. `+
     (tsn?`${tsn} sits at or below 30 °C, making it a thermal source network rather than a delivery network. `:'')+
     (susp?`${susp} values at or above 150 °C are ringed in amber: those are almost certainly steam temperatures entered in the hot-water field. They are kept and flagged rather than deleted. `:'')+
-    `1G is absent by design — IEA defines it by carrier, not temperature, so it cannot be read off this axis.`;
+    `1st Gen is absent by design — IEA defines it by carrier, not temperature, so it cannot be read off this axis.`;
   document.getElementById('gen-caveat').innerHTML=
     `<b>Read this chart as illustrative, not representative.</b> It covers ${rows.length} systems out of ${D.agg.n_operating}. `+
-    `Separately, and by IEA's carrier-based definition rather than by temperature, <b>${g.n_steam_carrier} operating systems report using steam</b> — every one of those is a 1G network. `+
+    `Separately, and by IEA's carrier-based definition rather than by temperature, <b>${g.n_steam_carrier} operating systems report using steam</b> — every one of those is a 1st Gen network. `+
     `Systems running steam <em>and</em> hot water cannot be reduced to a single generation at all, which is why the two counts are kept apart here instead of being summed into one tidy 1G–4G histogram.`;
 }
 
@@ -1177,7 +1268,7 @@ function selectFacility(id){
       ${item('Municipality',f.muni?f.muni[0].toUpperCase()+f.muni.slice(1):null)}
       ${item('Cogeneration',f.chp?'Yes':null)}
       ${item('Electrical capacity',f.elec_capacity_mw!=null?fmt1(f.elec_capacity_mw)+' MW':null)}
-      ${item('IEA generation',f.iea_generation?f.iea_generation+(f.is_tsn?' · thermal source network':'')+(f.iea_temp_suspect?' ⚠ suspect temperature':''):null)}
+      ${item('IEA generation',f.iea_generation?genLabel(f.iea_generation)+(f.is_tsn?' · thermal source network':'')+(f.iea_temp_suspect?' ⚠ suspect temperature':''):null)}
       ${svcBlock('hs','Heat — steam')}${svcBlock('hw','Heat — hot water')}${svcBlock('cw','Cooling — water')}
       ${item('Customers',(f.users||[]).map(u=>u.replace(/_/g,' ')).join(', ')||null)}
       ${item('CEEDC source',f.source)}
@@ -1243,7 +1334,7 @@ function drawKPIs(){
     {v:(r.thermal_energy_delivered_mwh/1e6).toFixed(1)+'M MWh',l:'Thermal energy delivered a year',n:'report figure · ≈'+r.thermal_energy_delivered_pj+' PJ'},
     {v:r.share_of_building_thermal_energy_pct+'%',l:'Of Canadian building space & water conditioning',n:'report figure · apartment, commercial, institutional'},
     {v:fmt(r.buildings_served),l:'Buildings connected',n:'report figure · '+fmt(Math.round(r.floor_space_ft2/1e6))+'M ft² ≈ '+fmt(r.floor_space_household_equivalent)+' homes'},
-    {v:a.iea_generation.n_steam_carrier,l:'Systems still running steam',n:'public file · 1G by the IEA definition'},
+    {v:a.iea_generation.n_steam_carrier,l:'Systems still running steam',n:'public file · 1st Gen by the IEA definition'},
   ];
   document.getElementById('kpi-row').innerHTML=k.map(x=>
     `<div class="kpi"><div class="kpi-val">${x.v}</div><div class="kpi-lab">${x.l}</div><div class="kpi-n">${x.n}</div></div>`).join('');
