@@ -41,20 +41,29 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
 .card-title-row .card-title{margin-bottom:0}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.55}
-.prose{font-size:14px;line-height:1.7;max-width:820px}
+.prose{font-size:15px;line-height:1.72;max-width:1000px}
 .prose p{margin-bottom:.8rem}
 .prose strong{font-weight:500;color:var(--ink)}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-bottom:1rem}
 .chart-grid .card{margin-bottom:0}
 
-/* Plain description text — no box. Boxes are reserved for charts, diagrams,
-   tables and the interactive generation ladder; a paragraph explaining what
-   a heat carrier is doesn't need a border around it. */
-.plain{margin-bottom:1.6rem}
-.plain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 2.4rem;margin-bottom:1.6rem}
-.subhead{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.05rem;color:var(--ink);margin:1.3rem 0 .4rem;letter-spacing:-.005em}
+/* Plain description text — no box, one column, never side by side. Boxes are
+   reserved for charts, diagrams, tables and the interactive generation ladder;
+   a paragraph explaining what a heat carrier is doesn't need a border around
+   it, and it doesn't need a column next to it either. */
+.plain{margin-bottom:1.5rem}
+.subhead{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.12rem;color:var(--ink);margin:1.5rem 0 .5rem;letter-spacing:-.005em}
 .subhead:first-child{margin-top:0}
-.plain .prose,.plain-grid .prose{max-width:none}
+.subhead-lg{font-size:1.28rem;margin-top:2rem}
+.sub-note{font-size:13.5px;color:var(--muted);max-width:1000px;margin:-.15rem 0 .9rem;line-height:1.6}
+
+/* Sticky section nav — the page runs long, so the pill bar from
+   project-atlas.html is reused here to keep your place. */
+.sec-nav{position:sticky;top:48px;z-index:90;background:var(--navy);padding:.45rem 1.25rem;display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+.sec-nav a{color:#fff;text-decoration:none;font-size:.76rem;font-weight:500;padding:.24rem .7rem;border-radius:99px;background:rgba(255,255,255,.12);white-space:nowrap;transition:background .15s,color .15s}
+.sec-nav a:hover{background:var(--amber);color:var(--navy)}
+.sec-nav a.on{background:var(--amber);color:var(--navy)}
+.section-head{scroll-margin-top:104px}
 .chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:default}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
@@ -162,18 +171,14 @@ details.data-details[open] summary::before{content:'▾ '}
 .chart-tip.on{opacity:1}
 .hero-actions{display:flex;gap:10px;justify-content:center;margin-top:.9rem;flex-wrap:wrap}
 .toolbar{display:flex;justify-content:flex-end;gap:0;margin-bottom:.5rem;flex-wrap:wrap}
-/* World leaders */
-.leader-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem}
-.leader{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow)}
-.leader-flag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-text);margin-bottom:.15rem}
-.leader-name{font-family:'Fraunces',Georgia,serif;font-size:1.2rem;font-weight:400;color:var(--ink);margin-bottom:.55rem}
-.leader-stat{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);line-height:1.1}
-.leader-stat-lab{font-size:11px;color:var(--muted);margin:2px 0 .7rem}
-.leader p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:.6rem}
-.leader-src{font-size:11px;color:var(--light);margin-top:.5rem}
-.leader-src a{color:var(--muted)}
-
-@media(max-width:640px){.gen-row{grid-template-columns:60px 1fr}.result-count{margin-left:0;width:100%}}
+@media(max-width:640px){
+  .gen-row{grid-template-columns:60px 1fr}
+  .result-count{margin-left:0;width:100%}
+  /* Keep the sticky chrome from eating the phone screen: header 48px + this. */
+  .sec-nav{padding:.3rem .5rem;gap:.28rem}
+  .sec-nav a{font-size:.7rem;padding:.18rem .5rem}
+  .subhead-lg{font-size:1.15rem}
+}
 </style>
 </head>
 <body class="mode-simple">
@@ -194,6 +199,14 @@ details.data-details[open] summary::before{content:'▾ '}
   <h1>One plant. One network of pipes. <em>Hundreds of buildings.</em></h1>
   <p class="hero-sub">Canada has 238 operating district energy systems, from a steam loop commissioned in London, Ontario in 1880 to ambient-temperature networks being built now. This is every one of them, plus what the words on the industry's slides — 4th generation, two-pipe, thermal source network — actually mean.</p>
 </div>
+
+<nav class="sec-nav" aria-label="Sections">
+  <a href="#sec-101">What it is</a>
+  <a href="#sec-canada">Canada</a>
+  <a href="#sec-policy">Policy &amp; barriers</a>
+  <a href="#sec-world">World leaders</a>
+  <a href="#sec-method">Method</a>
+</nav>
 
 <main>
 
@@ -217,7 +230,7 @@ details.data-details[open] summary::before{content:'▾ '}
   <div class="kpi-row" id="kpi-row"></div>
 
   <!-- ══ 01 District Energy 101 ══ -->
-  <div class="section-head">
+  <div class="section-head" id="sec-101">
     <span class="sec-num">01</span>
     <h2>District Energy 101</h2>
     <p class="sec-sub">The physics and the vocabulary, before the data: what it is, how it's classified, what's in the pipe, and what feeds the plant.</p>
@@ -233,27 +246,27 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note">Every district energy system has these three parts plus an operational structure for control and, where customers are billed, an administrative one. Source: CEEDC, <em>District Energy in Canada</em> (2023).</p>
   </div>
 
-  <div class="plain-grid">
-    <div class="plain">
-      <h3 class="subhead">Why anyone builds one</h3>
-      <div class="prose" style="font-size:13px">
-        <p><b>Fuel switching at scale.</b> Changing one plant from gas to biomass, sewage heat or a big industrial heat pump decarbonises every connected building at once. Doing that building by building means hundreds of separate retrofits.</p>
-        <p><b>Things that only work big.</b> Deep-lake cooling, sewage heat recovery and municipal waste heat are not viable for a single house. Spread across 180 buildings they are.</p>
-        <p><b>Nothing in the basement.</b> No boiler, no flue, no fuel storage, no combustion inspection — floor space and maintenance handed back to the building.</p>
-      </div>
-    </div>
-    <div class="plain">
-      <h3 class="subhead">Why it isn't everywhere</h3>
-      <div class="prose" style="font-size:13px">
-        <p><b>Pipe is expensive.</b> Thermal network piping runs on the order of $1,000 per foot installed. You need enough heat demand per metre of trench to pay for it, which is why district energy clusters in dense downtowns and campuses.</p>
-        <p><b>You have to dig.</b> Retrofitting a network into an existing street is disruptive and slow, so most growth happens in new development or on land already under one owner.</p>
-        <p><b>It is a long commitment.</b> Systems are financed over decades — CEEDC found the average commissioning year skews old, and Canada's oldest system has been running since 1880.</p>
-      </div>
+  <div class="plain">
+    <h3 class="subhead">Why anyone builds one</h3>
+    <div class="prose">
+      <p><b>Fuel switching at scale.</b> Changing one plant from gas to biomass, sewage heat or a big industrial heat pump decarbonises every connected building at once. Doing that building by building means hundreds of separate retrofits.</p>
+      <p><b>Things that only work big.</b> Deep-lake cooling, sewage heat recovery and municipal waste heat are not viable for a single house. Spread across 180 buildings they are.</p>
+      <p><b>Nothing in the basement.</b> No boiler, no flue, no fuel storage, no combustion inspection — floor space and maintenance handed back to the building.</p>
     </div>
   </div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">The generations, and why "5th Gen" is contested</h3>
-  <div class="prose plain" style="margin-bottom:1rem">
+  <div class="plain">
+    <h3 class="subhead">Why it isn't everywhere</h3>
+    <div class="prose">
+      <p><b>Pipe is expensive.</b> Thermal network piping runs on the order of $1,000 per foot installed. You need enough heat demand per metre of trench to pay for it, which is why district energy clusters in dense downtowns and campuses.</p>
+      <p><b>You have to dig.</b> Retrofitting a network into an existing street is disruptive and slow, so most growth happens in new development or on land already under one owner.</p>
+      <p><b>It is a long commitment.</b> Systems are financed over decades — CEEDC found the average commissioning year skews old, and Canada's oldest system has been running since 1880.</p>
+      <p>Those are the physical and financial constraints. The <em>structural</em> ones — how gas infrastructure gets paid for versus how a thermal network does, and what nobody is required to plan for — turn out to matter more, and they're in <a href="#sec-policy">section 03</a>.</p>
+    </div>
+  </div>
+
+  <h3 class="subhead subhead-lg">The generations, and why "5th Gen" is contested</h3>
+  <div class="prose plain">
     <p>The industry counts district heating in generations — shorthand for <strong>how hot the water in the pipe is</strong>, and that one number drives almost everything else. Hotter networks lose more heat through the pipe wall, need more robust pipe, and can only be fed by sources hot enough to reach that temperature. Cooler networks lose less, can be built from cheaper plastic pipe, and open up sources that were previously useless: waste heat at 25 °C, a lake, a sewer.</p>
     <p>In February 2024 the <strong>IEA's District Heating and Cooling technology programme</strong> published a deliberately simplified ladder, defined purely on network characteristics, so that the terminology means the same thing in everyone's slides — and recommended retiring one of the labels. Tap a row to expand it.</p>
   </div>
@@ -277,25 +290,18 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div class="callout warn" id="gen-caveat"></div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What's in the pipe, and how many pipes there are</h3>
+  <h3 class="subhead subhead-lg">Heat carrier: what's actually in the pipe</h3>
+  <div class="prose plain">
+    <p><b>Steam.</b> The original carrier. Enormous heat capacity per kilogram, moves without pumping, and reaches any building temperature you like — but runs hot, leaks readily, needs licensed high-pressure operators, and loses a lot of heat to the ground. CEEDC's data shows steam systems need noticeably more staff than hot water ones, because provincial boiler and pressure-vessel rules demand closer supervision.</p>
+    <p><b>Hot water.</b> The modern default. Lower temperature, lower losses, cheaper pipe, and — crucially — it can be fed by heat pumps, solar thermal and waste heat, which cannot make steam economically.</p>
+    <p><b>Chilled water.</b> The cooling side. Supply is typically 4–8 °C; Canadian systems reporting it cluster tightly around 6 °C.</p>
+  </div>
 
-  <div class="plain-grid">
-    <div class="plain">
-      <h3 class="subhead">Heat carrier</h3>
-      <div class="prose" style="font-size:13px">
-        <p><b>Steam.</b> The original carrier. Enormous heat capacity per kilogram, moves without pumping, and reaches any building temperature you like — but runs hot, leaks readily, needs licensed high-pressure operators, and loses a lot of heat to the ground. CEEDC's data shows steam systems need noticeably more staff than hot water ones, because provincial boiler and pressure-vessel rules demand closer supervision.</p>
-        <p><b>Hot water.</b> The modern default. Lower temperature, lower losses, cheaper pipe, and — crucially — it can be fed by heat pumps, solar thermal and waste heat, which cannot make steam economically.</p>
-        <p><b>Chilled water.</b> The cooling side. Supply is typically 4–8 °C; Canadian systems reporting it cluster tightly around 6 °C.</p>
-      </div>
-    </div>
-    <div class="plain">
-      <h3 class="subhead">One pipe, two pipes, or more</h3>
-      <div class="prose" style="font-size:13px">
-        <p><b>Single-pipe.</b> Flow goes out and is consumed, not returned — classic steam district heating, where the condensate is sometimes dumped rather than piped back. Cheap to build, wasteful to run: you throw away both the water and the heat still in it. Only 9 Canadian systems reported their condensate return rate at all, and those ranged from 45% to 90%.</p>
-        <p><b>Two-pipe.</b> Supply and return. Every modern hot-water and chilled-water network. The <em>difference</em> between the two temperatures — the ΔT — is what actually determines how much energy each litre delivers, which is why a low return temperature is something operators chase.</p>
-        <p><b>Four-pipe and ambient loops.</b> Heating and cooling delivered simultaneously on separate pairs, or — in a thermal source network — a single uninsulated ambient loop that each building's heat pump draws from or rejects into, so one building's cooling becomes another's heating.</p>
-      </div>
-    </div>
+  <h3 class="subhead subhead-lg">One pipe, two pipes, or more</h3>
+  <div class="prose plain">
+    <p><b>Single-pipe.</b> Flow goes out and is consumed, not returned — classic steam district heating, where the condensate is sometimes dumped rather than piped back. Cheap to build, wasteful to run: you throw away both the water and the heat still in it. Only 9 Canadian systems reported their condensate return rate at all, and those ranged from 45% to 90%.</p>
+    <p><b>Two-pipe.</b> Supply and return. Every modern hot-water and chilled-water network. The <em>difference</em> between the two temperatures — the ΔT — is what actually determines how much energy each litre delivers, which is why a low return temperature is something operators chase.</p>
+    <p><b>Four-pipe and ambient loops.</b> Heating and cooling delivered simultaneously on separate pairs, or — in a thermal source network — a single uninsulated ambient loop that each building's heat pump draws from or rejects into, so one building's cooling becomes another's heating.</p>
   </div>
 
   <div class="card">
@@ -307,8 +313,8 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="svc-note"></p>
   </div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Types of energy sources and equipment</h3>
-  <div class="prose plain" style="margin-bottom:1rem">
+  <h3 class="subhead subhead-lg">Types of energy sources and equipment</h3>
+  <div class="prose plain">
     <p><b>Boilers</b> — gas, oil, biomass. Still the backbone: natural gas appears in most Canadian systems. Oil and diesel usually appear <em>alongside</em> gas rather than alone, because they serve as backup and peaking capacity.</p>
     <p><b>Cogeneration (CHP).</b> An engine or turbine makes electricity, and the heat that would otherwise go up the stack is captured for the network. CEEDC counts these separately; at least 82 district energy systems in the harmonised database include cogeneration.</p>
     <p><b>Heat pumps.</b> Increasingly the whole point. An industrial heat pump lifts low-grade heat up to network temperature, and only works if the network temperature is low enough — the mechanism connecting the generations above to the sources below.</p>
@@ -329,24 +335,11 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="fuel-note"></p>
   </div>
 
-  <div class="card">
-    <div class="card-title">What operators say they're considering next</div>
-    <svg id="decarb-chart" viewBox="0 0 460 330" role="img" aria-label="Decarbonization options district energy operators are considering"></svg>
-    <p class="note" id="decarb-note"></p>
-  </div>
-
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What the evidence says about cost and emissions</h3>
-  <div class="prose plain" style="margin-bottom:.5rem">
-    <p>The honest answer: <strong>it depends, and no single Canadian study settles it for every case.</strong> The IEA committee quoted above makes the same point about generations — a later, lower-temperature network is not automatically a better one, because the benefit comes from what feeds the plant, not from the pipe itself. CEEDC says something similar about this inventory directly: the available survey data are insufficient for a rigorous savings analysis, and some systems report energy use per unit floor area <em>above</em> the provincial average for the buildings they serve — see the limitations note at the foot of this page.</p>
-    <p><b>The strongest measured case is a fuel-switching project, not a distribution-efficiency one.</b> The federal government's modernization of the National Capital Region District Energy System — converting Ottawa's downtown steam loop to low-temperature hot water and replacing steam-driven chillers with electric ones, cooled by the Ottawa River — is projected to cut emissions <b>63% against a 2005 baseline</b> once complete, roughly half of that from the plant conversion itself. That is one project's engineering estimate, not a national average, and it says more about switching what burns in the plant than about pipes being inherently efficient.</p>
-    <p><b>Two Canadian advocacy organizations argue the cost case in general terms, without a public $/GJ figure to check.</b> The <a href="https://buildingdecarbonization.ca/thermal-energy-networks/" target="_blank" rel="noopener">Building Decarbonization Alliance</a> argues thermal energy networks can decarbonise buildings "often at a lower cost than other low-carbon alternatives"; the <a href="https://bi-ib.ca/district-energy/" target="_blank" rel="noopener">Boltzmann Institute</a> argues district energy avoids the grid upgrades, deep retrofits and storage costs that electrifying every building individually would require. Both are position statements from organizations promoting the technology, not independent head-to-head studies, and neither publishes a comparable cost-per-building or cost-per-tonne number this page could cite and verify. They are included here because they are the most-cited Canadian voices on the question, with that caveat attached rather than left implicit.</p>
-  </div>
-
-  <!-- ══ 02 What's happening in Canada ══ -->
-  <div class="section-head">
+  <!-- ══ 02 What Canada has built ══ -->
+  <div class="section-head" id="sec-canada">
     <span class="sec-num">02</span>
-    <h2>What's happening in Canada</h2>
-    <p class="sec-sub">The national picture from CEEDC's inventory, what's being built since it closed, and the policy starting to require the connection.</p>
+    <h2>What Canada has built, and what's coming</h2>
+    <p class="sec-sub">The national picture from CEEDC's inventory — every system on the map, how honest the data is, and what has been announced since the inventory closed in 2023.</p>
   </div>
 
   <div class="chart-grid">
@@ -377,8 +370,8 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note">CEEDC's public download does not reproduce the totals in CEEDC's published report: respondent-confidential values were withheld from the public file, so file totals come out lower on a smaller n. Both are correct — they answer different questions. This page never mixes them, and never presents a file-derived total as the report's figure.</p>
   </div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">How much of this do we actually know?</h3>
-  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">The most important chart on this page, and the one nobody puts on a slide.</p>
+  <h3 class="subhead subhead-lg">How much of this do we actually know?</h3>
+  <p class="sub-note">The most important chart on this page, and the one nobody puts on a slide.</p>
 
   <div class="chart-grid">
     <div class="card">
@@ -395,8 +388,8 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div class="callout warn" id="honesty-box"></div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Every system in the inventory</h3>
-  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">All 254 district energy systems CEEDC records — operating, planned and decommissioned. Click a point or a row for the full record.</p>
+  <h3 class="subhead subhead-lg">Every system in the inventory</h3>
+  <p class="sub-note">All 254 district energy systems CEEDC records — operating, planned and decommissioned. Click a point or a row for the full record.</p>
 
   <div class="card">
     <div class="filters">
@@ -423,8 +416,8 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="fac-note"></p>
   </div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">What's being built now</h3>
-  <p class="prose plain" style="font-size:13px;color:var(--muted);margin-top:-.6rem">CEEDC's inventory closed in 2023. Two things have happened since: the systems it already listed as planned, and the ones that opened after it went to press.</p>
+  <h3 class="subhead subhead-lg">What's being built now</h3>
+  <p class="sub-note">CEEDC's inventory closed in 2023. Two things have happened since: the systems it already listed as planned, and the ones that opened after it went to press.</p>
 
   <div id="projects"></div>
 
@@ -434,57 +427,141 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note" id="planned-note"></p>
   </div>
 
-  <h3 class="subhead" style="font-size:1.25rem;margin-top:1.8rem">Policy: from voluntary to required</h3>
-  <div class="prose plain" style="margin-bottom:.5rem">
-    <p>Almost everything above describes systems built because an owner chose to. Vancouver is the clearest Canadian example of the alternative: buildings inside the <b>False Creek Neighbourhood Energy Utility</b> service area are <em>required</em> to connect for space heating and domestic hot water under the city's <a href="https://bylaws.vancouver.ca/9552c.pdf" target="_blank" rel="noopener">Energy Utility System By-law No. 9552</a>. A developer applies to the city-owned utility, and the NEU's engineer runs a connectivity review of the building's HVAC design against the network's operating parameters before a permit issues — a two-to-three-month step now built into how buildings get approved in that part of the city, not an optional add-on.</p>
-    <p>That model — mandatory connection inside a defined service area, run by a municipally owned utility — is still the exception rather than the rule in Canada; most of the systems mapped above were built voluntarily, one project at a time. The national policy conversation is trying to change that: the <a href="https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/" target="_blank" rel="noopener">Building Decarbonization Alliance's 2025 report</a> argues an estimated 70% of Canadians live in areas where thermal networks could meet home heating needs, against roughly 3% of heating demand actually served today, and lays out the utility-regulation, cost-recovery and permitting barriers standing in the way — the same categories of rule Vancouver has already written down for one neighbourhood.</p>
+  <div class="card">
+    <div class="card-title">What operators say they're considering next</div>
+    <svg id="decarb-chart" viewBox="0 0 900 300" role="img" aria-label="Decarbonization options district energy operators are considering"></svg>
+    <p class="note" id="decarb-note"></p>
   </div>
 
-  <!-- ══ 03 World leaders ══ -->
-  <div class="section-head">
+  <!-- ══ 03 Policy & barriers ══ -->
+  <div class="section-head" id="sec-policy">
     <span class="sec-num">03</span>
+    <h2>Policy, and why it isn't scaling</h2>
+    <p class="sec-sub">Who actually holds the levers — municipal, provincial, federal — what they've used so far, and the barriers the industry's own analysts say are holding thermal networks back.</p>
+  </div>
+
+  <div class="prose plain">
+    <p>Almost everything in section 02 describes a system built because an owner chose to build it. Whether that stays the exception is a policy question, and the answer is split across three levels of government that don't line up neatly. The clearest recent survey of this is the <a href="https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/" target="_blank" rel="noopener">Building Decarbonization Alliance and Dunsky Energy + Climate's 2025 white paper</a>, which is the source for most of what follows; where it's their finding rather than a primary document, it's flagged.</p>
+    <p>Their framing of the split: <strong>municipalities exert the most influence over where thermal networks get built, but their authority is delegated by provinces</strong> — so provincial action is usually what unlocks municipal ambition. The federal government has little direct jurisdiction, and mostly acts through money, model codes and its own buildings.</p>
+  </div>
+
+  <h3 class="subhead subhead-lg">Municipal: the level with the actual tools</h3>
+  <div class="prose plain">
+    <p><b>Mandatory connection is real, and Vancouver is the clearest Canadian example.</b> Buildings inside the <b>False Creek Neighbourhood Energy Utility</b> service area must connect for space heating and domestic hot water under the city's <a href="https://bylaws.vancouver.ca/9552c.pdf" target="_blank" rel="noopener">Energy Utility System By-law No. 9552</a>. A developer applies to the city-owned utility, and the NEU's engineer reviews the building's HVAC design against the network's operating parameters before a permit issues — a two-to-three-month step built into how buildings get approved there, not an optional add-on.</p>
+    <p><b>Land-use planning is the quieter lever.</b> Secondary and subdivision plans can require new buildings to connect, or at minimum to be built network-ready, as a condition of approval; community energy plans map thermal load before anyone commits capital. These are statutory instruments most municipalities already run — they just aren't usually pointed at heat.</p>
+    <p><b>Performance standards for existing buildings barely exist yet.</b> Vancouver has the only active building emissions performance standard in Canada; Montréal (with Québec expected to follow province-wide) and Toronto currently require disclosure and are considering thresholds. This matters because green development standards only reach new construction, and the buildings a downtown network would most want to connect are already standing.</p>
+  </div>
+
+  <h3 class="subhead subhead-lg">Provincial: the gap</h3>
+  <div class="prose plain">
+    <p><b>One regulator, nationwide.</b> As of May 2025 the <b>BC Utilities Commission is the only provincial energy regulator in Canada with a regulatory framework for thermal utilities</b>; Québec, Ontario and Manitoba have early work only. For contrast, the same report counts <b>15 US states</b> that have passed or are developing thermal-network legislation — 8 passed, 11 with bills introduced — mostly authorising or requiring gas and electric utilities to own and operate networks. Regulation isn't only red tape here: it's what lets a utility recover its costs through approved rates, which is what makes an investor comfortable with a 40-year asset.</p>
+    <p><b>Codes decide whether a network can compete.</b> Without a carbon or energy requirement stringent enough to rule out a cheap gas boiler, a thermal network has to win on price against the incumbent — which, as the barriers below explain, it often can't. BC's original Energy Step Code was criticised for exactly this, which is why a separate Carbon Step Code followed.</p>
+    <p><b>And the municipal authority underneath it can be withdrawn.</b> Alberta rolled back municipalities' ability to set standards beyond the provincial code in 2023, and Ontario's Bill 17 introduces changes that may constrain it similarly. Carbon pricing moved the same direction: the federal consumer carbon price was repealed in April 2025 and BC followed for the consumer portion, removing a price signal that had been making fossil heating more expensive relative to a low-carbon network. Québec's cap-and-trade continues.</p>
+  </div>
+
+  <h3 class="subhead subhead-lg">Federal: money, model codes, and its own buildings</h3>
+  <div class="prose plain">
+    <p><b>Strategy.</b> The Canada Green Buildings Strategy is Ottawa's overarching net-zero-buildings plan; the BDA/Dunsky reading is that it focuses on electrification and demand-side management and <em>"has little to say on thermal energy networks."</em></p>
+    <p><b>Money.</b> The Canada Infrastructure Bank has made major investments in low-carbon networks — including Enwave's Toronto system — and Ottawa funds the Federation of Canadian Municipalities' Green Municipal Fund, which finances community energy systems.</p>
+    <p><b>A model-code quirk worth knowing.</b> The national model code treats thermal energy delivered by a network as <em>purchased energy</em> and applies an assumed coefficient of performance of <b>1.0</b>. A heat pump installed in a building basement gets credit for its real COP; the same heat pump sitting at the network's central plant, serving the same building, is counted as if it were a resistance heater. That is a technical accounting choice, buried in a code, that penalises exactly the configuration a modern low-temperature network is built around.</p>
+    <p><b>Leading by example, deliberately or not.</b> The federal government is one of the largest owners and operators of district energy in the country — the NCR system in section 02 is its own — and the Greening Government Strategy sets emissions targets for new construction and major retrofits. The Centre Block rehabilitation connects to the Cliff district energy plant and adds a field of geoexchange boreholes for seasonal heat storage. Federal research money is also why this page has data at all: CanmetENERGY-Ottawa funds CEEDC's survey.</p>
+  </div>
+
+  <h3 class="subhead subhead-lg">Barriers: why it isn't scaling</h3>
+  <div class="prose plain">
+    <p>The BDA/Dunsky paper's own chapter title is "Why TENs Aren't Scaling (Yet)", and its answer is mostly not technical:</p>
+    <p><b>1 · The playing field is uneven by design.</b> A gas utility recovers infrastructure cost through rates, amortized over decades and spread across a very large customer base. A new thermal network typically has no such structure and must recover its capital directly from the limited set of customers it serves, through long-term contracts. Same pipe in the ground, completely different financing. Gas also remains the default in new development, often for marketability — buyers want gas cooking.</p>
+    <p><b>2 · Nobody is clearly in charge.</b> Connecting a building to gas or electricity follows a defined process with few variations. Thermal network projects frequently have no designated entity responsible for championing and coordinating them, so a single actor ends up being both developer and advocate, and everyone else participates according to whatever capacity they happen to have.</p>
+    <p><b>3 · Capacity and awareness.</b> Municipalities carry much of the work with limited budgets, competing priorities and no in-house thermal expertise — and there is no systematic waste-heat or infrastructure mapping at the local or provincial level, so opportunities go unidentified rather than rejected.</p>
+    <p><b>4 · The consumer-side evidence is genuinely mixed, and worth taking seriously.</b> A 2022 UK national survey of <b>2,244 heat-network customers</b> against 1,733 matched non-users found the average annual bill <em>lower</em> on a heat network — <b>£600 versus £960</b> — but with far more spread: <b>1 in 10 paid £2,000 or more</b>. Users also reported more outages (50% vs 29%) and, among those who complained, only 39% were satisfied with how it was handled. The report's own explanation for the cost spread ties straight back to barrier 1: gas and electricity network charges are averaged across enormous ratepayer pools, while a heat network is local and its bill reflects that specific system's actual costs. Averages hide who got the bad end of it — which is the argument for regulating thermal utilities, not against building them.</p>
+  </div>
+
+  <h3 class="subhead subhead-lg">What the evidence says about cost and emissions</h3>
+  <div class="prose plain">
+    <p>The honest answer: <strong>it depends, and no single Canadian study settles it for every case.</strong> The people arguing hardest for thermal networks say so themselves — the BDA/Dunsky paper states plainly that networks are <em>"not inherently low carbon"</em>, and that they <em>"may not always reduce energy costs compared to the current fossil-fired status quo"</em> while often providing cost advantages <em>relative to other low-carbon pathways</em>. That is the comparison that actually matters, and it is a narrower claim than the one usually made on a conference slide.</p>
+    <p>The IEA committee quoted in section 01 makes the same point about generations: a later, lower-temperature network is not automatically better, because the benefit comes from what feeds the plant, not from the pipe. And CEEDC says it directly about this inventory — the survey data are insufficient for a rigorous savings analysis, and some systems report energy use per unit floor area <em>above</em> the provincial average for the buildings they serve.</p>
+    <p><b>The strongest measured Canadian case is a fuel-switching project.</b> The federal modernization of the National Capital Region District Energy System — Ottawa's downtown steam loop converted to low-temperature hot water, steam-driven chillers replaced with electric ones cooled by the Ottawa River — is projected to cut emissions <b>63% against a 2005 baseline</b>. One project's engineering estimate, not a national average, and it says more about changing what burns in the plant than about pipes being inherently efficient.</p>
+    <p><b>What the potential figures do and don't say.</b> Thermal networks serve roughly <b>3% of Canada's heating demand</b> today. Research from McMaster University, cited in the same paper, estimates <b>70% of Canadians live in areas where home heating needs could be met</b> by them, and one study estimates Québec alone could meet <b>~40% of its residential heating demand (64–81 PJ)</b> by recovering waste heat from large-scale sources. These are technical-potential estimates — what the geography and the physics would allow — not forecasts, and the distance between 3% and 70% is made of exactly the financing, regulation and coordination problems listed above.</p>
+  </div>
+
+  <!-- ══ 04 World leaders ══ -->
+  <div class="section-head" id="sec-world">
+    <span class="sec-num">04</span>
     <h2>World leaders</h2>
     <p class="sec-sub">Canada's newest systems are borrowing ideas other countries adopted first — some of them decades ago. None of these transplants directly; different climates, ownership models and electricity prices see to that. Each shows a different lever.</p>
   </div>
 
-  <div class="leader-grid">
-    <div class="leader">
-      <div class="leader-flag">Denmark</div>
-      <div class="leader-name">Coverage, by seven decades of municipal build-out</div>
-      <div class="leader-stat">~70%</div>
-      <div class="leader-stat-lab">of Danish households heated by district energy</div>
-      <p>Denmark is the reference case because it started earliest and never stopped: two out of three Danish homes now run on district heating, most of it municipally or cooperatively owned and regulated to be run on a not-for-profit, cost-covering basis rather than for a return. That single pricing rule — heat sold at cost, not marked up — is credited with keeping public trust in the system through decades of fuel switching, from oil to coal to biomass and waste to, increasingly, large heat pumps.</p>
-      <div class="leader-src">Sources: <a href="https://www.raponline.org/wp-content/uploads/2025/01/RAP-Oxenaar-Making-Europes-homes-Hygge-January-2025.pdf" target="_blank" rel="noopener">RAP, Jan. 2025</a> · <a href="https://dbdh.org/wp-content/uploads/2024/11/SoG_WhitePaper_DistrictEnergy2024_210x297_V09.pdf" target="_blank" rel="noopener">DBDH, 2024</a></div>
+  <div class="proj">
+    <div class="proj-head">
+      <div><div class="proj-name">Denmark</div>
+      <div class="proj-where">Municipal and cooperative ownership · cost-based pricing</div></div>
+      <div class="proj-date">Since the 1950s</div>
     </div>
-    <div class="leader">
-      <div class="leader-flag">Sweden</div>
-      <div class="leader-name">Targeting the building stock where it works</div>
-      <div class="leader-stat">~90%</div>
-      <div class="leader-stat-lab">of Swedish multi-family and public buildings</div>
-      <p>Sweden shows the honest limit of the model rather than hiding it: virtually every town has a network, and nearly all multi-family and public buildings are on it, but single-family homes mostly still heat with electricity and heat pumps. Density decides the boundary. Canada's own inventory follows the identical pattern — campuses and dense downtowns, not detached suburbs — so Sweden is less a template to copy than a preview of where the ceiling probably sits here too.</p>
-      <div class="leader-src">Source: <a href="https://www.sei.org/publications/swedish-heat-energy-system-new-tensions-and-lock-ins-after-a-successful-transition/" target="_blank" rel="noopener">Stockholm Environment Institute</a></div>
+    <div class="proj-head-line">Coverage, built by seven decades of municipal expansion — and held together by a pricing rule.</div>
+    <div class="proj-stats">
+      <div class="proj-stat"><div class="v">~70%</div><div class="k">of households</div></div>
+      <div class="proj-stat"><div class="v">2 in 3</div><div class="k">Danish homes</div></div>
+      <div class="proj-stat"><div class="v">Not-for-profit</div><div class="k">regulated pricing</div></div>
     </div>
-    <div class="leader">
-      <div class="leader-flag">Germany</div>
-      <div class="leader-name">A national mandate, not a project-by-project choice</div>
-      <div class="leader-stat">100,000</div>
-      <div class="leader-stat-lab">buildings a year, required by law to connect</div>
-      <p>Germany's 2024 <em>Wärmeplanungsgesetz</em> (Heat Planning Act) is the sharpest contrast with how Canada builds district energy: every city over 100,000 people must publish a municipal heat plan by June 2026, every new network must run on at least 65% renewable heat from day one, and existing networks must reach 30% renewable or waste heat by 2030, rising to 100% by 2045. It is regulation forcing expansion and decarbonisation on a timetable, in a country that — like Canada — still has plenty of individually heated buildings left to convert.</p>
-      <div class="leader-src">Sources: <a href="https://www.cleanenergywire.org/news/germany-connect-100000-buildings-district-heating-annually" target="_blank" rel="noopener">Clean Energy Wire</a> · <a href="https://www.districtenergy.org/blogs/district-energy/2024/07/24/germany-needs-435-bln-district-heating-investment" target="_blank" rel="noopener">IDEA</a></div>
-    </div>
-    <div class="leader">
-      <div class="leader-flag">Finland</div>
-      <div class="leader-name">Waste heat as a primary source, not an afterthought</div>
-      <div class="leader-stat">~40%</div>
-      <div class="leader-stat-lab">of local district heat capacity, from recovered server heat</div>
-      <p>Fortum's heat-recovery plants in Espoo, Kauniainen and Kirkkonummi will route Microsoft data-centre waste heat into the district network at up to 350 MW combined — on track to supply roughly 40% of that network's capacity once complete, part of Finland's wider practice of treating server and sewage heat as a genuine energy source rather than something to vent. Helsinki already does this at smaller scale: recovered heat from one data centre alone covers roughly 14,000 apartments. Canada's own inventory records comparatively little of this (section 01's fuel chart), which is as much an opportunity as a gap.</p>
-      <div class="leader-src">Sources: <a href="https://www.hitachienergy.com/us/en/news-and-events/features/2024/03/fortum-to-use-waste-heat-from-data-centers-to-heat-premises-and-homes" target="_blank" rel="noopener">Hitachi Energy</a> · <a href="https://www.helen.fi/en/companies/cooling-for-companies/Heat-recovery-service-for-data-centers" target="_blank" rel="noopener">Helen, Helsinki</a></div>
-    </div>
+    <div class="proj-body" style="margin-top:.7rem">Denmark is the reference case because it started earliest and never stopped: around two-thirds of Danish homes now run on district heating, most of it municipally or cooperatively owned and regulated to run on a not-for-profit, cost-covering basis rather than for a return. That single pricing rule — heat sold at cost, not marked up — is widely credited with holding public trust through decades of fuel switching, from oil to coal to biomass and waste and, increasingly, to large heat pumps.</div>
+    <div class="proj-why"><b>Why it matters here:</b> it's the direct answer to the UK cost-spread problem in section 03. Denmark didn't avoid the fact that a local network's bill reflects local costs — it regulated what the operator is allowed to charge on top.</div>
+    <div class="proj-src">Sources: <a href="https://www.raponline.org/wp-content/uploads/2025/01/RAP-Oxenaar-Making-Europes-homes-Hygge-January-2025.pdf" target="_blank" rel="noopener">Regulatory Assistance Project</a> · <a href="https://dbdh.org/wp-content/uploads/2024/11/SoG_WhitePaper_DistrictEnergy2024_210x297_V09.pdf" target="_blank" rel="noopener">DBDH</a> — checked 2026-09-04</div>
   </div>
 
-  <!-- ══ 04 Methodology ══ -->
-  <div class="section-head">
-    <span class="sec-num">04</span>
+  <div class="proj">
+    <div class="proj-head">
+      <div><div class="proj-name">Sweden</div>
+      <div class="proj-where">Every town has a network · biomass and recovered heat</div></div>
+      <div class="proj-date">Since the 1950s</div>
+    </div>
+    <div class="proj-head-line">The honest ceiling: near-total in dense stock, largely absent in detached housing.</div>
+    <div class="proj-stats">
+      <div class="proj-stat"><div class="v">~90%</div><div class="k">multi-family heat demand</div></div>
+      <div class="proj-stat"><div class="v">&gt;50%</div><div class="k">of all building heat</div></div>
+      <div class="proj-stat"><div class="v">Every town</div><div class="k">has a network</div></div>
+    </div>
+    <div class="proj-body" style="margin-top:.7rem">Sweden shows the limit of the model rather than hiding it. Virtually every town has a network and nearly all multi-family and public buildings are connected, but single-family homes still mostly heat with electricity and individual heat pumps. Density decides the boundary, and Sweden stopped pushing past it.</div>
+    <div class="proj-why"><b>Why it matters here:</b> Canada's own inventory follows the identical pattern — campuses, hospitals and dense downtowns, not detached suburbs. Sweden is less a template to copy than a preview of roughly where the ceiling sits.</div>
+    <div class="proj-src">Source: <a href="https://www.sei.org/publications/swedish-heat-energy-system-new-tensions-and-lock-ins-after-a-successful-transition/" target="_blank" rel="noopener">Stockholm Environment Institute</a> — checked 2026-09-04</div>
+  </div>
+
+  <div class="proj">
+    <div class="proj-head">
+      <div><div class="proj-name">Germany</div>
+      <div class="proj-where">Wärmeplanungsgesetz — the 2024 Heat Planning Act</div></div>
+      <div class="proj-date">2024 — 2045</div>
+    </div>
+    <div class="proj-head-line">A national mandate with dates on it, rather than a project-by-project choice.</div>
+    <div class="proj-stats">
+      <div class="proj-stat"><div class="v">100,000</div><div class="k">buildings/year target</div></div>
+      <div class="proj-stat"><div class="v">65%</div><div class="k">renewable heat, new networks</div></div>
+      <div class="proj-stat"><div class="v">2045</div><div class="k">fully climate-neutral</div></div>
+    </div>
+    <div class="proj-body" style="margin-top:.7rem">Germany's 2024 Heat Planning Act is the sharpest contrast with how Canada builds district energy. Every city over 100,000 people must publish a municipal heat plan by June 2026; every new network must run on at least 65% renewable heat from day one; existing networks must reach 30% renewable or waste heat by 2030, 80% by 2040 and 100% by 2045. Regulation forcing both expansion and decarbonisation, on a timetable, in a country that — like Canada — still has plenty of individually heated buildings left to convert.</div>
+    <div class="proj-why"><b>Why it matters here:</b> this is precisely the provincial-level mandate section 03 finds missing in Canada, where one regulator in one province has a thermal framework at all and municipalities are nowhere required to plan for heat.</div>
+    <div class="proj-src">Sources: <a href="https://www.cleanenergywire.org/news/germany-connect-100000-buildings-district-heating-annually" target="_blank" rel="noopener">Clean Energy Wire</a> · <a href="https://www.districtenergy.org/blogs/district-energy/2024/07/24/germany-needs-435-bln-district-heating-investment" target="_blank" rel="noopener">IDEA</a> — checked 2026-09-04</div>
+  </div>
+
+  <div class="proj">
+    <div class="proj-head">
+      <div><div class="proj-name">Finland</div>
+      <div class="proj-where">Fortum · Espoo, Kauniainen and Kirkkonummi</div></div>
+      <div class="proj-date">Heating season 2025–26</div>
+    </div>
+    <div class="proj-head-line">Waste heat treated as a primary energy source, not an afterthought.</div>
+    <div class="proj-stats">
+      <div class="proj-stat"><div class="v">350 MW</div><div class="k">recovery capacity</div></div>
+      <div class="proj-stat"><div class="v">~40%</div><div class="k">of local network capacity</div></div>
+      <div class="proj-stat"><div class="v">14,000</div><div class="k">Helsinki apartments, one data centre</div></div>
+    </div>
+    <div class="proj-body" style="margin-top:.7rem">Fortum's heat-recovery plants route Microsoft data-centre waste heat into the district network at up to 350 MW combined — on track to supply roughly 40% of that network's capacity — as part of a wider Finnish practice of treating server and sewage heat as a genuine energy source rather than something to vent. Helsinki already does this at smaller scale: recovered heat from a single data centre covers roughly 14,000 apartments.</div>
+    <div class="proj-why"><b>Why it matters here:</b> heat recovery appears in Canada's inventory (section 01's source chart) but nothing near this scale, and one study puts Québec's recoverable waste heat at ~40% of its residential heating demand. The gap is opportunity, not physics.</div>
+    <div class="proj-src">Sources: <a href="https://www.hitachienergy.com/us/en/news-and-events/features/2024/03/fortum-to-use-waste-heat-from-data-centers-to-heat-premises-and-homes" target="_blank" rel="noopener">Hitachi Energy</a> · <a href="https://www.helen.fi/en/companies/cooling-for-companies/Heat-recovery-service-for-data-centers" target="_blank" rel="noopener">Helen, Helsinki</a> — checked 2026-09-04</div>
+  </div>
+
+  <!-- ══ 05 Methodology ══ -->
+  <div class="section-head" id="sec-method">
+    <span class="sec-num">05</span>
     <h2>How this page was built</h2>
     <p class="sec-sub">Two versions — the short one, and the one with the field names in it.</p>
   </div>
@@ -936,7 +1013,10 @@ function drawDecarb(){
     l:r.option.replace(/ \(.*\)/,''), v:r.responses, c:p.primary,
     vl:r.pct+'%', t:`<b>${r.option}</b><br>${r.responses} of ${T.n} respondents (${r.pct}%)`,
   }));
-  hBars('decarb-chart',rows,{labelW:170,rightW:40,barH:15});
+  // Wide viewBox (900) authored for a full-width card. A 460-wide viewBox
+  // stretched across 1,140px renders every bar at ~2.4x its intended size —
+  // which is exactly what this chart did before it moved sections.
+  hBars('decarb-chart',rows,{labelW:250,rightW:56,barH:16});
   const none=T.rows.find(r=>r.option.startsWith('No option'));
   document.getElementById('decarb-note').innerHTML=
     `Options operators said they were assessing for the next five years. n = ${T.n} systems — about 70% of 2023 survey respondents answered, so this is <b>${T.n} operators, not ${D.agg.n_operating} systems</b>. `+
@@ -1379,6 +1459,7 @@ function boot(){
       `from CEEDC's published files (dashboard last updated ${meta.source.dashboard_last_updated}; report ${meta.source.report_published}).`;
     buildFilters();
     renderAll();
+    syncNav();
   }).catch(err=>{
     document.getElementById('loading-msg').style.display='none';
     document.getElementById('error-msg').style.display='block';
@@ -1386,6 +1467,23 @@ function boot(){
     console.error(err);
   });
 }
+
+/* ── Sticky section nav ───────────────────────────────────────────────────
+   Rect-based, not IntersectionObserver: IO callbacks are dispatched from the
+   rendering pipeline, which doesn't run frames in this repo's preview
+   renderer, so an IO-driven nav highlights nothing there. A scroll handler
+   plus getBoundingClientRect works in both. */
+const NAV_LINKS=[...document.querySelectorAll('.sec-nav a')];
+function syncNav(){
+  let active=NAV_LINKS[0];
+  for(const a of NAV_LINKS){
+    const el=document.getElementById(a.getAttribute('href').slice(1));
+    if(el && el.getBoundingClientRect().top<=140) active=a;
+  }
+  NAV_LINKS.forEach(a=>a.classList.toggle('on',a===active));
+}
+addEventListener('scroll',syncNav,{passive:true});
+NAV_LINKS.forEach(a=>a.addEventListener('click',()=>setTimeout(syncNav,80)));
 
 initTheme();
 boot();
