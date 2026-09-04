@@ -1,25 +1,56 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-04** (**District Energy Explorer** — restructured per user
-feedback on the first build. Three changes: (1) *layout* — every pure-text
-description (why build one, heat carrier, one/two-pipe, types of energy
-sources & equipment) lost its card box; boxes are now reserved for the
-diagram, charts, tables and the interactive generation ladder. (2) *labels* —
-generation badges/legends/tooltips now read "1st Gen"–"4th Gen" instead of
-"1G"–"4G" everywhere a general reader sees them; the advanced-mode methodology
-prose keeps IEA's own "1G"–"4G" shorthand alongside the friendly name. The
-diagram gained solar thermal, waste heat and geothermal source icons feeding
-the plant. (3) *new content, three sections, none pipeline-derived* — a
-cost/emissions subsection (honest that no rigorous Canadian district-energy-
-vs-furnace comparison exists publicly; cites the NCR DES's measured 63%
-emissions cut and two advocacy orgs' cost arguments, each labelled for what it
-is); a Policy subsection on Vancouver's mandatory-connection False Creek NEU
-bylaw; and a new **World Leaders** section — four sourced country profiles
-(Denmark, Sweden, Germany, Finland). See
+Updated **2026-09-04** (**District Energy Explorer** — restructured twice in one
+day on user feedback, ending at a five-section page. Recorded as one entry
+because it's one arc.
+
+**Pass 1 — content and labels.** (1) *Layout* — pure-text descriptions lost
+their card boxes; boxes reserved for the diagram, charts, tables and the
+interactive generation ladder. (2) *Labels* — generation badges/legends/
+tooltips read "1st Gen"–"4th Gen" instead of "1G"–"4G" everywhere a general
+reader sees them; advanced-mode methodology keeps IEA's own shorthand
+alongside. Diagram gained solar thermal, waste heat and geothermal source
+icons feeding the plant. (3) *New sections* — cost/emissions, a Vancouver
+policy subsection, and a World Leaders section.
+
+**Pass 2 — layout, on the feedback that the page was "all over the place".**
+Four measured problems, three of them self-inflicted in pass 1: body text
+capped at 820px inside a 1,140px column (**72% of the width** — the pass-1
+override was written `.plain .prose`, a descendant selector, against markup
+that is `class="prose plain"` on one element, so it never matched); text in
+two columns; the decarb chart rendering **869×623px** because a 460-wide
+viewBox got stretched full-width when it left its two-up grid; and country
+boxes not matching the project-box style. Fixes: `.prose` now 1000px / 15px,
+all text single-column, decarb re-authored at a 900-wide viewBox (now
+869×290), country profiles rebuilt on the `.proj` pattern.
+
+**Restructured to five sections** (user chose this over a seven-section split):
+01 What it is · 02 What Canada has built and what's coming · 03 Policy and why
+it isn't scaling · 04 World leaders · 05 Method. Page runs ~17,900px, so a
+**sticky pill nav** was added, reusing project-atlas's pattern —
+**rect-based, not IntersectionObserver**, since IO callbacks never fire in this
+repo's preview renderer (see [preview-renderer-no-raf] in memory).
+
+**The BDA/Dunsky white paper finally extracted** (it returned binary through
+WebFetch on 2026-09-03; `pymupdf` on the cached download worked), which is
+what made §03 possible: only the **BCUC** has a provincial thermal-utility
+framework vs **15 US states** with legislation passed or developing; the
+national model code counts network heat as *purchased energy at an assumed
+COP of 1.0*, penalising a plant-side heat pump against an identical
+basement-side one; and a 2022 UK survey of 2,244 heat-network customers found
+a **lower average bill (£600 vs £960) but 1 in 10 paying £2,000+**, more
+outages, 39% satisfied with complaint handling — the honest counterweight the
+page lacked. The paper's own hedging ("not inherently low carbon"; "may not
+always reduce energy costs compared to the current fossil-fired status quo")
+replaced pass 1's weaker framing. Two corrections: the 70%-of-Canadians figure
+is **McMaster's**, cited by BDA, not BDA's own; Denmark's box now explains
+*why* cost-based pricing regulation matters here rather than just reciting
+coverage. See
 [docs/DISTRICT_ENERGY.md → Non-CEEDC content](docs/DISTRICT_ENERGY.md#non-ceedc-content-added-2026-09-04)
-for the full source list. Verified in-browser: no console errors, all charts
-paint, dark theme and Advanced mode both re-render correctly.
+for the full source list. Verified in-browser at 1200/1400/375px: no console
+errors, no empty charts, prose at 88% of column, nav sticky and highlighting,
+no mobile overflow, all three themes and both modes re-render.
 
 Updated **2026-09-03** (**District Energy Explorer** — new tool shipped:
 `districtenergy.html` + `Python/district_energy_etl.py` + `districtenergy_json/`
