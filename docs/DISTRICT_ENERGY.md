@@ -6,23 +6,76 @@
 **Curated inputs:** `districtenergy/curated/` (committed — hand-entered, not regenerable)
 **Raw inputs:** `districtenergy/raw/` (gitignored — re-downloadable)
 
-Created 2026-09-03.
+Created 2026-09-03. Restructured 2026-09-04.
 
 ---
 
 ## What it is
 
 An explainer *and* an explorer for Canadian district energy, aimed at both
-audiences at once:
+audiences at once, in three parts:
 
-- **Definitions** — what a district energy system is, the IEA 1G→4G generation
-  ladder (including the IEA's own objection to the term "5G"), heat carriers,
-  single- vs two-pipe vs ambient-loop networks, fuels and plant equipment.
-- **The national inventory** — all 254 systems CEEDC records, mapped and
-  filterable, against a background layer of Canada's whole innovative-energy
-  fleet.
-- **What's being built** — the systems CEEDC lists as planned, plus a
-  hand-curated list of projects that postdate the inventory.
+- **§01 District Energy 101** — what a district energy system is, the IEA
+  1G→4G generation ladder (including the IEA's own objection to the term
+  "5G", displayed on the page as "1st Gen"–"4th Gen"), heat carriers, single-
+  vs two-pipe vs ambient-loop networks, and a quick description of every
+  energy source and piece of equipment (including geothermal, waste heat and
+  solar thermal, added 2026-09-04 alongside the diagram). Closes with a
+  cost/emissions subsection — see **Non-CEEDC content**, below.
+- **§02 What's happening in Canada** — the national inventory (all 254 systems
+  CEEDC records, mapped and filterable, against a background layer of
+  Canada's whole innovative-energy fleet), the coverage-honesty charts, what's
+  being built, and a Policy subsection on Vancouver's mandatory-connection
+  bylaw.
+- **§03 World leaders** — four short country profiles (Denmark, Sweden,
+  Germany, Finland) contrasting how other mature district-energy markets got
+  there. New 2026-09-04; see **Non-CEEDC content**.
+
+---
+
+## Non-CEEDC content (added 2026-09-04)
+
+Three pieces of the page are **not derived from the CEEDC inventory** and
+carry their own citations rather than a pipeline provenance trail. They are
+static HTML, hand-written and hand-sourced — there is no JSON round-trip and
+no curated-input file, the same pattern the "why anyone builds one" prose
+already used before this restructure:
+
+- **Cost & emissions subsection (§01).** Looked for a rigorous Canadian
+  cost/GHG comparison of district energy against individual furnaces; none
+  exists publicly. What's on the page instead, each labelled for what it is:
+  the federal government's measured **63% emissions cut** from modernising
+  the National Capital Region District Energy System (one project's
+  engineering estimate — steam→low-temperature-hot-water conversion plus
+  electrified chillers — not a national average); and the Building
+  Decarbonization Alliance's and Boltzmann Institute's general cost arguments
+  for thermal energy networks, explicitly flagged as advocacy position
+  statements without a publishable $/GJ figure to verify, not independent
+  studies. CEEDC's own stated limitation (**What this page deliberately does
+  not claim**, below) is cross-referenced rather than repeated.
+- **Policy subsection (§02).** Vancouver's False Creek Neighbourhood Energy
+  Utility — mandatory connection for new buildings in its service area under
+  [Energy Utility System By-law No. 9552](https://bylaws.vancouver.ca/9552c.pdf),
+  enforced via a connectivity review at the permit stage — as the clearest
+  Canadian example of *required* rather than voluntary connection, contrasted
+  with the [Building Decarbonization Alliance's 2025 report](https://buildingdecarbonization.ca/report/thermal-energy-networks-in-canada/)
+  finding ~70% of Canadians live where thermal networks could serve their
+  heating, against ~3% actually served today.
+- **World leaders (§03).** Denmark (~70% of households, cost-based municipal
+  pricing — [RAP, Jan. 2025](https://www.raponline.org/wp-content/uploads/2025/01/RAP-Oxenaar-Making-Europes-homes-Hygge-January-2025.pdf));
+  Sweden (~90% of multi-family/public buildings, density-limited —
+  [Stockholm Environment Institute](https://www.sei.org/publications/swedish-heat-energy-system-new-tensions-and-lock-ins-after-a-successful-transition/));
+  Germany (2024 *Wärmeplanungsgesetz* mandating 100,000 connections/year —
+  [Clean Energy Wire](https://www.cleanenergywire.org/news/germany-connect-100000-buildings-district-heating-annually));
+  Finland (Fortum/Microsoft data-centre waste heat, ~40% of local network
+  capacity — [Hitachi Energy](https://www.hitachienergy.com/us/en/news-and-events/features/2024/03/fortum-to-use-waste-heat-from-data-centers-to-heat-premises-and-homes)).
+
+None of this touches `district_energy_etl.py` or `districtenergy_json/` — it
+is static prose in `districtenergy.html`, so refreshing the CEEDC pipeline
+never goes stale here, but it also won't get *fresher* on its own. If Germany
+hits its 2026 municipal-heat-plan deadline or Vancouver expands the NEU
+service area, this section needs a manual revisit, same as `projects.json`'s
+`reviewed` date.
 
 ---
 
