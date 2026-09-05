@@ -188,18 +188,43 @@ UNITS = {
         "rated_cap_95f_btuh": 34000.0,
     },
     "mid_<18k": {
-        "brand_model": "LG LSU120HSV5", "ahri": "10570123", "w": 4182,
-        "rank": "#1 of 344",
-        "source": "LG submittal (ajmadison) 4-pt capacity; COP only published at rated 47F "
-                  "(backed out from power draw) -- 5F COP is the AHRI record, not an independent "
-                  "datasheet measurement",
-        "cap_points": [(-19.44, 10360), (-14.44, 11930), (-7.22, 13810), (8.33, 13600)],
-        "cop_points": [(-15.0, 1.80), (8.33, 3.83)],
-        "lockout_C": -20.0,
-        "flags": ["Lockout approximated from LG's stated Heating (WB) -4F operating floor "
-                  "(wet-bulb, not dry-bulb -- treated as roughly equivalent here).",
-                  "COP curve between 47F and 5F is a straight interpolation between two anchors, "
-                  "not measured at the intermediate submittal capacity points (19F/6F/-3F)."],
+        "brand_model": "GE Appliances ASH115PRDWA/ASYW15PRDWB", "ahri": "202588312", "w": 868,
+        "rank": "#4 of 7 in this band by ERS install count -- swapped in 2026-09-05 for LG "
+                "LSU120HSV5 (w=4,182, a ~4.8x drop in representativeness) because the LG data was "
+                "a 4-pt capacity table with no cooling curve at all and a 2-anchor straight-line "
+                "COP interpolation, while this unit -- the 15k trim in the same GE Altitude Series "
+                "submittal already used for low_<18k -- has a real 5-pt heating curve and a real "
+                "6-pt cooling curve, both with power draw at every point. The three higher-w "
+                "candidates in this band (GREE GWH12QC-D3DNA1D/O w=2,113, Tosot TW12HQ2C2DO w=906, "
+                "ACD OCD12KCH22S-O w=804) have no known datasheet. Decision (representativeness vs. "
+                "data completeness) put to Simon explicitly, not assumed.",
+        "source": "Altitude_Series_Spec_Sheet.pdf p.8-9 (GE Appliances, rev. Aug. 2023), HEATING "
+                  "CAPACITY DATA, 70F(21C) indoor set-temperature column, MAX Heating Capacity, "
+                  "5-pt",
+        "cap_points": [(-26.11, 10000), (-20.0, 12000), (-15.0, 16000), (-8.33, 17000),
+                        (8.33, 26000)],
+        "cop_points": [(-26.11, 1.628), (-20.0, 1.716), (-15.0, 1.899), (-8.33, 2.129),
+                        (8.33, 2.932)],
+        "lockout_C": -26.11,
+        "flags": ["Lockout confirmed from spec page: 'Heating -15~75F (-26~24C)', matching the "
+                  "coldest tested point -- same operating range as low_<18k's ASH112PRDWA.",
+                  "Datasheet MAX capacity at 47F (26,000 Btu/h) is 1.73x the AHRI-certified rated "
+                  "47F capacity (15,000 Btu/h) -- the same variable-speed boost pattern already "
+                  "documented and accepted on ASH112PRDWA (1.67x), not a wrong-combination "
+                  "mismatch (model number matches the AHRI record exactly).",
+                  "Cross-check at 5F: curve gives COP 1.899 vs. the AHRI record's 1.80 (5.5% gap).",
+                  "AHRI cert 202588312 is listed as model_status 'Discontinued' in "
+                  "lookup/ahri_numbers.json -- noted for transparency, not treated as disqualifying.",
+                  "Cooling cross-check at 95F: curve gives 18,200 Btu/h vs. the AHRI-certified "
+                  "rated 15,000 Btu/h (1.213x) -- a smaller boost than the heating side, within "
+                  "the pipeline's normal tolerance."],
+        "cool_cap_points": [(18.33, 12400), (23.89, 14300), (29.44, 16800), (35.0, 18200),
+                        (40.56, 16600), (46.11, 13800)],
+        "cool_cop_points": [(18.33, 4.275), (23.89, 3.881), (29.44, 3.197), (35.0, 2.947),
+                        (40.56, 2.630), (46.11, 2.451)],
+        "cool_source": "Altitude_Series_Spec_Sheet.pdf p.8, COOLING CAPACITY DATA, 70F(21C) "
+                       "indoor set-temperature column, Total Capacity, 6-pt",
+        "rated_cap_95f_btuh": 18200.0,
     },
     "mid_18-30k": {
         "brand_model": "GREE GUD36W/A-D(U) (24k-rated pairing)", "ahri": "206249116", "w": 2253,
@@ -278,7 +303,24 @@ UNITS = {
                         (-3.9, 2.31), (0.0, 2.40), (1.7, 2.51), (4.4, 2.82),
                         (8.3, 3.16), (10.0, 3.23), (13.9, 3.32)],
         "lockout_C": -30.0,
-        "flags": ["Cross-check at 5F: curve gives COP 1.86 vs. the AHRI record's 1.95 (4.6% gap)."],
+        "flags": ["Cross-check at 5F: curve gives COP 1.86 vs. the AHRI record's 1.95 (4.6% gap).",
+                  "Cooling cross-check at 95F: curve gives 27,000 Btu/h vs. the AHRI-certified rated "
+                  "24,000 Btu/h (1.125x) and COP 3.243 vs. EER2 10.7 converted to COP (3.135, 3.4% "
+                  "gap) -- both within the pipeline's normal tolerance, same review-not-reject "
+                  "convention as the heating-side check above."],
+        "cool_cap_points": [(-30.0, 27120), (-25.0, 28850), (-20.0, 30370), (-17.8, 31240),
+                        (-15.0, 31960), (-8.3, 31480), (-3.9, 30820), (1.7, 30240),
+                        (8.3, 30190), (12.8, 29550), (18.3, 28960), (23.9, 28330),
+                        (26.7, 27740), (29.4, 27400), (35.0, 27000), (40.6, 24550),
+                        (43.3, 21950), (46.1, 19180), (50.0, 16190)],
+        "cool_cop_points": [(-30.0, 8.195), (-25.0, 7.686), (-20.0, 7.296), (-17.8, 7.153),
+                        (-15.0, 6.938), (-8.3, 6.590), (-3.9, 6.360), (1.7, 6.112),
+                        (8.3, 5.708), (12.8, 5.381), (18.3, 5.052), (23.9, 4.718),
+                        (26.7, 4.443), (29.4, 3.461), (35.0, 3.243), (40.6, 2.937),
+                        (43.3, 2.648), (46.1, 2.113), (50.0, 1.642)],
+        "cool_source": "MOOVAIR_M20_perf.pdf p.1, COOLING table, DMA24HOS20230E7 row, "
+                       "80F/67F indoor DB/WB column, 19-pt",
+        "rated_cap_95f_btuh": 27000.0,
     },
     "high_30-42k": {
         "brand_model": "Fujitsu AOUG36LMAS1", "ahri": "205123809", "w": 1795,

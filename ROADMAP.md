@@ -1,7 +1,41 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-04** (**District Energy Explorer** — restructured twice in one
+Updated **2026-09-05** (**Heat Pump Explorer** — closed the two remaining
+cooling-curve gaps in the live `hp_cell_curves.json`, and gave every one of
+the 9 tier cells a real datasheet-measured cooling curve for the first time.
+`mid_<18k` was **swapped, not supplemented**: LG LSU120HSV5 (w=4,182, a 4-pt
+heating table with no cooling curve at all and a 2-anchor straight-line COP
+interpolation) is out, replaced by **GE Appliances ASH115PRDWA/ASYW15PRDWB**
+(w=868) — a ~4.8x drop in ERS install-count representativeness, traded for a
+real 5-pt heating curve and a real 6-pt cooling curve, both with power draw
+at every point, digitized from the same GE Altitude Series submittal already
+vetted for `low_<18k`. The three higher-w candidates in that exact band
+(GREE GWH12QC-D3DNA1D/O w=2,113, Tosot TW12HQ2C2DO w=906, ACD OCD12KCH22S-O
+w=804) have no known datasheet; the representativeness-vs-completeness
+trade-off was put to Simon explicitly rather than assumed, same convention
+as every other cell swap this project has made. `high_18-30k` (Moovair
+DMA24HOS20230E7) keeps its existing 15-pt heating curve and gains a real
+19-pt cooling curve, digitized from page 1 of the same `MOOVAIR_M20_perf.pdf`
+already on disk for its heating data — a table that had simply gone
+unread before Simon pointed it out. Cross-checked against the AHRI cert
+(212361759): 95°F capacity 1.125x rated (well inside the tolerance other
+cells already pass at) and COP 3.243 vs. EER2-derived 3.135 (3.4% gap).
+**All 9 of 9 live cells now have real cooling data** — up from 7 of 9 last
+pass and 5 of 9 the pass before that. Both curves were rebuilt with
+`build_cell_curves.py`/`build_hp_tier_selection.py` and verified live in
+`heatpump.html`'s "Show potential AC" toggle for both swapped cells (cooling
+chart, solved balance point, and cooling-peak KPI all render with no
+fallback and no console errors) before publishing. Also added
+[HeatPump/reference/spec_sheets/](HeatPump/reference/spec_sheets/) — the 8
+manufacturer PDFs backing all 9 cells' curves, tracked on `main` (unlike the
+gitignored `data/raw/spec_sheets/` working cache) with a README mapping each
+file to the cell/table/AHRI cert it backs, so the primary source for every
+digitized point stays visible and reproducible without depending on Simon's
+local disk. See `pipeline/build_cell_curves.py`'s `mid_<18k` and
+`high_18-30k` entries for the full point-by-point sourcing.)
+
+Prior update **2026-09-04** (**District Energy Explorer** — restructured twice in one
 day on user feedback, ending at a five-section page. Recorded as one entry
 because it's one arc.
 
