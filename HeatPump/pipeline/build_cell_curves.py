@@ -285,7 +285,15 @@ UNITS = {
                   "(-26.1C) as the floor -- no dotted extrapolation below it.",
                   "Cross-check at 5F: curve gives COP 2.12 vs. the AHRI record's 2.34 (9.4% gap) -- "
                   "the widest mismatch of any unit in this set, right at the pipeline's 10% "
-                  "cross-check tolerance."],
+                  "cross-check tolerance.",
+                  "Indoor model discrepancy: both the heating and cooling tables in the design & "
+                  "technical manual are captioned 'Model: ASUG15LZAS' (internally consistent with "
+                  "each other), but NEEP's listing for this exact AHRI certificate (206597213) "
+                  "gives the indoor model as ASUG15LZBS -- a different suffix. Likely a "
+                  "manufacturer revision variant rather than a wrong-unit error (outdoor model "
+                  "AOUG15LZAH1 matches exactly, and NEEP's own capacity/COP figures are close to "
+                  "this curve's, same ballpark as the 9.4% gap already flagged above), but noted "
+                  "for transparency, not silently reconciled."],
         "cool_cap_points": [(-10.0, 16105), (-5.0, 15866), (0.0, 15593), (5.0, 15355),
                         (10.0, 15116), (15.0, 14843), (19.4, 17061), (25.0, 16276),
                         (30.6, 15423), (35.0, 14502), (40.0, 12727), (46.1, 11601)],
