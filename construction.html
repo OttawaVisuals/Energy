@@ -51,11 +51,11 @@ header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100
 body.mode-simple [data-mode="advanced"]{display:none!important}
 
 /* ── Hero ── */
-.hero{background:var(--navy);padding:2.25rem 1.5rem 2rem;text-align:center}
-.hero-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:1rem}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(2rem,5vw,3.25rem);font-weight:300;color:var(--white);line-height:1.15;letter-spacing:-.02em;max-width:680px;margin:0 auto 1rem}
+.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
+.hero-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber2);margin-bottom:.5rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--white);line-height:1.2;letter-spacing:-.02em;max-width:680px;margin:0 auto .6rem}
 .hero h1 em{font-style:italic;color:var(--amber2)}
-.hero-sub{font-size:15px;color:rgba(255,255,255,.55);max-width:600px;margin:0 auto}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:600px;margin:0 auto;line-height:1.55}
 
 /* ── Layout ── */
 main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
@@ -79,6 +79,9 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
 .chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
 .note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.not-used-list{list-style:none;display:flex;flex-direction:column;gap:.7rem}
+.not-used-list li{font-size:13px;color:var(--muted);line-height:1.55;padding-left:1rem;border-left:2px solid var(--border)}
+.not-used-list strong{color:var(--text);font-weight:500}
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:1rem}
@@ -519,6 +522,26 @@ footer a:hover{color:var(--amber2)}
         </div>
         <div id="ewrb-bars"></div>
         <p class="note" id="ewrb-note"></p>
+      </div>
+    </div>
+
+    <!-- 14 ▸ What else is out there -->
+    <div id="not-used-section">
+      <div class="section-head">
+        <h2>Sources not used, that we could add</h2>
+        <p class="sec-sub">This page already draws on ~15 StatCan tables, nine municipal permit APIs and three hand-curated program sources. Here's what we looked at and left out, and why.</p>
+      </div>
+      <div class="card">
+        <ul class="not-used-list">
+          <li><strong>CMHC Rental Market Survey</strong> — vacancy and rent detail beyond the one CMA vacancy column already pulled from 34-10-0127; could deepen the "did it sell" / rental side of the pipeline.</li>
+          <li><strong>StatCan Capital and Repair Expenditures Survey</strong> — private/public and residential/non-residential capital-spending <em>intentions</em>, a forward-looking complement to the backward-looking permits/starts data already on the page. Not yet evaluated for table structure or geography.</li>
+          <li><strong>Provincial building-code adoption tracking</strong> (which province has adopted which NBC tier, and when) — would let "How green is what we build" connect EnerGuide outcomes to actual code-in-force dates. No known machine-readable source; would likely need hand-transcription like the CHBA/Greener Homes figures.</li>
+          <li><strong>CMHC Housing Market Insight / Assessment reports</strong> — qualitative regional commentary, the same "cite-only" pattern already used for CHBA's Housing Market Index. No bulk API; would need per-report transcription.</li>
+          <li><strong>Provincial new-home warranty programs</strong> (Tarion/ON, RESCON, HCRA, GBC-BC, ANBQ-QC) — could add defect/claim rates by building type. Licensing and redistribution rights unchecked; would need clearing before any commitment, per our data-honesty rules.</li>
+          <li><strong>StatCan Labour Force Survey, construction detail</strong> — deeper skilled-trades wage/vacancy cuts than 14-10-0442 already provides. Likely redundant with what's shipped unless trades-level granularity is specifically wanted.</li>
+          <li><strong>Additional municipal permit desks</strong> (e.g. Quebec City, Surrey, Hamilton) — same integration pattern as the nine cities already on <a href="permits.html">Permits Explorer</a>. Each is its own bespoke ETL effort; scoped to that page, not this one.</li>
+        </ul>
+        <p class="note">Of these, a building-code adoption tracker and the CMHC Rental Market Survey (deeper than the one vacancy column already pulled) are the most directly useful extensions of sections already on this page — everything else is either redundant with what's shipped or blocked on licensing/access.</p>
       </div>
     </div>
 
