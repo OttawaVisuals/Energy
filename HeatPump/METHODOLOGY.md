@@ -4239,3 +4239,23 @@ JSON: switched units in the new dropdown, confirmed rows populate and the
 existing heating table (9 units, 51 rows, AHRI/NEEP columns) still renders
 correctly with no console errors -- no regression from adding the cooling
 one alongside it.
+
+**One more finding from the same pass**: checking that heating and cooling
+share the same physical model for every cell (Simon asked directly) turned
+up a model-number nuance on `high_<18k` (Fujitsu AOUG15LZAH1). Its design &
+technical manual captions both the heating table (p.16, section 5-2) and the
+cooling table (p.14, section 5-1) "Model: ASUG15LZAS" — internally
+consistent, both axes are the same indoor unit per the manual. But NEEP's
+own listing for this exact AHRI certificate (206597213) gives the indoor
+model as **ASUG15LZBS** — a different suffix. The outdoor unit
+(AOUG15LZAH1, which is what actually governs capacity and COP) matches
+exactly across all three sources (manual, AHRI, NEEP), and NEEP's own
+capacity/COP figures land in the same ballpark as this cell's
+already-documented 9.4% COP cross-check gap — so this reads as a
+manufacturer indoor-unit revision variant (A/B suffix), not a wrong-unit
+substitution. Recorded in the cell's `flags` array rather than silently
+reconciled or ignored, per the repo's data-honesty convention: a difference
+this small doesn't change the curve, but it's not nothing either, and future
+sourcing work on this cell should know about it. Every other cell's cited
+indoor model (where one is cited at all) matches NEEP's AHRI-cert listing
+exactly.
