@@ -1,7 +1,33 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-05** (**Heat Pump Explorer** — closed the two remaining
+Updated **2026-09-05** (**Potential AC Explorer** — Simon's call: the RESNET
+HERS Addendum 82 synthetic model added to `heatpumpAC.html` (badge SEER2/EER2
+reconstruction, min/full/max variable-speed dispatch, part-load-fraction
+cycling) went further than his confidence level in the underlying badge-data
+supports. Reverted to the same convention the Heat Pump Explorer's heating
+side has always used: real spec-sheet points, linearly interpolated, flat
+outside the published range — no synthetic curve shape, one speed. The whole
+HERS apparatus (`buildHersEquip`, `hersCoolingModel`, `hersBiquad`, the
+SEER2/EER2 lookup tables) was deleted from `heatpumpAC.html`, and
+`simulateCooling()` in both `HeatPump/app/engine.js` and `heatpumpAC.html`'s
+own inline copy went back to a single-curve dispatch — the two copies are
+back in sync (they'd drifted apart while the inline copy grew multi-speed
+logic the standalone file never got). Equipment objects now read directly
+from the curves already sitting in `ac_curves.json` / `hp_cell_curves.json`'s
+per-cell `cooling.curve` — data that existed and was already correctly
+digitized, just unused since the HERS rewrite. Net effect is a **bonus, not
+just a simplification**: those pre-built curves cover all 9 tier cells, while
+the badge-lookup table the HERS model needed only had 6 entries — 3 cells
+(`low_<18k`, `low_18-30k`, `mid_<18k`) that showed "no data" for heat-pump
+cooling mode now show real numbers. Kept in the methodology as an explicit
+caveat, not silently smoothed over: 3 of the 9 cells' cooling curves are
+digitized from an "Extended Ratings" table reporting MAX OUTPUT (compressor
+flat-out, not necessarily the rated operating point) — the same limitation,
+and the same source convention, the heating side has used for those units
+all along.)
+
+Prior update **2026-09-05** (**Heat Pump Explorer** — closed the two remaining
 cooling-curve gaps in the live `hp_cell_curves.json`, and gave every one of
 the 9 tier cells a real datasheet-measured cooling curve for the first time.
 `mid_<18k` was **swapped, not supplemented**: LG LSU120HSV5 (w=4,182, a 4-pt
