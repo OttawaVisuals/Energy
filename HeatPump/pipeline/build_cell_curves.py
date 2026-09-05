@@ -212,19 +212,26 @@ UNITS = {
                   "47F capacity (15,000 Btu/h) -- the same variable-speed boost pattern already "
                   "documented and accepted on ASH112PRDWA (1.67x), not a wrong-combination "
                   "mismatch (model number matches the AHRI record exactly).",
-                  "Cross-check at 5F: curve gives COP 1.899 vs. the AHRI record's 1.80 (5.5% gap).",
+                  "Cross-check at 5F: curve gives COP 1.899 vs. the AHRI record's 1.80 (5.5% gap); "
+                  "NEEP independently lists max at -15F as 9,900 Btu/h/1.7kW/COP 1.71 -- within 1% "
+                  "of this curve's own -15F point (10,000 Btu/h/1,800W/COP 1.628).",
                   "AHRI cert 202588312 is listed as model_status 'Discontinued' in "
                   "lookup/ahri_numbers.json -- noted for transparency, not treated as disqualifying.",
-                  "Cooling cross-check at 95F: curve gives 18,200 Btu/h vs. the AHRI-certified "
-                  "rated 15,000 Btu/h (1.213x) -- a smaller boost than the heating side, within "
-                  "the pipeline's normal tolerance."],
-        "cool_cap_points": [(18.33, 12400), (23.89, 14300), (29.44, 16800), (35.0, 18200),
-                        (40.56, 16600), (46.11, 13800)],
-        "cool_cop_points": [(18.33, 4.275), (23.89, 3.881), (29.44, 3.197), (35.0, 2.947),
-                        (40.56, 2.630), (46.11, 2.451)],
-        "cool_source": "Altitude_Series_Spec_Sheet.pdf p.8, COOLING CAPACITY DATA, 70F(21C) "
-                       "indoor set-temperature column, Total Capacity, 6-pt",
-        "rated_cap_95f_btuh": 18200.0,
+                  "Cooling cross-check at 95F: curve gives 16,500 Btu/h vs. the AHRI-certified "
+                  "rated 15,000 Btu/h (1.10x) and COP 3.301 vs. NEEP's independently listed rated "
+                  "COP 3.66 (9.8% gap) -- both within the pipeline's normal tolerance. (Corrected "
+                  "2026-09-05: originally read off the wrong indoor-set-temperature column -- see "
+                  "cool_source.)"],
+        "cool_cap_points": [(18.33, 11300), (23.89, 13000), (29.44, 15200), (35.0, 16500),
+                        (40.56, 15100), (46.11, 12500)],
+        "cool_cop_points": [(18.33, 4.475), (23.89, 4.187), (29.44, 3.682), (35.0, 3.301),
+                        (40.56, 2.837), (46.11, 2.598)],
+        "cool_source": "Altitude_Series_Spec_Sheet.pdf p.8, COOLING CAPACITY DATA, 80F(27C) "
+                       "indoor set-temperature column, Total Capacity, 6-pt (corrected 2026-09-05: "
+                       "the 70F column was used originally by mistake, inconsistent with low_<18k's "
+                       "own correct 80F precedent on the same spec sheet -- caught by cross-checking "
+                       "against fresh NEEP data Simon pulled for this AHRI cert).",
+        "rated_cap_95f_btuh": 16500.0,
     },
     "mid_18-30k": {
         "brand_model": "GREE GUD36W/A-D(U) (24k-rated pairing)", "ahri": "206249116", "w": 2253,
@@ -305,9 +312,10 @@ UNITS = {
         "lockout_C": -30.0,
         "flags": ["Cross-check at 5F: curve gives COP 1.86 vs. the AHRI record's 1.95 (4.6% gap).",
                   "Cooling cross-check at 95F: curve gives 27,000 Btu/h vs. the AHRI-certified rated "
-                  "24,000 Btu/h (1.125x) and COP 3.243 vs. EER2 10.7 converted to COP (3.135, 3.4% "
-                  "gap) -- both within the pipeline's normal tolerance, same review-not-reject "
-                  "convention as the heating-side check above."],
+                  "24,000 Btu/h (1.125x) -- both within the pipeline's normal tolerance, same "
+                  "review-not-reject convention as the heating-side check above. COP 3.243 vs. "
+                  "NEEP's independently listed rated COP 3.14 (3.3% gap, tighter than the "
+                  "EER2-derived 3.135 estimate used before Simon pulled the direct NEEP figure)."],
         "cool_cap_points": [(-30.0, 27120), (-25.0, 28850), (-20.0, 30370), (-17.8, 31240),
                         (-15.0, 31960), (-8.3, 31480), (-3.9, 30820), (1.7, 30240),
                         (8.3, 30190), (12.8, 29550), (18.3, 28960), (23.9, 28330),

@@ -1278,6 +1278,23 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
               <p class="tv-ctl"><span class="tv-swatch pub"></span> digitized datasheet point &middot; <span class="tv-swatch src"></span> AHRI/NEEP certified data</p>
             </div>
           </details>
+          <details class="method-sub">
+            <summary>Cooling spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−15°C to 55°C)</summary>
+            <div class="method-sub-body">
+              <p>Same idea as the heating table above, cooling side. <b>AHRI</b> is the certificate's single published cooling anchor (rated capacity + EER2 converted to COP, 95°F/35°C — AHRI does not publish a cooling capacity-maintenance curve the way it does for heating). <b>NEEP</b> republishes the same certificate's Min/Rated/Max Cooling table at 95°F and 82°F. Blank cells mean no source publishes a value there.</p>
+              <label class="tv-ctl" style="display:block;margin:.3rem 0 .6rem">Unit: <select id="tv-unit-sel-cool"></select></label>
+              <div class="tv-tblwrap">
+                <table id="tv-spec-tbl-cool">
+                  <thead>
+                    <tr><th rowspan="2">T (°C)</th><th colspan="5">COP</th><th colspan="5">Capacity (Btu/h)</th></tr>
+                    <tr><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th></tr>
+                  </thead>
+                  <tbody id="tv-spec-tbl-cool-body"></tbody>
+                </table>
+              </div>
+              <p class="tv-ctl"><span class="tv-swatch pub"></span> digitized datasheet point &middot; <span class="tv-swatch src"></span> AHRI/NEEP certified data</p>
+            </div>
+          </details>
         </div>
       </details>
 
@@ -2877,7 +2894,7 @@ function redrawAllCharts(){
   try{ if(lastRes) recompute(); }catch(e){}   // SVG steps + KPI rail + energy bar
   // The tier-viz canvases in the methodology panel are built lazily; rebuild
   // them only if the reader has already opened that section.
-  try{ if(typeof tvScatterChart!=='undefined'&&tvScatterChart){tvRenderScatter();tvRenderCurves();tvRenderSpecTable();} }catch(e){}
+  try{ if(typeof tvScatterChart!=='undefined'&&tvScatterChart){tvRenderScatter();tvRenderCurves();tvRenderSpecTable();tvRenderCoolSpecTable();} }catch(e){}
   // Same for the time-of-use rate chart.
   try{ if(typeof TOU_DATA!=='undefined'&&TOU_DATA)renderTouChart(TOU_DATA); }catch(e){}
 }
@@ -6059,7 +6076,7 @@ document.getElementById('tv-details').addEventListener('toggle',function(){
     body.insertBefore(msg,body.firstChild);
     tvLoad().then(()=>{
       const el=document.getElementById('tv-loading'); if(el)el.remove();
-      tvRenderScatter(); tvRenderCurves(); tvRenderSpecTable();
+      tvRenderScatter(); tvRenderCurves(); tvRenderSpecTable(); tvRenderCoolSpecTable();
     }).catch(()=>{
       const el=document.getElementById('tv-loading');
       if(el)el.textContent='Could not load the underlying data (hp_tier_selection.json).';
@@ -6296,6 +6313,42 @@ function tvRenderSpecTable(){
   sel.value=TV_UNIT_IDS[0];
   sel.onchange=e=>render(e.target.value);
   render(TV_UNIT_IDS[0]);
+}
+
+// ---- cooling spec-sheet table (mirrors tvRenderSpecTable() above) ----
+function tvRenderCoolSpecTable(){
+  const ids=TV_UNIT_IDS.filter(uid=>TV_DATA.cooling_table[uid]);
+  const sel=document.getElementById('tv-unit-sel-cool');
+  if(!ids.length){
+    sel.innerHTML='';
+    document.getElementById('tv-spec-tbl-cool-body').innerHTML=
+      '<tr><td colspan="11">No cell has a digitized cooling curve.</td></tr>';
+    return;
+  }
+  sel.innerHTML=ids.map(uid=>{
+    const u=TV_DATA.curves[uid];
+    return `<option value="${uid}">${uid.replace(/_/g,' ').replace('<','&lt;')} — ${u.brand_model}</option>`;
+  }).join('');
+  const fmtCOP=v=>v===null||v===undefined?'–':v.toFixed(2);
+  const fmtCap=v=>v===null||v===undefined?'–':Math.round(v).toLocaleString();
+  function render(uid){
+    document.getElementById('tv-spec-tbl-cool-body').innerHTML=TV_DATA.cooling_table[uid].map(r=>`<tr>
+      <td>${r.t}</td>
+      <td class="${r.ccp?'pub':(r.cc===null?'blank':'')}">${fmtCOP(r.cc)}</td>
+      <td class="${r.ac===null?'blank':'src'}">${fmtCOP(r.ac)}</td>
+      <td class="${r.nmc===null?'blank':'src'}">${fmtCOP(r.nmc)}</td>
+      <td class="${r.nrc===null?'blank':'src'}">${fmtCOP(r.nrc)}</td>
+      <td class="${r.nxc===null?'blank':'src'}">${fmtCOP(r.nxc)}</td>
+      <td class="${r.cap?'pub':(r.ca===null?'blank':'')}">${fmtCap(r.ca)}</td>
+      <td class="${r.aa===null?'blank':'src'}">${fmtCap(r.aa)}</td>
+      <td class="${r.nma===null?'blank':'src'}">${fmtCap(r.nma)}</td>
+      <td class="${r.nra===null?'blank':'src'}">${fmtCap(r.nra)}</td>
+      <td class="${r.nxa===null?'blank':'src'}">${fmtCap(r.nxa)}</td>
+    </tr>`).join('');
+  }
+  sel.value=ids[0];
+  sel.onchange=e=>render(e.target.value);
+  render(ids[0]);
 }
 </script>
 </body>
