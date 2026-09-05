@@ -4146,3 +4146,96 @@ cache) are now additionally kept as a tracked archive at
 a README mapping each file to the cell/table/AHRI cert it backs — so the
 primary source for every digitized point stays visible and reproducible
 without depending on Simon's local disk.
+
+## Indoor-condition audit, a real bug fixed, and a NEEP cooling cross-check table (2026-09-05)
+
+Follow-on to the section above, same day. Two things happened: an audit of
+every cell's spec-sheet extraction caught one real bug, and a permanent NEEP
+cross-check table was added so this class of error is visible on the page
+itself going forward.
+
+**The bug.** `mid_<18k` (GE ASH115PRDWA)'s cooling curve, digitized earlier
+the same day, read the datasheet's **70°F indoor set-temperature column** —
+matching the convention used for heating (correctly 70°F, AHRI's heating
+standard) — but AHRI's cooling standard indoor condition is **80°F**, and the
+sibling `low_<18k` cell (same `Altitude_Series_Spec_Sheet.pdf`) already used
+80°F correctly. The wrong column gave 18,200 Btu/h / COP 2.947 at 95°F; the
+correct one gives **16,500 Btu/h / COP 3.301**. Caught by cross-checking
+against fresh NEEP data Simon pulled directly from the AHRI cert's NEEP
+listing (202588312): AHRI/NEEP both show 15,000 Btu/h / COP 3.66 at 95°F, so
+the wrong-column reading (1.213x) was a worse match than the corrected one
+(1.10x, still a real and expected variable-speed boost, not zero). Fixed in
+`pipeline/build_cell_curves.py`'s `mid_<18k` entry (`cool_cap_points`,
+`cool_cop_points`, `cool_source`, `rated_cap_95f_btuh`, `flags`), regenerated,
+re-verified live in `heatpump.html`.
+
+**The audit.** Rather than assume the error was isolated, every other cell's
+heating AND cooling points were re-extracted directly from their source PDF
+and checked for an *exact* match (not a tolerance band) against what's
+committed in `build_cell_curves.py`:
+
+| Cell | Source | Heating column | Cooling column | Result |
+|---|---|---|---|---|
+| `low_<18k` | GE Altitude p.6 | 70°F | 80°F | exact match |
+| `low_18-30k` | Tosot TUD24 p.4-5 | 70°F (leftmost of 3) | 80°F (rightmost of 3) | exact match |
+| `low_30-42k` | Tosot TUD36 p.4-5 | 70°F | 80°F | exact match |
+| `mid_18-30k`/`mid_30-42k` | GREE FLEXX submittal + extended-ratings | 70°F (only option) | 80°F (3rd of 4) | exact match |
+| `high_<18k` | Fujitsu AOUG09-15LZAH1 designtech | 70°F/21.1°C (3rd of 4) | 80°F/67°F (4th of 6) | exact match |
+| `high_18-30k` | Moovair M20 perf p.1/3 | 70°F/21.1°C row | 80°F/67°F row | exact match |
+| `high_30-42k` | Fujitsu AMUG24-48LMAS designtech | 70°F/21.1°C (3rd of 5) | 80°F/67°F (4th of 6) | exact match |
+
+All 8 were already correct — the GE `mid_<18k` cooling column was the only
+place a wrong table got read. A summary ratio check (datasheet 95°F capacity
+÷ AHRI-certified cooling capacity, using `lookup/ahri_numbers.json`, already
+available locally) also flagged `mid_18-30k` at 1.42x — but that's the
+already-documented, deliberate reuse of `mid_30-42k`'s curve (GREE's own
+extended-ratings table groups the 24k- and 36k-rated systems as identical
+physical hardware), not a second bug.
+
+**The NEEP cooling cross-check table.** Simon asked to add NEEP as a
+permanent, visible three-way comparison for cooling (spec sheet vs. AHRI vs.
+NEEP), mirroring the "Spec-sheet table — calculated vs. AHRI-certified vs.
+NEEP" already on the page for heating — both so a future column-mixup like
+this one is visible on the page itself, not dependent on someone re-deriving
+it in chat, and so the two cells' cooling curves added earlier today get the
+same audit trail as the other 7.
+
+All 9 units' NEEP "Performance Specs" pages were pulled by browsing
+`ashp.neep.org`'s rendered product pages directly (search by AHRI
+certificate number, click VIEW DETAIL, read the rendered table) — never the
+site's API, per standing instruction. This closed two gaps the 2026-08-04
+pull had left: `low_<18k` and `mid_<18k` had no NEEP listing at all pulled
+before, and **no unit's cooling table had ever been extracted** — the
+original `build_neep_extract.py` discarded "Cooling" blocks entirely,
+heating-only by design at the time.
+
+Pipeline changes:
+- `data/raw/neep/neep_pages_2026-09-05.json` — the raw pull, all 9 units,
+  heating and cooling, superseding `neep_extract_tier_units_2026-08-04.xlsx`.
+- `build_neep_extract.py` rewritten to parse both Heating and Cooling blocks
+  from the new raw format, producing a `"cooling"` array per unit alongside
+  the existing `"heating"` one in `neep_extract.json`.
+- `build_tier_curves.py` gained `build_cooling_table_data()` (mirrors
+  `build_table_data()`) and `_load_ahri_cooling()`. AHRI's cooling anchor
+  comes from `lookup/ahri_numbers.json` (`cooling_capacity_btuh`, `eer2`) at
+  95°F/35°C only, since `hp_units_joined.csv` (the heating anchor's source)
+  has no cooling columns at all — AHRI publishes one cooling rated point per
+  unit, not a capacity-maintenance curve the way it does for heating. Table
+  grid is −15°C to 55°C (matches `build_cool_segments`'s own chart range),
+  vs. heating's −30°C to 20°C.
+- `build_hp_tier_selection.py` adds a `cooling_table` key to
+  `hp_tier_selection.json`, alongside the existing `table` (heating).
+- `heatpump.html` gained a "Cooling spec-sheet table" `<details>` block
+  immediately below the heating one, and `tvRenderCoolSpecTable()`
+  (mirrors `tvRenderSpecTable()`), reading `TV_DATA.cooling_table`.
+
+Spot-checked after rebuild: `low_18-30k` shows a clean three-way match at
+95°F (Calc 3.08 = AHRI 3.08 = NEEP rated 3.08); `mid_<18k` shows the
+corrected 16,500 Btu/h next to AHRI's and NEEP's 15,000 (both were 18,200
+before the fix); `high_18-30k` (Moovair) shows Calc COP 3.24 against
+AHRI/NEEP's 3.14, matching the 3.3% gap already documented in
+`build_cell_curves.py`'s flags. Verified live in the browser, not just the
+JSON: switched units in the new dropdown, confirmed rows populate and the
+existing heating table (9 units, 51 rows, AHRI/NEEP columns) still renders
+correctly with no console errors -- no regression from adding the cooling
+one alongside it.

@@ -35,6 +35,58 @@ digitized point stays visible and reproducible without depending on Simon's
 local disk. See `pipeline/build_cell_curves.py`'s `mid_<18k` and
 `high_18-30k` entries for the full point-by-point sourcing.)
 
+Same-day follow-up **2026-09-05** (**Heat Pump Explorer** — a full indoor-
+condition audit of all 9 cells' spec-sheet sources caught one real bug, and a
+new NEEP-based cooling cross-check table shipped to make this kind of error
+visible on the page itself, not just in chat.
+
+**The bug**: `mid_<18k` (GE ASH115PRDWA)'s cooling curve, added earlier today,
+had been read off the datasheet's 70°F indoor-set-temperature column — the
+same convention used for heating — but AHRI's cooling standard is 80°F
+indoor, and the sibling `low_<18k` cell (same spec sheet) already used the
+correct 80°F column. Caught by cross-checking against fresh NEEP data Simon
+pulled for this AHRI cert: the wrong column gave 18,200 Btu/h / COP 2.947 at
+95°F against a 15,000 Btu/h AHRI-certified rating (1.213x, plausible-looking
+enough not to have been obviously wrong on its own); the correct 80°F column
+gives 16,500 Btu/h / COP 3.301 (1.10x vs. AHRI, 9.8% COP gap vs. NEEP's
+directly-measured 3.66) — both a materially different number and a
+tighter match. Fixed in `pipeline/build_cell_curves.py`, regenerated,
+re-verified live.
+
+**The audit**: rather than assume the bug was isolated, re-extracted every
+single heating and cooling point for the other 8 cells directly from their
+source PDFs (GE, Tosot ×2, GREE ×2, Fujitsu ×2, Moovair) and confirmed an
+exact match against what's committed — not a tolerance check, the actual
+digit. All 8 were already correct; the GE `mid_<18k` cooling column was the
+only place a wrong table got read. `mid_18-30k`'s cooling ratio (1.42x
+against its own 24k-rated AHRI cert) looked like an outlier on the summary
+table but is the already-documented, deliberate GREE 24k/36k shared-hardware
+reuse, not a second bug.
+
+**The NEEP cooling table**: Simon asked to add NEEP as a permanent, visible
+three-way cross-check (spec sheet vs. AHRI vs. NEEP) for cooling, mirroring
+the heating "Spec-sheet table" already on the page — both so this class of
+error surfaces on the page itself next time, and so the two remaining
+cooling gaps closed today have the same paper trail as everything else.
+Pulled all 9 units' NEEP "Performance Specs" pages by browsing
+ashp.neep.org's rendered product pages (search by AHRI #, click VIEW DETAIL)
+— never the site's API, per standing instruction. This also filled two
+long-standing gaps in `data/interim/neep_extract.json`: `low_<18k` and
+`mid_<18k` had no NEEP listing at all in the 2026-08-04 pull, and none of the
+9 units' *cooling* tables had ever been extracted (the old
+`build_neep_extract.py` discarded Cooling blocks entirely, heating-only by
+design at the time). `build_neep_extract.py` rewritten against a fresh raw
+pull (`data/raw/neep/neep_pages_2026-09-05.json`) to keep both blocks;
+`build_tier_curves.py` gained `build_cooling_table_data()` (AHRI's cooling
+anchor comes from `lookup/ahri_numbers.json` instead of
+`hp_units_joined.csv`, which has no cooling columns); `heatpump.html` gained
+a "Cooling spec-sheet table" details block next to the existing heating one.
+Verified live: switching to `mid_<18k` on the new table shows the corrected
+16,500 Btu/h next to AHRI's 15,000 and NEEP's 15,000, and the existing
+heating table was re-checked for regressions (9 units, 51 rows, AHRI/NEEP
+columns still populate) — none found. See `HeatPump/METHODOLOGY.md`
+"Cooling gaps closed" and its NEEP-cross-check follow-on for full detail.)
+
 Prior update **2026-09-04** (**District Energy Explorer** — restructured twice in one
 day on user feedback, ending at a five-section page. Recorded as one entry
 because it's one arc.

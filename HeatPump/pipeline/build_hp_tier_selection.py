@@ -17,8 +17,9 @@ INPUTS
     build_tier_scatter.py   SIZE_BANDS, weighted_quantile, plot bounds, the
                              9-unit AHRI selection set
     build_cell_curves.py    UNITS (digitized datasheet points), build_segments
-    build_tier_curves.py    COLOURS, build_table_data() (AHRI/NEEP/calculated
-                             spec table)
+    build_tier_curves.py    COLOURS, build_table_data() (heating
+                             AHRI/NEEP/calculated spec table),
+                             build_cooling_table_data() (same, cooling side)
 
 OUTPUT
 ------
@@ -31,7 +32,9 @@ OUTPUT
                           cap_segments[[t0,v0,t1,v1,solid]...],
                           cop_segments[...], cap_points[[t,v]...],
                           cop_points[...] } }
-    table:   { uid -> rows[] }   (build_tier_curves.build_table_data() as-is)
+    table:   { uid -> rows[] }   heating spec table, build_table_data() as-is
+    cooling_table: { uid -> rows[] }   cooling spec table, cells with a real
+                          digitized cooling curve only -- build_cooling_table_data()
 """
 import json
 from pathlib import Path
@@ -40,7 +43,7 @@ import pandas as pd
 
 from build_tier_scatter import SIZE_BANDS, SELECTED_AHRI, X_MIN, X_MAX, Y_MIN, Y_MAX, weighted_quantile
 from build_cell_curves import UNITS, build_segments, build_cool_segments
-from build_tier_curves import COLOURS, build_table_data
+from build_tier_curves import COLOURS, build_table_data, build_cooling_table_data
 
 HERE = Path(__file__).resolve().parent
 INTERIM = HERE.parent / "data" / "interim"
@@ -149,6 +152,7 @@ def main():
         "scatter": build_scatter(),
         "curves": build_curves(),
         "table": build_table_data(),
+        "cooling_table": build_cooling_table_data(),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
@@ -157,6 +161,7 @@ def main():
     print(f"  scatter: {len(data['scatter']['pts']):,} points")
     print(f"  curves: {len(data['curves'])} units")
     print(f"  table: {sum(len(v) for v in data['table'].values()):,} rows total")
+    print(f"  cooling_table: {sum(len(v) for v in data['cooling_table'].values()):,} rows total")
 
 
 if __name__ == "__main__":

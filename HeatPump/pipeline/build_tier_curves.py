@@ -61,12 +61,14 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 
-from build_cell_curves import UNITS, build_segments, WARM_MAX_C
+from build_cell_curves import UNITS, build_segments, build_cool_segments, WARM_MAX_C
 
 HERE = Path(__file__).resolve().parent
 INTERIM = HERE.parent / "data" / "interim"
+LOOKUP = HERE.parent.parent / "lookup" / "ahri_numbers.json"
 
 F_TO_C = lambda f: (f - 32) * 5 / 9
 
@@ -78,7 +80,9 @@ COLOURS = {
     "high_<18k": "#4C9BE8", "high_18-30k": "#3C74B8", "high_30-42k": "#274D80",
 }
 
-TABLE_T_MIN, TABLE_T_MAX = -30, 20   # integer C grid for the spec table
+TABLE_T_MIN, TABLE_T_MAX = -30, 20   # integer C grid for the heating spec table
+COOL_TABLE_T_MIN, COOL_TABLE_T_MAX = -15, 55   # integer C grid for the cooling spec table
+                                                 # (matches build_cool_segments' own chart range)
 
 
 def _load_ahri():
@@ -100,6 +104,33 @@ def _load_neep():
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))["units"]
+
+
+def _load_ahri_cooling():
+    """k (AHRI #) -> {cooling_cap_95f_btuh, eer2} from lookup/ahri_numbers.json.
+
+    Unlike heating's two-point hp_units_joined.csv anchor, this file carries
+    only the single AHRI-rated 95F point per unit -- that's what AHRI/NEEP
+    both call "Rated" for cooling, so it's the one anchor placed on the table.
+    """
+    if not LOOKUP.exists():
+        return {}
+    def _lead_num(v):
+        # A handful of lookup/ahri_numbers.json values carry an annotation,
+        # e.g. "41000 WAS [45000]" -- take the leading number, not the aside.
+        if not v:
+            return None
+        m = re.match(r"[\d.]+", str(v).strip())
+        return float(m.group()) if m else None
+
+    raw = json.loads(LOOKUP.read_text(encoding="utf-8"))
+    out = {}
+    for ahri, rec in raw.items():
+        out[ahri] = {
+            "cap_95f_btuh": _lead_num(rec.get("cooling_capacity_btuh")),
+            "eer2": _lead_num(rec.get("eer2")),
+        }
+    return out
 
 
 def _eval_segments(segs, t):
@@ -150,6 +181,62 @@ def build_table_data():
             neep_min_cap = h["min"]["btuh"] if h else None
             neep_rated_cap = h["rated"]["btuh"] if h else None
             neep_max_cap = h["max"]["btuh"] if h else None
+
+            rows.append({
+                "t": t,
+                "cc": None if calc_cop is None else round(calc_cop, 2),
+                "ccp": t in cop_pub,
+                "ca": None if calc_cap is None else round(calc_cap),
+                "cap": t in cap_pub,
+                "ac": ahri_cop, "aa": ahri_cap,
+                "nmc": neep_min_cop, "nrc": neep_rated_cop, "nxc": neep_max_cop,
+                "nma": neep_min_cap, "nra": neep_rated_cap, "nxa": neep_max_cap,
+            })
+        out[uid] = rows
+    return out
+
+
+def build_cooling_table_data():
+    """Cooling equivalent of build_table_data() -- calculated vs. AHRI vs. NEEP,
+    for the cells that have a real digitized cooling curve (all 9 as of
+    2026-09-05; a cell without one is simply omitted, no fabricated row)."""
+    ahri_cool_by_k = _load_ahri_cooling()
+    neep_by_ahri = _load_neep()
+    grid = list(range(COOL_TABLE_T_MIN, COOL_TABLE_T_MAX + 1))
+
+    out = {}
+    for uid, u in UNITS.items():
+        if not u.get("cool_cap_points"):
+            continue
+        cap_segs = build_cool_segments(u["cool_cap_points"])
+        cop_segs = build_cool_segments(u["cool_cop_points"])
+        cap_pub = {round(t) for t, _ in u["cool_cap_points"]}
+        cop_pub = {round(t) for t, _ in u["cool_cop_points"]}
+
+        ahri = ahri_cool_by_k.get(u["ahri"])
+        neep = neep_by_ahri.get(u["ahri"])
+        neep_by_T = {}
+        if neep:
+            for c in neep.get("cooling", []):
+                neep_by_T[round(c["outdoor_C"])] = c
+
+        rows = []
+        for t in grid:
+            calc_cop = _eval_segments(cop_segs, t)
+            calc_cap = _eval_segments(cap_segs, t)
+
+            ahri_cop = ahri_cap = None
+            if ahri and t == 35:   # 95F -- AHRI's one published cooling anchor
+                ahri_cap = ahri["cap_95f_btuh"]
+                ahri_cop = round(ahri["eer2"] / 3.412, 2) if ahri["eer2"] else None
+
+            c = neep_by_T.get(t)
+            neep_min_cop = c["min"]["cop"] if c else None
+            neep_rated_cop = c["rated"]["cop"] if c else None
+            neep_max_cop = c["max"]["cop"] if c else None
+            neep_min_cap = c["min"]["btuh"] if c else None
+            neep_rated_cap = c["rated"]["btuh"] if c else None
+            neep_max_cap = c["max"]["btuh"] if c else None
 
             rows.append({
                 "t": t,
