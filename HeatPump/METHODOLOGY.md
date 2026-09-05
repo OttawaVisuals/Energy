@@ -4259,3 +4259,62 @@ this small doesn't change the curve, but it's not nothing either, and future
 sourcing work on this cell should know about it. Every other cell's cited
 indoor model (where one is cited at all) matches NEEP's AHRI-cert listing
 exactly.
+
+## Cooling curves reverted to spec-sheet interpolation (2026-09-05)
+
+Between "Cooling curve library expanded, and SEER2 badges don't predict
+real-TMY performance" above and this entry, `heatpumpAC.html` had grown a
+RESNET/ICC 301 HERS Addendum 82 model: a generic biquadratic
+temperature-response shape, calibrated to each unit's certified SEER2/EER2
+badge, deriving Min/Full/Max capacity-and-COP points for variable-speed
+equipment and dispatching across all three hour by hour (continuous
+modulation between speeds, part-load-fraction cycling below the minimum
+speed). Motivation was real — Manufacturer "Extended Ratings" tables report
+MAX OUTPUT (compressor flat-out), which understates a variable-speed unit's
+typical efficiency — but Simon's call, when the drift this introduced into
+`HeatPump/app/engine.js` vs. the shipping inline copy surfaced it for
+review, was that the whole apparatus goes further than his confidence in the
+underlying badge data supports: SEER2/EER2 numbers are themselves a
+bin-weighted average at fixed conditions (see "SEER/SEER2 badges do not
+predict TMY-integrated real-world performance" above), so reconstructing a
+synthetic per-hour curve from them isn't obviously better-founded than
+reading the real spec-sheet points directly, and it's a lot more machinery
+to defend to a skeptical reader.
+
+Reverted to the exact convention the Heat Pump Explorer's heating side has
+used from the start (see `hpPerformance()`): real capacity/COP points
+digitized off each unit's own manufacturer spec sheet at the standard AHRI
+cooling condition (80°F DB / 67°F WB indoor), linearly interpolated between
+published points, held flat outside the published range. One curve per
+unit, no synthetic shape, no multi-speed dispatch. The entire HERS
+apparatus — `buildHersEquip`, `hersCoolingModel`, `hersBiquad`,
+`hersCop82min`, the SEER2/EER2 lookup tables, the `HERS_COOL_INPUTS` badge
+table — was deleted from `heatpumpAC.html`. `simulateCooling()` in both
+`HeatPump/app/engine.js` and `heatpumpAC.html`'s own inline copy went back
+to the single-curve dispatch (`delivered = min(load, capacity)`,
+`elec = delivered / cop`) — which incidentally resolves the drift noted
+above without a manual re-sync, since the standalone file's simpler version
+was already closer to correct than the multi-speed inline copy it was
+supposed to mirror.
+
+**A real bonus, not just a simplification**: the curves this now reads —
+`ac_curves.json`'s `curve` and `hp_cell_curves.json`'s per-cell
+`cooling.curve` — already existed, built by `build_cell_curves.py` straight
+from the digitized `cool_cap_points`/`cool_cop_points` (the same spec-sheet
+work this session's earlier passes did), and were simply sitting unused
+since the HERS rewrite shadowed them. The HERS model's own badge lookup
+table (`HERS_COOL_INPUTS`) only covered 6 of the 9 tier cells; the direct
+curves cover all 9. Three cells that showed "no cooling curve on file" in
+heat-pump mode — `low_<18k`, `low_18-30k`, `mid_<18k` — now show real
+numbers, with no new sourcing work required.
+
+Not silently smoothed over: three cells (`low_18-30k`, `low_30-42k`, and the
+GREE pairing `mid_18-30k`/`mid_30-42k`) are still digitized from an
+"Extended Ratings" table reporting MAX OUTPUT rather than a rated-condition
+table — the same limitation the heating side has carried for these same
+units all along (see their `source` fields in `build_cell_curves.py`).
+Recorded as an explicit caveat in `heatpumpAC.html`'s own methodology
+section rather than removed or corrected, per this repo's data-honesty
+convention: cooling isn't held to a stricter standard than heating, and the
+limitation is named rather than papered over with a model that assumes more
+than the badge numbers can support.
