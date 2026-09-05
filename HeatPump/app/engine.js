@@ -671,7 +671,10 @@
 
     var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
     var coolingHours = 0, metHours = 0, unmetHours = 0;
-    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0);
+    // Grid intensity is captured for every hour (not just cooling hours), same
+    // convention as simulate()'s h_ef, so its own daily/seasonal shape is
+    // visible independent of when the home actually needs cooling.
+    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0), h_ef = new Array(N).fill(0);
     var m_elec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       m_ghg = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     // month x hour-of-day electricity (kWh), same shape as simulate()'s
@@ -682,12 +685,6 @@
 
     for (var i = 0; i < N; i++) {
       var T = temps[i];
-      var load = UA * Math.max(0, T - Tc);
-      h_load[i] = load;
-      if (load <= 0) continue;
-      coolingHours++;
-      loadKWh += load;
-
       var hour = (i % 24) + 1;
       var dayOfYear = Math.floor(i / 24);
       var month = monthOfDay(dayOfYear, leap);
@@ -695,6 +692,15 @@
       var mi = month - 1;
       var season = SEASON_BY_MONTH[month];
       var tbin = tempBinLeft(T);
+
+      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+      h_ef[i] = efThisHour;
+
+      var load = UA * Math.max(0, T - Tc);
+      h_load[i] = load;
+      if (load <= 0) continue;
+      coolingHours++;
+      loadKWh += load;
 
       var capFrac = interp(curve.T_C, curve.cap_frac_of_rated95, T);
       var cop = interp(curve.T_C, curve.COP, T);
@@ -712,7 +718,6 @@
         h_elec[i] = elec;
         mh_elec[mi][hour - 1] += elec;
 
-        var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
         var ghg = efThisHour * elec * lineLoss * G2KG;
         ghgKg += ghg;
         m_ghg[mi] += ghg;
@@ -729,7 +734,7 @@
       energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
       ghg: { electricity: ghgKg, total: ghgKg },
       monthly: monthly,
-      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, temp_C: temps },
+      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, ef_g_per_kWh: h_ef, temp_C: temps },
       diagnostics: {
         load_kWh: loadKWh,
         delivered_kWh: deliveredKWh,

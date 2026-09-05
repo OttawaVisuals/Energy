@@ -307,10 +307,40 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div id="stats"></div>
     </section>
 
-    <!-- ═══ Step 1 · Cooling load ═══ -->
+    <!-- ═══ Step 1 · Weather ═══ -->
+    <section class="out-section" id="section-weather">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Step 1 — The weather driving everything</h2>
+        <p class="out-section-intro">Everything below starts here — how often, and how hot, this city gets in the selected weather year. That shape decides how much cooling step 2 says the home needs.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head">
+          <span class="card-title">Outdoor temperature</span>
+          <div class="seg" id="weather-view-seg" role="group" aria-label="Weather chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="weather-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="weather-view-seg-week" aria-label="Week to show"></select>
+            </div>
+            <div class="keychart-wrap"><svg id="weather-chart" viewBox="0 0 740 320" role="img" aria-label="Outdoor temperature versus time or by temperature"></svg><div class="kc-tip" id="weather-tip"></div></div>
+            <div class="kc-legend" id="weather-legend"></div>
+            <div class="note" id="weather-note"></div>
+          </div>
+          <div class="step-kpi-col" id="weather-kpis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Step 2 · Cooling load ═══ -->
     <section class="out-section" id="section-load">
       <div class="out-section-head">
-        <h2 class="out-section-title">Step 1 — Cooling load</h2>
+        <h2 class="out-section-title">Step 2 — Cooling load</h2>
         <p class="out-section-intro">No real cooling data exists for this house — there is no AC installed, just a design heat load. Two correlations found across 209,272 ERS-audited homes turn that heat load into a plausible summer cooling profile. <button type="button" class="info-btn" id="load-info" aria-label="Where do these numbers come from?" data-info="cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254 (r=0.683); annual_cool_kWh = 838.3 × cool_peak_kW (r=0.778), both from 209,272 ERS homes. Two correlations removed from measurement — see methodology." data-method="m-cooling-load">?</button></p>
       </div>
       <div class="card">
@@ -338,29 +368,40 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
-    <!-- ═══ Step 2 · Equipment COPs ═══ -->
+    <!-- ═══ Step 3 · Equipment COPs ═══ -->
     <section class="out-section" id="section-cop">
       <div class="out-section-head">
-        <h2 class="out-section-title">Step 2 — Equipment COPs</h2>
+        <h2 class="out-section-title">Step 3 — Equipment COPs</h2>
         <p class="out-section-intro">How each unit's coefficient of performance changes with outdoor temperature — the hotter it gets, the harder either unit works for the same kW of cooling.</p>
       </div>
       <div class="card">
-        <div class="card-title-row chart-head"><span class="card-title">COP vs outdoor temperature</span></div>
+        <div class="card-title-row chart-head">
+          <span class="card-title">COP vs outdoor temperature</span>
+          <div class="seg" id="cop-view-seg" role="group" aria-label="COP chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
         <div class="step-body">
           <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="cop-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="cop-view-seg-week" aria-label="Week to show"></select>
+            </div>
             <div class="keychart-wrap"><svg id="cop-chart" viewBox="0 0 740 220" role="img" aria-label="Coefficient of performance versus outdoor temperature"></svg><div class="kc-tip" id="cop-tip"></div></div>
             <div class="kc-legend" id="cop-legend"></div>
-            <div class="note">COP here is each unit's full/rated-speed curve, calibrated to its own certified SEER2/EER2 badge (RESNET HERS Addendum 82) — not measured in this home, and not the same as the max-speed-only number a manufacturer's extended-ratings table would show. See methodology.</div>
+            <div class="note" id="cop-note">COP here is each unit's full/rated-speed curve, calibrated to its own certified SEER2/EER2 badge (RESNET HERS Addendum 82) — not measured in this home, and not the same as the max-speed-only number a manufacturer's extended-ratings table would show. See methodology.</div>
           </div>
           <div class="step-kpi-col" id="cop-kpis"></div>
         </div>
       </div>
     </section>
 
-    <!-- ═══ Step 3 · Energy usage ═══ -->
+    <!-- ═══ Step 4 · Energy usage ═══ -->
     <section class="out-section" id="section-electricity">
       <div class="out-section-head">
-        <h2 class="out-section-title">Step 3 — Energy usage</h2>
+        <h2 class="out-section-title">Step 4 — Energy usage</h2>
         <p class="out-section-intro">Before adding AC, this home draws zero electricity for cooling. After, it draws whatever the chosen equipment needs to meet the estimated load above, hour by hour over a full summer.</p>
       </div>
       <div class="card">
@@ -390,10 +431,41 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
-    <!-- ═══ Step 4 · GHG emissions ═══ -->
+    <!-- ═══ Step 5 · Grid carbon intensity ═══ -->
+    <section class="out-section" id="section-grid">
+      <div class="out-section-head">
+        <h2 class="out-section-title">Step 5 — How dirty each kilowatt-hour is</h2>
+        <p class="out-section-intro">The grid's carbon intensity is the multiplier on step 4's electricity. It's the same reading for either unit — only how much electricity each one draws differs.</p>
+      </div>
+      <div class="card">
+        <div class="card-title-row chart-head">
+          <span class="card-title">Grid carbon intensity vs outdoor temperature</span>
+          <div class="seg" id="grid-view-seg" role="group" aria-label="Grid chart view">
+            <button type="button" data-view="plain" class="active">By temperature</button>
+            <button type="button" data-view="freq">Weighted by hours</button>
+            <button type="button" data-view="daily">Full year (day-by-day)</button>
+            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="step-chart-col">
+            <div class="chart-range-row">
+              <select class="range-sel" id="grid-view-seg-month" aria-label="Month to show"></select>
+              <select class="range-sel" id="grid-view-seg-week" aria-label="Week to show"></select>
+            </div>
+            <div class="keychart-wrap"><svg id="grid-detail-chart" viewBox="0 0 740 320" role="img" aria-label="Grid carbon intensity versus outdoor temperature or time"></svg><div class="kc-tip" id="grid-tip"></div></div>
+            <div class="kc-legend" id="grid-detail-legend"></div>
+            <div class="note" id="grid-detail-note"></div>
+          </div>
+          <div class="step-kpi-col" id="grid-kpis"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Step 6 · GHG emissions ═══ -->
     <section class="out-section" id="section-ghg">
       <div class="out-section-head">
-        <h2 class="out-section-title">Step 4 — GHG emissions</h2>
+        <h2 class="out-section-title">Step 6 — GHG emissions</h2>
         <p class="out-section-intro" id="ghg-basis-note">Each hour's added electricity × the grid intensity at that hour, summed over the summer.</p>
       </div>
       <div class="card">
@@ -423,10 +495,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </div>
     </section>
 
-    <!-- ═══ Step 5 · Costs ═══ -->
+    <!-- ═══ Step 7 · Costs ═══ -->
     <section class="out-section" id="section-cost">
       <div class="out-section-head">
-        <h2 class="out-section-title">Step 5 — Costs</h2>
+        <h2 class="out-section-title">Step 7 — Costs</h2>
         <p class="out-section-intro">Added electricity priced against this province's current residential rates.</p>
       </div>
       <div class="card" id="cost-card">
@@ -486,7 +558,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <li>For <b>variable-speed</b> equipment (every heat pump cell on this page), a documented set of fixed ratios and a SEER2/(SEER2÷EER2)-indexed lookup table derive <b>Min, Full and Max</b> capacity-and-COP points — the same three-point structure NEEP's own directory tabulates — instead of one Max-only curve.</li>
         <li>The simulation now <b>dispatches across those three speeds</b> hour by hour: below the minimum speed's capacity, the compressor cycles on/off (modelled with HERS's own linear part-load-fraction degradation, <code>PLF = 1 − c_d(1 − PLR)</code>, <code>c_d</code> = 0.08 single-stage / 0.40 variable-speed); between speeds it modulates continuously (EIR interpolated linearly between the two bracketing speeds — the standard simplification absent a full compressor map); above the top speed it's undersized (see below).</li>
       </ul>
-      <p>The <b>Step 1</b> and <b>Step 2</b> charts draw the <i>Full/rated</i> speed's curve — the badge-representative point — while the underlying simulation uses all three speeds, so a unit's annual kWh can beat another's even at a similar or lower single-point COP, if its part-load modulation is what wins the season.</p>
+      <p>The <b>Step 2</b> and <b>Step 3</b> charts draw the <i>Full/rated</i> speed's curve — the badge-representative point — while the underlying simulation uses all three speeds, so a unit's annual kWh can beat another's even at a similar or lower single-point COP, if its part-load modulation is what wins the season.</p>
       <table class="ht-table">
         <tr><th>Unit</th><th class="ht-num">SEER2</th><th class="ht-num">EER2</th><th>Compressor</th><th>Source</th></tr>
         <tr><td>Goodman GLXS4BA3610 (standard AC)</td><td class="ht-num">15.2</td><td class="ht-num">11.63</td><td>Single-stage</td><td>SEER2 from the unit's own spec sheet headline; EER2 self-computed from that same sheet's Performance Data table at the AHRI condition (34,200 Btu/h ÷ 2,940 W)</td></tr>
@@ -527,14 +599,15 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <h5 id="m-undersized">When the equipment is undersized</h5>
       <p>Neither piece of equipment is scaled to the home's estimated peak — by design, matching the rest of this page's "no archetype auto-sizing" stance (see above). The engine handles an hour where the load exceeds the equipment's <b>top speed's</b> capacity by running flat-out there (<code>delivered = min(load, capacity)</code>) and pricing/emitting exactly that — a maxed-out unit really does draw exactly this much electricity, so the kWh/GHG/cost figures stay accurate for those hours. What's <i>not</i> represented is comfort: the home doesn't reach setpoint that hour, and this model has no cost or discomfort penalty for that shortfall.</p>
       <p>This shows up most in mild-summer cities: the cooling balance point is solved against a <b>fixed 25 °C</b> indoor setpoint, so <code>UA_cool = peak_kW ÷ (design_cooling_temp − 25)</code> — for a city whose design cooling temperature sits only slightly above 25 °C (Vancouver, ≈25.7 °C, is the worst case among the 14 tracked cities), that denominator is small and UA_cool is large, so the load line climbs steeply just past the balance point while equipment capacity stays close to flat (real cooling capacity barely changes with outdoor temperature). The two cross at some point, and the shortfall grows quickly above it.</p>
-      <div class="caveats">When either unit crosses this line, a red shaded zone appears on the Step 1 chart, a "Hours unmet" KPI reports what share of the cooling season is affected, and every stat card for that unit is flagged "undersized above X °C." If you don't see any of that, the selected equipment covers the full estimated load for this city/design-load combination.</div>
+      <div class="caveats">When either unit crosses this line, a red shaded zone appears on the Step 2 chart, a "Hours unmet" KPI reports what share of the cooling season is affected, and every stat card for that unit is flagged "undersized above X °C." If you don't see any of that, the selected equipment covers the full estimated load for this city/design-load combination.</div>
 
       <h5 id="m-ac-refrig">Refrigerant leakage (standard AC only)</h5>
       <p>The Goodman GLXS4B spec sheet (<code>SS-GLXS4B-R32</code>, "Product Specifications" table) states the refrigerant directly: <b>R-32</b>, factory charged for 15' of liquid line. The 36,000 Btu/h (3-ton) unit modelled here — <code>GLXS4BA3610A*</code> — is listed at <b>69 oz</b> (≈1.96 kg). This is a real spec-sheet figure for the exact unit used, not an estimate.</p>
-      <p>Annual leakage uses the same amortization the Heat Pump Explorer's heating side uses: an adjustable in-service leak rate (default 2%/yr, "Refrigerant leak rate" slider above) plus a fixed 15%-of-charge end-of-life loss spread over a 15-year life, weighted by R-32's GWP100 (771, IPCC AR6 WG1 Ch.7 Table 7.SM.7) — at the default rate, <code>1.96 kg × (0.02 + 0.15⁄15) × 771 ≈ 45 kg CO₂e/yr</code>. Shown as its own segment in Step 4's emissions chart and its own line in the Standard AC stat card, rather than hidden inside "electricity."</p>
-      <div class="caveats">Not added to the heat pump's cooling-mode comparison — that would double-count against the same physical unit's refrigerant charge already priced into the Heat Pump Explorer's heating-side numbers for a real heat pump, and no per-model charge mass has been sourced for the Tosot/GREE/Fujitsu cooling cells this page draws on. It also isn't part of the by-temperature/weighted/daily/hourly detail charts in Step 4 — leakage isn't tied to a particular operating hour, so it's a flat annual addition to the totals only, the same convention the Heat Pump Explorer's own refrigerant term already uses.</div>
+      <p>Annual leakage uses the same amortization the Heat Pump Explorer's heating side uses: an adjustable in-service leak rate (default 2%/yr, "Refrigerant leak rate" slider above) plus a fixed 15%-of-charge end-of-life loss spread over a 15-year life, weighted by R-32's GWP100 (771, IPCC AR6 WG1 Ch.7 Table 7.SM.7) — at the default rate, <code>1.96 kg × (0.02 + 0.15⁄15) × 771 ≈ 45 kg CO₂e/yr</code>. Shown as its own segment in Step 6's emissions chart and its own line in the Standard AC stat card, rather than hidden inside "electricity."</p>
+      <div class="caveats">Not added to the heat pump's cooling-mode comparison — that would double-count against the same physical unit's refrigerant charge already priced into the Heat Pump Explorer's heating-side numbers for a real heat pump, and no per-model charge mass has been sourced for the Tosot/GREE/Fujitsu cooling cells this page draws on. It also isn't part of the by-temperature/weighted/daily/hourly detail charts in Step 6 — leakage isn't tied to a particular operating hour, so it's a flat annual addition to the totals only, the same convention the Heat Pump Explorer's own refrigerant term already uses.</div>
 
       <h4 id="m-grid">Grid emissions &amp; line loss</h4>
+      <p>Charted on its own in <b>Step 5</b>, since it's the same reading regardless of which equipment is selected — only the electricity it multiplies (step 4) differs between the standard AC and the heat pump.</p>
       <p>Hourly grid intensity: a temperature × hour-of-day × season surface, calibrated against published provincial intensities (within ±6%). <i>Source: 2019–2026 <a href="https://reports-public.ieso.ca/public/GenOutputbyFuelHourly/" target="_blank" rel="noopener">IESO</a> / <a href="https://www.aeso.ca/market/market-and-system-reporting/data-requests/historical-generation-data/" target="_blank" rel="noopener">AESO</a> / Hydro-Québec generation-by-fuel data.</i></p>
       <table class="ht-table">
         <tr><th>Basis</th><th>Definition</th><th>2025 value</th></tr>
@@ -1363,7 +1436,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
     var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
     var coolingHours = 0, metHours = 0, unmetHours = 0;
-    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0);
+    // Grid intensity is captured for every hour (not just cooling hours), same
+    // convention as simulate()'s h_ef, so its own daily/seasonal shape is
+    // visible independent of when the home actually needs cooling.
+    var h_load = new Array(N).fill(0), h_cap = new Array(N).fill(0), h_cop = new Array(N).fill(null), h_elec = new Array(N).fill(0), h_ghg = new Array(N).fill(0), h_ef = new Array(N).fill(0);
     var m_elec = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       m_ghg = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     // month x hour-of-day electricity (kWh), same shape as simulate()'s
@@ -1374,12 +1450,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
     for (var i = 0; i < N; i++) {
       var T = temps[i];
-      var load = UA * Math.max(0, T - Tc);
-      h_load[i] = load;
-      if (load <= 0) continue;
-      coolingHours++;
-      loadKWh += load;
-
       var hour = (i % 24) + 1;
       var dayOfYear = Math.floor(i / 24);
       var month = monthOfDay(dayOfYear, leap);
@@ -1387,6 +1457,15 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       var mi = month - 1;
       var season = SEASON_BY_MONTH[month];
       var tbin = tempBinLeft(T);
+
+      var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
+      h_ef[i] = efThisHour;
+
+      var load = UA * Math.max(0, T - Tc);
+      h_load[i] = load;
+      if (load <= 0) continue;
+      coolingHours++;
+      loadKWh += load;
 
       // Per-speed capacity & COP at this hour's temperature -- 1 entry for
       // single-stage equipment, 3 (min/full/max) for variable-speed, per
@@ -1444,7 +1523,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         h_elec[i] = elec;
         mh_elec[mi][hour - 1] += elec;
 
-        var efThisHour = gridEF(opts.ef, season, hour, tbin, efMode, efLevel);
         var ghg = efThisHour * elec * lineLoss * G2KG;
         ghgKg += ghg;
         m_ghg[mi] += ghg;
@@ -1461,7 +1539,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
       ghg: { electricity: ghgKg, total: ghgKg },
       monthly: monthly,
-      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, temp_C: temps },
+      hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, ef_g_per_kWh: h_ef, temp_C: temps },
       diagnostics: {
         load_kWh: loadKWh,
         delivered_kWh: deliveredKWh,
@@ -1597,12 +1675,19 @@ const state={
   city:'Ottawa', designLoad:14, weatherYear:'tmy', efBasis:'average',
   includeLineLoss:true, lineloss:LINELOSS_PCT_BY_PROV.on,
   tier:'high', band:'18-30k', plan:null, leakRate:2.0,
-  // Step 1/3/4/5 chart views: 'plain' (by temperature), 'freq' (weighted by
-  // hours), 'daily' or 'hourly' (full year), each with its own month/week
-  // filter for the daily/hourly views — same pattern as heatpump.html's step
-  // charts. Step 2 (COP) has no view toggle, just one plot.
+  // Chart views: 'plain' (by temperature), 'freq' (weighted by hours), 'daily'
+  // or 'hourly' (full year), each with its own month/week filter for the
+  // daily/hourly views — same pattern as heatpump.html's step charts. Weather
+  // and COP have no 'freq' button (COP-vs-temperature is a fixed function of
+  // temperature, not path-dependent, so weighting it by hours would just
+  // redraw the same by-temperature curve as bars — same reason heatpump.html
+  // never gave its own COP chart a 'freq' view either); their daily/hourly
+  // views instead trace the actual per-hour value from the real dispatch.
+  weatherView:'plain', weatherMonth:null, weatherWeek:null,
   loadView:'plain', loadMonth:null, loadWeek:null,
+  copView:'plain', copMonth:null, copWeek:null,
   energyView:'plain', energyMonth:null, energyWeek:null,
+  gridView:'plain', gridMonth:null, gridWeek:null,
   ghgView:'plain', ghgMonth:null, ghgWeek:null,
   costView:'plain', costMonth:null, costWeek:null,
 };
@@ -2043,11 +2128,12 @@ function buildInputs(){
   $('in-leak').value=state.leakRate;$('leak-val').textContent=fmt1(state.leakRate)+' %/yr';
   syncEfSeg();
 
-  // Step 1/3/4/5 chart-view segs (by temperature / weighted by hours / daily
-  // / hourly), each with its own month (daily) and week (hourly) selector —
-  // same pattern as heatpump.html's RANGE_CHARTS. Re-renders only the one
-  // section, reusing the cached simulation results rather than re-running
-  // buildOptsAndRun (which would re-simulate 8,760 hours for nothing).
+  // Every step's chart-view seg (by temperature / weighted by hours / daily
+  // / hourly — weather and COP skip "weighted", see the state comment above),
+  // each with its own month (daily) and week (hourly) selector — same pattern
+  // as heatpump.html's RANGE_CHARTS. Re-renders only the one section, reusing
+  // the cached simulation results rather than re-running buildOptsAndRun
+  // (which would re-simulate 8,760 hours for nothing).
   const RANGE_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   function rangeWeekLabel(w){
     const bnd=[0,31,59,90,120,151,181,212,243,273,304,334,365];
@@ -2055,8 +2141,11 @@ function buildInputs(){
     return `${dom(w*7)}–${dom(Math.min(w*7+6,364))}`;
   }
   const DETAIL_CHARTS=[
+    {seg:'weather-view-seg', vKey:'weatherView', mKey:'weatherMonth', wKey:'weatherWeek', render:()=>{if(lastArch)renderWeatherSection(lastArch,lastResAC,lastTmax);}},
     {seg:'load-view-seg', vKey:'loadView', mKey:'loadMonth', wKey:'loadWeek', render:()=>{if(lastArch)renderLoadSection(lastArch,lastResAC,lastAcEquip,lastHpEquip,lastHpLabel,lastTmax);}},
+    {seg:'cop-view-seg', vKey:'copView', mKey:'copMonth', wKey:'copWeek', render:()=>{if(lastResAC)renderCopSection(lastAcEquip,lastHpEquip,lastHpLabel,lastArch,lastTmax,lastResAC,lastResHP);}},
     {seg:'energy-view-seg', vKey:'energyView', mKey:'energyMonth', wKey:'energyWeek', render:()=>{if(lastResAC)renderEnergyDetailSection(lastResAC,lastResHP,lastHpLabel,lastTmax);}},
+    {seg:'grid-view-seg', vKey:'gridView', mKey:'gridMonth', wKey:'gridWeek', render:()=>{if(lastResAC)renderGridDetailSection(lastResAC,lastTmax);}},
     {seg:'ghg-view-seg', vKey:'ghgView', mKey:'ghgMonth', wKey:'ghgWeek', render:()=>{if(lastResAC)renderGhgDetailSection(lastResAC,lastResHP,lastHpLabel,lastTmax);}},
     {seg:'cost-view-seg', vKey:'costView', mKey:'costMonth', wKey:'costWeek', render:()=>{if(lastResAC)renderCostDetailSection(lastResAC,lastResHP,lastHpLabel,lastElec,lastPlanKey,lastTmax);}},
   ];
@@ -2274,7 +2363,7 @@ const HERS_COOL_INPUTS={
 const HERS_COOL_TMIN=8, HERS_COOL_TMAX=55, HERS_COOL_STEP=0.5;
 // Builds an equipment object for the engine: `curves`+`c_d` drive the real
 // multi-speed dispatch in E.simulateCooling; `curve` (the full/rated speed)
-// is what the Step 1/2 charts draw as "the" COP curve (the badge-
+// is what the Step 2/3 charts draw as "the" COP curve (the badge-
 // representative point, not the max-speed extreme); `curveMax` (the top
 // speed) is the true physical ceiling used for capacity/undersized checks.
 function buildHersEquip(hersIn,nominalCap_kW){
@@ -2384,6 +2473,41 @@ function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossov
   ].join('')}</div>`;
 }
 
+// ---- Step 1: Weather — the outdoor-temperature record driving step 2's load.
+// Uses the whole year's range (not the cooling-only COOL_Tmin..Tmax window
+// every later step uses) since the point here is showing how much of the
+// year sits below the temperatures that matter for cooling at all.
+function weatherDomain(temps){
+  let lo=Infinity,hi=-Infinity;
+  for(let i=0;i<temps.length;i++){if(temps[i]<lo)lo=temps[i];if(temps[i]>hi)hi=temps[i];}
+  return {lo:Math.floor(lo)-1,hi:Math.ceil(hi)+1};
+}
+function renderWeatherSection(arch,resAC,Tmax){
+  const svg=$('weather-chart'); if(!svg) return;
+  const temps=tempSeriesFor(state.city,state.weatherYear);
+  const view=state.weatherView;
+  const monthSel=$('weather-view-seg-month'),weekSel=$('weather-view-seg-week');
+  if(monthSel)monthSel.classList.toggle('show',view==='daily');
+  if(weekSel)weekSel.classList.toggle('show',view==='hourly');
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  if(view==='plain'){
+    const {lo,hi}=weatherDomain(temps);
+    const ones=temps.map(()=>1);
+    renderGroupedBinChart(svg,'weather-legend','weather',[{label:'Hours at this temperature',color:css('--muted'),arr:ones}],temps,lo,hi,'Hours / year',v=>fmtI(v)+' h');
+    $('weather-note').innerHTML=`Hours per 1 °C bin, ${yr}, in ${state.city}. Above the <b>${fmt1(arch.Tc_C)} °C</b> balance point (step 2), the home starts needing cooling — everything below it is irrelevant to this page's estimate.`;
+  } else {
+    renderTimeSeriesChart(svg,'weather-legend','weather',[{label:'Outdoor temperature',color:css('--muted'),arr:temps}],view==='daily',state.weatherMonth,state.weatherWeek,view==='daily'?'°C, daily mean':'°C outdoor',v=>fmt1(v)+'°C',false);
+    $('weather-note').innerHTML=view==='hourly'
+      ? `The raw hourly outdoor-temperature trace for <b>${yr}</b> in ${state.city}.`
+      : `Each point is a day's mean outdoor temperature for <b>${yr}</b> in ${state.city} — the hourly trace with the hour-to-hour noise averaged out.`;
+  }
+  $('weather-kpis').innerHTML=[
+    stepCard('Design cooling temp',fmt1(arch.design_cooling_temp_C)+' °C','2.5% design condition, solved from this record','accent'),
+    stepCard('Balance point',fmt1(arch.Tc_C)+' °C','above this, the home needs cooling','muted'),
+    stepCard('Cooling hours',fmtI(resAC.diagnostics.cooling_hours),`of 8,760 in ${yr}`,'accent'),
+  ].join('');
+}
+
 function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
   const acCrossover=findCrossoverTemp(arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,Tmax);
   const kpis=[
@@ -2484,37 +2608,58 @@ function renderCostSection(resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossove
   $('cost-kpis').innerHTML=kpis.join('');
 }
 
-// ---- Step 2: Equipment COPs — per temperature only, no view toggle -------
-function renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax){
+// ---- Step 3: Equipment COPs. 'plain' is the fixed by-temperature curve
+// (COP is a deterministic function of outdoor temperature, so this doesn't
+// vary hour to hour for a given temperature); 'daily'/'hourly' instead trace
+// the COP the equipment actually ran at, hour by hour, from the real
+// dispatch (engine.js's hourly.cop) -- gaps are hours with no cooling load.
+function renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax,resAC,resHP){
   const svg=$('cop-chart'); if(!svg) return;
+  const view=state.copView;
+  const monthSel=$('cop-view-seg-month'),weekSel=$('cop-view-seg-week');
+  if(monthSel)monthSel.classList.toggle('show',view==='daily');
+  if(weekSel)weekSel.classList.toggle('show',view==='hourly');
   const Cac=coolStepCurves(arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,Tmax);
   const Chp=hpEquip?coolStepCurves(arch.UA_cool_kW_per_K,arch.Tc_C,hpEquip,Tmax):null;
-  const W=740,H=220,m={l:52,r:22,t:16,b:34},pW=W-m.l-m.r,pH=H-m.t-m.b;
   const Tmin=COOL_Tmin;
-  const blue=css('--blue'),purple=css('--purple'),muted=css('--muted'),light=css('--light');
-  const maxCOP=Math.max(2,...Cac.cop.filter(v=>v!=null),...(Chp?Chp.cop.filter(v=>v!=null):[0]))*1.15;
-  const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxCOP)*pH;
-  const s={v:''};
-  niceTicks(maxCOP,4).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
-    s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt1(v)}</text>`;});
-  s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">COP</text>`;
-  stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
-  s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cop[i]]).filter((_,i)=>Cac.cop[i]!=null),x,y,blue,2.3);
-  if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cop[i]]).filter((_,i)=>Chp.cop[i]!=null),x,y,purple,2.3,'5 3');
-  s.v+=`<rect id="cop-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.innerHTML=s.v;
-  const idxAt=t=>Math.max(0,Math.min(Cac.T.length-1,Math.round((t-Tmin)/0.5)));
-  attachTempHover({svgId:'cop-chart',tipId:'cop-tip',overId:'cop-over',W,m,pW,Tmin,Tmax,x,series:[
-    {label:'Standard AC COP',color:blue,y,fmt:v=>fmt1(v),get:t=>Cac.cop[idxAt(t)]},
-    ...(Chp?[{label:hpLabel+' COP',color:purple,y,fmt:v=>fmt1(v),get:t=>Chp.cop[idxAt(t)]}]:[]),
-  ]});
-  $('cop-legend').innerHTML=[
-    `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC COP</span>`,
-    Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} COP</span>`:'',
-  ].join('');
+  const blue=css('--blue'),purple=css('--purple');
+  if(view==='daily'||view==='hourly'){
+    const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+    const series=[{label:'Standard AC COP',color:blue,arr:resAC.hourly.cop}];
+    if(resHP)series.push({label:hpLabel+' COP',color:purple,arr:resHP.hourly.cop,dash:'5 3'});
+    renderTimeSeriesChart(svg,'cop-legend','cop',series,view==='daily',state.copMonth,state.copWeek,view==='daily'?'COP, daily mean (cooling hours)':'COP, actual hourly',v=>fmt1(v),false);
+    $('cop-note').innerHTML=view==='hourly'
+      ? `The COP each unit actually achieved, hour by hour, for <b>${yr}</b> in ${state.city} — gaps are hours with no cooling demand.`
+      : `Each point is a day's mean COP actually achieved (cooling hours only) for <b>${yr}</b> in ${state.city}.`;
+  } else {
+    const W=740,H=220,m={l:52,r:22,t:16,b:34},pW=W-m.l-m.r,pH=H-m.t-m.b;
+    const muted=css('--muted'),light=css('--light');
+    const maxCOP=Math.max(2,...Cac.cop.filter(v=>v!=null),...(Chp?Chp.cop.filter(v=>v!=null):[0]))*1.15;
+    const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxCOP)*pH;
+    const s={v:''};
+    niceTicks(maxCOP,4).forEach(v=>{s.v+=`<line x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}" stroke="${css('--surface')}" stroke-width="1"/>`;
+      s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">${fmt1(v)}</text>`;});
+    s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">COP</text>`;
+    stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
+    s.v+=polyline(Cac.T.map((t,i)=>[t,Cac.cop[i]]).filter((_,i)=>Cac.cop[i]!=null),x,y,blue,2.3);
+    if(Chp) s.v+=polyline(Chp.T.map((t,i)=>[t,Chp.cop[i]]).filter((_,i)=>Chp.cop[i]!=null),x,y,purple,2.3,'5 3');
+    s.v+=`<rect id="cop-over" x="${m.l}" y="${m.t}" width="${pW}" height="${pH}" fill="transparent"/>`;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.innerHTML=s.v;
+    const idxAt=t=>Math.max(0,Math.min(Cac.T.length-1,Math.round((t-Tmin)/0.5)));
+    attachTempHover({svgId:'cop-chart',tipId:'cop-tip',overId:'cop-over',W,m,pW,Tmin,Tmax,x,series:[
+      {label:'Standard AC COP',color:blue,y,fmt:v=>fmt1(v),get:t=>Cac.cop[idxAt(t)]},
+      ...(Chp?[{label:hpLabel+' COP',color:purple,y,fmt:v=>fmt1(v),get:t=>Chp.cop[idxAt(t)]}]:[]),
+    ]});
+    $('cop-legend').innerHTML=[
+      `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC COP</span>`,
+      Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} COP</span>`:'',
+    ].join('');
+    $('cop-note').innerHTML=`COP here is each unit's full/rated-speed curve, calibrated to its own certified SEER2/EER2 badge (RESNET HERS Addendum 82) — not measured in this home, and not the same as the max-speed-only number a manufacturer's extended-ratings table would show. See methodology.`;
+  }
+  const idxAtFixed=t=>Math.max(0,Math.min(Cac.T.length-1,Math.round((t-Tmin)/0.5)));
   const refT=Math.min(Tmax,Math.round(arch.design_cooling_temp_C));
-  const acCopAt=Cac.cop[idxAt(refT)], hpCopAt=Chp?Chp.cop[idxAt(refT)]:null;
+  const acCopAt=Cac.cop[idxAtFixed(refT)], hpCopAt=Chp?Chp.cop[idxAtFixed(refT)]:null;
   $('cop-kpis').innerHTML=[
     stepCard('Standard AC COP',acCopAt!=null?fmt1(acCopAt):'n/a',`at this city's design cooling temp (${fmt1(refT)} °C)`,'accent'),
     hpCopAt!=null
@@ -2523,7 +2668,8 @@ function renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax){
   ].join('');
 }
 
-// ---- Steps 3–5 detail charts: standard AC vs. heat pump, 4 views each ----
+// ---- Steps 4–7 detail charts: 4 views each (grid, step 5, is single-series
+// since it doesn't depend on which equipment is selected) ----
 function renderDetailChart(tipPrefix,view,monthKey,weekKey,series,Tmin,Tmax,yLabelPlain,yLabelWeighted,yLabelDaily,fmtVal,sumMode,noteId,noteFn){
   const svg=$(tipPrefix+'-detail-chart'); if(!svg) return;
   const legendId=tipPrefix+'-detail-legend';
@@ -2554,6 +2700,43 @@ function renderEnergyDetailSection(resAC,resHP,hpLabel,Tmax){
       if(view==='daily')return `Each point is a day's total electricity for each unit, over ${yr} in ${state.city}.`;
       if(view==='freq')return `Each bar is the actual electricity bought while it was that outdoor temperature, summed per 1 °C bin — where the summer's electricity use actually comes from.`;
       return `Average electricity draw (kWh/hr) at each outdoor temperature, from the real hour-by-hour dispatch.`;
+    });
+}
+// ---- Step 5: Grid carbon intensity. Same reading regardless of which
+// equipment is selected (both draw from the same grid), so this is a single
+// series, not an AC-vs-HP comparison. 'freq' sums intensity across every hour
+// at that temperature (not a mean) -- same "weighted by occurrence" convention
+// heatpump.html's own grid step uses, so a common temperature outweighs a
+// rare one even at the same mean intensity. Daily aggregation uses the mean,
+// not a sum -- intensity isn't additive across a day the way kWh/kg/$ are.
+function renderGridSection(resAC,Tmax){
+  const ef=resAC.hourly.ef_g_per_kWh, temps=resAC.hourly.temp_C;
+  let wsum=0,wcnt=0; ef.forEach(v=>{wsum+=v;wcnt++;});
+  const meanEF=wcnt?wsum/wcnt:0;
+  let hotSum=0,hotCnt=0,mildSum=0,mildCnt=0;
+  for(let i=0;i<temps.length;i++){
+    if(temps[i]>=30){hotSum+=ef[i];hotCnt++;}
+    else if(temps[i]<20){mildSum+=ef[i];mildCnt++;}
+  }
+  const hotEF=hotCnt?hotSum/hotCnt:null, mildEF=mildCnt?mildSum/mildCnt:null;
+  const dirtier=hotEF!=null&&hotEF>meanEF*1.03;
+  $('grid-kpis').innerHTML=[
+    stepCard('Average grid intensity',fmtI(meanEF),`g CO₂e/kWh · ${basisAdj(state.efBasis)} basis`,'accent'),
+    stepCard('When it’s above 30 °C',hotEF!=null?fmtI(hotEF):'–','g CO₂e/kWh in the hottest hours',hotEF!=null&&dirtier?'red':'muted'),
+    stepCard('When it’s below 20 °C',mildEF!=null?fmtI(mildEF):'–','g CO₂e/kWh in milder hours','green'),
+  ].join('');
+  renderGridDetailSection(resAC,Tmax);
+}
+function renderGridDetailSection(resAC,Tmax){
+  const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
+  const dirtierNote=`This matters because it multiplies whichever unit's electricity draw from step 4 into emissions.`;
+  renderDetailChart('grid',state.gridView,'gridMonth','gridWeek',[{label:'Grid intensity',color:css('--green'),arr:resAC.hourly.ef_g_per_kWh}],COOL_Tmin,Tmax,
+    'g CO₂e/kWh (mean)','g CO₂e, sum per 1 °C bin','g CO₂e/kWh (daily mean)',
+    {rate:v=>fmtI(v)+' g',sum:v=>fmtI(v)+' g'},false,'grid-detail-note',view=>{
+      if(view==='hourly')return `Grid carbon intensity (${basisAdj(state.efBasis)} basis), every hour of ${yr} in ${state.city}. ${dirtierNote}`;
+      if(view==='daily')return `Each point is a day's mean grid intensity, over ${yr} in ${state.city}. ${dirtierNote}`;
+      if(view==='freq')return `Each bar sums the intensity reading across every hour at that outdoor temperature — a common temperature outweighs a rare one even at the same mean intensity. ${dirtierNote}`;
+      return `Mean grid carbon intensity (${basisAdj(state.efBasis)} basis) at each outdoor temperature, from the real hour-by-hour surface. ${dirtierNote}`;
     });
 }
 function ghgSeriesFor(resAC,resHP,hpLabel){
@@ -2664,10 +2847,12 @@ function buildOptsAndRun(){
   lastArch=arch;lastResAC=resAC;lastResHP=resHP;lastHpLabel=hpLabel;lastCosts=costs;lastElec=elec;lastPlanKey=planKey;lastAcEquip=acEquip;lastHpEquip=hpEquip;lastTemps=temps;lastTmax=Tmax;lastAcCrossover=acCrossover;lastHpCrossover=hpCrossover;
 
   renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover);
+  renderWeatherSection(arch,resAC,Tmax);
   renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax);
-  renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax);
+  renderCopSection(acEquip,hpEquip,hpLabel,arch,Tmax,resAC,resHP);
   renderElectricitySection(resAC,resHP,hpLabel,acCrossover,hpCrossover);
   renderEnergyDetailSection(resAC,resHP,hpLabel,Tmax);
+  renderGridSection(resAC,Tmax);
   renderGhgSection(resAC,resHP,hpLabel);
   renderGhgDetailSection(resAC,resHP,hpLabel,Tmax);
   renderCostSection(resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover);
