@@ -1553,14 +1553,15 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   </div>
 
   <div class="todo-box">
-    <h3>🔨 In progress (2026-08-31) — "potential AC" cooling scenario, data layer only</h3>
+    <h3>✅ Done (2026-08-31 → 2026-09-05) — "potential AC" cooling scenario</h3>
     <ul>
-      <li><b>Not yet on the live page.</b> Everything below is built and verified at the data layer (Python pipeline + JSON outputs); <code>heatpump.html</code>'s UI and simulation engine have not been touched to surface it.</li>
+      <li><b>Live on the page.</b> An opt-in "Show potential AC" toggle on <code>heatpump.html</code> adds a cooling section (load-vs-temperature chart, estimated peak/energy/balance-point KPIs, and a standard-AC-vs-selected-unit kWh/GHG/$ comparison).</li>
       <li>Two correlations, checked directly against ERS data, let every heating-solved home get an estimated cooling profile with no separate AC-sizing control: peak heat ↔ peak cool (r=0.683) and peak cool ↔ annual cool energy (r=0.778, used as a through-origin ratio — annual heat/cool energy barely correlate with each other, r≈0.2). Folded into <code>build_city_house_profiles.py</code> as new <code>cool_peak_est_kW</code> / <code>cool_energy_est_kWh</code> / <code>balance_point_Tc_est_C</code> columns.</li>
       <li>A standard-AC baseline (Goodman GLXS4B 3-ton, <code>build_ac_curves.py</code> → <code>ac_curves.json</code>) covers 92–99.5% of real homes at their own city design temperature.</li>
-      <li>Real cooling curves (not assumed SEER) now exist for 5 of 8 <code>hp_curves.json</code> heat pump models and 5 of 9 live <code>hp_cell_curves.json</code>/<code>hp_tier_selection.json</code> cells.</li>
+      <li><b>Real cooling curves now exist for all 9 of 9 live <code>hp_cell_curves.json</code>/<code>hp_tier_selection.json</code> cells</b> (up from 5 of 9 at launch). The last two gaps closed 2026-09-05: <code>mid_<18k</code> was swapped from LG LSU120HSV5 (4-pt heating, no cooling) to GE Appliances ASH115PRDWA/ASYW15PRDWB (5-pt heating + 6-pt cooling, same submittal already used for <code>low_&lt;18k</code>), trading install-count representativeness (w=868 vs. 4,182) for data completeness; <code>high_18-30k</code> (Moovair DMA24HOS20230E7) gained a 19-pt cooling curve found on the same spec sheet already used for its heating data. <code>hp_curves.json</code> (an older, separate pipeline) still sits at 5 of 8 — not kept in sync with the live cell file.</li>
       <li><b>Headline finding:</b> SEER/SEER2 badges don't predict which unit actually uses less cooling electricity in a real climate — confirmed on 3 independent real units (GREE, Tosot, Fujitsu ducted), each carrying a higher badge than the Goodman AC baseline while sitting below it once integrated against real weather. Reconciled with an actual AHRI 210/240 bin-method reconstruction.</li>
-      <li>See <code>ROADMAP.md</code>'s 2026-08-31 entry and <code>HeatPump/METHODOLOGY.md</code> "Cooling / potential AC scenario" + "Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance" for full detail.</li>
+      <li>All 8 manufacturer spec sheets behind the 9 cells' curves are now tracked in <code>HeatPump/reference/spec_sheets/</code> on <code>main</code> (previously local-disk-only), with a README mapping file → cell → AHRI cert.</li>
+      <li>See <code>ROADMAP.md</code>'s 2026-08-31 and 2026-09-05 entries and <code>HeatPump/METHODOLOGY.md</code> "Cooling / potential AC scenario" + "Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance" for full detail.</li>
     </ul>
   </div>
 </section>

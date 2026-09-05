@@ -4055,3 +4055,94 @@ matching the hand-computed values above.
 
 `mid_<18k` (LG) and `high_18-30k` (Moovair) remain open — no cooling
 curve found for either yet.
+
+## Cooling gaps closed — `mid_<18k` swapped to GE ASH115PRDWA, `high_18-30k` gets a real curve (2026-09-05)
+
+Follow-on to the two sections above, closing the two cells left open there.
+
+**`high_18-30k` (Moovair DMA24HOS20230E7)**: its heating curve came from
+`MOOVAIR_M20_perf.pdf`'s MATRIX-layout performance chart, but the pipeline
+had only ever read the HEATING table on that document. Simon pointed out
+that **page 1 of the same PDF is a COOLING table**, keyed the same way
+(model row × indoor-condition sub-rows × outdoor-DB columns). Read the
+80°F DB/67°F WB indoor row for `FMA24HIAHUU230X7/DMA24HOS20230E7` — the
+dual Master/Moovair badge for the same physical unit — for consistency
+with how the other MATRIX/ROW cells' cooling curves were read (`low_18-30k`,
+`low_30-42k`, `mid_18-30k`, `mid_30-42k` all use an 80°F/67°F indoor
+column). 19 points, -30°C to 50°C, reporting total capacity (TC), sensible
+capacity (SC) and power input directly — richer than the unit's own 15-pt
+heating curve, and the first cell in this set to carry a published SC
+figure at all (unused by the pipeline, which only needs TC, but recorded
+in case a future latent-load feature wants it).
+
+Cross-checked against AHRI cert 212361759 (`lookup/ahri_numbers.json`):
+95°F reading is 27,000 Btu/h vs. the certified rated 24,000 Btu/h (1.125x
+— a smaller boost than every other cell's heating-side ratio in this set)
+and COP 3.243 vs. EER2 10.7 converted to COP (10.7 / 3.412 = 3.135, a 3.4%
+gap) — both comfortably inside the tolerance the pipeline already accepts
+elsewhere. Verified against the rebuilt `hp_cell_curves.json` directly:
+`cool_cap_frac_of_rated95 = 1.0` and `COP = 3.243` at 35.0°C (95°F), matching
+the hand-computed value.
+
+**`mid_<18k`**: unlike the other two 2026-09-02 gaps, this one wasn't a
+missing-spec-sheet problem — LG LSU120HSV5's own submittal is a genuinely
+thin document (4-pt capacity, no independent COP curve, no cooling table
+at all), and it's already the highest-`w` unit in its exact band
+(COP≤1.8, 0.60≤cm<0.80, `<18k`; w=4,182 vs. next-highest 2,113), so there
+was no richer alternate *within that band* to swap to. Simon asked to
+replace the unit outright rather than keep hunting for LG's own cooling
+data. Queried the broader `<18k` capacity pool (all COP/cm sub-bands,
+`hp_buckets.csv`) ranked by `w`: every candidate above GE Appliances
+**ASH115PRDWA/ASYW15PRDWB** (w=868) either has no known datasheet (GREE
+GWH12QC-D3DNA1D/O w=2,113, Tosot TW12HQ2C2DO w=906) or is a unit already
+claimed by another cell (GE ASH112PRDWA w=846, already `low_<18k`).
+ASH115PRDWA is the 15,000-BTU trim in the **same Altitude Series submittal**
+already vetted for `low_<18k` (p.8-9 of `Altitude_Series_Spec_Sheet.pdf`),
+with a real 5-pt heating curve and a real 6-pt cooling curve, both
+reporting Btu/h and Watts directly at the 70°F indoor set-point.
+
+**Decision: swap, not supplement** — same convention as the `low_<18k`
+swap, and same trade-off shape but in the opposite direction: this one
+gives up representativeness (w=868 vs. 4,182, a ~4.8x drop) to gain data
+completeness (0-pt → 6-pt cooling, and a 4-pt/2-anchor-interpolated
+heating curve → a real 5-pt curve with power draw at every point). Put to
+Simon explicitly rather than assumed, since — like the `low_<18k` case —
+it changes which real-world unit the cell claims to represent.
+
+Cross-checks: heating 47°F datasheet MAX (26,000 Btu/h) is 1.73x the
+AHRI-certified rated 47°F capacity (15,000 Btu/h, `lookup/ahri_numbers.json`
+202588312) — the same variable-speed boost pattern already documented and
+accepted on ASH112PRDWA (1.67x) from the same product family, not a
+wrong-combination mismatch. COP at 5°F: curve gives 1.899 vs. the AHRI
+record's 1.80 (5.5% gap). Cooling at 95°F: datasheet 18,200 Btu/h vs. the
+AHRI-certified rated 15,000 Btu/h (1.213x, a smaller boost than the heating
+side). One thing flagged, not hidden: AHRI cert 202588312 carries
+`model_status: Discontinued` in `lookup/ahri_numbers.json` — noted for
+transparency, not treated as disqualifying (several other cells' certs
+carry the same status without it having blocked their use). Verified
+against the rebuilt `hp_cell_curves.json`: heating `cap_frac_of_rated47 =
+1.9118` and `COP = 2.932` at 8.5°C (47°F); cooling `cap_frac_of_rated95 =
+1.0` and `COP = 2.947` at 35.0°C (95°F) — both matching the hand-computed
+values above.
+
+**Net result: all 9 of 9 live cells now have a real, datasheet-measured
+cooling curve** (up from 5 of 9 at the "potential AC" launch, 7 of 9 after
+the same-day Fujitsu/Tosot/GE finds earlier on 2026-09-02). `hp_curves.json`
+(the older, separate pipeline `heatpump.html` doesn't actually read) remains
+at 5 of 8 and was not touched — the two files are still not kept in sync.
+
+Verified live, not just at the data layer: rebuilt `hp_cell_curves.json`
+and `hp_tier_selection.json` via `build_cell_curves.py`/
+`build_hp_tier_selection.py`, then loaded `heatpump.html` against both
+regenerated files locally and toggled "Show potential AC" for both
+`mid_<18k` and `high_18-30k` — cooling chart, solved balance point and
+cooling-peak KPI all rendered with real numbers, no "no cooling curve for
+this unit" fallback, no console errors — before publishing to `gh-pages`.
+
+All 8 manufacturer spec sheets behind the 9 cells' curves (previously
+local-disk-only in the gitignored `data/raw/spec_sheets/`/`data/raw/AC/`
+cache) are now additionally kept as a tracked archive at
+[`HeatPump/reference/spec_sheets/`](reference/spec_sheets/) on `main`, with
+a README mapping each file to the cell/table/AHRI cert it backs — so the
+primary source for every digitized point stays visible and reproducible
+without depending on Simon's local disk.
