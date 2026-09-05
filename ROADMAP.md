@@ -87,6 +87,19 @@ heating table was re-checked for regressions (9 units, 51 rows, AHRI/NEEP
 columns still populate) — none found. See `HeatPump/METHODOLOGY.md`
 "Cooling gaps closed" and its NEEP-cross-check follow-on for full detail.)
 
+Same-day follow-up **2026-09-05** (**Heat Pump Explorer** — one more finding
+out of the NEEP cross-check work above: `high_<18k`'s (Fujitsu AOUG15LZAH1)
+design & technical manual captions both its heating and cooling tables
+"Model: ASUG15LZAS" — internally consistent with each other — but NEEP's own
+listing for this exact AHRI certificate (206597213) gives the indoor model
+as **ASUG15LZBS**, a different suffix. Recorded in the cell's `flags` in
+`pipeline/build_cell_curves.py` rather than silently reconciled or ignored:
+the outdoor unit (AOUG15LZAH1, which governs capacity/COP) matches exactly,
+and NEEP's own capacity/COP figures sit in the same ballpark as this cell's
+already-documented 9.4% COP gap, so this reads as a manufacturer
+indoor-unit revision variant, not a wrong-unit mismatch — but it's flagged,
+not assumed. Regenerated and published.)
+
 Prior update **2026-09-04** (**District Energy Explorer** — restructured twice in one
 day on user feedback, ending at a five-section page. Recorded as one entry
 because it's one arc.
