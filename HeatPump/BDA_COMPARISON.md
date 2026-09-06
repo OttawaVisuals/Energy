@@ -161,6 +161,33 @@ sweep, operating-cost card, or 14-city scope.
 - **CH₄ GWP-100:** theirs 29.8 (AR6) vs ours 28 (AR5). Theirs is the newer
   figure; METHODOLOGY.md § "Methane global-warming potential" already records our
   edition mix as a known wart. GWP-20 is 82.5 in both tools.
+- **Their AC counterfactual is a refrigerant-only credit, not a cooling-performance
+  comparison — confirmed 2026-09-05 by reading the shipped `hp-ghg-explorer.html`
+  source directly.** Both cooling terms use the *same* `COOLING_COP` constant
+  (3.4) for the heat pump and for the baseline AC:
+  `AC_elec = (Cooling_GJ × 277.78 ÷ AC_COP) × EF_grid × Life` and
+  `HP_cool_elec = (Cooling_GJ × 277.78 ÷ AC_COP) × EF_grid × Life` — identical
+  variable, so the electricity terms cancel exactly by construction. Their own
+  code comment says as much: `COOLING_COP: 3.4, // Same for HP and AC — they
+  cancel`, and the in-page derivation caption confirms it: *"Same load, same
+  COP, same grid — this value exactly cancels the AC electricity on the
+  baseline side."* The only thing toggling "AC counterfactual ON" actually
+  changes is `AC_refrig = HP_charge × 0.70 × Leak_fraction × GWP_refrig` — a
+  smaller (2-ton vs. 3-ton) refrigerant charge leaking over the counterfactual
+  AC's lifetime, credited against the fossil-fuel baseline. Their own sidebar
+  copy frames the credit as covering "both the AC's electricity AND its
+  refrigerant impact," which overstates what the math actually does — the
+  electricity half is a deliberately inert placeholder, not a modelled
+  comparison. This means their tool cannot show — and was never attempting to
+  show — the result our own cooling-scenario curves surface directly: real
+  spec-sheet-interpolated heat pumps sometimes use *more* summer electricity
+  than a standard AC and sometimes less, depending on unit sizing vs. load (see
+  `heatpumpAC.html`'s per-cell comparison, e.g. GE ASH112PRDWA at 677 kWh vs.
+  the Goodman baseline's 1,127 kWh, against GREE GUD36W/A-D(U) at 1,306 kWh for
+  the same baseline). Not a flaw relative to their tool's own scope — a
+  single-equation lifecycle explorer was never going to carry equipment curves
+  — but it does mean the "AC counterfactual" label promises more than the
+  model delivers.
 
 ---
 

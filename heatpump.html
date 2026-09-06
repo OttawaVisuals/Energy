@@ -123,8 +123,9 @@
 /* Sits under the simple-mode field grid, inside the same white controls
    box, and expands in place (pushes the page down) rather than floating
    over it -- a plain inline disclosure, not a popover. */
-/* Reserves its grid slot even when hidden (backup=electric/none), so later
-   fields don't jump columns as the backup type changes. */
+/* Reserves its grid slot even when hidden (e.g. the switch-over temp. control
+   only shown for fuel backup), so later fields don't jump columns as the
+   backup type changes. */
 .ctrl.slot-hidden{visibility:hidden}
 
 /* ── Shared info tooltip (mirrors retrofits.html's floating #info-tip) ── */
@@ -554,7 +555,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <option value="gas">Gas furnace (dual-fuel)</option>
         <option value="oil">Oil furnace (dual-fuel)</option>
         <option value="propane">Propane furnace (dual-fuel)</option>
-        <option value="none">None (heat-pump only)</option>
       </select>
     </div>
     <div class="ctrl" id="lockout-ctrl">
@@ -1819,7 +1819,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
   //     ewtSeries?, ewt?,        // GSHP entering-water temp (series or constant C)
   //     antifreezeFactor?        // GSHP COP derate for glycol (~0.91), default 1.0
   //   }
-  //   backup:  { type: 'electric'|'gas'|'oil'|'propane'|'none', efficiency }
+  //   backup:  { type: 'electric'|'gas'|'oil'|'propane', efficiency }
   //   control: { strategy: 'lockout'|'load-exceeds-capacity', lockoutTemp_C? }
   //   lifecycle: {
   //     refrigerantGWP, charge_kg, leakRate_frac,   // annual leak fraction
@@ -1850,8 +1850,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     if (hp.kind === undefined) hp.kind = "ashp";
 
     var backup = opts.backup || { type: "electric", efficiency: 1.0 };
-    var backupCombEF =
-      backup.type === "none" ? 0.0 : COMBUSTION_EF_G_PER_KWH[backup.type];
+    var backupCombEF = COMBUSTION_EF_G_PER_KWH[backup.type];
     if (backupCombEF === undefined) throw new Error("unknown backup type: " + backup.type);
 
     var control = opts.control || { strategy: "load-exceeds-capacity" };
@@ -2027,7 +2026,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
       // Backup covers whatever the HP did not.
       var bkHeat = load - hpHeat;
-      if (bkHeat > 1e-12 && backup.type !== "none") {
+      if (bkHeat > 1e-12) {
         backupHours++;
         bkDelivered += bkHeat;
         if (backup.type === "electric") {
@@ -2059,10 +2058,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             h_bk_ghg[i] += bkCH4ghg;
           }
         }
-      } else if (bkHeat > 1e-12 && backup.type === "none") {
-        // No backup: this load simply goes unmet. Track it as backup-required
-        // hours so the UI can warn, but add no energy/emissions.
-        backupHours++;
       }
     }
 
@@ -3559,7 +3554,7 @@ const TIP={
   energy:'Total purchased energy for heating (fuel + electricity), now versus with the heat pump. The drop is the pump’s efficiency (COP) at work.',
   cost:'Annual running cost at current provincial residential rates, now versus with the heat pump. Equipment and installation are not included.',
   cop:'Seasonal COP — units of heat delivered per unit of electricity, averaged over the year. Higher is better; electric resistance is 1.0.',
-  backup:'Share of the year’s heat the pump can’t cover on the coldest hours — carried by backup, or left unmet if you chose no backup.',
+  backup:'Share of the year’s heat the pump can’t cover on the coldest hours — carried by the backup system instead.',
 };
 function statLabelHTML(label,tip){
   return label+(tip?`<span class="stat-i" title="${tip.replace(/"/g,'&quot;')}" aria-label="${tip.replace(/"/g,'&quot;')}">i</span>`:'');
@@ -3590,21 +3585,13 @@ function render(res,opts){
   else vmain=`Here the switch <b>barely moves</b> emissions (${fmtGHG(baseT)} → ${fmtGHG(projT)} CO₂e/yr) on the ${basisAdj(state.efBasis)} grid basis.`;
   const backupPct=100*d.backup_delivered_kWh/Math.max(1e-9,d.load_kWh);
   const hpSharePct=100*d.hp_delivered_kWh/Math.max(1e-9,d.load_kWh);
-  const unmet=Math.max(0,d.load_kWh-d.hp_delivered_kWh-d.backup_delivered_kWh);
-  const unmetPct=100*unmet/Math.max(1e-9,d.load_kWh);
   const pctDisp=p=>(p>0&&p<0.5)?'<1%':Math.round(p)+'%';
   const hpShareDisp=(backupPct>0&&hpSharePct>99.5)?'>99%':Math.round(hpSharePct)+'%';
-  // With no backup, the coldest hours go unmet — the emissions comparison is
-  // then not like-for-like (the base case still delivers full comfort).
-  if(state.backup==='none'&&unmetPct>0.5)
-    vmain+=` <span style="color:#ffd7cf">⚠ But with no backup, ${Math.round(unmetPct)}% of the year's heat goes unmet on the coldest hours — add backup or a larger unit for a fair comparison.</span>`;
   $('verdict-main').innerHTML=vmain;
   $('verdict-pill').textContent=`seasonal COP ${scop} · ${hpShareDisp} of heat from the pump`;
 
   // ---- stats ----
-  const topupStat=(state.backup==='none'&&unmet>0)
-    ? {label:'Heat left unmet',val:pctDisp(unmetPct),sub:`${d.backup_hours} h beyond the heat pump — no backup`,cls:'red',tip:TIP.backup}
-    : {label:'Heat from backup',val:pctDisp(backupPct),sub:`${d.backup_hours} h need top-up`,cls:'',tip:TIP.backup};
+  const topupStat={label:'Heat from backup',val:pctDisp(backupPct),sub:`${d.backup_hours} h need top-up`,cls:'',tip:TIP.backup};
   const baseEnergy=base.energy.fuel_kWh+base.energy.electricity_kWh;
   const projEnergy=proj.energy.electricity_kWh+proj.energy.backup_fuel_kWh;
   const ePct=baseEnergy>0?(baseEnergy-projEnergy)/baseEnergy*100:0;
@@ -4035,7 +4022,7 @@ function renderEquipStep(res,opts){
   const onCutoff=C.isFuel?C.lock:C.minOp;
   const canRunHours=temps.filter(t=>t>=onCutoff).length;
   $('eq2-kpis').innerHTML=[
-    stepCard('Heat from the pump',`${Math.round(hpPct)}%`,`${Math.round(100-hpPct)}% from ${C.isFuel?FUEL_LABEL[state.backup]+' backup':state.backup==='none'?'unmet':'electric backup'}`,'accent'),
+    stepCard('Heat from the pump',`${Math.round(hpPct)}%`,`${Math.round(100-hpPct)}% from ${C.isFuel?FUEL_LABEL[state.backup]+' backup':'electric backup'}`,'accent'),
     stepCard('Switch-over point',C.isFuel?`${fmtSigned(Math.round(C.lock))}°`:'n/a',C.isFuel?'below this the furnace takes 100%':'electric backup tops up (no switchover)',C.isFuel?'red':''),
     stepCard('Hard cut-off',`${fmtSigned(Math.round(C.minOp))}°`,'HP physically cannot run below this'),
     stepCard('Hours it could run',fmtI(canRunHours),`of 8,760 h (${(canRunHours/87.6).toFixed(0)}%) — an upper bound, not actual runtime`),
@@ -4107,7 +4094,7 @@ function renderEquipChartWeighted(svg,temps,H,opts){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const binsHp=binByTemp(temps,hpHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsBk=binByTemp(temps,bkHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
-  const hasBackup=opts.backup.type!=='none';
+  const hasBackup=true; // backup is now mandatory (electric/gas/oil/propane), 'none' option removed
   const W=740,Hh=360,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsHp.map((b,i)=>b.sum+(hasBackup?binsBk[i].sum:0)))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
@@ -4241,7 +4228,7 @@ function renderEnergyStep(res,opts){
 // efficiency is a flat reference line over the range it actually operates.
 function renderCopChartTemp(svg,C,opts){
   if(!svg)return[];
-  const hasBackup=opts.backup.type!=='none';
+  const hasBackup=true; // backup is now mandatory (electric/gas/oil/propane), 'none' option removed
   const backupEff=opts.backup.efficiency;
   const W=740,Hh=150,m={l:52,r:22,t:14,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
@@ -4290,7 +4277,7 @@ function renderCopChartTemp(svg,C,opts){
 // its own "cop-legend" div instead of being merged in here.
 function renderEnergyChartTemp(svg,opts,H,temps,weighted){
   const C=stepCurves(opts);
-  const hasBackup=opts.backup.type!=='none';
+  const hasBackup=true; // backup is now mandatory (electric/gas/oil/propane), 'none' option removed
   const backupEff=opts.backup.efficiency;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const green=css('--green'),backup=backupColor(),muted=css('--muted'),light=css('--light');

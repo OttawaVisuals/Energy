@@ -246,7 +246,7 @@
   //     ewtSeries?, ewt?,        // GSHP entering-water temp (series or constant C)
   //     antifreezeFactor?        // GSHP COP derate for glycol (~0.91), default 1.0
   //   }
-  //   backup:  { type: 'electric'|'gas'|'oil'|'propane'|'none', efficiency }
+  //   backup:  { type: 'electric'|'gas'|'oil'|'propane', efficiency }
   //   control: { strategy: 'lockout'|'load-exceeds-capacity', lockoutTemp_C? }
   //   lifecycle: {
   //     refrigerantGWP, charge_kg, leakRate_frac,   // annual leak fraction
@@ -278,8 +278,7 @@
     if (hp.kind === undefined) hp.kind = "ashp";
 
     var backup = opts.backup || { type: "electric", efficiency: 1.0 };
-    var backupCombEF =
-      backup.type === "none" ? 0.0 : COMBUSTION_EF_G_PER_KWH[backup.type];
+    var backupCombEF = COMBUSTION_EF_G_PER_KWH[backup.type];
     if (backupCombEF === undefined) throw new Error("unknown backup type: " + backup.type);
 
     var control = opts.control || { strategy: "load-exceeds-capacity" };
@@ -446,7 +445,7 @@
 
       // Backup covers whatever the HP did not.
       var bkHeat = load - hpHeat;
-      if (bkHeat > 1e-12 && backup.type !== "none") {
+      if (bkHeat > 1e-12) {
         backupHours++;
         bkDelivered += bkHeat;
         if (backup.type === "electric") {
@@ -474,10 +473,6 @@
             m_proj_ch4[mi] += bkCH4kg * methaneGWP;
           }
         }
-      } else if (bkHeat > 1e-12 && backup.type === "none") {
-        // No backup: this load simply goes unmet. Track it as backup-required
-        // hours so the UI can warn, but add no energy/emissions.
-        backupHours++;
       }
     }
 
