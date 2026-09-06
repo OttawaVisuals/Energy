@@ -618,6 +618,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <div class="verdict-text">
           <div class="verdict-main" id="verdict-main"></div>
           <div class="verdict-sub" id="verdict-sub"></div>
+          <div class="verdict-sub" id="verdict-cooling-sub"></div>
         </div>
         <div class="verdict-pill" id="verdict-pill"></div>
       </div>
@@ -6157,13 +6158,17 @@ function renderCostStepCooling(){
   }
   const {resAC,resHP,hpLabel,hasHPCurve,ac_$,hp_$,planKey,Tmax,temps}=lastCool;
   const elec=lastCool.elec;
+  const screening=elec.confidence==='low';
   $('cost-kpis').innerHTML=[
-    stepCard('Standard AC',ac_$!=null?fmt$(ac_$)+'/yr':'–','current residential rates','red'),
-    hasHPCurve?stepCard(hpLabel,hp_$!=null?fmt$(hp_$)+'/yr':'–','current residential rates',(hp_$!=null&&ac_$!=null&&hp_$<ac_$)?'green':'red')
+    stepCard('Standard AC',ac_$!=null?fmt$(ac_$)+'/yr':'–',screening?'current residential rates · screening estimate':'current residential rates','red'),
+    hasHPCurve?stepCard(hpLabel,hp_$!=null?fmt$(hp_$)+'/yr':'–',screening?'current residential rates · screening estimate':'current residential rates',(hp_$!=null&&ac_$!=null&&hp_$<ac_$)?'green':'red')
       :stepCard(bucketShort()+' pump','no data','no cooling curve on file','red'),
   ].join('');
-  if(body)body.innerHTML=`<div class="cost-delta-sub">Electricity only, no fixed monthly service charge (identical whether or not you add cooling) — see the fine print below Step 7's heating cost for plan/rate sourcing.</div>`;
-  if(note)note.style.display='none';
+  if(body)body.innerHTML=`<div class="cost-delta-sub">${screening?'<b>Screening estimate</b> — low-confidence rate source. ':''}Electricity only — no fixed monthly service charge (identical whether or not you add cooling).</div>`;
+  if(note){
+    note.innerHTML=`<b>Electricity:</b> ${elec.utility}, ${PLAN_LABEL[planKey].toLowerCase()} plan, rates effective ${elec.effective_date} (<a href="${elec.source_url}" target="_blank" rel="noopener">source</a>). The monthly service charge (~$${elec.fixed_monthly_cad.toFixed(0)}) is identical in both scenarios and excluded.${elec.notes&&elec.notes.length?' '+elec.notes.join(' '):''}`;
+    note.style.display='';
+  }
   const costSvg=$('cost-chart');
   if(costSvg){
     $('cost-chart-card').style.display='';
@@ -6189,10 +6194,18 @@ function renderCostStepCooling(){
 // is available, regardless of which mode (heating/cooling) is toggled in
 // the steps above, so a reader sees the full picture without switching.
 function renderVerdictCombined(){
-  const kpis=$('cooling-verdict-kpis'), note=$('cooling-verdict-note');
+  const kpis=$('cooling-verdict-kpis'), note=$('cooling-verdict-note'), sub=$('verdict-cooling-sub');
   if(!kpis) return;
-  if(!lastCool){ kpis.innerHTML='<div class="note">Cooling data not available for this city.</div>'; if(note)note.innerHTML=''; return; }
+  if(!lastCool){ kpis.innerHTML='<div class="note">Cooling data not available for this city.</div>'; if(note)note.innerHTML=''; if(sub)sub.innerHTML=''; return; }
   const {resAC,resHP,hpLabel,hasHPCurve,ac_$,hp_$}=lastCool;
+  if(sub){
+    if(hasHPCurve){
+      const beats=resHP.energy.electricity_kWh<resAC.energy.electricity_kWh;
+      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b>, or <b>${fmtI(resHP.energy.electricity_kWh)} kWh/yr</b> if the ${hpLabel} handles cooling too (${beats?'less':'more'} than the AC). See Final numbers, or toggle "Steps below show → Cooling" for the full breakdown.`;
+    } else {
+      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b> — the selected heat pump has no cooling curve on file to compare against. See Final numbers.`;
+    }
+  }
   const cards=[
     stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e/yr${ac_$!=null?` · ${fmt$(ac_$)}/yr`:''}`,'green'),
   ];

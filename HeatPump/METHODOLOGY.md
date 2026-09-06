@@ -4476,3 +4476,36 @@ exercised before, not by an audit.
 (`buildPrintSummary`) still only captures the heating charts/verdict —
 extending it to include the cooling combined-totals card is a reasonable
 follow-up, not attempted here.
+
+### Follow-up pass (2026-09-06): verdict banner, cost fine print, drift check, mobile
+
+Five of the six gaps flagged at the end of the integration above:
+
+1. **Top verdict banner now mentions cooling.** A new `#verdict-cooling-sub`
+   line (populated by `renderVerdictCombined()`, so it's independent of
+   which mode is toggled below) states the standard-AC and heat-pump
+   cooling kWh/yr right under the heating verdict, with a pointer to
+   Final numbers / the mode toggle. Previously the banner said nothing
+   about cooling regardless of mode.
+2. **Cost step's fine print in cooling mode** now carries the same
+   utility/plan/rate-effective-date disclosure and low-confidence
+   "screening estimate" flag heating's own Step 7 already has, instead of
+   punting to "see Step 7's heating cost for sourcing." Same `elec`
+   object, same fields, just rendered for the cooling KPI cards too.
+3. **Three-copy drift, checked, not found.** Extracted `simulateCooling()`
+   from `heatpump.html`, `heatpumpAC.html`, and `HeatPump/app/engine.js`
+   and diffed them byte-for-byte: all three are now identical (4,225
+   characters each). The `ef_g_per_kWh` fix above was the actual drift;
+   nothing else has crept in since.
+4. **Live site re-verified** post-deploy: both `heatpump.html` and
+   `heatpumpAC.html` on `gh-pages` load clean, mode toggle and verdict
+   both work, no console errors — matches the local test results exactly.
+5. **Mobile check**: the new toggle control uses the exact same `.ctrl`/
+   `.seg` markup as every other control on the page (e.g. the upstream-
+   methane toggle) and measured pixel-identical in width/position to it
+   at the narrowest viewport this environment could actually render
+   (~605px, not true 375px — a sandbox limitation, not a page one). No
+   overflow introduced beyond what any other control would show.
+
+**Still not done:** the printable summary popup (item 1 in the original
+list) — unchanged from the note above, no attempt made this pass either.
