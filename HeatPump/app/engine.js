@@ -665,7 +665,7 @@
     var G2KG = 0.001;
 
     var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
-    var coolingHours = 0, metHours = 0, unmetHours = 0;
+    var coolingHours = 0, overCapacityHours = 0, overCapacityKWh = 0;
     // Grid intensity is captured for every hour (not just cooling hours), same
     // convention as simulate()'s h_ef, so its own daily/seasonal shape is
     // visible independent of when the home actually needs cooling.
@@ -701,10 +701,17 @@
       var cop = interp(curve.T_C, curve.COP, T);
       var capacity = capFrac == null ? 0 : nominalCap * capFrac;
       h_cap[i] = capacity; h_cop[i] = cop;
-      var delivered = cop ? Math.min(load, capacity) : 0;
+      // No capacity ceiling: assume the load is always fully met, at this
+      // hour's curve-interpolated COP, even past the unit's own rated
+      // capacity. Hours where that happens are flagged (over_capacity_hours/
+      // _kWh), not silently absorbed the way delivered=min(load,capacity)
+      // used to -- that let an undersized unit's shortfall vanish from
+      // kWh/GHG/cost entirely, making it look cheaper than a properly-sized
+      // one. This is an explicit idealization above rated capacity, not a
+      // claim the real unit can do this.
+      var delivered = cop ? load : 0;
       deliveredKWh += delivered;
-      if (delivered + 1e-9 >= load) metHours++;
-      else unmetHours++;
+      if (load > capacity + 1e-9) { overCapacityHours++; overCapacityKWh += load - capacity; }
 
       if (delivered > 0 && cop) {
         var elec = delivered / cop;
@@ -735,8 +742,8 @@
         delivered_kWh: deliveredKWh,
         seasonal_cop: elecKWh > 0 ? deliveredKWh / elecKWh : null,
         cooling_hours: coolingHours,
-        met_hours: metHours,
-        unmet_hours: unmetHours,
+        over_capacity_hours: overCapacityHours,
+        over_capacity_kWh: overCapacityKWh,
       },
     };
   }

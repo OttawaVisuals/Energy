@@ -4318,3 +4318,161 @@ section rather than removed or corrected, per this repo's data-honesty
 convention: cooling isn't held to a stricter standard than heating, and the
 limitation is named rather than papered over with a model that assumes more
 than the badge numbers can support.
+
+## No-backup heating option removed (2026-09-05)
+
+Simon's call: "None (heat-pump only)" in the Heat Pump Explorer's Backup
+heat dropdown wasn't a realistic configuration for a homeowner to actually
+run, and it had a real modeling cost. `simulate()`'s dispatch let an
+undersized heat pump's coldest-hour shortfall (`load − hpHeat`, when
+`backup.type === "none"`) simply vanish — no backup energy, no emissions,
+no cost, just `backupHours++` for the UI's warning banner. That made an
+undersized-with-no-backup configuration look artificially cheap next to a
+properly-sized or backed-up one, since the "missing" heat was silently
+dropped from every downstream total rather than costed at some real rate.
+
+Removed the option from the UI (`<option value="none">` deleted from
+`#in-backup`); every remaining choice (electric, gas, oil, propane) already
+fully served the shortfall through a real backup device, so `simulate()`'s
+branch collapsed to one unconditional path. The now-dead
+`backup.type === "none"` special case in the `backupCombEF` lookup was
+removed too (`electric: 0.0` already covers it), along with the "Heat left
+unmet" verdict warning, stat card, and tooltip copy that only fired for the
+removed option. Re-synced `HeatPump/app/engine.js`'s `simulate()` to match,
+per this file's own header comment. All 15 engine self-test vectors still
+reproduce.
+
+## Cooling capacity ceiling removed, flagged instead of silently clamped (2026-09-05)
+
+The same problem existed on the cooling side, and worse: `simulateCooling()`
+had no backup concept to fall back on in the first place, so
+`delivered = min(load, capacity)` just clamped at whatever the unit's own
+curve could supply that hour, and the undelivered remainder never appeared
+in kWh, GHG, or cost anywhere. Checking why the cooling-scenario comparison
+showed several tier cells beating the standard-AC baseline surfaced the
+mechanism directly: every "beats the AC" cell was a cell running maxed-out
+10-54% of the cooling season (vs. the AC's own ~4%), so the low kWh number
+reflected comfort silently going unmet, not real efficiency. Every cell
+sized comparably to the AC (≥90% of hours met) used *more* energy than it,
+with no exception — the "wins" were an artifact of the undersized-equipment
+convention, not a real result.
+
+Simon's proposed fix, implemented as described: remove the capacity ceiling
+for cooling entirely and assume the load is always fully met, at that
+hour's curve-interpolated COP, even past the unit's own rated capacity —
+but flag it, rather than let it pass as a real capability. `delivered = cop
+? load : 0` replaces `Math.min(load, capacity)`; hours where `load >
+capacity` are counted (`over_capacity_hours`) and their shortfall summed
+(`over_capacity_kWh`) in the returned `diagnostics`, replacing the old
+`met_hours`/`unmet_hours` pair (which no longer varies once delivered
+always equals load). Applied identically in `HeatPump/app/engine.js`,
+`heatpumpAC.html`'s inline copy, and `heatpump.html`'s inline copy (its
+compact cooling bonus card gained a matching caveat sentence,
+`coolingOverCapacityNote()`, since it has no crossover-chart shading to
+carry the flag visually the way `heatpumpAC.html` does).
+
+This deliberately trades one bias for a different, named one: a real
+undersized compressor can't actually exceed its own capacity, so a real
+unit would draw *less* than this idealized number, not more — the honest
+framing is "energy needed to fully meet this load at this unit's own
+temperature-COP, capacity notwithstanding," surfaced everywhere as a
+flagged idealization (verdict text, the "Hours over rated capacity" KPI,
+the chart's shaded crossover zone), never as a measurement. Re-ran the
+9-cell cooling comparison after the fix: only 2 of 9 heat pumps now beat
+the Goodman AC baseline (both `<18k`-band, both genuinely high-SEER2
+units — Fujitsu AOUG15LZAH1 and Moovair DMA24HOS20230E7), down from the
+previous 4 of 9 that included two badly-undersized cells (`mid_<18k`,
+`low_<18k`) whose earlier "win" depended entirely on the removed
+capacity clamp.
+
+## Cooling integrated into every step of the Heat Pump Explorer (2026-09-05)
+
+Simon's call, after the two undersized-equipment fixes above: the
+"potential AC" cooling scenario shouldn't stay a bolted-on bonus card at
+the bottom of `heatpump.html` (an opt-in toggle, one chart, four KPI
+cards) once the underlying cooling engine was already sound enough to
+carry the same 7-step, four-views-per-step treatment `heatpumpAC.html`
+gives it. Rebuilt the page so cooling is available from inside Steps 2-7
+themselves, not a separate track.
+
+**The toggle.** A "Steps below show: Heating / Cooling" segmented control
+near the top (`state.mode`, replacing the old `state.coolingOn` opt-in)
+switches Steps 2 (Load) through 7 (Cost) between the heating dispatch
+(current system vs. heat pump, with backup) and the cooling comparison
+(standard AC vs. the selected heat pump's own cooling curve, no backup
+concept). Each step's existing DOM — chart SVG, legend, note, KPI column,
+and its by-temperature/weighted-by-hours/daily/hourly view-seg buttons —
+is reused unchanged; only the JS filling it branches on `state.mode`.
+Considered instead showing heating and cooling side-by-side in every step
+(doubles every chart/KPI section) versus one global toggle reusing each
+step's layout (the layout ships once, the reader switches lenses) —
+picked the toggle: it keeps each step's information density matched to
+what heating already established, and per-step side-by-side would roughly
+double the page's length for a comparison most readers will look at one
+lens at a time anyway.
+
+**Why cooling needed its own chart-building code.** Heating's six
+per-step chart functions (`renderLoadChartTemp/Weighted/Hourly`,
+`renderEquipChart*`, `renderEnergyChart*`, `renderGridChart*`,
+`renderEmisChart*`) are all bespoke to its hp+backup dispatch shape —
+they draw a load line, a capacity line, and a stacked pump/backup split.
+Cooling has no backup at all; it compares two independent equipment
+*alternatives* (standard AC vs. heat pump) whose electricity/COP/GHG/cost
+should sit side by side, not stacked. Rather than write six more bespoke
+functions, ported the three generic `{label,color,arr}`-series chart
+builders `heatpumpAC.html` already built for exactly this shape —
+`renderGroupedBinChart` (weighted-by-hours bars), `renderMeanBinChart`
+(by-temperature line, for metrics like electricity/GHG/cost/grid-EF that
+have no clean analytic curve of temperature alone), `renderTimeSeriesChart`
+(daily/hourly) — plus their `binByTempRange` dependency and
+`findCrossoverTemp` (the undersized-above-this-temperature helper cooling
+needs and heating doesn't, since heating's backup always covers the
+shortfall). All of heating's own lower-level primitives these build on
+(`css`, `niceTicks`, `stepAxes`, `sliceRange`, `attachTempHover`,
+`attachDailyHover`, `attachHourlyHover`, `dailyMonthAxis`,
+`hourlyMonthAxis`, `dayLabel`) already existed in `heatpump.html` — the
+porting job was three composite functions and two small helpers, not a
+rewrite.
+
+**Step-by-step mapping** (heatpump.html's own 7-step numbering, not
+heatpumpAC.html's — the two don't split Load/Equipment/COP+Energy the same
+way):
+
+| Step | Heating | Cooling |
+|---|---|---|
+| 1 Weather | shared, unchanged | shared, unchanged (same outdoor-temp series either way) |
+| 2 Load | UA×(zero-heat−outdoor), one line | UA_cool×(outdoor−balance point); load is identical for both equipment options, so one line, not two |
+| 3 Equipment | capacity + delivered, hp/backup stacked | AC and HP capacity curves side by side, plus "hours over rated capacity" per unit |
+| 4 COP + Energy | COP + electricity, hp/backup stacked | AC vs. HP COP and electricity, two lines each |
+| 5 Grid | grid EF vs. temp, heating-hours domain | same EF surface, read over cooling's own temperature domain (`COOL_Tmin`..design+3°C) instead of heating's `[-36,20]`°C |
+| 6 Emissions | now vs. heat pump (before/after) | AC vs. HP (two alternatives, not before/after) |
+| 7 Cost | current fuel vs. heat-pump electricity+backup | AC electricity vs. HP electricity, same price plan; the "by hour of day" view reuses `renderCostChartByHour` unchanged since a rate plan doesn't care what's drawing on it |
+
+A cell with no published cooling curve (all 9 tier×size cells now have one,
+per "Cooling curves reverted to spec-sheet interpolation" above, but the
+`custom` tier's placeholder does not) degrades gracefully in every step:
+"no data" cards instead of a chart, no crash.
+
+**Combined-verdict card.** Final numbers gets a new "Cooling — adding a
+summer AC" card, always populated from the same `lastCool` cache
+regardless of which mode is toggled in the steps above — the intent
+("add it to the final results") is that a reader who never touches the
+mode toggle still sees both numbers.
+
+**A real drift caught in the process, not by design.** Writing the
+cooling-mode Grid step surfaced that `heatpump.html`'s own inlined
+`simulateCooling()` — a third copy of the same function, alongside
+`heatpumpAC.html`'s and `HeatPump/app/engine.js`'s — was missing the
+`ef_g_per_kWh` hourly field the other two already carry (added to those
+two in an earlier 2026-09-05 session, documented above, but never
+back-ported to this file's own copy). Fixed to match: `efThisHour` is now
+computed for every hour (not just cooling hours) and returned as
+`hourly.ef_g_per_kWh`, identical to the other two copies. This is exactly
+the three-copies-of-one-engine risk the file's own header comment warns
+about — caught here by a new feature exercising a code path nothing had
+exercised before, not by an audit.
+
+**Not done in this pass:** the printable summary popup
+(`buildPrintSummary`) still only captures the heating charts/verdict —
+extending it to include the cooling combined-totals card is a reasonable
+follow-up, not attempted here.

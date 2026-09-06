@@ -1402,7 +1402,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     var G2KG = 0.001;
 
     var elecKWh = 0, deliveredKWh = 0, loadKWh = 0, ghgKg = 0;
-    var coolingHours = 0, metHours = 0, unmetHours = 0;
+    var coolingHours = 0, overCapacityHours = 0, overCapacityKWh = 0;
     // Grid intensity is captured for every hour (not just cooling hours), same
     // convention as simulate()'s h_ef, so its own daily/seasonal shape is
     // visible independent of when the home actually needs cooling.
@@ -1438,10 +1438,17 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       var cop = interp(curve.T_C, curve.COP, T);
       var capacity = capFrac == null ? 0 : nominalCap * capFrac;
       h_cap[i] = capacity; h_cop[i] = cop;
-      var delivered = cop ? Math.min(load, capacity) : 0;
+      // No capacity ceiling: assume the load is always fully met, at this
+      // hour's curve-interpolated COP, even past the unit's own rated
+      // capacity. Hours where that happens are flagged (over_capacity_hours/
+      // _kWh), not silently absorbed the way delivered=min(load,capacity)
+      // used to -- that let an undersized unit's shortfall vanish from
+      // kWh/GHG/cost entirely, making it look cheaper than a properly-sized
+      // one. This is an explicit idealization above rated capacity, not a
+      // claim the real unit can do this.
+      var delivered = cop ? load : 0;
       deliveredKWh += delivered;
-      if (delivered + 1e-9 >= load) metHours++;
-      else unmetHours++;
+      if (load > capacity + 1e-9) { overCapacityHours++; overCapacityKWh += load - capacity; }
 
       if (delivered > 0 && cop) {
         var elec = delivered / cop;
@@ -1472,8 +1479,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         delivered_kWh: deliveredKWh,
         seasonal_cop: elecKWh > 0 ? deliveredKWh / elecKWh : null,
         cooling_hours: coolingHours,
-        met_hours: metHours,
-        unmet_hours: unmetHours,
+        over_capacity_hours: overCapacityHours,
+        over_capacity_kWh: overCapacityKWh,
       },
     };
   }
@@ -2232,9 +2239,10 @@ function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">kW cooling</text>`;
   stepAxes(s,m,W,H,pW,pH,Tmin,Tmax);
   // Shade the standard AC's undersized zone: wherever the load line runs
-  // above the AC's own capacity, the unit is maxed out and can't fully meet
-  // the load that hour (see findCrossoverTemp / diagnostics.unmet_hours) --
-  // shown, not silently absorbed into "delivered = min(load, capacity)".
+  // above the AC's own capacity, the model still assumes it fully meets the
+  // load at that temperature's COP (see findCrossoverTemp /
+  // diagnostics.over_capacity_hours) -- an explicit, flagged idealization
+  // above the unit's real rated capacity, not a claim it could really do this.
   const red=css('--red');
   const acCrossover=findCrossoverTemp(UA,Tc,acEquip,Tmax);
   if(acCrossover!=null){
@@ -2265,12 +2273,12 @@ function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC
   ].join('');
 }
 
-// Human-readable "X% of cooling hours unmet above Y°C" clause, or '' if the
-// unit never falls short across the displayed range.
+// Human-readable "X% of cooling hours beyond rated capacity above Y°C"
+// clause, or '' if the unit never falls short across the displayed range.
 function undersizedClause(res,crossoverT,label){
   if(crossoverT==null) return '';
-  const d=res.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.unmet_hours/d.cooling_hours):0;
-  return ` ${label} is undersized above ${fmt1(crossoverT)} °C — it runs flat-out but ${pct}% of this summer's cooling hours (${fmtI(d.unmet_hours)} of ${fmtI(d.cooling_hours)}) don't fully reach setpoint. kWh/GHG/cost below still reflect real electricity draw (a maxed-out unit uses exactly this much) — what's missing those hours is comfort, not energy.`;
+  const d=res.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.over_capacity_hours/d.cooling_hours):0;
+  return ` ${label} is undersized above ${fmt1(crossoverT)} °C — for ${pct}% of this summer's cooling hours (${fmtI(d.over_capacity_hours)} of ${fmtI(d.cooling_hours)}) the load exceeds its published capacity. kWh/GHG/cost below still assume it fully meets the load anyway, at that temperature's curve COP — a flagged idealization above what the real unit can physically deliver, not a measurement.`;
 }
 function renderVerdict(arch,resAC,resHP,hpLabel,costs,elec,acCrossover,hpCrossover){
   const beats=resHP?resHP.energy.electricity_kWh<resAC.energy.electricity_kWh:null;
@@ -2334,8 +2342,8 @@ function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
     stepCard('Balance point',fmt1(arch.Tc_C)+' °C','above this, the home needs cooling','muted'),
   ];
   if(acCrossover!=null){
-    const d=resAC.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.unmet_hours/d.cooling_hours):0;
-    kpis.push(stepCard('Hours unmet (standard AC)',pct+'%',`${fmtI(d.unmet_hours)} of ${fmtI(d.cooling_hours)} cooling hours, above ${fmt1(acCrossover)} °C`,'red'));
+    const d=resAC.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.over_capacity_hours/d.cooling_hours):0;
+    kpis.push(stepCard('Hours over rated capacity (standard AC)',pct+'%',`${fmtI(d.over_capacity_hours)} of ${fmtI(d.cooling_hours)} cooling hours, above ${fmt1(acCrossover)} °C — energy below assumes the load is still fully met`,'red'));
   }
   $('load-kpis').innerHTML=kpis.join('');
   const view=state.loadView;
@@ -2346,7 +2354,7 @@ function renderLoadSection(arch,resAC,acEquip,hpEquip,hpLabel,Tmax){
   if(view==='plain'){
     renderCoolingChart($('cooling-chart'),arch.UA_cool_kW_per_K,arch.Tc_C,acEquip,hpEquip,hpLabel,arch.design_cooling_temp_C);
     $('load-note').innerHTML=`Dashed grey is the estimated cooling load; solid blue is the standard AC's capacity; dashed purple (when present) is the selected heat pump's own cooling capacity. Both capacity curves are flat-clamped outside their manufacturer-published range, not linearly extrapolated.`
-      +(acCrossover!=null?` The shaded red zone above ${fmt1(acCrossover)} °C is where the estimated load exceeds the standard AC's capacity — see the "Hours unmet" card.`:'');
+      +(acCrossover!=null?` The shaded red zone above ${fmt1(acCrossover)} °C is where the estimated load exceeds the standard AC's capacity — see the "Hours over rated capacity" card.`:'');
   } else if(view==='freq'){
     renderGroupedBinChart($('cooling-chart'),'cooling-legend','load',[{label:'Cooling load',color:css('--ink'),arr:resAC.hourly.load_kW}],lastTemps,COOL_Tmin,Tmax,'kWh, load × hours per 1 °C bin',v=>fmtI(v)+' kWh');
     $('load-note').innerHTML=`Each bar is <code>load × hours at that temperature</code> — kWh of cooling needed while it was that hot, in 1 °C bins. Shows where the summer's cooling demand actually comes from.`;

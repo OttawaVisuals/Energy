@@ -1,7 +1,54 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-05** (**Potential AC Explorer** — Simon's call: the RESNET
+Updated **2026-09-05** (**Heat Pump Explorer** — the "potential AC" cooling
+scenario is now integrated into every step of the main page, not a bolted-on
+bonus card. A "Steps below show: Heating / Cooling" toggle near the top
+switches Steps 2-7 between the heating dispatch (current system vs. heat
+pump) and the cooling comparison (standard AC vs. the selected heat pump's
+own cooling curve), reusing each step's existing chart/KPI layout and
+view-seg controls (by-temperature/weighted/daily/hourly) rather than adding
+a parallel set. Final numbers always shows both regardless of which is
+toggled, via a new combined-totals card. Ported three generic multi-series
+chart builders from `heatpumpAC.html` (`renderGroupedBinChart`,
+`renderMeanBinChart`, `renderTimeSeriesChart`, plus `binByTempRange` and
+`findCrossoverTemp`) since cooling's "compare two equipment alternatives,
+no backup" shape doesn't fit heating's bespoke hp+backup-dispatch chart
+functions. Also fixed a real drift caught along the way:
+`heatpump.html`'s own inlined `simulateCooling()` was missing the
+`ef_g_per_kWh` hourly field that both `heatpumpAC.html` and
+`HeatPump/app/engine.js` already carry — added, matching the other two
+copies. The old opt-in "Show potential AC" toggle and its standalone
+`#section-cooling` card are retired, superseded by the integrated version.
+See [METHODOLOGY.md](HeatPump/METHODOLOGY.md) "Cooling integrated into
+every step of the Heat Pump Explorer" for the full detail.)
+
+Prior update **2026-09-05** (**Heat Pump Explorer / Potential AC Explorer** —
+two related honesty fixes to how undersized equipment is handled. (1)
+Removed the "None (heat-pump only)" backup option from `heatpump.html`:
+Simon's call that it wasn't a realistic configuration, and it let an
+undersized heat pump's coldest-hour shortfall vanish from kWh/GHG/cost
+entirely instead of being served by a real backup device, making it look
+artificially cheap. (2) Checking why several `heatpumpAC.html` tier cells
+appeared to beat the standard-AC baseline on cooling electricity surfaced
+the same problem on the cooling side, worse: every "beats the AC" cell was
+running maxed-out 10-54% of the season (vs. the AC's own ~4%), so the low
+kWh reflected comfort silently going unmet, not real efficiency — every
+cell sized comparably to the AC used *more* energy than it, with no
+exception. Fixed per Simon's proposal: removed cooling's capacity ceiling
+entirely, assuming the load is always fully met at that hour's
+curve-interpolated COP even past the unit's own rated capacity, and
+flagging every hour that happens (`over_capacity_hours`/`_kWh` in
+diagnostics, a "Hours over rated capacity" KPI, and verdict-text callouts)
+rather than silently absorbing it. Re-run of the 9-cell comparison after
+the fix: only 2 of 9 heat pumps now beat the Goodman AC (both genuinely
+high-SEER2 `<18k`-band units), down from 4 of 9 — the other two "wins" had
+depended entirely on the removed clamp. See
+[METHODOLOGY.md](HeatPump/METHODOLOGY.md) "No-backup heating option
+removed" and "Cooling capacity ceiling removed, flagged instead of
+silently clamped" for the full detail.)
+
+Prior update **2026-09-05** (**Potential AC Explorer** — Simon's call: the RESNET
 HERS Addendum 82 synthetic model added to `heatpumpAC.html` (badge SEER2/EER2
 reconstruction, min/full/max variable-speed dispatch, part-load-fraction
 cycling) went further than his confidence level in the underlying badge-data
