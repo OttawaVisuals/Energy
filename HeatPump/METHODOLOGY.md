@@ -1362,11 +1362,29 @@ Full 84-city table in `data/interim/city_design_temps.csv`.
   `WTH100` 56.3%, `Wth2020` 35.4%, `Wth110` 8.0%. We hold one NBC-vintage value
   per station and apply it to all vintages. Library revisions typically move a
   station 1–2 °C → roughly 2–3% on peak load (see the sensitivity table below).
-- **The percentile is inferred, not stated.** The source file has no metadata;
-  value-matching against published NBC figures (Toronto Intl −18.3, Ottawa Intl
-  −24.3, Winnipeg −31.3) indicates **2.5% January dry-bulb**. Confirm with the
-  file's author before citing, and pin the NBC edition (2015 vs 2020 shifts some
-  stations ~1 °C).
+- **The percentile is inferred, and the "NBC Appendix C" label is unverified.**
+  `reference/nbc_station_design_temps.csv` has no producer script (added
+  pre-built, 2026-07-27/28) and no source metadata; downstream scripts call it
+  "NBC Appendix C" on assertion, not confirmed provenance. Checked 2026-09-07
+  against the actual NBC 2020 Table C-2 (Division B, Appendix C, pp. C-19–C-24):
+  its January design temperatures are **whole-degree Celsius only** (e.g.
+  Ottawa Macdonald-Cartier Int'l −25 °C 2.5% / −27 °C 1%; Winnipeg −33/−35;
+  Mississauga Pearson Int'l −20/−22), while our file carries **one-decimal
+  precision throughout** (Ottawa Intl −24.3, Winnipeg Intl −31.3, Toronto Intl
+  −18.3) — a shape mismatch a transcription of that table would not produce,
+  regardless of edition. The percentile itself is still plausibly right (NBC's
+  own text: *"The 2.5% January design temperature is the value ordinarily used
+  in the design of heating systems"*) and our Ottawa/Winnipeg values sit
+  consistently 0.7–1.7 °C warmer than NBC 2020's 2.5% column, in one direction
+  — but the exact source is more likely ECCC's own computed **Engineering
+  Climate Datasets** (which NBC's Appendix C intro cites as its own upstream
+  input, and which is published with decimal precision) than a direct read of
+  the NBC PDF table. **Not resolved further — the pipeline keeps using this
+  file's values as-is** (the reproducibility/precision question doesn't change
+  the numbers already flowing into `city_design_temps.json`, only the citation
+  attached to them), so treat "NBC Appendix C" in this document and in
+  `build_archetypes_nrcan.py`'s comments as an unverified working label, not a
+  confirmed citation, until the file's actual origin is traced.
 - **28.7% of homes are unassigned** — genuine mid-size municipalities outside
   the 84 listed (Saint-Bruno-de-Montarville, Summerside, Cobourg, Rivière-du-Loup…),
   not mapping failures. They are counted and reported, never silently dropped.
@@ -3045,12 +3063,14 @@ flagged ccASHP, 0.0% on new refrigerants — genuinely pre-designation equipment
 It gets a conservative modelled curve and must not be presented as equivalent to
 a rated tier.
 
-**Open item: `min_op_temp_C` (compressor lockout) has no source.** Not in AHRI,
-not in ENERGY STAR, not in NRCan; NEEP requests it from manufacturers but it
-lives in the product database, not the specification. Previously supplied by the
-NEEP extract. Must be resolved — from manufacturer datasheets or a documented
-per-tier assumption — before the rebuilt curves ship, since the engine's lockout
-behaviour is governed by it.
+**`min_op_temp_C` (compressor lockout) — resolved.** Not in AHRI, ENERGY STAR or
+NRCan; NEEP requests it from manufacturers but it lives in the product
+database, not the specification. Raised here as an open item before the
+per-cell datasheet work existed. Now sourced per cell in
+`pipeline/build_cell_curves.py`'s `UNITS` table: 8 of 9 cells carry a real
+manufacturer-datasheet lockout temperature, and the ninth (`mid_18-30k`) uses
+an explicit, documented assumption (Simon's −20°C call, clamped to that unit's
+coldest tested point, −20.6°C) rather than a silent default.
 
 ---
 
@@ -3216,9 +3236,8 @@ python HeatPump/pipeline/screen_cchp.py
 ```
 
 Reads `data/interim/hp_units_joined.csv`, `energystar_by_ahri.csv`,
-`nrcan_spl.csv` and `hp_buckets.csv`. **Note the reproducibility gap:**
-`hp_units_joined.csv` has no producer script in the repo (see ROADMAP.md,
-Queued), so this screen currently depends on a file that cannot be regenerated.
+`nrcan_spl.csv` and `hp_buckets.csv`. `hp_units_joined.csv`'s reproducibility
+gap was closed 2026-09-07 — see TIER_SPEC.md §7.
 
 ---
 
@@ -3352,10 +3371,15 @@ rule). It is a **selection aid, not a browser-facing deliverable** — it lives 
 | Colour | Nominal size band from rated capacity @ 47 °F |
 
 Input is `data/interim/hp_units_joined.csv` (one row per AHRI-certified unit),
-with brand/model joined from `hp_buckets.csv` for the hover labels. **The
-`hp_units_joined.csv` reproducibility gap applies here too** — it has no
-producer script in the repo, so this scatter currently rests on a file that
-cannot be regenerated. See the Phase 3c note above and ROADMAP.md.
+with brand/model joined from `hp_buckets.csv` for the hover labels. The
+`hp_units_joined.csv` reproducibility gap (no producer script in the repo) was
+**closed 2026-09-07** by `HeatPump/pipeline/build_hp_units_joined.py` — see
+TIER_SPEC.md §7 for the join logic and a disclosed incident during that fix
+(the pre-existing file was lost before a backup was confirmed; the
+reconstruction is verified on partial evidence, not a full diff). The row/
+appearance counts below are from the original 2026-07-28 run and predate that
+fix by six weeks — a rerun today would differ slightly (15,149 vs 15,148 rows,
+per TIER_SPEC.md).
 
 ### Gate — quantified, not silent
 

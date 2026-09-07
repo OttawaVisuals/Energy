@@ -1,7 +1,35 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-05** (**Heat Pump Explorer** — the "potential AC" cooling
+Updated **2026-09-07** (**Heat Pump Explorer** — closed the `hp_units_joined.csv`
+reproducibility gap flagged in TIER_SPEC.md since 2026-07-27: no script in the
+repo could regenerate this AHRI+NRCan+ERS join that `build_cell_candidates.py`,
+`build_cell_curves.py`, `build_tier_curves.py`, `build_tier_scatter.py`,
+`build_hp_tier_selection.py` and `screen_cchp.py` all depend on. New
+`HeatPump/pipeline/build_hp_units_joined.py` reconstructs it from three
+already-reproducible inputs — `lookup/ahri_numbers.json` (cop, c47, cold-climate
+flag, HSPF2, and a computed AHRI capacity-maintenance ratio), `data/interim/
+nrcan_spl.csv` deduped on AHRI number (product group, HSPF2 Region V, NRCan's
+own capacity-maintenance), coalesced AHRI-over-NRCan per TIER_SPEC.md §1's
+stated precedence — and `Python/ahri_numbers_all.json` for ERS appearance
+counts. **Disclosed incident:** the first test run overwrote the pre-existing
+file before a backup was confirmed (the backup command failed silently), and
+the original could not be recovered afterward. Verification rests on partial
+evidence rather than a full diff: the original's first two rows (captured via
+`head` earlier in the session, before the overwrite) match the new script's
+output exactly for those AHRI numbers; the new file's one extra row is a unit
+already present in the AHRI scrape's cache but missing from the old file,
+consistent with that cache being merge-only and continuously updated rather
+than a discrepancy; and the script's own run reported "448 filled from NRCan"
+without being tuned to do so, matching TIER_SPEC.md's independently-documented
+"+448 models" NRCan gap-fill figure. Simon reviewed and chose to keep the
+reconstruction rather than pursue further recovery — the file is gitignored,
+local-disk-only by repo convention, and every consumer already treats it as a
+rebuildable interim artifact. Full incident writeup and column-by-column
+provenance in [TIER_SPEC.md](HeatPump/TIER_SPEC.md) §7 and the script's own
+docstring.)
+
+Prior update **2026-09-05** (**Heat Pump Explorer** — the "potential AC" cooling
 scenario is now integrated into every step of the main page, not a bolted-on
 bonus card. A "Steps below show: Heating / Cooling" toggle near the top
 switches Steps 2-7 between the heating dispatch (current system vs. heat
