@@ -417,24 +417,46 @@ default run skips them). ~12,500 fetches at 1 req/s, checkpointed after every
 fetch, safe to interrupt. `atomic_write_json` retries the rename with backoff —
 a long run previously died on a transient Windows file lock at 5,564/12,562.
 
-### ⚠️ Reproducibility gap — this spec is not currently reproducible (2026-07-27)
+### ⚠️ Reproducibility gap — closed 2026-09-07, with an incident
 
-Two inputs the repo's *"what must be defensible is the process, not the bytes"*
-rule does **not** currently cover:
+Flagged 2026-07-27: two inputs the repo's *"what must be defensible is the
+process, not the bytes"* rule did **not** cover.
 
-1. **`data/interim/hp_units_joined.csv`** — the joined 15,148-model universe
+1. **`data/interim/hp_units_joined.csv`** — the joined model universe
    (`k,w,cm,cm_ahri,cm_nrcan,h5,pg,h4,cop,cc,c47`) that the §3 grid, the §4
-   representative selection **and** `pipeline/screen_cchp.py` all read. **No
-   producer script exists anywhere in the repo** — grepping the filename returns
-   nothing. It was built ad hoc in an earlier session.
-2. **`lookup/ahri_numbers.json`** — the AHRI scrape itself. Gitignored *and*
-   absent from local disk. Only the derived `Python/ahri_numbers_all.json`
-   survives, and that carries bare appearance counts with no certified ratings.
+   representative selection **and** `pipeline/screen_cchp.py` all read. No
+   producer script existed anywhere in the repo — it was built ad hoc in an
+   earlier session.
+2. **`lookup/ahri_numbers.json`** — the AHRI scrape itself, at the time
+   gitignored and absent from local disk. This has since resolved on its own
+   (confirmed present, 15,149 entries, as of 2026-09-07) — presumably restored
+   by a later run of `Python/build_ahri_lookup_full.py` or the weekly
+   `ahri-refresh.yml` Action.
 
-Every other generated tree here is safe to lose because a script rebuilds it.
-These two are not: deleting `hp_units_joined.csv` would strand Phase 3c, and the
-§7 commands above do **not** regenerate it.
+**Fixed 2026-09-07** by `HeatPump/pipeline/build_hp_units_joined.py`, traced
+and column-verified against the committed CSV before being written (see the
+script's own docstring for full provenance per column). The join:
+`lookup/ahri_numbers.json` (cop, c47, cc, h4, cm_ahri — computed from AHRI's
+two capacity points) outer-joined with `data/interim/nrcan_spl.csv` deduped on
+AHRI number (pg, h5, cm_nrcan), `cm` = `cm_ahri` if present else `cm_nrcan`
+(AHRI authoritative, NRCan fills gaps — confirmed live: the script's own run
+reported "448 filled from NRCan", matching this file's §1 "+448 models"
+figure exactly), `w` from `Python/ahri_numbers_all.json`'s appearance counts.
 
-**Fix before the next refresh:** write the join as a real pipeline step under
-`HeatPump/pipeline/`, and confirm the weekly `ahri-refresh.yml` Action still
-restores `lookup/`. Tracked in [ROADMAP.md](../ROADMAP.md), Queued.
+**Incident, disclosed rather than smoothed over:** the first test run of the
+new script overwrote the original `hp_units_joined.csv` before a backup copy
+was confirmed to exist — the intended backup command failed silently
+beforehand. The pre-existing file (15,148 rows, 791,180 bytes, dated
+2026-07-26) could not be recovered afterward. Verification therefore rests on
+partial evidence rather than a full-file diff: (1) the original's first two
+data rows, captured via `head` earlier in the same session before the
+overwrite, match the new script's output for those same two AHRI numbers
+exactly; (2) the row-count delta (+1, to 15,149) is explained by one
+AHRI-resolved unit (214606517) that was already sitting in the scrape's cache
+but missing from the old file — expected drift from `ahri_numbers.json` being
+a merge-only, continuously-updated cache, not a bug; (3) the "448 filled from
+NRCan" match noted above was not tuned to hit that number — it fell out of
+independently-reconstructed join logic. Simon reviewed this and chose to keep
+the reconstructed file rather than pursue further recovery, given it's
+gitignored/local-disk-only by repo convention and every downstream script
+already treats it as a rebuildable interim artifact.
