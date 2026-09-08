@@ -169,7 +169,28 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .chart-head .seg button{color:rgba(255,255,255,.78)}
 .chart-head .seg button.active{background:#fff;color:var(--navy)}
 .seg-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.chart-range-row{display:flex;justify-content:center}
+/* On laptop-width-and-up cards, the title + Heating/Cooling toggle (where
+   present) + this 4-button view toggle all fit on one line once the buttons
+   are sized to their own text (not stretched to a uniform 130px) instead of
+   forced onto their own full-width line, and .seg-group itself is nowrap
+   instead of wrapping the view toggle to its own second line internally (a
+   flex item that's itself flex-wrap:wrap otherwise undersizes its own auto
+   width -- a nested-flex-wrap quirk). Both overrides are declared after
+   their base rules above so they actually win the cascade here instead of
+   losing the tie to them. .card-title-row is still flex-wrap:wrap in its own
+   right, so a narrower laptop window that can't fit all of this still falls
+   back gracefully -- the whole group just drops to its own line. */
+@media(min-width:1050px){
+  .seg-multi{flex-basis:auto;width:auto}
+  .seg-multi button{flex:0 0 auto}
+  .seg-group{flex-wrap:nowrap}
+}
+/* Reserve the month/week selector's own row height always, even with both
+   selects hidden (the common case: they only show for "Full year daily"/
+   "hourly") -- otherwise that row collapses to 0 and the whole card visibly
+   grows by ~42px the moment either full-year view is picked. 30px select
+   height + .75rem bottom margin from .range-sel.show below. */
+.chart-range-row{display:flex;justify-content:center;min-height:42px}
 .range-sel{display:none;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 24px 0 9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
 .range-sel.show{display:inline-block;margin-bottom:.75rem}
 .range-sel+.range-sel.show{margin-left:8px}
@@ -326,6 +347,20 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .kc-tip-row b{color:var(--on-navy);font-weight:400}
 .kc-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
 .kc-leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+/* Three legends show a different NUMBER of items depending on the chart's
+   view (e.g. emissions drops "Backup" once the furnace never actually runs
+   below the switch-over, weather drops from 4 reference lines to 1 selected
+   trace) -- on a narrow phone card, that's enough to change how many lines
+   the legend wraps to, growing/shrinking the card on every toggle click the
+   same way the range-row and title-row did. Laptop/tablet cards are wide
+   enough that none of these ever wrap in the first place (unlike the
+   range-row fix, so this is scoped to phone widths instead of reserved
+   everywhere). Heights match each one's own real max (2 lines = 46px,
+   weather's 4 stacked single-item lines = 74px). */
+@media(max-width:480px){
+  #equip-legend,#em-legend{min-height:46px}
+  #weather-legend{min-height:74px}
+}
 .kc-swatch{width:14px;height:0;border-top:2.5px solid;flex:none}
 .kc-swatch.dash{border-top-style:dashed}
 .kc-swatch.fill{height:11px;border:none;border-radius:2px}
@@ -676,8 +711,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           <span class="card-title">The weather, across the years</span>
           <div class="seg seg-multi" id="weather-view-seg" role="group" aria-label="Weather chart view">
             <button type="button" data-view="temp" class="active">By temperature</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            <button type="button" data-view="daily">Full year (daily)</button>
+            <button type="button" data-view="hourly">Full year (hourly)</button>
           </div>
         </div>
         <div class="step-body">
@@ -716,8 +751,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="ld-view-seg" role="group" aria-label="Load chart view">
               <button type="button" data-view="plain" class="active">By temperature</button>
               <button type="button" data-view="freq">Weighted by hours</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -754,8 +789,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="equip-view-seg" role="group" aria-label="Equipment chart view">
               <button type="button" data-view="plain" class="active">By temperature</button>
               <button type="button" data-view="freq">Weighted by hours</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -795,8 +830,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="ecop-view-seg" role="group" aria-label="Energy chart view">
               <button type="button" data-view="plain" class="active">By temperature</button>
               <button type="button" data-view="freq">Weighted by hours</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -841,8 +876,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="gg-view-seg" role="group" aria-label="Grid chart view">
               <button type="button" data-view="plain" class="active">By temperature</button>
               <button type="button" data-view="freq">Weighted by hours</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -882,8 +917,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="em-view-seg" role="group" aria-label="Emissions chart view">
               <button type="button" data-view="plain" class="active">By temperature</button>
               <button type="button" data-view="freq">Weighted by hours</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -932,8 +967,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="seg seg-multi" id="cost-view-seg" role="group" aria-label="Cost chart view">
               <button type="button" data-view="byhour" class="active">By hour of day</button>
               <button type="button" data-view="freq">Weighted by temperature</button>
-              <button type="button" data-view="daily">Full year (day-by-day)</button>
-              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+              <button type="button" data-view="daily">Full year (daily)</button>
+              <button type="button" data-view="hourly">Full year (hourly)</button>
             </div>
           </div>
         </div>
@@ -3034,7 +3069,7 @@ const state={
   weatherView:'temp', // weather-card chart: 'temp' histogram or 'hourly' 8760-hour line
   loadView:'plain', equipView:'plain', gridView:'plain', energyView:'plain', emisView:'plain', costView:'byhour', // step ②③④⑤⑥⑦ charts: 'plain' temp curve, 'freq' weighted by hours, 'byhour' (cost only) or 'hourly' 8760-hour trace
   // Per-chart month (0-11, null=whole year) / week (0-52, null=whole year) filter for
-  // each chart's own "Full year (day-by-day)" / "(hour-by-hour)" view -- independent
+  // each chart's own "Full year (daily)" / "(hour-by-hour)" view -- independent
   // per chart so e.g. comparing December's cost to July's emissions is possible.
   weatherMonth:null, weatherWeek:null, loadMonth:null, loadWeek:null, equipMonth:null, equipWeek:null,
   gridMonth:null, gridWeek:null, energyMonth:null, energyWeek:null, emisMonth:null, emisWeek:null, costMonth:null, costWeek:null,
@@ -4031,7 +4066,7 @@ function renderLoadStep(res,opts){
 
   const ldNoteBase=`Heat demand is <code>UA × (zero-heat − outdoor)</code>, so it rises in a straight line as it gets colder.`;
   if(view==='hourly') $('ld-note').innerHTML=`${ldNoteBase} This is the raw hourly trace the simulation runs on, for <b>${state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear}</b> in ${state.city}.`;
-  else if(view==='daily') $('ld-note').innerHTML=`${ldNoteBase} Each point here is a day's mean, for <b>${state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear}</b> in ${state.city} — the same trace as "Full year (hour-by-hour)" with the hour-to-hour noise averaged out.`;
+  else if(view==='daily') $('ld-note').innerHTML=`${ldNoteBase} Each point here is a day's mean, for <b>${state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear}</b> in ${state.city} — the same trace as "Full year (hourly)" with the hour-to-hour noise averaged out.`;
   else if(view==='freq') $('ld-note').innerHTML=`${ldNoteBase} But the <b>weather</b> decides how <i>often</i> each temperature occurs: each bar is <code>load × hours at that temperature</code> — kWh heat needed while it was that cold. Most of the season's energy comes from mild spells, not the rare deep-cold hours, even though those set the peak.`;
   else $('ld-note').innerHTML=`${ldNoteBase} Switch to "Weighted by hours" to see how often each temperature actually occurs — that's what decides how much of the season's load falls in the depths of winter versus the mild shoulder months.`;
 }
