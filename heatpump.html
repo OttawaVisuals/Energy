@@ -954,7 +954,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
         <div class="note" id="energy-note"></div>
       </div>
       <div class="card">
-        <div class="card-title-row chart-head"><span class="card-title">Annual heating emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
+        <div class="card-title-row chart-head"><span class="card-title">Annual emissions — now vs heat pump</span><span class="card-sub" id="em2-basis"></span></div>
         <div class="cw cw-lg"><canvas id="emisChart"></canvas></div>
         <div class="note" id="em2-note"></div>
       </div>
@@ -968,13 +968,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           </div>
         </div>
         <div class="note" id="cost-note" style="display:none"></div>
-      </div>
-      <div class="card" id="cooling-verdict-card">
-        <div class="card-title-row chart-head"><span class="card-title">Cooling — adding a summer AC</span><span class="card-sub">standard AC vs. the selected heat pump's own cooling curve</span></div>
-        <div class="step-body">
-          <div class="step-kpi-col" id="cooling-verdict-kpis" style="grid-column:1/-1"></div>
-        </div>
-        <div class="note" id="cooling-verdict-note"></div>
       </div>
     </section>
 
@@ -1006,7 +999,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     <h2>Annual totals</h2>
     <div class="ps-charts-row">
       <div class="ps-chart-col"><div class="ps-chart-label">Energy by source</div><img id="ps-energy-img" alt="Annual energy by source"></div>
-      <div class="ps-chart-col"><div class="ps-chart-label">Heating emissions</div><img id="ps-emis-img" alt="Annual heating emissions"></div>
+      <div class="ps-chart-col"><div class="ps-chart-label">Emissions</div><img id="ps-emis-img" alt="Annual emissions"></div>
       <div class="ps-chart-col"><div class="ps-chart-label">Operating cost</div><img id="ps-cost-img" alt="Annual operating cost"></div>
     </div>
     <div class="ps-footer">Modelled estimate, not a substitute for a heat-loss assessment or contractor quote. Full methodology and assumptions: <span id="ps-url"></span></div>
@@ -3603,12 +3596,18 @@ function recompute(){
   const res=E.simulate(opts);
   lastRes=res; lastOpts=opts;
   render(res,opts); // verdict + always renders the heating steps into lastRes/lastOpts's data structures
-  if(state.mode==='heating'){ renderCost(res); }
+  renderCost(res); // Final-Numbers cost bar is mode-independent; renderCost itself branches for step 7's own UI
   const cityAtCall=state.city;
   ensureHouseProfiles(state.city).then(()=>{
     if(state.city!==cityAtCall) return; // city changed again while this was in flight
     lastCool=computeCoolingResults();
     renderVerdictCombined();
+    // Cooling data just arrived -- refresh the Final-Numbers charts (energy,
+    // emissions, cost) so their AC add-on shows up even if we're still in
+    // heating mode and nothing else would otherwise re-trigger them.
+    renderEnergyFinal(lastRes);
+    renderEmissionsStep(lastRes,lastOpts);
+    renderCost(lastRes);
     if(state.mode==='cooling') renderModeSteps();
   });
 }
@@ -3710,15 +3709,10 @@ function render(res,opts){
   renderEmissionsStep(res,opts);
 
   // ---- annual energy summary (kept from the old "across the year" section) ----
-  renderEnergyChart(base,proj);
+  renderEnergyFinal(res);
   // This preview/renderer does not reliably pump requestAnimationFrame, so
   // Chart.js's first frame can fail to paint. Force a synchronous draw.
   Object.values(charts).forEach(c=>{try{c.resize();c.draw();}catch(e){}});
-
-  // ---- notes / basis labels ----
-  $('energy-note').innerHTML=state.fuel==='electric'
-    ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
-    : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`;
 }
 function bucketShort(){return state.tier==='high'?'premium':state.tier==='mid'?'mid-range':state.tier==='low'?'value':'custom-data';}
 
@@ -4722,7 +4716,6 @@ function attachDailyHover(cfg){
 
 // ---- ⑥ Emissions: baseline vs heat pump + backup ----------------------------
 function renderEmissionsStep(res,opts){
-  if(state.mode==='cooling'){ renderEmissionsStepCooling(); return; }
   const base=res.base.ghg, proj=res.project.ghg;
   const cats=[
     {k:'combustion',label:'On-site combustion',color:css('--red')},
@@ -4733,26 +4726,41 @@ function renderEmissionsStep(res,opts){
   const val=(g,k)=>k==='upstream'?(g.upstream_methane||0):(g[k]||0);
   const baseT=base.total, projT=proj.total;
   const cut=baseT-projT, pctc=baseT>0?cut/baseT*100:0;
+
+  // ---- Final numbers: emisChart -- mode-independent (always shows both),
+  // so this whole block runs regardless of the heating/cooling step toggle
+  // and adds the cooling add-on (same fallback rule as renderEnergyChart).
+  const acGhgBase=lastCool&&lastCool.resAC?lastCool.resAC.ghg.total:0;
+  const acGhgHP=lastCool&&lastCool.resAC?(lastCool.hasHPCurve&&lastCool.resHP?lastCool.resHP.ghg.total:lastCool.resAC.ghg.total):0;
+  const baseTotalFinal=baseT+acGhgBase, projTotalFinal=projT+acGhgHP, cutFinal=baseTotalFinal-projTotalFinal;
   const emisCanvas=$('emisChart');
   if(emisCanvas){
     destroy('emis');
-    const labels=['Now','Heat pump',cut>=0?'Avoided':'Added'];
+    const labels=['Baseline','Heat pump',cutFinal>=0?'Avoided':'Added'];
     const ds=cats.map(c=>({label:c.label,data:[val(base,c.k),val(proj,c.k),0],backgroundColor:c.color}));
-    ds.push({label:cut>=0?'Avoided':'Added',data:[0,0,Math.abs(cut)],backgroundColor:cut>=0?css('--green'):css('--red')});
+    if(lastCool&&lastCool.resAC){
+      ds.push({label:'Cooling (AC) — baseline',data:[acGhgBase,0,0],backgroundColor:css('--blue')});
+      ds.push({label:'Cooling (AC) — heat pump',data:[0,acGhgHP,0],backgroundColor:css('--purple')});
+    }
+    ds.push({label:cutFinal>=0?'Avoided':'Added',data:[0,0,Math.abs(cutFinal)],backgroundColor:cutFinal>=0?css('--green'):css('--red')});
     charts.emis=new Chart(emisCanvas,{type:'bar',data:{labels,datasets:ds},options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
       scales:{x:{stacked:true,title:{display:true,text:'CO₂e / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtGHG(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
       plugins:{legend:{position:'bottom',labels:{color:css('--muted'),boxWidth:10,font:{size:11},filter:item=>item.text!=='Avoided'&&item.text!=='Added'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtGHG(c.parsed.x)}}}
     }});
   }
+  $('em2-basis').textContent=`${basisAdj(state.efBasis)} grid basis`;
+  $('em2-note').innerHTML=`Each hour's electricity (step 4) × the grid intensity at that hour (step 5), plus any furnace combustion, summed over the year${lastCool&&lastCool.resAC?', plus summer cooling (standard AC, or the heat pump’s own cooling curve where it has one)':''} — the whole point of the exercise. ${cutFinal>=0?`The switch <b>avoids ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`:`On the ${basisAdj(state.efBasis)} basis the switch <b>adds ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`}`;
+
+  if(state.mode==='cooling'){ renderEmissionsStepCooling(); return; }
+
+  // ---- step 6's own KPI strip (heating framing only) ----
   const emKpiHtml=[
     stepCard('Emissions now',fmtGHG(baseT),`${FUEL_LABEL[state.fuel]} heating`,'red'),
     stepCard('With heat pump',fmtGHG(projT),`${basisAdj(state.efBasis)} grid basis`,'green'),
     stepCard('Change',`${cut>=0?'−':'+'}${Math.abs(Math.round(pctc))}%`,`${cut>=0?'saves':'adds'} ${fmtGHG(Math.abs(cut))} CO₂e/yr`,cut>=0?'green':'red'),
   ].join('');
   if($('em-kpis'))$('em-kpis').innerHTML=emKpiHtml;
-  $('em2-basis').textContent=`${basisAdj(state.efBasis)} grid basis`;
-  $('em2-note').innerHTML=`Each hour's electricity (step 4) × the grid intensity at that hour (step 5), plus any furnace combustion, summed over the year — the whole point of the exercise. ${cut>=0?`The switch <b>avoids ${fmtGHG(Math.abs(cut))}</b> a year here.`:`On the ${basisAdj(state.efBasis)} basis the switch <b>adds ${fmtGHG(Math.abs(cut))}</b> a year here.`}`;
 
   // ---- emissions vs outdoor temperature ----
   const svg=$('em-chart'); if(!svg) return;
@@ -5192,19 +5200,41 @@ function weatherBand(){
 // ---- Chart.js: annual energy, monthly ----
 const MONTHS=['J','F','M','A','M','J','J','A','S','O','N','D'];
 function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+// Wraps renderEnergyChart with the note text -- factored out so both the
+// initial (mode-independent) render and the later lastCool-ready refresh
+// (see recompute()) can rebuild the Final-Numbers energy card consistently.
+function renderEnergyFinal(res){
+  const proj=res.project;
+  renderEnergyChart(res.base,proj);
+  const scop=proj.diagnostics.seasonal_cop?fmt1(proj.diagnostics.seasonal_cop):'–';
+  const coolNote=lastCool&&lastCool.resAC?' Cooling is also included: standard AC on the baseline bar, or the heat pump\'s own cooling curve where it has one.':'';
+  $('energy-note').innerHTML=(state.fuel==='electric'
+    ? `The baseboard case and the heat-pump case are both electric — the heat pump simply delivers the same heat with far less electricity (seasonal COP ${scop}).`
+    : `The base case burns ${FUEL_LABEL[state.fuel]}; the heat-pump case trades that fuel for grid electricity (${fmtI(proj.energy.electricity_kWh)} kWh/yr, seasonal COP ${scop}).`)+coolNote;
+}
 function renderEnergyChart(base,proj){
   destroy('energy');
   const baseFuel=base.energy.fuel_kWh, baseElec=base.energy.electricity_kWh;
-  const baseTotal=baseFuel+baseElec;
-  const projTotal=proj.energy.hp_electricity_kWh+proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh;
+  // Cooling add-on: standard AC electricity on the baseline bar, and the
+  // selected heat pump's own cooling-curve electricity on the heat-pump bar
+  // (or, if it has no cooling curve on file, the same standalone AC it would
+  // still need) -- see computeCoolingResults(). Zero until lastCool resolves.
+  const acBase=lastCool&&lastCool.resAC?lastCool.resAC.energy.electricity_kWh:0;
+  const acHP=lastCool&&lastCool.resAC?(lastCool.hasHPCurve&&lastCool.resHP?lastCool.resHP.energy.electricity_kWh:lastCool.resAC.energy.electricity_kWh):0;
+  const baseTotal=baseFuel+baseElec+acBase;
+  const projTotal=proj.energy.hp_electricity_kWh+proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh+acHP;
   const cut=baseTotal-projTotal;
-  const labels=['Now','Heat pump',cut>=0?'Avoided':'Added'];
+  const labels=['Baseline','Heat pump',cut>=0?'Avoided':'Added'];
   const ds=[
-    {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseTotal,0,0],backgroundColor:css('--red')},
+    {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseFuel+baseElec,0,0],backgroundColor:css('--red')},
     {label:'Heat-pump electricity',data:[0,proj.energy.hp_electricity_kWh,0],backgroundColor:css('--green')},
     {label:`Backup energy — ${FUEL_LABEL[state.backup]}`,data:[0,proj.energy.backup_fuel_kWh+proj.energy.backup_electricity_kWh,0],backgroundColor:backupColor()},
-    {label:cut>=0?'Avoided':'Added',data:[0,0,Math.abs(cut)],backgroundColor:cut>=0?css('--green'):css('--red')},
   ];
+  if(lastCool&&lastCool.resAC){
+    ds.push({label:'Cooling (AC) — baseline',data:[acBase,0,0],backgroundColor:css('--blue')});
+    ds.push({label:'Cooling (AC) — heat pump',data:[0,acHP,0],backgroundColor:css('--purple')});
+  }
+  ds.push({label:cut>=0?'Avoided':'Added',data:[0,0,Math.abs(cut)],backgroundColor:cut>=0?css('--green'):css('--red')});
   charts.energy=new Chart($('energyChart'),{type:'bar',data:{labels,datasets:ds},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     scales:{x:{stacked:true,title:{display:true,text:'kWh / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmtI(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
@@ -5700,33 +5730,36 @@ function setCostStat(val,sub,cls){
   card.innerHTML=`<div class="stat-label">${statLabelHTML('Operating cost',TIP.cost)}</div><div class="stat-value ${cls}">${val}</div><div class="stat-sub">${sub}</div>`;
 }
 function renderCost(res){
-  if(state.mode==='cooling'){ renderCostStepCooling(); return; }
+  // costBarChart/cost-body/cost-note below are the Final-Numbers card --
+  // mode-independent ("always shows both"), so they're built regardless of
+  // the heating/cooling step toggle. cost-basis/cost-plan-row/cost-chart-card/
+  // cost-kpis/cost-chart are step 7's own UI and stay gated to heating mode;
+  // renderCostStepCooling() covers step 7's cooling framing separately.
+  const coolingMode=state.mode==='cooling';
   const prov=CITY_PROV[state.city],P=PRICES_CACHE[prov],body=$('cost-body'),note=$('cost-note');
-  $('cost-basis').textContent='current residential rates · pre-tax';
+  if(!coolingMode) $('cost-basis').textContent='current residential rates · pre-tax';
   destroy('costBar');
   if(!P){
-    $('cost-plan-row').style.display='none';
-    $('cost-chart-card').style.display='none';
+    if(!coolingMode){ $('cost-plan-row').style.display='none'; $('cost-chart-card').style.display='none'; }
     body.innerHTML='<div class="cost-hook"><div class="ch-title">Current rates unavailable</div><div class="ch-body">The energy-prices file for this province (<code>prices_json/'+prov+'.json</code>) could not be loaded, so this run compares energy and emissions only.</div></div>';
     note.style.display='none';
     setCostStat('–','rates unavailable','');
     setSummaryCost(null);
     lastCostSeries=null; lastPlanKey=null;
-    renderHourlyTable();
+    if(coolingMode) renderCostStepCooling(); else renderHourlyTable();
     return;
   }
   const ck=CITY_KEY[state.city];
   const elec=ck&&P.electricity[ck],gas=ck&&P.natural_gas[ck],oil=ck&&P.heating_oil[ck];
   if(!elec){ // city has no modelled rate entry — degrade gracefully
-    $('cost-plan-row').style.display='none';
-    $('cost-chart-card').style.display='none';
+    if(!coolingMode){ $('cost-plan-row').style.display='none'; $('cost-chart-card').style.display='none'; }
     body.innerHTML='<div class="cost-hook"><div class="ch-title">Rates not modelled for this city</div><div class="ch-body">This run compares energy and emissions only. Residential rates for '+state.city+' are not in the prices dataset yet.</div></div>';
     note.style.display='none';
     lastCostSeries=null; lastPlanKey=null;
-    renderHourlyTable();
+    if(coolingMode) renderCostStepCooling(); else renderHourlyTable();
     return;
   }
-  const planKey=syncPlanSelector(elec);
+  const planKey=coolingMode?(state.plan&&elec.plans[state.plan]?state.plan:elec.default_plan):syncPlanSelector(elec);
 
   // ---- base scenario ----
   let baseCost,baseName='Now — '+FUEL_LABEL[state.fuel],baseSub;
@@ -5759,16 +5792,27 @@ function renderCost(res){
 
   const delta=baseCost-projCost;
   const saves=delta>=0;
+  // Cooling add-on for the Final-Numbers bar (same fallback rule as the
+  // energy/emissions charts): standard AC on baseline, the heat pump's own
+  // cooling curve on the heat-pump bar if it has one, else the same AC.
+  const acCostBase=lastCool&&lastCool.ac_$!=null?lastCool.ac_$:0;
+  const acCostHP=lastCool?(lastCool.hasHPCurve&&lastCool.hp_$!=null?lastCool.hp_$:(lastCool.ac_$!=null?lastCool.ac_$:0)):0;
+  const deltaFinal=(baseCost+acCostBase)-(projCost+acCostHP);
+  const savesFinal=deltaFinal>=0;
   const costCanvas=$('costBarChart');
   if(costCanvas){
     destroy('costBar');
-    const labels=['Now','Heat pump',saves?'Saves':'Costs'];
+    const labels=['Baseline','Heat pump',savesFinal?'Saves':'Costs'];
     const ds=[
       {label:`Baseline — ${FUEL_LABEL[state.fuel]}`,data:[baseCost,0,0],backgroundColor:css('--red')},
       {label:'Heat-pump electricity',data:[0,hpElecCost,0],backgroundColor:css('--green')},
     ];
     if(bkCost>0) ds.push({label:`Backup — ${FUEL_LABEL[state.backup]}`,data:[0,bkCost,0],backgroundColor:backupColor()});
-    ds.push({label:saves?'Saves':'Costs',data:[0,0,Math.abs(delta)],backgroundColor:saves?css('--green'):css('--red')});
+    if(lastCool&&lastCool.ac_$!=null){
+      ds.push({label:'Cooling (AC) — baseline',data:[acCostBase,0,0],backgroundColor:css('--blue')});
+      ds.push({label:'Cooling (AC) — heat pump',data:[0,acCostHP,0],backgroundColor:css('--purple')});
+    }
+    ds.push({label:savesFinal?'Saves':'Costs',data:[0,0,Math.abs(deltaFinal)],backgroundColor:savesFinal?css('--green'):css('--red')});
     charts.costBar=new Chart(costCanvas,{type:'bar',data:{labels,datasets:ds},options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
       scales:{x:{stacked:true,title:{display:true,text:'$ / year',color:css('--muted'),font:{size:11}},ticks:{color:css('--light'),callback:v=>fmt$(v)},grid:{color:css('--surface')}},y:{stacked:true,ticks:{color:css('--text')},grid:{display:false}}},
@@ -5779,7 +5823,7 @@ function renderCost(res){
     .some(s=>s&&s.confidence==='low');
   setCostStat((saves?'−':'+')+fmt$(Math.abs(delta)),`${fmt$(baseCost)} → ${fmt$(projCost)} per year${screening?' · screening estimate':''}`,saves?'green':'red');
   setSummaryCost(delta);
-  if($('cost-kpis'))$('cost-kpis').innerHTML=[
+  if(!coolingMode&&$('cost-kpis'))$('cost-kpis').innerHTML=[
     stepCard('Cost now',`${fmt$(baseCost)}/yr`,baseSub,'red'),
     stepCard('With heat pump',`${fmt$(projCost)}/yr`,projSub,'green'),
     stepCard('Change',`${saves?'−':'+'}${fmt$(Math.abs(delta))}/yr`,screening?'screening estimate':`${saves?'saves':'costs'} vs current`,saves?'green':'red'),
@@ -5804,7 +5848,9 @@ function renderCost(res){
   note.innerHTML=lines.join(' ');
   note.style.display='';
 
-  // ---- cost vs outdoor temperature ----
+  if(coolingMode){ renderCostStepCooling(); renderHourlyTable(); return; }
+
+  // ---- cost vs outdoor temperature (step 7 own chart, heating only) ----
   const costSvg=$('cost-chart');
   const series=buildHourlyCostSeries(res,elec,gas,oil,planKey);
   lastCostSeries=series; lastPlanKey=planKey;
@@ -6007,17 +6053,6 @@ function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC
     `<span class="kc-leg"><span class="kc-swatch" style="border-color:${blue}"></span>Standard AC capacity</span>`,
     Chp?`<span class="kc-leg"><span class="kc-swatch dash" style="border-color:${purple}"></span>${hpLabel} capacity</span>`:'',
   ].join('');
-}
-// Flags hours where the load exceeded this unit's own rated capacity --
-// the kWh/GHG/cost above still assume the load was fully met at that
-// temperature's curve COP anyway (see engine's simulateCooling): a flagged
-// idealization above what the real unit can physically deliver, not a
-// measurement. '' if the result is missing or never falls short.
-function coolingOverCapacityNote(res,label){
-  if(!res) return '';
-  const d=res.diagnostics, pct=d.cooling_hours>0?Math.round(100*d.over_capacity_hours/d.cooling_hours):0;
-  if(pct<1) return '';
-  return ` ${label} is undersized for ${pct}% of this summer's cooling hours — kWh/GHG/cost still assume it fully meets the load anyway, at that temperature's curve COP.`;
 }
 // Computes the full "potential AC" cooling comparison (standard AC vs. the
 // selected heat pump's own cooling curve) once per recompute cycle, cached
@@ -6279,35 +6314,21 @@ function renderCostStepCooling(){
   }
   $('cost-chart-note').innerHTML=`Cost is electricity draw (Step 4) × the selected plan's rate at each hour — same plan/rates as heating's Step 7.`;
 }
-// Combined "Final numbers" cooling card -- always populated once lastCool
-// is available, regardless of which mode (heating/cooling) is toggled in
-// the steps above, so a reader sees the full picture without switching.
+// Top verdict's cooling sub-line -- always populated once lastCool is
+// available, regardless of which mode (heating/cooling) is toggled in the
+// steps above. The per-scenario cooling breakdown itself now lives in the
+// Final numbers charts (energy/emissions/cost) instead of its own card.
 function renderVerdictCombined(){
-  const kpis=$('cooling-verdict-kpis'), note=$('cooling-verdict-note'), sub=$('verdict-cooling-sub');
-  if(!kpis) return;
-  if(!lastCool){ kpis.innerHTML='<div class="note">Cooling data not available for this city.</div>'; if(note)note.innerHTML=''; if(sub)sub.innerHTML=''; return; }
-  const {resAC,resHP,hpLabel,hasHPCurve,ac_$,hp_$}=lastCool;
-  if(sub){
-    if(hasHPCurve){
-      const beats=resHP.energy.electricity_kWh<resAC.energy.electricity_kWh;
-      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b>, or <b>${fmtI(resHP.energy.electricity_kWh)} kWh/yr</b> if the ${hpLabel} handles cooling too (${beats?'less':'more'} than the AC). See Final numbers, or flip any step below to "Cooling" for the full breakdown.`;
-    } else {
-      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b> — the selected heat pump has no cooling curve on file to compare against. See Final numbers.`;
-    }
-  }
-  const cards=[
-    stepCard('Standard AC',fmtI(resAC.energy.electricity_kWh)+' kWh/yr',`${fmtGHG(resAC.ghg.total)} CO₂e/yr${ac_$!=null?` · ${fmt$(ac_$)}/yr`:''}`,'green'),
-  ];
+  const sub=$('verdict-cooling-sub');
+  if(!sub) return;
+  if(!lastCool){ sub.innerHTML=''; return; }
+  const {resAC,resHP,hpLabel,hasHPCurve}=lastCool;
   if(hasHPCurve){
     const beats=resHP.energy.electricity_kWh<resAC.energy.electricity_kWh;
-    cards.push(stepCard(hpLabel+' (cooling mode)',fmtI(resHP.energy.electricity_kWh)+' kWh/yr',
-      `${fmtGHG(resHP.ghg.total)} CO₂e/yr${hp_$!=null?` · ${fmt$(hp_$)}/yr`:''} — ${beats?'uses less than':'uses more than'} the standard AC`,
-      beats?'green':'red'));
+    sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b>, or <b>${fmtI(resHP.energy.electricity_kWh)} kWh/yr</b> if the ${hpLabel} handles cooling too (${beats?'less':'more'} than the AC). See Final numbers, or flip any step below to "Cooling" for the full breakdown.`;
   } else {
-    cards.push(stepCard(bucketShort()+' pump (cooling mode)','no data','This unit\'s spec sheet has no cooling curve on file.','red'));
+    sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b> — the selected heat pump has no cooling curve on file to compare against. See Final numbers.`;
   }
-  kpis.innerHTML=cards.join('');
-  if(note)note.innerHTML=`Estimated from this home's design heat load via two correlations found across 209,272 ERS homes — not a measurement; see methodology. Flip any step below to "Cooling" to walk through the full weather-to-cost calculation the same way the heating steps do.${coolingOverCapacityNote(lastCool.resAC,'The standard AC')}${lastCool.hasHPCurve?coolingOverCapacityNote(lastCool.resHP,lastCool.hpLabel):''}`;
 }
 // Swaps step 2-7 titles/intros between heating and cooling framing when the
 // mode toggle flips. Chart titles inside each card stay generic enough
