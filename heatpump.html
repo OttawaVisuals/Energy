@@ -1498,6 +1498,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
       <div class="caveats"><b>SEER/SEER2 badges do not predict this comparison's outcome.</b> Several of the 9 units carry a <i>higher</i> published SEER/SEER2 than the Goodman baseline, yet still use <i>more</i> electricity once their real curves are integrated against a full year of real weather — and once undersized units are flagged for running past their own rated capacity (Step 3), it's the well-matched, high-SEER2 <code>&lt;18k</code>-band units that come out ahead, not badge rank. The reconciliation: SEER is a standardized average across a published outdoor-temperature distribution that barely samples above 35 °C (the hottest standard AHRI bin, 38.9 °C, is weighted at only 0.4% of assumed cooling hours) — a unit can post a strong badge from shoulder-season performance while degrading faster than a competitor above that range, which is exactly where a real climate's cooling load is concentrated (load grows with outdoor temperature, so the biggest hours are near the design condition, not the mild ones SEER weights most). Use the kWh/GHG/cost numbers this scenario computes, not the equipment's badge, to judge which unit actually costs less to run here.</div>
 
+      <h5>Refrigerant leakage on the standard AC</h5>
+      <p>The standard AC's own refrigerant leak is included in its GHG total, using the same annual formula as the heat pump's (in-service leak rate + amortized end-of-life share, weighted by GWP — see "Refrigerants" above): <b>R-32</b>, read straight off the Goodman unit's own spec sheet, at the same charge-mass regression (<code>chargeKg</code>) used for every other unit on this page, and the same leak-rate/GWP-horizon controls you've set for the heat pump. It's a genuinely separate physical charge from the heat pump's, so it's additive, not a double-count.</p>
+      <p>The selected heat pump's own cooling-curve numbers <b>exclude</b> refrigerant, deliberately: it's the same physical charge already leaking, annually, whether the unit is heating, cooling, or idle — so its leak is counted once, in the heating numbers, and left out of the cooling-mode total to avoid counting it twice. This only matters for the emissions comparison; it doesn't touch either unit's electricity, kWh, or cost.</p>
+
       <h4>What this does not do</h4>
       <ul>
         <li>No equipment or installation cost — only annual operating cost, not payback.</li>
@@ -2359,9 +2363,22 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       monthly.push({ month: mo + 1, electricity_kWh: m_elec[mo], electricity_ghg: m_ghg[mo] });
     }
 
+    // ---- refrigerant (annual, amortized) -- same formula as simulate()'s
+    // project case: in-service leak + end-of-life share, weighted by GWP.
+    // Only meaningful when the caller passes this unit's own charge/GWP
+    // (e.g. the standalone AC); omit lc.charge_kg/refrigerantGWP for a unit
+    // whose refrigerant is already counted elsewhere (see computeCoolingResults).
+    var refrigerantKg = 0;
+    if (lc.charge_kg && lc.refrigerantGWP) {
+      var eol = lc.eolLossFrac == null ? 0.0 : lc.eolLossFrac;
+      var life = lc.lifetimeYears == null ? 15.0 : lc.lifetimeYears;
+      var annualLeakFrac = (lc.leakRate_frac || 0.0) + eol / life;
+      refrigerantKg = lc.charge_kg * annualLeakFrac * lc.refrigerantGWP;
+    }
+
     return {
       energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
-      ghg: { electricity: ghgKg, total: ghgKg },
+      ghg: { electricity: ghgKg, refrigerant: refrigerantKg, total: ghgKg + refrigerantKg },
       monthly: monthly,
       hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, ef_g_per_kWh: h_ef, temp_C: temps },
       diagnostics: {
@@ -2484,6 +2501,15 @@ const CHARGE_MODEL={
 function chargeKg(refrig, ratedCap_kW){
   var m = CHARGE_MODEL[refrig];
   return m.a + m.b * ratedCap_kW;
+}
+// Maps a spec sheet's own refrigerant label (e.g. AC_CURVE.refrigerant =
+// "R-32") onto the CHARGE_MODEL/REFRIG_GWP key ("r32") used everywhere else
+// in this file. Returns null for anything not in that lookup (no charge/GWP
+// data on file for it) so callers can skip the refrigerant term gracefully.
+function normalizeRefrig(label){
+  if(!label) return null;
+  const k=label.toLowerCase().replace(/-/g,'');
+  return CHARGE_MODEL[k]?k:null;
 }
 
 // ---- operating-cost constants (Phase 2; see METHODOLOGY.md §Operating cost) ----
@@ -4750,7 +4776,7 @@ function renderEmissionsStep(res,opts){
     }});
   }
   $('em2-basis').textContent=`${basisAdj(state.efBasis)} grid basis`;
-  $('em2-note').innerHTML=`Each hour's electricity (step 4) × the grid intensity at that hour (step 5), plus any furnace combustion, summed over the year${lastCool&&lastCool.resAC?', plus summer cooling (standard AC, or the heat pump’s own cooling curve where it has one)':''} — the whole point of the exercise. ${cutFinal>=0?`The switch <b>avoids ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`:`On the ${basisAdj(state.efBasis)} basis the switch <b>adds ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`}`;
+  $('em2-note').innerHTML=`Each hour's electricity (step 4) × the grid intensity at that hour (step 5), plus any furnace combustion, summed over the year${lastCool&&lastCool.resAC?', plus summer cooling (standard AC, or the heat pump’s own cooling curve where it has one) — including the standalone AC’s own refrigerant leak (the heat pump’s is already counted once, above, whether it does cooling or not)':''} — the whole point of the exercise. ${cutFinal>=0?`The switch <b>avoids ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`:`On the ${basisAdj(state.efBasis)} basis the switch <b>adds ${fmtGHG(Math.abs(cutFinal))}</b> a year here.`}`;
 
   if(state.mode==='cooling'){ renderEmissionsStepCooling(); return; }
 
@@ -6068,8 +6094,22 @@ function computeCoolingResults(){
   const temps=tempSeriesFor(state.city,state.weatherYear);
   const efObj=efObjectFor(CITY_PROV[state.city],state.efBasis);
   const acEquip={curve:AC_CURVE.curve,nominalCap_kW:AC_CURVE.rated_cap_kW};
+  // The standalone AC is a separate physical unit with its own refrigerant
+  // charge, so its leak is genuinely additional -- unlike the heat pump's
+  // own cooling curve below, whose refrigerant is the SAME charge already
+  // counted once (annually) in the heating simulation, so adding it again
+  // here would double-count it. Refrigerant type comes straight off the
+  // AC's own spec sheet (AC_CURVE.refrigerant); charge mass still uses the
+  // same regression as the heat pump (see chargeKg/CHARGE_MODEL), and the
+  // leak rate/EOL-loss/lifetime match the user's own refrigerant controls
+  // (state.leakRate etc.) rather than a separate assumption.
+  const acRefrig=normalizeRefrig(AC_CURVE.refrigerant);
   const resAC=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
-    equipment:acEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
+    equipment:acEquip,lifecycle:{lineLossPct:state.lineloss,
+      charge_kg:acRefrig?chargeKg(acRefrig,AC_CURVE.rated_cap_kW):null,
+      refrigerantGWP:acRefrig?refrigGWP(acRefrig,state.gwpHorizon):null,
+      leakRate_frac:state.leakRate/100,eolLossFrac:0.15,lifetimeYears:15},
+    ef:efObj.ef,efMode:efObj.efMode});
 
   const cell=cellFor(state.tier,state.band);
   const hasHPCurve=!!(cell&&cell.cooling);
@@ -6077,6 +6117,8 @@ function computeCoolingResults(){
   if(hasHPCurve){
     hpEquip={curve:cell.cooling.curve,nominalCap_kW:cell.cooling.rated_cap_95f_btuh/3412};
     hpLabel=cell.brand_model||bucketShort()+' pump';
+    // No refrigerant term here -- this unit's charge is already counted
+    // once via the heating simulation's own annual refrigerant leak.
     resHP=E.simulateCooling({tempSeries:temps,archetype:{UA_cool_kW_per_K:arch.UA_cool_kW_per_K,Tc_C:arch.Tc_C},
       equipment:hpEquip,lifecycle:{lineLossPct:state.lineloss},ef:efObj.ef,efMode:efObj.efMode});
   }
@@ -6252,7 +6294,7 @@ function renderEmissionsStepCooling(){
   } else {
     renderMeanBinChart(svg,'em-legend','em',ghgSeries,temps,COOL_Tmin,Tmax,'kg CO₂e/hr (mean)',v=>fmt1(v)+' kg');
   }
-  $('em-note').innerHTML=`Electricity (Step 4) × grid intensity (Step 5) for each unit, summed over the summer — plus each unit's own amortized refrigerant leakage (see methodology), not shown separately on this chart.`;
+  $('em-note').innerHTML=`Electricity (Step 4) × grid intensity (Step 5) for each unit, summed over the summer — plus the standalone AC's own amortized refrigerant leakage (see methodology), not shown separately on this chart. ${hasHPCurve?`The ${hpLabel} figure excludes refrigerant here — its charge is already counted once, annually, in the heating-mode numbers, whether or not it's doing the cooling too.`:''}`;
 }
 function coolingHourlyCostSeries(resAC,resHP,elec,planKey){
   const plan=elec.plans[planKey];
