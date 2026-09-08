@@ -206,18 +206,19 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .hdt-table thead th.grp-hp{background:linear-gradient(rgba(60,150,90,.20),rgba(60,150,90,.20)),var(--cream)}
 .hdt-table thead th.grp-bk{background:linear-gradient(rgba(200,136,26,.20),rgba(200,136,26,.20)),var(--cream)}
 .hdt-table thead th.grp-ac{background:linear-gradient(rgba(50,110,190,.20),rgba(50,110,190,.20)),var(--cream)}
-.hdt-table thead th.grp-hpcool{background:linear-gradient(rgba(140,90,200,.20),rgba(140,90,200,.20)),var(--cream)}
 .hdt-table tbody tr:hover td{background:rgba(0,0,0,.035)}
 .hdt-table tbody tr:hover td.hdt-lbl{background:var(--cream)}
 .hdt-table tr.hdt-mut td{color:var(--muted)}
 .hdt-table td.hdt-status{text-align:left}
 /* Each row is either a heating hour or a cooling hour (they don't overlap --
-   see the balance-point gap in the methodology), so the columns for the
-   other regime are always 0/blank that hour. Dim them instead of hiding the
-   columns outright, so the table stays one consistent width but still reads
-   at a glance which half of the row actually applies. */
-.hdt-table tbody tr.hdt-row-heat td.grp-ac,.hdt-table tbody tr.hdt-row-heat td.grp-hpcool{opacity:.32}
-.hdt-table tbody tr.hdt-row-cool td.grp-base,.hdt-table tbody tr.hdt-row-cool td.grp-hp,.hdt-table tbody tr.hdt-row-cool td.grp-bk{opacity:.32}
+   see the balance-point gap in the methodology). The Heat pump group covers
+   both (heating numbers on a heating hour, its own cooling-curve numbers on
+   a cooling hour), so it's never dimmed; Baseline/Backup only apply to
+   heating and Standard AC only to cooling, so dim whichever pair doesn't
+   apply that hour instead of hiding columns outright -- keeps the table one
+   consistent width but still readable at a glance. */
+.hdt-table tbody tr.hdt-row-cool td.grp-base,.hdt-table tbody tr.hdt-row-cool td.grp-bk{opacity:.32}
+.hdt-table tbody tr.hdt-row-heat td.grp-ac{opacity:.32}
 .hdt-loading{padding:1.4rem;text-align:center;color:var(--muted);font-size:13px}
 
 /* ── Output sections ── */
@@ -1024,7 +1025,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
               <th class="grp-hp" colspan="5">Heat pump</th>
               <th class="grp-bk" colspan="4">Backup</th>
               <th class="grp-ac" colspan="5">Standard AC</th>
-              <th class="grp-hpcool" colspan="5">Heat pump — cooling</th>
             </tr>
             <tr>
               <th class="grp-when">Temp<span class="hdt-unit">°C</span></th>
@@ -1048,17 +1048,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
               <th class="grp-ac">Energy<span class="hdt-unit">kWh</span></th>
               <th class="grp-ac">GHG<span class="hdt-unit">kg</span></th>
               <th class="grp-ac">Cost<span class="hdt-unit">$</span></th>
-              <th class="grp-hpcool">COP</th>
-              <th class="grp-hpcool">Capacity<span class="hdt-unit">kW</span></th>
-              <th class="grp-hpcool">Energy<span class="hdt-unit">kWh</span></th>
-              <th class="grp-hpcool">GHG<span class="hdt-unit">kg</span></th>
-              <th class="grp-hpcool">Cost<span class="hdt-unit">$</span></th>
             </tr>
           </thead>
-          <tbody id="hdt-tbody"><tr><td class="hdt-loading" colspan="27">Run a scenario above, then open this table.</td></tr></tbody>
+          <tbody id="hdt-tbody"><tr><td class="hdt-loading" colspan="22">Run a scenario above, then open this table.</td></tr></tbody>
         </table>
       </div>
-      <div class="caveats">GHG and cost are per-hour splits of the same figures totalled in the KPIs and charts above — they will sum to the annual totals (to rounding). A given hour is either a heating hour or a cooling hour, never both (see the balance-point gap in the methodology) — <b>Status</b> reads HP heat / HP + Backup heat / Backup heat / Cooling / No load, and columns for the regime that doesn't apply that hour are dimmed rather than removed, so the table stays one width. Standard AC and the heat pump's cooling curve are two alternative options for the same cooling hour, not sequential like heat pump + backup — both are always shown together on a cooling hour. The heating heat pump's own COP and capacity are shown even on hours it doesn't run (e.g. locked out by cold) so you can see why; the cooling columns only compute a COP/capacity on hours that actually need cooling, so they read "–"/0 the rest of the year.</div>
+      <div class="caveats">GHG and cost are per-hour splits of the same figures totalled in the KPIs and charts above — they will sum to the annual totals (to rounding). A given hour is either a heating hour or a cooling hour, never both (see the balance-point gap in the methodology) — <b>Status</b> reads HP heat / HP + Backup heat / Backup heat / Cooling / No load. The <b>Heat pump</b> columns are the selected unit in whichever mode that hour calls for: its heating COP/capacity/energy on a heating hour, its own cooling-curve COP/capacity/energy on a cooling hour (blank if it has none on file) — never both, so one column group covers it. <b>Standard AC</b> is a separate, always-alternative option for the same cooling hour (not sequential like heat pump + backup), shown alongside the heat pump's cooling numbers so you can compare them directly. Columns for the regime that doesn't apply that hour (Baseline/Backup on a cooling hour, Standard AC on a heating hour) are dimmed rather than removed, so the table stays one width. The heat pump's heating-mode COP and capacity are shown even on hours it doesn't run (e.g. locked out by cold) so you can see why; its cooling-mode COP/capacity and Standard AC's are only computed on hours that actually need cooling, so they read "–"/0 the rest of the year.</div>
     </div>
   </details>
 </section>
@@ -1316,34 +1311,17 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <div class="tv-legend" id="tv-unit-legend"></div>
           </div>
           <details class="method-sub">
-            <summary>Spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−30°C to 20°C)</summary>
+            <summary>Spec-sheet table — calculated vs. AHRI-certified vs. NEEP, heating &amp; cooling (−30°C to 55°C)</summary>
             <div class="method-sub-body">
-              <p>One row per whole-degree C. <b>Calc.</b> is the digitized curve above. <b>AHRI</b> is the certificate's two anchors (COP + capacity at max compressor speed, 5°F; rated capacity, 47°F). <b>NEEP</b> republishes the same certificate's Min/Rated/Max Heating table at more temperatures. Blank cells mean no source publishes a value there.</p>
+              <p>One row per whole-degree C the unit publishes a heating or cooling point at (heating runs roughly −30 to 20°C, cooling roughly −15 to 55°C — most units overlap in between, where both halves of the row are populated). <b>Calc.</b> is the digitized curve above. For heating, <b>AHRI</b> is the certificate's two anchors (COP + capacity at max compressor speed, 5°F; rated capacity, 47°F) and <b>NEEP</b> republishes the same certificate's Min/Rated/Max Heating table at more temperatures. For cooling, <b>AHRI</b> is the certificate's single published anchor (rated capacity + EER2 converted to COP, 95°F/35°C — AHRI does not publish a cooling capacity-maintenance curve the way it does for heating) and <b>NEEP</b> republishes the same certificate's Min/Rated/Max Cooling table at 95°F and 82°F. Blank cells mean no source publishes a value there — including every cooling column for a unit with no digitized cooling curve on file.</p>
               <label class="tv-ctl" style="display:block;margin:.3rem 0 .6rem">Unit: <select id="tv-unit-sel"></select></label>
               <div class="tv-tblwrap">
                 <table id="tv-spec-tbl">
                   <thead>
-                    <tr><th rowspan="2">T (°C)</th><th colspan="5">COP</th><th colspan="5">Capacity (Btu/h)</th></tr>
-                    <tr><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th></tr>
+                    <tr><th rowspan="2">T (°C)</th><th colspan="5">Heating COP</th><th colspan="5">Heating capacity (Btu/h)</th><th colspan="5">Cooling COP</th><th colspan="5">Cooling capacity (Btu/h)</th></tr>
+                    <tr><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th></tr>
                   </thead>
                   <tbody id="tv-spec-tbl-body"></tbody>
-                </table>
-              </div>
-              <p class="tv-ctl"><span class="tv-swatch pub"></span> digitized datasheet point &middot; <span class="tv-swatch src"></span> AHRI/NEEP certified data</p>
-            </div>
-          </details>
-          <details class="method-sub">
-            <summary>Cooling spec-sheet table — calculated vs. AHRI-certified vs. NEEP (−15°C to 55°C)</summary>
-            <div class="method-sub-body">
-              <p>Same idea as the heating table above, cooling side. <b>AHRI</b> is the certificate's single published cooling anchor (rated capacity + EER2 converted to COP, 95°F/35°C — AHRI does not publish a cooling capacity-maintenance curve the way it does for heating). <b>NEEP</b> republishes the same certificate's Min/Rated/Max Cooling table at 95°F and 82°F. Blank cells mean no source publishes a value there.</p>
-              <label class="tv-ctl" style="display:block;margin:.3rem 0 .6rem">Unit: <select id="tv-unit-sel-cool"></select></label>
-              <div class="tv-tblwrap">
-                <table id="tv-spec-tbl-cool">
-                  <thead>
-                    <tr><th rowspan="2">T (°C)</th><th colspan="5">COP</th><th colspan="5">Capacity (Btu/h)</th></tr>
-                    <tr><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th><th>Calc.</th><th>AHRI</th><th>NEEP min</th><th>NEEP rated</th><th>NEEP max</th></tr>
-                  </thead>
-                  <tbody id="tv-spec-tbl-cool-body"></tbody>
                 </table>
               </div>
               <p class="tv-ctl"><span class="tv-swatch pub"></span> digitized datasheet point &middot; <span class="tv-swatch src"></span> AHRI/NEEP certified data</p>
@@ -2955,7 +2933,7 @@ function redrawAllCharts(){
   try{ if(lastRes) recompute(); }catch(e){}   // SVG steps + KPI rail + energy bar
   // The tier-viz canvases in the methodology panel are built lazily; rebuild
   // them only if the reader has already opened that section.
-  try{ if(typeof tvScatterChart!=='undefined'&&tvScatterChart){tvRenderScatter();tvRenderCurves();tvRenderSpecTable();tvRenderCoolSpecTable();} }catch(e){}
+  try{ if(typeof tvScatterChart!=='undefined'&&tvScatterChart){tvRenderScatter();tvRenderCurves();tvRenderSpecTable();} }catch(e){}
   // Same for the time-of-use rate chart.
   try{ if(typeof TOU_DATA!=='undefined'&&TOU_DATA)renderTouChart(TOU_DATA); }catch(e){}
 }
@@ -5404,20 +5382,25 @@ function hdtBuildRows(res,costSeries,cool,coolCost){
   for(let i=0;i<N;i++){
     const dow=Math.floor(i/24), hr=(i%24)+1;
     const status=hdtStatus(H,acH?acH.load_kW:null,i);
+    const isCool=status==='Cooling';
     rows[i]={
       mo:monthOfDayForTable(dow), label:dayLabel(dow)+', h'+hr,
       temp:H.temp_C[i], load:H.load_kW[i]>1e-9?H.load_kW[i]:(acH?acH.load_kW[i]:0),
       status, regime:hdtRegime(status),
       baseCop:baseEff, baseEnergy:H.base_energy_kWh[i], baseGhg:H.base_ghg_kg[i],
       baseCost:costSeries?costSeries.baseCost[i]:null,
-      hpCop:H.hp_cop[i], hpCap:H.hp_capacity_kW[i], hpEnergy:H.hp_elec_kWh[i], hpGhg:H.hp_ghg_kg[i],
-      hpCost:costSeries?costSeries.hpCost[i]:null,
+      // Heat pump: heating-mode numbers on a heating hour, the same unit's
+      // own cooling-curve numbers on a cooling hour -- one column group,
+      // since a given hour is never both (see hdtStatus).
+      hpCop:isCool?(hpcH?hpcH.cop[i]:null):H.hp_cop[i],
+      hpCap:isCool?(hpcH?hpcH.capacity_kW[i]:null):H.hp_capacity_kW[i],
+      hpEnergy:isCool?(hpcH?hpcH.elec_kWh[i]:null):H.hp_elec_kWh[i],
+      hpGhg:isCool?(hpcH?hpcH.ghg_kg[i]:null):H.hp_ghg_kg[i],
+      hpCost:isCool?((coolCost&&coolCost.hpCost)?coolCost.hpCost[i]:null):(costSeries?costSeries.hpCost[i]:null),
       bkCop:bkType==='none'?null:bkEff, bkEnergy:H.backup_energy_kWh[i], bkGhg:H.backup_ghg_kg[i],
       bkCost:costSeries?costSeries.bkCost[i]:null,
       acCop:acH?acH.cop[i]:null, acCap:acH?acH.capacity_kW[i]:null, acEnergy:acH?acH.elec_kWh[i]:null, acGhg:acH?acH.ghg_kg[i]:null,
       acCost:(coolCost&&coolCost.acCost)?coolCost.acCost[i]:null,
-      hpcCop:hpcH?hpcH.cop[i]:null, hpcCap:hpcH?hpcH.capacity_kW[i]:null, hpcEnergy:hpcH?hpcH.elec_kWh[i]:null, hpcGhg:hpcH?hpcH.ghg_kg[i]:null,
-      hpcCost:(coolCost&&coolCost.hpCost)?coolCost.hpCost[i]:null,
     };
   }
   return rows;
@@ -5436,8 +5419,7 @@ function hdtRenderRows(rows){
       `<td class="grp-base">${hdtNum(r.baseCop,2)}</td><td class="grp-base">${hdtNum(r.baseEnergy,2)}</td><td class="grp-base">${hdtNum(r.baseGhg,2)}</td><td class="grp-base">${hdtNum(r.baseCost,2)}</td>`+
       `<td class="grp-hp">${hdtNum(r.hpCop,2)}</td><td class="grp-hp">${hdtNum(r.hpCap,2)}</td><td class="grp-hp">${hdtNum(r.hpEnergy,2)}</td><td class="grp-hp">${hdtNum(r.hpGhg,2)}</td><td class="grp-hp">${hdtNum(r.hpCost,2)}</td>`+
       `<td class="grp-bk">${hdtNum(r.bkCop,2)}</td><td class="grp-bk">${hdtNum(r.bkEnergy,2)}</td><td class="grp-bk">${hdtNum(r.bkGhg,2)}</td><td class="grp-bk">${hdtNum(r.bkCost,2)}</td>`+
-      `<td class="grp-ac">${hdtNum(r.acCop,2)}</td><td class="grp-ac">${hdtNum(r.acCap,2)}</td><td class="grp-ac">${hdtNum(r.acEnergy,2)}</td><td class="grp-ac">${hdtNum(r.acGhg,2)}</td><td class="grp-ac">${hdtNum(r.acCost,2)}</td>`+
-      `<td class="grp-hpcool">${hdtNum(r.hpcCop,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcCap,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcEnergy,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcGhg,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcCost,2)}</td></tr>`);
+      `<td class="grp-ac">${hdtNum(r.acCop,2)}</td><td class="grp-ac">${hdtNum(r.acCap,2)}</td><td class="grp-ac">${hdtNum(r.acEnergy,2)}</td><td class="grp-ac">${hdtNum(r.acGhg,2)}</td><td class="grp-ac">${hdtNum(r.acCost,2)}</td></tr>`);
   }
   return parts.join('');
 }
@@ -5460,7 +5442,7 @@ function hdtRenderWindow(force){
   if(!hdtFiltered||!scroller)return;
   const total=hdtFiltered.length;
   if(total===0){
-    $('hdt-tbody').innerHTML='<tr><td class="hdt-loading" colspan="27">No hours match.</td></tr>';
+    $('hdt-tbody').innerHTML='<tr><td class="hdt-loading" colspan="22">No hours match.</td></tr>';
     hdtWinStart=-1; hdtWinEnd=-1;
     return;
   }
@@ -5471,9 +5453,9 @@ function hdtRenderWindow(force){
   hdtWinStart=start; hdtWinEnd=end;
   const topH=start*HDT_ROW_H, botH=(total-end)*HDT_ROW_H;
   $('hdt-tbody').innerHTML=
-    `<tr style="height:${topH}px"><td colspan="27" style="padding:0;border:none"></td></tr>`+
+    `<tr style="height:${topH}px"><td colspan="22" style="padding:0;border:none"></td></tr>`+
     hdtRenderRows(hdtFiltered.slice(start,end))+
-    `<tr style="height:${botH}px"><td colspan="27" style="padding:0;border:none"></td></tr>`;
+    `<tr style="height:${botH}px"><td colspan="22" style="padding:0;border:none"></td></tr>`;
 }
 function hdtOnScroll(){
   if(hdtScrollScheduled)return;
@@ -5520,8 +5502,7 @@ if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
     'Baseline COP','Baseline energy (kWh)','Baseline GHG (kg)','Baseline cost (CAD)',
     'HP COP','HP capacity (kW)','HP energy (kWh)','HP GHG (kg)','HP cost (CAD)',
     'Backup COP','Backup energy (kWh)','Backup GHG (kg)','Backup cost (CAD)',
-    'Standard AC COP','Standard AC capacity (kW)','Standard AC energy (kWh)','Standard AC GHG (kg)','Standard AC cost (CAD)',
-    'HP cooling COP','HP cooling capacity (kW)','HP cooling energy (kWh)','HP cooling GHG (kg)','HP cooling cost (CAD)'];
+    'Standard AC COP','Standard AC capacity (kW)','Standard AC energy (kWh)','Standard AC GHG (kg)','Standard AC cost (CAD)'];
   const lines=[header.join(',')];
   rows.forEach(r=>{
     lines.push([
@@ -5530,7 +5511,6 @@ if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
       hdtCsvField(r.hpCop),hdtCsvField(r.hpCap),hdtCsvField(r.hpEnergy),hdtCsvField(r.hpGhg),hdtCsvField(r.hpCost),
       hdtCsvField(r.bkCop),hdtCsvField(r.bkEnergy),hdtCsvField(r.bkGhg),hdtCsvField(r.bkCost),
       hdtCsvField(r.acCop),hdtCsvField(r.acCap),hdtCsvField(r.acEnergy),hdtCsvField(r.acGhg),hdtCsvField(r.acCost),
-      hdtCsvField(r.hpcCop),hdtCsvField(r.hpcCap),hdtCsvField(r.hpcEnergy),hdtCsvField(r.hpcGhg),hdtCsvField(r.hpcCost),
     ].join(','));
   });
   const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -6564,7 +6544,7 @@ document.getElementById('tv-details').addEventListener('toggle',function(){
     body.insertBefore(msg,body.firstChild);
     tvLoad().then(()=>{
       const el=document.getElementById('tv-loading'); if(el)el.remove();
-      tvRenderScatter(); tvRenderCurves(); tvRenderSpecTable(); tvRenderCoolSpecTable();
+      tvRenderScatter(); tvRenderCurves(); tvRenderSpecTable();
     }).catch(()=>{
       const el=document.getElementById('tv-loading');
       if(el)el.textContent='Could not load the underlying data (hp_tier_selection.json).';
@@ -6774,69 +6754,47 @@ function tvRenderCurves(){
   });
 }
 
-// ---- spec-sheet table ----
+// ---- spec-sheet table (heating + cooling merged, one row per T (deg C)
+// either curve publishes a point at; a unit with no digitized cooling curve
+// just leaves the cooling half of every row blank) ----
 function tvRenderSpecTable(){
   const sel=document.getElementById('tv-unit-sel');
   sel.innerHTML=TV_UNIT_IDS.map(uid=>{
     const u=TV_DATA.curves[uid];
-    return `<option value="${uid}">${uid.replace(/_/g,' ').replace('<','&lt;')} — ${u.brand_model}</option>`;
+    const hasCool=TV_DATA.cooling_table&&TV_DATA.cooling_table[uid];
+    return `<option value="${uid}">${uid.replace(/_/g,' ').replace('<','&lt;')} — ${u.brand_model}${hasCool?'':' (no cooling curve)'}</option>`;
   }).join('');
   const fmtCOP=v=>v===null||v===undefined?'–':v.toFixed(2);
   const fmtCap=v=>v===null||v===undefined?'–':Math.round(v).toLocaleString();
+  const EMPTY={cc:null,ccp:false,ac:null,nmc:null,nrc:null,nxc:null,ca:null,cap:false,aa:null,nma:null,nra:null,nxa:null};
+  function half(r){
+    return `<td class="${r.ccp?'pub':(r.cc===null?'blank':'')}">${fmtCOP(r.cc)}</td>`+
+      `<td class="${r.ac===null?'blank':'src'}">${fmtCOP(r.ac)}</td>`+
+      `<td class="${r.nmc===null?'blank':'src'}">${fmtCOP(r.nmc)}</td>`+
+      `<td class="${r.nrc===null?'blank':'src'}">${fmtCOP(r.nrc)}</td>`+
+      `<td class="${r.nxc===null?'blank':'src'}">${fmtCOP(r.nxc)}</td>`+
+      `<td class="${r.cap?'pub':(r.ca===null?'blank':'')}">${fmtCap(r.ca)}</td>`+
+      `<td class="${r.aa===null?'blank':'src'}">${fmtCap(r.aa)}</td>`+
+      `<td class="${r.nma===null?'blank':'src'}">${fmtCap(r.nma)}</td>`+
+      `<td class="${r.nra===null?'blank':'src'}">${fmtCap(r.nra)}</td>`+
+      `<td class="${r.nxa===null?'blank':'src'}">${fmtCap(r.nxa)}</td>`;
+  }
+  function mergedRows(uid){
+    const heat=TV_DATA.table[uid]||[];
+    const cool=(TV_DATA.cooling_table&&TV_DATA.cooling_table[uid])||[];
+    const byT=new Map();
+    heat.forEach(r=>byT.set(r.t,{t:r.t,h:r}));
+    cool.forEach(r=>{ const ex=byT.get(r.t); if(ex)ex.c=r; else byT.set(r.t,{t:r.t,c:r}); });
+    return Array.from(byT.values()).sort((a,b)=>a.t-b.t);
+  }
   function render(uid){
-    document.getElementById('tv-spec-tbl-body').innerHTML=TV_DATA.table[uid].map(r=>`<tr>
-      <td>${r.t}</td>
-      <td class="${r.ccp?'pub':(r.cc===null?'blank':'')}">${fmtCOP(r.cc)}</td>
-      <td class="${r.ac===null?'blank':'src'}">${fmtCOP(r.ac)}</td>
-      <td class="${r.nmc===null?'blank':'src'}">${fmtCOP(r.nmc)}</td>
-      <td class="${r.nrc===null?'blank':'src'}">${fmtCOP(r.nrc)}</td>
-      <td class="${r.nxc===null?'blank':'src'}">${fmtCOP(r.nxc)}</td>
-      <td class="${r.cap?'pub':(r.ca===null?'blank':'')}">${fmtCap(r.ca)}</td>
-      <td class="${r.aa===null?'blank':'src'}">${fmtCap(r.aa)}</td>
-      <td class="${r.nma===null?'blank':'src'}">${fmtCap(r.nma)}</td>
-      <td class="${r.nra===null?'blank':'src'}">${fmtCap(r.nra)}</td>
-      <td class="${r.nxa===null?'blank':'src'}">${fmtCap(r.nxa)}</td>
-    </tr>`).join('');
+    document.getElementById('tv-spec-tbl-body').innerHTML=mergedRows(uid).map(row=>
+      `<tr><td>${row.t}</td>${half(row.h||EMPTY)}${half(row.c||EMPTY)}</tr>`
+    ).join('');
   }
   sel.value=TV_UNIT_IDS[0];
   sel.onchange=e=>render(e.target.value);
   render(TV_UNIT_IDS[0]);
-}
-
-// ---- cooling spec-sheet table (mirrors tvRenderSpecTable() above) ----
-function tvRenderCoolSpecTable(){
-  const ids=TV_UNIT_IDS.filter(uid=>TV_DATA.cooling_table[uid]);
-  const sel=document.getElementById('tv-unit-sel-cool');
-  if(!ids.length){
-    sel.innerHTML='';
-    document.getElementById('tv-spec-tbl-cool-body').innerHTML=
-      '<tr><td colspan="11">No cell has a digitized cooling curve.</td></tr>';
-    return;
-  }
-  sel.innerHTML=ids.map(uid=>{
-    const u=TV_DATA.curves[uid];
-    return `<option value="${uid}">${uid.replace(/_/g,' ').replace('<','&lt;')} — ${u.brand_model}</option>`;
-  }).join('');
-  const fmtCOP=v=>v===null||v===undefined?'–':v.toFixed(2);
-  const fmtCap=v=>v===null||v===undefined?'–':Math.round(v).toLocaleString();
-  function render(uid){
-    document.getElementById('tv-spec-tbl-cool-body').innerHTML=TV_DATA.cooling_table[uid].map(r=>`<tr>
-      <td>${r.t}</td>
-      <td class="${r.ccp?'pub':(r.cc===null?'blank':'')}">${fmtCOP(r.cc)}</td>
-      <td class="${r.ac===null?'blank':'src'}">${fmtCOP(r.ac)}</td>
-      <td class="${r.nmc===null?'blank':'src'}">${fmtCOP(r.nmc)}</td>
-      <td class="${r.nrc===null?'blank':'src'}">${fmtCOP(r.nrc)}</td>
-      <td class="${r.nxc===null?'blank':'src'}">${fmtCOP(r.nxc)}</td>
-      <td class="${r.cap?'pub':(r.ca===null?'blank':'')}">${fmtCap(r.ca)}</td>
-      <td class="${r.aa===null?'blank':'src'}">${fmtCap(r.aa)}</td>
-      <td class="${r.nma===null?'blank':'src'}">${fmtCap(r.nma)}</td>
-      <td class="${r.nra===null?'blank':'src'}">${fmtCap(r.nra)}</td>
-      <td class="${r.nxa===null?'blank':'src'}">${fmtCap(r.nxa)}</td>
-    </tr>`).join('');
-  }
-  sel.value=ids[0];
-  sel.onchange=e=>render(e.target.value);
-  render(ids[0]);
 }
 </script>
 </body>
