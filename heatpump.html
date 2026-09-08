@@ -39,25 +39,30 @@
    below the 48px header once scrolled past the hero, so the controls are
    always reachable without scrolling back up. */
 .controls{position:sticky;top:48px;z-index:90;max-width:1280px;margin:-1px auto 0;background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.9rem 1.25rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
-/* Compact state: once scrolled past the hero, drop field labels to reclaim
-   vertical space -- desktop/laptop only, mobile already stacks fields. */
-@media(min-width:900px){
-  .controls.is-compact .ctrl label{display:none}
-  .controls.is-compact{padding-top:.3rem;padding-bottom:.3rem}
-  .controls.is-compact .ctrl-grid{gap:8px 10px}
-  /* Hovering the shrunk bar expands it back to the full, labelled layout --
-     same content, just temporarily un-compacted so it's easy to re-check a
-     field without scrolling back up. Re-collapses on mouseout via the
-     scroll handler's normal state (is-compact class itself never changes,
-     only what :hover overrides). */
-  .controls.is-compact:hover{padding-top:.9rem;padding-bottom:.6rem}
-  .controls.is-compact:hover .ctrl-grid{gap:12px 10px}
-  .controls.is-compact:hover .ctrl label{display:flex}
-  .controls.is-compact:hover .custom-hp-card{display:block}
-}
-/* The "My own data" custom-curve table is tall -- collapse it once scrolled
-   so the sticky controls bar doesn't stay oversized for the rest of the page. */
-.controls.is-compact .custom-hp-card{display:none}
+/* Compact state: once scrolled past the hero, the full field grid hides
+   behind a one-line summary + explicit "Expand inputs" button, instead of
+   the old hover-to-expand (which fired on every incidental mouseover while
+   scrolling or reading a chart underneath, expanding and re-collapsing the
+   bar unpredictably). Collapse/expand is now a deliberate click, tracked by
+   .user-expanded, and the state never changes on its own once scrolled. */
+.controls.is-compact{padding-top:.5rem;padding-bottom:.5rem}
+.controls.is-compact .ctrl-grid{display:none}
+.controls.is-compact.user-expanded .ctrl-grid{display:grid}
+.ctrl-compact-bar{display:none;align-items:center;justify-content:space-between;gap:12px}
+.controls.is-compact .ctrl-compact-bar{display:flex}
+.ctrl-compact-summary{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctrl-compact-summary b{color:var(--text);font-weight:500}
+.ctrl-expand-btn{flex:none;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:6px 11px;border:1px solid var(--border);border-radius:999px;background:var(--cream);color:var(--ink);cursor:pointer;transition:all .15s}
+.ctrl-expand-btn:hover{border-color:var(--amber);color:var(--amber2)}
+.ctrl-expand-btn .chev{transition:transform .15s}
+.controls.user-expanded .ctrl-expand-btn .chev{transform:rotate(180deg)}
+/* Expanded-from-compact still needs the full padding/gap the top-of-page
+   state gets, since is-compact's own padding/gap above stays tight. */
+.controls.is-compact.user-expanded{padding-top:.9rem;padding-bottom:.6rem}
+.controls.is-compact.user-expanded .ctrl-grid{gap:12px 10px;margin-top:.7rem}
+/* The "My own data" custom-curve table is tall -- collapse it whenever the
+   grid itself is collapsed, same rule either way. */
+.controls.is-compact:not(.user-expanded) .custom-hp-card{display:none}
 /* Fixed column counts (not auto-fit) so fields land in predictable rows at
    every width -- auto-fit's per-row column count can differ between rows
    at in-between viewport widths (e.g. 5 cols then 3), scattering labels
@@ -491,6 +496,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 </div>
 
 <section class="controls" aria-label="Inputs">
+  <div class="ctrl-compact-bar">
+    <span class="ctrl-compact-summary" id="ctrl-compact-summary"></span>
+    <button type="button" class="ctrl-expand-btn" id="ctrl-expand-btn" aria-expanded="false" aria-controls="ctrl-grid">
+      <span class="label">Expand inputs</span><span class="chev">▾</span>
+    </button>
+  </div>
   <div class="ctrl-grid" id="ctrl-grid">
     <div class="ctrl">
       <label for="in-city">City</label>
@@ -3613,6 +3624,7 @@ function buildOpts(){
 }
 
 function recompute(){
+  updateCtrlSummary(); // keep the collapsed-bar summary in sync with every input change
   const prov=CITY_PROV[state.city];
   if(HAS_SURFACE[prov]&&!EF_CACHE[prov])return; // hourly surface still loading
   if(!HAS_SURFACE[prov]&&!ANNUAL_EF)return;     // annual data still loading
@@ -5667,18 +5679,41 @@ document.addEventListener('mouseout',e=>{
 });
 window.addEventListener('scroll',hideInfoTip,{passive:true});
 
-// Controls-bar compaction: once scrolled past the hero, hide field labels to
-// reclaim vertical space (same pattern as retrofits.html's filter bar) --
-// desktop/laptop only, mobile already stacks fields and needs the labels more.
-let _ctrlCompact=false;
+// Controls-bar compaction: once scrolled past the hero, the field grid
+// collapses behind a one-line summary + explicit "Expand inputs" button
+// (see ctrl-expand-btn below) instead of the old hover-to-expand, which used
+// to fire on every incidental mouseover while scrolling past it or reading a
+// chart underneath -- expanding and re-collapsing unpredictably. Expand/
+// collapse is now a deliberate click (_ctrlUserExpanded), independent of
+// scroll position once set; scrolling only ever flips is-compact itself.
+let _ctrlCompact=false, _ctrlUserExpanded=false;
 function updateControlsCompact(){
   const compact=window.scrollY>72;
   if(compact===_ctrlCompact)return;
   _ctrlCompact=compact;
   const el=document.querySelector('.controls');
   if(el)el.classList.toggle('is-compact',compact);
+  if(!compact&&_ctrlUserExpanded){ _ctrlUserExpanded=false; setCtrlExpandBtn(); if(el)el.classList.remove('user-expanded'); } // moot once back at the top; keep state tidy for next scroll-down
+}
+function setCtrlExpandBtn(){
+  const btn=$('ctrl-expand-btn'); if(!btn) return;
+  btn.querySelector('.label').textContent=_ctrlUserExpanded?'Collapse inputs':'Expand inputs';
+  btn.setAttribute('aria-expanded',_ctrlUserExpanded?'true':'false');
 }
 window.addEventListener('scroll',updateControlsCompact,{passive:true});
+$('ctrl-expand-btn').addEventListener('click',()=>{
+  _ctrlUserExpanded=!_ctrlUserExpanded;
+  document.querySelector('.controls').classList.toggle('user-expanded',_ctrlUserExpanded);
+  setCtrlExpandBtn();
+});
+// One-line "City · current heating → heat pump tier" summary shown only in
+// the collapsed bar -- reads the same selects' own display text (not a
+// separate label map) so it can never drift from what the full grid says.
+function updateCtrlSummary(){
+  const el=$('ctrl-compact-summary'); if(!el) return;
+  const val=id=>{const s=$(id); const opt=s&&s.selectedOptions&&s.selectedOptions[0]; return opt?opt.textContent.trim():'';};
+  el.innerHTML=`<b>${val('in-city')}</b> · ${val('in-fuel')} → ${val('in-tier')} heat pump`;
+}
 
 // ==========================================================================
 // In-page engine self-test — verifies the inlined engine still reproduces the
