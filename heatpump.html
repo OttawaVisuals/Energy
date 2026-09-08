@@ -149,6 +149,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .chart-head .seg{background:rgba(255,255,255,.14)}
 .chart-head .seg button{color:rgba(255,255,255,.78)}
 .chart-head .seg button.active{background:#fff;color:var(--navy)}
+.seg-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .chart-range-row{display:flex;justify-content:center}
 .range-sel{display:none;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 24px 0 9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;cursor:pointer;appearance:none}
 .range-sel.show{display:inline-block;margin-bottom:.75rem}
@@ -193,7 +194,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .hdt-table{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;white-space:nowrap}
 .hdt-table th,.hdt-table td{padding:4px 7px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
 .hdt-table td:last-child,.hdt-table th:last-child{border-right:none}
-.hdt-table td{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+.hdt-table td{text-align:center;font-variant-numeric:tabular-nums;color:var(--text)}
 .hdt-table td.hdt-lbl{text-align:left;color:var(--ink);position:sticky;left:0;background:var(--card);z-index:1}
 .hdt-table thead th{position:sticky;background:var(--cream);color:var(--muted);font-weight:600;text-align:center;z-index:3}
 .hdt-table thead tr:first-child th{top:0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -204,10 +205,19 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .hdt-table thead th.grp-base{background:linear-gradient(rgba(200,60,50,.16),rgba(200,60,50,.16)),var(--cream)}
 .hdt-table thead th.grp-hp{background:linear-gradient(rgba(60,150,90,.20),rgba(60,150,90,.20)),var(--cream)}
 .hdt-table thead th.grp-bk{background:linear-gradient(rgba(200,136,26,.20),rgba(200,136,26,.20)),var(--cream)}
+.hdt-table thead th.grp-ac{background:linear-gradient(rgba(50,110,190,.20),rgba(50,110,190,.20)),var(--cream)}
+.hdt-table thead th.grp-hpcool{background:linear-gradient(rgba(140,90,200,.20),rgba(140,90,200,.20)),var(--cream)}
 .hdt-table tbody tr:hover td{background:rgba(0,0,0,.035)}
 .hdt-table tbody tr:hover td.hdt-lbl{background:var(--cream)}
 .hdt-table tr.hdt-mut td{color:var(--muted)}
 .hdt-table td.hdt-status{text-align:left}
+/* Each row is either a heating hour or a cooling hour (they don't overlap --
+   see the balance-point gap in the methodology), so the columns for the
+   other regime are always 0/blank that hour. Dim them instead of hiding the
+   columns outright, so the table stays one consistent width but still reads
+   at a glance which half of the row actually applies. */
+.hdt-table tbody tr.hdt-row-heat td.grp-ac,.hdt-table tbody tr.hdt-row-heat td.grp-hpcool{opacity:.32}
+.hdt-table tbody tr.hdt-row-cool td.grp-base,.hdt-table tbody tr.hdt-row-cool td.grp-hp,.hdt-table tbody tr.hdt-row-cool td.grp-bk{opacity:.32}
 .hdt-loading{padding:1.4rem;text-align:center;color:var(--muted);font-size:13px}
 
 /* ── Output sections ── */
@@ -501,13 +511,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     </div>
 
     <div class="ctrl">
-      <label>Steps below show <button type="button" class="info-btn" id="cooling-toggle-info" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button></label>
-      <div class="seg" id="cooling-seg" role="group" aria-label="Heating or cooling steps">
-        <button type="button" data-val="heating" class="active">Heating</button>
-        <button type="button" data-val="cooling">Cooling</button>
-      </div>
-    </div>
-    <div class="ctrl">
       <label for="in-fuel">Current heating</label>
       <select id="in-fuel">
         <option value="gas">Natural-gas furnace</option>
@@ -678,11 +681,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card">
         <div class="card-title-row chart-head">
           <span class="card-title">Heating load vs outdoor temperature</span>
-          <div class="seg" id="ld-view-seg" role="group" aria-label="Load chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="ld-view-seg" role="group" aria-label="Load chart view">
+              <button type="button" data-view="plain" class="active">By temperature</button>
+              <button type="button" data-view="freq">Weighted by hours</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -709,11 +719,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card">
         <div class="card-title-row chart-head">
           <span class="card-title">Capacity &amp; heat delivered</span>
-          <div class="seg" id="equip-view-seg" role="group" aria-label="Equipment chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="equip-view-seg" role="group" aria-label="Equipment chart view">
+              <button type="button" data-view="plain" class="active">By temperature</button>
+              <button type="button" data-view="freq">Weighted by hours</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -743,11 +760,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card">
         <div class="card-title-row chart-head">
           <span class="card-title">COP &amp; energy vs outdoor temperature</span>
-          <div class="seg" id="ecop-view-seg" role="group" aria-label="Energy chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="ecop-view-seg" role="group" aria-label="Energy chart view">
+              <button type="button" data-view="plain" class="active">By temperature</button>
+              <button type="button" data-view="freq">Weighted by hours</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -782,11 +806,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card">
         <div class="card-title-row chart-head">
           <span class="card-title">Grid carbon intensity vs outdoor temperature</span>
-          <div class="seg" id="gg-view-seg" role="group" aria-label="Grid chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="gg-view-seg" role="group" aria-label="Grid chart view">
+              <button type="button" data-view="plain" class="active">By temperature</button>
+              <button type="button" data-view="freq">Weighted by hours</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -816,11 +847,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card">
         <div class="card-title-row chart-head">
           <span class="card-title">Emissions vs outdoor temperature</span>
-          <div class="seg" id="em-view-seg" role="group" aria-label="Emissions chart view">
-            <button type="button" data-view="plain" class="active">By temperature</button>
-            <button type="button" data-view="freq">Weighted by hours</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="em-view-seg" role="group" aria-label="Emissions chart view">
+              <button type="button" data-view="plain" class="active">By temperature</button>
+              <button type="button" data-view="freq">Weighted by hours</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -859,11 +897,18 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       <div class="card" id="cost-chart-card" style="display:none">
         <div class="card-title-row chart-head">
           <span class="card-title">Cost by hour of day</span>
-          <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view">
-            <button type="button" data-view="byhour" class="active">By hour of day</button>
-            <button type="button" data-view="freq">Weighted by temperature</button>
-            <button type="button" data-view="daily">Full year (day-by-day)</button>
-            <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+          <div class="seg-group">
+            <div class="seg mode-seg" role="group" aria-label="Heating or cooling steps">
+              <button type="button" data-val="heating" class="active">Heating</button>
+              <button type="button" data-val="cooling">Cooling</button>
+            </div>
+            <button type="button" class="info-btn" aria-label="What does this switch?" data-info="Switches steps 2-7 between the heating dispatch (current system vs. heat pump) and the 'potential AC' cooling comparison (standard AC vs. the selected heat pump's own cooling curve, if it publishes one). Final numbers below always shows both, regardless of which is toggled here." data-method="m-cooling">?</button>
+            <div class="seg" id="cost-view-seg" role="group" aria-label="Cost chart view">
+              <button type="button" data-view="byhour" class="active">By hour of day</button>
+              <button type="button" data-view="freq">Weighted by temperature</button>
+              <button type="button" data-view="daily">Full year (day-by-day)</button>
+              <button type="button" data-view="hourly">Full year (hour-by-hour)</button>
+            </div>
           </div>
         </div>
         <div class="step-body">
@@ -978,6 +1023,8 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
               <th class="grp-base" colspan="4">Baseline — current system</th>
               <th class="grp-hp" colspan="5">Heat pump</th>
               <th class="grp-bk" colspan="4">Backup</th>
+              <th class="grp-ac" colspan="5">Standard AC</th>
+              <th class="grp-hpcool" colspan="5">Heat pump — cooling</th>
             </tr>
             <tr>
               <th class="grp-when">Temp<span class="hdt-unit">°C</span></th>
@@ -996,12 +1043,22 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
               <th class="grp-bk">Energy<span class="hdt-unit">kWh</span></th>
               <th class="grp-bk">GHG<span class="hdt-unit">kg</span></th>
               <th class="grp-bk">Cost<span class="hdt-unit">$</span></th>
+              <th class="grp-ac">COP</th>
+              <th class="grp-ac">Capacity<span class="hdt-unit">kW</span></th>
+              <th class="grp-ac">Energy<span class="hdt-unit">kWh</span></th>
+              <th class="grp-ac">GHG<span class="hdt-unit">kg</span></th>
+              <th class="grp-ac">Cost<span class="hdt-unit">$</span></th>
+              <th class="grp-hpcool">COP</th>
+              <th class="grp-hpcool">Capacity<span class="hdt-unit">kW</span></th>
+              <th class="grp-hpcool">Energy<span class="hdt-unit">kWh</span></th>
+              <th class="grp-hpcool">GHG<span class="hdt-unit">kg</span></th>
+              <th class="grp-hpcool">Cost<span class="hdt-unit">$</span></th>
             </tr>
           </thead>
-          <tbody id="hdt-tbody"><tr><td class="hdt-loading" colspan="17">Run a scenario above, then open this table.</td></tr></tbody>
+          <tbody id="hdt-tbody"><tr><td class="hdt-loading" colspan="27">Run a scenario above, then open this table.</td></tr></tbody>
         </table>
       </div>
-      <div class="caveats">GHG and cost are per-hour splits of the same figures totalled in the KPIs and charts above — they will sum to the annual totals (to rounding). "Status" reads Backup only / HP + backup / HP only / No load; the heat pump's own COP and capacity are shown even on hours it doesn't run (e.g. locked out by cold), so you can see why it didn't.</div>
+      <div class="caveats">GHG and cost are per-hour splits of the same figures totalled in the KPIs and charts above — they will sum to the annual totals (to rounding). A given hour is either a heating hour or a cooling hour, never both (see the balance-point gap in the methodology) — <b>Status</b> reads HP heat / HP + Backup heat / Backup heat / Cooling / No load, and columns for the regime that doesn't apply that hour are dimmed rather than removed, so the table stays one width. Standard AC and the heat pump's cooling curve are two alternative options for the same cooling hour, not sequential like heat pump + backup — both are always shown together on a cooling hour. The heating heat pump's own COP and capacity are shown even on hours it doesn't run (e.g. locked out by cold) so you can see why; the cooling columns only compute a COP/capacity on hours that actually need cooling, so they read "–"/0 the rest of the year.</div>
     </div>
   </details>
 </section>
@@ -1441,7 +1498,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
       </details>
 
       <h4 id="m-cooling">Cooling — "potential AC" scenario</h4>
-      <p>The "Steps below show" toggle near the top of the page switches Steps 2–7 between the heating dispatch (this home's current system vs. the selected heat pump) and this cooling comparison — a standard central air conditioner vs. that same heat pump run in cooling mode instead. It's a genuinely different comparison, not a before/after: there's no "current AC" baseline, no backup system, and the two options are alternatives, not additive. It does not feed back into any heating number, and the Final numbers section always shows both regardless of which is toggled.</p>
+      <p>The Heating/Cooling toggle on each of Steps 2–7 switches that step between the heating dispatch (this home's current system vs. the selected heat pump) and this cooling comparison — a standard central air conditioner vs. that same heat pump run in cooling mode instead. All six toggles are linked, so flipping one flips them all. It's a genuinely different comparison, not a before/after: there's no "current AC" baseline, no backup system, and the two options are alternatives, not additive. It does not feed back into any heating number, and the Final numbers section always shows both regardless of which is toggled.</p>
       <p>No real cooling data is looked up for this scenario — there is no specific house selected here, just a design heat load. Instead, two correlations found across 209,272 real ERS-audited homes (pooled across the 14 tracked cities) turn the design heat load you've already set into a plausible cooling profile, the same way the heating side already turns your inputs into a load curve, with no extra sizing control needed:</p>
       <ul>
         <li><b>Peak cooling from peak heating:</b> <code>cool_peak_kW = 0.2789 × heat_peak_kW + 1.3254</code> (r = 0.683, R² = 0.467). Physically real, not coincidence — both peaks are driven by the same building envelope (UA, floor area).</li>
@@ -3193,9 +3250,9 @@ function buildInputs(){
     document.querySelectorAll('#upstream-seg button').forEach(x=>x.classList.toggle('active',x===b));
     recompute();
   }));
-  document.querySelectorAll('#cooling-seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mode-seg button').forEach(b=>b.addEventListener('click',()=>{
     state.mode=b.dataset.val;
-    document.querySelectorAll('#cooling-seg button').forEach(x=>x.classList.toggle('active',x===b));
+    document.querySelectorAll('.mode-seg button').forEach(x=>x.classList.toggle('active',x.dataset.val===state.mode));
     updateStepTitlesForMode();
     if(state.mode==='cooling'&&!lastCool){
       ['ld-kpis','eq2-kpis','en2-kpis','gg-kpis','em-kpis','cost-kpis'].forEach(id=>{ if($(id)) $(id).innerHTML='<div class="note">Loading cooling data…</div>'; });
@@ -5314,29 +5371,53 @@ const HDT_ROW_H=28, HDT_BUFFER=10;
 function monthOfDayForTable(dayOfYear){
   let mi=0; for(let k=0;k<12;k++){ if(dayOfYear>=DAY0_MONTH[k]) mi=k; } return mi+1;
 }
-function hdtStatus(H,i){
-  if(H.load_kW[i]<=1e-9) return 'No load';
-  const hpOn=H.hp_elec_kWh[i]>1e-9, bkOn=H.backup_energy_kWh[i]>1e-9;
-  if(hpOn&&bkOn) return 'HP + backup';
-  if(hpOn) return 'HP only';
-  if(bkOn) return 'Backup only';
-  return 'Unmet load';
+// A given hour is either a heating hour or a cooling hour, never both (the
+// heating balance point and the solved cooling balance point Tc leave a gap
+// between them with no load either way) -- see the caveats note in the HTML.
+// So one Status column and one regime class per row is enough; the caller
+// dims whichever column group doesn't apply that hour instead of needing a
+// second axis of state.
+function hdtStatus(H,coolLoad,i){
+  if(H.load_kW[i]>1e-9){
+    const hpOn=H.hp_elec_kWh[i]>1e-9, bkOn=H.backup_energy_kWh[i]>1e-9;
+    if(hpOn&&bkOn) return 'HP + Backup heat';
+    if(hpOn) return 'HP heat';
+    if(bkOn) return 'Backup heat';
+    return 'Unmet heat load';
+  }
+  if(coolLoad&&coolLoad[i]>1e-9) return 'Cooling';
+  return 'No load';
 }
-function hdtBuildRows(res,costSeries){
+function hdtRegime(status){
+  if(status==='Cooling') return 'cool';
+  if(status==='No load') return 'none';
+  return 'heat';
+}
+// cool = lastCool (may be null if cooling data isn't available for this
+// city/equipment) plus its per-hour cost arrays, computed by the caller.
+function hdtBuildRows(res,costSeries,cool,coolCost){
   const H=res.hourly, N=H.load_kW.length;
   const baseEff=res.meta.base_efficiency, bkEff=res.meta.backup_efficiency, bkType=res.meta.backup_type;
+  const acH=cool&&cool.resAC?cool.resAC.hourly:null;
+  const hpcH=cool&&cool.resHP?cool.resHP.hourly:null;
   const rows=new Array(N);
   for(let i=0;i<N;i++){
     const dow=Math.floor(i/24), hr=(i%24)+1;
+    const status=hdtStatus(H,acH?acH.load_kW:null,i);
     rows[i]={
       mo:monthOfDayForTable(dow), label:dayLabel(dow)+', h'+hr,
-      temp:H.temp_C[i], load:H.load_kW[i], status:hdtStatus(H,i),
+      temp:H.temp_C[i], load:H.load_kW[i]>1e-9?H.load_kW[i]:(acH?acH.load_kW[i]:0),
+      status, regime:hdtRegime(status),
       baseCop:baseEff, baseEnergy:H.base_energy_kWh[i], baseGhg:H.base_ghg_kg[i],
       baseCost:costSeries?costSeries.baseCost[i]:null,
       hpCop:H.hp_cop[i], hpCap:H.hp_capacity_kW[i], hpEnergy:H.hp_elec_kWh[i], hpGhg:H.hp_ghg_kg[i],
       hpCost:costSeries?costSeries.hpCost[i]:null,
       bkCop:bkType==='none'?null:bkEff, bkEnergy:H.backup_energy_kWh[i], bkGhg:H.backup_ghg_kg[i],
       bkCost:costSeries?costSeries.bkCost[i]:null,
+      acCop:acH?acH.cop[i]:null, acCap:acH?acH.capacity_kW[i]:null, acEnergy:acH?acH.elec_kWh[i]:null, acGhg:acH?acH.ghg_kg[i]:null,
+      acCost:(coolCost&&coolCost.acCost)?coolCost.acCost[i]:null,
+      hpcCop:hpcH?hpcH.cop[i]:null, hpcCap:hpcH?hpcH.capacity_kW[i]:null, hpcEnergy:hpcH?hpcH.elec_kWh[i]:null, hpcGhg:hpcH?hpcH.ghg_kg[i]:null,
+      hpcCost:(coolCost&&coolCost.hpCost)?coolCost.hpCost[i]:null,
     };
   }
   return rows;
@@ -5348,12 +5429,15 @@ function hdtRenderRows(rows){
   const parts=[];
   for(let k=0;k<rows.length;k++){
     const r=rows[k];
-    parts.push(`<tr${r.status==='No load'?' class="hdt-mut"':''}>`+
+    const rowCls=r.regime==='none'?' class="hdt-mut"':(r.regime==='cool'?' class="hdt-row-cool"':' class="hdt-row-heat"');
+    parts.push(`<tr${rowCls}>`+
       `<td class="hdt-lbl">${r.label}</td>`+
       `<td>${hdtNum(r.temp,1)}</td><td>${hdtNum(r.load,2)}</td><td class="hdt-status">${r.status}</td>`+
-      `<td>${hdtNum(r.baseCop,2)}</td><td>${hdtNum(r.baseEnergy,2)}</td><td>${hdtNum(r.baseGhg,2)}</td><td>${hdtNum(r.baseCost,2)}</td>`+
-      `<td>${hdtNum(r.hpCop,2)}</td><td>${hdtNum(r.hpCap,2)}</td><td>${hdtNum(r.hpEnergy,2)}</td><td>${hdtNum(r.hpGhg,2)}</td><td>${hdtNum(r.hpCost,2)}</td>`+
-      `<td>${hdtNum(r.bkCop,2)}</td><td>${hdtNum(r.bkEnergy,2)}</td><td>${hdtNum(r.bkGhg,2)}</td><td>${hdtNum(r.bkCost,2)}</td></tr>`);
+      `<td class="grp-base">${hdtNum(r.baseCop,2)}</td><td class="grp-base">${hdtNum(r.baseEnergy,2)}</td><td class="grp-base">${hdtNum(r.baseGhg,2)}</td><td class="grp-base">${hdtNum(r.baseCost,2)}</td>`+
+      `<td class="grp-hp">${hdtNum(r.hpCop,2)}</td><td class="grp-hp">${hdtNum(r.hpCap,2)}</td><td class="grp-hp">${hdtNum(r.hpEnergy,2)}</td><td class="grp-hp">${hdtNum(r.hpGhg,2)}</td><td class="grp-hp">${hdtNum(r.hpCost,2)}</td>`+
+      `<td class="grp-bk">${hdtNum(r.bkCop,2)}</td><td class="grp-bk">${hdtNum(r.bkEnergy,2)}</td><td class="grp-bk">${hdtNum(r.bkGhg,2)}</td><td class="grp-bk">${hdtNum(r.bkCost,2)}</td>`+
+      `<td class="grp-ac">${hdtNum(r.acCop,2)}</td><td class="grp-ac">${hdtNum(r.acCap,2)}</td><td class="grp-ac">${hdtNum(r.acEnergy,2)}</td><td class="grp-ac">${hdtNum(r.acGhg,2)}</td><td class="grp-ac">${hdtNum(r.acCost,2)}</td>`+
+      `<td class="grp-hpcool">${hdtNum(r.hpcCop,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcCap,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcEnergy,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcGhg,2)}</td><td class="grp-hpcool">${hdtNum(r.hpcCost,2)}</td></tr>`);
   }
   return parts.join('');
 }
@@ -5376,7 +5460,7 @@ function hdtRenderWindow(force){
   if(!hdtFiltered||!scroller)return;
   const total=hdtFiltered.length;
   if(total===0){
-    $('hdt-tbody').innerHTML='<tr><td class="hdt-loading" colspan="17">No hours match.</td></tr>';
+    $('hdt-tbody').innerHTML='<tr><td class="hdt-loading" colspan="27">No hours match.</td></tr>';
     hdtWinStart=-1; hdtWinEnd=-1;
     return;
   }
@@ -5387,9 +5471,9 @@ function hdtRenderWindow(force){
   hdtWinStart=start; hdtWinEnd=end;
   const topH=start*HDT_ROW_H, botH=(total-end)*HDT_ROW_H;
   $('hdt-tbody').innerHTML=
-    `<tr style="height:${topH}px"><td colspan="17" style="padding:0;border:none"></td></tr>`+
+    `<tr style="height:${topH}px"><td colspan="27" style="padding:0;border:none"></td></tr>`+
     hdtRenderRows(hdtFiltered.slice(start,end))+
-    `<tr style="height:${botH}px"><td colspan="17" style="padding:0;border:none"></td></tr>`;
+    `<tr style="height:${botH}px"><td colspan="27" style="padding:0;border:none"></td></tr>`;
 }
 function hdtOnScroll(){
   if(hdtScrollScheduled)return;
@@ -5405,9 +5489,16 @@ function hdtApplyFilter(){
 // Rebuilds the row DATA in full every call (cheap -- plain objects, no DOM)
 // but only re-renders the DOM window currently on screen, so a slider drag
 // with the table open no longer re-renders 8,760 rows on every tick.
+// lastCool's own cost totals (ac_$/hp_$) are annual; the table needs a
+// per-hour split, computed on demand here the same way the cooling cost
+// step does (coolingHourlyCostSeries), not cached on lastCool itself.
+function hdtCoolCost(cool){
+  if(!cool||!cool.resAC||!cool.elec||!cool.planKey)return null;
+  return coolingHourlyCostSeries(cool.resAC,cool.resHP,cool.elec,cool.planKey);
+}
 function hdtRebuild(){
   if(!lastRes)return;
-  hdtRows=hdtBuildRows(lastRes,lastCostSeries);
+  hdtRows=hdtBuildRows(lastRes,lastCostSeries,lastCool,hdtCoolCost(lastCool));
   hdtPopulateMonthSelect();
   hdtComputeFiltered();
   hdtRenderWindow(true);
@@ -5424,11 +5515,13 @@ if($('hdt-scroll')) $('hdt-scroll').addEventListener('scroll',hdtOnScroll);
 function hdtCsvField(v){ return v==null||typeof v!=='number'||isNaN(v)?'':v; }
 if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
   if(!lastRes)return;
-  const rows=hdtRows||hdtBuildRows(lastRes,lastCostSeries);
-  const header=['Day, hour','Outdoor temp (C)','Heat load (kW)','Status',
+  const rows=hdtRows||hdtBuildRows(lastRes,lastCostSeries,lastCool,hdtCoolCost(lastCool));
+  const header=['Day, hour','Outdoor temp (C)','Load (kW)','Status',
     'Baseline COP','Baseline energy (kWh)','Baseline GHG (kg)','Baseline cost (CAD)',
     'HP COP','HP capacity (kW)','HP energy (kWh)','HP GHG (kg)','HP cost (CAD)',
-    'Backup COP','Backup energy (kWh)','Backup GHG (kg)','Backup cost (CAD)'];
+    'Backup COP','Backup energy (kWh)','Backup GHG (kg)','Backup cost (CAD)',
+    'Standard AC COP','Standard AC capacity (kW)','Standard AC energy (kWh)','Standard AC GHG (kg)','Standard AC cost (CAD)',
+    'HP cooling COP','HP cooling capacity (kW)','HP cooling energy (kWh)','HP cooling GHG (kg)','HP cooling cost (CAD)'];
   const lines=[header.join(',')];
   rows.forEach(r=>{
     lines.push([
@@ -5436,6 +5529,8 @@ if($('hdt-csv')) $('hdt-csv').addEventListener('click',()=>{
       hdtCsvField(r.baseCop),hdtCsvField(r.baseEnergy),hdtCsvField(r.baseGhg),hdtCsvField(r.baseCost),
       hdtCsvField(r.hpCop),hdtCsvField(r.hpCap),hdtCsvField(r.hpEnergy),hdtCsvField(r.hpGhg),hdtCsvField(r.hpCost),
       hdtCsvField(r.bkCop),hdtCsvField(r.bkEnergy),hdtCsvField(r.bkGhg),hdtCsvField(r.bkCost),
+      hdtCsvField(r.acCop),hdtCsvField(r.acCap),hdtCsvField(r.acEnergy),hdtCsvField(r.acGhg),hdtCsvField(r.acCost),
+      hdtCsvField(r.hpcCop),hdtCsvField(r.hpcCap),hdtCsvField(r.hpcEnergy),hdtCsvField(r.hpcGhg),hdtCsvField(r.hpcCost),
     ].join(','));
   });
   const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -5837,8 +5932,8 @@ function renderGroupedBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLa
 // Mean per 1°C bin from real hourly data, one line per series -- the "By
 // temperature" view for metrics with no clean analytic curve (energy, GHG,
 // cost, grid EF all depend on the grid/rate at that hour, not just temp).
-function renderMeanBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal){
-  const W=740,Hh=320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+function renderMeanBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal,heightPx){
+  const W=740,Hh=heightPx||320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const bins=series.map(s=>binByTempRange(temps,s.arr,Tmin,Tmax,1));
   const maxV=Math.max(0.01,...bins.flat().map(b=>b.mean||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
@@ -6068,8 +6163,8 @@ function renderEnergyStepCooling(){
   } else {
     if(copWrap)copWrap.style.display='';
     if(copLegendEl)copLegendEl.style.display='';
-    renderMeanBinChart($('cop-chart'),'cop-legend','cop',copSeries,temps,COOL_Tmin,Tmax,'COP',v=>fmt1(v));
-    renderMeanBinChart(ecopSvg,'ecop-legend','ecop',elecSeries,temps,COOL_Tmin,Tmax,'kWh/hr (mean)',v=>fmt1(v)+' kWh');
+    renderMeanBinChart($('cop-chart'),'cop-legend','cop',copSeries,temps,COOL_Tmin,Tmax,'COP',v=>fmt1(v),150);
+    renderMeanBinChart(ecopSvg,'ecop-legend','ecop',elecSeries,temps,COOL_Tmin,Tmax,'kWh/hr (mean)',v=>fmt1(v)+' kWh',190);
   }
   const yr=state.weatherYear==='tmy'?'the typical year (TMY)':state.weatherYear;
   if(view==='hourly')$('ecop-note').innerHTML=`Electricity drawn by each unit, every hour of <b>${yr}</b> in ${state.city}.`;
@@ -6201,7 +6296,7 @@ function renderVerdictCombined(){
   if(sub){
     if(hasHPCurve){
       const beats=resHP.energy.electricity_kWh<resAC.energy.electricity_kWh;
-      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b>, or <b>${fmtI(resHP.energy.electricity_kWh)} kWh/yr</b> if the ${hpLabel} handles cooling too (${beats?'less':'more'} than the AC). See Final numbers, or toggle "Steps below show → Cooling" for the full breakdown.`;
+      sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b>, or <b>${fmtI(resHP.energy.electricity_kWh)} kWh/yr</b> if the ${hpLabel} handles cooling too (${beats?'less':'more'} than the AC). See Final numbers, or flip any step below to "Cooling" for the full breakdown.`;
     } else {
       sub.innerHTML=`This home would also need summer cooling: a standard AC would use <b>${fmtI(resAC.energy.electricity_kWh)} kWh/yr</b> — the selected heat pump has no cooling curve on file to compare against. See Final numbers.`;
     }
@@ -6218,7 +6313,7 @@ function renderVerdictCombined(){
     cards.push(stepCard(bucketShort()+' pump (cooling mode)','no data','This unit\'s spec sheet has no cooling curve on file.','red'));
   }
   kpis.innerHTML=cards.join('');
-  if(note)note.innerHTML=`Estimated from this home's design heat load via two correlations found across 209,272 ERS homes — not a measurement; see methodology. Toggle "Steps below show → Cooling" above to walk through the full weather-to-cost calculation the same way the heating steps do.${coolingOverCapacityNote(lastCool.resAC,'The standard AC')}${lastCool.hasHPCurve?coolingOverCapacityNote(lastCool.resHP,lastCool.hpLabel):''}`;
+  if(note)note.innerHTML=`Estimated from this home's design heat load via two correlations found across 209,272 ERS homes — not a measurement; see methodology. Flip any step below to "Cooling" to walk through the full weather-to-cost calculation the same way the heating steps do.${coolingOverCapacityNote(lastCool.resAC,'The standard AC')}${lastCool.hasHPCurve?coolingOverCapacityNote(lastCool.resHP,lastCool.hpLabel):''}`;
 }
 // Swaps step 2-7 titles/intros between heating and cooling framing when the
 // mode toggle flips. Chart titles inside each card stay generic enough
