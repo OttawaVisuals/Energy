@@ -84,9 +84,12 @@
 .ctrl-fields{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 10px;align-items:start}
 /* Base information (6 fields, house+climate) and Heat pump (4 fields)
    each get a column count sized to their own field count, rather than
-   sharing the 5-col track and leaving a part-empty row. */
-.ctrl-fields.ctrl-fields-3{grid-template-columns:repeat(3,1fr)}
+   sharing the 5-col track and leaving a part-empty row. Base info's 6-up
+   row only holds at laptop widths and wider -- below 1100px it drops to
+   the shared 3-then-2 fallback below. */
+.ctrl-fields.ctrl-fields-6{grid-template-columns:repeat(6,1fr)}
 .ctrl-fields.ctrl-fields-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){.ctrl-fields.ctrl-fields-6{grid-template-columns:repeat(3,1fr)}}
 /* GHG's 5 fields are two toggle-segs (Yes/No, 100-yr/20-yr) and three
    selects/sliders -- equal 1fr columns left the toggles swimming in extra
    width while starving the selects, so this row gets its own uneven
@@ -566,7 +569,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
     <div class="ctrl-group">
       <div class="ctrl-group-head"><span class="ctrl-group-dot base"></span><span class="ctrl-group-title">Base information</span></div>
-      <div class="ctrl-fields ctrl-fields-3">
+      <div class="ctrl-fields ctrl-fields-6">
         <div class="ctrl">
           <label for="in-city">City</label>
           <select id="in-city"></select>
