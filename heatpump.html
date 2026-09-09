@@ -84,12 +84,14 @@
 .ctrl-fields{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 10px;align-items:start}
 /* Base information (6 fields, house+climate) and Heat pump (4 fields)
    each get a column count sized to their own field count, rather than
-   sharing the 5-col track and leaving a part-empty row. Base info's 6-up
-   row only holds at laptop widths and wider -- below 1100px it drops to
-   the shared 3-then-2 fallback below. */
-.ctrl-fields.ctrl-fields-6{grid-template-columns:repeat(6,1fr)}
+   sharing the 5-col track and leaving a part-empty row. Base info's 3
+   selects (city, weather year, current heating) hold short label text
+   and don't need as much room as the 3 sliders (each a track *and* a
+   value readout), so they get smaller shares of the row -- narrower
+   columns still fit at laptop width, where 6 even columns didn't. */
+.ctrl-fields.ctrl-fields-6{grid-template-columns:.75fr .85fr 1.15fr 1.05fr .9fr 1.3fr}
 .ctrl-fields.ctrl-fields-4{grid-template-columns:repeat(4,1fr)}
-@media(max-width:1100px){.ctrl-fields.ctrl-fields-6{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.ctrl-fields.ctrl-fields-6{grid-template-columns:repeat(3,1fr)}}
 /* GHG's 5 fields are two toggle-segs (Yes/No, 100-yr/20-yr) and three
    selects/sliders -- equal 1fr columns left the toggles swimming in extra
    width while starving the selects, so this row gets its own uneven
