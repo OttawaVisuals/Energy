@@ -63,28 +63,34 @@
 /* The "My own data" custom-curve table is tall -- collapse it whenever the
    grid itself is collapsed, same rule either way. */
 .controls.is-compact:not(.user-expanded) .custom-hp-card{display:none}
-/* Inputs are grouped into four labelled sections (Base information /
-   Baseline / Heat pump / GHG accounting) stacked vertically -- .ctrl-grid
-   is now just that stack, .ctrl-fields is the actual field grid inside
-   each .ctrl-group. Fixed column counts (not auto-fit) so fields land in
+/* Inputs are grouped into three labelled sections (Base information /
+   Heat pump / GHG accounting) stacked vertically -- .ctrl-grid is now
+   just that stack, .ctrl-fields is the actual field grid inside each
+   .ctrl-group. Fixed column counts (not auto-fit) so fields land in
    predictable rows at every width -- auto-fit's per-row column count can
    differ between rows at in-between viewport widths (e.g. 5 cols then 3),
    scattering labels out of their logical groups. */
-.ctrl-grid{display:flex;flex-direction:column;gap:1.1rem}
-.ctrl-group+.ctrl-group{padding-top:1rem;border-top:1px solid var(--border)}
-.ctrl-group-head{display:flex;align-items:center;gap:7px;margin-bottom:.65rem}
+.ctrl-grid{display:flex;flex-direction:column;gap:.55rem}
+/* The group label doubles as the divider between sections -- a rule on
+   each side of the dot+title, rather than a separate border-top above a
+   left-aligned label -- so one element does both jobs. */
+.ctrl-group-head{display:flex;align-items:center;gap:8px;margin-bottom:.55rem}
+.ctrl-group-head::before,.ctrl-group-head::after{content:'';flex:1;height:1px;background:var(--border)}
 .ctrl-group-dot{width:7px;height:7px;border-radius:50%;flex:none}
 .ctrl-group-dot.base{background:var(--navy)}
-.ctrl-group-dot.baseline{background:var(--muted)}
 .ctrl-group-dot.hp{background:var(--green)}
 .ctrl-group-dot.ghg{background:var(--amber)}
-.ctrl-group-title{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text)}
+.ctrl-group-title{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text);white-space:nowrap}
 .ctrl-fields{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 10px;align-items:start}
-.ctrl-fields.ctrl-fields-2{grid-template-columns:repeat(2,1fr)}
+/* Base information (6 fields, house+climate) and Heat pump (4 fields)
+   each get a column count sized to their own field count, rather than
+   sharing the 5-col track and leaving a part-empty row. */
+.ctrl-fields.ctrl-fields-3{grid-template-columns:repeat(3,1fr)}
+.ctrl-fields.ctrl-fields-4{grid-template-columns:repeat(4,1fr)}
 /* GHG's 5 fields are two toggle-segs (Yes/No, 100-yr/20-yr) and three
    selects/sliders -- equal 1fr columns left the toggles swimming in extra
    width while starving the selects, so this row gets its own uneven
-   column widths instead of the shared 5-col track. */
+   column widths instead of a shared equal-width track. */
 .ctrl-fields.ctrl-fields-ghg{grid-template-columns:1.25fr .78fr 1fr .95fr .78fr}
 @media(max-width:1100px){.ctrl-fields{grid-template-columns:repeat(4,1fr)}.ctrl-fields.ctrl-fields-ghg{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.ctrl-fields{grid-template-columns:repeat(2,1fr)}.ctrl-fields.ctrl-fields-ghg{grid-template-columns:repeat(2,1fr)}}
@@ -560,7 +566,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
     <div class="ctrl-group">
       <div class="ctrl-group-head"><span class="ctrl-group-dot base"></span><span class="ctrl-group-title">Base information</span></div>
-      <div class="ctrl-fields">
+      <div class="ctrl-fields ctrl-fields-3">
         <div class="ctrl">
           <label for="in-city">City</label>
           <select id="in-city"></select>
@@ -585,13 +591,6 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <span class="range-val" id="balance-val"></span>
           </div>
         </div>
-      </div>
-      <div class="helper-panel" id="arch-helper"></div>
-    </div>
-
-    <div class="ctrl-group">
-      <div class="ctrl-group-head"><span class="ctrl-group-dot baseline"></span><span class="ctrl-group-title">Baseline system</span></div>
-      <div class="ctrl-fields ctrl-fields-2">
         <div class="ctrl">
           <label for="in-fuel">Current heating</label>
           <select id="in-fuel">
@@ -609,11 +608,12 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
           </div>
         </div>
       </div>
+      <div class="helper-panel" id="arch-helper"></div>
     </div>
 
     <div class="ctrl-group">
       <div class="ctrl-group-head"><span class="ctrl-group-dot hp"></span><span class="ctrl-group-title">Heat pump</span></div>
-      <div class="ctrl-fields">
+      <div class="ctrl-fields ctrl-fields-4">
         <div class="ctrl" id="band-ctrl">
           <label for="in-band">Heat pump size</label>
           <select id="in-band">
