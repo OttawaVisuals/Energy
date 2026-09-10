@@ -1,0 +1,133 @@
+/* ── Shared site theme ─────────────────────────────────────────────
+   Common chrome + the light/dark/colour-blind theme system, shared by
+   retrofits.html, retrofit-insights.html and newhomes.html so a colour
+   or branding change only has to be made once, here.
+
+   Two naming layers (see retrofits.html's original theme-system note
+   for the full rationale):
+   1. CHROME vars (--card, --ink, --cream …) style the page itself.
+   2. DATA vars (--d-*, --f-*) are for charts/data-viz to read at draw
+      time. Not every page wires its charts up to these yet — a chart
+      that ignores them just keeps its original fixed colours, which is
+      always safe since those were tuned for a light card background.
+
+   Page-specific rules (cards, tables, stat grids, maps, KPI layouts…)
+   intentionally stay in each page's own <style> block — only the
+   pieces that are identical, or should always be identical, across all
+   three pages live here: reset, theme variables, header, hero, the
+   Simple/Advanced mode toggle, the theme toggle, info tooltips, footer.
+
+   IMPORTANT for pages that don't theme their charts (retrofit-insights,
+   newhomes): keep any chart-bearing container's background a fixed
+   colour (e.g. `.card{background:#fff}`, not `var(--card)`) in that
+   page's own CSS, so hardcoded chart colours stay legible in dark mode
+   even though the page chrome around them inverts. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root,:root[data-theme="light"]{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;--amber-text:#8A5D0F;
+  --green:#1A7A55;--red:#B33A2E;--blue:#378ADD;--purple:#533AB7;
+  --cream:#F7F4EE;--surface:#EDF1F7;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --card:#fff;--on-navy:#fff;--ink:#0B2545;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05);
+  --d-primary:#0B2545;--d-secondary:#C8881A;
+  --d-pos:#1A7A55;--d-neg:#B33A2E;--d-blue:#378ADD;--d-purple:#533AB7;
+  --d-track:#E8EDF4;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
+  --f-elec:#378ADD;--f-gas:#C8881A;--f-oil:#D85A30;--f-propane:#B79A6A;--f-wood:#6B4C2A;
+  --backup-elec:var(--amber);--backup-fossil:#D85A30;
+  --badge-deep-bg:#D4EFDF;--badge-deep-fg:#1A5C3A;--badge-med-bg:#D6E8F8;--badge-med-fg:#1A4A72;
+  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#FADED9;--badge-neg-fg:#7C2318;
+  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
+}
+:root[data-theme="dark"]{
+  --navy:#0A1622;--amber:#E8A124;--amber2:#F0B94E;--amber-text:#E8A124;
+  --green:#3FA97C;--red:#E2705F;--blue:#5FA6E8;--purple:#8C79D8;
+  --cream:#0E1621;--surface:#1B2735;--border:#2C3A4B;
+  --text:#DCE4EE;--muted:#94A5B8;--light:#738699;--white:#16202E;
+  --card:#16202E;--on-navy:#fff;--ink:#E4EBF4;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);
+  --d-primary:#4A6FA5;--d-secondary:#E8A124;
+  --d-pos:#3FA97C;--d-neg:#E2705F;--d-blue:#5FA6E8;--d-purple:#8C79D8;
+  --d-track:#2C3A4B;--d-axis:#94A5B8;--d-tick:#738699;--d-grid:#243244;
+  --f-elec:#5FA6E8;--f-gas:#E8A124;--f-oil:#EE8055;--f-propane:#C9B48C;--f-wood:#9C7A55;
+  --backup-elec:var(--amber);--backup-fossil:#EE8055;
+  --badge-deep-bg:#16412F;--badge-deep-fg:#7FD6AC;--badge-med-bg:#152F47;--badge-med-fg:#8CC2F0;
+  --badge-shal-bg:#242E3A;--badge-shal-fg:#A9B6C6;--badge-neg-bg:#4A1F18;--badge-neg-fg:#F0A093;
+  --map-bg:#111C28;--map-stroke:#0E1621;--map-attr-bg:rgba(14,22,33,.72);
+}
+:root[data-theme="cb"]{
+  --navy:#10263D;--amber:#E69F00;--amber2:#F0B429;--amber-text:#966700;
+  /* pos/neg ("--green"/"--red" by name, kept for var-name compatibility with
+     the other themes) deliberately moved off the red-green confusion axis:
+     protanopia/deuteranopia confuse red vs green specifically, not blue vs
+     orange, so "good/bad" here is a dark blue vs a burnt orange instead of
+     the old green/vermilion pair, which measured under 10% apart in
+     relative luminance and read as near-identical once faded to a fill. */
+  --green:#1B4F8C;--red:#C1521A;--blue:#0072B2;--purple:#CC79A7;
+  --cream:#F7F4EE;--surface:#EDF1F7;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --card:#fff;--on-navy:#fff;--ink:#10263D;
+  --d-primary:#0072B2;--d-secondary:#E69F00;
+  --d-pos:#1B4F8C;--d-neg:#C1521A;--d-blue:#56B4E9;--d-purple:#CC79A7;
+  --d-track:#DCE2EA;--d-axis:#5C6E82;--d-tick:#8A9BB0;--d-grid:#E8EDF4;
+  --f-elec:#56B4E9;--f-gas:#E69F00;--f-oil:#D55E00;--f-propane:#CC79A7;--f-wood:#8B6343;
+  --backup-elec:var(--amber);--backup-fossil:#D55E00;
+  --badge-deep-bg:#CCEBE2;--badge-deep-fg:#00674B;--badge-med-bg:#CCE4F0;--badge-med-fg:#00527F;
+  --badge-shal-bg:#EEF0F2;--badge-shal-fg:#4A5568;--badge-neg-bg:#F7DDCC;--badge-neg-fg:#8A3D00;
+  --map-bg:#F4F7FB;--map-stroke:#fff;--map-attr-bg:rgba(255,255,255,.72);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+/* Fallback for any <a> not caught by a more specific rule (e.g. inline
+   citation links in prose) -- added 2026-08-20 after finding ~35 such
+   links on retrofits.html with no color rule at all, falling back to the
+   browser default link blue (1.75:1 on a dark card). Low specificity, so
+   every existing scoped a{} rule on any page still wins over this. */
+a{color:var(--ink);text-decoration:underline}
+
+/* ── Header ── */
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--on-navy);letter-spacing:-.01em}
+.logo span{color:var(--amber2);font-style:italic}
+.header-left{display:flex;align-items:baseline;gap:10px;min-width:0}
+.header-title{font-size:12px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-badge{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+@media(max-width:640px){.header-title{display:none}}
+
+/* ── Hero ── */
+.hero{background:var(--navy);padding:1.4rem 1.5rem 1.1rem;text-align:center}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;color:var(--on-navy);line-height:1.2;letter-spacing:-.02em;max-width:900px;margin:0 auto .6rem}
+.hero h1 em{font-style:italic;color:var(--amber2)}
+.hero-sub,.hero p{font-size:14px;color:rgba(255,255,255,.72);max-width:760px;margin:0 auto;line-height:1.55}
+.hero .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber2);margin-bottom:.5rem}
+
+/* ── Simple / Advanced mode toggle ── */
+body.mode-simple [data-mode="advanced"]{display:none!important}
+body.mode-advanced [data-mode="simple-only"]{display:none!important}
+body.mode-simple .cap-advanced{display:none}
+body.mode-advanced .cap-simple{display:none}
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end}
+.mode-btn{font-family:'Inter',sans-serif;font-size:12px;padding:6px 13px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--amber2);color:var(--navy);font-weight:500}
+.mode-btn:not(.active):hover{color:var(--ink)}
+@media(max-width:600px){.mode-btn{padding:5px 10px;font-size:11px}}
+
+/* ── Theme toggle (light / dark / colour-blind) ── */
+.theme-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;align-self:flex-end;margin-left:8px}
+.theme-btn{display:flex;align-items:center;justify-content:center;width:30px;height:26px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.theme-btn.active{background:var(--amber2);color:var(--navy)}
+.theme-btn:not(.active):hover{color:var(--ink)}
+.theme-btn:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+
+/* ── Info "?" buttons + shared floating tooltip ── */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:10px;font-weight:600;font-family:'Inter',sans-serif;line-height:1;cursor:pointer;margin-left:5px;padding:0;flex:none;vertical-align:middle;text-transform:none;letter-spacing:0}
+.info-btn:hover,.info-btn.open{background:var(--navy);color:#fff;border-color:var(--ink)}
+#info-tip{position:fixed;max-width:280px;background:rgba(11,37,69,.95);color:#fff;font-size:12px;font-family:'Inter',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;padding:8px 11px;border-radius:6px;z-index:300;line-height:1.55;box-shadow:0 4px 14px rgba(11,37,69,.3)}
+
+footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:1rem;line-height:1.6}
+footer a{color:rgba(255,255,255,.6);text-decoration:none}
+footer a:hover{color:var(--amber2)}

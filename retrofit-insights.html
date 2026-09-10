@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrofit Insights — the national picture of Canadian home retrofits</title>
+<meta name="description" content="The cross-sectional national view of 1.45 million real Canadian home-energy retrofits: what worked, where the worst stock sits, who participates, and where programs should look next. Built from NRCan EnerGuide before/after audits.">
+<meta property="og:title" content="Retrofit Insights — what actually works, and where">
+<meta property="og:description" content="1.45 million matched before/after EnerGuide audits, read nationally: depth beats breadth, heat-pump geography, the missed-opportunity map, and the program-era timeline.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/retrofit-insights">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/retrofit-insights.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Retrofit Insights social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/retrofit-insights.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M6 24V13l10-6 10 6v11' fill='none' stroke='%23E8A124' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cpath d='M6 24h20' stroke='%23E8A124' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<link rel="stylesheet" href="assets/feedback.css">
+<style>
+/* Reset, theme variables (light/dark/cb), body base, header, hero, the
+   Simple/Advanced mode toggle and the theme toggle now live in
+   assets/site-theme.css, shared with retrofits.html and newhomes.html.
+
+   Full theme-awareness (2026-08-20): cards, KPIs and chart colours now all
+   read the shared vars/PAL and redraw on theme change, matching every other
+   page. NAVY/AMBER/GREEN/RED/MUTED/GRID/SURF (declared further down) are
+   `let`, reassigned by readPalette() -- see the comment there. */
+
+/* ── KPI row ── */
+.kpi-row{max-width:1180px;margin:-0.9rem auto 0;padding:0 1.5rem;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);padding:1rem 1.05rem;position:relative}
+.kpi .kv{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.kpi .kv.accent{color:var(--amber)}
+:root[data-theme="cb"] .kpi .kv.accent{color:#AC7700}
+.kpi .kl{font-size:12px;color:var(--muted);margin-top:.4rem;line-height:1.4}
+@media(max-width:920px){.kpi-row{grid-template-columns:repeat(2,1fr)}.kpi:nth-child(5){grid-column:1/-1}}
+@media(max-width:480px){.kpi-row{grid-template-columns:1fr 1fr}.kpi .kv{font-size:1.6rem}}
+
+/* ── Mode bar ── */
+.modebar{max-width:1180px;margin:1.4rem auto 0;padding:0 1.5rem;display:flex;justify-content:flex-end;align-items:center;gap:12px}
+.modebar .hint{font-size:12px;color:var(--muted)}
+
+/* ── Layout / sections ── */
+main{max-width:1180px;margin:0 auto;padding:1.2rem 1.5rem 3rem}
+section{margin-top:2.4rem;scroll-margin-top:60px}
+.section-head{margin-bottom:1rem}
+/* Outside the cards, on the page background: --amber alone is only 2.7:1 on
+   the light/cb cream page, so this reads --amber-text (darkened for light/cb,
+   equal to --amber in dark since that already clears 7.46:1 on the dark page). */
+.section-num{font-size:12px;letter-spacing:.12em;color:var(--amber-text);font-weight:600;font-variant-numeric:tabular-nums}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.15;margin-top:2px}
+.section-head .intro{font-size:14.5px;color:var(--text);max-width:760px;margin-top:.5rem}
+.sowhat{border-left:3px solid var(--amber);background:rgba(200,136,26,.06);padding:.7rem .95rem;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;color:var(--text);max-width:820px;margin-top:.75rem;display:none}
+.sowhat b{color:var(--ink)}
+
+.card{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);padding:1.15rem 1.25rem;min-width:0}
+.card+.card{margin-top:1rem}
+.card h3{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;font-weight:300;color:var(--ink);margin-bottom:.2rem}
+.card .sub{font-size:12.5px;color:var(--muted);margin-bottom:.9rem}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem}
+@media(max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.caveat{border-left:3px solid var(--light);padding-left:11px;color:var(--muted);font-size:12.5px;margin-top:.85rem;line-height:1.55}
+.caveat b{color:var(--muted)}
+.chart-wrap{position:relative;width:100%}
+.note{font-size:12px;color:var(--muted);margin-top:.6rem;line-height:1.5}
+
+/* ── GHG impact (§02) ── */
+.ghg-kpi-strip{display:flex;gap:12px;flex-wrap:wrap}
+.ghg-kpi{flex:1 1 170px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:.8rem .95rem}
+.ghg-kpi .gv{font-family:'Fraunces',Georgia,serif;font-size:1.55rem;font-weight:300;color:var(--ink);line-height:1.15}
+.ghg-kpi .gl{font-size:11.5px;color:var(--muted);margin-top:.35rem;line-height:1.4}
+.equiv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.equiv-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:820px){.equiv-grid.cols-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.equiv-grid.cols-4{grid-template-columns:1fr}}
+.equiv-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:.85rem .9rem}
+.equiv-card svg{width:28px;height:28px;display:block;margin-bottom:8px;color:var(--ink)}
+.equiv-label{font-size:11.5px;color:var(--muted);margin-bottom:5px;line-height:1.35;min-height:2.6em}
+.equiv-value{font-size:18px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.equiv-sub{font-size:10.5px;color:var(--muted);margin-top:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* ── AHRI scatter + CCHP panel (§06) ── */
+#ahri-scatter-wrap circle.pt{cursor:pointer}
+#ahri-scatter-wrap circle.pt.clamped{stroke:var(--ink);stroke-width:1.4;stroke-dasharray:2 2}
+#ahri-tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--navy);color:var(--on-navy);padding:8px 11px;border-radius:7px;font-size:12.5px;line-height:1.5;z-index:220;max-width:280px}
+#ahri-tip b{font-size:13px}
+.equip-tally-row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin-bottom:6px}
+.equip-tally-row .et-label{width:190px;flex:none;color:var(--text)}
+.equip-tally-row .et-bar-wrap{flex:1;background:var(--surface);border-radius:3px;height:14px;overflow:hidden}
+.equip-tally-row .et-bar{height:100%;border-radius:3px}
+.equip-tally-row .et-val{width:210px;flex:none;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+@media(max-width:640px){.equip-tally-row{flex-wrap:wrap}.equip-tally-row .et-label,.equip-tally-row .et-val{width:auto}}
+.crit-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.crit-table th,.crit-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.crit-table th{font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
+.crit-table td.crit-status{white-space:nowrap;font-weight:500}
+
+/* ── Provincial scorecard table ── */
+.scorecard{width:100%;border-collapse:collapse;font-size:13.5px}
+.scorecard th,.scorecard td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scorecard th{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
+.scorecard th:hover{color:var(--ink)}
+.scorecard th.arrow-active{color:var(--ink)}
+.scorecard td:first-child,.scorecard th:first-child{text-align:left}
+.scorecard tbody tr:hover td{background:var(--surface)}
+.scorecard tr.cs-row{cursor:pointer}
+.scorecard td .note{white-space:normal}
+/* ── case-study filter pills & slopegraph (§10) ── */
+.pill-row{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 12px;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);cursor:pointer;user-select:none;font-family:'Inter',sans-serif;transition:all .15s}
+.pill:hover{border-color:var(--amber-text)}
+.pill.on{background:var(--navy);border-color:var(--navy);color:#fff}
+:root[data-theme="dark"] .pill.on{background:var(--amber);border-color:var(--amber);color:#1C2B3A}
+.pill .pill-n{opacity:.75;font-variant-numeric:tabular-nums}
+.cs-slope-legend{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);margin-bottom:.9rem}
+.cs-slope-legend .bar{flex:0 0 180px;height:10px;border-radius:5px}
+.cs-slope-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.cs-slope-grid svg{width:100%;height:auto;display:block}
+.cs-slope-grid .slope-title{font-size:12.5px;font-weight:600;color:var(--ink);text-align:center;margin-bottom:.3rem}
+.cs-slope-grid .slope-empty{font-size:12.5px;color:var(--muted);text-align:center;padding:2rem 0}
+.scorecard .prov-name{font-weight:500;color:var(--ink)}
+.bar-cell{position:relative;border-right:2px solid var(--card)}
+.bar-cell .bar{position:absolute;left:0;top:50%;transform:translateY(-50%);height:68%;border-radius:2px;z-index:0;max-width:calc(100% - 6px)}
+/* Same NAVY/AMBER/GREEN hues the charts use, at a category-fill opacity --
+   theme-scoped since a var()-coloured rgba() isn't expressible in plain CSS.
+   Values match the current light/dark/cb tokens; if those tokens are ever
+   retuned, these three rules need updating alongside them. */
+.bar-cell .bar.cat-program{background:rgba(11,37,69,.30)}
+.bar-cell .bar.cat-energy{background:rgba(200,136,26,.42)}
+.bar-cell .bar.cat-fuel{background:rgba(22,107,74,.35)}
+:root[data-theme="dark"] .bar-cell .bar.cat-program{background:rgba(74,111,165,.35)}
+:root[data-theme="dark"] .bar-cell .bar.cat-energy{background:rgba(240,185,78,.42)}
+:root[data-theme="dark"] .bar-cell .bar.cat-fuel{background:rgba(63,169,124,.35)}
+:root[data-theme="cb"] .bar-cell .bar.cat-program{background:rgba(0,114,178,.30)}
+:root[data-theme="cb"] .bar-cell .bar.cat-energy{background:rgba(230,159,0,.42)}
+:root[data-theme="cb"] .bar-cell .bar.cat-fuel{background:rgba(27,79,140,.35)}
+.bar-cell span{position:relative;z-index:1}
+.scroll-x{overflow-x:auto}
+
+/* ── Map + leaderboard ── */
+/* Map runs full-width; the two leaderboards sit below it, side by side. */
+.map-layout{display:block}
+.lb-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.6rem;margin-top:1.1rem;
+  padding-top:1rem;border-top:1px solid var(--border);align-items:start}
+@media(max-width:700px){.lb-grid{grid-template-columns:1fr}}
+.metric-switch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.8rem}
+.metric-btn{font-size:12.5px;padding:6px 12px;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.metric-btn:hover{border-color:var(--ink);color:var(--ink)}
+.metric-btn.active{background:var(--navy);border-color:var(--navy);color:var(--on-navy);font-weight:500}
+.map-frame{position:relative;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+#nat-map{display:block;width:100%;height:auto;background:var(--surface)}
+.fsa-shape{stroke:var(--surface);stroke-width:.4;vector-effect:non-scaling-stroke;transition:opacity .1s}
+.fsa-shape.hl{stroke:var(--ink);stroke-width:1.6}
+.map-skeleton{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 12px,var(--border) 12px,var(--border) 24px)}
+.map-legend{margin-top:.6rem}
+.map-grad-wrap{max-width:380px}
+.map-grad{height:11px;border-radius:3px;border:1px solid var(--border)}
+.map-grad-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.map-tip{position:fixed;background:rgba(11,37,69,.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap;display:none}
+.map-tip b{color:var(--amber2)}
+.map-progress{font-size:11px;color:var(--muted);margin-top:.5rem}
+
+.lb-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
+.lb-title{font-size:13px;font-weight:600;color:var(--ink)}
+.lb-metric-name{font-size:11px;color:var(--muted)}
+.lb-block{margin-bottom:.85rem}
+.lb-sub{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber-text);font-weight:600;margin-bottom:.25rem}
+.lb-row{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-radius:4px;font-size:13px;cursor:default;font-variant-numeric:tabular-nums}
+.lb-row:hover{background:var(--surface)}
+.lb-row .lb-fsa{font-weight:500;color:var(--ink);letter-spacing:.02em}
+.lb-row .lb-prov{color:var(--muted);font-size:11px;margin-left:6px}
+.lb-row .lb-val{color:var(--text)}
+.lb-right{display:flex;align-items:center;gap:8px}
+.lb-link{color:var(--muted);text-decoration:none;font-size:12px;line-height:1;padding:2px 3px;border-radius:3px;opacity:0;transition:opacity .12s,color .12s}
+.lb-row:hover .lb-link,.lb-link:focus-visible{opacity:1}
+.lb-link:hover{color:var(--amber-text)}
+.lb-link:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.lb-note{font-size:11px;color:var(--muted);margin-top:.35rem}
+
+/* ── info tooltip ── */
+/* Base look shared via assets/site-theme.css; this page toggles display
+   itself (the element is static in the markup, not created lazily). */
+#info-tip{display:none}
+
+/* ── deep-link buttons ── */
+.jump-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:6px 13px;border:1px solid var(--navy);border-radius:18px;background:var(--card);color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:all .15s}
+.jump-btn:hover{background:var(--navy);color:var(--on-navy)}
+
+/* ── legend chips for charts ── */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:.7rem;font-size:12.5px;color:var(--muted)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:11px;height:11px;border-radius:3px;flex:none}
+
+/* ── opportunity table ── */
+.opp-table{width:100%;border-collapse:collapse;font-size:13px}
+.opp-table th,.opp-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.opp-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:500}
+.opp-table td:first-child,.opp-table th:first-child,.opp-table td:nth-child(2),.opp-table th:nth-child(2){text-align:left}
+.opp-table tbody tr{cursor:pointer}
+.opp-table tbody tr:hover td{background:var(--surface)}
+.qlist{margin:0;padding-left:1.35rem;display:flex;flex-direction:column;gap:1rem}
+.qlist li{font-size:14px;line-height:1.6;color:var(--text)}
+.qlist li::marker{color:var(--amber-text);font-weight:600}
+.qlist li b{display:block;color:var(--ink);margin-bottom:.2rem}
+.qlist li span{display:block;color:var(--text);font-size:13.5px}
+.priority-box{border:1px solid var(--border);border-radius:var(--r-sm);padding:.75rem .9rem;margin:.6rem 0 .75rem;background:var(--card)}
+.priority-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.6rem}
+.priority-title{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber-text);font-weight:600}
+.priority-actions{display:flex;align-items:center;gap:8px}
+.priority-preset{font-size:12px;color:var(--muted);font-style:italic}
+.priority-reset,.priority-copy{font-size:11.5px;color:var(--ink);background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:3px 9px;cursor:pointer}
+.priority-reset:hover,.priority-copy:hover{border-color:var(--amber-text);color:var(--amber-text)}
+.priority-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:.6rem .9rem}
+.pw{display:flex;flex-direction:column;gap:3px}
+.pw label{font-size:12px;color:var(--text);font-weight:500}
+.pw .pw-row{display:flex;align-items:center;gap:7px}
+.pw select{flex:1;font:inherit;font-size:12.5px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 5px;cursor:pointer}
+.pw select:focus-visible{outline:2px solid var(--amber-text);outline-offset:1px}
+.pw .pw-share{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:2.6em;text-align:right}
+.pw .pw-bar{height:3px;border-radius:2px;background:var(--border);overflow:hidden}
+.pw .pw-fill{display:block;height:100%;background:var(--amber)}
+.formula-box{background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:.7rem .9rem;margin:.6rem 0 .9rem}
+.formula-line{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--ink);overflow-x:auto;white-space:nowrap;padding-bottom:2px}
+.formula-note{font-size:12.5px;color:var(--muted);margin-top:.5rem;line-height:1.55}
+.opp-fsa{font-weight:600;color:var(--ink)}
+.fsa-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--light)}
+.fsa-link:hover{color:var(--amber-text);border-bottom-color:var(--amber-text)}
+.opp-detail td{background:var(--cream);padding:0}
+.opp-detail-inner{padding:10px 14px;font-size:12.5px;color:var(--text)}
+.factor-bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;max-width:520px;margin-top:6px}
+.factor-bars .fb-label{font-size:12px;color:var(--muted)}
+.factor-bars .fb-track{height:9px;background:var(--surface);border-radius:3px;overflow:hidden}
+.factor-bars .fb-fill{height:100%;background:var(--amber)}
+.factor-bars .fb-val{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
+
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);color:var(--muted);margin-left:6px}
+.tag.cc{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
+.tag.status-active{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
+.tag.status-inactive{background:var(--surface);color:var(--muted)}
+
+/* ── heat-pump decomposition tree (brand -> outdoor model -> AHRI cert) ──
+   Plain nested rows, not a chart -- each level reuses the same row shape
+   (label/bar/count) at increasing indent, with a chevron toggling a
+   .tree-children block via the .open class. Leaf (cert) rows have no
+   chevron/bar; they show the spec line + badges + link instead. */
+.hp-tree{font-size:13px}
+.tree-row{display:flex;align-items:center;gap:9px;padding:6px 4px;border-radius:5px;cursor:pointer;user-select:none}
+.tree-row:hover{background:var(--surface)}
+.tree-row.leaf{cursor:default;align-items:flex-start;flex-wrap:wrap;padding:6px 4px 6px 0}
+.tree-row.leaf:hover{background:none}
+.tree-chevron{flex:none;width:14px;height:14px;color:var(--muted);transition:transform .15s}
+.tree-node.open>.tree-row>.tree-chevron{transform:rotate(90deg)}
+.tree-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:500}
+.tree-row.l1 .tree-name{color:var(--ink);font-weight:600}
+.tree-row.leaf .tree-name{white-space:normal;font-weight:400;flex:1 1 100%}
+.tree-bar-track{flex:1 1 80px;min-width:40px;height:6px;background:var(--surface);border-radius:3px;overflow:hidden}
+.tree-bar-fill{height:100%;background:var(--amber);border-radius:3px}
+.tree-count{flex:none;width:5.5em;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+.tree-children{margin-left:23px;padding-left:9px;border-left:2px solid var(--surface);display:none}
+.tree-node.open>.tree-children{display:block}
+.tree-more{margin-left:23px;padding:2px 0 4px 10px;font-size:11.5px;color:var(--muted);font-style:italic}
+.tree-leaf-detail{font-size:11.5px;color:var(--muted);line-height:1.5}
+.tree-leaf-detail a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--border)}
+.tree-leaf-detail a:hover{color:var(--amber-text);border-color:var(--amber-text)}
+.tree-leaf-count{margin-left:auto;flex:none;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;padding-left:8px}
+
+/* ── methodology accordion — a plain, unnumbered box sitting outside
+   <main>, at the bottom of the page (same pattern as retrofits.html's
+   .methodology / assets/retrofits.css) ── */
+.methodology{max-width:1180px;margin:2.4rem auto 3rem;padding:0 1.5rem}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.85rem 1.15rem;font-family:'Fraunces',Georgia,serif;font-size:1.2rem;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber-text);transition:transform .2s}
+.methodology details[open] summary::after{content:'–'}
+.methodology summary:hover{background:var(--surface)}
+.method-body{padding:.4rem 1.15rem 1.15rem;font-size:13.5px;color:var(--text);line-height:1.6}
+.method-body h4{font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber-text);font-weight:600;margin:1rem 0 .35rem}
+.method-body p{margin-bottom:.5rem}
+.method-body code{background:var(--surface);color:var(--text);padding:1px 5px;border-radius:4px;font-size:12px}
+.method-body .rail{border-left:3px solid var(--amber);padding-left:12px;margin:.5rem 0}
+.method-body ul{margin:.3rem 0 .5rem 1.1rem}
+.method-body li{margin-bottom:.3rem}
+
+/* footer base styling now lives in assets/site-theme.css */
+footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
+
+.skl{background:linear-gradient(90deg,var(--surface),var(--border),var(--surface));border-radius:6px;min-height:60px}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body class="mode-simple">
+<script>
+// Resolved before any visible markup paints, so there's no flash of the
+// wrong theme (charts on this page don't re-theme, only the page chrome).
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">retrofit<span>insights</span></div>
+    <div class="header-title">The national picture · Canada</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="retrofits.html">↳ Explore your postal area</a>
+    <div class="header-badge">EnerGuide data</div>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="eyebrow">1,451,433 matched before / after audits · 1,684 postal areas</div>
+  <h1>What actually <em>works</em> in a home retrofit — and <em>where</em></h1>
+  <p>The <a href="retrofits.html" style="color:var(--amber2)">Retrofit Explorer</a> goes deep on one postal area at a time. This is the cross-sectional view: every matched NRCan EnerGuide retrofit in the country, read together, to see what saves energy, who takes part, and where the worst-performing stock has barely been touched.</p>
+</div>
+
+<div class="kpi-row" id="kpi-row">
+  <div class="kpi"><div class="kv">1.45M</div><div class="kl">matched before / after retrofits (2004–2026)</div></div>
+  <div class="kpi"><div class="kv accent">~21%</div><div class="kl">typical energy saved <span class="info-btn" data-tip="Dwelling-weighted median of the per-neighbourhood median saving, over the 1.25M pairs that logged at least one measure. Modelled EnerGuide estimate, not a metered bill.">i</span></div></div>
+  <div class="kpi"><div class="kv">24%</div><div class="kl">added a heat pump</div></div>
+  <div class="kpi"><div class="kv">7.5%</div><div class="kl">switched heating fuel</div></div>
+  <div class="kpi"><div class="kv">8.6%</div><div class="kl">were zero-measure re-audits <span class="info-btn" data-tip="125,289 pairs logged no tracked upgrade between the two audits — audit noise, reported as a count and excluded from every 'what worked' statistic.">i</span></div></div>
+</div>
+
+<div class="modebar">
+  <span class="hint">Denser cards are hidden by default —</span>
+  <div class="mode-toggle" role="tablist" aria-label="Detail level">
+    <button class="mode-btn active" data-set-mode="simple" role="tab">Simple</button>
+    <button class="mode-btn" data-set-mode="advanced" role="tab">Advanced</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- 01 PROVINCIAL SCORECARD -->
+  <section id="sec-scorecard">
+    <div class="section-head">
+      <div class="section-num">01 — THE PROVINCES</div>
+      <h2>A provincial scorecard</h2>
+      <p class="intro">The same eight numbers for every province, so the national averages don't hide the enormous spread between them. Click a column to sort.</p>
+      <div class="sowhat"><b>By the numbers:</b> heat-pump adoption ranges from <b>50.3%</b> of matched retrofits in New Brunswick and 45.3% in Quebec down to <b>3.4%</b> in Alberta and 2.0% in Saskatchewan, with Ontario at 14.5%. Prince Edward Island (17.0%) sits outside the wider Atlantic pattern. What drives the spread is not established here.</div>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:rgba(11,37,69,.55)"></span>program (retrofits, participation)</span>
+        <span class="lg"><span class="sw" style="background:rgba(200,136,26,.7)"></span>energy (saving, deep, pre-EUI)</span>
+        <span class="lg"><span class="sw" style="background:rgba(22,107,74,.6)"></span>fuel (heat pump, fuel switch)</span>
+      </div>
+      <div class="scroll-x">
+        <table class="scorecard" id="scorecard-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note" id="scorecard-note">Rates are pair-weighted across each province's postal areas. Participation = audited homes ÷ 2021 census dwellings (mixes ~20 years of audits over one dwelling snapshot — read it as relative, not absolute). For the % columns (Particip., Med. saving, Heat pump, Fuel switch, Deep), the bar fill is that percentage itself. Retrofits and Pre-EUI aren't percentages, so their bars are scaled within the column (its own max = full width) to compare provinces.</div>
+    </div>
+  </section>
+
+  <!-- 02 THE TIMELINE -->
+  <section id="sec-timeline">
+    <div class="section-head">
+      <div class="section-num">02 — THE TIMELINE</div>
+      <h2>Twenty years of programs</h2>
+      <p class="intro">Matched audits per year — the initial (pre-retrofit) audit and the completed (post-retrofit) audit that closes each pair. The two big waves map onto the two big federal programs.</p>
+      <div class="sowhat"><b>By the numbers:</b> completed retrofits peaked at <b>205,502 in 2010</b>, during ecoENERGY Retrofit – Homes (2007–2012), and again at <b>150,798 in 2023</b> under the Canada Greener Homes Grant (2021–2024). 2025 recorded 72,870, about half the 2024 total, after the grant closed to new applicants on 31 March 2024. Programme dates and sources are listed under the chart.</div>
+    </div>
+    <div class="card">
+      <h3>Matched audits per year, with program eras</h3>
+      <div class="sub">Initial audits by their year; completed retrofits by their follow-up audit year.</div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--d-primary)"></span>Initial (pre-retrofit) audits</span>
+        <span class="lg"><span class="sw" style="background:var(--amber)"></span>Completed retrofits</span>
+      </div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-timeline"></canvas></div>
+      <div class="note" id="timeline-note"></div>
+    </div>
+    <div class="card">
+      <h3>What did each era build?</h3>
+      <div class="sub">The 8 tracked measures, as a share of that era's matched retrofits — same question as the timeline above (which era), split by what kind of work happened. Each home is classified by its <b>initial</b> audit year, not its completion year, so a retrofit that started under a program but finished after it closed still counts toward that program.</div>
+      <div class="legend" id="era-legend"></div>
+      <div class="chart-wrap" style="height:360px"><canvas id="ch-program-era"></canvas></div>
+      <div class="note" id="program-era-note"></div>
+    </div>
+  </section>
+
+  <!-- 03 THE CLIMATE IMPACT -->
+  <section id="sec-ghg">
+    <div class="section-head">
+      <div class="section-num">03 — THE CLIMATE IMPACT</div>
+      <h2>What the GHG savings are worth</h2>
+      <p class="intro">The same modelled tCO₂e/yr saved as everywhere else on this page, summed rather than averaged, then priced two ways: what it would cost at the 2024 federal carbon-tax rate, and what ECCC's Social Cost of Carbon says the avoided damage is worth.</p>
+      <div class="sowhat"><b>By the numbers:</b> <span id="ghg-sowhat">Loading…</span></div>
+    </div>
+    <div class="card">
+      <h3>National total</h3>
+      <div class="sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Net across every matched pair — homes whose modelled GHG rose are included, not dropped (see the caveat below).</span>
+        <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <label for="ghg-scenario-sel" style="font-size:12px;color:var(--muted)">GHG basis</label>
+          <select id="ghg-scenario-sel" style="font-size:12.5px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)">
+            <option value="as_audited">ERS-aligned, at year of audit</option>
+            <option value="current">Current (2026) official</option>
+            <option value="current_corrected">Current (2026) official, ERS-aligned</option>
+            <option value="reported">As reported (partial coverage)</option>
+          </select>
+        </span>
+      </div>
+      <div class="ghg-kpi-strip" id="ghg-kpi-strip"></div>
+      <div class="note" id="ghg-national-note"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>By province</h3>
+      <div class="sub">Average per matched home and total, by province — plus how much of each province's matched population this basis actually describes.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="ghg-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat" id="ghg-caveat"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>What that many tonnes looks like</h3>
+      <div class="sub">The national total (<span id="ghg-equiv-n"></span> above), converted into everyday equivalents — factors ported from Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--ink)">GHG Equivalency Calculator</a>.</div>
+      <div class="equiv-grid cols-4" id="ghg-equiv-grid"></div>
+      <div class="note">Emission factors: Ford F-150 256.6 gCO₂e/km · Honda Civic 149.6 gCO₂e/km · Hyundai Ioniq (AB) 139.8 gCO₂e/km · Hyundai Ioniq (ON) 6.2 gCO₂e/km · round trip distance St. John's–Vancouver 14,198 km · flight St. John's–Vancouver 75.72 tCO₂e · oil 2.3 tCO₂e/barrel · forest (Central Park, annual absorption) 1,686 tCO₂e · propane cylinder (BBQ) 0.0244 tCO₂e.</div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>The same retrofits, in energy terms</h3>
+      <div class="sub">Total household energy saved (kWh, modelled) — same matched-pair population as above, priced and converted separately from the GHG figures.</div>
+      <div class="note" id="energy-national-note"></div>
+      <div class="equiv-grid" id="energy-equiv-grid" style="margin-top:.8rem"></div>
+      <div class="caveat" id="energy-caveat"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Peak demand: homes that were electrically heated</h3>
+      <div class="sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Design/peak heat-loss (HOT2000's own peak-heating-demand field), pre vs post, for matched pairs that were electrically heated <b>before</b> the retrofit.</span>
+        <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <label for="peak-resource-sel" style="font-size:12px;color:var(--muted)">Price the avoided kW as</label>
+          <select id="peak-resource-sel" style="font-size:12.5px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"></select>
+        </span>
+      </div>
+      <div class="ghg-kpi-strip" id="peak-kpi-strip"></div>
+      <div class="note" id="peak-national-note"></div>
+      <div class="scroll-x" style="margin-top:.8rem">
+        <table class="scorecard" id="peak-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat" id="peak-caveat"></div>
+    </div>
+  </section>
+
+  <!-- 04 THE MAP -->
+  <section id="sec-map">
+    <div class="section-head">
+      <div class="section-num">04 — THE MAP</div>
+      <h2>One country, thirteen ways</h2>
+      <p class="intro">Every postal area (FSA) with at least 30 matched retrofits, coloured by the metric you pick — participation, savings, pre-retrofit stock, heat-pump adoption, each of the eight tracked measures, or the deep-retrofit rate. The leaderboards beside it re-rank live. Postal areas below the 30-retrofit threshold, the few condo-dominated downtown cores with no house audits, and — on participation only — areas whose 2021 census dwelling count is too small to divide by, are left grey.</p>
+      <div class="sowhat"><b>By the numbers:</b> the highest pre-retrofit intensities are in Winnipeg (R3B 475, R3A 446 kWh/m²/yr); the highest heat-pump adoption is in Quebec and coastal BC (G7T 96.9%, V0V 90.5%); the lowest participation is in downtown Toronto (M5V 0.2%, M4Y 0.3%), where most dwellings are condo units that do not receive house audits.</div>
+    </div>
+    <div class="card">
+      <div class="metric-switch" id="metric-switch"></div>
+      <div class="map-layout">
+        <div class="map-frame">
+          <svg id="nat-map" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" aria-label="National FSA choropleth"></svg>
+          <div class="map-skeleton" id="map-skeleton">Loading the map…</div>
+        </div>
+        <div class="map-legend" id="map-legend"></div>
+        <div class="map-progress" id="map-progress"></div>
+        <div class="lb-head">
+          <span class="lb-title" id="lb-title">Leaderboard</span>
+          <span class="lb-metric-name" id="lb-metric-name"></span>
+        </div>
+        <div class="lb-grid">
+          <div class="lb-block">
+            <div class="lb-sub" id="lb-top-label">Top 10</div>
+            <div id="lb-top"></div>
+          </div>
+          <div class="lb-block">
+            <div class="lb-sub" id="lb-bot-label">Bottom 10</div>
+            <div id="lb-bot"></div>
+          </div>
+        </div>
+        <div class="lb-note">Minimum 30 matched retrofits per postal area. Hover a row to find it on the map; click through to open that postal area in the Retrofit Explorer.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 WHAT WORKS -->
+  <section id="sec-success">
+    <div class="section-head">
+      <div class="section-num">05 — WHAT WORKS</div>
+      <h2>What makes a retrofit succeed</h2>
+      <p class="intro">Built on the 1,326,144 pairs that logged at least one real measure — the zero-measure re-audits are set aside.</p>
+      <div class="sowhat"><b>By the numbers:</b> among homes that did exactly one measure, a heat pump returned a <b>25.5%</b> median saving (141,677 homes) and a heating-system change 20.1%, against 7.9% for air sealing alone, 6.6% for roof insulation and <b>6.1%</b> for windows. Median saving rises with each added measure, from 16.2% at one to 68.9% at all eight.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>The most common upgrade bundles</h3>
+        <div class="sub">Median energy saving by measure combination — bars in amber contain a heat pump. Ordered by saving.</div>
+        <div class="legend">
+          <span class="lg"><span class="sw" style="background:var(--amber)"></span>includes a heat pump</span>
+          <span class="lg"><span class="sw" style="background:var(--d-primary)"></span>no heat pump</span>
+        </div>
+        <div class="chart-wrap" style="height:420px"><canvas id="ch-bundles"></canvas></div>
+        <div class="note">Number beside each bar = pairs in that exact bundle. Modelled EnerGuide saving, not metered.</div>
+      </div>
+      <div class="card">
+        <h3>Depth pays — but few go deep</h3>
+        <div class="sub">Median saving rises cleanly with how many of the eight tracked measures a home did. The line shows how many homes actually did that many.</div>
+        <div class="legend">
+          <span class="lg"><span class="sw" style="background:var(--amber)"></span>Median energy saving</span>
+          <span class="lg"><span class="sw" style="background:var(--d-primary)"></span>Share of homes</span>
+        </div>
+        <div class="chart-wrap" style="height:300px"><canvas id="ch-count"></canvas></div>
+        <div class="note" id="count-note"></div>
+        <div class="caveat"><b>Read with care:</b> more measures mechanically means more modelled savings, so this relationship is partly built-in. It is still the honest headline — and most homes (about 64%) did only one or two measures.</div>
+      </div>
+    </div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>05c · The profile of a big saver <span class="info-btn" data-tip="Top-decile savers = the 125,103 pairs whose modelled saving was 40.6% or more.">i</span></h3>
+      <div class="sub">Top-decile savers (≥ 40.6% saved) versus everyone else — measure prevalence and starting conditions.</div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--amber)"></span>Top-decile savers</span>
+        <span class="lg"><span class="sw" style="background:var(--d-primary)"></span>All other retrofits</span>
+      </div>
+      <div class="grid2">
+        <div class="chart-wrap" style="height:320px"><canvas id="ch-decile"></canvas></div>
+        <div id="decile-stats" style="align-self:center"></div>
+      </div>
+      <div class="caveat">The recipe is consistent: an older, worse-performing home (built ~1960, high starting EUI) that did more measures, switched fuel and added a heat pump. Starting-EUI headroom + fuel switch + heat pump.</div>
+    </div>
+  </section>
+
+  <!-- 06 HEAT-PUMP GEOGRAPHY -->
+  <section id="sec-hp">
+    <div class="section-head">
+      <div class="section-num">06 — HEAT PUMPS</div>
+      <h2>The geography of heat pumps</h2>
+      <p class="intro">Where the roughly 328,000 heat pumps in this dataset went in, and what got installed.</p>
+      <div class="sowhat"><b>By the numbers:</b> heat-pump adoption spans a <b>25×</b> range across provinces, from 50.3% in New Brunswick to 2.0% in Saskatchewan. The same spread reappears inside the income and dwelling-value breakdowns below, because those quintiles differ in provincial composition.</div>
+    </div>
+    <div class="card">
+      <h3>Heat-pump adoption by province</h3>
+      <div class="sub">Share of matched retrofits that added a heat pump.</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="ch-hp-prov"></canvas></div>
+      <button class="jump-btn" data-jump-metric="hp_rate" style="margin-top:.7rem">◲ See heat-pump adoption on the map</button>
+    </div>
+    <div class="card">
+      <h3>The most-installed models nationally</h3>
+      <div class="sub">Brand → outdoor unit → AHRI certificate, by install count. Click a row to expand it — one outdoor unit is certified under several AHRI reference numbers (different indoor coil pairings, refrigerant lines, or test revisions can each certify differently, including on cold-climate status), so every certificate is broken out rather than merged into one figure.</div>
+      <div id="hp-tree-wrap"><div class="skl" style="height:260px"></div></div>
+      <div class="note">Counts across all matched pairs with an AHRI number that resolved to a brand + model. <span class="tag cc">CC</span> = cold-climate rated. Links open the AHRI Directory listing.</div>
+    </div>
+  </section>
+
+  <!-- 06 COLD-CLIMATE EQUIPMENT -->
+  <section id="sec-hp-equipment">
+    <div class="section-head">
+      <div class="section-num">07 — COLD-CLIMATE EQUIPMENT</div>
+      <h2>What the installed heat pumps can actually do at 5 °F</h2>
+      <p class="intro">Every AHRI-certified unit that appears in this data, plotted by cold-climate efficiency and capacity retention, then screened against the specifications of the US DOE Cold Climate Heat Pump (CCHP) Technology Challenge.</p>
+      <div class="sowhat"><b>By the numbers:</b> of <b>15,148</b> certified models covering <b>439,975</b> ERS install appearances, <b>4 certificate rows</b> — <b>3 distinct models</b>, <b>8 appearances (0.00%)</b> — clear every checkable Challenge criterion. Three of the four sit <i>exactly</i> on the COP threshold. This is not a critique of the installed base: Challenge-qualifying products only began reaching market in 2024–25, and these are historical ERS audit records.</div>
+    </div>
+    <div class="card">
+      <h3>COP at 5 °F vs. capacity maintenance</h3>
+      <div class="sub">Every AHRI-certified unit with a recorded COP at 5 °F, capacity maintenance and rated capacity @47 °F. Bubble <b>area</b> ∝ ERS install appearances; colour = nominal capacity band.</div>
+      <div class="chart-wrap" id="ahri-scatter-wrap"><div class="skl" style="height:420px"></div></div>
+      <div class="legend" id="ahri-scatter-legend"></div>
+      <div class="note" id="ahri-scatter-note"></div>
+    </div>
+    <div class="card">
+      <h3>Screened against the DOE Cold Climate Heat Pump Challenge specifications</h3>
+      <div class="sub">Table II-3 of the Challenge specifications, checked against AHRI certificate ratings — a screen against published ratings, not a determination that any unit met the Challenge's own H11/H1N verification test.</div>
+      <div id="cchp-panel"><div class="skl" style="height:320px"></div></div>
+    </div>
+  </section>
+
+  <!-- 07 MISSED OPPORTUNITY -->
+  <section id="sec-opp">
+    <div class="section-head">
+      <div class="section-num">08 — MISSED OPPORTUNITY</div>
+      <h2>Where programs should look next</h2>
+      <p class="intro">A composite score combining the worst starting stock with the lowest uptake — the postal areas with the most to gain that have barely participated.</p>
+      <div class="sowhat"><b>By the numbers:</b> the highest-scoring postal areas are in the older cores of <b>Winnipeg (R3B, R3C, R3A), Saint John (E2L), Edmonton (T5G, T5B) and Regina (S4P)</b>. Click any row to see the four factor percentiles behind its score.</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:.4rem">
+        <h3 style="margin:0">Top 20 opportunity postal areas <span class="info-btn" id="opp-formula-btn" data-tip="">i</span></h3>
+        <button class="jump-btn" data-jump-metric="opportunity">◲ See the opportunity score on the map</button>
+      </div>
+      <div class="sub">Higher score = worse stock + lower participation. Minimum 30 matched retrofits.</div>
+      <div class="priority-box">
+        <div class="priority-head">
+          <span class="priority-title">Set your priorities</span>
+          <div class="priority-actions">
+            <span class="priority-preset" id="opp-preset">Default weighting</span>
+            <button type="button" class="priority-reset" id="opp-reset">Reset</button>
+            <button type="button" class="priority-copy" id="opp-share">Copy link</button>
+          </div>
+        </div>
+        <div class="priority-grid" id="opp-weights"></div>
+        <div class="priority-note">Each factor is weighted <b>Off / Low / Medium / High</b>; the shares below are normalised to 100% so scores stay comparable. Turning everything off restores the default. The link button copies a URL that reopens this exact weighting.</div>
+      </div>
+      <div class="formula-box">
+        <div class="formula-line" id="opp-formula-line"></div>
+        <div class="formula-note">Each of the four inputs is converted to its <b>percentile rank</b> across every eligible postal area, so all four land on a common 0–1 scale before weighting. The weights are a judgement call, not an estimate from data — they encode "worst stock first, least-served next". A score of 92 means the area sits near the top of the country on all four at once; it is a <b>ranking against other areas</b>, not a measurement of anything physical. Change the weights and the ranking changes.</div>
+      </div>
+      <div class="scroll-x">
+        <table class="opp-table" id="opp-table"><thead><tr>
+          <th>#</th><th>FSA</th><th>Prov</th><th>Score</th><th>Pre-EUI</th><th>Pre-GHG</th><th>Pre-1980</th><th>Particip.</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="caveat"><b>Screening tool, not a verdict.</b> Pre-EUI is a modelled estimate, not metered use. Participation is suppressed where the 2021 dwelling count cannot carry it, so areas whose postal boundaries changed are excluded rather than scored, and the remaining participation figures still mix ~20 years of audits against one snapshot. Treat this as a prioritisation heuristic for <b>where to look</b>, not a judgement on any area or home.</div>
+    </div>
+  </section>
+
+  <!-- 09 WHO PARTICIPATES -->
+  <section id="sec-equity">
+    <div class="section-head">
+      <div class="section-num">09 — WHO PARTICIPATES</div>
+      <h2>Who takes part</h2>
+      <p class="intro">Postal areas sorted into five equal groups by neighbourhood median household income, lowest to highest.</p>
+      <div class="sowhat"><b>By the numbers:</b> participation rises with neighbourhood income, from <b>11.6%</b> in the lowest quintile to <b>16.4%</b> in the highest. Heat-pump rate runs the other way (34.7% down to 19.0%), and median saving is close to flat (22.1% to 19.8%). These are area averages; see the caveat below before reading them as household behaviour.</div>
+    </div>
+    <div class="card">
+      <h3>By neighbourhood income quintile</h3>
+      <div class="sub">Q1 = lowest-income neighbourhoods, Q5 = highest. Participation, heat-pump rate and typical saving.</div>
+      <div class="chart-wrap" style="height:330px"><canvas id="ch-income"></canvas></div>
+      <div class="caveat" style="border-left-color:var(--amber)"><b>These are area averages, not household measurements.</b> A quintile describes the postal area a home sits in, not the income of the household that retrofitted it. The lower-income quintiles here contain a higher share of Atlantic and Quebec postal areas, which also have the highest heat-pump rates province-wide, so the income gradient and the provincial gradient cannot be separated in this data. Read the chart as a description of areas; it does not support a claim about what lower-income households do.</div>
+    </div>
+    <div class="card" data-mode="advanced" style="margin-top:1rem">
+      <h3>By dwelling value quintile</h3>
+      <div class="sub">The secondary axis: postal areas grouped by median dwelling value instead of income.</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="ch-value"></canvas></div>
+      <div class="caveat">The same composition applies here: the lowest dwelling-value quintile contains a higher share of Atlantic and Quebec postal areas, so its heat-pump rate cannot be attributed to dwelling value on this evidence.</div>
+    </div>
+  </section>
+
+  <!-- 10 DEEP-RETROFIT REALITY CHECK -->
+  <section id="sec-casestudies">
+    <div class="section-head">
+      <div class="section-num">10 — ONE HOUSE AT A TIME</div>
+      <h2>What deep retrofits actually hit</h2>
+      <p class="intro">Everything above is a modelled average across 1.45 million ERS audits, most of which did one or two measures. <a href="https://retrofitcanada.com/case-studies" target="_blank" rel="noopener">Retrofit Canada's case-study library</a> is the opposite kind of dataset: <b id="cs-n">41</b> individual homeowner/contractor write-ups of Canadian home retrofits, each with a real before/after breakdown — envelope R-values, airtightness, energy use intensity, GHG. It's not a random sample of retrofits; it's a self-submitted showcase of deep and net-zero projects, so read every range below as "what the best-documented projects achieved," not "what's typical."</p>
+      <div class="sowhat" id="cs-sowhat"><b>By the numbers:</b> Loading…</div>
+    </div>
+    <div class="card">
+      <h3>Filter by building type</h3>
+      <div class="sub">Everything below reacts to this filter. All types are residential — see the note at the bottom for what's already excluded (commercial/institutional buildings, one non-Canadian project).</div>
+      <div class="pill-row" id="cs-type-filter"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Ranges, by how far the home got</h3>
+      <div class="sub">Median (min–max) for every numeric field with enough coverage to be worth showing. n = how many of the selected cases reported that field — most fields aren't filled in on every case, so read a thin column as a thin sample, not a thin result.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="cs-range-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note">"After" values only (post-retrofit), except energy/carbon savings which are already a before→after delta. Effective thermal resistance (R-value) and airtightness (ACH50) come straight from each project's own energy model, the same way ERS's HOT2000 fields do elsewhere on this page — not a metered measurement.</div>
+      <div class="caveat" id="cs-over100-caveat" style="margin-top:.6rem"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Project summary</h3>
+      <div class="sub">Click a column to sort. Click a row to open that case study on retrofitcanada.com.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="cs-case-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="note" id="cs-case-note"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Envelope R-values, pre → post</h3>
+      <div class="sub">Each line is one project's reported effective thermal resistance for that assembly, left axis before the retrofit, right axis after. Colour is that project's overall annual energy saving — steeper climbs don't necessarily mean a bigger saving on their own, since a home's total saving also depends on airtightness, mechanicals and fuel switching.</div>
+      <div id="cs-slope-legend" class="cs-slope-legend"></div>
+      <div id="cs-slope-grid" class="cs-slope-grid"></div>
+      <div class="note" id="cs-slope-note"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Envelope values by project</h3>
+      <div class="sub">The data behind the chart above, in table form. Limited to projects reporting at least one envelope R-value.</div>
+      <div class="scroll-x">
+        <table class="scorecard" id="cs-envelope-table"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="note">Case studies via <a href="https://retrofitcanada.com" target="_blank" rel="noopener">Retrofit Canada</a>, shared under their site's open-content terms (view/download/share freely, including commercially, with credit). Figures above are as reported on retrofitcanada.com and use each project's own energy-modelling methodology — not the ERS pipeline used elsewhere on this page, so don't average them together. Retrofit Canada's library holds 48 case studies in total; 7 are left out here — 6 commercial/institutional buildings (feasibility studies for a bus depot, seniors' centre, water utility building, community centre and municipal operations building) and 1 non-Canadian project (Portland, OR) — since they aren't comparable to a house or in scope for a Canadian-homes page. Scraped 2026-08-25; the library only grows via their submission form, so this is a snapshot, not a live feed.</div>
+  </section>
+
+</main>
+
+<section class="methodology" id="sec-method" aria-label="Methodology">
+  <details>
+    <summary>How this was built — sources, formulas &amp; the honesty rails</summary>
+    <div class="method-body" id="method-body"></div>
+  </details>
+</section>
+
+<div class="map-tip" id="map-tip"></div>
+<div id="info-tip"></div>
+
+<section class="feedback" data-feedback aria-labelledby="feedbackHeading">
+  <div class="feedback-head">
+    <div>
+      <p class="feedback-kicker">Private feedback</p>
+      <h2 id="feedbackHeading">Was this clear?</h2>
+      <p class="feedback-copy">Your response is private and helps improve this page.</p>
+    </div>
+    <div class="feedback-choices" role="group" aria-label="Clarity rating">
+      <button class="feedback-choice" type="button" data-rating="clear" aria-pressed="false">Yes</button>
+      <button class="feedback-choice" type="button" data-rating="almost" aria-pressed="false">Almost</button>
+      <button class="feedback-choice" type="button" data-rating="not-yet" aria-pressed="false">Not yet</button>
+    </div>
+  </div>
+  <form class="feedback-form" hidden>
+    <label for="feedbackComment">What could be clearer? <span>Optional, 1,200 characters maximum.</span></label>
+    <textarea id="feedbackComment" name="comment" maxlength="1200" placeholder="A confusing chart, a possible mistake, or an idea..."></textarea>
+    <label class="feedback-trap" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+    <div class="feedback-actions">
+      <button class="feedback-send" type="submit">Send private feedback</button>
+      <span class="feedback-status" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+</section>
+
+<footer>
+  Data: <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">Natural Resources Canada EnerGuide</a> · 2021 Census Profile (income, dwellings) · ECCC Climate Normals (HDD/CDD) · matched before/after audits 2004–2026.<br>
+  Values are modelled EnerGuide estimates, not metered consumption. FSA-level income and value figures are neighbourhood aggregates, not participant-level.<br>
+  <a href="retrofits.html">← Retrofit Explorer</a> · Website, data pipeline and Python scripts developed with Claude AI.
+</footer>
+
+<!-- Chart.js v4.4.1 vendored same-origin (assets/) — no CDN/external runtime dependency. -->
+<script src="assets/chart.umd.js"></script>
+<script defer src="assets/feedback.js"></script>
+<script>
+/* Retrofit Insights — national big-picture page.
+   Self-contained logic (inlined into retrofit-insights.html at ship time).
+   Data: insights_json/* (built by Python/build_insights.py), geo_json/<PROV>.json,
+   province_json/CA.json + lookup/ahri_numbers.json for §07.
+   Preview quirk handling: Chart.js runs animation:false + a forced .draw();
+   scrolling uses behavior:'instant'. */
+'use strict';
+
+const BASE_URL='./';   // data ships on gh-pages next to this page (same origin)
+const INS=`${BASE_URL}insights_json/`;
+const GEO=`${BASE_URL}geo_json/`;
+
+const $=id=>document.getElementById(id);
+const _cache=new Map();
+function loadJSON(url){
+  if(_cache.has(url))return _cache.get(url);
+  const p=fetch(url).then(r=>{if(!r.ok)throw new Error(url+' '+r.status);return r.json();});
+  _cache.set(url,p);
+  return p;
+}
+const fmtInt=n=>Math.round(n).toLocaleString('en-CA');
+const fmtPct=(v,d=0)=>`${(v*100).toFixed(d)}%`;
+const PROV_NAME={AB:'Alberta',BC:'British Columbia',MB:'Manitoba',NB:'New Brunswick',
+  NF:'Newfoundland & Labrador',NS:'Nova Scotia',ON:'Ontario',PE:'Prince Edward Island',
+  QC:'Quebec',SK:'Saskatchewan',NT:'Northwest Territories',NU:'Nunavut'};
+
+/* ── colours ────────────────────────────────────────────────────────
+   Read live from the shared theme vars (assets/site-theme.css) via
+   readPalette(), same pattern as retrofits.js/grid.html/newhomes.html.
+   `let`, not `const`: readPalette() reassigns these on every theme
+   change, and every call site below just reads the current value the
+   next time it runs (via redrawAllCharts()) -- no call site needs to
+   know a theme exists. NAVY/GREEN/RED intentionally read the --d-*
+   "data" tokens rather than --navy/--green/--red directly: --d-pos/
+   --d-neg specifically repoint to a blue/orange pair in the colour-blind
+   theme (see site-theme.css) so "before red, after green" doesn't rely
+   on hue alone, matching retrofits.js's PRE_LINE/POST_LINE convention. */
+let NAVY,AMBER,AMBER2,GREEN,RED,MUTED,GRID,SURF,TEXT,LIGHT,BORDER,CARD;
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=name=>cs.getPropertyValue(name).trim();
+  NAVY=g('--d-primary');AMBER=g('--amber');AMBER2=g('--amber2');
+  GREEN=g('--d-pos');RED=g('--d-neg');MUTED=g('--muted');
+  GRID=g('--d-grid');SURF=g('--surface');
+  // TEXT/LIGHT/BORDER: for canvas/SVG-string contexts (Chart.js fillStyle,
+  // hand-built SVG fill="..."), which can't consume a CSS var() reference
+  // and need the resolved hex interpolated in directly -- unlike a real
+  // DOM element's inline `style="color:var(--text)"`, which works fine.
+  TEXT=g('--text');LIGHT=g('--light');BORDER=g('--border');CARD=g('--card');
+  Chart.defaults.color=MUTED;
+  // AX/AXcat (declared further down) stay `const` -- only their nested
+  // fields are mutated here, so every chart built after this point (via
+  // mkChart, which always reads the current AX/AXcat object) picks up
+  // the new colours without needing its own reassignment.
+  if(typeof AX!=='undefined'){AX.grid.color=GRID;AX.ticks.color=MUTED;}
+  if(typeof AXcat!=='undefined'){AXcat.ticks.color=MUTED;}
+}
+function lerp(lo,hi,t){t=Math.max(0,Math.min(1,t));return`rgb(${lo.map((v,i)=>Math.round(v+(hi[i]-v)*t)).join(',')})`;}
+const GAMMA=0.55;
+const lerpG=(lo,hi,t)=>lerp(lo,hi,Math.pow(Math.max(0,Math.min(1,t)),GAMMA));
+function textOn(rgb){const m=rgb&&rgb.match(/\d+/g);if(!m)return'#1C2B3A';const[r,g,b]=m.map(Number);
+  return(0.299*r+0.587*g+0.114*b)/255>0.6?'#1C2B3A':'#fff';}
+
+/* ── theme toggle (light/dark/colour-blind) ──────────────────────────
+   Charts read the vars above through readPalette() and are rebuilt from
+   already-cached data (loadJSON caches by URL) on every theme change --
+   see redrawAllCharts() below whenVisible(). */
+const THEMES=['light','dark','cb'];
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  syncThemeButtons(t);
+  readPalette();
+  redrawAllCharts();
+}
+syncThemeButtons(document.documentElement.dataset.theme||'light');
+
+/* ── mode toggle ────────────────────────────────────────────────────── */
+document.querySelectorAll('[data-set-mode]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const m=btn.dataset.setMode;
+    document.body.classList.toggle('mode-simple',m==='simple');
+    document.body.classList.toggle('mode-advanced',m==='advanced');
+    document.querySelectorAll('[data-set-mode]').forEach(b=>b.classList.toggle('active',b===btn));
+    // advanced charts were built hidden (0px) — resize + redraw now they're visible
+    setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();c.draw();}catch(e){}}),30);
+  });
+});
+
+/* ── info tooltips ──────────────────────────────────────────────────── */
+(function(){
+  const tip=$('info-tip');let open=null;
+  function show(btn){const t=btn.dataset.tip;if(!t)return;tip.textContent=t;tip.style.display='block';
+    const r=btn.getBoundingClientRect();let l=r.left-140+r.width/2;l=Math.max(8,Math.min(l,innerWidth-tip.offsetWidth-8));
+    let top=r.bottom+8;if(top+tip.offsetHeight>innerHeight-8)top=r.top-tip.offsetHeight-8;
+    tip.style.left=l+'px';tip.style.top=top+'px';btn.classList.add('open');open=btn;}
+  function hide(){tip.style.display='none';if(open)open.classList.remove('open');open=null;}
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.info-btn');
+    if(b){e.stopPropagation();if(open===b){hide();}else{if(open)open.classList.remove('open');show(b);}return;}
+    hide();
+  });
+  document.addEventListener('mouseover',e=>{const b=e.target.closest('.info-btn');if(b&&open!==b){if(open)open.classList.remove('open');show(b);}});
+  document.addEventListener('mouseout',e=>{if(e.target.closest('.info-btn')&&!('ontouchstart'in window))hide();});
+})();
+
+/* ── Chart.js helper (animation:false + forced draw for the no-rAF preview) ── */
+const CHARTS={};
+Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color=MUTED;
+// Inline (per-chart) plugins must be passed at construction — chart.config is
+// getter-only in Chart.js 4. Stage them in _plg right before the mkChart call.
+let _plg=null;
+function mkChart(id,cfg){
+  const el=$(id);if(!el)return null;
+  cfg.options=cfg.options||{};
+  cfg.options.animation=false;cfg.options.responsive=true;cfg.options.maintainAspectRatio=false;
+  if(_plg){cfg.plugins=_plg;_plg=null;}
+  if(CHARTS[id]){CHARTS[id].destroy();}
+  const c=new Chart(el.getContext('2d'),cfg);
+  c.update('none');c.draw();
+  CHARTS[id]=c;return c;
+}
+// value-label plugin factory
+function labels(fmt,opt={}){
+  const horiz=!!opt.horizontal,col=opt.color||TEXT,off=opt.offset??4,size=opt.size||10,inside=opt.inside;
+  return{afterDatasetsDraw(chart){
+    const ctx=chart.ctx;ctx.save();ctx.font=`600 ${size}px Inter,sans-serif`;ctx.textBaseline='middle';
+    chart.data.datasets.forEach((ds,di)=>{
+      if(ds._nolabel)return;
+      const meta=chart.getDatasetMeta(di);if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const v=ds.data[i];if(v==null||(typeof v==='number'&&isNaN(v)))return;
+        const s=fmt(v,i,di);if(s==null||s==='')return;
+        ctx.fillStyle=inside?textOn(ds.backgroundColor[i]||ds.backgroundColor||'#000'):col;
+        if(horiz){ctx.textAlign=inside?'right':'left';const x=inside?el.x-off:el.x+off;ctx.fillText(s,x,el.y);}
+        else{ctx.textAlign='center';ctx.fillText(s,el.x,el.y-off);}
+      });
+    });ctx.restore();
+  }};
+}
+const AX={grid:{color:GRID,drawTicks:false},border:{display:false},ticks:{color:MUTED,padding:6}};
+const AXcat={grid:{display:false},border:{display:false},ticks:{color:MUTED}};
+readPalette(); // first call: resolves NAVY/AMBER/.../AX.grid.color etc. before any chart renders
+
+/* ── lazy section rendering ─────────────────────────────────────────────
+   Scroll/rect based rather than IntersectionObserver: IO callbacks are tied
+   to the rendering pipeline and don't fire in the frame-less preview here,
+   whereas scroll events + an initial rect check work everywhere. Each section
+   renders once, when it comes within ~350px of the viewport. */
+const rendered=new Set();
+const _pending=new Map();
+const _sectionFn=new Map(); // secId -> fn, kept after firing so theme changes can re-run it
+function whenVisible(secId,fn){const el=$(secId);if(el){_pending.set(secId,fn);_sectionFn.set(secId,fn);}}
+// Charts (and the SVG choropleth) bake their colours in at construction/paint
+// time, so a theme change has to re-run each section's render function against
+// whatever data loadJSON already cached -- never re-fetch. Only sections that
+// have actually rendered once (in `rendered`) are touched.
+function redrawAllCharts(){
+  for(const id of rendered){
+    const fn=_sectionFn.get(id);
+    if(fn)Promise.resolve().then(fn).catch(err=>console.error('theme redraw',id,err));
+  }
+  if(typeof paintMap==='function'&&MAP_STATE.built)paintMap();
+}
+function checkPending(){
+  if(!_pending.size)return;const vh=innerHeight||800;
+  for(const[id,fn]of[..._pending]){
+    const el=$(id);if(!el)continue;const r=el.getBoundingClientRect();
+    if(r.top<vh+350&&r.bottom>-350){_pending.delete(id);
+      if(!rendered.has(id)){rendered.add(id);Promise.resolve().then(fn).catch(err=>console.error(id,err));}}
+  }
+}
+addEventListener('scroll',checkPending,{passive:true});
+addEventListener('resize',()=>{checkPending();setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize();c.draw();}catch(e){}}),40);});
+
+/* ══════════════════════════════════════════════════════════════════════
+   02 — PROVINCIAL SCORECARD
+   ══════════════════════════════════════════════════════════════════════ */
+let SCORE_ROWS=null,SCORE_SORT={key:'matched',dir:-1};
+const SCORE_COLS=[
+  {key:'prov',label:'Province',fmt:r=>`<span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span>`,num:false},
+  {key:'matched',label:'Retrofits',fmt:r=>fmtInt(r.matched),bar:true,cat:'program'},
+  {key:'participation',label:'Particip.',fmt:r=>fmtPct(r.participation,1),bar:true,cat:'program',pct:100},
+  {key:'saving',label:'Med. saving',fmt:r=>r.saving.toFixed(1)+'%',bar:true,cat:'energy',pct:1},
+  {key:'hp',label:'Heat pump',fmt:r=>fmtPct(r.hp,0),bar:true,cat:'fuel',pct:100},
+  {key:'fuel',label:'Fuel switch',fmt:r=>fmtPct(r.fuel,0),bar:true,cat:'fuel',pct:100},
+  {key:'deep',label:'Deep',fmt:r=>fmtPct(r.deep,1),bar:true,cat:'energy',pct:100},
+  {key:'eui',label:'Pre-EUI',fmt:r=>Math.round(r.eui),bar:true,cat:'energy'},
+];
+function buildScorecard(records){
+  const g={};
+  records.forEach(r=>{
+    if(!PROV_NAME[r.prov])return;
+    const p=g[r.prov]||(g[r.prov]={prov:r.prov,matched:0,aud:0,dw:0,sw:0,shp:0,sfuel:0,sdeep:0,seui:0,neui:0});
+    p.matched+=r.n;p.sw+=r.n*r.median_saving_pct;
+    p.shp+=r.n*(r.hp_rate||0);p.sfuel+=r.n*(r.fuel_switch_rate||0);p.sdeep+=r.n*(r.deep_rate||0);
+    if(r.participation&&r.participation>0){p.aud+=r.audited;p.dw+=r.audited/r.participation;}
+    if(r.eui_pre_median!=null){p.seui+=r.n*r.eui_pre_median;p.neui+=r.n;}
+  });
+  return Object.values(g).map(p=>({
+    prov:p.prov,matched:p.matched,
+    participation:p.dw>0?p.aud/p.dw:0,
+    saving:p.sw/p.matched,hp:p.shp/p.matched,fuel:p.sfuel/p.matched,deep:p.sdeep/p.matched,
+    eui:p.neui>0?p.seui/p.neui:0,
+  }));
+}
+function renderScorecard(){
+  const rows=SCORE_ROWS,head=$('scorecard-table').tHead,body=$('scorecard-table').tBodies[0];
+  const maxes={};
+  SCORE_COLS.forEach(c=>{if(c.bar)maxes[c.key]=Math.max(...rows.map(r=>r[c.key]));});
+  head.innerHTML='<tr>'+SCORE_COLS.map(c=>`<th data-key="${c.key}" class="${SCORE_SORT.key===c.key?'arrow-active':''}">${c.label}${SCORE_SORT.key===c.key?(SCORE_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const sorted=[...rows].sort((a,b)=>{const k=SCORE_SORT.key;
+    if(k==='prov')return SCORE_SORT.dir*(PROV_NAME[a.prov]||'').localeCompare(PROV_NAME[b.prov]||'');
+    return SCORE_SORT.dir*(a[k]-b[k]);});
+  body.innerHTML=sorted.map(r=>'<tr>'+SCORE_COLS.map(c=>{
+    if(c.bar){const pct=c.pct?Math.min(100,Math.round(r[c.key]*c.pct)):Math.round(100*r[c.key]/maxes[c.key]);
+      return`<td class="bar-cell"><span class="bar cat-${c.cat}" style="width:${pct}%"></span><span>${c.fmt(r)}</span></td>`;}
+    return`<td>${c.fmt(r)}</td>`;
+  }).join('')+'</tr>').join('');
+  head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.key;if(SCORE_SORT.key===k)SCORE_SORT.dir*=-1;else{SCORE_SORT={key:k,dir:k==='prov'?1:-1};}
+    renderScorecard();});
+}
+function sec02(){return ensureMetrics().then(recs=>{SCORE_ROWS=buildScorecard(recs);renderScorecard();});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   02b — GHG IMPACT (carbon tax / SCC value + equivalencies)
+   Vehicle/flight/oil/forest/propane factors ported from Ottawa Visuals'
+   ghg_calculator.html so this page has no cross-repo/iframe dependency.
+   ══════════════════════════════════════════════════════════════════════ */
+const GHG_TRIP_KM=14198; // St. John's <-> Vancouver round trip, matches the calculator
+// icon paths ported verbatim from Ottawa Visuals' ghg_calculator.html (hardcoded
+// fills swapped for currentColor so they follow this page's light/dark/cb themes)
+const ICON_TRUCK='<svg viewBox="-5 -10 110 110"><path fill="currentColor" d="m25.914 52.742c-4.582 0-8.3125 3.7305-8.3125 8.3125 0 4.5859 3.7305 8.3125 8.3125 8.3125 4.5859 0 8.3125-3.7305 8.3125-8.3125 0-4.582-3.7305-8.3125-8.3125-8.3125zm0 13.09c-2.6328 0-4.7773-2.1445-4.7773-4.7773 0-2.6328 2.1445-4.7773 4.7773-4.7773 2.6328 0 4.7773 2.1445 4.7773 4.7773 0 2.6367-2.1445 4.7773-4.7773 4.7773z"/><path fill="currentColor" d="m78.363 52.742c-4.582 0-8.3125 3.7305-8.3125 8.3125 0 4.5859 3.7305 8.3125 8.3125 8.3125 4.5859 0 8.3125-3.7305 8.3125-8.3125 0-4.582-3.7266-8.3125-8.3125-8.3125zm0 13.09c-2.6328 0-4.7773-2.1445-4.7773-4.7773 0-2.6328 2.1445-4.7773 4.7773-4.7773 2.6328 0 4.7773 2.1445 4.7773 4.7773 0 2.6367-2.1406 4.7773-4.7773 4.7773z"/><path fill="currentColor" d="m94.359 52.621h-0.52344l-2.4219-7.6211c-0.26562-0.83203-1.0352-1.3945-1.9062-1.3945h-11.109c-0.29688 0-0.58203-0.13281-0.76953-0.36328l-10.023-12.117c-0.27344-0.32812-0.67188-0.51562-1.0938-0.51562h-24.453c-0.78516 0-1.4219 0.63672-1.4219 1.4219v11.574h-31.859c-1.0469 0-1.8945 0.84766-1.8945 1.8945v9.9609h-0.62891c-0.52344 0-0.94922 0.42578-0.94922 0.94922v2.75c0 1.0469 0.84766 1.8945 1.8945 1.8945h7.7109c0.47266 0 0.88672-0.34766 0.9375-0.82031 0.50391-4.793 4.2148-8.8086 9.0898-9.2656 5.7344-0.53906 10.617 3.7305 11.074 9.2383 0.039062 0.48438 0.45312 0.84766 0.9375 0.84766h30.414c0.47266 0 0.88672-0.34766 0.9375-0.82031 0.50391-4.793 4.2148-8.8086 9.0898-9.2656 5.7344-0.53906 10.617 3.7305 11.074 9.2383 0.039062 0.48438 0.45312 0.84766 0.9375 0.84766h4.0117c1.0469 0 1.8945-0.84766 1.8945-1.8945v-5.5938c-0.003906-0.52344-0.42578-0.94531-0.94922-0.94531zm-50.48-17.473c0-0.55078 0.44922-1 1-1h7.457c0.55078 0 1 0.44922 1 1v7.457c0 0.55078-0.44922 1-1 1h-7.457c-0.55078 0-1-0.44922-1-1zm21.711 23.961h-26.902c-0.42969 0-0.77734-0.34766-0.77734-0.77734 0-0.42969 0.34766-0.77734 0.77734-0.77734h26.902c0.42969 0 0.77734 0.34766 0.77734 0.77734 0 0.42969-0.34766 0.77734-0.77734 0.77734zm5.4609-15.504h-13.695c-0.55078 0-1-0.44922-1-1v-7.457c0-0.55078 0.44922-1 1-1h7.6875c0.28906 0 0.5625 0.13281 0.74219 0.35937l6.0078 7.5625c0.49219 0.62109 0.050781 1.5352-0.74219 1.5352z"/></svg>';
+const ICON_CAR='<svg viewBox="0 0 96 96"><g transform="translate(-252 -94)"><path fill="currentColor" d="M284 156C284 160.418 280.418 164 276 164 271.582 164 268 160.418 268 156 268 151.582 271.582 148 276 148 280.418 148 284 151.582 284 156Z"/><path fill="currentColor" d="M332 156C332 160.418 328.418 164 324 164 319.582 164 316 160.418 316 156 316 151.582 319.582 148 324 148 328.418 148 332 151.582 332 156Z"/><path fill="currentColor" d="M291 136 291 124 304.7 124C305.8 124 306.8 124.4 307.5 125.2L318.3 136 291 136ZM287 136 261.7 136 272.5 125.2C273.3 124.4 274.3 124 275.3 124L287 124 287 136ZM334 136 325.7 136C324.6 136 323.6 135.6 322.9 134.8L310.3 122.3C308.8 120.8 306.8 120 304.6 120L275.3 120C273.2 120 271.1 120.8 269.6 122.3L257.2 134.8C256.4 135.6 256 136.6 256 137.7L256 148C256 152.4 259.6 156 264 156L265 156C265 149.9 269.9 145 276 145 282.1 145 287 149.9 287 156L313 156C313 149.9 317.9 145 324 145 330.1 145 335 149.9 335 156L340 156C342.2 156 344 154.2 344 152L344 146C344 140.5 339.5 136 334 136Z"/></g></svg>';
+const ICON_PLANE='<svg viewBox="0 0 96 96"><g transform="translate(-584 -85)"><path fill="currentColor" d="M590 157 674 157 674 161 590 161Z"/><path fill="currentColor" d="M599.929 131.205C598.932 131.127 598.036 130.567 597.529 129.705L591.1 118.769C590.892 118.401 591.022 117.935 591.389 117.727 591.458 117.688 591.531 117.66 591.608 117.644L593.97 117.144C594.667 116.997 595.393 117.182 595.935 117.644L604.605 125.07 621.075 121.614 604.3 107.651C603.976 107.38 603.932 106.896 604.204 106.572 604.314 106.44 604.465 106.35 604.633 106.314L608.101 105.587C608.733 105.453 609.392 105.523 609.982 105.787L637.544 118.165 660.752 113.3C663.746 112.671 672.018 114.843 672.489 117.089 673.275 120.832 665.789 122.403 665.789 122.403L627.029 130.537C620.645 131.877 614.104 132.302 607.6 131.8Z"/></g></svg>';
+const ICON_OIL='<svg viewBox="0 0 96 96"><g transform="translate(-418 -109)"><path fill="currentColor" d="M442 149 442 167C440.343 167 439 168.343 439 170 439 171.657 440.343 173 442 173L489 173C490.657 173 492 171.657 492 170 492 168.343 490.657 167 489 167L489 149Z"/><path fill="currentColor" d="M440 129 442 129 442 139C440.343 139 439 140.343 439 142 439 143.657 440.343 145 442 145L489 145C490.657 145 492 143.657 492 142 492 140.343 490.657 139 489 139L489 129 491 129C492.657 129 494 127.657 494 126 494 124.343 492.657 123 491 123L483 123 483 120 472 120 472 123 440 123C438.343 123 437 124.343 437 126 437 127.657 438.343 129 440 129Z"/><path fill="currentColor" d="M491 189 489 189 489 177 442 177 442 189 440 189C438.343 189 437 190.343 437 192 437 193.657 438.343 195 440 195L491 195C492.657 195 494 193.657 494 192 494 190.343 492.657 189 491 189Z"/></g></svg>';
+const ICON_TREE='<svg viewBox="0 0 96 96"><g transform="translate(-774 -122)"><path fill="currentColor" d="M851.94 196.61 851.94 188.61 863.69 189.61 855.85 177.55 860.65 178.84 855 170.22 858.49 170.66 850.19 158.59 845.93 164.81 837.45 151.81 842.87 152.49 830 133.48 817.13 152.48 822.55 151.8 813.74 165.32 821.19 163.32 809 182.26 827 178.87 827 191.18C821.08 191.31 815.56 192.6 811.25 195.36 815.25 197.44 819.48 201.01 823.34 207L866 207C862.78 202.91 857.77 199.33 851.94 196.61ZM845.68 165.17 842.76 169.44 838.76 163.29ZM842.46 180.74 836.69 189.61 848 188.61 848 195C842.86 193.057 837.475 191.836 832 191.37L832 178.87Z"/><path fill="currentColor" d="M806.19 196.46 806 196.46 806 193 811 194 807.34 187.26 810 188 806.85 183.21 808.79 183.45 804 177 799.6 183.43 801.53 183.19 799.83 185.78 796.08 179.78 800.2 180.89 795.33 173.48 798.33 173.85 791.21 163.46 784.09 173.83 787.09 173.46 782.22 180.87 786.34 179.76 779.6 190.14 789 189 789 199C784.834 200.903 781.094 203.623 778 207L819.72 207C815.19 200.65 810.29 197.73 806.19 196.46ZM792 197.83 792 189 799.85 189.9 798 194 803 193 803 196.21C799.267 196.107 795.545 196.655 792 197.83Z"/></g></svg>';
+const ICON_PROPANE='<svg viewBox="0 0 100 100"><path fill="currentColor" d="M20,70C20,75.551,26.036,80.394,35,82.988L35,90L65,90L65,82.988C73.964,80.394,80,75.551,80,70L80,55L20,55L20,70Z"/><path fill="currentColor" d="M80,40C80,34.449,73.964,29.606,65,27.012L65,15C66.381,15,67.5,13.881,67.5,12.5C67.5,11.119,66.381,10,65,10L35,10C33.619,10,32.5,11.119,32.5,12.5C32.5,13.881,33.619,15,35,15L35,27.012C26.036,29.606,20,34.449,20,40L20,50L80,50L80,40ZM60,25.857C57.623,25.437,55.109,25.164,52.5,25.056L52.5,20L55,20L56.667,15L60,15L60,25.857ZM40,15L43.333,15L45,20L47.5,20L47.5,25.056C44.891,25.164,42.377,25.437,40,25.857L40,15Z"/></svg>';
+// new icons (this page only, no ghg_calculator equivalent) — same single-path,
+// currentColor style so they theme identically to the ported ones above
+const ICON_HOUSE='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M48 10 L90 46 L80 46 L80 88 L54 88 L54 60 L42 60 L42 88 L16 88 L16 46 L6 46 Z"/></svg>';
+const ICON_BOLT='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M54 6 L18 54 L44 54 L38 90 L80 40 L52 40 Z"/></svg>';
+const ICON_PLUG='<svg viewBox="0 0 96 96"><path fill="currentColor" d="M36 8H44V30H36Z"/><path fill="currentColor" d="M52 8H60V30H52Z"/><path fill="currentColor" d="M26 30H70V58A6 6 0 0 1 64 64H32A6 6 0 0 1 26 58Z"/><path fill="currentColor" d="M44 64H52V86H44Z"/></svg>';
+const ICON_MONEY='<svg viewBox="0 0 96 96"><path fill="currentColor" fill-rule="evenodd" d="M6 26 H90 V70 H6 Z M10 30 H86 V66 H10 Z"/><path fill="currentColor" d="M48,37 A11,11 0 1,1 47.99,37 Z"/></svg>';
+const GHG_VEHICLES=[
+  {label:"Ford F-150",gco2_per_km:256.6,icon:ICON_TRUCK},
+  {label:"Honda Civic",gco2_per_km:149.6,icon:ICON_CAR},
+  {label:"Hyundai Ioniq (AB)",gco2_per_km:139.8,icon:ICON_CAR},
+  {label:"Hyundai Ioniq (ON)",gco2_per_km:6.2,icon:ICON_CAR},
+];
+const GHG_OTHER=[
+  {label:"Flights, St. John's–Vancouver",factor:75.72266667,unit:"flights",icon:ICON_PLANE},
+  {label:"Barrels of oil burned",factor:2.3,unit:"barrels",icon:ICON_OIL},
+  {label:"Central Parks of forest (annual absorption)",factor:1686,unit:"Central Parks",icon:ICON_TREE},
+  {label:"Propane cylinders (BBQ)",factor:0.024390244,unit:"cylinders",icon:ICON_PROPANE},
+];
+function renderGhgEquiv(totalTco2e){
+  const parts=GHG_VEHICLES.map(v=>{
+    const perTrip=(v.gco2_per_km*GHG_TRIP_KM)/1e6;
+    const trips=totalTco2e/perTrip,km=(totalTco2e*1e6)/v.gco2_per_km;
+    return`<div class="equiv-card">${v.icon}<div class="equiv-label">${v.label} — round trips St. John's–Vancouver</div><div class="equiv-value">${fmtInt(trips)}</div><div class="equiv-sub">${fmtInt(km)} km driven</div></div>`;
+  }).concat(GHG_OTHER.map(o=>
+    `<div class="equiv-card">${o.icon}<div class="equiv-label">${o.label}</div><div class="equiv-value">${fmtInt(totalTco2e/o.factor)}</div><div class="equiv-sub">${o.unit}</div></div>`
+  ));
+  $('ghg-equiv-grid').innerHTML=parts.join('');
+}
+// 4 GHG bases (mirrors Python/ghg_factors.py / compute_ghg_scenarios.py --
+// keep in sync). "reported" = raw ERSGHG (partial coverage); the other 3 are
+// calculated from each home's own fuel consumption (~100% coverage).
+let GHG_SCENARIO='as_audited';
+const GHG_SCENARIO_LABEL={
+  as_audited:"the ERS-calibrated factor matched to each home's own audit year",
+  current:"a single flat 2026 official ECCC factor, applied to every retrofit regardless of when it happened",
+  current_corrected:"a single flat 2026 official ECCC factor, with Alberta and Newfoundland & Labrador realigned to the ERS data (see Methodology)",
+  reported:"the raw NRCan-reported ERSGHG field, unmodified",
+};
+let _ghgImpactData=null;
+
+function renderGhgImpact(g){
+  _ghgImpactData=g;
+  const scen=g.scenarios[GHG_SCENARIO];
+  const n=scen.national;
+  $('ghg-kpi-strip').innerHTML=`
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_ghg_saved_tco2e)}</div><div class="gl">tCO₂e/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes${GHG_SCENARIO==='reported'?' with a valid GHG reading':''})</div></div>
+    <div class="ghg-kpi"><div class="gv">${n.avg_ghg_saved_tco2e.toFixed(1)}</div><div class="gl">avg tCO₂e/yr saved per home</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.carbon_tax_value_cad)}</div><div class="gl">at the 2024 carbon-tax rate ($${g.carbon_tax_rate.value}/tCO₂e)</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(n.scc_value_cad)}</div><div class="gl">at ECCC's 2024 Social Cost of Carbon ($${g.scc_rate.value}/tCO₂e)</div></div>`;
+  const covPhrase=GHG_SCENARIO==='reported'
+    ?`Over the ${fmtInt(n.n)} matched pairs (${fmtPct(n.ghg_coverage_pct,0)} of ${fmtInt(n.matched_total)} nationally) with a usable before/after GHG reading`
+    :`Across all ${fmtInt(n.n)} matched pairs nationally (${fmtPct(n.ghg_coverage_pct,0)} coverage)`;
+  $('ghg-sowhat').textContent=`${covPhrase}, retrofits saved a net ${fmtInt(n.total_ghg_saved_tco2e)} tCO₂e/yr — worth $${fmtInt(n.carbon_tax_value_cad)} at the 2024 carbon-tax rate and $${fmtInt(n.scc_value_cad)} under ECCC's Social Cost of Carbon. ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled GHG rise instead of fall, most often from switching to electric heat in a higher-emission-grid province.`;
+  $('ghg-national-note').textContent=`Net = sum(pre GHG − post GHG) over ${fmtInt(n.n)} matched pairs, using ${GHG_SCENARIO_LABEL[GHG_SCENARIO]}. Not clipped at zero — ${fmtInt(n.n_increased)} homes pull the total down.`;
+
+  const rows=Object.entries(scen.by_province).map(([prov,s])=>({prov,...s}))
+    .sort((a,b)=>b.total_ghg_saved_tco2e-a.total_ghg_saved_tco2e);
+  const head=$('ghg-table').tHead,body=$('ghg-table').tBodies[0];
+  head.innerHTML='<tr><th>Province</th><th>Homes</th><th>Coverage</th><th>Avg tCO₂e/home</th><th>Total tCO₂e/yr</th><th>Carbon-tax value</th><th>SCC value</th></tr>';
+  body.innerHTML=rows.map(r=>`<tr><td><span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span></td><td>${fmtInt(r.n)} / ${fmtInt(r.matched_total)}</td><td>${fmtPct(r.ghg_coverage_pct,0)}</td><td>${r.avg_ghg_saved_tco2e.toFixed(1)}</td><td>${fmtInt(r.total_ghg_saved_tco2e)}</td><td>$${fmtInt(r.carbon_tax_value_cad)}</td><td>$${fmtInt(r.scc_value_cad)}</td></tr>`).join('');
+
+  const caveat=$('ghg-caveat');
+  if(GHG_SCENARIO==='reported'){
+    caveat.innerHTML=`<b>Only about half the matched homes have a usable GHG reading, and it varies sharply by province.</b> Nationally ${fmtPct(n.ghg_coverage_pct,1)} of matched pairs (${fmtInt(n.n)} of ${fmtInt(n.matched_total)}) have both a Pre_GHG and a Post_GHG value — ERSGHG is not populated for every audit. Every figure here describes only the homes with GHG data, not the full matched population, and is not scaled up to cover the gap.`;
+  } else {
+    caveat.innerHTML=`<b>Two different prices for the same tonnes.</b> The carbon-tax figure applies a single flat $80/tCO₂e (the 2024 federal rate) to every matched pair regardless of its own audit year — illustrative, not a reconstruction of the phased 2019–2024 schedule, and the federal consumer fuel charge was removed 2025-04-01. The Social Cost of Carbon figure applies ECCC's 2024 central estimate ($266/tCO₂e, C$2021, 2% discount) — an estimate of global avoided damage, not a price anyone pays. Neither is metered.${GHG_SCENARIO!=='current'?' Alberta and Newfoundland & Labrador use an ERS-aligned electricity factor here — see Methodology, “GHG scenarios”, for why.':''}`;
+  }
+
+  $('ghg-equiv-n').textContent=`from ${fmtInt(n.n)} homes`;
+  renderGhgEquiv(n.total_ghg_saved_tco2e);
+}
+function secGhg(){return loadJSON(INS+'ghg_impact.json').then(renderGhgImpact);}
+$('ghg-scenario-sel').addEventListener('change',function(){
+  GHG_SCENARIO=this.value;
+  if(_ghgImpactData)renderGhgImpact(_ghgImpactData);
+});
+
+// energy impact — kWh saved, priced $ + homes-powered + EV-km equivalents
+// (parallel to the GHG card above, but a single basis, no scenario picker:
+// Pre/Post_TotalEnergy is one measured-unit-converted quantity, not a
+// grid-factor choice like GHG is)
+function renderEnergyImpact(g){
+  const n=g.national;
+  $('energy-national-note').textContent=`Net = sum(pre kWh − post kWh) over ${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched pairs. Not clipped at zero — ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled energy use rise, pulling the total down.`;
+  const parts=[
+    {icon:ICON_BOLT,label:'Total energy saved, net',value:fmtInt(n.total_gwh_saved)+' GWh/yr',sub:(n.total_kwh_saved/1e9).toFixed(2)+' TWh/yr'},
+    {icon:ICON_BOLT,label:'Avg energy saved per home',value:fmtInt(n.avg_kwh_saved)+' kWh/yr',sub:`${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes`},
+    {icon:ICON_HOUSE,label:'Equivalent to powering this many homes for a year',value:fmtInt(n.homes_powered_equivalent),sub:`vs a CEUD avg home (${n.ceud_avg_household_kwh.year})`},
+    {icon:ICON_MONEY,label:'Avoided energy cost',value:'$'+fmtInt(n.cost_cad_saved)+'/yr',sub:`${fmtPct(n.cost_coverage_pct,0)} of homes priced`},
+    {icon:ICON_PLUG,label:'Equivalent EV driving distance',value:(n.ev_km_equivalent/1e9).toFixed(2)+' billion km',sub:`at ${(g.ev_kwh_per_km*100).toFixed(0)} kWh/100km, illustrative`},
+  ];
+  $('energy-equiv-grid').innerHTML=parts.map(p=>
+    `<div class="equiv-card">${p.icon}<div class="equiv-label">${p.label}</div><div class="equiv-value">${p.value}</div><div class="equiv-sub">${p.sub}</div></div>`
+  ).join('');
+  $('energy-caveat').innerHTML=`<b>Homes-powered is an energy-volume comparison, not a claim about these specific homes.</b> It divides the national kWh total by NRCan CEUD's own average household energy use (residential "Total Energy Use" ÷ "Total Households", ${n.ceud_avg_household_kwh.year} — CEUD's latest year) — it does not mean this many unique Canadian homes are now fully powered by the savings. $ saved uses the same volumetric, today's-rates methodology as the retrofit $-saved feature elsewhere on this site (<a href="retrofits" style="color:var(--ink)">Retrofit Explorer</a>) — historical bills aren't reconstructed. The EV-km figure uses one illustrative consumption rate, not a specific vehicle.`;
+}
+function secEnergy(){return loadJSON(INS+'energy_impact.json').then(renderEnergyImpact);}
+
+// peak demand — design/peak heat-loss decrease for electrically-heated-pre
+// homes, priced against IESO's 2024 resource-cost table (user-selectable)
+let _peakData=null,PEAK_RESOURCE=null;
+function renderPeakReduction(g){
+  _peakData=g;
+  const costs=g.resource_costs;
+  if(!PEAK_RESOURCE)PEAK_RESOURCE='gas_scgt';
+  const sel=$('peak-resource-sel');
+  if(!sel.options.length){
+    sel.innerHTML=Object.entries(costs).map(([k,c])=>`<option value="${k}">${c.label}</option>`).join('');
+    sel.value=PEAK_RESOURCE;
+  }
+  const rc=costs[PEAK_RESOURCE];
+  const n=g.national;
+  const capCost=n.decrease_kw*rc.capital_per_kw;
+  const omCost=n.decrease_kw*rc.fixed_om_per_kw_yr;
+  $('peak-kpi-strip').innerHTML=`
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.decrease_kw)}</div><div class="gl">kW decrease, net (${fmtInt(n.n)} electrically-heated-pre homes)</div></div>
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.n_with_heat_pump)}</div><div class="gl">of those added a heat pump (${fmtPct(n.n_with_heat_pump/n.n,0)})</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(capCost)}</div><div class="gl">avoided ${rc.label.toLowerCase()} capital cost ($${fmtInt(rc.capital_per_kw)}/kW)</div></div>
+    <div class="ghg-kpi"><div class="gv">$${fmtInt(omCost)}</div><div class="gl">avoided fixed O&amp;M, per year ($${fmtInt(rc.fixed_om_per_kw_yr)}/kW-yr)</div></div>`;
+  $('peak-national-note').textContent=`Net = sum(pre kW − post kW) of HOT2000's design/peak heat-loss field, over ${fmtInt(n.n)} matched pairs that were electrically heated before the retrofit.`;
+
+  const rows=Object.entries(g.by_province).map(([prov,s])=>({prov,...s}))
+    .sort((a,b)=>b.decrease_kw-a.decrease_kw);
+  const head=$('peak-table').tHead,body=$('peak-table').tBodies[0];
+  head.innerHTML='<tr><th>Province</th><th>Homes</th><th>w/ heat pump</th><th>Pre kW</th><th>Post kW</th><th>Decrease kW</th><th>Avoided capital cost</th></tr>';
+  body.innerHTML=rows.map(r=>`<tr><td><span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span></td><td>${fmtInt(r.n)}</td><td>${fmtInt(r.n_with_heat_pump)}</td><td>${fmtInt(r.pre_kw)}</td><td>${fmtInt(r.post_kw)}</td><td>${fmtInt(r.decrease_kw)}</td><td>$${fmtInt(r.decrease_kw*rc.capital_per_kw)}</td></tr>`).join('');
+
+  $('peak-caveat').innerHTML=`<b>This is a thermal design-load figure, not a metered electrical-demand figure.</b> For homes still on electric resistance heat, thermal kW is a reasonable stand-in for electric peak draw (COP≈1). For the ${fmtInt(n.n_with_heat_pump)} homes above that added a heat pump, this number understates the true drop in electric peak demand — it doesn't account for the heat pump's COP, only the building's own heat-loss change. Resource costs are ${g.resource_costs_source.split(',')[0]}'s 2024 generation-cost table (Ontario grid planning), applied here as an illustrative national benchmark for "what a kW of avoided peak is worth in new-generation terms" — not a claim that any specific province would have built exactly this resource. <a href="https://ieso.ca/-/media/Files/IESO/Document-Library/planning-forecasts/APO/Resource-Costs-and-Trends.pdf" target="_blank" rel="noopener" style="color:var(--ink)">Source (PDF) ↗</a>`;
+}
+function secPeak(){return loadJSON(INS+'peak_reduction.json').then(renderPeakReduction);}
+$('peak-resource-sel').addEventListener('change',function(){
+  PEAK_RESOURCE=this.value;
+  if(_peakData)renderPeakReduction(_peakData);
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   03 — NATIONAL MAP + LEADERBOARDS
+   ══════════════════════════════════════════════════════════════════════ */
+let METRICS_RECS=null,FSA_INDEX=null;
+function ensureMetrics(){
+  if(METRICS_RECS)return Promise.resolve(METRICS_RECS);
+  return loadJSON(INS+'fsa_metrics.json').then(d=>{
+    METRICS_RECS=d.records;FSA_INDEX={};d.records.forEach(r=>FSA_INDEX[r.fsa]=r);return METRICS_RECS;});
+}
+const MIN_N=30;
+// metric registry ------------------------------------------------------
+const MMETRICS={
+  participation:{label:'Participation',lb:'Uptake (audited ÷ dwellings)',
+    get:r=>r.participation,ok:r=>r.n>=MIN_N&&r.participation!=null,
+    // No lbFilter: build_insights.py suppresses untrusted denominators at source
+    // (participation_suppressed), so a stray >100% here is a regression, not noise to hide.
+    lbNote:'Counts ~20 years of cumulative audits against a single 2021 dwelling snapshot, so read it as relative, not absolute. Postal areas with fewer than 1,000 census dwellings, or no 2021 census record, are left out — over that span an FSA that was redrawn accumulates audits its present-day dwelling count cannot carry.',
+    fmt:v=>fmtPct(v,1),accent:[11,37,69],clip:1.0,seq:true,
+    top:'Highest uptake',bot:'Lowest uptake',
+    legLo:'0%',legHi:'100%',
+    tip:'audited homes ÷ 2021 dwellings'},
+  saving:{label:'Median saving',lb:'Median energy saving %',
+    get:r=>r.median_saving_pct,ok:r=>r.n>=MIN_N&&r.median_saving_pct!=null,
+    fmt:v=>v.toFixed(1)+'%',diverging:true,
+    top:'Deepest savings',bot:'Shallowest savings',
+    tip:'median modelled saving over the FSA’s matched pairs'},
+  eui:{label:'Worst stock (pre-EUI)',lb:'Pre-retrofit energy use (kWh/m²)',
+    get:r=>r.eui_pre_median,ok:r=>r.n>=MIN_N&&r.eui_pre_median!=null,
+    fmt:v=>Math.round(v)+' kWh/m²',accent:[179,58,46],seq:true,
+    top:'Worst starting stock',bot:'Best starting stock',
+    tip:'median pre-retrofit energy use intensity'},
+  ghg:{label:'Worst stock (pre-GHG)',lb:'Pre-retrofit emissions (t CO₂e)',
+    get:r=>r.ghg_pre_median,ok:r=>r.n>=MIN_N&&r.ghg_pre_median!=null,
+    fmt:v=>v.toFixed(1)+' t',accent:[139,52,42],seq:true,
+    top:'Highest emissions',bot:'Lowest emissions',
+    tip:'median pre-retrofit modelled GHG'},
+  hp_rate:{label:'Heat-pump adoption',lb:'Share adding a heat pump',
+    get:r=>r.hp_rate,ok:r=>r.n>=MIN_N&&r.hp_rate!=null,
+    fmt:v=>fmtPct(v,0),accent:[200,136,26],seq:true,
+    top:'Highest adoption',bot:'Lowest adoption',
+    tip:'share of matched pairs that added a heat pump'},
+  air_sealing:{label:'Air sealing',lb:'Share doing air sealing',
+    get:r=>r.measure_shares['Air sealing'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Air sealing']!=null,
+    fmt:v=>fmtPct(v,0),accent:[58,102,90],seq:true,
+    top:'Highest air-sealing rate',bot:'Lowest air-sealing rate',
+    tip:'share of matched pairs that did air sealing'},
+  roof:{label:'Roof insulation',lb:'Share upgrading roof insulation',
+    get:r=>r.measure_shares['Roof'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Roof']!=null,
+    fmt:v=>fmtPct(v,0),accent:[46,74,133],seq:true,
+    top:'Highest roof-insulation rate',bot:'Lowest roof-insulation rate',
+    tip:'share of matched pairs that upgraded roof insulation'},
+  foundation:{label:'Foundation insulation',lb:'Share upgrading foundation insulation',
+    get:r=>r.measure_shares['Foundation'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Foundation']!=null,
+    fmt:v=>fmtPct(v,0),accent:[107,76,38],seq:true,
+    top:'Highest foundation-insulation rate',bot:'Lowest foundation-insulation rate',
+    tip:'share of matched pairs that upgraded foundation insulation'},
+  wall:{label:'Wall insulation',lb:'Share upgrading wall insulation',
+    get:r=>r.measure_shares['Wall'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Wall']!=null,
+    fmt:v=>fmtPct(v,0),accent:[123,63,140],seq:true,
+    top:'Highest wall-insulation rate',bot:'Lowest wall-insulation rate',
+    tip:'share of matched pairs that upgraded wall insulation'},
+  heating_change:{label:'Heating system change',lb:'Share changing the heating system',
+    get:r=>r.measure_shares['Heating system'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Heating system']!=null,
+    fmt:v=>fmtPct(v,0),accent:[180,90,40],seq:true,
+    top:'Highest heating-change rate',bot:'Lowest heating-change rate',
+    tip:'share of matched pairs that changed the heating system'},
+  windows:{label:'Window upgrades',lb:'Share upgrading windows',
+    get:r=>r.measure_shares['Windows'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Windows']!=null,
+    fmt:v=>fmtPct(v,0),accent:[40,120,150],seq:true,
+    top:'Highest window-upgrade rate',bot:'Lowest window-upgrade rate',
+    tip:'share of matched pairs that upgraded windows'},
+  floor:{label:'Floor insulation',lb:'Share upgrading floor insulation',
+    get:r=>r.measure_shares['Floor'],ok:r=>r.n>=MIN_N&&r.measure_shares&&r.measure_shares['Floor']!=null,
+    fmt:v=>fmtPct(v,0),accent:[90,110,40],seq:true,
+    top:'Highest floor-insulation rate',bot:'Lowest floor-insulation rate',
+    tip:'share of matched pairs that upgraded floor insulation'},
+  deep_rate:{label:'Deep retrofit rate',lb:'Share of deep retrofits',
+    get:r=>r.deep_rate,ok:r=>r.n>=MIN_N&&r.deep_rate!=null,
+    fmt:v=>fmtPct(v,0),accent:[15,90,60],seq:true,
+    top:'Highest deep-retrofit rate',bot:'Lowest deep-retrofit rate',
+    tip:'share of matched pairs classed as a deep retrofit'},
+  opportunity:{label:'Opportunity score',lb:'Missed-opportunity composite (0–100)',
+    get:r=>r.opp_score,ok:r=>r.opp_score!=null,
+    fmt:v=>v.toFixed(1),accent:[176,42,30],seq:true,
+    top:'Biggest opportunity',bot:'Smallest opportunity',
+    tip:'worst stock × lowest participation composite'},
+};
+let CUR_METRIC='participation',MAP_STATE={shapes:{},built:false},OPP_LOADED=false;
+
+// projection -----------------------------------------------------------
+const NAT={minLon:-140,maxLon:-52,minLat:41.5,maxLat:62.8};
+const mercX=lon=>(lon+180)/360;
+const mercY=lat=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2;};
+const WX0=mercX(NAT.minLon),WX1=mercX(NAT.maxLon),WYT=mercY(NAT.maxLat),WYB=mercY(NAT.minLat);
+const MAP_W=1000,SC=MAP_W/(WX1-WX0),MAP_H=Math.round((WYB-WYT)*SC);
+const projX=lon=>Math.round((mercX(lon)-WX0)*SC);
+const projY=lat=>Math.round((mercY(lat)-WYT)*SC);
+function ringPath(ring){
+  let d='',px=null,py=null,pts=0;
+  for(const[lon,lat]of ring){const x=projX(lon),y=projY(lat);
+    if(x===px&&y===py)continue;d+=(pts===0?'M':'L')+x+','+y;px=x;py=y;pts++;}
+  return pts>=3?d+'Z':'';
+}
+function featurePath(ft){
+  const g=ft.geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;let d='';
+  polys.forEach(rings=>rings.forEach(r=>{d+=ringPath(r);}));
+  return d;
+}
+const MAP_PROVS=['ON','QC','BC','AB','NB','NS','MB','SK','NF','PE'];
+function buildMap(){
+  if(MAP_STATE.built)return Promise.resolve();
+  MAP_STATE.built=true;
+  const svg=$('nat-map');svg.setAttribute('viewBox',`0 0 ${MAP_W} ${MAP_H}`);
+  svg.innerHTML='<g id="map-shapes"></g>';
+  const g=svg.querySelector('#map-shapes');
+  let done=0;const prog=$('map-progress');
+  return ensureMetrics().then(()=>{
+    // load provinces progressively; append each as it arrives
+    return Promise.all(MAP_PROVS.map(prov=>
+      loadJSON(GEO+prov+'.json').then(gj=>{
+        let frag='';
+        gj.features.forEach(ft=>{const fsa=ft.properties.CFSAUID;const d=featurePath(ft);if(!d)return;
+          frag+=`<path class="fsa-shape" data-fsa="${fsa}" d="${d}" fill="${SURF}"></path>`;});
+        g.insertAdjacentHTML('beforeend',frag);
+        g.querySelectorAll(`path[data-fsa]`).forEach(p=>{MAP_STATE.shapes[p.dataset.fsa]=p;});
+        done++;if($('map-skeleton'))$('map-skeleton').style.display='none';
+        prog.textContent=`Loaded ${done}/${MAP_PROVS.length} provinces`;
+        paintMap();
+      }).catch(e=>{console.error('geo',prov,e);done++;})
+    )).then(()=>{prog.textContent=`${Object.keys(MAP_STATE.shapes).length.toLocaleString()} postal areas · 10 provinces`;wireMap();});
+  });
+}
+function metricDomain(m){
+  const vals=METRICS_RECS.filter(m.ok).map(m.get);
+  return{lo:Math.min(...vals),hi:Math.max(...vals),vals};
+}
+function colorFor(m,dom,v){
+  if(v==null)return SURF;
+  if(m.diverging){const hi=Math.max(dom.hi,0),lo=Math.min(dom.lo,0),BASE=[245,242,235];
+    if(v>=0)return lerpG(BASE,[9,74,48],hi>0?v/hi:0);
+    return lerpG(BASE,[122,28,22],lo<0?v/lo:0);}
+  let t=(v-dom.lo)/((m.clip?Math.min(m.clip,dom.hi):dom.hi)-dom.lo);
+  if(m.clip&&v>m.clip)t=1;
+  return lerpG([245,242,235],m.accent,t);
+}
+let CUR_DOM=null;
+function paintMap(){
+  const m=MMETRICS[CUR_METRIC];CUR_DOM=metricDomain(m);
+  Object.entries(MAP_STATE.shapes).forEach(([fsa,p])=>{
+    const r=FSA_INDEX[fsa];p.setAttribute('fill',(r&&m.ok(r))?colorFor(m,CUR_DOM,m.get(r)):SURF);
+  });
+  buildLegend(m,CUR_DOM);
+}
+function buildLegend(m,dom){
+  const steps=10,stops=[];
+  for(let i=0;i<=steps;i++){const t=i/steps,v=dom.lo+t*(dom.hi-dom.lo);
+    stops.push(`${colorFor(m,dom,v)} ${Math.round(t*100)}%`);}
+  let lo,hi,mid=null;
+  if(m.diverging){lo=(Math.min(dom.lo,0)).toFixed(0)+'%';hi='+'+dom.hi.toFixed(0)+'%';if(dom.lo<0)mid='0%';}
+  else{lo=m.legLo||m.fmt(dom.lo);hi=m.legHi||m.fmt(dom.hi);}
+  $('map-legend').innerHTML=`<div class="map-grad-wrap"><div class="map-grad" style="background:linear-gradient(90deg,${stops.join(',')})"></div>`+
+    `<div class="map-grad-labels"><span>${lo}</span>${mid?`<span>${mid}</span>`:''}<span>${hi}</span></div></div>`+
+    `<div class="note" style="margin-top:.35rem">${m.lb} · grey = under ${MIN_N} retrofits or no house audits</div>`;
+}
+let _tip=null;
+function wireMap(){
+  const svg=$('nat-map');_tip=$('map-tip');
+  svg.addEventListener('mousemove',e=>{
+    const el=e.target.closest('.fsa-shape');if(!el){_tip.style.display='none';return;}
+    const fsa=el.dataset.fsa,r=FSA_INDEX[fsa],m=MMETRICS[CUR_METRIC];
+    let h=`<b>${fsa}</b> · ${PROV_NAME[r?r.prov:'']||''}`;
+    if(r&&m.ok(r))h+=`<br>${m.label}: ${m.fmt(m.get(r))}<br>${fmtInt(r.n)} matched retrofits`;
+    else if(r)h+=`<br>${fmtInt(r.n)} retrofits (under ${MIN_N} — not ranked)`;
+    else h+='<br>no matched retrofits';
+    _tip.innerHTML=h;_tip.style.display='block';
+    _tip.style.left=Math.min(e.clientX+14,innerWidth-_tip.offsetWidth-8)+'px';
+    _tip.style.top=(e.clientY+14)+'px';
+  });
+  svg.addEventListener('mouseleave',()=>{_tip.style.display='none';});
+}
+function renderLeaderboard(){
+  const m=MMETRICS[CUR_METRIC];
+  const elig=METRICS_RECS.filter(r=>m.ok(r)&&(!m.lbFilter||m.lbFilter(r))).map(r=>({fsa:r.fsa,prov:r.prov,v:m.get(r),n:r.n}));
+  elig.sort((a,b)=>b.v-a.v);
+  const top=elig.slice(0,10),bot=elig.slice(-10).reverse();
+  $('lb-title').textContent=m.label;
+  $('lb-metric-name').textContent=`${elig.length} FSAs · n≥${MIN_N}`;
+  $('lb-top-label').textContent=m.top;$('lb-bot-label').textContent=m.bot;
+  // Row click still flashes the shape on the map; the trailing ↗ opens that postal
+  // area in the Retrofit Explorer. Both params are required: parseDeepLink() only
+  // reads ?fsa= inside its ?prov= branch, so a bare ?fsa= silently does nothing.
+  const row=o=>`<div class="lb-row" data-fsa="${o.fsa}"><span><span class="lb-fsa">${o.fsa}</span><span class="lb-prov">${o.prov}</span></span>`+
+    `<span class="lb-right"><span class="lb-val">${m.fmt(o.v)}</span>`+
+    `<a class="lb-link" href="retrofits.html?prov=${o.prov}&amp;fsa=${o.fsa}" title="Open ${o.fsa} in the Retrofit Explorer" aria-label="Open ${o.fsa} in the Retrofit Explorer">↗</a></span></div>`;
+  $('lb-top').innerHTML=top.map(row).join('');
+  $('lb-bot').innerHTML=bot.map(row).join('');
+  const noteEl=document.querySelector('#sec-map .lb-note');
+  if(noteEl)noteEl.innerHTML=`Minimum ${MIN_N} matched retrofits per postal area. Hover a row to find it on the map; click ↗ to open it in the Retrofit Explorer.`+(m.lbNote?`<br><span style="color:var(--amber-text)">${m.lbNote}</span>`:'');
+  document.querySelectorAll('.lb-row').forEach(rw=>{
+    rw.addEventListener('mouseenter',()=>hlShape(rw.dataset.fsa,true));
+    rw.addEventListener('mouseleave',()=>hlShape(rw.dataset.fsa,false));
+    rw.addEventListener('click',e=>{
+      if(e.target.closest('.lb-link'))return;   // let the explorer link navigate
+      $('nat-map').scrollIntoView({behavior:'instant',block:'center'});flashShape(rw.dataset.fsa);});
+  });
+}
+function hlShape(fsa,on){const p=MAP_STATE.shapes[fsa];if(p)p.classList.toggle('hl',on);}
+function flashShape(fsa){const p=MAP_STATE.shapes[fsa];if(!p)return;p.classList.add('hl');setTimeout(()=>p.classList.remove('hl'),1400);}
+function setMetric(key){
+  CUR_METRIC=key;
+  document.querySelectorAll('.metric-btn').forEach(b=>b.classList.toggle('active',b.dataset.metric===key));
+  const go=()=>{paintMap();renderLeaderboard();};
+  if(key==='opportunity'&&!OPP_LOADED){
+    // Route through sec08 so the map uses the reader's current weighting rather
+    // than the shipped default score baked into opportunity.json.
+    sec08().then(go);
+  }else go();
+}
+function sec03(){
+  const sw=$('metric-switch');
+  sw.innerHTML=Object.entries(MMETRICS).filter(([k])=>k!=='opportunity').map(([k,m])=>
+    `<button class="metric-btn${k===CUR_METRIC?' active':''}" data-metric="${k}">${m.label}</button>`).join('');
+  sw.querySelectorAll('.metric-btn').forEach(b=>b.addEventListener('click',()=>setMetric(b.dataset.metric)));
+  return buildMap().then(()=>{renderLeaderboard();});
+}
+// deep-link buttons (from §07 / §08)
+document.querySelectorAll('[data-jump-metric]').forEach(btn=>btn.addEventListener('click',()=>{
+  const k=btn.dataset.jumpMetric;
+  const ensureSwitch=(k==='opportunity')?()=>{
+    if(!$('metric-switch').querySelector('[data-metric="opportunity"]')){
+      const b=document.createElement('button');b.className='metric-btn';b.dataset.metric='opportunity';
+      b.textContent=MMETRICS.opportunity.label;b.addEventListener('click',()=>setMetric('opportunity'));
+      $('metric-switch').appendChild(b);}
+  }:()=>{};
+  const run=()=>{ensureSwitch();setMetric(k);$('sec-map').scrollIntoView({behavior:'instant',block:'start'});};
+  if(!rendered.has('sec-map')){rendered.add('sec-map');sec03().then(run);}else run();
+}));
+
+/* ══════════════════════════════════════════════════════════════════════
+   04 — WHAT WORKS
+   ══════════════════════════════════════════════════════════════════════ */
+const MSHORT={'Air sealing':'Air seal','Heating system':'Heating','Heat pump':'Heat pump','Windows':'Windows','Roof':'Roof','Foundation':'Foundation','Wall':'Wall','Floor':'Floor'};
+function sec04(){
+  return loadJSON(INS+'success.json').then(s=>{
+    // bundles: top 13 by saving
+    const b=[...s.bundles].sort((a,b)=>b.median_saving_pct-a.median_saving_pct).slice(0,13);
+    const bl=b.map(x=>x.measures.map(mm=>MSHORT[mm]||mm).join(' + '));
+    const bc=b.map(x=>x.measures.includes('Heat pump')?AMBER:NAVY);
+    _plg=[labels((v,i)=>`${v.toFixed(1)}%  ·  ${fmtInt(b[i].n)}`,{horizontal:true,color:MUTED,size:9.5})];
+    mkChart('ch-bundles',{type:'bar',
+      data:{labels:bl,datasets:[{data:b.map(x=>x.median_saving_pct),backgroundColor:bc,borderRadius:4,borderSkipped:false,barThickness:'flex',maxBarThickness:22}]},
+      options:{indexAxis:'y',layout:{padding:{right:60}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.raw.toFixed(1)}% saved · ${fmtInt(b[i.dataIndex].n)} homes`}}},
+        scales:{x:{...AX,title:{display:true,text:'median energy saving',color:MUTED,font:{size:11}},ticks:{...AX.ticks,callback:v=>v+'%'}},y:{...AXcat,ticks:{color:TEXT,font:{size:11}}}}}});
+
+    // saving vs count, with the share of homes that actually went that deep.
+    // The bars rise cleanly to the right; the line collapses to almost nothing —
+    // the depth that pays best is the depth almost nobody does.
+    const c=s.by_measure_count.filter(x=>x.n_measures<=8);
+    const cTot=s.by_measure_count.reduce((a,x)=>a+x.n,0);
+    const cShare=c.map(x=>100*x.n/cTot);
+    const cc=c.map(x=>x.audit_noise?BORDER:lerpG([245,239,225],[200,136,26],x.median_saving_pct/70));
+    _plg=[labels(v=>v.toFixed(1)+'%',{color:TEXT,size:10,offset:5})];
+    mkChart('ch-count',{type:'bar',
+      data:{labels:c.map(x=>x.n_measures),datasets:[
+        {data:c.map(x=>x.median_saving_pct),backgroundColor:cc,borderRadius:4,borderSkipped:false,order:2},
+        {type:'line',label:'share of homes',data:cShare,yAxisID:'y1',order:1,_nolabel:true,
+         borderColor:NAVY,backgroundColor:NAVY,borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.25}]},
+      options:{layout:{padding:{top:22}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>i.datasetIndex===1
+          ?`${cShare[i.dataIndex].toFixed(2)}% of homes (${fmtInt(c[i.dataIndex].n)})`
+          :`${c[i.dataIndex].median_saving_pct}% median saving`}}},
+        scales:{x:{...AXcat,title:{display:true,text:'number of measures',color:MUTED,font:{size:11}}},
+          y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},title:{display:true,text:'median saving',color:MUTED,font:{size:11}}},
+          y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},
+            ticks:{color:MUTED,font:{size:10},callback:v=>v+'%'},
+            title:{display:true,text:'share of homes',color:MUTED,font:{size:11}}}}}});
+    $('count-note').innerHTML=`Zero-measure re-audits (${fmtInt(s.by_measure_count[0].n)} pairs, median ${s.by_measure_count[0].median_saving_pct}%) are audit noise — shown greyed and excluded elsewhere. `+
+      `The two series pull in opposite directions: ${c[8].median_saving_pct}% median saving at eight measures, but only ${fmtInt(c[8].n)} homes (${cShare[8].toFixed(2)}%) did all eight, against ${(cShare[1]+cShare[2]).toFixed(0)}% that did one or two.`;
+
+    // 04c decile profile
+    const order=['Heat pump','Heating system','Air sealing','Roof','Foundation','Windows','Wall','Floor'];
+    const td=s.top_decile.measure_prevalence,rest=s.rest.measure_prevalence;
+    mkChart('ch-decile',{type:'bar',
+      data:{labels:order.map(o=>MSHORT[o]),datasets:[
+        {label:'Top decile',data:order.map(o=>td[o]*100),backgroundColor:AMBER,borderRadius:3,borderSkipped:false},
+        {label:'Rest',data:order.map(o=>rest[o]*100),backgroundColor:NAVY,borderRadius:3,borderSkipped:false}]},
+      options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw.toFixed(0)}%`}}},
+        scales:{x:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},max:100},y:{...AXcat,ticks:{color:TEXT}}}}});
+    const dstat=(a,b,f)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${f}</span><span><b style="color:var(--amber-text);font-variant-numeric:tabular-nums">${a}</b> <span style="color:var(--muted)">vs</span> <b style="color:var(--ink);font-variant-numeric:tabular-nums">${b}</b></span></div>`;
+    $('decile-stats').innerHTML=
+      dstat(s.top_decile.median_pre_eui,s.rest.median_pre_eui,'Median pre-EUI (kWh/m²)')+
+      dstat(s.top_decile.median_year_built,s.rest.median_year_built,'Median year built')+
+      dstat(s.top_decile.mean_measure_count.toFixed(1),s.rest.mean_measure_count.toFixed(1),'Mean # measures')+
+      dstat(fmtPct(s.top_decile.fuel_switch_share),fmtPct(s.rest.fuel_switch_share),'Fuel-switch share')+
+      dstat(fmtInt(s.top_decile.n),fmtInt(s.rest.n),'Homes');
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   06 — EQUITY
+   ══════════════════════════════════════════════════════════════════════ */
+function quintChart(id,rows){
+  _plg=[labels(v=>v.toFixed(1)+'%',{color:MUTED,size:9,offset:3})];
+  mkChart(id,{type:'bar',
+    data:{labels:rows.map(r=>r.label.replace(/ \(.*\)/,'')),datasets:[
+      {label:'Participation',data:rows.map(r=>r.participation*100),backgroundColor:NAVY,borderRadius:3,borderSkipped:false},
+      {label:'Heat-pump rate',data:rows.map(r=>r.hp_rate*100),backgroundColor:AMBER,borderRadius:3,borderSkipped:false}]},
+    options:{layout:{padding:{top:20}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>rows[i[0].dataIndex].label,label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}%`,afterBody:i=>`Median saving: ${rows[i[0].dataIndex].median_saving_pct}%`}}},
+      scales:{x:{...AXcat},y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},grace:'8%'}}}});
+}
+function sec06(){return loadJSON(INS+'equity.json').then(e=>{
+  window._eq=e;
+  // legend chips
+  const lg=`<div class="legend"><span class="lg"><span class="sw" style="background:${NAVY}"></span>Participation</span><span class="lg"><span class="sw" style="background:${AMBER}"></span>Heat-pump rate</span></div>`;
+  $('ch-income').closest('.card').querySelector('.sub').insertAdjacentHTML('afterend',lg);
+  quintChart('ch-income',e.income_quintiles.rows);
+  if(document.body.classList.contains('mode-advanced'))quintChart('ch-value',e.dwelling_value_quintiles.rows);
+  else _valPending=e.dwelling_value_quintiles.rows;
+});}
+let _valPending=null;
+
+/* ══════════════════════════════════════════════════════════════════════
+   07 — HEAT-PUMP GEOGRAPHY
+   ══════════════════════════════════════════════════════════════════════ */
+function sec07(){
+  const pMetrics=ensureMetrics().then(recs=>{
+    const g={};recs.forEach(r=>{if(!PROV_NAME[r.prov])return;const p=g[r.prov]||(g[r.prov]={n:0,hp:0});p.n+=r.n;p.hp+=r.n*(r.hp_rate||0);});
+    const rows=Object.entries(g).map(([prov,v])=>({prov,rate:v.hp/v.n})).sort((a,b)=>b.rate-a.rate);
+    _plg=[labels(v=>v.toFixed(0)+'%',{horizontal:true,color:MUTED,size:10})];
+    mkChart('ch-hp-prov',{type:'bar',
+      data:{labels:rows.map(r=>r.prov),datasets:[{data:rows.map(r=>r.rate*100),backgroundColor:rows.map(r=>lerpG([245,239,225],[200,136,26],r.rate/0.55)),borderRadius:4,borderSkipped:false}]},
+      options:{indexAxis:'y',layout:{padding:{right:44}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${PROV_NAME[rows[i.dataIndex].prov]}: ${i.raw.toFixed(1)}%`}}},
+        scales:{x:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},max:55},y:{...AXcat,ticks:{color:TEXT}}}}});
+  });
+  const pModels=Promise.all([loadJSON(BASE_URL+'province_json/CA.json'),loadJSON(BASE_URL+'lookup/ahri_numbers.json')])
+    .then(([ca,ah])=>{
+      $('hp-tree-wrap').innerHTML=hpTreeHTML(buildHPTree(ca,ah));
+    }).catch(e=>{console.error(e);$('hp-tree-wrap').innerHTML='<div class="note">Model list unavailable.</div>';});
+  return Promise.all([pMetrics,pModels]);
+}
+
+// Brand -> outdoor unit -> AHRI certificate. One outdoor unit is certified
+// under many AHRI reference numbers (different indoor coil pairings,
+// refrigerant lines, or test-procedure revisions can each certify
+// differently, including on cold-climate status -- see the AHRI-aggregation
+// verification pass in Methodology), so every certificate is kept as its own
+// leaf rather than picking one to represent its outdoor unit. Top 10 at each
+// level, all by install count.
+function buildHPTree(ca,ah){
+  const t=ca.by_type['All types'],counts=t.ahri_counts;
+  const brands=new Map();
+  let identified=0;
+  for(const code in counts){
+    const info=ah[code];if(!info||!info.model)continue;
+    const n=counts[code];identified+=n;
+    const bname=info.brand||'—';
+    let b=brands.get(bname);if(!b){b={name:bname,total:0,models:new Map()};brands.set(bname,b);}
+    b.total+=n;
+    let m=b.models.get(info.model);if(!m){m={name:info.model,total:0,certs:[]};b.models.set(info.model,m);}
+    m.total+=n;
+    m.certs.push({code,count:n,info});
+  }
+  const brandList=[...brands.values()].sort((a,b)=>b.total-a.total).slice(0,10);
+  for(const b of brandList){
+    b.modelList=[...b.models.values()].sort((a,c)=>c.total-a.total).slice(0,10);
+    b.restModels=b.models.size-b.modelList.length;
+    for(const m of b.modelList){
+      m.certs.sort((a,c)=>c.count-a.count);
+      m.certList=m.certs.slice(0,10);
+      m.restCerts=m.certs.length-m.certList.length;
+      m.restCertsN=m.certs.slice(10).reduce((a,c)=>a+c.count,0);
+    }
+  }
+  return{brandList,totalBrands:brands.size,identified,hpTotal:t.heat_pump_count};
+}
+const TREE_CHEVRON='<svg class="tree-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Same spec fields as retrofits.html's decodeAhri, minus the brand/model name
+// (already shown by the parent outdoor-unit row) -- indoor coil model is
+// included here since it's usually what actually distinguishes certificates
+// that share an outdoor model number.
+function certDetail(code,info){
+  const link=`<a href="https://www.ahridirectory.org/details/99/${encodeURIComponent(code)}" target="_blank" rel="noopener">AHRI ${code} ↗</a>`;
+  const btu=v=>{const n=parseFloat(v);return isNaN(n)?null:(n>=10000?Math.round(n/1000)+'k':Math.round(n).toLocaleString());};
+  const specs=[];
+  if(info.indoor_model)specs.push(`indoor ${info.indoor_model}`);
+  const h47=btu(info.heating_capacity_47f_btuh),h5=btu(info.heating_capacity_5f_btuh);
+  if(h47)specs.push(`heats ${h47} BTU/h @ 47°F${h5?`, ${h5} @ 5°F`:''}`);
+  const hspf=parseFloat(info.hspf2);
+  if(!isNaN(hspf))specs.push(`HSPF2 ${hspf}`);
+  const cop5=parseFloat(info.heating_cop_5f);
+  if(!isNaN(cop5))specs.push(`COP ${cop5.toFixed(1)} @ 5°F`);
+  const tags=[];
+  if(info.model_status)tags.push(`<span class="tag ${/^active$/i.test(info.model_status)?'status-active':'status-inactive'}">${info.model_status}</span>`);
+  if(String(info.cold_climate).toLowerCase()==='yes')tags.push('<span class="tag cc">CC</span>');
+  return`${link}${specs.length?' · '+specs.join(' · '):''}${tags.join('')}`;
+}
+function hpTreeHTML(tree){
+  const{brandList,totalBrands,identified,hpTotal}=tree;
+  if(!brandList.length)return '<div class="note">Model list unavailable.</div>';
+  const grandMax=brandList[0].total;
+  const brandRows=brandList.map((b,bi)=>{
+    const modelMax=b.modelList[0]?b.modelList[0].total:1;
+    const modelRows=b.modelList.map((m,mi)=>{
+      const certRows=m.certList.map(c=>
+        `<div class="tree-row leaf"><span class="tree-leaf-detail">${certDetail(c.code,c.info)}</span><span class="tree-leaf-count">${fmtInt(c.count)}</span></div>`
+      ).join('');
+      const moreCerts=m.restCerts>0?`<div class="tree-more">+${m.restCerts} more certificate${m.restCerts>1?'s':''} (${fmtInt(m.restCertsN)} installs)</div>`:'';
+      const open=(bi===0&&mi===0)?' open':'';
+      return`<div class="tree-node${open}"><div class="tree-row l2">${TREE_CHEVRON}`+
+        `<span class="tree-name">${m.name}</span><div class="tree-bar-track"><div class="tree-bar-fill" style="width:${Math.round(m.total/modelMax*100)}%"></div></div>`+
+        `<span class="tree-count">${fmtInt(m.total)}</span></div><div class="tree-children">${certRows}${moreCerts}</div></div>`;
+    }).join('');
+    const moreModels=b.restModels>0?`<div class="tree-more">+${b.restModels} more outdoor unit${b.restModels>1?'s':''} for ${b.name}</div>`:'';
+    const open=bi===0?' open':'';
+    return`<div class="tree-node${open}"><div class="tree-row l1">${TREE_CHEVRON}`+
+      `<span class="tree-name">${b.name}</span><div class="tree-bar-track"><div class="tree-bar-fill" style="width:${Math.round(b.total/grandMax*100)}%"></div></div>`+
+      `<span class="tree-count">${fmtInt(b.total)}</span></div><div class="tree-children">${modelRows}${moreModels}</div></div>`;
+  }).join('');
+  const restBrandsNote=totalBrands>brandList.length?` (${totalBrands-brandList.length} more brands not shown)`:'';
+  return`<div class="hp-tree">${brandRows}</div>`+
+    `<div class="note" style="margin-top:.7rem">Top 10 brands${restBrandsNote}, top 10 outdoor units per brand, top 10 certificates per unit — all ranked by install count. Share of the ${fmtInt(identified)} heat-pump installs carrying an identifiable AHRI certificate: ${(100*identified/hpTotal).toFixed(0)}% of all ${fmtInt(hpTotal)} installs.</div>`;
+}
+// Click-to-expand: delegated once on the container so it survives the
+// innerHTML replacement above (and any future re-render).
+document.addEventListener('click',e=>{
+  const row=e.target.closest('#hp-tree-wrap .tree-row:not(.leaf)');
+  if(!row)return;
+  row.closest('.tree-node').classList.toggle('open');
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   06B — COLD-CLIMATE EQUIPMENT (AHRI scatter + DOE CCHP Challenge screen)
+   Data: insights_json/hp_ahri_scatter.json, insights_json/cchp_screen.json
+   (built by Python/build_hp_equipment_insights.py from the same
+   HeatPump/data/interim/hp_units_joined.csv Phase-3c universe as
+   HeatPump/pipeline/build_tier_scatter.py and screen_cchp.py). The scatter
+   is a bespoke inline SVG, not Chart.js, ported from tier-scatter.html's
+   circle/legend/tooltip pattern — same reasoning as that page: avoids the
+   preview renderer's no-requestAnimationFrame trap entirely.
+   ══════════════════════════════════════════════════════════════════════ */
+function renderAhriScatter(d){
+  const W=880,H=460,PADL=64,PADR=18,PADT=18,PADB=46;
+  const XMIN=0.15,XMAX=1.35,YMIN=0.5,YMAX=3.5;
+  const pxW=W-PADL-PADR,pxH=H-PADT-PADB;
+  const sx=v=>PADL+(Math.min(Math.max(v,XMIN),XMAX)-XMIN)/(XMAX-XMIN)*pxW;
+  const sy=v=>PADT+(1-(Math.min(Math.max(v,YMIN),YMAX)-YMIN)/(YMAX-YMIN))*pxH;
+  const maxW=Math.max(...d.pts.map(p=>p.w));
+  const RMIN=1.4,RMAX=26;
+  const sr=w=>RMIN+(RMAX-RMIN)*Math.sqrt(w/maxW);
+
+  const xticks=[];for(let v=0.2;v<1.35;v+=0.2)xticks.push(Math.round(v*100)/100);
+  const yticks=[];for(let v=1.0;v<3.6;v+=0.5)yticks.push(v);
+
+  const gridSvg=xticks.map(v=>`<line x1="${sx(v).toFixed(1)}" y1="${PADT}" x2="${sx(v).toFixed(1)}" y2="${H-PADB}" stroke="${GRID}" stroke-width="1"/><text x="${sx(v).toFixed(1)}" y="${H-PADB+18}" font-size="10.5" fill="${MUTED}" text-anchor="middle">${Math.round(v*100)}%</text>`).join('')
+    +yticks.map(v=>`<line x1="${PADL}" y1="${sy(v).toFixed(1)}" x2="${W-PADR}" y2="${sy(v).toFixed(1)}" stroke="${GRID}" stroke-width="1"/><text x="${PADL-8}" y="${(sy(v)+3.5).toFixed(1)}" font-size="10.5" fill="${MUTED}" text-anchor="end">${v.toFixed(1)}</text>`).join('');
+
+  const pts=d.pts.map(p=>({...p,x:sx(p.cm),y:sy(p.cop),
+    r:sr(p.w),cl:(p.cm<XMIN||p.cm>XMAX||p.cop<YMIN||p.cop>YMAX)?1:0}));
+
+  $('ahri-scatter-wrap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="display:block;max-width:100%;height:auto">
+    <rect x="${PADL}" y="${PADT}" width="${pxW}" height="${pxH}" fill="${CARD}" stroke="${GRID}"/>
+    ${gridSvg}
+    <g id="ahri-pts"></g>
+    <text x="${PADL+pxW/2}" y="${H-10}" font-size="12" font-weight="600" fill="${TEXT}" text-anchor="middle">Capacity maintenance — max capacity @5°F ÷ rated capacity @47°F</text>
+    <text x="16" y="${PADT+pxH/2}" font-size="12" font-weight="600" fill="${TEXT}" text-anchor="middle" transform="rotate(-90 16 ${PADT+pxH/2})">COP @ 5°F (−15°C)</text>
+  </svg>`;
+
+  const g=document.getElementById('ahri-pts');
+  const on=new Set(d.bands.map((_,i)=>i));
+  function draw(){
+    g.innerHTML=pts.filter(p=>on.has(p.b)).map(p=>
+      `<circle class="pt${p.cl?' clamped':''}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r.toFixed(2)}" fill="${d.bands[p.b].colour}" fill-opacity=".55" stroke="${CARD}" stroke-width=".7" data-k="${p.k}"/>`
+    ).join('');
+  }
+  draw();
+
+  $('ahri-scatter-legend').innerHTML=d.bands.map((b,i)=>
+    `<label class="lg" style="cursor:pointer"><input type="checkbox" data-band="${i}" checked style="margin-right:4px">`+
+    `<span class="sw" style="background:${b.colour}"></span>${b.label} <span style="color:var(--muted)">(${b.pct}% · ${b.units.toLocaleString()} units)</span></label>`
+  ).join('');
+  document.querySelectorAll('#ahri-scatter-legend input').forEach(cb=>cb.onchange=()=>{
+    const b=+cb.dataset.band; cb.checked?on.add(b):on.delete(b); draw();
+  });
+
+  if(!$('ahri-tip')){const tip=document.createElement('div');tip.id='ahri-tip';document.body.appendChild(tip);}
+  const tip=$('ahri-tip');
+  const byK=new Map(pts.map(p=>[String(p.k),p]));
+  g.addEventListener('mouseover',e=>{
+    if(e.target.tagName!=='circle')return;
+    const p=byK.get(e.target.dataset.k); if(!p)return;
+    tip.innerHTML=`<b>${p.n}</b><br>AHRI ${p.k}<br>COP @ 5°F <b>${p.cop}</b> · capacity maintenance <b>${(p.cm*100).toFixed(0)}%</b><br>rated ${p.c47.toLocaleString()} BTU/h @ 47°F<br><b>${p.w.toLocaleString()}</b> ERS appearance${p.w===1?'':'s'}`+(p.cl?'<br><i>clamped to plot edge</i>':'');
+    tip.style.opacity=1;
+  });
+  g.addEventListener('mousemove',e=>{tip.style.left=Math.min(e.clientX+16,innerWidth-300)+'px';tip.style.top=(e.clientY+16)+'px';});
+  g.addEventListener('mouseout',()=>tip.style.opacity=0);
+
+  $('ahri-scatter-note').innerHTML=`<b>Gate:</b> ${d.meta.kept_units.toLocaleString()} of ${d.meta.total_units.toLocaleString()} certified units plotted, covering ${d.meta.kept_app.toLocaleString()} of ${d.meta.total_app.toLocaleString()} ERS appearances (<b>${d.meta.app_pct}%</b>). Dropped: units missing capacity maintenance (${d.meta.missing.cm.toLocaleString()}), COP @5°F (${d.meta.missing.cop.toLocaleString()}) or rated capacity (${d.meta.missing.c47.toLocaleString()}). Nothing is imputed. Dashed-outline bubbles sit outside the plot window and are clamped to the edge, not dropped.`;
+}
+
+function renderCchpPanel(d){
+  const VCOL={screen_pass:GREEN,near:AMBER2,fail:RED,out_of_scope:MUTED,unknown:LIGHT};
+  const VLABEL={screen_pass:'Screen pass',near:'Near (1 criterion short)',fail:'Fail',
+    out_of_scope:'Out of scope (<24,000 Btu/h)',unknown:'Unknown (insufficient data)'};
+  const maxApp=Math.max(...d.tally.map(t=>t.appearances));
+  const tallyHtml=d.tally.map(t=>`
+    <div class="equip-tally-row">
+      <div class="et-label">${VLABEL[t.verdict]}</div>
+      <div class="et-bar-wrap"><div class="et-bar" style="width:${(100*t.appearances/maxApp).toFixed(1)}%;background:${VCOL[t.verdict]}"></div></div>
+      <div class="et-val">${t.models.toLocaleString()} models · ${t.appearances.toLocaleString()} app. (${t.pct}%)</div>
+    </div>`).join('');
+
+  const critRows=d.checkable.map(c=>`<tr><td>${c.label}</td><td class="crit-status" style="color:${GREEN}">✅ checkable</td><td>AHRI / ENERGY STAR certificate</td></tr>`).join('')
+    +d.not_checkable.map(c=>`<tr><td>${c.label}</td><td class="crit-status" style="color:${MUTED}">— not checkable</td><td>${c.reason}</td></tr>`).join('');
+
+  const qRows=d.qualifying.map(q=>`<tr><td>${q.brand} ${q.model}</td><td>${q.ahri_number}</td><td>${q.ers_appearances}</td><td>${q.cop_5f} / ${q.cop_threshold}</td><td>${(parseFloat(q.capacity_ratio)*100).toFixed(1)}%</td><td>${q.refrigerant} (${q.gwp_ar4_100yr})</td></tr>`).join('');
+
+  $('cchp-panel').innerHTML=`
+    <div class="equip-tally">${tallyHtml}</div>
+    <div class="note">Denominator: all <b>${d.meta.total_appearances.toLocaleString()}</b> ERS appearances across <b>${d.meta.total_models.toLocaleString()}</b> AHRI-certified models — the full universe, not a pre-filtered subset. <b>${d.meta.out_of_scope_pct}%</b> is out of scope because it sits below the Challenge's stated 24,000 Btu/h floor, which is a statement about the Challenge's scope, not the equipment.</div>
+
+    <h4 style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber-text);font-weight:600;margin:1rem 0 .4rem">Which criteria we can actually check</h4>
+    <div class="scroll-x"><table class="crit-table"><thead><tr><th>Challenge criterion (Table II-3)</th><th>Status</th><th>Source / reason</th></tr></thead><tbody>${critRows}</tbody></table></div>
+
+    <h4 style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber-text);font-weight:600;margin:1rem 0 .4rem">The 4 certificate rows that clear every checkable criterion</h4>
+    <div class="scroll-x"><table class="crit-table"><thead><tr><th>Model</th><th>AHRI #</th><th>ERS appearances</th><th>COP@5°F / threshold</th><th>Capacity ratio</th><th>Refrigerant (GWP)</th></tr></thead><tbody>${qRows}</tbody></table></div>
+    <div class="note"><b>${d.meta.qualifying_models} distinct models</b> across these ${d.meta.qualifying_rows} certificate rows — GREE's GUD60W2/NHE-D(U) is AHRI-certified twice under different reference numbers (different indoor-coil pairings), so it appears as two rows. Combined, these rows cover <b>${d.meta.qualifying_appearances} of ${d.meta.total_appearances.toLocaleString()} ERS appearances (${d.meta.qualifying_appearances_pct}%)</b>.</div>
+
+    <div class="caveat"><b>Screened against the specifications, not "meets" or "certified for" the Challenge.</b> This checks published AHRI/ENERGY STAR certificate ratings against Table II-3 of the DOE Challenge specifications. The Challenge itself is a verification programme with its own H11/H1N laboratory test protocol, which we do not hold. A row that clears every checkable criterion has <i>rating-consistent</i> performance and nothing more.<br><br>
+    <b>Only 4 of 8 Table II-3 criteria are checkable</b> from the ratings we hold (table above). The other four — minimum turndown ratio, low-temperature compressor cut-out/cut-in, electric-heat staging, and ENERGY STAR CACHP §3C/4B/4C/4D — are not published in any dataset we hold, and are shown above as not checkable rather than silently dropped.<br><br>
+    <b>Three basis caveats carry through every row:</b> nominal capacity band is assigned from AHRI heating rated capacity at 47°F, while the spec's own basis is a cooling test (Appendix M1, A2); capacity ratio is <code>Max 5°F ÷ Rated 47°F</code>, which — if the spec intends rated-to-rated — is the more generous of the two possible bases; and HSPF2 ≥ 8.5 is a floor test only, since the real Challenge threshold scales upward with capacity and COP factors we have no data to compute, so <code>hspf2_floor_only</code> is true on every row. Full detail: <a href="https://github.com/OttawaVisuals/Energy/blob/main/HeatPump/METHODOLOGY.md" style="color:var(--ink)" target="_blank">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen".</div>`;
+}
+
+function sec07b(){
+  return Promise.all([loadJSON(INS+'hp_ahri_scatter.json'),loadJSON(INS+'cchp_screen.json')])
+    .then(([scatter,cchp])=>{renderAhriScatter(scatter);renderCchpPanel(cchp);})
+    .catch(e=>{console.error(e);
+      $('ahri-scatter-wrap').innerHTML='<div class="note">Scatter unavailable.</div>';
+      $('cchp-panel').innerHTML='<div class="note">CCHP screen unavailable.</div>';});
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   08 — MISSED OPPORTUNITY
+   ══════════════════════════════════════════════════════════════════════ */
+/* Five factor percentiles ship per FSA, so any weighting re-scores the whole
+   1,509-row ranking client-side — no refetch, no server round trip. Weight
+   levels are ordinal (Off/Low/Med/High -> 0/1/2/3) and normalised to sum 1, so
+   only the RATIO between factors matters; "all High" equals "all Medium". */
+const OPP_FACTORS=[
+  {key:'pre_eui',        short:'eui',  label:'High starting EUI',   tip:'worst-performing stock'},
+  {key:'pre_ghg',        short:'ghg',  label:'High starting GHG',   tip:'highest emissions'},
+  {key:'pre_1980_share', short:'old',  label:'Older housing',       tip:'share built 1980 or earlier'},
+  {key:'low_participation',short:'part',label:'Low participation',  tip:'least program uptake so far'},
+  {key:'low_income',     short:'inc',  label:'Lower-income area',   tip:'lower median household income'},
+];
+const OPP_LEVELS=[['0','Off'],['1','Low'],['2','Medium'],['3','High']];
+let OPP_DATA=null,OPP_W=null;
+
+function oppDefaultLevels(){
+  // Mirror the shipped weights (0.30/0.25/0.20/0.25/0) on the ordinal scale as
+  // closely as 0-3 allows: EUI highest, old housing lowest, income off.
+  return {pre_eui:3,pre_ghg:2,pre_1980_share:1,low_participation:2,low_income:0};
+}
+function oppNormalise(levels){
+  const tot=OPP_FACTORS.reduce((a,f)=>a+(levels[f.key]||0),0);
+  const w={};
+  if(!tot){OPP_FACTORS.forEach(f=>w[f.key]=OPP_DATA.weights[f.key]??0);return w;}
+  OPP_FACTORS.forEach(f=>w[f.key]=(levels[f.key]||0)/tot);
+  return w;
+}
+function oppIsDefault(levels){
+  const d=oppDefaultLevels();
+  return OPP_FACTORS.every(f=>(levels[f.key]||0)===d[f.key]);
+}
+function oppEncode(levels){
+  return OPP_FACTORS.map(f=>`${f.short}:${levels[f.key]||0}`).join(',');
+}
+function oppDecode(str){
+  const out={},map={};OPP_FACTORS.forEach(f=>map[f.short]=f.key);
+  let any=false;
+  String(str||'').split(',').forEach(part=>{
+    const [k,v]=part.split(':');const key=map[(k||'').trim()];
+    const n=parseInt(v,10);
+    if(key&&n>=0&&n<=3){out[key]=n;any=true;}
+  });
+  if(!any)return null;
+  OPP_FACTORS.forEach(f=>{if(out[f.key]==null)out[f.key]=0;});
+  return out;
+}
+function oppLevelsFromURL(){
+  const m=location.hash.match(/opp=([^&]+)/);
+  return m?oppDecode(decodeURIComponent(m[1])):null;
+}
+function oppSyncURL(levels){
+  const base=location.pathname+location.search;
+  if(oppIsDefault(levels)){history.replaceState(null,'',base);return base;}
+  const url=`${base}#opp=${oppEncode(levels)}`;
+  history.replaceState(null,'',url);
+  return url;
+}
+function oppScore(rec,w){
+  let v=0;for(const f of OPP_FACTORS){const p=rec.factors[f.key];if(p!=null)v+=w[f.key]*p;}
+  return 100*v;
+}
+function oppRender(levels){
+  OPP_W=oppNormalise(levels);
+  const rows=OPP_DATA.ranking.map(r=>({...r,_s:oppScore(r,OPP_W)}))
+    .sort((a,b)=>b._s-a._s).slice(0,20);
+
+  // controls
+  const grid=$('opp-weights');
+  grid.innerHTML=OPP_FACTORS.map(f=>{
+    const pct=Math.round(100*OPP_W[f.key]);
+    return `<div class="pw"><label for="pw-${f.short}" title="${f.tip}">${f.label}</label>
+      <div class="pw-row">
+        <select id="pw-${f.short}" data-key="${f.key}" aria-label="${f.label} priority">
+          ${OPP_LEVELS.map(([v,l])=>`<option value="${v}"${(levels[f.key]||0)==v?' selected':''}>${l}</option>`).join('')}
+        </select><span class="pw-share">${pct}%</span>
+      </div>
+      <span class="pw-bar"><span class="pw-fill" style="width:${pct}%"></span></span></div>`;
+  }).join('');
+  grid.querySelectorAll('select').forEach(sel=>sel.addEventListener('change',()=>{
+    const lv={};OPP_FACTORS.forEach(f=>lv[f.key]=+grid.querySelector(`[data-key="${f.key}"]`).value);
+    oppApply(lv);
+  }));
+
+  const isDef=oppIsDefault(levels);
+  $('opp-preset').textContent=isDef?'Default weighting':'Custom priority';
+  $('opp-formula-line').innerHTML='score = 100 × ( '+OPP_FACTORS.filter(f=>OPP_W[f.key]>0)
+    .map(f=>`<b>${OPP_W[f.key].toFixed(2)}</b>·pct(${f.label.toLowerCase()})`).join(' + ')+' )';
+  $('opp-formula-btn').dataset.tip=`Each factor is percentile-ranked across ${OPP_DATA.n_fsas.toLocaleString()} postal areas with n≥${OPP_DATA.min_n}, then weighted. Weights are yours to set; the shipped default is 0.30 EUI / 0.25 GHG / 0.20 pre-1980 / 0.25 low participation.`;
+
+  // table
+  const body=$('opp-table').tBodies[0];
+  const FL=OPP_FACTORS.map(f=>[f.key,f.label,OPP_W[f.key]]).filter(x=>x[2]>0);
+  body.innerHTML=rows.map((r,i)=>{
+    const main=`<tr data-i="${i}"><td>${i+1}</td><td class="opp-fsa"><a class="fsa-link" href="retrofits.html?prov=${r.prov}&amp;fsa=${r.fsa}" title="Open ${r.fsa} in the Retrofit Explorer">${r.fsa}</a></td><td>${r.prov}</td><td><b>${r._s.toFixed(1)}</b></td>`+
+      `<td>${Math.round(r.values.pre_eui)}</td><td>${r.values.pre_ghg.toFixed(1)}</td><td>${fmtPct(r.values.pre_1980_share,0)}</td><td>${fmtPct(r.values.participation,1)}</td></tr>`;
+    const bars=FL.map(([k,lab,w])=>`<span class="fb-label">${lab} <span style="color:var(--light)">×${w.toFixed(2)}</span></span><span class="fb-track"><span class="fb-fill" style="width:${Math.round(r.factors[k]*100)}%"></span></span><span class="fb-val">${(r.factors[k]*100).toFixed(0)}th pct</span>`).join('');
+    const inc=r.values.median_income!=null?` · median household income ${fmtInt(r.values.median_income)}`:'';
+    const detail=`<tr class="opp-detail" data-di="${i}" style="display:none"><td colspan="8"><div class="opp-detail-inner"><b>${r.fsa}</b> — ${PROV_NAME[r.prov]} · ${fmtInt(r.n)} matched retrofits${inc}. Factor percentiles (how it ranks nationally):<div class="factor-bars">${bars}</div></div></td></tr>`;
+    return main+detail;
+  }).join('');
+  body.querySelectorAll('tr[data-i]').forEach(tr=>tr.addEventListener('click',e=>{
+    if(e.target.closest('.fsa-link'))return;
+    const d=body.querySelector(`tr[data-di="${tr.dataset.i}"]`);d.style.display=d.style.display==='none'?'':'none';}));
+
+  // keep the map's opportunity layer on the same weighting
+  OPP_DATA.ranking.forEach(r=>{if(FSA_INDEX&&FSA_INDEX[r.fsa])FSA_INDEX[r.fsa].opp_score=oppScore(r,OPP_W);});
+  if(CUR_METRIC==='opportunity'&&MAP_STATE.built){paintMap();renderLeaderboard();}
+}
+function oppApply(levels){oppSyncURL(levels);oppRender(levels);}
+function sec08(){return loadJSON(INS+'opportunity.json').then(o=>{
+  OPP_DATA=o;OPP_LOADED=true;
+  oppRender(oppLevelsFromURL()||oppDefaultLevels());
+  $('opp-reset').addEventListener('click',()=>oppApply(oppDefaultLevels()));
+  $('opp-share').addEventListener('click',async e=>{
+    const lv={};OPP_FACTORS.forEach(f=>lv[f.key]=+$('opp-weights').querySelector(`[data-key="${f.key}"]`).value);
+    const url=location.origin+oppSyncURL(lv);
+    try{await navigator.clipboard.writeText(url);e.target.textContent='Copied';}
+    catch(err){e.target.textContent='Copy failed';}
+    setTimeout(()=>{e.target.textContent='Copy link';},1600);
+  });
+});}
+
+/* ══════════════════════════════════════════════════════════════════════
+   09 — TIMELINE
+   ══════════════════════════════════════════════════════════════════════ */
+const eraBand={id:'eraBand',beforeDatasetsDraw(chart,args,opts){
+  const{ctx,chartArea:ca,scales:{x}}=chart;if(!x)return;ctx.save();
+  (opts.eras||[]).forEach(er=>{
+    const x0=x.getPixelForValue(String(Math.max(er.year_start,opts.min))),x1=x.getPixelForValue(String(Math.min(er.year_end,opts.max)));
+    if(isNaN(x0)||isNaN(x1))return;
+    ctx.fillStyle=er.fill;ctx.fillRect(Math.min(x0,x1),ca.top,Math.abs(x1-x0),ca.bottom-ca.top);
+    ctx.fillStyle=MUTED;ctx.font='600 10px Inter,sans-serif';ctx.textAlign='center';
+    ctx.fillText(er.short,(x0+x1)/2,ca.top+11);
+  });ctx.restore();}};
+function sec09(){
+  // program_era.json is fetched separately (own .catch), not Promise.all'd
+  // with timeline.json — a page still on a pre-refresh insights_json/ (built
+  // before build_program_era() existed) would otherwise lose the WORKING
+  // timeline chart too, since Promise.all rejects whole on one 404.
+  const peFetch=loadJSON(INS+'program_era.json').catch(()=>null);
+  return loadJSON(INS+'timeline.json').then(t=>{
+  const nat=t.national,years=[];for(let y=2005;y<=2026;y++)years.push(y);
+  const d=years.map(y=>nat.d_year[y]||0),e=years.map(y=>nat.matched_by_e_year[y]||0);
+  const pct=years.map(y=>nat.cum_pct_of_stock[y]??null);
+  const eras=[
+    {year_start:2007,year_end:2012,short:'ecoENERGY',fill:'rgba(200,136,26,.10)'},
+    {year_start:2021,year_end:2024,short:'Greener Homes',fill:'rgba(26,122,85,.10)'}];
+  _plg=[eraBand];
+  mkChart('ch-timeline',{type:'line',
+    data:{labels:years.map(String),datasets:[
+      {label:'Initial audits',data:d,borderColor:NAVY,backgroundColor:'rgba(11,37,69,.06)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2},
+      {label:'Completed retrofits',data:e,borderColor:AMBER,backgroundColor:'rgba(200,136,26,.05)',fill:true,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2},
+      {label:'Cumulative % of housing stock audited',data:pct,yAxisID:'y1',borderColor:GREEN,backgroundColor:GREEN,fill:false,tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2,borderDash:[4,3],spanGaps:false}]},
+    options:{interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},eraBand:{eras,min:2005,max:2026},
+        tooltip:{callbacks:{label:i=>i.datasetIndex===2?`${i.dataset.label}: ${i.raw==null?'no CEUD data':i.raw.toFixed(2)+'%'}`:`${i.dataset.label}: ${fmtInt(i.raw)}`}}},
+      scales:{x:{...AXcat,ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},
+        y:{...AX,ticks:{...AX.ticks,callback:v=>v>=1000?(v/1000)+'k':v}},
+        y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},
+          ticks:{color:MUTED,font:{size:10},callback:v=>v+'%'},
+          title:{display:true,text:'% of housing stock',color:MUTED,font:{size:11}}}}}});
+  const a=t.annotations;
+  $('timeline-note').innerHTML='Program eras: '+a.map(x=>`<a href="${x.source_url}" target="_blank" rel="noopener" style="color:var(--ink)">${x.label.split(' (')[0].split(' — ')[0]}</a>`).join(' · ')+
+    '. Matched-pair audits only. Green dashed line: running total of initial audits since 2000, divided by that year\'s <a href="ceud" style="color:var(--ink)">NRCan CEUD</a> household count — a cumulative audit-count-vs-stock ratio (not unique homes; a home audited twice counts twice), stopping at 2023 (CEUD\'s latest year).';
+
+  // Measure mix by program era — same 3-way split as the FSA/province
+  // "Program era" filter in Retrofit Explorer, but classified once nationally
+  // here rather than left to per-area exploration. ecoENERGY/Greener Homes
+  // colours match the era-band shading on the chart above (amber/green).
+  peFetch.then(pe=>{
+    const card=$('ch-program-era').closest('.card');
+    if(!pe){card.style.display='none';return;} // pre-refresh insights_json/ — no program_era.json yet
+    card.style.display='';
+    const ERA_COLORS={ecoenergy:AMBER,none:MUTED,greener:GREEN};
+    const measureLabels=Object.keys(pe.eras[0].measure_shares);
+    mkChart('ch-program-era',{type:'bar',
+      data:{labels:measureLabels,datasets:pe.eras.map(er=>({
+        label:er.label,
+        data:measureLabels.map(m=>(er.measure_shares[m]||0)*100),
+        backgroundColor:ERA_COLORS[er.era],borderRadius:3,borderSkipped:false}))},
+      options:{plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:i=>measureLabels[i[0].dataIndex],label:i=>`${i.dataset.label}: ${i.raw.toFixed(1)}% of that era's matched retrofits`}}},
+        scales:{x:{...AXcat,ticks:{...AXcat.ticks,maxRotation:30,minRotation:30}},
+          y:{...AX,ticks:{...AX.ticks,callback:v=>v+'%'},grace:'8%'}}}});
+    $('era-legend').innerHTML=pe.eras.map(er=>
+      `<span class="lg"><span class="sw" style="background:${ERA_COLORS[er.era]}"></span>${er.label} <em>${fmtInt(er.n)} homes</em></span>`).join('');
+    $('program-era-note').innerHTML=pe.eras.map(er=>
+      `<b>${er.label}</b>: median saving ${er.median_saving_pct!=null?er.median_saving_pct+'%':'—'} · heat pump ${er.hp_rate!=null?fmtPct(er.hp_rate):'—'} · deep retrofit ${er.deep_rate!=null?fmtPct(er.deep_rate):'—'} · ${er.zero_measure_share!=null?fmtPct(er.zero_measure_share):'—'} recorded no tracked measure`
+    ).join('<br>')+'<br>Classified by each pair\'s <b>initial</b> (D) audit year — a retrofit that started under a program but finished its follow-up after the program closed is still counted toward that program. Saving % and measure shares exclude zero-measure pairs (audit noise), reported separately above.';
+  });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   10 — DEEP-RETROFIT CASE STUDIES (Retrofit Canada, external, N=41)
+   Self-submitted showcase library, scraped once by Python/retrofit_casestudies_scrape.py
+   into retrofit_casestudies_json/_all.json -- flat, small (~460KB), fetched via the
+   shared loadJSON() cache like everything else (not insights_json's per-province
+   rollup pattern, since this is one flat file). Deliberately never merged with the
+   ERS-derived numbers elsewhere on this page: different population, different
+   methodology, different (self-selection) bias.
+   A building-type multi-select filter (CS_TYPE_SELECTED) drives every chart/table
+   in this section via renderCsAll() -- see secCaseStudies() below. Colours for the
+   slopegraph reuse the same cream->amber ramp (lerpG) as the province bar charts
+   and choropleth elsewhere on the page, not tied to a CSS var (hand-built SVG
+   strings can't consume var() reliably here -- see readPalette()'s comment above),
+   so this section re-renders on every theme change like the other charts do.
+   ══════════════════════════════════════════════════════════════════════ */
+function csGet(obj,path){let v=obj;for(const k of path){if(v==null)return null;v=v[k];}return v;}
+function csMedian(arr){const s=[...arr].sort((a,b)=>a-b);const n=s.length;if(!n)return null;const m=n>>1;return n%2?s[m]:(s[m-1]+s[m])/2;}
+function csBuildingType(c){return csGet(c,['summary','Building Type','raw'])||'Unspecified';}
+const CS_BUCKETS=['Net Zero','Net-Zero Ready','Partial / Other','Unknown'];
+const CS_FIELDS=[
+  {label:'Attic/roof R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Attic/Roof Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Wall R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Wall Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Foundation wall R-value',unit:'R',get:c=>csGet(c,['before_after','Envelope','Foundation Wall Assembly Effective Thermal Resistance','after','value'])},
+  {label:'Airtightness',unit:'ACH50',get:c=>csGet(c,['before_after','Envelope','Air Tightness','after','value'])},
+  {label:'Energy use intensity',unit:'kWh/m²/yr',get:c=>csGet(c,['before_after','Annual Energy Usage','Energy Use Intensity','after','value'])},
+  {label:'Annual energy saving',unit:'%',get:c=>csGet(c,['summary','Annual Energy Savings','value'])},
+  {label:'Operational carbon saving',unit:'tCO₂e/yr',get:c=>csGet(c,['summary','Operational Carbon Savings','value'])},
+];
+function csStats(vals){if(!vals.length)return null;return{n:vals.length,med:csMedian(vals),min:Math.min(...vals),max:Math.max(...vals)};}
+function csFmt(v,unit){return unit==='R'?'R-'+v.toFixed(1):unit==='%'?v.toFixed(0)+'%':v.toFixed(1);}
+
+let CS_CASES=null,CS_TYPES=[],CS_TYPE_SELECTED=new Set(),CS_INITED=false;
+function secCaseStudies(){
+  if(CS_INITED){renderCsAll();return Promise.resolve();}
+  return loadJSON(`${BASE_URL}retrofit_casestudies_json/_all.json`).then(d=>{
+    CS_CASES=d.cases;
+    $('cs-n').textContent=d.n;
+    const counts=new Map();
+    CS_CASES.forEach(c=>{const t=csBuildingType(c);counts.set(t,(counts.get(t)||0)+1);});
+    CS_TYPES=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([type,n])=>({type,n}));
+    CS_TYPE_SELECTED=new Set(CS_TYPES.map(t=>t.type));
+    renderCsTypeFilter();
+    CS_INITED=true;
+    renderCsAll();
+  }).catch(err=>{
+    console.error('case studies',err);
+    $('cs-sowhat').textContent='Case-study data unavailable (retrofit_casestudies_json/_all.json failed to load).';
+  });
+}
+
+function renderCsTypeFilter(){
+  const wrap=$('cs-type-filter');
+  wrap.innerHTML=CS_TYPES.map(({type,n})=>
+    `<span class="pill on" data-type="${type.replace(/"/g,'&quot;')}">${type} <span class="pill-n">${n}</span></span>`
+  ).join('');
+  wrap.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{
+    const t=p.dataset.type;
+    if(CS_TYPE_SELECTED.has(t)){CS_TYPE_SELECTED.delete(t);p.classList.remove('on');}
+    else{CS_TYPE_SELECTED.add(t);p.classList.add('on');}
+    renderCsAll();
+  });
+}
+function csFiltered(){return CS_CASES.filter(c=>CS_TYPE_SELECTED.has(csBuildingType(c)));}
+
+function renderCsAll(){
+  const filtered=csFiltered();
+  renderCsSowhat(filtered);
+  renderCsRangeTable(filtered);
+  renderCsCaseTable(filtered);
+  renderCsSlopegraphs(filtered);
+  renderCsEnvelopeTable(filtered);
+}
+
+function renderCsSowhat(filtered){
+  if(!filtered.length){
+    $('cs-sowhat').innerHTML='<b>By the numbers:</b> no cases match the current building-type filter.';
+    $('cs-over100-caveat').innerHTML='';
+    return;
+  }
+  const savedVals=filtered.map(c=>csGet(c,['summary','Annual Energy Savings','value'])).filter(v=>v!=null);
+  const nzCases=filtered.filter(c=>c.performance_level_bucket==='Net Zero');
+  const wallVals=nzCases.map(c=>csGet(c,['before_after','Envelope','Wall Assembly Effective Thermal Resistance','after','value'])).filter(v=>v!=null);
+  $('cs-sowhat').innerHTML=savedVals.length?(
+    `<b>By the numbers:</b> across the ${filtered.length} selected case studies, reported annual energy savings range `+
+    `${Math.min(...savedVals).toFixed(0)}–${Math.max(...savedVals).toFixed(0)}% (n=${savedVals.length}). Among the ${nzCases.length} that reached full Net Zero, `+
+    (wallVals.length?`post-retrofit wall assemblies range R-${Math.min(...wallVals).toFixed(1)}–R-${Math.max(...wallVals).toFixed(1)} (n=${wallVals.length}).`:'wall R-value wasn\'t consistently reported.')
+  ):`<b>By the numbers:</b> ${filtered.length} selected case studies; none report an annual energy saving figure.`;
+  const over100=savedVals.filter(v=>v>100).length;
+  $('cs-over100-caveat').innerHTML=over100?`<b>${over100} of ${savedVals.length} report savings above 100%.</b> That's not a data error — it's a net-positive-energy home under that project's own reporting (annual production exceeding its baseline consumption), the same idea as the ERS-derived pages' "net surplus" language elsewhere on this site. Retrofit Canada doesn't publish a shared definition of the baseline each project measures against, so treat these as self-reported and not directly comparable case to case.`:'';
+}
+
+function renderCsRangeTable(filtered){
+  const groups=['All',...CS_BUCKETS];
+  const head=$('cs-range-table').tHead,body=$('cs-range-table').tBodies[0];
+  head.innerHTML='<tr><th>Field</th>'+groups.map(g=>`<th>${g}</th>`).join('')+'</tr>';
+  body.innerHTML=CS_FIELDS.map(f=>{
+    const cells=groups.map(g=>{
+      const pool=g==='All'?filtered:filtered.filter(c=>c.performance_level_bucket===g);
+      const s=csStats(pool.map(f.get).filter(v=>v!=null));
+      return s?`<td>${csFmt(s.med,f.unit)} <span class="note">(${csFmt(s.min,f.unit)}–${csFmt(s.max,f.unit)}, n=${s.n})</span></td>`:'<td class="note">—</td>';
+    }).join('');
+    return `<tr><td>${f.label}</td>${cells}</tr>`;
+  }).join('');
+}
+
+const CS_COLS=[
+  {key:'title',label:'Project',fmt:c=>c.title,val:c=>c.title},
+  {key:'location',label:'Location',fmt:c=>csGet(c,['summary','Location','raw'])||'—',val:c=>csGet(c,['summary','Location','raw'])||''},
+  {key:'year',label:'Year',fmt:c=>csGet(c,['summary','Year Built','value'])??'—',val:c=>csGet(c,['summary','Year Built','value'])??-Infinity},
+  {key:'status',label:'Status',fmt:c=>csGet(c,['summary','Retrofit Status','raw'])||'—',val:c=>csGet(c,['summary','Retrofit Status','raw'])||''},
+  {key:'type',label:'Building type',fmt:csBuildingType,val:csBuildingType},
+  {key:'saved',label:'Energy saving',fmt:c=>{const v=csGet(c,['summary','Annual Energy Savings','value']);return v!=null?v.toFixed(0)+'%':'—';},val:c=>csGet(c,['summary','Annual Energy Savings','value'])??-Infinity},
+  {key:'retrofitType',label:'Retrofit type',fmt:c=>csGet(c,['summary','Retrofit Type','raw'])||'—',val:c=>csGet(c,['summary','Retrofit Type','raw'])||''},
+  {key:'level',label:'Performance level',fmt:c=>csGet(c,['summary','Performance Level','raw'])||c.performance_level_bucket,val:c=>csGet(c,['summary','Performance Level','raw'])||c.performance_level_bucket},
+];
+let CS_SORT={key:'saved',dir:-1};
+function renderCsCaseTable(filtered){
+  const head=$('cs-case-table').tHead,body=$('cs-case-table').tBodies[0];
+  head.innerHTML='<tr>'+CS_COLS.map(c=>`<th data-key="${c.key}" class="${CS_SORT.key===c.key?'arrow-active':''}">${c.label}${CS_SORT.key===c.key?(CS_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const sorted=[...filtered].sort((a,b)=>{
+    const col=CS_COLS.find(c=>c.key===CS_SORT.key),av=col.val(a),bv=col.val(b);
+    return typeof av==='string'?CS_SORT.dir*av.localeCompare(bv):CS_SORT.dir*(av-bv);
+  });
+  body.innerHTML=sorted.length?sorted.map(c=>`<tr class="cs-row" data-url="${c.url}">${CS_COLS.map(col=>`<td>${col.fmt(c)}</td>`).join('')}</tr>`).join(''):
+    `<tr><td colspan="${CS_COLS.length}" class="note">No cases match the current building-type filter.</td></tr>`;
+  head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.key;
+    if(CS_SORT.key===k)CS_SORT.dir*=-1;else CS_SORT={key:k,dir:k==='title'?1:-1};
+    renderCsCaseTable(csFiltered());
+  });
+  body.querySelectorAll('tr.cs-row').forEach(tr=>tr.onclick=()=>window.open(tr.dataset.url,'_blank','noopener'));
+  $('cs-case-note').textContent=`${filtered.length} of ${CS_CASES.length} case studies shown, sorted by ${CS_COLS.find(c=>c.key===CS_SORT.key).label.toLowerCase()}.`;
+}
+
+/* ── envelope R-value slopegraph (pre -> post, one small chart per component) ── */
+const CS_ENV_COMPONENTS=[
+  {key:'attic',label:'Attic / roof',path:['before_after','Envelope','Attic/Roof Assembly Effective Thermal Resistance']},
+  {key:'wall',label:'Wall',path:['before_after','Envelope','Wall Assembly Effective Thermal Resistance']},
+  {key:'foundation',label:'Foundation wall',path:['before_after','Envelope','Foundation Wall Assembly Effective Thermal Resistance']},
+];
+function csEnvVal(c,comp,side){return csGet(c,[...comp.path,side,'value']);}
+function csXmlEscape(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function csSavedColor(v,dom){
+  if(v==null)return MUTED;
+  const t=dom.max>dom.min?(v-dom.min)/(dom.max-dom.min):0.5;
+  return lerpG([245,239,225],[200,136,26],t);
+}
+function buildSlopegraphSVG(pairs,dom){
+  const W=260,H=280,leftX=64,rightX=196,top=18,bottom=228;
+  const maxV=Math.max(...pairs.flatMap(p=>[p.before,p.after]));
+  const niceMax=Math.ceil(maxV/10)*10||10;
+  const y=v=>bottom-(v/niceMax)*(bottom-top);
+  const ticks=[0,1,2,3,4].map(i=>Math.round(niceMax*i/4));
+  const gridLines=ticks.map(t=>`<line x1="${leftX}" x2="${rightX}" y1="${y(t)}" y2="${y(t)}" stroke="${GRID}" stroke-width="1"/>`).join('');
+  const tickLabelsL=ticks.map(t=>`<text x="${leftX-8}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="${MUTED}">R-${t}</text>`).join('');
+  const tickLabelsR=ticks.map(t=>`<text x="${rightX+8}" y="${y(t)+4}" text-anchor="start" font-size="10" fill="${MUTED}">R-${t}</text>`).join('');
+  const axisLines=`<line x1="${leftX}" x2="${leftX}" y1="${top}" y2="${bottom}" stroke="${BORDER}" stroke-width="1.5"/>`+
+    `<line x1="${rightX}" x2="${rightX}" y1="${top}" y2="${bottom}" stroke="${BORDER}" stroke-width="1.5"/>`;
+  const axisLabels=`<text x="${leftX}" y="${bottom+20}" text-anchor="middle" font-size="11" fill="${TEXT}" font-weight="600">Pre</text>`+
+    `<text x="${rightX}" y="${bottom+20}" text-anchor="middle" font-size="11" fill="${TEXT}" font-weight="600">Post</text>`;
+  const lines=pairs.map(p=>{
+    const color=csSavedColor(p.saved,dom),y1=y(p.before),y2=y(p.after);
+    const tip=`${csXmlEscape(p.title)}: R-${p.before.toFixed(1)} → R-${p.after.toFixed(1)}`+(p.saved!=null?` · ${p.saved.toFixed(0)}% saved`:' · saving % not reported');
+    return `<a href="${csXmlEscape(p.url)}" target="_blank" rel="noopener"><title>${tip}</title>`+
+      `<line x1="${leftX}" y1="${y1}" x2="${rightX}" y2="${y2}" stroke="${color}" stroke-width="2" stroke-opacity="0.85"/>`+
+      `<circle cx="${leftX}" cy="${y1}" r="3" fill="${color}"/><circle cx="${rightX}" cy="${y2}" r="3" fill="${color}"/></a>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${gridLines}${axisLines}${tickLabelsL}${tickLabelsR}${lines}${axisLabels}</svg>`;
+}
+function renderCsSlopegraphs(filtered){
+  const withSaved=filtered.map(c=>csGet(c,['summary','Annual Energy Savings','value'])).filter(v=>v!=null);
+  const dom=withSaved.length?{min:Math.min(...withSaved),max:Math.max(...withSaved)}:{min:0,max:100};
+  const anyMissingSaved=filtered.some(c=>csGet(c,['summary','Annual Energy Savings','value'])==null);
+  $('cs-slope-legend').innerHTML=`<span>${dom.min.toFixed(0)}% saved</span>`+
+    `<span class="bar" style="background:linear-gradient(to right, ${lerpG([245,239,225],[200,136,26],0)}, ${lerpG([245,239,225],[200,136,26],1)})"></span>`+
+    `<span>${dom.max.toFixed(0)}% saved</span>`+
+    (anyMissingSaved?`<span style="margin-left:10px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${MUTED};vertical-align:middle;margin-right:4px"></span>saving % not reported</span>`:'');
+  const grid=$('cs-slope-grid');
+  grid.innerHTML='';
+  CS_ENV_COMPONENTS.forEach(comp=>{
+    const pairs=filtered.map(c=>({
+      title:c.title,url:c.url,
+      before:csEnvVal(c,comp,'before'),after:csEnvVal(c,comp,'after'),
+      saved:csGet(c,['summary','Annual Energy Savings','value']),
+    })).filter(p=>p.before!=null&&p.after!=null);
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<div class="slope-title">${comp.label} <span style="color:${MUTED};font-weight:400">(n=${pairs.length})</span></div>`+
+      (pairs.length?buildSlopegraphSVG(pairs,dom):`<div class="slope-empty">No cases with both pre and post values in this selection.</div>`);
+    grid.appendChild(wrap);
+  });
+  $('cs-slope-note').textContent='Only cases reporting both a pre- and post-retrofit value for that assembly are plotted — line count (n=) varies by panel. Hover or click a line to see the project and open its source.';
+}
+
+/* ── envelope values table (the slopegraph's data, in table form) ── */
+const CS_ENV_COLS=[
+  {key:'title',label:'Project',fmt:c=>c.title,val:c=>c.title},
+  {key:'saved',label:'Energy saving',fmt:c=>{const v=csGet(c,['summary','Annual Energy Savings','value']);return v!=null?v.toFixed(0)+'%':'—';},val:c=>csGet(c,['summary','Annual Energy Savings','value'])??-Infinity},
+  ...CS_ENV_COMPONENTS.flatMap(comp=>[
+    {key:comp.key+'_pre',label:comp.label+' — pre',fmt:c=>{const v=csEnvVal(c,comp,'before');return v!=null?'R-'+v.toFixed(1):'—';},val:c=>csEnvVal(c,comp,'before')??-Infinity},
+    {key:comp.key+'_post',label:comp.label+' — post',fmt:c=>{const v=csEnvVal(c,comp,'after');return v!=null?'R-'+v.toFixed(1):'—';},val:c=>csEnvVal(c,comp,'after')??-Infinity},
+  ]),
+];
+let CS_ENV_SORT={key:'saved',dir:-1};
+function renderCsEnvelopeTable(filtered){
+  const rows=filtered.filter(c=>CS_ENV_COMPONENTS.some(comp=>csEnvVal(c,comp,'before')!=null||csEnvVal(c,comp,'after')!=null));
+  const head=$('cs-envelope-table').tHead,body=$('cs-envelope-table').tBodies[0];
+  head.innerHTML='<tr>'+CS_ENV_COLS.map(c=>`<th data-key="${c.key}" class="${CS_ENV_SORT.key===c.key?'arrow-active':''}">${c.label}${CS_ENV_SORT.key===c.key?(CS_ENV_SORT.dir<0?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const sorted=[...rows].sort((a,b)=>{
+    const col=CS_ENV_COLS.find(c=>c.key===CS_ENV_SORT.key),av=col.val(a),bv=col.val(b);
+    return typeof av==='string'?CS_ENV_SORT.dir*av.localeCompare(bv):CS_ENV_SORT.dir*(av-bv);
+  });
+  body.innerHTML=sorted.length?sorted.map(c=>`<tr class="cs-row" data-url="${c.url}">${CS_ENV_COLS.map(col=>`<td>${col.fmt(c)}</td>`).join('')}</tr>`).join(''):
+    `<tr><td colspan="${CS_ENV_COLS.length}" class="note">No cases with envelope data in this selection.</td></tr>`;
+  head.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.key;
+    if(CS_ENV_SORT.key===k)CS_ENV_SORT.dir*=-1;else CS_ENV_SORT={key:k,dir:k==='title'?1:-1};
+    renderCsEnvelopeTable(csFiltered());
+  });
+  body.querySelectorAll('tr.cs-row').forEach(tr=>tr.onclick=()=>window.open(tr.dataset.url,'_blank','noopener'));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   11 — METHODOLOGY
+   ══════════════════════════════════════════════════════════════════════ */
+function sec10(){return loadJSON(INS+'meta.json').then(m=>{
+  const def=m.definitions,th=m.thresholds,pc=m.participation_coverage||{};
+  const railList=m.honesty_rails.map(r=>`<li>${r}</li>`).join('');
+  const supTotal=(pc.suppressed_tiny_area||0)+(pc.suppressed_no_census||0)+(pc.suppressed_impossible||0);
+  const W=m.opportunity_weights||{};
+  $('method-body').innerHTML=`
+    <p>Built <b>${m.build_date}</b> from <b>${m.national_matched_total.toLocaleString()}</b> matched before/after EnerGuide audit pairs across <b>${m.n_fsas_matched.toLocaleString()}</b> forward sortation areas (FSAs) — the same row-level data the <a href="retrofits.html" style="color:var(--ink)">Retrofit Explorer</a> serves.</p>
+
+    <h4>What counts as a retrofit here</h4>
+    <p><b>Plain language:</b> every number on this page compares one home's energy-audit report from before it was upgraded to a second report from after — never a utility bill or a meter reading. If a home was only ever audited once, it isn't included anywhere on this page.</p>
+    <p><b>Advanced:</b> every figure on this page comes from a <b>matched pair</b>: one initial (D) audit of a home and one follow-up (E) audit of the same home after work was done. A home with only an initial audit is counted in <code>audited</code> but produces no saving, no measure and no pair. "Saving" is always the modelled difference between those two audits — a HOT2000 model of the house before and after, never a metered bill. Weather, occupancy and behaviour are held constant by the model, which is why these numbers are comparable across the country but do not predict any individual household's bill.</p>
+
+    <h4>Sources</h4>
+    <ul>
+      <li><b>Retrofits:</b> <a href="https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd" target="_blank" rel="noopener">NRCan EnerGuide Rating System open data ↗</a> — matched before/after audit pairs, 2004–2026.</li>
+      <li><b>Income &amp; dwellings:</b> <a href="https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/index.cfm?Lang=E" target="_blank" rel="noopener">Statistics Canada 2021 Census Profile ↗</a> (FSA level) — static, does not refresh with the audit data.</li>
+      <li><b>Heat-pump models:</b> <a href="https://www.ahridirectory.org/" target="_blank" rel="noopener">AHRI Directory of Certified Product Performance ↗</a>, joined on the certificate number recorded in the audit.</li>
+      <li><b>GHG factors &amp; Social Cost of Carbon:</b> <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" target="_blank" rel="noopener">ECCC emission factors &amp; reference values ↗</a>.</li>
+      <li><b>Climate normals (HDD/CDD):</b> ECCC 1991–2020 Canadian Climate Normals.</li>
+      <li><b>Cold-climate equipment screen:</b> <a href="https://www.energy.gov/cmei/buildings/cchp-technology-challenge-specifications" target="_blank" rel="noopener">US DOE Cold Climate Heat Pump (CCHP) Technology Challenge ↗</a> specifications, Table II-3.</li>
+      <li><b>Retrofit pairing methodology:</b> <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/RETROFITS.md" target="_blank" rel="noopener">RETROFITS.md ↗</a> on the underlying <a href="retrofits.html" style="color:var(--ink)">Retrofit Explorer</a>.</li>
+    </ul>
+
+    <h4>The eight tracked measures</h4>
+    <p><b>Plain language:</b> we only track eight kinds of upgrade — the ones an energy audit can clearly measure a before/after difference on, like insulation or a heat pump. Things like solar panels or new appliances aren't counted, which is one reason a home can show energy savings with none of these eight measures ticked.</p>
+    <p><b>Advanced:</b> air sealing · roof insulation · foundation insulation · wall insulation · heat pump · heating system · windows · floor insulation. A home's "measure count" is how many of these eight changed between its two audits. Work outside this list — new appliances, solar, anything not modelled — does not appear, which is one reason a pair can show a saving with zero tracked measures.</p>
+
+    <h4>Key definitions</h4>
+    <ul>
+      <li><b>Participation:</b> ${def.participation}</li>
+      <li><b>Matched retrofit rate:</b> ${def.matched_retrofit_rate}</li>
+      <li><b>Median saving %:</b> ${def.median_saving_pct}</li>
+      <li><b>EUI:</b> ${def.eui}</li>
+      <li><b>Income quintile:</b> ${def.income_quintile}</li>
+    </ul>
+
+    <h4>Thresholds &amp; suppression</h4>
+    <p><b>Plain language:</b> postal areas with too few matched retrofits, or whose boundaries changed too much since the 2021 census, are left grey on the map rather than shown with an unreliable number.</p>
+    <p><b>Advanced:</b> leaderboards and the opportunity ranking require <code>n ≥ ${th.min_n_leaderboard_and_opportunity}</code> matched retrofits per FSA. Top-decile savers = the ${th.top_decile_percentile}th percentile of saving and above.</p>
+    <p><b>Participation is reported for ${(pc.reported||0).toLocaleString()} of ${m.n_fsas_matched.toLocaleString()} postal areas</b> and suppressed for ${supTotal.toLocaleString()}: ${(pc.suppressed_no_census||0).toLocaleString()} have no 2021 census record for their FSA code, and ${(pc.suppressed_tiny_area||0).toLocaleString()} have fewer than ${(th.min_dwellings_for_participation||0).toLocaleString()} census dwellings. The reason: the numerator is ~20 years of audits carrying the FSA code in force at audit time, while the denominator is a single 2021 snapshot. Where Canada Post redrew or retired an FSA, audits accumulate against a present-day remnant that cannot carry them — one area reported 1,400% before this rule. Suppressed areas are left grey on the map and drop out of the opportunity ranking rather than being scored on a denominator we do not trust.</p>
+
+    <h4>The opportunity score</h4>
+    <p><b>Plain language:</b> this is a ranked "where to look next" list, built by combining five factors like a neighbourhood's older housing stock and how few residents have already done a retrofit. It's a judgement call about priorities, not a measurement — you can drag the sliders below to weight the factors your own way.</p>
+    <p><b>Advanced:</b> <code>${m.opportunity_formula}</code></p>
+    <p>Each input is percentile-ranked across eligible areas first, so every factor shares a 0–1 scale before weighting. The shipped default is pre-EUI <b>${W.pre_eui??'—'}</b>, pre-GHG <b>${W.pre_ghg??'—'}</b>, pre-1980 share <b>${W.pre_1980_share??'—'}</b>, low participation <b>${W.low_participation??'—'}</b>, lower-income area <b>${W.low_income??0}</b>.</p>
+    <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
+    <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
+
+    <h4>GHG impact: 4 scenarios, carbon tax, and Social Cost of Carbon</h4>
+    <p><b>Plain language:</b> this section turns energy savings into greenhouse-gas terms. Because most audits didn't originally record an emissions figure, we offer four different ways to calculate one — pick whichever basis you trust most from the dropdown above the chart.</p>
+    <p><b>Advanced:</b> built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other GHG figure on this page. The <b>GHG basis</b> dropdown at the top of this section switches between 4 ways of computing <code>sum(Pre_GHG − Post_GHG)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped:</p>
+    <ul>
+      <li><b>As reported</b> — the raw <code>ERSGHG</code> field, unmodified. Only 733,107 of 1,451,433 matched pairs nationally (50.5%, measured 2026-08-02) have a usable Pre_GHG <i>and</i> Post_GHG value — coverage runs from Quebec (~78%) and PEI (~84%) down to Ontario (~43%) and Saskatchewan (~9%). Every figure under this basis describes only the homes with GHG data, not scaled up to the full matched count — <code>n</code>/<code>matched_total</code>/<code>ghg_coverage_pct</code> ship per province precisely so this isn't hidden.</li>
+      <li><b>Current (2026) official</b> — every home's own fuel consumption (already ~100% complete) × <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" style="color:var(--ink)">ECCC's official 2026 emission factors</a>, applied flat regardless of when the retrofit happened — prices every retrofit as if it happened on today's grid, for comparing retrofits across years on equal footing rather than reconstructing historical emissions.</li>
+      <li><b>Current (2026) official, ERS-aligned</b> — the same, except Alberta and Newfoundland &amp; Labrador use a factor calibrated directly against the ERS data instead of ECCC's published one (next paragraph explains why).</li>
+      <li><b>ERS-aligned, at year of audit</b> — each home's own audit year's factor, calibrated directly against the ERS data, and this page's default. <i>Renamed from "corrected" on 2026-08-20:</i> the label implied ECCC's published factors are wrong, which this data cannot establish — the ERS figures are back-calculated from what HOT2000 reported, so a gap may equally reflect a different accounting boundary inside HOT2000. It is a sensitivity, not a correction, and the previous claim that it is the "historically accurate" basis has been withdrawn.</li>
+    </ul>
+    <p><b>Why Alberta and Newfoundland get a correction:</b> applying the official ECCC electricity factors to real ERS consumption and comparing to real reported <code>ERSGHG</code>, every other province agrees within about ±15%, but Alberta runs 18–29% low and Newfoundland &amp; Labrador 27–49% low, consistently across 2023–2026 and at large sample sizes (40,000+ homes/year for Alberta) — not noise. This isn't a within-province effect: Newfoundland's audited homes are almost all on the island, and the official province-wide figure is diluted by Labrador's near-zero-carbon Churchill Falls hydro; Alberta has too few electric-only-heated homes (159 of 85,771) to test locally at all, and its grid has no published zonal split to begin with. We could not find NRCan documentation of what HOT2000 uses internally for this calculation (tracked as an open question — see <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/ENERGUIDE_QUESTIONS.md" style="color:var(--ink)" target="_blank" rel="noopener">docs/ENERGUIDE_QUESTIONS.md</a> §5.4), so these two provinces substitute a factor derived directly from the ERS data's own consumption and GHG columns, which by construction reproduces what HOT2000 actually computed for these same audits. The same issue surfaces for combustion, not just electricity: Ontario's own <code>ERSNGASGHG</code> runs near-zero for 2006–2016 despite substantial real gas consumption, so the "ERS-aligned, at year of audit" basis uses a year-varying, ERS-calibrated combustion factor too rather than a flat modern one. Validated end to end, the "ERS-aligned, at year of audit" national aggregate lands within <b>−0.66%</b> of the real reported total, and every large-sample province within about ±2% except Quebec (−5.3%, a small absolute base). Full derivation: <code>Python/ghg_factors.py</code>, <code>Python/compute_ghg_scenarios.py</code>, <code>Python/ers_ghg_factors.py</code>. Wood is treated as 0 (biogenic-neutral) in every scenario — ECCC has no residential wood-combustion factor at all, and the ERS-implied ratio is not physically plausible (~358 kg CO2e/kg).</p>
+    <p>Whichever basis is selected, that tCO₂e total is priced two ways, both as flat, single-year rates (not the phased schedules either source actually uses):</p>
+    <ul>
+      <li><b>Carbon tax:</b> $80/tCO₂e, the federal fuel charge / OBPS benchmark price for 2024 — the last full year before the federal consumer fuel charge was removed 2025-04-01. Applied identically to every matched pair regardless of its own audit year, so this is illustrative, not a reconstruction of the 2019 ($20) → 2024 ($80) schedule, and it is not a live policy figure.</li>
+      <li><b>Social Cost of Carbon:</b> $266/tCO₂e (C$2021), ECCC's 2024 central estimate for SC-CO2 at a 2% near-term Ramsey discount rate, from <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/science-research-data/social-cost-ghg.html" style="color:var(--ink)">"Social Cost of Greenhouse Gas Estimates – Interim Updated Guidance"</a> (Table 1). This is an estimate of global avoided climate damage, not a price anyone actually pays — ECCC's own FAQ makes this distinction explicit.</li>
+    </ul>
+    <p>The equivalency cards (vehicles, flights, oil barrels, forest absorption, propane cylinders) convert the selected basis's national total into everyday terms using the same emission factors as Ottawa Visuals' <a href="https://ottawavisuals.github.io/Ottawa-Visuals/ghg_calculator.html" style="color:var(--ink)">GHG Equivalency Calculator</a>, ported inline (no iframe or cross-repo fetch) to keep this page self-contained.</p>
+
+    <h4>Cold-climate equipment: the AHRI scatter and the DOE CCHP screen</h4>
+    <p><b>Plain language:</b> the scatter plots every AHRI-certified heat pump that appears in this data by two things — how efficiently it heats at 5 °F (COP), and how much of its warm-weather capacity it keeps at that temperature. Bubble size shows how often that unit was actually installed. The panel below it checks those same certificates against the specification sheet for a US government programme (the DOE Cold Climate Heat Pump Challenge) that only 3 distinct models in this entire dataset clear. That is not a defect in the data — Challenge-qualifying products only started reaching the market in 2024–25, and this dataset is a historical record of past installs.</p>
+    <p><b>Advanced:</b> both panels are built by <code>Python/build_hp_equipment_insights.py</code> from the same Phase-3c interim CSVs used by <code>HeatPump/pipeline/build_tier_scatter.py</code> (scatter geometry) and <code>HeatPump/pipeline/screen_cchp.py</code> (the screen). Scatter fields: <code>cm</code> = capacity maintenance = max capacity @5°F ÷ rated capacity @47°F; <code>cop</code> = COP @5°F at max compressor speed; <code>c47</code> = rated heating capacity @47°F, BTU/h, which sets the colour band. A unit is plotted only if all three are present; the chart's own gate note states how many units and appearances were dropped for each missing field. The CCHP screen checks 4 of the DOE Challenge's Table II-3 criteria that AHRI/ENERGY STAR ratings can resolve (capacity ratio, COP @5°F by capacity band, HSPF2 floor, refrigerant GWP) and carries the other 4 through as explicit "not checkable" entries. Denominator for every percentage is the full 15,148-model / 439,975-appearance universe, never a pre-filtered subset. <b>Wording rule:</b> the passing value is named <code>screen_pass</code>; the page must say "screened against the DOE Challenge specifications", never "meets" or "certified for" the Challenge — a screen against published ratings is not the Challenge's own H11/H1N verification test. Full method, thresholds table and all three basis caveats: <a href="https://github.com/OttawaVisuals/Energy/blob/main/HeatPump/METHODOLOGY.md" style="color:var(--ink)" target="_blank" rel="noopener">HeatPump/METHODOLOGY.md</a> "US DOE Cold Climate Heat Pump Challenge screen" and "Tier-selection scatter". <b>Known gap:</b> <code>hp_units_joined.csv</code>, the 15,148-model universe both panels read, has no producer script in this repo (built ad hoc in an earlier session) — see <a href="https://github.com/OttawaVisuals/Energy/blob/main/ROADMAP.md" style="color:var(--ink)" target="_blank" rel="noopener">ROADMAP.md</a>.</p>
+
+    <h4>What this page will not tell you</h4>
+    <p><b>Plain language:</b> two big caveats: everyone in this data chose to get an audit (usually for a rebate), so it isn't a random sample of Canadian homes — and any link you see between a postal area's income and its retrofit activity describes that neighbourhood, not any specific household in it.</p>
+    <div class="rail"><ul>${railList}</ul></div>
+    <p><b>Advanced:</b> two limits are worth stating plainly. <b>Self-selection:</b> every home here chose to get an audit, usually to claim a rebate, so this is not a sample of Canadian housing and cannot support statements about the housing stock as a whole. <b>Ecology:</b> income and dwelling value are attributes of a postal area, never of the household that did the work, so an association between an area's income and its retrofit behaviour says nothing about individual households.</p>
+
+    <h4>Questions for the EnerGuide team</h4>
+    <p>Things this dataset cannot answer on its own. Each one is a limit we hit while building the page, written down rather than papered over with an assumption.</p>
+    <ol class="qlist">
+      <li>
+        <b>Which FSA vintage do audit records carry?</b>
+        <span>Participation divides ~20 years of audits by a single 2021 census snapshot. If a record stores the postal code as captured at audit time, then areas Canada Post later redrew accumulate audits their present-day dwelling count cannot carry — we measured this and suppressed 80 postal areas because of it, plus 62 more whose FSA code has no 2021 census record at all. Confirming the vintage would tell us whether these can be recovered by remapping rather than dropped.</span>
+      </li>
+      <li>
+        <b>Is there a participation denominator you would prefer?</b>
+        <span>Audited homes ÷ census dwellings counts condo units that never receive a house audit, which pushes downtown high-rise areas near zero. A house-only or eligible-stock denominator would make participation comparable between urban cores and suburbs. Does one exist?</span>
+      </li>
+      <li>
+        <b>What explains the provincial spread in heat-pump adoption?</b>
+        <span>Adoption runs from 50.3% of matched retrofits in New Brunswick to 2.0% in Saskatchewan. The pattern is stable and reappears inside every climate and income breakdown we tried, but this data contains no programme, rebate or contractor-availability variable, so we can describe the spread and not attribute it. Is there a rebate-history dataset that could be joined?</span>
+      </li>
+      <li>
+        <b>Does climate add anything beyond province?</b>
+        <span>Grouping homes by heating-degree-days produced a heat-pump gradient that turned out to track provincial composition rather than temperature, so we removed the section rather than publish a climate finding we could not separate from province. Is there a within-province comparison you would consider sound?</span>
+      </li>
+      <li>
+        <b>Is earliest-D-to-latest-E the right way to pair a re-audited home?</b>
+        <span>Changed 2026-07-24: homes with more than one initial or follow-up audit (149,145 nationally, ~9% of homes holding both) used to be excluded entirely; they are now reduced to their earliest initial audit and latest follow-up, which lifted every figure on this page to a 1,451,433-pair base from 1,369,305. About 55% of those homes have two of each, so their single row may span two separate retrofit projects. We chose this because it captures the home's whole change rather than an arbitrary half, and because the headline results barely moved when the homes were added — but if the intended reading is one row per project, pairing each initial audit with the next follow-up would be the correct treatment instead. Which matches how EnerGuide records these?</span>
+      </li>
+      <li>
+        <b>How should zero-measure pairs be treated?</b>
+        <span>125,289 matched pairs (8.6%) record no tracked upgrade between the two audits, with a median saving of 3.2%. We report them as a count and exclude them from every "what worked" statistic. Are these re-audits, data-entry gaps, or measures outside the eight tracked flags?</span>
+      </li>
+      <li>
+        <b>Are the opportunity-score weights defensible?</b>
+        <span>The 0.30 / 0.25 / 0.20 / 0.25 split across pre-EUI, pre-GHG, pre-1980 share and low participation is our judgement, not an estimate from data. The ranking moves if the weights move. If the programme has a view on relative priority, we would rather encode yours.</span>
+      </li>
+    </ol>
+
+    <p style="color:var(--muted);font-size:12px;margin-top:.8rem">Every energy, EUI and GHG figure on this page is a modelled HOT2000/EnerGuide estimate, never a metered bill. Rebuilt by <code>Python/build_insights.py</code>; census and climate inputs are static and do not join the audit-data refresh.</p>`;
+});}
+
+/* also (re)build advanced charts the first time Advanced is shown, if their data is ready */
+document.querySelector('[data-set-mode="advanced"]').addEventListener('click',()=>{
+  setTimeout(()=>{
+    if(_valPending&&!CHARTS['ch-value']){quintChart('ch-value',_valPending);}
+  },40);
+});
+
+/* ── wire sections lazily ───────────────────────────────────────────── */
+whenVisible('sec-scorecard',sec02);
+whenVisible('sec-ghg',()=>Promise.all([secGhg(),secEnergy(),secPeak()]));
+whenVisible('sec-map',sec03);
+whenVisible('sec-success',sec04);
+whenVisible('sec-equity',sec06);
+whenVisible('sec-hp',sec07);
+whenVisible('sec-hp-equipment',sec07b);
+whenVisible('sec-opp',sec08);
+whenVisible('sec-timeline',sec09);
+whenVisible('sec-casestudies',secCaseStudies);
+whenVisible('sec-method',sec10);
+// initial render pass (covers above-the-fold sections + the frame-less preview)
+checkPending();
+setTimeout(checkPending,120);
+setTimeout(checkPending,600);
+
+</script>
+</body>
+</html>
