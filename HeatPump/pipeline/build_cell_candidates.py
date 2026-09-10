@@ -2,7 +2,7 @@
 build_cell_candidates.py — top-3 candidate models per bucket cell, for the
 manual datasheet hunt.
 
-The Phase 3c grid picks ONE representative per cell (TIER_SPEC.md 4). When that
+The Phase 3c grid picks ONE representative per cell (METHODOLOGY.md 4, "The nine units"). When that
 representative turns out to have no public performance table -- which the
 2026-07-27 fetch pass showed is the common case -- the cell stalls. This emits
 the top THREE candidates per cell instead, so a manual search that fails on the
@@ -13,12 +13,12 @@ first can move to the next without re-deriving the ranking.
 RANKING RULE
 ------------
 Most ERS record appearances, **preferring `Active` certification status** --
-the same rule TIER_SPEC.md 4 uses to pick representatives. So `rank == 1` is
+the same rule METHODOLOGY.md 4 uses to pick representatives. So `rank == 1` is
 always the current cell representative, and ranks 2-3 are the fallbacks. Active
 units are preferred because a discontinued unit rarely has a live datasheet.
 Cells with fewer than 3 models emit fewer rows.
 
-WORDING DISCIPLINE (TIER_SPEC.md 1)
+WORDING DISCIPLINE (METHODOLOGY.md 4, "Sampling frame")
 -----------------------------------
 The count column is `ers_appearances`, NOT "installs". It counts occurrences of
 an AHRI value in the ERS `AHRI` column across all audit rows: a home audited
@@ -30,7 +30,7 @@ INDOOR MODEL
 ------------
 From the NRCan Searchable Product List (`Indoor_Model_Numbers`), joined on AHRI
 number -- the AHRI scrape that would otherwise carry it is not on disk
-(TIER_SPEC.md 7). Coverage is partial: ~76% of bucketed appearances. A blank
+(METHODOLOGY.md 11, "Reproducing"). Coverage is partial: ~76% of bucketed appearances. A blank
 means "not listed by NRCan", NOT "no indoor unit". `Furnace_Model_Number` is
 carried alongside because NRCan reports "Coils Only" there for coil-only
 combinations, which is itself a useful signal when matching a submittal.
@@ -56,7 +56,7 @@ NRCAN = INTERIM / "nrcan_spl.csv"
 ENERGYSTAR = INTERIM / "energystar_by_ahri.csv"
 DEST = INTERIM / "cell_candidates.csv"
 
-# TIER_SPEC.md 6.2 -- screened as implausible, flagged rather than dropped.
+# METHODOLOGY.md 4, "Implausible ratings" -- screened as implausible, flagged rather than dropped.
 IMPLAUSIBLE_COP = 3.0
 IMPLAUSIBLE_CM = 1.30
 
@@ -125,7 +125,7 @@ def main():
                 if not members:
                     continue
                 cell_weight = sum(int(m["w"]) for m in members)
-                # Active first, then by appearances -- TIER_SPEC.md 4.
+                # Active first, then by appearances -- METHODOLOGY.md 4.
                 ranked = sorted(
                     members,
                     key=lambda m: (m.get("status") != "Active", -int(m["w"])),

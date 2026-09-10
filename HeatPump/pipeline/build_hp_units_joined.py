@@ -6,7 +6,7 @@ WHY THIS EXISTS
 `data/interim/hp_units_joined.csv` -- the one-row-per-AHRI-certified-unit table
 that `build_cell_candidates.py`, `build_cell_curves.py`, `build_tier_curves.py`,
 `build_tier_scatter.py`, `build_hp_tier_selection.py` and `screen_cchp.py` all
-read -- had no producer script anywhere in the repo (TIER_SPEC.md Section 7,
+read -- had no producer script anywhere in the repo (METHODOLOGY.md Section 11,
 "Reproducibility gap", flagged 2026-07-27; ROADMAP.md, Queued). It was built ad
 hoc in an earlier session and the join logic was never written down. This
 script reconstructs that join from its three still-reproducible inputs, traced
@@ -57,7 +57,7 @@ COLUMN PROVENANCE (verified against the committed CSV, not assumed)
             integer percentage ("72" = 72%) -- divided by 100 here. "-" is
             NRCan's missing-value sentinel -> null.
   cm        cm_ahri if present, else cm_nrcan. AHRI is authoritative and NRCan
-            only fills gaps (TIER_SPEC.md Section 1: "AHRI is authoritative;
+            only fills gaps (METHODOLOGY.md Section 4: "AHRI is authoritative;
             NRCan fills gaps (+448 models, +23,615 appearances), never
             overrides") -- confirmed live on k=211644151 above.
 

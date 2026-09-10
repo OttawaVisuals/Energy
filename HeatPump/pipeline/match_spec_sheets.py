@@ -24,7 +24,7 @@ WHY THIS DOES NOT SETTLE THE BAND ISSUE
 ---------------------------------------
 Finding a model string in a PDF proves the document mentions the model. It does
 NOT prove the document's performance table describes the *certified combination*
-carried by that AHRI number (DATASHEET_INVENTORY.md 5b). Only `match=ahri` is
+carried by that AHRI number (datasheet table layouts differ by brand). Only `match=ahri` is
 combination-level evidence. Everything else stays provisional until the ratio
 check in build_unit_curves.py runs on digitized points. The note column says so
 per row.

@@ -9,14 +9,14 @@
 #     gas/oil generation, serving communities not connected to the main
 #     hydro grid -- e.g. Nunavik, Iles-de-la-Madeleine).
 #   - Thermal is consistently <0.01% of total generation across all years
-#     with data (2019-2020, 2022-2025) -- confirming PLAN.md's assumption
+#     with data (2019-2020, 2022-2025) -- confirming the original plan's assumption
 #     that Quebec is a >99% hydro/wind grid.
 #   - Average EF(hour) = ThermalFrac(hour) * THERMAL_EF_G_PER_KWH
 #   - Marginal EF: not modeled separately here. With thermal generation
 #     this small and no intertie/import flow data in this dataset, there
 #     is no meaningful "gas on the margin" signal to key off of the way
 #     there is in ON/AB. MarginalEF is set equal to AvgEF as a placeholder.
-#     PLAN.md's own note that "counting winter imports" gives a materially
+#     the long-standing note that "counting winter imports" gives a materially
 #     higher number (~35 g/kWh, vs ~1.5 g/kWh production-only) is NOT
 #     addressed by this script -- it would require import/export intertie
 #     flow data we don't have yet. Flagged as future work.
@@ -55,7 +55,7 @@ OUT_JSON = os.path.join(HERE, "..", "data", "processed", "grid_ef_qc.json")
 
 THERMAL_EF_G_PER_KWH = 700.0  # see note above -- approximate, low-impact given <0.01% share
 
-# PLAN.md's own reference point (HQ sustainability reporting / general knowledge,
+# The long-standing reference point (HQ sustainability reporting / general knowledge,
 # not independently re-verified here): ~1.5 g/kWh production-based. Printed for
 # comparison only -- NOT used as a pass/fail validation gate, since at these
 # vanishingly small absolute magnitudes a relative-error tolerance is
@@ -107,7 +107,7 @@ def main():
     ef = compute_ef(wide)
 
     print("\n" + "=" * 60)
-    print("Annual average (generation-weighted) vs PLAN.md reference point")
+    print("Annual average (generation-weighted) vs published reference point")
     print("=" * 60)
     ef["Year"] = ef["Date"].dt.year
     annual = ef.groupby("Year").apply(
@@ -116,7 +116,7 @@ def main():
     )
     for year, computed in annual.items():
         print(f"  {year}: computed={computed:.3f} g/kWh   "
-              f"(PLAN.md reference: ~{PLAN_REFERENCE_G_PER_KWH} g/kWh -- "
+              f"(reference: ~{PLAN_REFERENCE_G_PER_KWH} g/kWh -- "
               f"not a pass/fail gate at this scale, see script header)")
 
     os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)

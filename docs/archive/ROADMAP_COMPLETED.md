@@ -257,7 +257,7 @@ typical values and note the delta.
 
 ### Prompt — Phase 5: simulation engine (Opus)
 
-Use the existing Phase 5 prompt in [PLAN.md](PLAN.md) §"Paste-able Claude Code
+Use the existing Phase 5 prompt in `PLAN.md` §"Paste-able Claude Code
 prompts" as-is, with two amendments: the heat pump input is a **tier curve from
 `hp_curves.json`** (normalized curve × user-selected nominal capacity), and the
 hourly EF comes from the **Phase-1-deferred EF surface** (average/marginal toggle
@@ -661,7 +661,7 @@ land, load balancing, yield and grid draw.
 
 Planned 2026-07-17 from user feedback on the shipped tool. Six workstreams
 (A–F below); the paste-able prompts bundle them into 5 sessions. Read
-[PLAN.md](PLAN.md) and [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md)
+`PLAN.md` and [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md)
 before any of them. Current state being extended: 5 cities
 (Ottawa/Toronto/Montreal/Calgary/Edmonton), hourly grid EF for ON/QC/AB
 only (avg + marginal), CWEC2020 TMY + 2019–2026 ECCC hourly history,

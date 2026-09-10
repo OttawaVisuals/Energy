@@ -65,7 +65,7 @@ GAS_LIKE_FUELS    = AB_GAS_LIKE_FUELS
 
 # Alberta.ca (NIR-sourced) published annual generation intensity, gCO2eq/kWh.
 AB_ANNUAL_INTENSITY = {2019: 630, 2020: 630, 2021: 580, 2022: 510, 2023: 470}
-VALIDATION_TOLERANCE = 0.15  # +/-15%, per PLAN.md
+VALIDATION_TOLERANCE = 0.15  # +/-15%, per METHODOLOGY.md 9
 
 # ─── LOAD ─────────────────────────────────────────────────────────────────────
 

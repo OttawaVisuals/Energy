@@ -61,7 +61,7 @@ INTERIM = HP / "data/interim"
 # Modelling constants
 # --------------------------------------------------------------------------
 DEFROST_FACTOR = 0.93          # 7% COP derate in the frost-prone band
-DEFROST_BAND = (-7.0, 4.0)     # C, per PLAN.md §3 / ROADMAP item 3b
+DEFROST_BAND = (-7.0, 4.0)     # C, per METHODOLOGY.md 4 / ROADMAP item 3b
 DEFROST_RAMP = 1.0             # C, continuity ramp just inside each band edge
 COP_FLOOR_DROP = 0.30          # COP floor below coldest point = coldest - 0.3
 GRID = np.round(np.arange(-30.0, 15.0 + 1e-9, 0.5), 2)   # common temp grid, C
@@ -105,7 +105,7 @@ GSHP_UNITS = {
 }
 
 # Ottawa-area vertical closed-loop entering-water-temperature model.
-# Undisturbed ground ~8-9 C (PLAN.md §4). A well-sized vertical borefield draws
+# Undisturbed ground ~8-9 C (METHODOLOGY.md 4). A well-sized vertical borefield draws
 # the loop down through the heating season; representative EWT band below.
 OTTAWA_EWT = {
     "undisturbed_ground_C": 8.5,

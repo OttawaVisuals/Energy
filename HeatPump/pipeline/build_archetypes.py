@@ -1,5 +1,5 @@
 """
-Phase 4 — Heating-load archetypes per launch city (PLAN.md Phase 4,
+Phase 4 — Heating-load archetypes per launch city (METHODOLOGY.md 3,
 ROADMAP.md item 3).
 
 Builds 3-4 archetypes per city (pre-1980 detached, 1980-2005 detached,

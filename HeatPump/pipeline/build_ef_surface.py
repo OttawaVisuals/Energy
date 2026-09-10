@@ -2,11 +2,11 @@
 build_ef_surface.py -- Phase 2 of the Heat Pump tool.
 
 Builds the temperature x hour-of-day x season grid-emissions-factor (EF)
-lookup surface that PLAN.md methodology decision #2 called for, and that
+lookup surface the original plan called for, and that
 was deferred out of Phase 1 until hourly weather existed. Weather now
 exists (data/interim/weather_hourly.csv), so this unblocks the join.
 
-Why a surface, not "bin EF by temperature alone" (PLAN.md #2)
+Why a surface, not "bin EF by temperature alone" (METHODOLOGY.md 6.6)
 ------------------------------------------------------------
 Grid intensity is not a function of temperature alone -- hour-of-day
 (morning/evening gas peaks), season (hydro conditions, AC vs heating load)
@@ -40,7 +40,7 @@ ratio is the stationary part, the level is the trending part. We store the
 shape cells plus the per-year levels and a `reference_level` (the most
 recent complete calendar year = the current grid). The engine multiplies
 shape x reference_level to get a typical-year EF for today's grid, and can
-swap in any stored year's level to reproduce the historical band (PLAN.md
+swap in any stored year's level to reproduce the historical band (METHODOLOGY.md
 #2's second sub-point). Provinces whose EF is essentially zero (QC,
 ~0.02 g/kWh) skip the ratio (unstable near zero) and carry a neutral
 shape == 1 -- their level is negligible either way.

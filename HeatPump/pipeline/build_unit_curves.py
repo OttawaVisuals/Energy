@@ -17,7 +17,7 @@ DESIGN NOTES
   capacity, so the fractional shape is size-independent. `cap_frac` can exceed
   1.0 below 47 °F — that is real, not a bug: the datasheet points are MAXIMUM
   output, and a variable-speed compressor boosts above its rated point in the
-  cold. See TIER_SPEC.md §2.
+  cold. See METHODOLOGY.md §4, "Tiering metric".
 
 * **Linear interpolation between published points, no extrapolation beyond
   them.** These are measured data with 15–23 points; fitting a smooth functional
@@ -147,7 +147,7 @@ def main():
     #
     # Two sources, because the scrape is not always on disk. If BOTH are absent
     # we must not quietly fall back to the datasheet's own 47F figure: that is
-    # TIER_SPEC.md 5 trap 1, it inflates every cap_frac, and -- worse -- it
+    # METHODOLOGY.md 4 "Curve construction", it inflates every cap_frac, and -- worse -- it
     # disables the combination-mismatch ratio check entirely, so a datasheet for
     # the wrong certified combination would be accepted in silence.
     lookup_path = ROOT.parent / "lookup" / "ahri_numbers.json"
@@ -176,7 +176,7 @@ def main():
     if not certs:
         print("REFUSING TO BUILD: no certificate rated-47F capacities available, so "
               "curves cannot be normalized correctly and the combination-mismatch "
-              "check cannot run. See TIER_SPEC.md 7, 'Reproducibility gap'.",
+              "check cannot run. See METHODOLOGY.md 11, 'Reproducing'.",
               file=sys.stderr)
         return 1
     if not units:
