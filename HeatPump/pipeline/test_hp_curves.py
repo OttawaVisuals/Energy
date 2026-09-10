@@ -4,7 +4,7 @@ test_hp_curves.py — validation tests for the Phase 3b heat-pump curves.
 Runnable as `python pipeline/test_hp_curves.py` (prints a summary and exits
 non-zero on failure) or under pytest (`pytest pipeline/test_hp_curves.py`).
 
-Asserts, per PLAN.md / ROADMAP.md item 3b:
+Asserts, per METHODOLOGY.md 4 / ROADMAP.md item 3b:
   * COP monotonic (non-decreasing in temperature) above -15 C -- checked
     OUTSIDE the -7..+4 C defrost band, where a deliberate 7% derate lives;
   * the defrost derate is exactly the documented factor inside the band;

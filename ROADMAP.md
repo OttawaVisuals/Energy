@@ -75,6 +75,16 @@ tool missing. The removed history is archived verbatim in gitignored
 index flagging each section CURRENT / SUPERSEDED / LOG); the pre-split file also
 remains in main's history.
 
+**Docs retired.** `PLAN.md`, `TIER_SPEC.md`, `DATASHEET_INVENTORY.md` and
+`BDA_COMPARISON.md` are removed from the repo — their live content is folded
+into METHODOLOGY.md (TIER_SPEC's source precedence, implausible-rating screen
+and the DOE Cold Climate Challenge screen among it), the rest is in gitignored
+`HeatPump/HISTORY.local.md`, and every citation in code, ROADMAP.md,
+project-atlas.html and README.md was repointed. `project-atlas.html` also
+carried published claims this correction falsified — a flat-500 gas EF with a
+"verify it yourself" walkthrough for a calculation we no longer use, and the
+superseded NEEP tiering narrative — both rewritten.
+
 **Retired.** `hp_curves.json` was fetched on every page load, assigned to
 `CURVES`, and never read — 165 KB of dead payload, now removed from the fetch.
 The file, `build_hp_curves.py` and the engine's `kind:'gshp'` path are kept so
@@ -103,7 +113,7 @@ script reproduces them (`validate_engine.py` runs the six unit vectors only).
 The qualitative finding stands; the numbers need a committed benchmark script.
 (4) The page's stated tier cut points (COP under 1.8 / 1.8-2.0, capacity
 maintenance under 0.60 / 0.60-0.80) match neither the shipped terciles
-(1.80/1.91 and 0.727/0.883) nor TIER_SPEC.md (0.60/0.70/0.85) — a labelling
+(1.80/1.91 and 0.727/0.883) nor the retired TIER_SPEC.md (0.60/0.70/0.85) — a labelling
 defect only, since no cut point enters the simulation. Corrected the page's
 exclusion figure from 28% to 32%.
 
@@ -135,7 +145,7 @@ without being tuned to do so, matching TIER_SPEC.md's independently-documented
 reconstruction rather than pursue further recovery — the file is gitignored,
 local-disk-only by repo convention, and every consumer already treats it as a
 rebuildable interim artifact. Full incident writeup and column-by-column
-provenance in [TIER_SPEC.md](HeatPump/TIER_SPEC.md) §7 and the script's own
+provenance in `TIER_SPEC.md` §7 and the script's own
 docstring.)
 
 Prior update **2026-09-05** (**Heat Pump Explorer** — the "potential AC" cooling
@@ -1784,7 +1794,7 @@ stands, sizing moves to a user-set design load, NRCan archetypes parked,
 selection becomes tier × capacity — tier-selection scatter built). Same day:
 BDA Heat Pump Lifecycle Emissions Explorer reviewed;
 lifecycle-update candidates logged — see
-[HeatPump/BDA_COMPARISON.md](HeatPump/BDA_COMPARISON.md). Prior pass
+`HeatPump/BDA_COMPARISON.md`. Prior pass
 2026-07-27: heat-pump load-model rebuild started: city design temperatures step shipped; CCHP Challenge screen added; earlier 2026-07-24 pass verified against the repo and commit history — GitHub Actions run status not directly queried, inferred from bot-authored commits).
 
 - 📦 Full record of completed items (prompts + build notes): [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)
@@ -1850,7 +1860,7 @@ lifecycle-update candidates logged — see
   on **AHRI as sampling frame / manufacturer datasheets as measurement**: a
   3×3 grid of COP @ 5 °F × capacity maintenance, 36 representatives chosen by
   real Canadian installation frequency from 439,975 EnerGuide record
-  appearances. Spec: [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md). The live
+  appearances. Spec: `HeatPump/TIER_SPEC.md`. The live
   tool already selects one of 9 real, individually AHRI-certified units (3
   tiers × 3 capacity bands) with datasheet-sourced curves — no scaling, no
   interpolation — so this bullet now tracks only the **full 36-cell
@@ -2007,7 +2017,7 @@ lifecycle-update candidates logged — see
   in June 2026 — a single-equation scalar tool with no weather or dispatch, so
   no threat to our load/performance model, but **ahead of us on refrigerants and
   on a forward-looking grid**. Full review, their constants, and where each tool
-  wins: [HeatPump/BDA_COMPARISON.md](HeatPump/BDA_COMPARISON.md). Candidate work,
+  wins: `HeatPump/BDA_COMPARISON.md`. Candidate work,
   in priority order:
   1. **Refrigerant GWPs → IPCC AR6, blend-weighted.** Ours are AR4/AR5-era
      (R-410A 2088, R-32 675, R-454B 467, R-290 3) vs AR6 2256 / 771 / 531 / 0.02,
@@ -2044,7 +2054,7 @@ lifecycle-update candidates logged — see
   [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) item 14.
   Method in [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) "US DOE Cold
   Climate Heat Pump Challenge screen"; caveats in
-  [HeatPump/TIER_SPEC.md](HeatPump/TIER_SPEC.md) §6.7.
+  `HeatPump/TIER_SPEC.md` §6.7.
 
 - 🧾 **Reproducibility gap: two Phase 3c inputs cannot be regenerated**
   (found 2026-07-27). `HeatPump/data/interim/hp_units_joined.csv` — the joined

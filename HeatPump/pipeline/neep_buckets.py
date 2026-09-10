@@ -6,7 +6,8 @@ selects representative candidate models per tier, then cross-matches the most
 popular AHRI reference numbers seen in the ERS retrofit data against the NEEP
 list to seed an "average installed" bucket.
 
-See ROADMAP.md item 3a and PLAN.md (Phase 3) for the design rationale.
+See ROADMAP.md item 3a for the design rationale. SUPERSEDED by the AHRI
+tiering in METHODOLOGY.md 4; retained as a record only.
 
 Inputs
 ------

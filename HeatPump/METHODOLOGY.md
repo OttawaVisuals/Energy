@@ -169,6 +169,37 @@ audit records: **439,975 record appearances across 15,148 distinct certified
 models**. Counts are record appearances, not installed units — a home audited
 twice counts twice, and retrofit and new-construction records are pooled.
 
+### Data sources, and which one wins
+
+| Source | Role |
+|---|---|
+| EnerGuide/ERS audit records | Selection weights (appearance counts) |
+| AHRI Directory | Certified ratings used for bucketing — **authoritative** |
+| NRCan Searchable Product List | HSPF2 Region V, ccASHP grouping, Canadian eligibility — **fills gaps only, never overrides** |
+| ENERGY STAR | Compressor staging, market, vintage — **attributes only** |
+| Manufacturer datasheets | Performance curves |
+| NEEP ccASHP listing | Performance-curve fallback, cited per model |
+
+The precedence is not arbitrary. **ENERGY STAR carries no independent
+performance data**: across 3,447 models present in both it and the AHRI scrape,
+5 °F capacity agrees within 2 % on 100 % of rows — it republishes AHRI figures.
+**NRCan agrees closely but not perfectly**: across 4,435 models carrying capacity
+maintenance from both, the median absolute difference is 0.5 pp, but 17.0 %
+differ by more than 2 pp. So AHRI governs, and NRCan is used to fill models AHRI
+does not cover (+448 models, +23,615 appearances).
+
+**Bucket assignment is scrape-date dependent.** AHRI amends certificates
+retroactively — one unit's cold-climate designation was confirmed flipping from
+No to Yes on 2026-07-22. Entries carry a `_checked` date.
+
+### Implausible ratings are screened, not dropped
+
+Certificates carrying a COP at 5 °F above 3.0, or a capacity maintenance above
+1.30, are flagged and excluded from selection rather than silently kept or
+silently removed. Both populations are small and real: 6 models / 1,975
+appearances above the COP threshold, 21 models / 3,040 appearances above the
+capacity-maintenance threshold.
+
 ### Tiering metric
 
 **Capacity maintenance = capacity at 5 °F ÷ capacity at 47 °F.** This is not an
@@ -290,6 +321,47 @@ certificate's Min/Rated/Max tables, for heating and cooling, at every whole
 degree either source publishes. Its purpose is to make a column mix-up visible
 rather than silent. NEEP values were pulled by browsing the rendered product
 pages.
+
+### Screen against the US DOE Cold Climate Challenge
+
+A separate screen of the whole installed base against the **US DOE Cold Climate
+Heat Pump Technology Challenge** specifications (Table II-3), built by
+`pipeline/screen_cchp.py`. It answers a different question from the tiering: not
+"what do Canadians install", but "how much of what Canadians install would clear
+the frontier specification". Results are surfaced on
+[retrofit-insights.html](../retrofit-insights.html), not on this page.
+
+**It is a screen against published certificate ratings, not a certification.**
+The Challenge is a verification programme with its own laboratory test protocol;
+we hold AHRI certificate figures. A unit passing here has *rating-consistent*
+performance and nothing more. The output column is named `screen_pass`, and the
+honest wording is "screened against the DOE Challenge specifications" — never
+"meets the DOE Challenge".
+
+**Four of roughly eight criteria are checkable** from the ratings we hold. The
+rest — turndown ratio, compressor cut-out/cut-in, electric heat staging, the
+ENERGY STAR CACHP clauses — are recorded as `not_checkable` columns rather than
+quietly ignored.
+
+Against all 439,975 appearances:
+
+| Verdict | Models | Appearances | % |
+|---|---:|---:|---:|
+| `screen_pass` | 4 | 8 | 0.00 % |
+| `near` (one gate failed) | 671 | 8,975 | 2.04 % |
+| `fail` | 4,644 | 194,294 | 44.16 % |
+| `out_of_scope` (< 24,000 Btu/h) | 3,866 | 151,496 | 34.43 % |
+| `unknown` (a needed rating absent) | 5,963 | 85,202 | 19.37 % |
+
+**The qualifying set is knife-edge, not merely small.** Three of the four report
+COP 2.10 against a 2.1 threshold and a capacity ratio of 1.0000 against 100 %.
+That is design-to-spec, not coincidence, and it means a routine certificate
+revision could move a unit across the line. None of the four is a cell
+representative in the 3 × 3 grid.
+
+The grid describes the *installed* base, which is a historical record. This
+screen is the reminder that it is not evidence about what today's best equipment
+can do.
 
 ### Cooling
 

@@ -21,7 +21,7 @@ INPUTS
                                           (c47) for each cell's unit -- the
                                           normalization denominator, per the
                                           "normalize on the certificate, not
-                                          the datasheet" rule (TIER_SPEC.md
+                                          the datasheet" rule (METHODOLOGY.md
                                           Section 5)
 
 OUTPUT
@@ -50,7 +50,7 @@ behaviour there, just keeps the grid populated).
 Capacity is normalized on each unit's AHRI-certified rated 47F capacity
 (hp_units_joined.csv `c47`), not the datasheet's own 47F figure -- datasheet
 47F readings are often a maximum-output figure, not the certified rated
-point (TIER_SPEC.md Section 5, trap 1).
+point (METHODOLOGY.md Section 4, "Curve construction").
 
 Run: python pipeline/build_cell_curves.py
 Imported by build_tier_curves.py, which now takes UNITS/build_segments from
@@ -377,7 +377,7 @@ UNITS["mid_18-30k"]["cool_source"] = UNITS["mid_30-42k"]["cool_source"]
 UNITS["mid_18-30k"]["rated_cap_95f_btuh"] = UNITS["mid_30-42k"]["rated_cap_95f_btuh"]
 
 # AHRI-certified rated 47F capacity (Btu/h) per unit, from hp_units_joined.csv
-# `c47` -- the certificate, not the datasheet's own 47F reading (TIER_SPEC.md
+# `c47` -- the certificate, not the datasheet's own 47F reading (METHODOLOGY.md
 # Section 5, trap 1: datasheet 47F is often a max-output figure).
 RATED_CAP_47F_BTUH = {
     "low_<18k": 12000.0,
@@ -512,7 +512,7 @@ def build_cell_curves():
             "temp_grid_C": {"min": float(GRID[0]), "max": float(GRID[-1]), "step": 0.5},
             "capacity_normalization": "fraction of AHRI-certified rated 47F capacity "
                                       "(hp_units_joined.csv c47), not the datasheet's own "
-                                      "47F reading -- see TIER_SPEC.md Section 5 trap 1",
+                                      "47F reading -- see METHODOLOGY.md Section 4, Curve construction",
             "modelling": "operation = max heating output (full call for heat). Between "
                         "published points: true linear interpolation. Below coldest "
                         "published point to lockout: capacity linear extrapolation "
@@ -521,7 +521,7 @@ def build_cell_curves():
             "selection": "3 performance tiers (low/mid/high COP@5F x capacity "
                         "maintenance) x 3 capacity bands (<18k/18-30k/30-42k Btu/h), "
                         "picked by eye off the tier-selection scatter -- see "
-                        "TIER_SPEC.md and data/interim/tier_scatter.html",
+                        "METHODOLOGY.md Section 4 and data/interim/tier_scatter.html",
         },
         "cells": cells_out,
     }

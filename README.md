@@ -40,7 +40,7 @@ the only thing left on the roadmap. See the [roadmap](ROADMAP.md).
 | Retrofit Insights | [ROADMAP.md](ROADMAP.md) item 13 (archived: [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md)) — analysis inventory, honesty rails, `build_insights.py`. *No `docs/RETROFIT_INSIGHTS.md` yet — its methodology lives inline in the page.* |
 | Retrofit Costs (inside Retrofit Explorer) | [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) — REMDB pairing, per-measure formulas, utility-rate sourcing, every assumption |
 | New Homes Explorer | [docs/NEWHOMES.md](docs/NEWHOMES.md) |
-| Heat Pump Explorer | [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) (methodology) · [HeatPump/PLAN.md](HeatPump/PLAN.md) (original plan) |
+| Heat Pump Explorer | [docs/HEATPUMP.md](docs/HEATPUMP.md) (project doc) · [HeatPump/METHODOLOGY.md](HeatPump/METHODOLOGY.md) (methodology) |
 | Ottawa Geothermal Map | [Geothermal/README.md](Geothermal/README.md) (full methodology) · [GEOTHERMAL_STATUS.md](GEOTHERMAL_STATUS.md) (build log) |
 | Ottawa Case Study / heat demand | [HEATDEMAND_PLAN.md](HEATDEMAND_PLAN.md) (active plan) |
 | CEUD Explorer | [docs/CEUD.md](docs/CEUD.md) |

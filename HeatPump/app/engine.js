@@ -13,7 +13,7 @@
  * in this version". The GSHP branch is dormant scaffolding for a later phase;
  * do not describe it as a user-facing feature until a caller sets kind:'gshp'.
  *
- * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
+ * Two amendments to the original Phase 5 design (see METHODOLOGY.md "Simulation
  * engine (Phase 5)"):
  *
  *   1. Heat pump input is a NORMALIZED CURVE from hp_cell_curves.json --

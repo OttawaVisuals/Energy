@@ -4,7 +4,7 @@ build_fetch_manifest.py — Phase 3c: the datasheet hand-fetch worklist.
 Regenerates, from data rather than by hand, the state of the datasheet sweep:
 the 36 bucket representatives, what document we hold for each, whether a curve
 was built, and what is blocking it. Replaces hand-maintenance of the tables in
-DATASHEET_INVENTORY.md, which drift the moment a PDF is added.
+a hand-maintained inventory, which drifts the moment a PDF is added.
 
 Emits data/interim/datasheet_fetch_manifest.csv, one row per representative.
 
@@ -65,7 +65,7 @@ DEST = INTERIM / "datasheet_fetch_manifest.csv"
 BTU_PER_KWH = 3412.14
 MAX_RATIO = 1.35
 
-# TIER_SPEC.md 4: the COSTWAY selection is not a credible rating; the RHEEM unit
+# METHODOLOGY.md 4: the COSTWAY selection is not a credible rating; the RHEEM unit
 # from the neighbouring cell is used instead.
 SUBSTITUTIONS = {"210727629": "212387098"}
 

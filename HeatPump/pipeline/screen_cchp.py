@@ -46,7 +46,7 @@ THREE MEASUREMENT CAVEATS, CARRIED AS COLUMNS NOT FOOTNOTES
    could be assigned the wrong COP threshold. `band_basis` records this.
 
 2. **Capacity ratio basis.** Ours is `Max 5 F / Rated 47 F` -- the ratio
-   ENERGY STAR v6.2, CEE and NRCan Greener Homes all define (TIER_SPEC.md 2).
+   ENERGY STAR v6.2, CEE and NRCan Greener Homes all define (METHODOLOGY.md 4, "Tiering metric").
    The Challenge states "Capacity Ratio 100%" without naming the two points.
    If it intends rated-to-rated, our figure is the more generous of the two.
 
@@ -65,7 +65,7 @@ here; that is a statement about the Challenge's scope, not about the equipment.
 
 NOTHING IS DROPPED
 ------------------
-Implausible ratings (COP > 3.0, capacity ratio > 1.30 -- TIER_SPEC.md 6) are
+Implausible ratings (COP > 3.0, capacity ratio > 1.30 -- METHODOLOGY.md 4) are
 flagged in `implausible` and still written. A screen that silently discarded
 them would hide the units most likely to pass on bad data.
 
@@ -141,7 +141,7 @@ IMPLAUSIBLE_RATIO = 1.30
 
 def read_csv(path, encoding="utf-8"):
     if not path.exists():
-        sys.exit(f"missing input: {path}\nrun the Phase 3c fetchers first (TIER_SPEC.md 7)")
+        sys.exit(f"missing input: {path}\nrun the Phase 3c fetchers first (METHODOLOGY.md 11)")
     with path.open(encoding=encoding, errors="replace", newline="") as fh:
         return list(csv.DictReader(fh))
 

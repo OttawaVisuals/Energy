@@ -674,7 +674,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
           <li>Search the "Cold-climate equipment" section and its methodology text for the word "meets" or "certified" next to "Challenge" — it should not appear; the wording is always "screened against the specifications".</li>
           <li>Check the qualifying-models table: it should show 4 rows but call out 3 distinct models, since GREE's GUD60W2/NHE-D(U) is AHRI-certified under two reference numbers.</li>
         </ol></div>
-        <div class="where">HeatPump/pipeline/screen_cchp.py docstring; HeatPump/METHODOLOGY.md "US DOE Cold Climate Heat Pump Challenge screen"; docs/archive/ROADMAP_COMPLETED.md item 14.</div>
+        <div class="where">HeatPump/pipeline/screen_cchp.py docstring; HeatPump/METHODOLOGY.md §4 "Screen against the US DOE Cold Climate Challenge"; docs/archive/ROADMAP_COMPLETED.md item 14.</div>
       </div></li>
     </ul>
   </div>
@@ -1269,7 +1269,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">IESO / AESO / Hydro-Québec<small>hourly electricity generation by fuel</small></div>
     <div class="src">The Atmospheric Fund<small>Ontario grid emission factors (calibration)</small></div>
     <div class="src">ECCC weather + CWEC<small>hourly temperatures + typical-year files, 5 cities</small></div>
-    <div class="src">NEEP ccASHP list<small>180,279 certified heat-pump ratings → 11,357 unique units</small></div>
+    <div class="src">AHRI Directory<small>439,975 certified appearances → 15,148 distinct models</small></div>
     <div class="src">NRCan ERS audits<small>house archetypes + which heat pumps Canadians actually install</small></div>
     <div class="src">WaterFurnace catalogs<small>ground-source performance tables</small></div>
     <div class="src">ECCC National Inventory<small>combustion & refrigerant emission factors</small></div>
@@ -1281,7 +1281,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="arr">→</div>
     <div class="step"><b>2 · Weather</b><span>hourly temps + typical year; emissions looked up by temp × hour × season</span></div>
     <div class="arr">→</div>
-    <div class="step"><b>3 · Equipment</b><span>11,357 heat pumps sorted into 3 tiers + an "average installed" blend; performance curves per tier</span></div>
+    <div class="step"><b>3 · Equipment</b><span>installed base tiered by capacity maintenance; 9 real certified units, one curve each</span></div>
     <div class="arr">→</div>
     <div class="step"><b>4 · Houses</b><span>4 archetypes × 5 cities from 100k+ real audits</span></div>
     <div class="arr">→</div>
@@ -1297,14 +1297,15 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <p>Hourly generation by fuel was fetched for Ontario (IESO), Alberta (AESO) and Quebec (HQ).
     Nuclear, hydro, wind, solar and biofuel count as zero combustion emissions; all direct emissions
     are attributed to the fossil fleet. For Ontario:</p>
-    <span class="formula">average EF(hour)  = gas share of generation × 500 g CO₂e/kWh
-marginal EF(hour) = 500 whenever any gas is running (≈ every hour)</span>
-    <p>The 500 wasn't plucked from air: The Atmospheric Fund publishes official Ontario factors, and
-    backing the implied gas intensity out of four separate years gives 526 / 496 / 474 / 502 — a
-    tight cluster around 500. Alberta gets coal 1050 / gas 540 the same way; Quebec's thermal
-    remainder gets 700 (uncalibrated, but it's 0.5% of a ~99.9% clean grid — immaterial).
-    The computed annual averages reproduce TAF's published values within 5.6% for all four
-    overlapping years.</p>
+    <span class="formula">average EF(hour)  = gas share of generation × gas EF for that year
+marginal EF(hour) = that year's gas EF whenever any gas is running (≈ every hour)</span>
+    <p>The Ontario gas figure is not inferred: The Atmospheric Fund publishes the National Inventory
+    Report's gas intensity directly, 420–479 g CO₂e/kWh generation-side across 2020–2025. Alberta
+    still gets coal 1050 / gas 540 backed out the older way, and that pair is <b>known stale</b> —
+    Alberta has revised its published series since. Quebec's thermal remainder carries 700
+    (uncalibrated, and immaterial at under 0.01% of a ~99.99% clean grid); Quebec now runs on the
+    ECCC yearly inventory average instead. The computed Ontario annual averages reproduce TAF's
+    published values within 0.9% for all five overlapping years.</p>
     <h4>Phase 2 — weather, and connecting it to the grid</h4>
     <p>Two temperature datasets per city: real hourly history (ECCC, 2019–2026) and a "typical
     meteorological year" (CWEC2020) that the simulation runs on. The grid factors are then binned
@@ -1312,15 +1313,16 @@ marginal EF(hour) = 500 whenever any gas is running (≈ every hour)</span>
     7 a.m. January hour gets the emissions intensity such hours historically had. Bins with under
     20 hours of history fall back to coarser bins. Check: reconstructing each year's annual average
     from the surface lands within ±10% of the directly-computed value.</p>
-    <h4>Phase 3a — sorting 11,357 heat pumps into tiers</h4>
-    <p>The NEEP cold-climate list has 180,279 rows, but that's every indoor/outdoor pairing — Carrier
-    alone is ~110k. Collapsing to unique outdoor units (median across pairings) gives 11,357. Each
-    gets two scores: <b>efficiency at −15 °C</b> (COP@5°F) and <b>capacity retention</b> (heat output
-    at −15 °C ÷ rated output at +8 °C). Units are ranked on the equal-weight blend of the two
-    percentiles and cut into equal thirds: Tier 1 "cold-climate premium" (COP ~2.07, retention ~93%),
-    Tier 2 "mid-market" (~1.97 / 80%), Tier 3 "baseline" (~1.84 / 70%). K-means clustering was tried
-    first and rejected — the COP scale is compressed (NEEP's own 1.75 floor) so it produced
-    incoherent groups.</p>
+    <h4>Phase 3a — sorting the installed base into tiers</h4>
+    <p>Tiers are built from AHRI-certified ratings on the actual Canadian installed base: 439,975
+    AHRI appearances across 15,148 distinct certified models in the EnerGuide audit records. The
+    metric is <b>capacity maintenance</b> — output at −15 °C ÷ rated output at +8 °C — the same ratio
+    ENERGY STAR, CEE and NRCan's Greener Homes criterion all use. COP at 5 °F is reported as an
+    attribute, not used to rank: 42% of the base reports exactly 1.80 and only 4.6% falls below it,
+    so no meaningful bottom third exists on that axis. Roughly a third of appearances carry no
+    certified 5 °F point and cannot be placed at all — 99% of that group is discontinued equipment
+    predating the rating. An earlier version tiered the NEEP product list instead; it was replaced
+    because it depended on a database we cannot redistribute, with boundaries of our own invention.</p>
     <h4>Phase 3b — from 4 test points to a full curve</h4>
     <p>Each representative model's certified points (capacity + COP at 8.3 / −8.3 / −15 °C and its
     coldest catalogued temperature, at max compressor speed) are connected piecewise-linearly on a
@@ -1349,11 +1351,11 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
     temperature backup takes everything. Electricity × that hour's grid factor (average or marginal,
     your toggle) + the base case's combustion + refrigerant leakage + upstream methane = the
     comparison. The engine exists twice — JavaScript (in the page) and an independent Python twin —
-    and both must produce identical results to 4 decimal places on 5 hand-computed scenarios.
-    The live page re-runs all 15 test vectors every time it loads.</p>
+    and both must produce identical results to 4 decimal places on 6 hand-computed scenarios,
+    which the live page re-runs every time it loads.</p>
     <h4>Phase 6 — the page</h4>
-    <p>One self-contained file inlining the engine; data fetched from the repo's JSON. Inputs
-    auto-size the unit to the archetype's design load; Advanced mode exposes the average/marginal
+    <p>One self-contained file inlining the engine; data fetched from the repo's JSON. The design heat load is set directly by the user rather than inherited from a
+    house-type archetype, and tier × capacity pins one of nine real certified units; Advanced mode exposes the average/marginal
     toggle, refrigerant choice and lifecycle sliders. The centrepiece chart shows heating load vs
     heat-pump capacity across temperature, with the balance point, cutoff and backup region shaded.</p>
     <h4>Phase 7 — does it agree with the literature?</h4>
@@ -1372,23 +1374,24 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
       <li><input type="checkbox" data-key="hp-marginal"><div class="a-body">
         <span class="tag choice">judgment call</span><b>THE BIG ONE: by default, heat-pump electricity is priced at the "marginal" grid rate (~500 g CO₂e/kWh in Ontario), not the much cleaner average (~97 g).</b>
         <p>The reasoning: plugging in a new load makes the gas plants run more — the nuclear/hydro was already spoken for. This single toggle flips the Ontario gas-vs-heat-pump answer from "−68% emissions" to "+11%".</p>
-        <p class="alt"><b>Other options:</b> average EF (what most published studies use — flattering to heat pumps); a time-varying hourly marginal (more precise, but Ontario's margin is gas nearly every hour anyway, so it converges to ~flat 500); or a long-run marginal that credits future clean builds (speculative). The chosen flat-500-when-gas-runs is the deliberately pessimistic upper bound — honest for "what does MY new load cause today", harsh vs every headline you've read.</p>
+        <p class="alt"><b>Other options:</b> average EF (what most published studies use — flattering to heat pumps); a time-varying hourly marginal (more precise, but Ontario's margin is gas nearly every hour anyway, so it converges to ~flat 420); or a long-run marginal that credits future clean builds (speculative). The chosen gas-EF-when-gas-runs is the deliberately pessimistic upper bound — honest for "what does MY new load cause today", harsh vs every headline you've read.</p>
         <div class="verify"><b>✅ Verify it yourself</b><ul>
           <li>⏱️ 2 min: flip the Average/Marginal toggle in the page's Advanced mode and watch the verdict flip — then decide which question you're asking.</li>
           <li>⏱️ 15 min: open the saved TAF guideline (<code>HeatPump/data/raw/TAF-Ontario-Emissions-Factors-2024.pdf</code>) — it states marginal factors are the correct basis for fuel-switching decisions, average for inventories. The tool's default follows that guidance.</li>
           <li>⏱️ 15 min: sanity-check that gas really is Ontario's marginal fuel: IESO's public generator output pages show gas plants ramping with demand while nuclear/hydro run flat.</li>
         </ul></div>
-        <div class="where">HeatPump/METHODOLOGY.md §Phase 1 "Emission factor model"; PLAN.md methodology decision #1; the in-page explainer.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.2 "Grid emissions: three bases" and §6.3 "Ontario"; the in-page explainer.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-gasef"><div class="a-body">
-        <span class="tag calib">calibrated</span><b>Ontario gas plants = a flat 500 g CO₂e/kWh, every hour, every year.</b>
-        <p>Backed out from The Atmospheric Fund's published factors for 4 separate years (came out 474–526 each time). A constant was chosen over a per-year value for simplicity. Alberta uses coal 1050 / gas 540; Quebec's tiny thermal fleet 700 (NOT independently calibrated — it's 0.5% of QC generation, immaterial).</p>
-        <p class="alt"><b>Other options:</b> a year-varying factor from the National Inventory Report directly (the documented TODO — the NIR PDF wasn't machine-readable this pass), or per-plant factors (overkill for a screening tool).</p>
+        <span class="tag src">sourced</span><b>Ontario gas plants = TAF's published NIR-derived intensity, year by year (420–479 g CO₂e/kWh).</b>
+        <p>Taken straight from The Atmospheric Fund's 2025 data workbook (sheet 10, "Natural Gas Consumption Intensity"), which publishes the National Inventory Report figure directly. Those values include transmission &amp; distribution losses, so they're divided by 1.074 — the same line-loss rate the engine re-applies — to get a generation-side factor. The two cancel, so the tool reproduces TAF's published intensity exactly. Alberta still uses coal 1050 / gas 540, <b>known stale</b> and pending a refit; Quebec's tiny thermal fleet 700 (never independently calibrated — it's under 0.01% of QC generation, immaterial).</p>
+        <p class="alt"><b>Superseded 2026-09-09:</b> this was a flat 500 g/kWh <i>backed out</i> of TAF's June-2024 average-factor table. TAF has since revised that table (2023: 67 → 59), which removed the high value the 500 rested on, and its workbook publishes the gas intensity directly — so there is no longer any reason to infer it. The correction lowered Ontario's 2025 marginal from 500 to 420 g/kWh.</p>
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
-          <li>Open the TAF PDF's factor table (p.11): 2023 average = 67 g/kWh.</li>
-          <li>Divide by the 2023 gas share of Ontario generation (13.3%, in METHODOLOGY.md's table): 67 ÷ 0.133 ≈ 502. That's the whole calibration — one division you can redo for any year.</li>
+          <li>Open the saved workbook (<code>HeatPump/data/raw/TAF-Ontario-Emissions-Factors-2025-data-tables.xlsx</code>), sheet 10: 2023 = 442 g/kWh.</li>
+          <li>Multiply by the 2023 gas share of Ontario generation (13.3%): 442 × 0.133 ≈ 59 — which is exactly TAF's own published 2023 average factor on sheet 1. That identity is the whole check, and it holds within 1% for every year 2020–2024.</li>
+          <li>Divide 442 by 1.074 to strip the T&amp;D that TAF bakes in: 411 g/kWh, the generation-side number the engine uses before re-applying line losses.</li>
         </ol></div>
-        <div class="where">HeatPump/METHODOLOGY.md §"Gas emission factor: 500 g — calibration"; the TAF PDF is saved in the repo.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.3 "Ontario"; the TAF workbook is saved in the repo.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-curves"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Heat-pump performance curves rest on 4 certified test points per model, connected with straight lines.</b>
@@ -1399,7 +1402,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
           <li>⏱️ 15 min: open the one public datasheet (<code>HeatPump/data/raw/spec_sheets/mitsubishi/…202401.pdf</code>, Performance table p.2) and compare its numbers to the same model's curve — they agree within ~3% except one 12% COP gap explained by a different indoor unit pairing.</li>
           <li>⏱️ deeper: run <code>python HeatPump/pipeline/test_hp_curves.py</code> — 7 automated checks including "curve passes through certified points within 3%".</li>
         </ul></div>
-        <div class="where">HeatPump/METHODOLOGY.md §Phase 3b "Data acquisition — what is public and what is not".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4 "Curve construction".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-tbal"><div class="a-body">
         <span class="tag calib">calibrated</span><b>Houses stop needing heat above ~8–12 °C outdoors — noticeably lower than the textbook 15–16 °C.</b>
@@ -1409,7 +1412,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
           <li>⏱️ 15 min: check against your own home — your gas bills likely drop to ~pilot-light levels by the time daily means hit 10–12 °C (May/June), not 15–16 °C. That's the same effect.</li>
           <li>⏱️ deeper: open <code>HeatPump/data/interim/archetype_validation.csv</code> — all 20 archetypes reproduce their audited energy, and the solved Tbalance values are listed per archetype.</li>
         </ul></div>
-        <div class="where">HeatPump/METHODOLOGY.md §Phase 4 "Finding: calibrated Tbalance (8–12 °C)…".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Heat load".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-defrost"><div class="a-body">
         <span class="tag choice">judgment call</span><b>A 7% efficiency penalty is applied between −7 °C and +4 °C for defrost cycles.</b>
@@ -1419,7 +1422,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
           <li>⏱️ 2 min: on the tier sanity plots (data/interim/), see the visible COP dip across the −7…+4 °C band.</li>
           <li>⏱️ 15 min: search "defrost penalty cold climate heat pump field study" — NRCan/CanmetENERGY field monitoring reports land in the 3–15% range.</li>
         </ul></div>
-        <div class="where">HeatPump/METHODOLOGY.md §Phase 3b "Curve construction" item 3.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4 "Curve construction".</div>
       </div></li>
     </ul>
   </div>
@@ -1427,22 +1430,23 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   <details><summary>All remaining assumptions (12 more, with verification steps)</summary><div class="d-inner">
     <ul class="assump">
       <li><input type="checkbox" data-key="hp-tiers"><div class="a-body">
-        <span class="tag choice">judgment call</span><b>The 3 performance tiers are equal thirds of a composite score</b> (cold-weather efficiency + capacity retention, equally weighted).
-        <p class="alt"><b>Other options:</b> k-means clustering (tried, rejected — 55% agreement, incoherent groups because NEEP's 1.75 COP floor compresses the scale); fixed physical thresholds (e.g. ENERGY STAR cold-climate criteria); or unequal weights favouring retention.</p>
+        <span class="tag choice">judgment call</span><b>The 3 performance tiers are terciles of capacity maintenance</b> (output at −15 °C ÷ rated output at +8 °C), install-weighted across the certified base.
+        <p class="alt"><b>Other options:</b> COP at 5 °F as the axis — rejected, because 42% of the installed base reports exactly 1.80 against a 1.75 certification floor and only 4.6% falls below it, so no meaningful bottom third exists; or fixed published thresholds (ENERGY STAR's ≥70% is one point, not three bands).</p>
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
-          <li>Open <code>HeatPump/data/interim/neep_tier_report.md</code> — tier stats and candidate models are tabulated.</li>
-          <li>Smell test: known premium units (Mitsubishi hyper-heat, −30 °C rated) should sit in Tier 1; builder-grade minimum units in Tier 3. They do.</li>
+          <li>Open <code>HeatPump/data/processed/hp_tier_selection.json</code> — <code>scatter.cm_terciles</code> holds the two cut points, and <code>scatter.gate</code> reports how much of the base could be placed at all.</li>
+          <li>Smell test: known premium units (hyper-heat, −30 °C rated) should land in the top band; builder-grade minimum units in the bottom. They do.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 3a "Tiering method"; neep_tier_report.md.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4 "Tiering metric" and "The 3 × 3 grid".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-avg"><div class="a-body">
-        <span class="tag calib">calibrated</span><b>The "average installed" option = the 10 most-installed units in real Canadian retrofit audits, blended by popularity.</b>
-        <p>All 10 matched to certified ratings (100% match rate). What Canadians actually buy leans bottom-tier (weighted COP@−15 °C ≈ 1.87).</p>
+        <span class="tag src">sourced</span><b>Each tier × capacity cell is one real, individually certified unit — no blending.</b>
+        <p>For each of the nine cells we work down the list of most-installed certified models and take the first whose manufacturer publishes a usable performance table; where the most-installed unit has no readable spec sheet, the next most-installed is used. Every unit is traceable to its own AHRI number, and each cell records which units were passed over and why. An earlier version instead blended the ten most-installed units into a single "average installed" curve; that was dropped when the nine-cell grid replaced it.</p>
+        <p class="alt"><b>Provisional:</b> the selection is temporary and awaiting review. In the 18–30k band the tier labels don't match the units' specs — the unit sitting in Premium retains less capacity in the cold (0.800) than the one in Mid-Range (0.917). The other seven cells are ordered correctly.</p>
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
-          <li>Open <code>Python/ahri_numbers_seen.csv</code> — the top AHRI number appears 5,465 times.</li>
-          <li>Search that number (206249117) on ahridirectory.org — it's the GREE GUD36, matching the report's table.</li>
+          <li>Open <code>HeatPump/data/processed/hp_cell_curves.json</code> — each cell carries its unit's AHRI number, its ERS appearance count, its lockout temperature and the datasheet page the curve was read from.</li>
+          <li>Search any of those AHRI numbers on ahridirectory.org and check the rated 47 °F capacity against the cell's own <code>rated_cap_47f_btuh</code>.</li>
         </ol></div>
-        <div class="where">neep_tier_report.md §"AHRI popularity cross-match".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4 "The nine units".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-city"><div class="a-body">
         <span class="tag choice">judgment call</span><b>"Ottawa" = postal codes K1, K2, K4</b> (rural K0/K6/K7… excluded); Toronto = M; Montreal = H (incl. Laval); Calgary = T2/T3; Edmonton = T5/T6.
@@ -1450,7 +1454,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Check any FSA map (Wikipedia "List of K postal codes") — K1/K2/K4 cover urban Ottawa; K0 is the rural valley. Judge whether that's the "Ottawa" you'd want.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 4 "City selection: FSA prefix" (has the reasoning per city).</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Heat load" (has the reasoning per city).</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-pre"><div class="a-body">
         <span class="tag choice">judgment call</span><b>House archetypes use PRE-retrofit audit values</b> — the tool models replacing heating in an as-found home, not an upgraded one.
@@ -1458,7 +1462,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>In <code>HeatPump/pipeline/build_archetypes.py</code>, confirm only <code>Pre_*</code> columns are read.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 4 "PRE-retrofit values, not POST".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Real-homes explorer".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-tdesign"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Design temperatures computed from 8 years of weather data</b> (2.5th-percentile January hour) instead of the building code's published 30-year values.
@@ -1466,7 +1470,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>Look up NBC 2020 Appendix C (or any HVAC design-temperature table) for Ottawa: −25 °C at the 2.5% January level, vs the computed −22.8. Decide if that 2 °C matters for a screening tool (it shifts UA ~5%).</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 4 "UA from design heat loss" (has the full table + reasoning).</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Heat load" (has the full reasoning).</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-fuel2heat"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Audited "heating energy" is fuel INPUT; it's converted to heat DELIVERED</b> using each home's recorded furnace efficiency.
@@ -1474,7 +1478,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Arithmetic check on the validation smoke run: Ottawa base gas fuel 24,985 kWh × 0.92 = 22,986 kWh delivered — exactly the archetype's annual load. The conversion is that one multiplication.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 4 "Fuel-input vs. delivered heat".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Real-homes explorer".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-filters"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Junk-data filters on the audits</b>: floor area 40–1,000 m², built 1900–2026, heat loss 1–50 kW. Townhouses aren't split by age (too few per cell); semi-detached homes are excluded entirely (~4–7% of rows).
@@ -1482,28 +1486,28 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ deeper<ol>
           <li>In <code>build_archetypes.py</code>, widen a bound (e.g. floor area to 20–2,000) and re-run — medians are robust to filter choices when the filters only catch junk. The smallest archetype cell is n=143, so no cell is fragile.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 4 "Archetype definitions".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §3 "Heat load".</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-refrig"><div class="a-body">
         <span class="tag std">standard factor</span><b>Refrigerant leakage: 5%/year + 80% lost at end of a 15-year life</b>, at each refrigerant's global-warming potential (R-410A ≈ 2,256).
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>GWP: cross-check R-410A ≈ 2,256 against IPCC AR6 values (it's the 50/50 R-32/R-125 blend). Leak rates: compare against ECCC's halocarbon regulations assumptions or CARB's residential leak studies (2–10%/yr range; 5% is mid). It's a slider — try 2% and 10% and see how little the verdict moves for gas-heated homes.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 5 "Emission categories"; adjustable in the page's Advanced mode.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.1 "Combustion factors"; adjustable in the page's Advanced mode.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-methane"><div class="a-body">
         <span class="tag std">standard factor</span><b>Upstream methane: 1–2% of gas leaks before it reaches the furnace</b> (default 1%, slider) — this penalizes the gas baseline, the mirror image of the marginal-grid choice penalizing electricity.
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>Compare against ECCC's National Inventory (~1% Canadian supply-chain estimate) and satellite-based studies (often 1.5–2.5%). The slider covers the range — check how much the gas-vs-HP verdict moves between 0% and 2%.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 5; the in-page Advanced sliders.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.8 "Lifecycle terms"; the in-page Advanced sliders.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-lineloss"><div class="a-body">
         <span class="tag std">standard factor</span><b>5% of electricity is lost in transmission lines</b> before reaching the home.
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>Hydro One / IESO publish Ontario transmission + distribution losses around 4–7%; StatCan's electricity supply-disposition table lets you compute it (losses ÷ generation).</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 5 constants.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.1.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-maxspeed"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Curves use maximum compressor speed</b> (the relevant point when a cold house calls for full heat); part-load cycling behaviour is simplified.
@@ -1511,7 +1515,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 15 min<ol>
           <li>On ashp.neep.org, open any unit's detail page: it lists min/rated/max points. Compare min-speed vs max-speed COP at 8 °C — min is typically higher, confirming the simplification undersells mild-weather efficiency (i.e. errs against the heat pump).</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 3b + §Phase 5 limitations.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4 "Curve construction" and §5.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-gshp"><div class="a-body">
         <span class="tag choice">judgment call</span><b>Ground-source: Ottawa loop assumed to bottom out near 0 °C in winter</b> (undisturbed ground 8.5 °C), with a 9% antifreeze penalty — from WaterFurnace's own tables, 2 representative units.
@@ -1520,7 +1524,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
           <li>The source PDFs are saved in <code>HeatPump/data/raw/spec_sheets/gshp/</code> — check the digitized COP-vs-water-temperature points against the catalog pages cited in METHODOLOGY (7 Series p.34, 5 Series p.62).</li>
           <li>The 0 °C design-minimum matches CSA C448 / IGSHPA guidance for properly-sized Ottawa vertical loops — any local GSHP designer would confirm.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 3b "GSHP curves".</div>
+        <div class="where">HeatPump/METHODOLOGY.md §4. <b>Not wired into the page</b> — the engine supports ground-source, but no UI control selects it.</div>
       </div></li>
       <li><input type="checkbox" data-key="hp-provef"><div class="a-body">
         <span class="tag choice">judgment call</span><b>One provincial grid factor applies to every city in that province</b> (Ottawa and Toronto share Ontario's), and "the current grid" = 2025 — whose intensity is ~3× the 2020 grid older studies used.
@@ -1528,7 +1532,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
         <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
           <li>Electricity is provincially pooled — Ottawa and Toronto genuinely share one grid mix, so this is mostly definitional. The part worth checking: TAF's table shows the average factor tripling 2017→2023 (18 → 67 g/kWh), which is why this tool reads harsher than 2020-era studies.</li>
         </ol></div>
-        <div class="where">METHODOLOGY §Phase 2 "Province vs. city temperature" + §Phase 7.</div>
+        <div class="where">HeatPump/METHODOLOGY.md §6.6 "Province versus city temperature" + §9.</div>
       </div></li>
     </ul>
   </div></details>
@@ -1537,7 +1541,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
     <h3>✓ How it was checked (unusually thoroughly)</h3>
     <ul>
       <li><b>Grid factors:</b> reproduce The Atmospheric Fund's published Ontario values within 5.6% for all 4 overlapping years (tolerance was 15%).</li>
-      <li><b>Engine:</b> the JavaScript engine and an independent Python twin run 5 hand-computed scenarios and must agree to 4 decimal places; the live page re-runs all 15 test vectors on every load — open the browser console (F12) on heatpump.html and look for the green "<i>all 15 Phase-5 vectors reproduced ✓</i>".</li>
+      <li><b>Engine:</b> the JavaScript engine and an independent Python twin run 6 hand-computed scenarios and must agree to 4 decimal places; the live page re-runs all 15 test vectors on every load — open the browser console (F12) on heatpump.html and look for the green "<i>all 15 Phase-5 vectors reproduced ✓</i>".</li>
       <li><b>Curves:</b> 7 automated tests — run <code>python HeatPump/pipeline/test_hp_curves.py</code> yourself, takes seconds.</li>
       <li><b>Whole tool vs literature (Phase 7):</b> seasonal efficiency 2.3–2.5 matches field studies (2.41); every gap vs NRCan / Climate Institute / Efficiency Canada is explained by a named cause. One real bug was found this way and fixed (an absurd percentage on Quebec's near-zero baseline).</li>
       <li><b>Re-verified independently on 2026-07-10</b> in a live browser session: zero console errors, outputs match the validation tables exactly.</li>
@@ -1566,7 +1570,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
       <li><b>Cooling curves reverted to spec-sheet interpolation (2026-09-05):</b> a RESNET HERS Addendum 82 synthetic model (badge SEER2/EER2 reconstruction, min/full/max variable-speed dispatch) had briefly replaced the direct spec-sheet curves on <code>heatpumpAC.html</code>. Simon's call: it went further than his confidence in the underlying badge data supports. Reverted to the same convention heating has always used — real digitized points, linearly interpolated, one curve per unit. Bonus: the pre-built curves this now reads cover all 9 tier cells, vs. 6 for the HERS badge-lookup table, so 3 cells (<code>low_&lt;18k</code>, <code>low_18-30k</code>, <code>mid_&lt;18k</code>) that showed "no data" in cooling mode now show real numbers.</li>
       <li><b>Undersized-equipment honesty fix, both heating and cooling (2026-09-05):</b> found by checking why several tier cells appeared to beat the standard-AC baseline on cooling electricity — every "win" was a cell running maxed-out 10–54% of the season (vs. the AC's own ~4%), so the low kWh reflected comfort silently going unmet, not real efficiency. Fixed by removing cooling's capacity ceiling entirely: the load is now assumed always fully met at that hour's curve COP even past rated capacity, with every such hour flagged (<code>over_capacity_hours</code>/<code>_kWh</code>, a "Hours over rated capacity" KPI, verdict-text callouts) rather than silently absorbed. Same session, removed the "None (heat-pump only)" backup option from <code>heatpump.html</code> for the analogous reason on the heating side — it let an undersized heat pump's shortfall vanish from every total instead of being served by a real backup device. Re-run of the 9-cell cooling comparison: only 2 of 9 heat pumps now beat the Goodman AC, down from 4 of 9 — the other two "wins" had depended entirely on the removed clamp.</li>
       <li><b>Cooling folded back into <code>heatpump.html</code> itself, integrated into every step (2026-09-05):</b> the opt-in "Show potential AC" bonus card is retired. A "Steps below show: Heating / Cooling" toggle now switches Steps 2–7 of the main page between the heating dispatch and the cooling comparison, reusing each step's existing chart/KPI layout and view controls rather than adding a parallel set — <code>heatpumpAC.html</code> stays the standalone deep-dive page, but the main page no longer needs a visit there to see the cooling numbers. Final numbers gained a combined card showing both regardless of which mode is toggled. Ported three generic chart builders from <code>heatpumpAC.html</code> (cooling compares two equipment alternatives with no backup, which doesn't fit heating's bespoke hp+backup chart functions). Caught and fixed a real engine drift along the way: <code>heatpump.html</code>'s own inlined <code>simulateCooling()</code> was missing the <code>ef_g_per_kWh</code> hourly field the other two copies already had.</li>
-      <li>See <code>ROADMAP.md</code>'s 2026-08-31 and 2026-09-05 entries and <code>HeatPump/METHODOLOGY.md</code> "Cooling / potential AC scenario", "Cooling curve library expanded, and SEER2 badges don't predict real-TMY performance", "Indoor-condition audit, a real bug fixed, and a NEEP cooling cross-check table", "Cooling curves reverted to spec-sheet interpolation", "No-backup heating option removed", "Cooling capacity ceiling removed, flagged instead of silently clamped", and "Cooling integrated into every step of the Heat Pump Explorer" for full detail.</li>
+      <li>See <code>ROADMAP.md</code>'s 2026-08-31 and 2026-09-05 entries and <code>HeatPump/METHODOLOGY.md</code> §4 "Cooling"</li>
     </ul>
   </div>
 </section>
@@ -1788,7 +1792,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   <h2>About this page</h2>
   <p class="small">Generated by Claude on <b>2026-07-10</b> (expanded same day with full methodology
   sections and per-assumption verification guides) by reading every project document in the repo
-  (<code>ROADMAP.md</code>, <code>HeatPump/PLAN.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
+  (<code>ROADMAP.md</code>, <code>README.md</code> + <code>docs/</code>, <code>HeatPump/METHODOLOGY.md</code>,
   <code>Geothermal/README.md</code>, <code>GEOTHERMAL_STATUS.md</code>, <code>docs/archive/CONSTRUCTION_PLAN/STATUS.md</code>,
   <code>docs/archive/CEUD_PLAN.md</code>, source-note files, and the git history). Updated 2026-08-03
   (two passes): first added the missing Retrofit Insights and New Homes Explorer sections (both had
