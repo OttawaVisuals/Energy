@@ -213,7 +213,16 @@ def main():
         latest_avg = avg[max(avg)]
         entry = {"avg_g_per_kWh": avg, "latest_year": max(avg)}
         # marginal
-        if prov in ("on", "qc", "ab"):
+        if prov == "qc":
+            # Quebec's thermal generation is <0.01% of the grid, so the hourly
+            # average is ~0.02 g/kWh and the hourly marginal is a placeholder
+            # set equal to it -- neither carries a real signal. The tool serves
+            # Quebec on this ECCC yearly basis only (2026-09-09 decision).
+            entry["marginal_note"] = (
+                "Quebec is served on this ECCC yearly average only. Its "
+                "thermal generation is under 0.01% of the grid, so an hourly "
+                "average or marginal basis carries no meaningful signal.")
+        elif prov in ("on", "ab"):
             entry["marginal_note"] = (
                 "This province has an hourly marginal surface "
                 "(ef_surface_%s.json); use that for a real marginal basis. "

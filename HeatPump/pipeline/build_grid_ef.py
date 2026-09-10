@@ -1,33 +1,33 @@
 # build_grid_ef.py
 # Computes Ontario hourly grid emissions intensity (average + marginal) from
-# IESO generation-by-fuel data (see fetch_ieso.py), using a gas combustion
-# emission factor calibrated against The Atmospheric Fund's published,
-# NIR-sourced Annual Average Emissions Factors (2024 edition).
+# IESO generation-by-fuel data (see fetch_ieso.py), using The Atmospheric
+# Fund's published, NIR-derived natural gas intensity (2025 edition).
 #
 # Methodology (matches TAF's approach, itself built on IESO + NIR data):
 #   - Direct (combustion) emissions only. Nuclear/Hydro/Wind/Solar/Biofuel/
 #     Other treated as zero-emission generation (consistent with TAF's
 #     methodology, which attributes essentially all direct grid emissions
 #     to natural gas).
-#   - Average EF(h) = gas_output(h) / total_output(h) * GAS_EF_G_PER_KWH
-#   - Marginal EF(h) = GAS_EF_G_PER_KWH whenever gas output(h) > 0, else
+#   - Average EF(h) = gas_output(h) / total_output(h) * on_gas_ef(year)
+#   - Marginal EF(h) = on_gas_ef(year) whenever gas output(h) > 0, else
 #     Average EF(h). In Ontario, gas is on nearly every hour in recent
-#     years, so marginal ~= GAS_EF_G_PER_KWH most of the time.
+#     years, so marginal ~= on_gas_ef(year) most of the time.
 #
-# GAS_EF_G_PER_KWH calibration:
-#   TAF (2024 edition, "Ontario Electricity Emissions Factors and
-#   Guidelines") publishes Annual AEF = total emissions / total generation,
-#   using IESO generation output and NIR's natural gas emissions intensity
-#   (NIR gas generation in GWh / NIR gas emissions in ktCO2e). Their
-#   published values: 2020->36, 2021->44, 2022->51, 2023->67 gCO2e/kWh.
-#   Dividing each by our own computed gas-generation-fraction for that year
-#   backs out an implied gas intensity of 526, 496, 474, 502 g/kWh
-#   (avg ~500, spread +/-5%) -- consistent with PLAN.md's own estimate of
-#   "gas CCGT/peakers ~490-550 g/kWh". We use 500 g CO2e/kWh as the single
-#   documented gas combustion factor.
-#   TODO: replace with a year-by-year NIR-derived gas intensity if/when we
-#   pull NIR Part 3 Table A13 gas generation/emissions directly, instead of
-#   backing it out of TAF's published AEF.
+# Gas emission factor:
+#   TAF publishes the NIR-derived gas intensity directly (2025 edition data
+#   tables, sheet 10 "Natural Gas Consumption Intensity"), so it is used as
+#   published, year by year, rather than backed out of their headline AEF.
+#   Those values are consumption-side (they include T&D losses); the tool
+#   applies line losses separately, so grid_common.on_gas_ef() divides by
+#   (1 + ON_TD_LOSS_FRAC) to get a generation-side factor. See grid_common.py
+#   for the full note, the T&D assumption and its sensitivity.
+#
+#   This replaces a flat 500 g/kWh used through 2026-09-09, which had been
+#   backed out of TAF's June-2024 AEF table. TAF's 2025 edition revised that
+#   table (2023: 67 -> 59 gCO2e/kWh), and the revision removed the high value
+#   the 500 average rested on. Redoing the same back-calculation against the
+#   current AEF reproduces sheet 10 to within 1%, i.e. ~470 consumption-side
+#   / ~450 generation-side, not 500.
 #
 # Output: data/processed/grid_ef_on.json
 #   { "hourly": [{Date, Hour, AvgEF_g_per_kWh, MarginalEF_g_per_kWh, GasFrac}, ...],
@@ -41,7 +41,10 @@ import json
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from grid_common import compute_ef_on, ON_GAS_EF_G_PER_KWH  # noqa: E402
+from grid_common import (  # noqa: E402
+    compute_ef_on, on_gas_ef,
+    ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH, ON_TD_LOSS_FRAC,
+)
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -49,14 +52,13 @@ HERE        = os.path.dirname(os.path.abspath(__file__))
 IN_CSV      = os.path.join(HERE, "..", "data", "interim", "ieso_hourly_by_fuel.csv")
 OUT_JSON    = os.path.join(HERE, "..", "data", "processed", "grid_ef_on.json")
 
-GAS_EF_G_PER_KWH = ON_GAS_EF_G_PER_KWH  # see calibration note above, now in grid_common.py
-
-# TAF (2024 ed.) published Annual AEF, gCO2e/kWh -- our validation targets.
-# Source: "Ontario Electricity Emissions Factors and Guidelines", TAF, June 2024,
-# p.11 (Historical Average Emissions Factors).
+# TAF (2025 ed.) published Annual AEF, gCO2e/kWh -- our validation targets.
+# Source: "Ontario Electricity Emissions Factors and Guidelines" data tables,
+# sheet 1 (Historical Annual Average Emissions Factors, 2015-2024).
+# Superseded the June-2024 edition, which read 2020:36 2021:44 2022:51 2023:67.
 TAF_ANNUAL_AEF = {2015: 46, 2016: 40, 2017: 18, 2018: 29, 2019: 29,
-                   2020: 36, 2021: 44, 2022: 51, 2023: 67}
-VALIDATION_TOLERANCE = 0.15  # +/-15%, per PLAN.md
+                   2020: 35, 2021: 43, 2022: 49, 2023: 59, 2024: 73}
+VALIDATION_TOLERANCE = 0.15  # +/-15%
 
 # ─── LOAD ─────────────────────────────────────────────────────────────────────
 
@@ -95,21 +97,32 @@ def validate(ef: pd.DataFrame) -> None:
         include_groups=False,
     )
 
+    # Our series is GENERATION-side; TAF's published AEF is CONSUMPTION-side
+    # (it includes T&D losses). Comparing directly would show a systematic
+    # ~-4.8% bias that is just the loss factor we removed on purpose and that
+    # the engine re-applies downstream. Scale back up for an equal-scope check.
+    print(f"  (computed x {1 + ON_TD_LOSS_FRAC:.2f} to restore T&D, "
+          f"matching TAF's consumption-side scope)")
+    print()
+
     all_ok = True
     for year, computed in annual.items():
         published = TAF_ANNUAL_AEF.get(year)
+        consumption_side = computed * (1 + ON_TD_LOSS_FRAC)
         if published is None:
-            print(f"  {year}: computed={computed:5.1f} g/kWh   (no TAF reference)")
+            print(f"  {year}: computed={computed:5.1f} gen-side "
+                  f"({consumption_side:5.1f} consumption-side)   (no TAF reference)")
             continue
-        pct_diff = (computed - published) / published
+        pct_diff = (consumption_side - published) / published
         ok = abs(pct_diff) <= VALIDATION_TOLERANCE
         all_ok &= ok
         flag = "OK" if ok else "FAIL"
-        print(f"  {year}: computed={computed:5.1f}  published={published:5.1f}  "
+        print(f"  {year}: computed={computed:5.1f} gen-side  ->{consumption_side:5.1f} "
+              f"consumption-side  published={published:5.1f}  "
               f"diff={pct_diff:+.1%}   [{flag}]")
 
     print("\n" + ("All years within +/-15% of TAF reference." if all_ok
-                   else "One or more years outside +/-15% -- review GAS_EF_G_PER_KWH."))
+                   else "One or more years outside +/-15% -- review grid_common.on_gas_ef."))
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -141,12 +154,18 @@ def main():
     payload = {
         "meta": {
             "province": "ON",
-            "gas_ef_g_per_kwh": GAS_EF_G_PER_KWH,
+            "gas_ef_g_per_kwh_by_year": {
+                str(y): round(on_gas_ef(y), 1)
+                for y in sorted(ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH)
+            },
+            "gas_ef_td_loss_frac": ON_TD_LOSS_FRAC,
             "methodology": (
                 "Direct combustion emissions only. All non-gas fuels treated "
-                "as zero-emission. Gas EF calibrated against TAF (2024) "
-                "published Annual AEF, itself NIR-derived. See build_grid_ef.py "
-                "header and METHODOLOGY.md for full derivation."
+                "as zero-emission. Gas EF is TAF's published NIR-derived gas "
+                "intensity (2025 edition, sheet 10), divided by (1 + T&D loss) "
+                "to give a generation-side factor, since line losses are "
+                "applied downstream. See build_grid_ef.py header, "
+                "grid_common.py and METHODOLOGY.md."
             ),
             "date_range": [ef["Date"].min().strftime("%Y-%m-%d"),
                             ef["Date"].max().strftime("%Y-%m-%d")],

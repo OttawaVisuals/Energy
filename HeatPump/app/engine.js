@@ -16,7 +16,7 @@
  * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
  * engine (Phase 5)"):
  *
- *   1. Heat pump input is a NORMALIZED TIER CURVE from hp_curves.json --
+ *   1. Heat pump input is a NORMALIZED CURVE from hp_cell_curves.json --
  *      { T_C[], cap_frac_of_rated47[], COP[] } -- scaled by a user-selected
  *      nominal capacity (kW at 47 F). The engine multiplies the fractional
  *      capacity by nominalCap_kW; the fractional shape is size-independent so
@@ -110,7 +110,7 @@
     var n = xs.length;
     if (x <= xs[0]) return ys[0];
     if (x >= xs[n - 1]) return ys[n - 1];
-    // Uniform 0.5 C grid in hp_curves.json, but do a safe binary search so the
+    // Uniform 0.5 C grid in hp_cell_curves.json, but do a safe binary search so the
     // engine also works on irregular grids.
     var lo = 0,
       hi = n - 1;
