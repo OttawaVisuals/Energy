@@ -78,7 +78,8 @@ sys.path.insert(0, str(HP_DIR / "pipeline"))
 from grid_common import (  # noqa: E402
     download_ieso_year, parse_ieso_xml, parse_aeso_zip,
     compute_ef_on, compute_ef_ab,
-    ON_GAS_EF_G_PER_KWH, AB_COAL_EF_G_PER_KWH, AB_GAS_EF_G_PER_KWH,
+    on_gas_ef, ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH, ON_TD_LOSS_FRAC,
+    AB_COAL_EF_G_PER_KWH, AB_GAS_EF_G_PER_KWH,
 )
 
 if sys.stdout.encoding != "utf-8":
@@ -102,8 +103,14 @@ RECENT_HOURLY_DAYS = 14     # hourly resolution for this many most-recent days
 MAX_FILE_KB = 300
 
 # Published Annual AEF / generation-intensity references (see METHODOLOGY.md).
+# TAF's AEF is CONSUMPTION-side (includes T&D losses) while our computed series
+# is generation-side, so the ON comparison scales ours back up by
+# ON_TD_LOSS_FRAC first -- see validate_monthly(). Alberta's published
+# intensity is already generation-side, so it needs no such adjustment.
+# ON values are TAF's 2025 edition, superseding the June-2024 edition
+# (2020:36 2021:44 2022:51 2023:67) this script previously validated against.
 TAF_ANNUAL_AEF_ON = {2015: 46, 2016: 40, 2017: 18, 2018: 29, 2019: 29,
-                      2020: 36, 2021: 44, 2022: 51, 2023: 67}
+                      2020: 35, 2021: 43, 2022: 49, 2023: 59, 2024: 73}
 AB_ANNUAL_INTENSITY = {2019: 630, 2020: 630, 2021: 580, 2022: 510, 2023: 470}
 ANNUAL_TOLERANCE = 0.15
 MONTHLY_ETL_TOLERANCE = 0.02
@@ -274,7 +281,7 @@ def build_quebec_context() -> dict:
 # ─── VALIDATION ───────────────────────────────────────────────────────────────
 
 def validate_monthly(ef: pd.DataFrame, master_json: Path, label: str,
-                      annual_ref: dict) -> bool:
+                      annual_ref: dict, td_loss_frac: float = 0.0) -> bool:
     print("\n" + "=" * 60)
     print(f"{label}: monthly average EF -- ETL-correctness cross-check")
     print("=" * 60)
@@ -319,16 +326,20 @@ def validate_monthly(ef: pd.DataFrame, master_json: Path, label: str,
         lambda g: (g["AvgEF_g_per_kWh"] * g["Total_MW"]).sum() / g["Total_MW"].sum(),
         include_groups=False,
     )
+    if td_loss_frac:
+        print(f"  (computed x {1 + td_loss_frac:.2f} to restore T&D, matching the "
+              f"published reference's consumption-side scope)")
     for year, computed in annual.items():
         published = annual_ref.get(int(year))
+        comparable = computed * (1 + td_loss_frac)
         if published is None:
             print(f"  {year}: computed={computed:6.1f} g/kWh  (no published reference; "
                   f"window is a rolling recent slice, not a full year)")
             continue
-        pct_diff = (computed - published) / published
+        pct_diff = (comparable - published) / published
         ok = abs(pct_diff) <= ANNUAL_TOLERANCE
         flag = "OK" if ok else "FAIL"
-        print(f"  {year}: computed={computed:6.1f}  published={published:6.1f}  "
+        print(f"  {year}: computed={comparable:6.1f}  published={published:6.1f}  "
               f"diff={pct_diff:+.1%}   [{flag}]  (partial-year slice)")
 
     return all_ok
@@ -358,12 +369,17 @@ def main():
     print("\n--- Ontario (IESO) ---")
     on_ef = build_ontario(args.refresh)
     print(f"  {len(on_ef):,} hourly rows, {on_ef['Date'].min().date()} -> {on_ef['Date'].max().date()}")
-    on_ok = validate_monthly(on_ef, MASTER_ON_JSON, "ON", TAF_ANNUAL_AEF_ON)
+    on_ok = validate_monthly(on_ef, MASTER_ON_JSON, "ON", TAF_ANNUAL_AEF_ON,
+                              td_loss_frac=ON_TD_LOSS_FRAC)
     on_ds = downsample(on_ef, on_ef.attrs["fuel_cols"])
     write_json(OUTPUT_DIR / "grid_on.json", {
         "meta": {
             "province": "ON",
-            "gas_ef_g_per_kwh": ON_GAS_EF_G_PER_KWH,
+            "gas_ef_g_per_kwh_by_year": {
+                str(y): round(on_gas_ef(y), 1)
+                for y in sorted(ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH)
+            },
+            "gas_ef_td_loss_frac": ON_TD_LOSS_FRAC,
             "fuels": on_ef.attrs["fuel_cols"],
             "source": "IESO Generator Output by Fuel Type Hourly (reports-public.ieso.ca)",
             "data_through": on_ds["data_through"],
@@ -412,7 +428,9 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "sources": {
             "ON": "IESO Generator Output by Fuel Type Hourly (reports-public.ieso.ca); "
-                  f"gas EF {ON_GAS_EF_G_PER_KWH} g/kWh calibrated vs TAF 2024 Annual AEF",
+                  "gas EF from TAF's published NIR-derived gas intensity (2025 ed.), "
+                  f"generation-side, {on_gas_ef(2024):.0f}-{on_gas_ef(2020):.0f} g/kWh "
+                  f"across 2020-2025",
             "AB": "AESO CSD Generation (Hourly), manually refreshed; "
                   f"coal EF {AB_COAL_EF_G_PER_KWH} / gas EF {AB_GAS_EF_G_PER_KWH} g/kWh "
                   "calibrated vs Alberta.ca published NIR-sourced generation intensity",

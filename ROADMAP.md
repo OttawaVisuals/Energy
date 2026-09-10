@@ -1,7 +1,116 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-07** (**Heat Pump Explorer** — closed the `hp_units_joined.csv`
+Updated **2026-09-09** (**Heat Pump Explorer + Grid Dashboard** — corrected the
+Ontario grid gas emission factor, then rewrote the methodology.
+
+**The correction.** Simon checked GridWatch against the tool and found live gas
+generation implying ~365 g CO2e/kWh where the pipeline used a flat 500. The 500
+had been *backed out* of TAF's June-2024 published Annual AEF table divided by
+our own IESO gas fractions. TAF's 2025 edition data workbook (Simon supplied it;
+now at `HeatPump/data/raw/TAF-Ontario-Emissions-Factors-2025-data-tables.xlsx`)
+settles it two ways. First, its **sheet 10 publishes the NIR-derived gas
+intensity directly** — the number the old TODO said to go fetch instead of
+inferring — and `gas share x sheet 10` reproduces TAF's own published AEF within
+1% for 2020-2024 against our IESO fractions, confirming both the identity and
+that our denominator matches TAF's basis. Second, TAF **revised the AEF table**
+(2023: 67 to 59), which removed the high value the "~500, tight cluster"
+argument rested on; redoing the same back-calculation on current figures gives
+~470, not 500. `grid_common.py` now carries sheet 10 year by year.
+
+**The T&D trap, found while wiring Quebec.** Sheet 10 is consumption-side (it
+includes T&D losses) and the engine applies line losses itself, so the published
+value is divided by (1 + loss) to get a generation-side factor. The first pass
+divided by 5% — the `engine.js` fallback — but `heatpump.html`'s
+`LINELOSS_PCT_BY_PROV` supplies **7.4%** for Ontario and always wins, so the
+round trip over-counted by 2.3%. `ON_TD_LOSS_FRAC` is now 7.4%, matching what is
+re-applied. Matching matters more than the value: emissions are
+`gas_share x published / (1+strip) x (1+re-add)`, so equal rates cancel and the
+tool reproduces TAF's published consumption-side intensity exactly. TAF does not
+publish its own loss rate — stated as an assumption, with its sensitivity.
+
+**Effect.** Generation-side factors 478.6 / 448.8 / 427.4 / 411.5 / 419.9 for
+2020-2024. Ontario's 2025 reference level 96.9 to 81.4 g/kWh average and 500 to
+419.9 marginal (-14.1%). Validation improved from -4.9%..+13.1% against a
+superseded table to **within +/-0.9%** for all five years, scope-matched. Surface
+shape cells moved by at most 2e-4 — the shape is a ratio, so a per-year scalar
+cancels; levels moved, nothing was distorted. Ottawa defaults now read 86 g/kWh
+(was 103). An independent check that had been explained away as a scope
+difference now actually agrees: the hourly route gives 54.9 g/kWh for 2023
+against the ECCC yearly route's 56.4, where before it was 66.7 vs 56.4.
+
+**Both tools, not one.** `Python/grid_etl.py` shares `grid_common.py`, so
+`grid_json/` was regenerated and `grid.html` now shows marginal 420 (was 500).
+Its 2025-edition validation targets and a scope-matched `td_loss_frac` parameter
+were added (Alberta passes 0 — its reference is already generation-side). The ON
+monthly cross-check initially failed on 2026-07 because the HeatPump master was
+built from IESO XML cached to 2026-07-05 while the ETL refetches live; refreshed
+the master (now to 2026-09-08) and every month agrees to 0.0%.
+
+**Quebec now uses the ECCC yearly basis only.** Its thermal generation is under
+0.01% of the grid, so the hourly average (~0.02 g/kWh) and the placeholder
+marginal carried no signal and both understated the province against the ~1.3
+g/kWh inventory average. Both hourly options are disabled for QC cities with the
+reason shown in the UI; the basis is remembered and restored on leaving, so
+visiting Quebec no longer silently changes the next province's answer.
+`ef_surface_qc.json` is still built and published as a record but no longer
+fetched. **Bug found and fixed in the same pass:** skipping that fetch broke
+Montreal silently — `recompute()` gated on `HAS_SURFACE[prov] && !EF_CACHE[prov]`
+and returned early forever, leaving Montreal showing Ottawa's numbers with no
+console error. Two guards asked "has a surface file?" meaning "uses one"; both
+now go through one `usesSurface()` predicate.
+
+**Methodology rewritten.** `HeatPump/METHODOLOGY.md` went from 4,535 lines /
+259 KB to 926 / 45 KB — **80% fewer lines, 82% smaller** — restructured around
+what the tool does rather than the order things were built. Removed: 18 dated
+changelog sections, the superseded Phase 3a/3b NEEP tiering and curve
+construction, five "Not yet done" sections (two of which were contradicted by
+later sections in the same file — the temperature x hour x season binning and
+the "blocked" ECCC fetch were both done), rejected alternatives, environment
+quirks and first-person voice. NEEP now appears only where it is still used: the
+per-model curve fallback and the on-page cross-check table. New
+`docs/HEATPUMP.md` gives the tool the standard project-doc slot it was the only
+tool missing. The removed history is archived verbatim in gitignored
+`HeatPump/HISTORY.local.md` (all five HeatPump docs, byte-identical, behind an
+index flagging each section CURRENT / SUPERSEDED / LOG); the pre-split file also
+remains in main's history.
+
+**Retired.** `hp_curves.json` was fetched on every page load, assigned to
+`CURVES`, and never read — 165 KB of dead payload, now removed from the fetch.
+The file, `build_hp_curves.py` and the engine's `kind:'gshp'` path are kept so
+ground-source can be wired up without rebuilding it.
+
+**Flagged, not fixed.** (1) **Alberta's COAL_EF/GAS_EF (1050/540) are stale** —
+fitted against Alberta's published series as it stood then (630/630/580/510/470,
+2019-2023), which Alberta has since revised and extended from the 2026 NIR to
+629/578/506/459/420 plus 335 for 2024, every year down ~10%. Refitting gives
+COAL_EF ~1200 and GAS_EF ~427 — and 427 lands within 1% of Ontario's corrected
+429.5, two provinces and two independent sources converging on ~430 for gas.
+Held pending a decision; METHODOLOGY.md section 6.4 carries a warning box saying
+treat Alberta as 10-15% high, and `build_grid_ef_annual.py` still prints the
+superseded 470 as its AB reference. (2) **Heat pump selection is provisional.**
+Tier labels don't match unit specs in the 18-30k band: Moovair
+DMA24HOS20230E7 sits in Premium at 0.800 capacity maintenance, below the
+Mid-Range GREE GUD36W/A-D(U) at 0.917. The other seven cells are ordered
+correctly. Noted on the page and in the methodology; a reselection pass would
+fix it with a label swap, since both units already sit in the right band-local
+terciles under the wrong names. Also established: **COP @ 5F cannot be a tiering
+axis** — 41.9% of the installed base reports exactly 1.80 and only 4.6% falls
+below it, so no bottom third exists; capacity maintenance splits cleanly at
+32/34/34. (3) The **Phase 7 benchmark tables were withheld, not updated** — they
+were computed against the old grid and flat 5% line loss, and no committed
+script reproduces them (`validate_engine.py` runs the six unit vectors only).
+The qualitative finding stands; the numbers need a committed benchmark script.
+(4) The page's stated tier cut points (COP under 1.8 / 1.8-2.0, capacity
+maintenance under 0.60 / 0.60-0.80) match neither the shipped terciles
+(1.80/1.91 and 0.727/0.883) nor TIER_SPEC.md (0.60/0.70/0.85) — a labelling
+defect only, since no cut point enters the simulation. Corrected the page's
+exclusion figure from 28% to 32%.
+
+Engine unaffected: 6/6 vectors pass in both `app/engine.js` under node and the
+`validate_engine.py` Python mirror, identical to 4 dp.)
+
+Prior update **2026-09-07** (**Heat Pump Explorer** — closed the `hp_units_joined.csv`
 reproducibility gap flagged in TIER_SPEC.md since 2026-07-27: no script in the
 repo could regenerate this AHRI+NRCan+ERS join that `build_cell_candidates.py`,
 `build_cell_curves.py`, `build_tier_curves.py`, `build_tier_scatter.py`,

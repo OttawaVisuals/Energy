@@ -1381,10 +1381,11 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
             <tr><td>Capacity maintenance</td><td>&lt;0.60 / 0.60–0.80 / ≥0.80</td><td>Capacity at 5°F ÷ capacity at 47°F — how much heat the unit still delivers in cold weather. Same definition used by ENERGY STAR v6.2, CEE, and NRCan Greener Homes.</td></tr>
           </table>
         </li>
-        <li><b>Representative selection:</b> within each of the 9 cells, the most-installed currently-certified model (by ERS appearance count) is used. Every unit is traceable to its own AHRI number.</li>
+        <li><b>Representative selection:</b> within each of the 9 cells, we work down the list of most-installed currently-certified models (by ERS appearance count) and take the first whose manufacturer publishes a usable performance table &mdash; where the most-installed unit has no spec sheet we can read, the next most-installed is used, and so on. Every unit is traceable to its own AHRI number, and each cell records which units were passed over and why.</li>
         <li><b>Curves:</b> capacity and COP vs. outdoor temperature come from that unit's own published manufacturer datasheet (submittal / product data), not the certificate — AHRI publishes capacity at three temperatures and COP at only one, not enough points to simulate a season. Where no datasheet table exists, the NEEP cold-climate listing is used instead, cited per model. When a datasheet and its own certificate disagree, the certificate governs which cell the unit sits in; the datasheet governs the simulated curve.</li>
       </ol>
-      <div class="caveats">~28% of ERS record appearances are for models with no certified 5°F rating and cannot be bucketed — 99% of that group is discontinued/delisted equipment that predates the rating. Counts are ERS record appearances, not installed units (a home audited twice counts twice; retrofit and new-construction records are pooled).</div>
+      <div class="caveats"><b>Provisional — under review.</b> The heat pump selection is temporary and awaiting review. In the 18&ndash;30k band the tier labels don't match the units' specs: the Moovair DMA24HOS20230E7 sits in <b>Premium</b> with a capacity maintenance of 0.800, below the <b>Mid-Range</b> GREE GUD36W/A-D(U) at 0.917. The other seven cells are correctly ordered.</div>
+      <div class="caveats">~32% of ERS record appearances are for models with no certified 5°F rating or rated capacity and cannot be bucketed — 99% of that group is discontinued/delisted equipment that predates the rating. Counts are ERS record appearances, not installed units (a home audited twice counts twice; retrofit and new-construction records are pooled).</div>
       <ul>
         <li><b>Lockout temperature:</b> a fixed assumption per tier — low −15°C, mid −20°C, high −25°C — not each unit's own published minimum (which range −15 to −30°C across the 9 units and don't line up cleanly by tier). Output is zero below the assumed lockout; no derating.</li>
         <li><span class="m-tag">Switch-over temp.</span><b>Switch-over temperature</b> (dual-fuel backup) is a separate, user-adjustable input: the temperature at which the system hands off to its furnace. It can be set warmer than the tier lockout; below the tier lockout the heat pump cannot run regardless of this setting.</li>
@@ -1646,7 +1647,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
  * Two amendments to the PLAN.md Phase 5 prompt (see METHODOLOGY.md "Simulation
  * engine (Phase 5)"):
  *
- *   1. Heat pump input is a NORMALIZED TIER CURVE from hp_curves.json --
+ *   1. Heat pump input is a NORMALIZED CURVE from hp_cell_curves.json --
  *      { T_C[], cap_frac_of_rated47[], COP[] } -- scaled by a user-selected
  *      nominal capacity (kW at 47 F). The engine multiplies the fractional
  *      capacity by nominalCap_kW; the fractional shape is size-independent so
@@ -1759,7 +1760,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
     var n = xs.length;
     if (x <= xs[0]) return ys[0];
     if (x >= xs[n - 1]) return ys[n - 1];
-    // Uniform 0.5 C grid in hp_curves.json, but do a safe binary search so the
+    // Uniform 0.5 C grid in hp_cell_curves.json, but do a safe binary search so the
     // engine also works on irregular grids.
     var lo = 0,
       hi = n - 1;
@@ -2624,7 +2625,12 @@ const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
 // guess. See METHODOLOGY.md "Tiered electricity pricing -- removed."
 const PLAN_LABEL={tou:'Time-of-use',ulo:'Ultra-low overnight',flat:'Flat rate',marginal:'Marginal (top-tier)'};
 
-let ARCH=null, CURVES=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null, AC_CURVE=null;
+// hp_curves.json is no longer fetched: the simulation runs off hp_cell_curves
+// (the 9 tier x band units). That file also holds the ground-source curves,
+// which the engine supports (hp.kind='gshp') but no UI control selects. Both
+// the file and pipeline/build_hp_curves.py are kept so GSHP can be wired up
+// without rebuilding it -- see METHODOLOGY.md section 4.
+let ARCH=null, TMY=null, ANNUAL_EF=null, CELL_CURVES=null, DESIGN_TEMPS=null, AC_CURVE=null;
 // city_design_temps.json keys most city names verbatim; the exceptions get an
 // explicit mapping rather than assuming a match.
 const CITY_TO_DESIGNTEMP_KEY={Ottawa:'Ottawa-Gatineau'};
@@ -3160,14 +3166,13 @@ let lastCool=null; // {arch,resAC,resHP,acEquip,hpEquip,hpLabel,hasHPCurve,elec,
 // ==========================================================================
 Promise.all([
   fetch(DATA+'archetypes.json').then(r=>r.json()),
-  fetch(DATA+'hp_curves.json').then(r=>r.json()),
   fetch(DATA+'tmy_temps.json').then(r=>r.json()),
   fetch(DATA+'grid_ef_annual.json').then(r=>r.json()).catch(()=>null),
   fetch(DATA+'hp_cell_curves.json').then(r=>r.json()),
   fetch(DATA+'city_design_temps.json').then(r=>r.json()),
   fetch(DATA+'ac_curves.json').then(r=>r.json()).catch(()=>null),
-]).then(([a,c,t,ann,cc,dt,acj])=>{
-  ARCH=a; CURVES=c; TMY=t; ANNUAL_EF=ann; CELL_CURVES=cc; DESIGN_TEMPS=dt;
+]).then(([a,t,ann,cc,dt,acj])=>{
+  ARCH=a; TMY=t; ANNUAL_EF=ann; CELL_CURVES=cc; DESIGN_TEMPS=dt;
   AC_CURVE=acj&&acj.models&&acj.models['Goodman_GLXS4BA3610'];
   runSelfTest();
   buildInputs();
@@ -3190,8 +3195,24 @@ Promise.all([
 // basis (+ a flat marginal estimate) from grid_ef_annual.json.
 const HAS_SURFACE={on:1,qc:1,ab:1};
 
+// Provinces pinned to a single emissions basis, with the reason shown in the
+// help text. Quebec: thermal generation is under 0.01% of the grid, so the
+// hourly average comes out near 0.02 g/kWh and the hourly marginal is a
+// placeholder set equal to it -- neither carries a real signal, and both
+// understate the province against ECCC's published inventory average
+// (~1.3 g/kWh). Quebec is therefore served on the ECCC yearly basis only.
+const EF_BASIS_LOCK={qc:'annual'};
+
+// True when this province's numbers actually come from an hourly surface.
+// A province can have a surface file and still not use it: Quebec is pinned to
+// the ECCC yearly basis, so ef_surface_qc.json is still built and published as a
+// record but nothing reads it. Every guard that asks "is the surface needed?"
+// must use this, not HAS_SURFACE, or it will wait forever for a fetch that
+// never happens.
+function usesSurface(prov){ return !!HAS_SURFACE[prov] && !EF_BASIS_LOCK[prov]; }
+
 function ensureEF(prov){
-  if(!HAS_SURFACE[prov]) return Promise.resolve(null); // annual-only province
+  if(!usesSurface(prov)) return Promise.resolve(null); // annual-only or pinned
   if(EF_CACHE[prov]) return Promise.resolve(EF_CACHE[prov]);
   return fetch(DATA+'ef_surface_'+prov+'.json').then(r=>r.json()).then(j=>{EF_CACHE[prov]=j;return j;});
 }
@@ -3475,20 +3496,37 @@ function bandPathFrom(minCounts,maxCounts,tmin,x,y){
 // annual-only provinces get ECCC yearly + a flat marginal estimate only.
 function syncEfSeg(){
   const prov=CITY_PROV[state.city], hasSurf=!!HAS_SURFACE[prov];
+  const lock=EF_BASIS_LOCK[prov];
   const sel=document.getElementById('in-ef'); if(!sel) return;
+  const lockMsg='Quebec is shown on the ECCC yearly basis only — its thermal generation is too small a share of the grid for an hourly basis to mean anything.';
   const avgOpt=sel.querySelector('option[value=average]');
   if(avgOpt){
-    avgOpt.disabled=!hasSurf;
-    avgOpt.title=!hasSurf?'No hourly grid data for this province — use ECCC yearly or marginal.':'';
+    avgOpt.disabled=!hasSurf||!!lock;
+    avgOpt.title=lock?lockMsg:(!hasSurf?'No hourly grid data for this province — use ECCC yearly or marginal.':'');
   }
-  // If the active basis is now unavailable, fall back to ECCC yearly.
-  if(!hasSurf&&state.efBasis==='average') state.efBasis='annual';
+  const margOpt=sel.querySelector('option[value=marginal]');
+  if(margOpt){
+    margOpt.disabled=!!lock;
+    margOpt.title=lock?lockMsg:'';
+  }
+  // If the active basis is now unavailable, fall back to ECCC yearly. A lock
+  // is remembered and undone on leaving, so visiting Quebec doesn't silently
+  // change the basis for the next province the user looks at.
+  if(lock){
+    if(state.efBasisPreLock==null) state.efBasisPreLock=state.efBasis;
+    state.efBasis=lock;
+  } else {
+    if(state.efBasisPreLock!=null){ state.efBasis=state.efBasisPreLock; state.efBasisPreLock=null; }
+    if(!hasSurf&&state.efBasis==='average') state.efBasis='annual';
+  }
   sel.value=state.efBasis;
   const btn=document.getElementById('ef-info'); if(!btn) return;
   const ann=annualAvgFor(prov);
   const base='Marginal (default) prices new load at the generator the grid ramps to meet it — usually gas in ON/AB. Hourly average uses this tool\'s temp×hour×season fleet-average surface. ECCC yearly is the province\'s flat published inventory average.';
   let dyn='';
-  if(!hasSurf){
+  if(lock){
+    dyn=ann?` ${prov.toUpperCase()} is served on the ECCC yearly basis only (${ann.year} inventory average, ${fmt1(ann.value)} g/kWh): thermal generation is under 0.01% of Quebec's grid, so an hourly average or marginal basis carries no meaningful signal.`:'';
+  } else if(!hasSurf){
     dyn=ann?` ${prov.toUpperCase()} has no hourly grid pipeline — showing ECCC's ${ann.year} annual average (${fmt1(ann.value)} g/kWh)`+(ann.marginal!=null&&ann.marginal!==ann.value?` and a flat marginal estimate (${fmt1(ann.marginal)} g/kWh).`:'.'):'';
   } else {
     dyn=ann?` ECCC yearly = ${prov.toUpperCase()} ${ann.year} inventory average (${fmt1(ann.value)} g/kWh).`:'';
@@ -3706,8 +3744,8 @@ function buildOpts(){
 function recompute(){
   updateCtrlSummary(); // keep the collapsed-bar summary in sync with every input change
   const prov=CITY_PROV[state.city];
-  if(HAS_SURFACE[prov]&&!EF_CACHE[prov])return; // hourly surface still loading
-  if(!HAS_SURFACE[prov]&&!ANNUAL_EF)return;     // annual data still loading
+  if(usesSurface(prov)&&!EF_CACHE[prov])return; // hourly surface still loading
+  if(!usesSurface(prov)&&!ANNUAL_EF)return;     // annual data still loading
   syncSwitchoverAuto(); // keep the switch-over temp on the crossover unless overridden
   updateLockoutHint();
   const opts=buildOpts();

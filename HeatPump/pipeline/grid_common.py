@@ -111,7 +111,69 @@ def parse_aeso_zip(path) -> pd.DataFrame:
 # against TAF's published Annual AEF (ON) and Alberta.ca's published
 # NIR-sourced generation intensity (AB).
 
-ON_GAS_EF_G_PER_KWH = 500.0
+# --- Ontario natural gas -----------------------------------------------------
+# TAF publishes the NIR-derived natural gas intensity directly, so it is used
+# as published rather than backed out of their headline Annual AEF.
+#
+# Source: The Atmospheric Fund, "Ontario Electricity Emissions Factors and
+# Guidelines" (2025 edition), data tables workbook, sheet 10 "Natural Gas
+# Consumption Intensity". Values for 2015-2023 are NIR-derived; TAF estimates
+# 2024-2025 as the mean of 2022 and 2023.
+#
+# These published values are CONSUMPTION-side: TAF's sheet title states they
+# include "gas plants emission intensity and transmission & distribution
+# losses". Both tools that consume this module apply line losses themselves
+# (heatpump.html engine.js lineLossPct, default 5%), so the published value is
+# divided by (1 + ON_TD_LOSS_FRAC) here to yield a GENERATION-side factor and
+# avoid double-counting T&D.
+#
+# TAF does not publish the loss rate it used, so ON_TD_LOSS_FRAC is an
+# assumption. It is set to 7.4% to MATCH the Ontario line-loss constant the
+# heat pump tool re-applies downstream (heatpump.html LINELOSS_PCT_BY_PROV:
+# IESO transmission ~2% compounded with the OEB's audited distributor Total
+# Loss Factor ~5.31%, 1.02 x 1.0531 = 1.074).
+#
+# Matching the two matters more than the value itself. Emissions come out as
+#   gas_share x published / (1 + strip) x (1 + re-add)
+# so when strip == re-add the round trip is exactly neutral and the tool
+# reproduces TAF's own published consumption-side AEF. A mismatch is a
+# silent bias: stripping 5% while re-applying 7.4% over-counts by 2.3%.
+# The generation-side factor reported on its own (grid.html, and the heat
+# pump tool with upstream losses switched off) does move with this value:
+# at 5% the 2024 factor would read 430 rather than 420 g/kWh.
+#
+# Cross-check: (gas share of IESO generation) x (published value) reproduces
+# TAF's own published Annual AEF within 1% for 2020-2024, confirming both the
+# identity and that our IESO denominator matches TAF's basis.
+
+ON_TD_LOSS_FRAC = 0.074
+
+ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH = {
+    2015: 446.0, 2016: 459.0, 2017: 417.0, 2018: 435.0, 2019: 439.0,
+    2020: 514.0, 2021: 482.0, 2022: 459.0, 2023: 442.0, 2024: 451.0,
+    2025: 451.0,
+}
+ON_GAS_EF_LAST_YEAR = max(ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH)
+
+
+def on_gas_ef(year: int) -> float:
+    """Generation-side Ontario gas emission intensity (g CO2e/kWh) for `year`.
+
+    Years past the published table carry the last available value forward,
+    matching TAF's own practice of estimating recent years from prior ones.
+    The alternative -- TAF's 2026+ forecast series, derived from the IESO APO
+    2025 build-out -- is a projection of future plant mix, not a measurement,
+    and is deliberately not used for observed generation.
+    """
+    published = ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH.get(
+        int(year), ON_GAS_CONSUMPTION_INTENSITY_G_PER_KWH[ON_GAS_EF_LAST_YEAR]
+    )
+    return published / (1.0 + ON_TD_LOSS_FRAC)
+
+
+# Backwards-compatible scalar: the most recent year's generation-side factor.
+# Prefer on_gas_ef(year) -- this constant loses the year-to-year variation.
+ON_GAS_EF_G_PER_KWH = on_gas_ef(ON_GAS_EF_LAST_YEAR)
 
 AB_COAL_EF_G_PER_KWH = 1050.0
 AB_GAS_EF_G_PER_KWH = 540.0
@@ -122,15 +184,16 @@ def compute_ef_on(wide: pd.DataFrame) -> pd.DataFrame:
     """wide must have Date, Hour, Total_MW, GAS columns (MW). Returns those
     plus GasFrac, AvgEF_g_per_kWh, MarginalEF_g_per_kWh.
 
-    AvgEF(hour)      = GasFrac(hour) * ON_GAS_EF_G_PER_KWH
-    MarginalEF(hour) = ON_GAS_EF_G_PER_KWH whenever gas output > 0, else AvgEF(hour)
+    AvgEF(hour)      = GasFrac(hour) * on_gas_ef(year)
+    MarginalEF(hour) = on_gas_ef(year) whenever gas output > 0, else AvgEF(hour)
     """
     out = wide[["Date", "Hour", "Total_MW", "GAS"]].copy()
     out["GasFrac"] = (out["GAS"] / out["Total_MW"]).where(out["Total_MW"] > 0, 0.0)
-    out["AvgEF_g_per_kWh"] = out["GasFrac"] * ON_GAS_EF_G_PER_KWH
-    out["MarginalEF_g_per_kWh"] = out["AvgEF_g_per_kWh"].where(
-        out["GAS"] <= 0, ON_GAS_EF_G_PER_KWH
-    )
+    # Gas EF varies by year (see on_gas_ef). Held as a local Series, not a
+    # returned column, so the frame shape stays identical for all callers.
+    gas_ef = pd.to_datetime(out["Date"]).dt.year.map(on_gas_ef).astype(float)
+    out["AvgEF_g_per_kWh"] = out["GasFrac"] * gas_ef
+    out["MarginalEF_g_per_kWh"] = out["AvgEF_g_per_kWh"].where(out["GAS"] <= 0, gas_ef)
     return out
 
 
