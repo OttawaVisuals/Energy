@@ -1,0 +1,405 @@
+/* Reset, theme variables (light/dark/cb) and body base now live in
+   assets/site-theme.css, shared with retrofit-insights.html and
+   newhomes.html — see that file for the full theme-system rationale. */
+
+/* Header, hero, Simple/Advanced mode toggle and theme toggle now live in
+   assets/site-theme.css. The [data-mode="advanced"]/[data-mode="simple-only"]
+   visibility rules (which some sections also toggle via inline style, see
+   showFsaFilterControls/toggleVintageCard) live there too. */
+
+/* Census card: gauge on the left, supporting KPIs filling the rest of the
+   row. Collapses to stacked on narrow screens so the gauge keeps its size. */
+/* Coverage tile: same box as .kpi-item, marked out by an accent ring and a
+   fill bar so it still reads as the card's headline number. */
+.kpi-item.kpi-coverage{box-shadow:inset 0 0 0 1.5px var(--primary)}
+.kpi-bar{height:5px;background:var(--track,#e6e2da);border-radius:3px;overflow:hidden;margin-top:8px}
+.kpi-bar span{display:block;height:100%;border-radius:3px}
+
+/* ── Filters ── */
+/* .filter-sticky wraps the filter bar OUTSIDE the hero so position:sticky
+   holds it below the header for the whole page (sticky only works while the
+   element's own parent is in view — inside .hero it would unstick as soon
+   as the hero scrolled away). */
+.filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+/* Compact state: once scrolled past the hero, drop the field labels to
+   reclaim vertical space — desktop/laptop only, since mobile already
+   stacks fields and needs the labels more than the space. */
+@media(min-width:900px){
+  .filter-sticky.is-compact .filter-group label{display:none}
+  .filter-sticky.is-compact .filter-bar{padding-top:.3rem}
+  .filter-sticky.is-compact{padding-bottom:.4rem}
+}
+.filter-match{display:flex;align-items:center;flex-wrap:wrap;gap:8px;align-self:flex-end}
+.filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
+.filter-group label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.filter-group select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 28px 0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6E82' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;appearance:none;transition:border-color .15s}
+.filter-group select:hover{border-color:var(--ink)}
+.filter-group select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.filter-group input{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);text-transform:uppercase;transition:border-color .15s}
+.filter-group input::placeholder{color:var(--muted);text-transform:none}
+.filter-group input:hover{border-color:var(--ink)}
+.filter-group input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+/* Measures multi-select: a button styled like the sibling <select>s that
+   toggles a checkbox panel — native <select multiple> can't render as a
+   compact dropdown, so this is hand-rolled. */
+.multi-select{position:relative}
+.multi-select-btn{height:34px;width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;transition:border-color .15s}
+.multi-select-btn:hover{border-color:var(--ink)}
+.multi-select-btn:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(200,136,26,.15)}
+.multi-select-btn .caret{font-size:9px;color:var(--muted);flex-shrink:0}
+.multi-select-btn.has-selection{border-color:var(--amber);color:var(--ink);font-weight:500}
+.multi-select-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:235px;max-width:calc(100vw - 2rem);background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 20px rgba(11,37,69,.18);padding:6px;z-index:120}
+.multi-select.open .multi-select-panel{display:block}
+.multi-select-note{font-size:11px;color:var(--muted);padding:4px 8px 7px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.multi-select-panel label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--text);cursor:pointer;white-space:nowrap}
+.multi-select-panel label:hover{background:rgba(11,37,69,.06)}
+.multi-select-panel input[type=checkbox]{height:auto;width:15px;border:none;padding:0;margin:0;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
+.filter-reset{height:34px;padding:0 16px;border:1px solid var(--border);border-radius:var(--r-sm);background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end}
+.filter-reset:hover{border-color:var(--ink);color:var(--ink)}
+/* "Explore the map" button — reveals the (collapsed-by-default) FSA map so
+   people can pick an area visually instead of via a dropdown. Styled as a
+   navy-outline pill so it reads as an action, not another filter. */
+.filter-explore{height:34px;padding:0 16px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--card);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;display:inline-flex;align-items:center;gap:7px}
+.filter-explore:hover{background:var(--navy);color:var(--on-navy)}
+.filter-explore.is-open{background:var(--navy);color:var(--on-navy)}
+.filter-explore .exp-ic{font-size:14px;line-height:1}
+/* Pushes the mode toggle (and reset) to the right end of the filter bar. */
+.filter-spacer{flex:1 1 0;min-width:0}
+@media(max-width:600px){.filter-spacer{display:none}}
+/* No fixed padding here — this row only ever holds the rare small-sample /
+   invalid-postal-code hints, both display:none by default, so an empty
+   container should collapse to zero height rather than reserving space for
+   messages that usually aren't showing. Each hint carries its own padding
+   as a block so it only costs space when actually visible. */
+/* Always-on min-height so the rounded bottom corner shows even when no
+   hint/warning is displayed — otherwise this collapses to zero height and
+   .filter-bar's own square bottom becomes the box's visible edge. */
+.filter-count-bar{max-width:1280px;margin:0 auto;background:var(--card);border-radius:0 0 var(--r-lg) var(--r-lg);min-height:8px}
+.filter-count-bar>.filter-count{display:block;padding:.3rem 1.25rem .5rem}
+.filter-count{font-size:13px;color:var(--muted)}
+.filter-count strong{color:var(--text);font-weight:500}
+/* Current-area pill in the count bar. With the FSA dropdown gone, this is how
+   you see which area is selected and get back to the province-wide view. */
+.area-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 4px 2px 11px;margin-right:8px;vertical-align:middle}
+.area-chip strong{font-weight:600}
+.area-clear{border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;padding:2px 8px;border-radius:16px;white-space:nowrap}
+.area-clear:hover{background:var(--navy);color:var(--on-navy)}
+
+/* ── Layout ── */
+main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+/* While a new selection is fetching, dim the stale charts instead of
+   leaving them looking current — cleared by render()/renderProvince(). */
+main.is-loading{opacity:.45;pointer-events:none;transition:opacity .15s}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:620px){.grid-2{grid-template-columns:1fr}}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:.85rem}
+.card-title-row .card-title{margin-bottom:0}
+/* Collapsible intro cards (caveats) — collapsed by default so they don't
+   push the actual results below the fold, but reachable in one click rather
+   than hidden in a tooltip. Reuses .card-title's look for the summary line. */
+.intro-details>summary.card-title{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.intro-details>summary.card-title::-webkit-details-marker{display:none}
+.intro-details>summary.card-title::after{content:'+ show details';font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);white-space:nowrap;flex:none}
+.intro-details[open]>summary.card-title::after{content:'– hide details'}
+.intro-details:not([open])>summary.card-title{margin-bottom:0}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+/* Pipeline flow diagram (methodology section E overview) — hoverable/
+   focusable boxes carry their stats/filters/sources in data-tip, shown via
+   a single shared floating tooltip (see ensurePipeTooltip in retrofits.js),
+   the same pattern as the fuel-breakdown chart's own tooltip. */
+.flow-tip{cursor:help}
+.flow-tip rect,.flow-tip polygon{transition:stroke-width .1s}
+.flow-tip:hover rect[stroke]:not([stroke="none"]),.flow-tip:focus rect[stroke]:not([stroke="none"]),
+.flow-tip:hover polygon,.flow-tip:focus polygon{stroke-width:2.6}
+.flow-tip:focus{outline:none}
+#pipe-tip{position:fixed;pointer-events:none;background:var(--navy);color:var(--on-navy);font-size:11.5px;padding:8px 11px;border-radius:7px;box-shadow:0 4px 14px rgba(11,37,69,.3);z-index:1000;display:none;font-family:Inter,sans-serif;line-height:1.5;max-width:280px;white-space:pre-line}
+.map-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;box-shadow:var(--shadow);max-width:1280px;margin:1rem auto 0}
+.map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.6rem}
+.map-svg-wrap{position:relative}
+#fsa-map-svg{width:100%;height:auto;max-height:560px;display:block;background:var(--map-bg);border-radius:var(--r-md);cursor:grab;touch-action:none}
+#fsa-map-svg:active{cursor:grabbing}
+.fsa-shape{cursor:pointer;stroke:var(--map-stroke);stroke-width:.6;transition:stroke-width .1s;fill-opacity:.6}
+.fsa-shape:hover{stroke:var(--ink);stroke-width:1.6}
+.fsa-shape.is-selected{stroke:var(--ink);stroke-width:2.2}
+.fsa-shape.no-data{cursor:default}
+.map-zoom-ctrl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;box-shadow:var(--shadow);border-radius:6px;overflow:hidden}
+.map-zoom-ctrl button{width:30px;height:30px;border:none;background:var(--card);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom-ctrl button:last-child{border-bottom:none}
+.map-zoom-ctrl button:hover{background:var(--surface)}
+.map-attribution{position:absolute;bottom:4px;right:8px;font-size:10px;color:var(--muted);background:var(--map-attr-bg);padding:1px 6px;border-radius:4px;line-height:1.4}
+.map-attribution a{color:var(--muted)}
+/* Continuous colour-scale legend (replaces the old 2–3 discrete chips,
+   which read as categories rather than a scale). */
+.map-grad-wrap{min-width:190px;max-width:240px}
+.map-grad{height:10px;border-radius:5px;border:1px solid var(--border)}
+.map-grad-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber);transition:transform .2s}
+.methodology details[open] summary::after{content:'–'}
+.methodology summary:hover{background:var(--cream)}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem;scroll-margin-top:64px;border-radius:4px}
+.methodology .method-body p{margin:0 0 .6rem}
+.methodology .method-body ul{margin:0 0 .6rem;padding-left:1.2rem}
+.methodology .method-body code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+/* Column-mapping tables in the Advanced methodology section */
+.methodology .method-body .method-table-wrap{overflow-x:auto;margin:0 0 .8rem}
+.methodology .method-body table{border-collapse:collapse;font-size:12.5px;line-height:1.45;min-width:640px;width:100%}
+.methodology .method-body th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);padding:5px 10px 5px 0;white-space:nowrap}
+.methodology .method-body td{border-bottom:1px solid var(--surface);padding:5px 10px 5px 0;vertical-align:top}
+.methodology .method-body td code{white-space:nowrap}
+
+/* ── Simple-mode "see more" prompt ── */
+.simple-more{text-align:center;margin:.25rem 0 1.25rem}
+.simple-more button{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;padding:.4rem}
+.simple-more button:hover{color:var(--ink)}
+
+/* ── Can/cannot answer ── */
+.can-cannot-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-top:.5rem}
+.can-cannot-head{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.5rem;color:var(--muted)}
+.can-cannot-yes .can-cannot-head{color:var(--green)}
+.can-cannot-no .can-cannot-head{color:var(--red)}
+.can-cannot-col ul{margin:0;padding-left:1.1rem;font-size:13px;color:var(--text);line-height:1.7}
+@media(max-width:900px){.can-cannot-grid{grid-template-columns:1fr}}
+
+/* ── Stats ── */
+.kpi-tier{margin-bottom:1.1rem}
+.kpi-tier-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem}
+.kpi-tier .stats-grid{margin-bottom:0}
+.stats-grid-outcomes{grid-template-columns:repeat(4,1fr)}
+.stats-grid-outcomes .stat-card{padding:1.05rem 1.2rem}
+.stats-grid-outcomes .stat-value{font-size:2.5rem}
+.stats-grid-activity{grid-template-columns:repeat(5,1fr)}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:2rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.stat-value.accent{color:var(--amber)}
+/* --amber on white is 2.25:1 in the colour-blind theme -- below the 3:1
+   this 32px figure needs as large/graphical text (light 3.00:1 and dark
+   7.46:1 both already clear it, so only cb needs an override). #AC7700
+   is --amber's own hue darkened to 3.89:1, not a new brand colour. */
+:root[data-theme="cb"] .stat-value.accent{color:#AC7700}
+.stat-value.green{color:var(--green)}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── Chart wrappers ── */
+.cw{position:relative;width:100%}
+.cw-sm{height:180px}
+.cw-md{height:220px}
+.cw-lg{height:280px}
+.cw-xl{height:360px}
+
+/* ── Measure bars ── */
+.measure-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.measure-label{font-size:13px;color:var(--text);width:185px;flex-shrink:0}
+.bar-track{flex:1;height:7px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-pct{font-size:12px;color:var(--muted);width:34px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+
+/* ── KPI insulation ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi-item{background:var(--surface);border-radius:var(--r-md);padding:.7rem .85rem}
+.kpi-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;min-height:28px;line-height:1.3}
+.kpi-values{display:flex;align-items:center;gap:8px;min-height:1.875rem}
+.kpi-pre{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--red)}
+.kpi-arrow{color:var(--muted);font-size:14px}
+/* Small circular badge that straddles the Pre/Post column border in the
+   HVAC & energy table — only rendered when that row's value actually
+   changed, so a glance at the border tells you which rows moved without
+   reading both cells. Background colour is set inline per-row (PAL.secondary,
+   theme-dependent). */
+.td-arrow{position:absolute;left:0;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;line-height:14px;text-align:center;font-size:9px;color:#fff;border-radius:50%;z-index:1}
+.kpi-post{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--green)}
+.kpi-pct{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink)}
+.kpi-unit{font-size:11px;color:var(--muted);margin-top:2px}
+.kpi-rsi{color:var(--muted)}
+.kpi-delta{font-size:12px;margin-top:4px}
+.kpi-delta.good{color:var(--green)}
+.kpi-delta.bad{color:var(--red)}
+.kpi-delta.flat{color:var(--muted)}
+.measure-chart-block{margin-bottom:1.5rem}
+.measure-chart-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem}
+.measure-chart-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.75rem}
+.measure-chart-title-row .measure-chart-title{margin-bottom:0}
+
+/* ── EUI KPI ── */
+.eui-row{display:flex;align-items:center;gap:1.25rem;margin-bottom:.85rem;flex-wrap:wrap}
+.eui-stat{text-align:center}
+.eui-val{font-family:'Fraunces',Georgia,serif;font-size:2.5rem;font-weight:300;line-height:1}
+.eui-pre-val{color:var(--red)}
+.eui-post-val{color:var(--green)}
+.eui-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.eui-arrow-big{font-size:2rem;color:var(--muted)}
+.eui-saving{font-family:'Fraunces',Georgia,serif;font-size:1.8rem;font-weight:300;color:var(--green)}
+
+/* ── Table ── */
+.sort-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.sort-label{font-size:12px;color:var(--muted);margin-right:2px}
+.sort-btn{font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.sort-btn:hover{border-color:var(--ink);color:var(--ink)}
+.sort-btn.active{background:var(--navy);border-color:var(--ink);color:var(--on-navy)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--surface);color:var(--text);vertical-align:middle}
+tr.data-row:last-child td{border-bottom:none}
+tr.data-row:hover td{background:var(--cream);cursor:pointer}
+tr.data-row.open td{background:var(--cream)}
+tr.data-row:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+tr.data-row:focus-visible td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+#sankey-svg path:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+tr.detail-row td{padding:0;border-bottom:1px solid var(--border);background:var(--cream)}
+.detail-inner{padding:1rem 1rem 1.25rem;display:none}
+tr.detail-row.open .detail-inner{display:block}
+.detail-h{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.5rem}
+.detail-measures{margin-bottom:1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--border)}
+/* auto-fit so the three charts drop to two columns, then one, instead of
+   compressing all three past legibility on a narrow viewport */
+.detail-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem 2rem;align-items:start;margin-bottom:1.5rem}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge-deep{background:var(--badge-deep-bg);color:var(--badge-deep-fg)}
+.badge-medium{background:var(--badge-med-bg);color:var(--badge-med-fg)}
+.badge-shallow{background:var(--badge-shal-bg);color:var(--badge-shal-fg)}
+.badge-neg{background:var(--badge-neg-bg);color:var(--badge-neg-fg)}
+.saving-pos{color:var(--green);font-weight:500;font-variant-numeric:tabular-nums}
+.saving-neg{color:var(--red);font-weight:500;font-variant-numeric:tabular-nums}
+.fuel-chip{display:inline-block;font-size:11px;padding:2px 6px;background:var(--surface);color:var(--muted);border-radius:4px}
+.fuel-arrow{color:var(--muted);font-size:11px}
+.measure-chips{display:flex;flex-wrap:wrap;gap:4px}
+.measure-chip{font-size:11px;padding:2px 6px;border-radius:4px;background:var(--navy);color:rgba(255,255,255,.9)}
+.tbl-footer{font-size:12px;color:var(--muted);margin-top:10px;text-align:right}
+
+
+/* ── Info "?" buttons ── */
+/* Base .info-btn/#info-tip look now lives in assets/site-theme.css. One
+   shared floating tip (#info-tip, created lazily in JS) serves every
+   button; the text lives in each button's data-info attribute. Hover shows
+   it on desktop, tap toggles it on touch. */
+/* "Full details in methodology →" link inside a tooltip. The tip stays open
+   while the pointer is over it (see the hide-timer logic in JS) so the link
+   is actually reachable. */
+.info-tip-link{display:block;margin-top:7px;color:var(--amber2);font-weight:500;text-decoration:none;cursor:pointer}
+.info-tip-link:hover{text-decoration:underline}
+/* Brief highlight on the methodology heading an info link jumps to. */
+@keyframes method-flash{0%{background:rgba(232,161,36,.28)}100%{background:transparent}}
+.method-flash{animation:method-flash 1.6s ease-out}
+
+/* ── Misc ── */
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.state-msg strong{display:block;font-size:1rem;color:var(--text);margin-bottom:4px}
+/* ── Sources ── */
+.sources{max-width:1280px;margin:0 auto;padding:.5rem 1.5rem 2rem}
+.sources h2{font-family:'Fraunces',Georgia,serif;font-size:1.35rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;margin-bottom:.85rem}
+.sources-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr));gap:.85rem}
+/* Fixed 2-line-tall row so the grid stays even: title clamps to 2 lines, the
+   ? button (shared .info-btn mechanism) carries the description that used
+   to sit below as clipped text. */
+.source-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.65rem .9rem;box-shadow:var(--shadow);min-width:0;height:56px;display:flex;align-items:flex-start;gap:6px}
+.source-item .source-title{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+.source-item a{color:var(--ink);font-weight:500;font-size:13.5px;text-decoration:none;overflow-wrap:anywhere}
+.source-item a:hover{color:var(--amber)}
+.source-item .info-btn{margin-left:auto;flex:none}
+
+/* footer base styling now lives in assets/site-theme.css */
+@media(max-width:900px){
+  .header-title{display:none}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:600px){
+  header{padding:0 1rem}
+  .hero{padding:1.1rem 1rem .9rem}
+  .filter-sticky{padding-left:1rem;padding-right:1rem}
+  .filter-bar,.filter-count-bar{padding-left:1rem;padding-right:1rem}
+  /* Filter bar: pack fields two-per-row instead of stacking every field full
+     width — same info, far less scroll height, especially with Advanced
+     fields (fuel/depth/measures) also showing. */
+  .filter-bar{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;padding-top:.6rem;padding-bottom:.6rem}
+  .filter-group{min-width:0}
+  .filter-group select,.filter-group input,.multi-select-btn{height:32px;font-size:13px}
+  .filter-group label{font-size:10px}
+  .filter-explore{grid-column:1/-1;justify-content:center}
+  .mode-toggle{justify-self:start}
+  main{padding:1rem 1rem 2rem}
+  .measure-label{width:120px}
+  .header-badge{display:none}
+  .sibling-link{display:none}
+  .logo{font-size:16px}
+  .card{padding:1rem}
+  .stat-value{font-size:1.6rem}
+  .eui-val{font-size:1.9rem}
+  .eui-arrow-big{font-size:1.5rem}
+  .eui-saving{font-size:1.4rem}
+  table{font-size:12px}
+  th,td{padding:6px 7px}
+  .card-title-row,.measure-chart-title-row{gap:8px}
+}
+@media(max-width:420px){
+  .logo{font-size:14px}
+  .stats-grid,.kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ── Section headers (group the dashboard into themed sections) ── */
+.section-head{margin:2.25rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.5rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:110ch}
+
+/* ── Section / measure icons ──
+   Hand-crafted inline SVG line-icons injected by injectIcons() into any
+   element carrying a data-icon="<key>" attribute (see the ICONS map in JS).
+   Stroke uses currentColor so each icon inherits its heading's colour. Two
+   context sizes: larger + amber next to an <h2>, smaller + muted next to a
+   .measure-chart-title / .card-title. */
+/* --light (#8A9BB0) is 2.84:1 on white and 2.59:1 on cream -- below WCAG AA
+   for normal text and below 3:1 even for large text and meaningful glyphs.
+   Every readable use here moved to --muted (#5C6E82, 5.5:1 on white, 6.5:1 on
+   the dark card) on 2026-08-20. Hierarchy for these labels comes from size and
+   placement, not from fading them out. Keep --light for non-text decoration
+   or disabled states only. */
+.ic{display:inline-block;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.5;
+    stroke-linecap:round;stroke-linejoin:round;vertical-align:-.16em}
+h2 .ic{width:22px;height:22px;margin-right:9px;color:var(--amber);vertical-align:-4px}
+.measure-chart-title .ic,.card-title .ic{width:14px;height:14px;margin-right:6px;color:inherit;opacity:.8}
+
+/* ── Equipment code lists (AHRI / windows): let the decoded name wrap and
+   sit above a muted raw-code line, instead of the fixed-width insulation
+   rows that share .measure-row/.measure-label. ── */
+.equip-list .measure-row{align-items:flex-start}
+.equip-list .measure-label{width:auto;flex:1 1 55%;min-width:0;padding-right:8px}
+.equip-list .measure-label .ml-code{display:block;line-height:1.3}
+.equip-list .measure-label .ml-sub{display:block;font-size:11px;color:var(--muted);line-height:1.25;margin-top:1px}
+.equip-list .measure-label .ml-sub a{color:var(--muted);text-decoration:underline}
+.equip-list .measure-label .ml-sub a:hover{color:var(--ink)}
+.equip-list .measure-label .ml-badges{display:block;margin-top:4px}
+.equip-list .measure-label .ml-badges .badge{margin-right:4px}
+.equip-list .bar-track{margin-top:6px}
+.equip-list .bar-pct{margin-top:6px}
+
+/* ── AHRI model groups: outdoor-unit header row (existing .measure-row bar
+   pattern) plus an indented list of the individual certificates behind it
+   (one outdoor model can carry many AHRI reference numbers — see
+   Methodology). ── */
+.ahri-model-group{margin-bottom:12px}
+.ahri-model-group:last-child{margin-bottom:0}
+.ahri-cert-list{margin:2px 0 0;padding-left:14px;border-left:2px solid var(--surface)}
+.ahri-cert-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:5px 0;font-size:12px}
+.ahri-cert-row+.ahri-cert-row{border-top:1px solid var(--surface)}
+.ahri-cert-row .ml-sub{color:var(--muted);line-height:1.3}
+.ahri-cert-row .ml-sub a{color:var(--muted);text-decoration:underline}
+.ahri-cert-row .ml-sub a:hover{color:var(--ink)}
+.ahri-cert-row .ml-badges .badge{margin-right:4px}
+.ahri-cert-row .ahri-cert-count{margin-left:auto;font-size:11px;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
+.ahri-cert-more{padding:4px 0 0 14px;font-size:11px;color:var(--muted);font-style:italic}
