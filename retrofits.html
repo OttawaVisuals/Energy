@@ -61,13 +61,30 @@
 
 <header>
   <div class="header-left">
-    <div class="logo">retrofit<span id="logo-province">Canada</span></div>
+    <a class="logo" href="index.html" title="All tools — Ottawa Visuals home">retrofit<span id="logo-province">Canada</span></a>
     <div class="header-title" id="header-title">Home energy retrofits</div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
-    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <!-- home-link stays visible on phones (the other sibling links hide
+         at <=600px), so there is always a way back to the hub. -->
+    <a class="sibling-link home-link" href="index.html">⌂ All tools</a>
     <a class="sibling-link" href="retrofit-insights.html">↳ National insights</a>
     <div class="header-badge" id="header-badge">EnerGuide data</div>
+    <!-- Theme switch. Labelled by title + aria-label rather than visible text
+         so it stays a compact three-icon pill in the header (same spot as
+         heatpump.html, and one less row in the filter bar on phones);
+         aria-pressed carries the state for screen readers. -->
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -77,7 +94,18 @@
 </div>
 
 <div class="filter-sticky">
-  <div class="filter-bar">
+  <!-- Compact state (once scrolled past the hero, all widths): the full
+       filter bar hides behind this one-line summary + an explicit "Edit
+       filters" button — same pattern as heatpump.html's .ctrl-compact-bar.
+       The summary is rebuilt from the selects' own option text, so it can
+       never drift from what the full bar says. -->
+  <div class="filter-compact-bar">
+    <span class="filter-compact-summary" id="filter-compact-summary"></span>
+    <button type="button" class="ctrl-expand-btn" id="filter-expand-btn" aria-expanded="false" aria-controls="filter-bar">
+      <span class="label">Edit filters</span><span class="chev">▾</span>
+    </button>
+  </div>
+  <div class="filter-bar" id="filter-bar">
     <div class="filter-group" style="flex:0 1 170px"><label for="province-sel">Province</label>
       <select id="province-sel">
         <option value="CA" selected>All of Canada</option>
@@ -136,20 +164,6 @@
     <div class="mode-toggle" role="group" aria-label="View mode">
       <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
       <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
-    </div>
-    <!-- Theme switch. Labelled by title + aria-label rather than visible text
-         so it stays a compact three-icon pill next to the wider Simple/
-         Advanced toggle; aria-pressed carries the state for screen readers. -->
-    <div class="theme-toggle" role="group" aria-label="Colour theme">
-      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
-      </button>
-      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
-      </button>
-      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
-      </button>
     </div>
     <button class="filter-reset" onclick="resetFilters()">Reset filters</button>
     <div class="filter-match">
