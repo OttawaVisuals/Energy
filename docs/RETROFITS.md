@@ -757,6 +757,35 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 
 ## Changelog
 
+### 2026-09-23 Mobile-friendly filter bar (collapsing summary, theme toggle in header)
+
+**Why.** The sticky filter bar never shrank on phones. Measured on a 375×812
+viewport, scrolled down with an FSA selected, it stayed **372px tall in Simple
+and 488px in Advanced**. Together with the 48px header, that covered 52% / 66% of
+the screen over every chart. The Heat Pump Explorer's equivalent bar collapses to
+46px. The old compact state only hid the field labels, and only at ≥900px.
+
+- **Collapsing summary bar, all widths.** Past 72px of scroll, the whole filter bar
+  hides behind `.filter-compact-bar`. It shows a one-line summary
+  (`K1A, Ontario · Double/Semi-Detached · 12 retrofits`) plus an explicit **Edit
+  filters** button, ported from `heatpump.html`'s `.ctrl-compact-bar`.
+  Expand/collapse happens only on click (`_filterUserExpanded`), never on hover.
+  `updateFilterSummary()` reads the selects' own option text, so the summary can't
+  drift from the full bar. Filters left at their "All …"/"Any …" default are left
+  out. A `MutationObserver` on `#result-count` keeps it current, because every
+  filter change ends in a new count. Collapsed height is now **53px** on a phone
+  (was 372/488) and 53px on desktop (was 110).
+- **The small-sample warning stays visible.** While collapsed, the 2–3 line
+  `#small-n-warn` is swapped for an amber "small sample" tag in the summary line.
+  The small-n label is never dropped.
+- **Theme toggle moved into the header**, same spot as `heatpump.html`. This
+  removes one row from the phone filter grid.
+- **Phone grid:** Simple/Advanced and Reset now share one row, and the match count
+  gets its own full-width row.
+- **Home link on phones.** "⌂ All tools" (`.home-link`) now stays visible at ≤600px,
+  where the other sibling links hide. The `retrofitCanada` logo is also a link to
+  `index.html`.
+
 ### 2026-08-27 Case-study section rework — filter, project table, R-value slopegraph
 
 - **Building-type multi-select filter** (`#cs-type-filter`, pills built from the

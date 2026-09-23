@@ -21,14 +21,37 @@
    element's own parent is in view — inside .hero it would unstick as soon
    as the hero scrolled away). */
 .filter-sticky{position:sticky;top:48px;z-index:90;background:var(--navy);padding:0 1.5rem .6rem;box-shadow:0 6px 14px rgba(11,37,69,.18)}
-/* Compact state: once scrolled past the hero, drop the field labels to
-   reclaim vertical space — desktop/laptop only, since mobile already
-   stacks fields and needs the labels more than the space. */
-@media(min-width:900px){
-  .filter-sticky.is-compact .filter-group label{display:none}
-  .filter-sticky.is-compact .filter-bar{padding-top:.3rem}
-  .filter-sticky.is-compact{padding-bottom:.4rem}
-}
+/* Compact state (all widths): once scrolled past the hero, the whole filter
+   bar hides behind a one-line summary + explicit "Edit filters" button —
+   same pattern as heatpump.html's .ctrl-compact-bar. Replaces the old
+   desktop-only "drop the labels" compaction, which left the full bar
+   (372px Simple / 488px Advanced on a 375px phone) pinned over the charts.
+   Expand/collapse is a deliberate click (.user-expanded), never hover. */
+.filter-compact-bar{display:none;align-items:center;justify-content:space-between;gap:12px;max-width:1280px;margin:0 auto;background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.45rem 1.25rem .1rem}
+.filter-sticky.is-compact{padding-bottom:.4rem}
+.filter-sticky.is-compact .filter-compact-bar{display:flex}
+/* :not() rather than re-showing with display:flex, so the phone layout's
+   display:grid (see the 600px block) survives the expanded state. */
+.filter-sticky.is-compact:not(.user-expanded) .filter-bar{display:none}
+.filter-sticky.is-compact.user-expanded .filter-bar{border-radius:0}
+/* Expanded from compact on a short phone screen: keep the bar scrollable
+   rather than taller than the viewport. */
+.filter-sticky.is-compact.user-expanded{max-height:calc(100vh - 48px);overflow-y:auto}
+.filter-compact-summary{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.filter-compact-summary b{color:var(--text);font-weight:500}
+/* While collapsed, the 2-3 line small-sample warning becomes a short amber
+   tag in the summary line instead (still labelled, just not 75px tall). */
+.filter-sticky.is-compact:not(.user-expanded) #small-n-warn{display:none!important}
+.filter-compact-summary .fc-warn{color:var(--amber);font-weight:500}
+.ctrl-expand-btn{flex:none;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:6px 11px;border:1px solid var(--border);border-radius:999px;background:var(--cream);color:var(--ink);cursor:pointer;transition:all .15s}
+.ctrl-expand-btn:hover{border-color:var(--amber);color:var(--amber2)}
+.ctrl-expand-btn .chev{transition:transform .15s}
+.filter-sticky.user-expanded .ctrl-expand-btn .chev{transform:rotate(180deg)}
+/* Theme toggle now lives in the header (was in the filter bar). */
+header .theme-toggle{align-self:center}
+/* Logo doubles as the link back to the hub (index.html). */
+a.logo{text-decoration:none}
+a.logo:hover span{text-decoration:underline}
 .filter-match{display:flex;align-items:center;flex-wrap:wrap;gap:8px;align-self:flex-end}
 .filter-bar{background:var(--card);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:.55rem 1.25rem 0;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
@@ -331,11 +354,16 @@ tr.detail-row.open .detail-inner{display:block}
   .filter-group select,.filter-group input,.multi-select-btn{height:32px;font-size:13px}
   .filter-group label{font-size:10px}
   .filter-explore{grid-column:1/-1;justify-content:center}
-  .mode-toggle{justify-self:start}
+  /* Simple/Advanced + Reset share one row; match count gets its own. */
+  .mode-toggle{grid-column:1;justify-self:start}
+  .filter-reset{grid-column:2;justify-self:end}
+  .filter-match{grid-column:1/-1}
+  .filter-compact-bar{padding-left:1rem;padding-right:1rem}
   main{padding:1rem 1rem 2rem}
   .measure-label{width:120px}
   .header-badge{display:none}
   .sibling-link{display:none}
+  .sibling-link.home-link{display:inline}
   .logo{font-size:16px}
   .card{padding:1rem}
   .stat-value{font-size:1.6rem}
