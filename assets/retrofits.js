@@ -626,18 +626,58 @@ document.addEventListener('mouseout',e=>{
 });
 window.addEventListener('scroll',hideInfoTip,{passive:true});
 
-// Filter bar compaction: once the page has scrolled past the hero, hide the
-// field labels (Province, Your postal code, ...) to reclaim vertical space —
-// desktop/laptop only (gated in CSS), mobile already stacks fields.
-let _filterCompact=false;
+// Filter bar compaction (all widths): once scrolled past the hero, the full
+// bar collapses behind a one-line summary + explicit "Edit filters" button —
+// same pattern as heatpump.html's controls bar. Expand/collapse is a
+// deliberate click (_filterUserExpanded); scrolling only flips is-compact.
+let _filterCompact=false, _filterUserExpanded=false;
 function updateFilterCompact(){
   const compact=window.scrollY>72;
   if(compact===_filterCompact)return;
   _filterCompact=compact;
   const el=document.querySelector('.filter-sticky');
-  if(el)el.classList.toggle('is-compact',compact);
+  if(!el)return;
+  el.classList.toggle('is-compact',compact);
+  if(compact)updateFilterSummary();
+  else if(_filterUserExpanded){_filterUserExpanded=false;el.classList.remove('user-expanded');setFilterExpandBtn();}
+}
+function setFilterExpandBtn(){
+  const btn=$('filter-expand-btn');if(!btn)return;
+  btn.querySelector('.label').textContent=_filterUserExpanded?'Hide filters':'Edit filters';
+  btn.setAttribute('aria-expanded',_filterUserExpanded?'true':'false');
+}
+// One-line "Area · active filters · N retrofits" summary. Reads the selects'
+// own option text (not a separate label map) so it can't drift from the
+// full bar; filters left at their "All …"/"Any …" default are omitted.
+function updateFilterSummary(){
+  const el=$('filter-compact-summary');if(!el)return;
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const optText=id=>{
+    const s=$(id);if(!s||!s.value)return '';
+    const g=s.closest('.filter-group');if(g&&g.style.display==='none')return ''; // FSA-only filters hidden in province view
+    const o=s.selectedOptions[0];return o?o.textContent.trim():'';
+  };
+  const prov=optText('province-sel')||'All of Canada';
+  const area=SELECTED_FSA?`${SELECTED_FSA}, ${prov}`:prov;
+  const parts=[optText('type-sel'),optText('era-sel')];
+  if(isAdvancedMode()){
+    parts.push(optText('fuel-sel'),optText('depth-sel'));
+    if(selectedMeasures().length&&$('measures-dd').closest('.filter-group').style.display!=='none')parts.push($('measures-btn-text').textContent.trim());
+  }
+  const bits=parts.filter(Boolean).map(esc);
+  const n=$('result-count').textContent;
+  const small=$('small-n-warn').style.display!=='none'?' · <span class="fc-warn">small sample</span>':'';
+  el.innerHTML=`<b>${esc(area)}</b>${bits.length?' · '+bits.join(' · '):''} · <b>${esc(n)}</b> ${n==='1'?'retrofit':'retrofits'}${small}`;
 }
 window.addEventListener('scroll',updateFilterCompact,{passive:true});
+$('filter-expand-btn').addEventListener('click',()=>{
+  _filterUserExpanded=!_filterUserExpanded;
+  document.querySelector('.filter-sticky').classList.toggle('user-expanded',_filterUserExpanded);
+  setFilterExpandBtn();
+});
+// Keep the summary current: every filter change ends in a new result count
+// (render()/renderProvince() rewrite #result-count), so watch that.
+new MutationObserver(updateFilterSummary).observe($('result-count'),{childList:true,characterData:true,subtree:true});
 
 // ── Load ──────────────────────────────────────────────────────────
 // NOTE: the FSA JSON now ships already-decoded (human-readable BldgType,
@@ -4308,6 +4348,7 @@ function setViewMode(mode){
   try{localStorage.setItem('viewMode',mode);}catch(e){}
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===mode));
   renderAdvancedSections();
+  updateFilterSummary();
 }
 
 // Landing default: load "All of Canada" immediately instead of waiting on
