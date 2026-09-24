@@ -174,7 +174,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="htitle">
       <span class="logo">energy<em>·</em>atlas</span>
       <span class="chip build" style="font-size:.7rem">v2 · expanded methodology</span>
-      <span class="sub">every project, how it was built, what was assumed — updated 2026-08-03</span>
+      <span class="sub">every project, how it was built, what was assumed — updated 2026-09-24</span>
     </div>
     <nav>
       <a href="#overview">Overview</a>
@@ -322,7 +322,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">NRCan EnerGuide / ERS audits<small>2004–2026, home energy audits modelled in HOT2000</small></div>
     <div class="src">Census population<small>for map tooltips</small></div>
     <div class="src">AHRI directory<small>heat-pump model lookup badges</small></div>
-    <div class="src">ECCC emission factors<small>the calculated GHG bases (see below)</small></div>
+    <div class="src">ECCC emission factors<small>current (2026) factors for every home's GHG (see below)</small></div>
     <div class="src">Utility tariffs + PNNL/DOE REMDB<small>the energy-bill card and the cost POC — no dollars exist in ERS</small></div>
   </div>
 
@@ -343,10 +343,12 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <b>E</b> = the follow-up "after" audit. The pipeline keeps homes with <b>at least one D and at
     least one E</b>, reducing a re-audited home to its <b>earliest D and latest E</b> (changed
     2026-07-24 — it previously required exactly one of each, which discarded 149,145 re-audited
-    homes; see the open questions on retrofits.html). It requires the E to be dated later, then
-    applies "same home?" sanity checks:
-    floor area changed ≤ 10%, and house type / storeys / number of units identical. Anything failing
-    is dropped — better to lose a real pair than to compare two different houses. About 45 source
+    homes; see the open questions on retrofits.html). It requires the E not to be dated before the D
+    (same month allowed since 2026-09-23 — the EnerGuide data team confirmed those audits are usable),
+    then applies "same home?" sanity checks: floor area changed ≤ 5% (10% until 2026-09-23), house
+    type / storeys / number of units identical, and the same HOT2000 weather file in both audits (so a
+    model change can't pose as a saving). Anything failing is dropped — better to lose a real pair than
+    to compare two different houses. Result: 1,523,774 matched pairs (2026-09-24). About 45 source
     columns are then mapped to friendly names and all fuels converted to kWh so they share one chart:</p>
     <div class="tblwrap"><table>
       <tr><th>Fuel</th><th>Source unit</th><th>→ kWh factor</th></tr>
@@ -444,14 +446,13 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         <div class="where">docs/RETROFITS.md §"Data notes &amp; caveats" → "Outliers clipped".</div>
       </div></li>
       <li><input type="checkbox" data-key="rf-ghgbasis"><div class="a-body">
-        <span class="tag choice">judgment call</span><b>Emissions default to a calculated basis, not the audit's own reported figure.</b>
-        <p>The audit's <code>ERSGHG</code> field is only filled for 50.5% of matched homes (Quebec ~78%, Saskatchewan ~9%), so building every emissions chart on it would have quietly halved the sample. The page now offers 4 bases and defaults to <b>"corrected, at year of audit"</b> — each home's emissions recomputed from its own recorded fuel use, at factors calibrated against the ERS data for that audit year.</p>
-        <p class="alt"><b>Other options:</b> show only the reported figure (honest but half the data, and biased by which provinces report it); use ECCC's official current factors flat across all years (comparable across eras, but overstates Ontario's historic gas and understates Alberta/Newfoundland electricity by 18–49%); or scale the reported subset up to the full population (assumes the reporting homes are representative, which is exactly what isn't known).</p>
-        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 3 min<ol>
-          <li>Switch the "GHG basis" dropdown to "as reported" and watch the home count under the chart drop — that gap is the coverage problem this exists to solve.</li>
-          <li>The calibrated basis was validated against the reported one where both exist: national aggregate within −0.66%, every large-sample province within ~±2% except Quebec (−5.3% on a small base).</li>
+        <span class="tag choice">judgment call</span><b>Emissions are calculated at today's official factors, not taken from the audit.</b>
+        <p>Every home's GHG is its own recorded fuel use × ECCC's current (2026) emission factors, the same for every audit year. The audit's own <code>ERSGHG</code> field is not used: it was filled for only 50.5% of matched homes, and the EnerGuide data team (2026-09-23) advised ignoring it because its factors were updated only sporadically. Until then the page offered 4 bases, defaulting to one calibrated against <code>ERSGHG</code>; that was retired the same day.</p>
+        <p class="alt"><b>Other options:</b> show only the reported figure (half the data, and outdated factors in some years); calibrate factors to the ERS data per audit year (reproduces what HOT2000 printed, but inherits its sporadic factor updates — the previous default); or use each audit year's own official factor (historically closer, but makes retrofits from different years incomparable).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 2 min<ol>
+          <li>Open a postal area, click a home, and multiply its electricity kWh by its province's factor in retrofits.html Methodology I (e.g. Ontario 59 g/kWh), plus gas kWh × ~185 g/kWh — it should match the home's "GHG (current factors)" row.</li>
         </ol></div>
-        <div class="where">docs/RETROFITS.md §"GHG scenarios"; retrofits.html Methodology J; open question in docs/ENERGUIDE_QUESTIONS.md §5.4.</div>
+        <div class="where">docs/RETROFITS.md §"GHG scenarios" (current method + retired bases); retrofits.html Methodology I; docs/ENERGUIDE_QUESTIONS.md §5.4 (closed).</div>
       </div></li>
     </ul>
   </div>
