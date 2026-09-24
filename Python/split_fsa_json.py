@@ -108,10 +108,7 @@ KEEP_COLS = [
     # alongside Plan_FloorInsulation so the exposed-floor triplet
     # (recommended/before/after) is complete like the other components.
     'Pre_FloorInsulation', 'Post_FloorInsulation',
-    'Pre_GHG', 'Post_GHG',
     'Pre_GHG_current', 'Post_GHG_current',
-    'Pre_GHG_current_corrected', 'Post_GHG_current_corrected',
-    'Pre_GHG_as_audited', 'Post_GHG_as_audited',
     'Pre_HeatLoss', 'Post_HeatLoss',
     'Pre_SolarPV', 'Post_SolarPV',
     'Pre_Electricity', 'Post_Electricity',
@@ -133,7 +130,7 @@ KEEP_COLS = [
     'Pre_VentType', 'Post_VentType',
     'Air_Tightness_Upgrade', 'Roof_Insulation_Upgrade',
     'Foundation_Insulation_Upgrade', 'Wall_Insulation_Upgrade',
-    'Floor_Insulation_Upgrade', 'Windows_Change',
+    'Floor_Insulation_Upgrade', 'Windows_Change', 'Windows_Partial',
     'Heating_Change', 'Cooling_Change', 'HeatPump_Addition',
     'Deep_Retrofit', 'Medium_Retrofit', 'Shallow_Retrofit',
     'FuelSwitch', 'EnergySavingPct',

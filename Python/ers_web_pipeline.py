@@ -13,8 +13,10 @@ Changes from full pipeline:
   - DHW, ventilation, renewables, battery dropped
   - Window count sub-columns dropped (ER bands, U-values, etc.)
   - Added: Pre/Post_HeatLoss (design heat loss, kW) — peak heating demand proxy
-  - Added: Pre/Post_GHG (tonnes/year, includes electricity via provincial
-    grid emission factor — ERSGHG already nets in ERSELECGHG)
+  - Pre/Post_GHG (raw ERSGHG) REMOVED 2026-09-23: GHG is now computed from
+    each home's own fuel use x current official factors in Step 1c
+    (compute_ghg_scenarios.py), on the EnerGuide data team's advice (ERSGHG
+    reported for only ~50% of pairs; its factors updated sporadically)
   - Added: Pre/Post_SolarPV (kW DC capacity) — solar PV adoption
   - Added: Pre/Post_Heat{Electricity,NaturalGas,Oil,Propane,Wood} (kWh) —
     heating-only consumption per fuel (EGHHEATFCONS[E,G,O,P,W]), alongside
@@ -261,10 +263,6 @@ BASE_MAPPING = [
     ('Pre_HeatLoss',            'EGHDESHTLOSS',    'D', 0.001),    # W -> kW
     ('Post_HeatLoss',           'EGHDESHTLOSS',    'E', 0.001),
 
-    # --- GHG emissions (includes electricity via provincial grid factor) ---
-    ('Pre_GHG',                 'ERSGHG',          'D', None),     # tonnes/year
-    ('Post_GHG',                'ERSGHG',          'E', None),
-
     # --- Solar PV ---
     ('Pre_SolarPV',             'KWPV',            'D', None),     # kW DC capacity
     ('Post_SolarPV',            'KWPV',            'E', None),
@@ -297,13 +295,14 @@ BASE_MAPPING = [
 
 # Columns needed for filtering (not all go to output)
 FILTER_COLS = ['HOUSEID', 'EVALTYPE', 'ENTRYDATE', 'FLOORAREA',
-               'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS', 'PROVINCE']
+               'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS', 'PROVINCE',
+               'WTHDATA']
 
 # Flag columns computed at output stage
 FLAG_COLS = [
     'Wall_Insulation_Upgrade', 'Roof_Insulation_Upgrade',
     'Foundation_Insulation_Upgrade', 'Floor_Insulation_Upgrade',
-    'Windows_Change', 'Air_Tightness_Upgrade',
+    'Windows_Change', 'Windows_Partial', 'Air_Tightness_Upgrade',
     'Heating_Change', 'Cooling_Change', 'HeatPump_Addition',
     'Shallow_Retrofit', 'Medium_Retrofit', 'Deep_Retrofit',
 ]
@@ -316,8 +315,10 @@ for _, orig, _, _ in BASE_MAPPING:
     NEEDED_CSV_COLS.add(orig)
 # Also need HPSOURCE and AIRCONDTYPE for flags, and EGHFCONWOODGJ for the
 # direct-GJ wood path in apply_mapping (absent from pre-v11.2 years — fine).
-NEEDED_CSV_COLS.update(['HPSOURCE', 'AIRCONDTYPE', 'WINDOWCODE', 'EGHDESHTLOSS', 'ERSGHG', 'KWPV',
-                        'EGHFCONWOODGJ'])
+# NUMWINESTAR (count of installed ENERGY STAR windows) drives the
+# Windows_Partial flag -- see _join_and_write.
+NEEDED_CSV_COLS.update(['HPSOURCE', 'AIRCONDTYPE', 'WINDOWCODE', 'EGHDESHTLOSS', 'KWPV',
+                        'EGHFCONWOODGJ', 'NUMWINESTAR'])
 
 D_MAPPING = [m for m in BASE_MAPPING if m[2] == 'D']
 E_MAPPING = [m for m in BASE_MAPPING if m[2] == 'E']
@@ -449,9 +450,18 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
 
     pairs['_d_dt'] = pd.to_datetime(pairs['D_date'], errors='coerce')
     pairs['_e_dt'] = pd.to_datetime(pairs['E_date'], errors='coerce')
+    # GATE B — the E must not be dated BEFORE the D. Same-month D/E pairs are
+    # kept: ENTRYDATE is month-precision (always the 1st), so a same-month
+    # D and E tie on date, and the pre/post order comes from EVALTYPE (D=pre,
+    # E=post), not the date. The EnerGuide data team confirmed on 2026-09-23
+    # that same-month D and E audits are usable. The previous strict '>'
+    # dropped ~84k such pairs (diagnose_gates_ab.py); only genuine E-before-D
+    # reversals drop now.
     before = len(pairs)
-    pairs = pairs[pairs['_e_dt'] > pairs['_d_dt']]
-    print(f"  after date-order filter: {len(pairs):,} (dropped {before - len(pairs):,})")
+    same_month = int((pairs['_e_dt'] == pairs['_d_dt']).sum())
+    pairs = pairs[pairs['_e_dt'] >= pairs['_d_dt']]
+    print(f"  after date-order filter: {len(pairs):,} (dropped {before - len(pairs):,}; "
+          f"{same_month:,} same-month D/E kept)")
 
     pairs[['HOUSEID', 'D_year', 'E_year', 'D_date', 'E_date']].to_csv(pairs_csv_path, index=False)
     print(f"  wrote {pairs_csv_path}")
@@ -569,7 +579,8 @@ def apply_mapping(df, mapping):
             data[col_name] = pd.Series(pd.NA, index=df.index)
         elif conv is not None:
             data[col_name] = coerce_numeric(df[orig]) * conv
-        elif col_name in ('Pre_HPAHRI', 'Post_HPAHRI'):
+        elif col_name in ('Pre_HPAHRI', 'Post_HPAHRI',
+                          'Pre_WindowCode', 'Post_WindowCode', 'Plan_WindowCode'):
             data[col_name] = clean_ahri(df[orig])
         else:
             data[col_name] = df[orig]
@@ -591,6 +602,13 @@ def no_hp(s):
 
 
 _FINAL_WRITER = None
+# Pairs removed by each same-home filter in _join_and_write, summed over all
+# provinces (printed at end, for the page's methodology counts).
+_GATE_DROPS = {'floor_area': 0, 'structural': 0, 'weather_file': 0}
+# Window-flag overlap, summed over all provinces (printed at end):
+# code_only = code changed, ENERGY STAR count flat; estar_only = Windows_Partial;
+# both = code changed AND count rose (counted as Windows_Change).
+_WINDOW_STATS = {'code_only': 0, 'estar_only': 0, 'both': 0}
 
 
 def _join_and_write(d_df, e_df, output_path):
@@ -603,10 +621,14 @@ def _join_and_write(d_df, e_df, output_path):
     if merged.empty:
         return 0
 
-    # Floor area filter: <= 10% change
+    # Floor area filter: <= 5% change. Tightened from 10% on 2026-09-23 --
+    # the EnerGuide data team judged 10% too loose to call it the same house
+    # (an addition or finished basement can move floor area 5-10%).
     fa_d = coerce_numeric(merged['FLOORAREA_D'])
     fa_e = coerce_numeric(merged['FLOORAREA_E'])
-    merged = merged[(fa_d > 0) & ((fa_e - fa_d).abs() / fa_d <= 0.10)]
+    n0 = len(merged)
+    merged = merged[(fa_d > 0) & ((fa_e - fa_d).abs() / fa_d <= 0.05)]
+    _GATE_DROPS['floor_area'] += n0 - len(merged)
 
     # Structural filters: type, storeys, dwellings unchanged. Uses the robust
     # comparisons above so that (a) a value missing in BOTH audits is not counted
@@ -614,11 +636,27 @@ def _join_and_write(d_df, e_df, output_path):
     # years is not counted as a change. A raw astype(str) compare (the previous
     # version) dropped ~831k otherwise-valid pairs on those two artifacts alone —
     # see diagnose_pairing_drops.py.
+    n0 = len(merged)
     merged = merged[
         same_categorical(merged['TYPEOFHOUSE_D'], merged['TYPEOFHOUSE_E']) &
         same_categorical(merged['STOREYS_D'],      merged['STOREYS_E'])    &
         same_numeric(merged['NUMDWELLINGUNITS_D'], merged['NUMDWELLINGUNITS_E'])
     ]
+    _GATE_DROPS['structural'] += n0 - len(merged)
+
+    # Weather-file filter: drop pairs whose D and E audits were modelled with
+    # different HOT2000 weather files (WTHDATA, e.g. Wth110 -> Wth2020). A
+    # weather-file change moves modelled consumption on its own, so part of the
+    # "saving" would come from the model, not the house. Decided 2026-09-23
+    # after the EnerGuide data team flagged weather-file changes: 5,258 matched
+    # pairs (0.35%) were affected, and they include all 97 pairs that also span
+    # the HOT2000 v10 -> v11 upgrade, so this one rule covers both. Blank or
+    # 'Not Applicable' on either side is not treated as a change.
+    w_d = _norm_cat(merged['WTHDATA_D']).replace('Not Applicable', pd.NA)
+    w_e = _norm_cat(merged['WTHDATA_E']).replace('Not Applicable', pd.NA)
+    n0 = len(merged)
+    merged = merged[~(w_d.notna() & w_e.notna() & (w_d != w_e)).fillna(False)]
+    _GATE_DROPS['weather_file'] += n0 - len(merged)
 
     if merged.empty:
         return 0
@@ -645,9 +683,35 @@ def _join_and_write(d_df, e_df, output_path):
     flags['Foundation_Insulation_Upgrade'] = gt10pct(safe_get(e_sub,'FNDWALLINS'),      safe_get(d_sub,'FNDWALLINS')).values
     flags['Floor_Insulation_Upgrade']      = gt10pct(safe_get(e_sub,'EGHINEXPOSEDFLR'), safe_get(d_sub,'EGHINEXPOSEDFLR')).values
 
-    wc_d = safe_get(d_sub,'WINDOWCODE').fillna('').astype(str).str.strip()
-    wc_e = safe_get(e_sub,'WINDOWCODE').fillna('').astype(str).str.strip()
-    flags['Windows_Change'] = ((wc_d != '') & (wc_e != '') & (wc_d != wc_e)).values
+    # Two window flags, mutually exclusive:
+    #  Windows_Change  -- WINDOWCODE differs pre/post. WINDOWCODE describes the
+    #     windows with the greatest area, so this means a full or main-type
+    #     replacement. Codes are normalized first: the same code is written
+    #     '201030.0' in some audit years and '201030' in others, and a raw
+    #     string compare counted that as a change (22% of PEI's window
+    #     "changes" were this artifact, found 2026-07-31).
+    #  Windows_Partial -- WINDOWCODE unchanged but NUMWINESTAR (installed
+    #     ENERGY STAR windows) went up. Suggested by the EnerGuide data team on
+    #     2026-09-23. On 2020-2024 pairs these are median 5 windows, ~32% of
+    #     the house's windows -- partial replacements the dominant-area code
+    #     can't see. Caveat: 98% of D audits record 0, so some E counts may
+    #     include ENERGY STAR windows that pre-dated the D audit.
+    # Kept separate (decided 2026-09-23) so window cost estimates and the
+    # "Windows changed" measure stay tied to the code-based signal.
+    # Window heat loss (EGHHLWINDOOR) is deliberately NOT used: it also moves
+    # when the weather file or HOT2000 version changes between audits.
+    wc_d = clean_ahri(safe_get(d_sub,'WINDOWCODE')).fillna('')
+    wc_e = clean_ahri(safe_get(e_sub,'WINDOWCODE')).fillna('')
+    code_chg = (wc_d != '') & (wc_e != '') & (wc_d != wc_e)
+    es_d = coerce_numeric(safe_get(d_sub,'NUMWINESTAR'))
+    es_e = coerce_numeric(safe_get(e_sub,'NUMWINESTAR'))
+    # Both sides must be recorded: a blank D count means "not recorded", not 0.
+    estar_up = (es_e > es_d).fillna(False)
+    flags['Windows_Change']  = code_chg.values
+    flags['Windows_Partial'] = (estar_up & ~code_chg).values
+    _WINDOW_STATS['code_only']  += int((code_chg & ~estar_up).sum())
+    _WINDOW_STATS['estar_only'] += int((~code_chg & estar_up).sum())
+    _WINDOW_STATS['both']       += int((code_chg & estar_up).sum())
 
     a_d = coerce_numeric(safe_get(d_sub,'AIR50P'))
     a_e = coerce_numeric(safe_get(e_sub,'AIR50P'))
@@ -697,7 +761,7 @@ def _join_and_write(d_df, e_df, output_path):
 
 NUMERIC_COLS = {name for (name, _, _, conv) in BASE_MAPPING if conv is not None}
 NUMERIC_COLS.update(['EnergySavingPct', 'HeatEnergySavingPct',
-                      'Pre_GHG', 'Post_GHG', 'Pre_SolarPV', 'Post_SolarPV'])
+                      'Pre_SolarPV', 'Post_SolarPV'])
 BOOL_COLS    = set(FLAG_COLS) | {'FuelSwitch'}
 
 # Columns to dictionary-encode (string -> integer code) for the web CSV.
@@ -901,6 +965,8 @@ def main():
         out = run_province(province, TEMP_DIR, OUTPUT_DIR, CSV_FILES, year_tags)
         if out:
             parquet_outputs.append(out)
+    print(f"\n  Window flags, all provinces: {_WINDOW_STATS}")
+    print(f"  Same-home filter drops, all provinces: {_GATE_DROPS}")
 
     print("\n=== STEP 3b: build / load global dictionary ===")
     keys_path = os.path.join(OUTPUT_DIR, 'ers_web_keys.json')

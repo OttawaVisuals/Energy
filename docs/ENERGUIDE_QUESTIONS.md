@@ -5,13 +5,28 @@ Consolidated open questions arising from building public-facing tools on the
 (`0a7619fd-2ffe-44b5-9027-3dfcec0866fd`, open.canada.ca) and on HOT2000 outputs.
 
 Maintained at [docs/ENERGUIDE_QUESTIONS.md](ENERGUIDE_QUESTIONS.md).
-Last updated **2026-08-06**.
+Last updated **2026-09-24**.
+
+**Answered 2026-09-23** (meeting with the team responsible for the EnerGuide
+data). Their answers, and what we did with each:
+
+| # | Answer | Applied |
+|---|---|---|
+| 1 | D and E audits in the **same month are usable** | §6.1 closed; pairing rule now `E >= D` (+84,881 pairs) |
+| 2 | A 10% floor-area filter may be too loose; **try 5%** | Floor-area gate now ≤5% (−18,719 pairs) |
+| 3 | `WINDOWCODE` is fine for window measures; **window heat loss or the ENERGY STAR windows field** also work | `.0` formatting fix at source; new `Windows_Partial` flag from `NUMWINESTAR`. Window heat loss not used (moves with weather file / version) |
+| 4 | **HOT2000 v10 was a big upgrade** (weather files, occupancy); check how many pairs span it | Only 97 matched pairs span v10 → v11 (`PROGRAMNAME`); all also change weather file, so #5 covers them |
+| 5 | **Weather files changed; check `WTHDATA`** | New gate: pairs whose D and E use different `WTHDATA` are excluded (5,333, 0.35%) |
+| 6 | **Wood**: softwood/hardwood differ; use heating consumption if the home is all-wood | Already our approach — `EGHFCONWOODGJ`, then `EGHHEATFCONSW`; the tonnes fallback is ~0.3% of records |
+| 7 | **GHG: use current emission factors, ignore `ERSGHG`** (not all reported; factor updates sporadic) | §5.4 closed; both retrofit pages now use current ECCC factors only |
+
+Details: [RETROFITS.md changelog, 2026-09-23/24](RETROFITS.md#changelog).
 
 **Context.** We publish free, open-source tools presenting Canadian energy and
 retrofit data to two audiences at once — homeowners and technical practitioners
 (NRCan, EnerGuide/HOT2000 advisors, energy engineers). Every source, assumption
 and calculation is stated on the page. Repo: <https://github.com/OttawaVisuals/Energy>.
-Tools currently built on ERS data: Retrofit Explorer (1.45M matched pre/post
+Tools currently built on ERS data: Retrofit Explorer (1.52M matched pre/post
 pairs), New Homes Explorer, Heat Pump Explorer.
 
 **What we are asking for.** Mostly *confirmation* rather than new data — in
@@ -183,6 +198,11 @@ poisons medians. Confirm — and is there a documented sentinel convention?
 
 ### 5.4 `ERSGHG` — what emission factors does HOT2000 use, and at what granularity?
 
+> **Closed 2026-09-23.** The EnerGuide data team advised using current official
+> emission factors and not relying on `ERSGHG` (not reported for every audit;
+> factor updates were sporadic). We no longer use the field. The question below
+> is kept as the record.
+
 **Question:** is there published documentation of the emission-factor table
 HOT2000 applies internally to compute `ERSGHG` — specifically, is electricity
 priced at one factor per province/territory, or something more granular (a
@@ -233,16 +253,17 @@ Validated against the 50.5% of pairs that do have a reported `ERSGHG`:
 We construct retrofit pairs by matching a D (pre) audit to an E (post) audit on
 `HOUSEID`. Two issues:
 
-1. **`ENTRYDATE` is month-precision** (every value is the first of a month), so
+1. ~~**`ENTRYDATE` is month-precision** (every value is the first of a month), so
    a D and E entered in the same month tie and cannot be ordered by date. We
    order by `EVALTYPE` instead. Is there a finer-grained date, or a documented
-   intended ordering?
+   intended ordering?~~ **Answered 2026-09-23:** same-month D and E audits are
+   usable; we now keep them (`E >= D`).
 2. **Multiple D and/or E records per `HOUSEID`** are common (re-audits). We take
    the oldest D and newest E. Is there a documented convention, or a field that
    groups records into an intended before/after episode?
 
 For scale: of ~2.38M homes with any evaluation, ~1.63M have both a D and an E,
-and our filters yield ~1.45M usable pairs. Getting the pairing rule right moved
+and our filters yield ~1.52M usable pairs (as of 2026-09-24). Getting the pairing rule right moved
 that number by a factor of 2.5, so it materially changes published statistics.
 
 ---

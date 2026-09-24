@@ -152,10 +152,8 @@ MEASURE_LABEL = dict(MEASURES)
 # from these; keeps memory ~a few hundred MB for all 1.37M rows).
 READ_COLS = (
     ["FSA", "EnergySavingPct", "FloorArea", "YearBuilt",
-     "Pre_TotalEnergy", "Post_TotalEnergy", "Pre_GHG", "Post_GHG",
+     "Pre_TotalEnergy", "Post_TotalEnergy",
      "Pre_GHG_current", "Post_GHG_current",
-     "Pre_GHG_current_corrected", "Post_GHG_current_corrected",
-     "Pre_GHG_as_audited", "Post_GHG_as_audited",
      "Pre_Date", "Post_Date", "Deep_Retrofit", "FuelSwitch",
      # per-fuel kWh, kept raw (unconverted) so build_energy_impact() can
      # reuse precompute_province_stats.add_cost_columns() verbatim
@@ -349,14 +347,8 @@ def load_province_frame(parquet_path):
     df["pre_heat_fuel"] = df["Pre_HeatFuel"].astype(str).str.strip()
     df["pre_heatloss_kw"] = num(df["Pre_HeatLoss"])
     df["post_heatloss_kw"] = num(df["Post_HeatLoss"])
-    df["ghg_pre"] = num(df["Pre_GHG"])
-    df["ghg_post"] = num(df["Post_GHG"])
     df["ghg_pre_current"] = num(df["Pre_GHG_current"])
     df["ghg_post_current"] = num(df["Post_GHG_current"])
-    df["ghg_pre_current_corrected"] = num(df["Pre_GHG_current_corrected"])
-    df["ghg_post_current_corrected"] = num(df["Post_GHG_current_corrected"])
-    df["ghg_pre_as_audited"] = num(df["Pre_GHG_as_audited"])
-    df["ghg_post_as_audited"] = num(df["Post_GHG_as_audited"])
 
     for k in MEASURE_KEYS + ["Deep_Retrofit", "FuelSwitch"]:
         df[k] = df[k].astype(bool)
@@ -378,10 +370,7 @@ def load_province_frame(parquet_path):
     df["e_year"] = pd.to_datetime(df["Post_Date"], errors="coerce").dt.year
 
     keep = (["FSA", "PROV", "saving_pct", "pre_eui", "post_eui",
-             "ghg_pre", "ghg_post",
              "ghg_pre_current", "ghg_post_current",
-             "ghg_pre_current_corrected", "ghg_post_current_corrected",
-             "ghg_pre_as_audited", "ghg_post_as_audited",
              "YearBuiltNum", "n_measures",
              "d_year", "e_year", "Deep_Retrofit", "FuelSwitch",
              "energy_pre_kwh", "energy_post_kwh",
@@ -448,8 +437,8 @@ def build_fsa_metrics(nat, by_fsa_audit, cdrv, climate, income_q, dv_q):
             "median_saving_pct": r1(med(grp["saving_pct"])),
             "eui_pre_median": r0(med(grp["pre_eui"])),
             "eui_post_median": r0(med(grp["post_eui"])),
-            "ghg_pre_median": r1(med(grp["ghg_pre"])),
-            "ghg_post_median": r1(med(grp["ghg_post"])),
+            "ghg_pre_median": r1(med(grp["ghg_pre_current"])),
+            "ghg_post_median": r1(med(grp["ghg_post_current"])),
             "hp_rate": r3(float(grp["HeatPump_Addition"].mean())),
             "deep_rate": r3(float(grp["Deep_Retrofit"].mean())),
             "fuel_switch_rate": r3(float(grp["FuelSwitch"].mean())),
@@ -921,36 +910,24 @@ def build_program_era(nat):
     }
 
 
+# One GHG basis since 2026-09-23: each home's own fuel use x current (2026)
+# official ECCC/OBPS factors. The raw ERSGHG field and the two ERS-calibrated
+# scenarios were dropped on the EnerGuide data team's advice: ERSGHG was
+# reported for only ~50% of pairs and its factors were updated sporadically.
+# Kept as a one-key dict so ghg_impact.json keeps its "scenarios" shape.
 GHG_SCENARIO_COLS = {
-    "reported": ("ghg_pre", "ghg_post"),
     "current": ("ghg_pre_current", "ghg_post_current"),
-    "current_corrected": ("ghg_pre_current_corrected", "ghg_post_current_corrected"),
-    "as_audited": ("ghg_pre_as_audited", "ghg_post_as_audited"),
 }
 
 
 def build_ghg_impact(nat):
     """
-    Average + total GHG (tCO2e/yr) saved, nationally and per province, under
-    4 scenarios (mirrors retrofits.html/precompute_province_stats.py — keep
-    in sync):
-      reported            raw ERSGHG. Only ~50.5% of matched pairs have it
-                           (measured 2026-08-02; Quebec ~78%, Ontario ~43%,
-                           Saskatchewan ~9%) — NOT scaled up to the full
-                           matched count. matched_total/coverage_pct ship
-                           alongside n so this is never hidden.
-      current              flat 2026 official ECCC/OBPS factor, same for
-                           every retrofit regardless of audit year.
-      current_corrected    same, Alberta/Newfoundland use the ERS-calibrated
-                           factor instead (see docs/ENERGUIDE_QUESTIONS.md
-                           SS5.4 for why).
-      as_audited            ERS-calibrated, matched to each home's own audit
-                           year — the historically-accurate one, validated to
-                           -0.66% national aggregate bias against reported
-                           ERSGHG (measured 2026-08-02).
-    current/current_corrected/as_audited are calculated by
-    Python/compute_ghg_scenarios.py from each home's own fuel consumption
-    (~100% coverage) — see that script and Python/ghg_factors.py.
+    Average + total GHG (tCO2e/yr) saved, nationally and per province, from
+    each home's own fuel consumption x current (2026) official ECCC/OBPS
+    factors (Pre_/Post_GHG_current, written by
+    Python/compute_ghg_scenarios.py; ~100% coverage). Mirrors
+    retrofits.html/precompute_province_stats.py — keep in sync. The raw
+    ERSGHG field is not used (see GHG_SCENARIO_COLS).
 
     NET, not clipped: a home whose modelled GHG rose (common with an
     electric-heat-pump fuel switch in a high-emission-grid province) pulls the

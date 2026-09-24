@@ -1,9 +1,45 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-23** (**Retrofit Explorer** — mobile-friendly filter bar: collapses to a
+Updated **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
+EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
+[docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of
+[docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md).
+
+**Pairing.** Matched pairs **1,451,433 → 1,523,774** (+5.0%), median saving
+unchanged at 20%. (1) Same-month D/E audits kept (`E >= D`): +84,881 — closes
+Gate B. (2) Floor-area gate 10% → 5%: −18,719. (3) New weather-file gate — D and
+E must use the same `WTHDATA`: −5,333 (0.35%). The team flagged HOT2000 v10 as a
+big upgrade; only 97 matched pairs span v10 → v11 and all also change weather
+file, so gate (3) covers them. Weather-changed pairs had saved 31% vs 20%, mostly
+explained by a longer audit gap; excluded (not flagged) so no saving can come
+from a model change — Simon's call.
+
+**Windows.** The `WINDOWCODE` `.0` formatting bug (flagged 2026-07-31, fixed
+POC-side only) is now fixed at the source: national "Windows changed" fell
+444,304 → 305,500 despite more pairs. New `Windows_Partial` flag ("Some windows
+replaced", 181,290 homes) from `NUMWINESTAR` rising while the code is unchanged
+— median 5 windows, a third of the house. Kept separate from `Windows_Change` —
+Simon's call — so window costs stay tied to the code.
+
+**GHG.** One basis only: each home's own fuel use × current (2026) official
+ECCC factors. `ERSGHG` and the two ERS-calibrated scenarios retired on the
+team's advice (reported for ~50% of pairs; factor updates sporadic); the
+dropdown is gone from both pages. National typical home 6.0 → 4.0 tCO2e/yr;
+Retrofit Insights: 2,950,932 tCO2e/yr net saved across all matched pairs.
+
+**Wood:** no change — `wood_kwh()` already uses heating consumption before the
+species-sensitive tonnes fallback (~0.3% of records).
+
+**Found along the way (open):** ~20,000 matched rows are duplicate `HOUSEID`s
+(20,736 in the July build too — pre-existing). Retrofit cost figures
+(`retrofit_cost_estimate.py`) not regenerated against the new pairs. The chain
+order in memory/docs was missing required Steps 1b/1c — docs corrected.)
+
+
+Prior update **2026-09-23** (**Retrofit Explorer** — mobile-friendly filter bar: collapses to a
 one-line summary on scroll at all widths; see the [docs/RETROFITS.md](docs/RETROFITS.md) changelog).
-Previous update **2026-09-09** (**Heat Pump Explorer + Grid Dashboard** — corrected the
+Prior update **2026-09-09** (**Heat Pump Explorer + Grid Dashboard** — corrected the
 Ontario grid gas emission factor, then rewrote the methodology.
 
 **The correction.** Simon checked GridWatch against the tool and found live gas
@@ -1811,7 +1847,7 @@ lifecycle-update candidates logged — see
 
 | Tool | Live | Docs | Notes |
 |---|---|---|---|
-| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05), HPCAP/COP/CCASHP validated against AHRI+NEEP + full pairing-gate breakdown (2026-08-06), mobile filter bar collapses to a one-line summary on scroll (2026-09-23) |
+| 🏠 **Retrofit Explorer** | [/retrofits](https://ottawavisuals.github.io/Energy/retrofits) | [docs/RETROFITS.md](docs/RETROFITS.md) | v1 + post-launch additions, audit funnel, pairing fixes (matched 538k → 1.37M → 1.45M → 1.52M, 2026-09-24), bill card, visual polish, program-era filter (2026-08-04), `Heating_Change`/`HeatPump_Addition` double-count fixed (2026-08-05), HPCAP/COP/CCASHP validated against AHRI+NEEP + full pairing-gate breakdown (2026-08-06), mobile filter bar collapses to a one-line summary on scroll (2026-09-23) |
 | 📈 **Retrofit Insights** | [/retrofit-insights](https://ottawavisuals.github.io/Energy/retrofit-insights) | [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) (item 13) | national big-picture page: leaderboards, choropleth, success analysis, climate/equity linkage, missed-opportunity ranking, program-era timeline; shipped 2026-07-19; measure-mix-by-era chart added 2026-08-04; energy-impact KPI card + cumulative-audits timeline line (CEUD-sourced), electric-pre-retrofit peak-demand card (IESO-priced), and scorecard/`Heating_Change` fixes added 2026-08-05; §10 "One house at a time" added 2026-08-25 — Retrofit Canada case-study ranges (41 residential Canadian cases), kept separate from the ERS numbers; reworked 2026-08-27 — building-type filter, project summary table, and a per-component R-value slopegraph (pre→post, coloured by energy saving %) with its backing table |
 | 🏡 **New Homes Explorer** | [/newhomes](https://ottawavisuals.github.io/Energy/newhomes) | [docs/NEWHOMES.md](docs/NEWHOMES.md) | EnerGuide new-construction slice (plan/as-built); shipped 2026-07-15; pipeline reworked 2026-07-22/23 (P/N column-fill, `ers_pn_column_fill.csv`) |
 | 📊 **CEUD Explorer** | [/ceud](https://ottawavisuals.github.io/Energy/ceud) | [docs/CEUD.md](docs/CEUD.md) | all 5 sectors live |
@@ -2108,27 +2144,8 @@ Otherwise nothing queued — next up is finishing the in-flight Ottawa Case Stud
       carry a tier). See [docs/NEWHOMES.md](docs/NEWHOMES.md).
 - [x] Retrofit Explorer: new aggregate "Where the heat escapes" chart, the
       per-FSA/province twin of the per-home heat-loss breakdown.
-- [x] **Pairing Gate A recovered — matched sample 1,369,305 → 1,451,433
-      (+82,128, +6.0%).** `build_pairs_index()` now reduces each home to
-      oldest-D + newest-E instead of requiring exactly one of each. The pair
-      stage gained the predicted +148,155; the structural/floor-area gates then
-      removed proportionally more of the recovered multi-audit homes (they span
-      longer gaps), netting +82,128. Matched share of homes with both a D and an
-      E audit rises 84.0% → 89.1%. Headline figures barely move — median saving
-      stays 20%, whole-home heat loss −12% — which is the evidence the recovered
-      homes are representative rather than a distortion. Full chain rerun and all
-      JSON regenerated. Previous build artifacts backed up at `C:\ERS\web_prev\`.
-- [ ] **Gate B — still open, and the ordering argument favours changing it.**
-      84,755 pairs are dropped for "E not dated after D". None have unparseable
-      dates and 99.4% are exact same-day ties; `ENTRYDATE` is month-precision
-      throughout (all first-of-month). Since `EVALTYPE` already says which audit
-      is the initial and which the follow-up, **the date test is only a guard
-      against genuine reversals** — so `E > D` → `E >= D` would be correct and
-      recovers ~84,253, leaving the 502 real reversals excluded. Not applied:
-      surfaced as an open question on the page for the EnerGuide team to confirm
-      first. (An earlier framing in this session — that same-day ties carry "no
-      recoverable ordering" — was wrong; ordering comes from `EVALTYPE`, not the
-      date.)
+- [x] Pairing Gates A (2026-07-24) and B (2026-09-23) resolved — moved to
+      [docs/archive/ROADMAP_COMPLETED.md](docs/archive/ROADMAP_COMPLETED.md) item 15.
 
 **Small loose ends (fold into any session):**
 
