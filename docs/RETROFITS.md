@@ -156,13 +156,17 @@ province. What it does:
    *follow-up* ("after") evaluation, streaming each into separate intermediates.
 2. **Pair before/after by home.** It keeps every `HOUSEID` with **at least one `D` and at
    least one `E`**, reduces the home to its **oldest `D` and newest `E`**, then requires
-   the **`E` audit to be dated after the `D` audit**. Each surviving pair becomes one
+   the **`E` audit to be dated no earlier than the `D` audit** (same month allowed since
+   2026-09-23 — `ENTRYDATE` is month-precision). Each surviving pair becomes one
    `pre`/`post` row. (Changed 2026-07-24 — the rule was previously *exactly* one of each,
    which dropped every multi-audit home. See "Gate A — recovered" under
    [Data notes & caveats](#data-notes--caveats).)
-3. **Reject mismatched pairs** (guards against comparing two different homes): a pair is
-   dropped unless floor area changed by **≤ 10%** *and* house type, storeys, and number of
-   dwelling units are **identical** pre vs post.
+3. **Reject mismatched pairs** (guards against comparing two different homes, or a
+   change in the model rather than the house): a pair is dropped unless floor area changed
+   by **≤ 5%** (was 10% until 2026-09-23), house type, storeys, and number of dwelling
+   units are **identical** pre vs post, *and* both audits used the **same HOT2000 weather
+   file** (`WTHDATA`, added 2026-09-23). The pipeline prints how many pairs each filter
+   removed (`Same-home filter drops`).
 4. **Map ~45 source columns** to friendly names and **convert units to kWh** (see
    [Unit conversions](#unit-conversions)).
 5. **Compute per-home flags and derived columns** (see
@@ -231,148 +235,82 @@ pump post-retrofit resolve to a usable certificate (a further ~8% resolve to a
 about 2019 onward — the AHRI reference number is much less consistently recorded by
 auditors in earlier years.
 
-### Step 1c — `compute_ghg_scenarios.py` (parquet → parquet, GHG scenario columns)
+### Step 1c — `compute_ghg_scenarios.py` (parquet → parquet, GHG columns)
 
-Adds 6 columns (`Pre_/Post_GHG_current`, `_current_corrected`, `_as_audited`) alongside
-the existing, untouched `Pre_/Post_GHG` (raw `ERSGHG`) — see [GHG scenarios](#ghg-scenarios)
-below. Depends on `Python/ers_ghg_factors.py`'s output
-(`ers_ghg_factors_by_province_year.csv`) being current; re-run that first if it's stale.
-
-### Step 2 — `split_fsa_json.py` (parquet → per-FSA JSON)
-
-Splits a province parquet into one small JSON file per FSA — what the FSA-level view
-fetches when you select an area.
-
-- **Normalises categories.** `BldgType`, `Storeys`, fuel/heat-type columns, etc. are
-  case-folded to a canonical form *before* grouping. Without this, casing variants from
-  different audit years (`single detached` vs `Single Detached`) silently split one real
-  category into two — this affected ~91% of AB rows before the fix.
-- **Extracts audit years** (`Pre_Year` / `Post_Year`) from the entry dates; the full date
-  string is dropped.
-- **Trims to the columns the front-end actually reads** (`KEEP_COLS`). If you add a new
-  chart/field reference in `retrofits.html`, add the matching column here or it ships empty.
-- **Writes** `fsa_json/<PROV>/<FSA>.json` as a compact `{columns, rows}` array-of-arrays
-  (≈77% smaller than array-of-objects), plus `fsa_json/<PROV>/_index.json`.
-- **Masks identifying heat-pump fields, not physical quantities.** `Post_HPAHRI` is
-  blanked per-row unless it's one of the province's own top-5 most common AHRI
-  numbers (`top_ahri_set()`) — too granular to expose otherwise (a long tail of
-  near-unique installs). `Post_HPBrand`/`Post_HPModel` get the **same** row-level
-  mask (they're equally identifying). `Post_HPCapacity47/5`, `Post_HPHSPF2`,
-  `Post_HPCertCOP5`, `Post_HPColdClimate` are **left unmasked** — they're derived
-  physical quantities, not identifiers, and the FSA-mode sizing histogram needs to
-  see the same population as province mode's precomputed (never-masked) one, or the
-  two views will disagree. Note: capacity+HSPF2+COP together can still narrow a
-  masked row back toward its real AHRI number via the public AHRI directory — a
-  minor residual, not treated as a hard privacy boundary.
-
-### Step 3 — `precompute_province_stats.py` (parquet → province summaries)
-
-Reduces each province to a fixed summary so the province-wide view never has to scan raw
-rows in the browser. For the whole province **and** for each house type it precomputes:
-medians (saving %, EUI, GHG), counts (deep retrofits, heat pumps, fuel switches, solar),
-and ready-to-plot histogram **bins** for every chart — plus the Sankey flows, the
-energy-by-fuel "waterfall", insulation KPIs/histograms, and the measures breakdown.
-
-Also computes, for heat-pump homes only: a sizing-ratio histogram/median (AHRI-verified
-capacity ÷ design heat loss, at 47°F and 5°F — `hp_sizing47/5_bins`/`_median`), a
-backup-fuel breakdown (`backup_fuel_counts`, `Post_HeatFuel` restricted to heat-pump
-homes — the "Heat Pump + backup" pairing, since HOT2000 tracks the heat pump as a
-component separate from that column), and a "backup actually used" count
-(`backup_used_counts`) restricted to **Natural Gas, Oil, and Propane** — the fuels with
-a 1:1 label-to-consumption-column mapping. Excluded: Electricity
-(`Post_HeatElectricity` can't distinguish the heat pump's own electricity use from an
-electric-baseboard backup's) and the wood species (`Mixed Wood`/`Hardwood`/`Wood
-Pellets`/`Softwood` all share one `Post_HeatWood` consumption column, so a per-species
-check isn't meaningful). Both are still counted in `backup_fuel_counts`. The
-denominator for each fuel is homes whose *own* `backup_fuel` is that fuel, not every
-heat-pump home — otherwise the stat could exceed `backup_fuel_counts[fuel]` (a home
-with a different backup can still show trace nonzero consumption in an unrelated fuel
-channel) and read as a nonsensical >100%.
-
-**This script is a deliberate mirror of the JavaScript renderers** in `retrofits.html`:
-the same filters, the same median definition, and — critically — the **same bin widths**.
-If the two ever disagree, the province view and the FSA view will show differently-shaped
-charts for the same data. See [the bin-width contract](#the-bin-width-contract-important).
-
----
-
-## Unit conversions
-
-Applied in Step 1 so every fuel is comparable in **kWh** (heat loss in **kW**):
-
-| Quantity | Source unit | Factor | Result |
-|---|---|---|---|
-| Total energy | MJ | × 0.27778 | kWh |
-| Heating energy | MJ | × 0.27778 | kWh |
-| Electricity | kWh | — (as-is) | kWh |
-| Natural gas | m³ | × 10.3611 | kWh (37.30 MJ/m³, CER) |
-| Oil | L | × 10.7778 | kWh (38.80 MJ/L light fuel oil, StatCan RESD 57-003-X) |
-| Propane | L | × 7.0917 | kWh (25.53 MJ/L, CER) |
-| Wood | GJ, else MJ, else tonne | × 277.778, else × 0.27778, else × 3888.89 | kWh (see below) |
-| Design heat loss | W | × 0.001 | kW |
-| GHG (`ERSGHG`) | tCO₂e/yr | — (as-is) | tCO₂e/yr |
-| Solar PV (`KWPV`) | kW DC | — (as-is) | kW |
-| Heat pump capacity (Step 1b, AHRI cert.) | BTU/h | × 0.00029307107 | kW |
-
-GHG already includes electricity emissions via each province's grid factor, so
-fuel-switching to electricity is reflected correctly.
-
-**Wood is a three-way fallback chain, not one factor.** Since HOT2000 v11.2 the
-source reports wood energy directly in GJ (`EGHFCONWOODGJ`, 43.4% filled) and that
-is used verbatim — no heating-value assumption at all. Otherwise the pipeline
-prefers `EGHHEATFCONSW`, HOT2000's own per-home heating-fuel split (already MJ,
-also no assumption). Only the remaining ~0.3% of tonnes-only records fall back to
-`EGHFCONWOOD` at a flat 14.0 GJ/t (NRCan Solid Biofuels Bulletin No. 2). The
-earlier flat-factor-only version produced a handful of homes whose computed wood
-energy exceeded their own reported total; preferring `EGHHEATFCONSW` fixed that by
-construction. `retrofits.html`'s Methodology B carries the same table with the
-per-fuel citations.
+Adds 2 columns, `Pre_/Post_GHG_current`: each home's own fuel consumption × current (2026)
+official ECCC/OBPS factors — see [GHG](#ghg-scenarios) below. Needs only
+`Python/ghg_factors.py`. (Until 2026-09-23 it wrote 6 scenario columns and depended on
+`Python/ers_ghg_factors.py`'s output; that script is no longer part of the chain.)
 
 ### GHG scenarios
 
-`Pre_GHG`/`Post_GHG` (raw `ERSGHG`) is only populated for **50.5%** of matched
-pairs nationally (measured 2026-08-02; Quebec ~78%, Ontario ~43%, Saskatchewan
-~9%). Rather than build every GHG chart on half the population, **Step 1c**
-(`Python/compute_ghg_scenarios.py`) calculates GHG for every matched home from
-its own recorded fuel consumption (~100% complete), giving 4 bases — switched
-by the **GHG basis** dropdown above the GHG chart on both retrofits.html and
-retrofit-insights.html:
+**Current method (since 2026-09-23): one basis.** Every matched home's GHG, before and
+after, is its own fuel consumption (kWh, ~100% complete) × the **current (2026) official
+ECCC/OBPS factor** for each fuel: the province's grid factor for electricity, fixed
+combustion constants for gas / oil / propane, 0 for wood (biogenic-neutral; ECCC has no
+residential wood factor). The same factors apply to every audit year, so retrofits from
+different years compare on equal footing; the figure is what each retrofit's energy
+change is worth in emissions today, not what it emitted at the time. Columns:
+`Pre_/Post_GHG_current` (Step 1c). Both pages show this basis only — no dropdown.
+
+**Why (decision 2026-09-23).** The EnerGuide data team advised using current emission
+factors and ignoring the audit's own GHG reporting: `ERSGHG` was populated for only
+50.5% of matched pairs, and the factors behind it were updated sporadically, so audits
+from different years embed different, sometimes outdated, factors. This also retires the
+open question of which factors HOT2000 uses ([ENERGUIDE_QUESTIONS.md §5.4](ENERGUIDE_QUESTIONS.md)).
+The raw `ERSGHG` field is no longer pulled by Step 1.
+
+Current electricity factors, g CO2e/kWh (2026, `ghg_factors.OBPS_ELECTRICITY`):
+AB 438 · BC 18 · MB 2.5 · NB 234 · NL 17 · NS 581 · NT 420 · NU 800 · ON 59 · PE 234 ·
+QC 1.9 · SK 631 · YT 74. Combustion: natural gas 185–189 (varies slightly by province),
+oil 255.4, propane 213.6, wood 0.
+
+Effect on the national headline (2026-09-24 build): typical home **6.0 → 4.0 tCO2e/yr**
+(median before/after), against 4.0 → 2.0 on the old raw-`ERSGHG` basis — the new figure
+covers every matched home instead of half, at 2026 factors. Retrofit Insights: **2,950,932
+tCO2e/yr net saved across all 1,523,774 matched pairs**; 62,751 homes (4.1%) show a
+modelled GHG rise.
+
+#### History: the four GHG bases (2026-08-02 → 2026-09-23, retired)
+
+From 2026-08-02 both pages offered a **GHG basis** dropdown with four bases, kept here as
+the decision record:
 
 | Scenario | Electricity factor | Combustion factor |
 |---|---|---|
 | `reported` | — (raw `ERSGHG`, ~50.5% coverage) | — |
-| `current` | flat 2026 official ECCC/OBPS, same for every audit year | fixed official ECCC/OBPS constants |
+| `current` (the one kept) | flat 2026 official ECCC/OBPS, same for every audit year | fixed official ECCC/OBPS constants |
 | `current_corrected` | same, Alberta/Newfoundland use ERS-calibrated instead | fixed official ECCC/OBPS constants |
-| `as_audited` (default) | ERS-calibrated, matched to each home's own audit year | ERS-calibrated, year-varying |
+| `as_audited` (was the default) | ERS-calibrated, matched to each home's own audit year | ERS-calibrated, year-varying |
 
-**Why Alberta/Newfoundland are corrected, and why `as_audited` needs
-year-varying combustion, not the fixed constants:** validated against real
-`ERSGHG`, the official ECCC factors agree with the ERS data almost exactly for
-combustion (gas/oil/propane, within 0.1–3.5%) but electricity is off by
-18–29% (Alberta) and 27–49% (Newfoundland & Labrador), consistently across
-2023–2026 at large sample sizes (40,000+ homes/yr for Alberta) — not noise.
-Checked for FSA-level/regional variation and found none explains it: Newfoundland's
-audited homes are almost all on the island, so the official province-wide
-figure (diluted by Labrador's near-zero-carbon Churchill Falls hydro) doesn't
-represent them; Alberta has only 159 of 85,771 homes that are electric-only
-heated, nowhere near enough to test locally, and its grid has no published
-zonal split. We could not find NRCan documentation of what HOT2000 uses
-internally for this (open question — see
-[ENERGUIDE_QUESTIONS.md §5.4](ENERGUIDE_QUESTIONS.md)), so these two provinces
-substitute the ERS-calibrated factor, which by construction reproduces what
-HOT2000 actually computed for these same audits. Separately, applying a flat
-*modern* combustion factor across all history overstates Ontario's
-pre-2017 gas GHG badly — `ERSNGASGHG` there runs near-zero for 2006–2016
-despite substantial real gas consumption (n=54,967 in 2016 alone) — so
-`as_audited` uses a year-varying ERS-calibrated combustion factor, not the
-flat official constant. **Validated end to end**: `as_audited`'s national
-aggregate lands within **−0.66%** of the real reported total, every
-large-sample province within about ±2% except Quebec (−5.3%, small absolute
-base). Wood is treated as 0 (biogenic-neutral) in every scenario — ECCC has no
-residential wood-combustion factor at all, and the ERS-implied ratio
-(~358 kg CO2e/kg) is not physically plausible.
+ERS-implied vs ECCC electricity factors, g CO2e/kWh, as shown on the page until
+2026-09-23 ("—" = fewer than 30 audits that province/year):
 
-**Sources & derivation**: `Python/ers_ghg_factors.py` (ERS-calibrated factor
+| Province | ERS 2016 | ERS 2020 | ERS 2023 | ERS 2026 | ECCC 2026 | ERS-aligned |
+|---|---|---|---|---|---|---|
+| Alberta | 15.8 | 848.2 | 765.9 | 584.7 | 438.0 | **584.7** |
+| British Columbia | 9.8 | 10.5 | 12.0 | 16.1 | 18.0 | 18.0 |
+| Manitoba | 0.0 | 1.7 | 1.2 | 0.8 | 2.5 | 2.5 |
+| N.W.T. | 0.9 | 240.4 | 207.7 | — | 420.0 | 420.0 |
+| New Brunswick | 322.3 | 294.4 | 296.1 | 306.0 | 234.0 | 234.0 |
+| Nfld. & Labrador | — | — | 33.1 | 23.1 | 17.0 | **23.1** |
+| Nova Scotia | 75.5 | 739.1 | 731.4 | 718.0 | 581.0 | 581.0 |
+| Nunavut | — | — | — | — | 800.0 | 800.0 |
+| Ontario | 0.0 | 43.0 | 31.9 | 33.0 | 59.0 | 59.0 |
+| P.E.I. | — | 292.7 | 292.7 | 306.0 | 234.0 | 234.0 |
+| Quebec | 0.1 | 1.3 | 1.0 | 1.5 | 1.9 | 1.9 |
+| Saskatchewan | 98.9 | 758.7 | 734.3 | 692.4 | 631.0 | 631.0 |
+| Yukon | 0.4 | 51.8 | 64.2 | 91.8 | 74.0 | 74.0 |
+
+Combustion, national: natural gas ERS 5.3 / 183.6 / 186.1 / 188.1 (2016/2020/2023/2026)
+vs ECCC 185.4; oil 26.5 / 255.0 / 255.6 / 255.6 vs 255.4; propane 7.3 / 218.9 / 218.8 /
+218.9 vs 213.6. The near-zero 2016 values are Ontario's `ERSNGASGHG` running near-zero
+for 2006–2016 despite real gas use — one of the "sporadic factor updates" the EnerGuide
+team referred to.
+
+The reasoning behind the retired bases, as written at the time:
+
+**Sources & derivation (retired bases)**: `Python/ers_ghg_factors.py` (ERS-calibrated factor
 derivation — fixed 2026-08-02, see its module docstring for the survivorship-bias
 bug this replaced: excluding true-zero-GHG rows from the ratio inflated the
 factor and overstated the national total by +12.8% before the fix, +0.16%
@@ -391,7 +329,8 @@ All thresholds are computed per home in Step 1:
 |---|---|
 | `Roof_/Wall_/Foundation_/Floor_Insulation_Upgrade` | post insulation RSI **> 1.10 ×** pre (more than 10% higher) |
 | `Air_Tightness_Upgrade` | post air leakage (ACH50) **< 0.90 ×** pre (more than 10% tighter) |
-| `Windows_Change` | window code present in both audits and different |
+| `Windows_Change` | `WINDOWCODE` present in both audits and different, after normalizing text format (`201030.0` = `201030`; before 2026-09-23 a raw string compare counted that as a change; national window changes fell 444,304 → 305,500 after the fix despite 5% more matched pairs, so the artifact was large, though not isolated exactly because the pair set changed in the same build). `WINDOWCODE` describes the windows with the greatest area, so this reads as a full or main-type replacement |
+| `Windows_Partial` | added 2026-09-23: `WINDOWCODE` unchanged but `NUMWINESTAR` (installed ENERGY STAR windows) rose, both audits recorded. Mutually exclusive with `Windows_Change`. On 2020–2024 pairs: median 5 windows, ~32% of the house. Caveat: 98% of D audits record 0, so some E counts may include ENERGY STAR windows that pre-dated the D audit |
 | `Heating_Change` | heating **fuel** or **equipment type** differs, raw ERS diff (row-level table, FSA mode). Aggregate charts (province mode, `retrofit-insights.html`) override this downstream to `Heating_Change & ~HeatPump_Addition` — see the note below the table. |
 | `Cooling_Change` | air-conditioner type differs |
 | `HeatPump_Addition` | no heat pump pre, heat pump present post |
@@ -547,12 +486,8 @@ python scripts/ers_web_pipeline.py
 #     Safe to skip if lookup/ahri_numbers.json hasn't changed since the last run (idempotent).
 python scripts/join_hp_capacity.py
 
-# (only if ers_ghg_factors_by_province_year.csv is stale, e.g. after Step 1 re-ingests
-#  new CSV years) Recompute the ERS-calibrated GHG factor table from the raw yearly CSVs.
-python scripts/ers_ghg_factors.py
-
-# 1c) Add the 6 GHG scenario columns -- overwrites the parquet in place. Depends on
-#     ers_ghg_factors_by_province_year.csv (previous step); idempotent otherwise.
+# 1c) Add Pre_/Post_GHG_current (current official factors) -- overwrites the parquet
+#     in place; idempotent. REQUIRED: Step 3 fails without these columns.
 python scripts/compute_ghg_scenarios.py
 
 # 2) Province parquet -> per-FSA JSON (+ _index.json)
@@ -560,6 +495,12 @@ python scripts/split_fsa_json.py
 
 # 3) Province parquet -> province_json/<PROV>.json summaries
 python scripts/precompute_province_stats.py
+
+# 4) Province summaries -> province_json/CA.json national rollup
+python scripts/aggregate_canada.py
+
+# 5) retrofit-insights.html's insights_json/ (reads the same parquets)
+python scripts/build_insights.py
 ```
 
 Then **publish** the regenerated `fsa_json/` and `province_json/` to `gh-pages` (see
@@ -662,8 +603,8 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 - **Modelled, not metered.** All energy/GHG values come from HOT2000, not utility bills.
   Real consumption varies with weather and occupant behaviour.
 - **Matched homes only.** A home needs at least one before (D) and one after (E) audit —
-  reduced to its **oldest D and newest E** — with the E dated later, and must pass the
-  same-home checks (≤10% area change; unchanged type/storeys/units). A home audited more
+  reduced to its **oldest D and newest E** — with the E not dated earlier, and must pass
+  the same-home checks (≤5% area change; unchanged type/storeys/units; same weather file). A home audited more
   than once therefore contributes a single row spanning its whole audit history, which
   may cover more than one retrofit project.
 - **Pairing gates A and B — measured 2026-07-24** (`diagnose_gates_ab.py`, full scan of
@@ -688,7 +629,14 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   latest after). The caveat is interpretive, not technical: a D=2/E=2 home may be two
   separate retrofit projects, and collapsing it reports the combined change as one.
 
-  **Gate B — "E dated after D" drops 84,755 pairs, and should stay dropped.** The
+  **Gate B — RESOLVED 2026-09-23: same-month pairs now kept.** The EnerGuide data team
+  confirmed same-month D and E audits are usable. The rule is now `E >= D`: 84,881
+  same-month pairs are kept and only 504 genuine E-before-D reversals drop. The
+  paragraph below, written 2026-07-24, argued the opposite and is kept as the record;
+  its "no recoverable ordering" reasoning was wrong, since `EVALTYPE`, not the date,
+  says which audit came first.
+
+  *Original (superseded):* **Gate B — "E dated after D" drops 84,755 pairs, and should stay dropped.** The
   earlier assumption that these were parsing failures is wrong: **zero** are
   unparseable. 99.4% (84,253) have E on the *exact same calendar day* as D, and every
   frequent case is a first-of-month placeholder (`2011-03-01 → 2011-03-01` alone is
@@ -698,7 +646,24 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
 
-  **Full gate breakdown of the current drop (`diagnose_pairing_drops.py`, updated
+  **Current gate breakdown (2026-09-24 build, pipeline's own counts).** 1,523,774
+  matched rows (≈1,503,800 distinct homes — about 20,000 rows are duplicate `HOUSEID`s,
+  a pre-existing issue under investigation). Removed, in pipeline order: date order 504 ·
+  floor area >5% 64,263 (of which ~18,700 moved 5–10%, removed only because of the
+  2026-09-23 tightening) · type / storeys / units 62,313 · weather file 5,333.
+
+  **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
+  audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
+  file between D and E, 5,141 of them `Wth110` → `Wth2020`. Those pairs showed a 31%
+  median saving against 20%; most of the gap is the longer audit gap (~3.5 years vs 0.4),
+  but at matched gap and years the pairs that kept `Wth110` still saved 28.5% vs 33.4%
+  (n=62, weak). Excluded rather than flagged so no saving on the page can come from a
+  model change. The HOT2000 v10 → v11 upgrade (`PROGRAMNAME`) was checked at the same
+  time: only 97 matched pairs span it, all of them also weather-file changes, so this
+  gate covers both. Diagnostic: scratch script, not committed; figures reproducible from
+  `PROGRAMNAME`/`WTHDATA` on oldest-D/newest-E pairs.
+
+  *Earlier (2026-08-06):* **Full gate breakdown of the current drop (`diagnose_pairing_drops.py`, updated
   to match the pipeline post-2026-07-24/-18 fixes).** Of 1,629,313 homes nationally
   carrying both a D and an E, 1,451,433 (89.1%) survive; the remaining ~177,880 split
   roughly two-fifths Gate B (date order — see above), one-fifth Gate C (floor area
@@ -756,6 +721,41 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-09-23/24 EnerGuide data-team answers applied — pairing, windows, GHG
+
+Answers from a meeting with the team responsible for the EnerGuide data, applied in
+one pass. Matched pairs **1,451,433 → 1,523,774** (+72,341, +5.0%); median saving
+unchanged at 20%.
+
+- **Same-month D/E kept** (`E > D` → `E >= D` in `build_pairs_index`): +84,881 pairs.
+  The team confirmed same-month audits are usable. Closes Gate B.
+- **Floor-area gate 10% → 5%**: −18,719 pairs whose area moved 5–10% (diagnostic).
+- **Weather-file gate added** (`WTHDATA` must match D vs E): −5,333 pairs. Covers the
+  97 pairs spanning HOT2000 v10 → v11. See Data notes.
+- **`Windows_Change` `.0` fix**: codes normalized before comparing. National window
+  changes 444,304 → 305,500 despite 5% more pairs, so a large share of the old count was formatting artifacts (not isolated exactly: the pair set changed in the same build; PEI measured 22% on 2026-07-31).
+  The same fix was applied POC-side on 2026-07-31 only; now at the source.
+- **New `Windows_Partial` flag** from `NUMWINESTAR` (team suggestion): 181,290 homes,
+  shown as "Some windows replaced". Kept separate so window costs and "Windows changed"
+  stay tied to the code. Window heat loss (`EGHHLWINDOOR`) was offered as another
+  signal but not used: it also moves with weather-file / version changes.
+- **GHG: one basis, current official factors.** Dropdown removed from both pages;
+  `ERSGHG` and the two ERS-calibrated scenarios retired (team advice: partial
+  reporting, sporadic factor updates). History and the factor tables kept under
+  [GHG scenarios](#ghg-scenarios).
+- **Wood (team answer 6), no change needed:** the team noted softwood/hardwood
+  differences and suggested using heating consumption for all-wood homes. `wood_kwh()`
+  already prefers `EGHFCONWOODGJ`, then `EGHHEATFCONSW` (heating consumption); the
+  species-sensitive tonnes × 14 GJ/t fallback applies to ~0.3% of records.
+- `diagnose_pairing_drops.py` mirrors the new date and floor-area rules and reports the
+  5–10% band separately; the pipeline now prints per-gate drop counts and window-flag
+  overlap. Chain order corrected here: Steps 1b and 1c are **required** (Step 3
+  crashes without the GHG columns), and `aggregate_canada.py` / `build_insights.py`
+  are listed.
+- **Open, not introduced here:** ~20,000 matched rows are duplicate `HOUSEID`s (20,736
+  in the July build); cost-model figures on the page (1,420,044 of 1,451,433) are from
+  the last `retrofit_cost_estimate.py` run and were not regenerated.
 
 ### 2026-09-23 Mobile-friendly filter bar (collapsing summary, theme toggle in header)
 

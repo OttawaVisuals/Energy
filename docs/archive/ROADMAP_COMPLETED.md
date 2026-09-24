@@ -1486,3 +1486,33 @@ below).
 
 ---
 
+## 15. Retrofit pairing gates A and B — ✅ DONE (Gate A 2026-07-24, Gate B 2026-09-23)
+
+Moved from ROADMAP.md on 2026-09-24. Gate B was closed by the EnerGuide data
+team confirming on 2026-09-23 that same-month D and E audits are usable; the
+pipeline now uses `E >= D` (+84,881 pairs, 504 genuine reversals still
+dropped). The original entries, verbatim:
+
+- [x] **Pairing Gate A recovered — matched sample 1,369,305 → 1,451,433
+      (+82,128, +6.0%).** `build_pairs_index()` now reduces each home to
+      oldest-D + newest-E instead of requiring exactly one of each. The pair
+      stage gained the predicted +148,155; the structural/floor-area gates then
+      removed proportionally more of the recovered multi-audit homes (they span
+      longer gaps), netting +82,128. Matched share of homes with both a D and an
+      E audit rises 84.0% → 89.1%. Headline figures barely move — median saving
+      stays 20%, whole-home heat loss −12% — which is the evidence the recovered
+      homes are representative rather than a distortion. Full chain rerun and all
+      JSON regenerated. Previous build artifacts backed up at `C:\ERS\web_prev\`.
+- [x] **Gate B — closed 2026-09-23 (was: still open, and the ordering argument favours changing it.**
+      84,755 pairs are dropped for "E not dated after D". None have unparseable
+      dates and 99.4% are exact same-day ties; `ENTRYDATE` is month-precision
+      throughout (all first-of-month). Since `EVALTYPE` already says which audit
+      is the initial and which the follow-up, **the date test is only a guard
+      against genuine reversals** — so `E > D` → `E >= D` would be correct and
+      recovers ~84,253, leaving the 502 real reversals excluded. Not applied:
+      surfaced as an open question on the page for the EnerGuide team to confirm
+      first. (An earlier framing in this session — that same-day ties carry "no
+      recoverable ordering" — was wrong; ordering comes from `EVALTYPE`, not the
+      date.)
+
+---

@@ -340,7 +340,7 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
 </header>
 
 <div class="hero">
-  <div class="eyebrow">1,451,433 matched before / after audits · 1,684 postal areas</div>
+  <div class="eyebrow">1,523,774 matched before / after audits · 1,684 postal areas</div>
   <h1>What actually <em>works</em> in a home retrofit — and <em>where</em></h1>
   <p>The <a href="retrofits.html" style="color:var(--amber2)">Retrofit Explorer</a> goes deep on one postal area at a time. This is the cross-sectional view: every matched NRCan EnerGuide retrofit in the country, read together, to see what saves energy, who takes part, and where the worst-performing stock has barely been touched.</p>
 </div>
@@ -423,15 +423,6 @@ footer{padding:1.3rem 1.5rem;margin-top:2.5rem}
       <h3>National total</h3>
       <div class="sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span>Net across every matched pair — homes whose modelled GHG rose are included, not dropped (see the caveat below).</span>
-        <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
-          <label for="ghg-scenario-sel" style="font-size:12px;color:var(--muted)">GHG basis</label>
-          <select id="ghg-scenario-sel" style="font-size:12.5px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)">
-            <option value="as_audited">ERS-aligned, at year of audit</option>
-            <option value="current">Current (2026) official</option>
-            <option value="current_corrected">Current (2026) official, ERS-aligned</option>
-            <option value="reported">As reported (partial coverage)</option>
-          </select>
-        </span>
       </div>
       <div class="ghg-kpi-strip" id="ghg-kpi-strip"></div>
       <div class="note" id="ghg-national-note"></div>
@@ -1031,16 +1022,11 @@ function renderGhgEquiv(totalTco2e){
   ));
   $('ghg-equiv-grid').innerHTML=parts.join('');
 }
-// 4 GHG bases (mirrors Python/ghg_factors.py / compute_ghg_scenarios.py --
-// keep in sync). "reported" = raw ERSGHG (partial coverage); the other 3 are
-// calculated from each home's own fuel consumption (~100% coverage).
-let GHG_SCENARIO='as_audited';
-const GHG_SCENARIO_LABEL={
-  as_audited:"the ERS-calibrated factor matched to each home's own audit year",
-  current:"a single flat 2026 official ECCC factor, applied to every retrofit regardless of when it happened",
-  current_corrected:"a single flat 2026 official ECCC factor, with Alberta and Newfoundland & Labrador realigned to the ERS data (see Methodology)",
-  reported:"the raw NRCan-reported ERSGHG field, unmodified",
-};
+// One GHG basis since 2026-09-23 (mirrors Python/compute_ghg_scenarios.py --
+// keep in sync): each home's own fuel consumption x current (2026) official
+// ECCC factors. The raw ERSGHG field is not used, on the EnerGuide data
+// team's advice. ghg_impact.json keeps a one-key "scenarios" dict.
+const GHG_SCENARIO='current';
 let _ghgImpactData=null;
 
 function renderGhgImpact(g){
@@ -1048,15 +1034,13 @@ function renderGhgImpact(g){
   const scen=g.scenarios[GHG_SCENARIO];
   const n=scen.national;
   $('ghg-kpi-strip').innerHTML=`
-    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_ghg_saved_tco2e)}</div><div class="gl">tCO₂e/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes${GHG_SCENARIO==='reported'?' with a valid GHG reading':''})</div></div>
+    <div class="ghg-kpi"><div class="gv">${fmtInt(n.total_ghg_saved_tco2e)}</div><div class="gl">tCO₂e/yr saved, net (${fmtInt(n.n)} of ${fmtInt(n.matched_total)} matched homes)</div></div>
     <div class="ghg-kpi"><div class="gv">${n.avg_ghg_saved_tco2e.toFixed(1)}</div><div class="gl">avg tCO₂e/yr saved per home</div></div>
     <div class="ghg-kpi"><div class="gv">$${fmtInt(n.carbon_tax_value_cad)}</div><div class="gl">at the 2024 carbon-tax rate ($${g.carbon_tax_rate.value}/tCO₂e)</div></div>
     <div class="ghg-kpi"><div class="gv">$${fmtInt(n.scc_value_cad)}</div><div class="gl">at ECCC's 2024 Social Cost of Carbon ($${g.scc_rate.value}/tCO₂e)</div></div>`;
-  const covPhrase=GHG_SCENARIO==='reported'
-    ?`Over the ${fmtInt(n.n)} matched pairs (${fmtPct(n.ghg_coverage_pct,0)} of ${fmtInt(n.matched_total)} nationally) with a usable before/after GHG reading`
-    :`Across all ${fmtInt(n.n)} matched pairs nationally (${fmtPct(n.ghg_coverage_pct,0)} coverage)`;
+  const covPhrase=`Across all ${fmtInt(n.n)} matched pairs nationally`;
   $('ghg-sowhat').textContent=`${covPhrase}, retrofits saved a net ${fmtInt(n.total_ghg_saved_tco2e)} tCO₂e/yr — worth $${fmtInt(n.carbon_tax_value_cad)} at the 2024 carbon-tax rate and $${fmtInt(n.scc_value_cad)} under ECCC's Social Cost of Carbon. ${fmtInt(n.n_increased)} homes (${fmtPct(n.n_increased/n.n,1)}) saw modelled GHG rise instead of fall, most often from switching to electric heat in a higher-emission-grid province.`;
-  $('ghg-national-note').textContent=`Net = sum(pre GHG − post GHG) over ${fmtInt(n.n)} matched pairs, using ${GHG_SCENARIO_LABEL[GHG_SCENARIO]}. Not clipped at zero — ${fmtInt(n.n_increased)} homes pull the total down.`;
+  $('ghg-national-note').textContent=`Net = sum(pre GHG − post GHG) over ${fmtInt(n.n)} matched pairs, using current (2026) official ECCC emission factors for every audit year. Not clipped at zero — ${fmtInt(n.n_increased)} homes pull the total down.`;
 
   const rows=Object.entries(scen.by_province).map(([prov,s])=>({prov,...s}))
     .sort((a,b)=>b.total_ghg_saved_tco2e-a.total_ghg_saved_tco2e);
@@ -1065,20 +1049,14 @@ function renderGhgImpact(g){
   body.innerHTML=rows.map(r=>`<tr><td><span class="prov-name">${PROV_NAME[r.prov]||r.prov}</span></td><td>${fmtInt(r.n)} / ${fmtInt(r.matched_total)}</td><td>${fmtPct(r.ghg_coverage_pct,0)}</td><td>${r.avg_ghg_saved_tco2e.toFixed(1)}</td><td>${fmtInt(r.total_ghg_saved_tco2e)}</td><td>$${fmtInt(r.carbon_tax_value_cad)}</td><td>$${fmtInt(r.scc_value_cad)}</td></tr>`).join('');
 
   const caveat=$('ghg-caveat');
-  if(GHG_SCENARIO==='reported'){
-    caveat.innerHTML=`<b>Only about half the matched homes have a usable GHG reading, and it varies sharply by province.</b> Nationally ${fmtPct(n.ghg_coverage_pct,1)} of matched pairs (${fmtInt(n.n)} of ${fmtInt(n.matched_total)}) have both a Pre_GHG and a Post_GHG value — ERSGHG is not populated for every audit. Every figure here describes only the homes with GHG data, not the full matched population, and is not scaled up to cover the gap.`;
-  } else {
-    caveat.innerHTML=`<b>Two different prices for the same tonnes.</b> The carbon-tax figure applies a single flat $80/tCO₂e (the 2024 federal rate) to every matched pair regardless of its own audit year — illustrative, not a reconstruction of the phased 2019–2024 schedule, and the federal consumer fuel charge was removed 2025-04-01. The Social Cost of Carbon figure applies ECCC's 2024 central estimate ($266/tCO₂e, C$2021, 2% discount) — an estimate of global avoided damage, not a price anyone pays. Neither is metered.${GHG_SCENARIO!=='current'?' Alberta and Newfoundland & Labrador use an ERS-aligned electricity factor here — see Methodology, “GHG scenarios”, for why.':''}`;
+  {
+    caveat.innerHTML=`<b>Two different prices for the same tonnes.</b> The carbon-tax figure applies a single flat $80/tCO₂e (the 2024 federal rate) to every matched pair regardless of its own audit year — illustrative, not a reconstruction of the phased 2019–2024 schedule, and the federal consumer fuel charge was removed 2025-04-01. The Social Cost of Carbon figure applies ECCC's 2024 central estimate ($266/tCO₂e, C$2021, 2% discount) — an estimate of global avoided damage, not a price anyone pays. Neither is metered.`;
   }
 
   $('ghg-equiv-n').textContent=`from ${fmtInt(n.n)} homes`;
   renderGhgEquiv(n.total_ghg_saved_tco2e);
 }
 function secGhg(){return loadJSON(INS+'ghg_impact.json').then(renderGhgImpact);}
-$('ghg-scenario-sel').addEventListener('change',function(){
-  GHG_SCENARIO=this.value;
-  if(_ghgImpactData)renderGhgImpact(_ghgImpactData);
-});
 
 // energy impact — kWh saved, priced $ + homes-powered + EV-km equivalents
 // (parallel to the GHG card above, but a single basis, no scenario picker:
@@ -2149,17 +2127,11 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
     <p><b>These weights are a judgement, not an estimate</b>, so section 06 lets you set them yourself: the five percentiles are stored per postal area, and the whole ranking is re-scored in the browser from whatever weighting you choose. Weight levels are ordinal and normalised to sum to 1, so only the ratio between factors matters — setting every factor to High gives the same ranking as setting every factor to Medium. A shared link carries the weighting with it, so a ranking you send is the ranking that opens. The score is always a position relative to other areas, never a measurement of a physical quantity.</p>
     <p>The lower-income factor ships at weight <b>0</b>, so the default ranking is unchanged by its existence. Note that it is doing something different from the income lens in section 04: weighting an <b>area's</b> income to decide where a programme should look is an area-level decision about areas, which this data supports. Inferring what lower-income <b>households</b> do from it is the step that does not follow.</p>
 
-    <h4>GHG impact: 4 scenarios, carbon tax, and Social Cost of Carbon</h4>
-    <p><b>Plain language:</b> this section turns energy savings into greenhouse-gas terms. Because most audits didn't originally record an emissions figure, we offer four different ways to calculate one — pick whichever basis you trust most from the dropdown above the chart.</p>
-    <p><b>Advanced:</b> built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other GHG figure on this page. The <b>GHG basis</b> dropdown at the top of this section switches between 4 ways of computing <code>sum(Pre_GHG − Post_GHG)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped:</p>
-    <ul>
-      <li><b>As reported</b> — the raw <code>ERSGHG</code> field, unmodified. Only 733,107 of 1,451,433 matched pairs nationally (50.5%, measured 2026-08-02) have a usable Pre_GHG <i>and</i> Post_GHG value — coverage runs from Quebec (~78%) and PEI (~84%) down to Ontario (~43%) and Saskatchewan (~9%). Every figure under this basis describes only the homes with GHG data, not scaled up to the full matched count — <code>n</code>/<code>matched_total</code>/<code>ghg_coverage_pct</code> ship per province precisely so this isn't hidden.</li>
-      <li><b>Current (2026) official</b> — every home's own fuel consumption (already ~100% complete) × <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" style="color:var(--ink)">ECCC's official 2026 emission factors</a>, applied flat regardless of when the retrofit happened — prices every retrofit as if it happened on today's grid, for comparing retrofits across years on equal footing rather than reconstructing historical emissions.</li>
-      <li><b>Current (2026) official, ERS-aligned</b> — the same, except Alberta and Newfoundland &amp; Labrador use a factor calibrated directly against the ERS data instead of ECCC's published one (next paragraph explains why).</li>
-      <li><b>ERS-aligned, at year of audit</b> — each home's own audit year's factor, calibrated directly against the ERS data, and this page's default. <i>Renamed from "corrected" on 2026-08-20:</i> the label implied ECCC's published factors are wrong, which this data cannot establish — the ERS figures are back-calculated from what HOT2000 reported, so a gap may equally reflect a different accounting boundary inside HOT2000. It is a sensitivity, not a correction, and the previous claim that it is the "historically accurate" basis has been withdrawn.</li>
-    </ul>
-    <p><b>Why Alberta and Newfoundland get a correction:</b> applying the official ECCC electricity factors to real ERS consumption and comparing to real reported <code>ERSGHG</code>, every other province agrees within about ±15%, but Alberta runs 18–29% low and Newfoundland &amp; Labrador 27–49% low, consistently across 2023–2026 and at large sample sizes (40,000+ homes/year for Alberta) — not noise. This isn't a within-province effect: Newfoundland's audited homes are almost all on the island, and the official province-wide figure is diluted by Labrador's near-zero-carbon Churchill Falls hydro; Alberta has too few electric-only-heated homes (159 of 85,771) to test locally at all, and its grid has no published zonal split to begin with. We could not find NRCan documentation of what HOT2000 uses internally for this calculation (tracked as an open question — see <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/ENERGUIDE_QUESTIONS.md" style="color:var(--ink)" target="_blank" rel="noopener">docs/ENERGUIDE_QUESTIONS.md</a> §5.4), so these two provinces substitute a factor derived directly from the ERS data's own consumption and GHG columns, which by construction reproduces what HOT2000 actually computed for these same audits. The same issue surfaces for combustion, not just electricity: Ontario's own <code>ERSNGASGHG</code> runs near-zero for 2006–2016 despite substantial real gas consumption, so the "ERS-aligned, at year of audit" basis uses a year-varying, ERS-calibrated combustion factor too rather than a flat modern one. Validated end to end, the "ERS-aligned, at year of audit" national aggregate lands within <b>−0.66%</b> of the real reported total, and every large-sample province within about ±2% except Quebec (−5.3%, a small absolute base). Full derivation: <code>Python/ghg_factors.py</code>, <code>Python/compute_ghg_scenarios.py</code>, <code>Python/ers_ghg_factors.py</code>. Wood is treated as 0 (biogenic-neutral) in every scenario — ECCC has no residential wood-combustion factor at all, and the ERS-implied ratio is not physically plausible (~358 kg CO2e/kg).</p>
-    <p>Whichever basis is selected, that tCO₂e total is priced two ways, both as flat, single-year rates (not the phased schedules either source actually uses):</p>
+    <h4>GHG impact: current emission factors, carbon tax, and Social Cost of Carbon</h4>
+    <p><b>Plain language:</b> this section turns energy savings into greenhouse-gas terms. We calculate each home's emissions ourselves, from its own fuel use and today's official emission factors, so every matched home is counted and retrofits from different years compare fairly.</p>
+    <p><b>Advanced:</b> built by <code>build_ghg_impact()</code> in <code>Python/build_insights.py</code>, from the same national frame as every other figure on this page: <code>sum(Pre_GHG_current − Post_GHG_current)</code>, national and per-province, unfiltered by measure count and <b>net, not clipped</b> — pairs whose modelled GHG rose (typically an electric heat-pump fuel switch in a higher-emission-grid province) are included and pull the total down, with the count of those pairs shipped alongside rather than silently dropped. <code>Pre/Post_GHG_current</code> = each home's own fuel consumption × <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html" style="color:var(--ink)">ECCC's official 2026 emission factors</a> (province grid factor for electricity, fixed combustion constants for gas/oil/propane, 0 for wood as biogenic), applied flat regardless of audit year (<code>Python/compute_ghg_scenarios.py</code>, factors in <code>Python/ghg_factors.py</code>).</p>
+    <p><b>Why not the audit's own GHG figure:</b> the EnerGuide file carries its own <code>ERSGHG</code> field. On the EnerGuide data team's advice (2026-09-23) we do not use it: it was reported for only about half of matched pairs (50.5% nationally, as low as ~9% in Saskatchewan), and the factors behind it were updated only sporadically. Until 2026-09-23 this section offered four bases, including that field and two variants calibrated to it; they were retired in favour of this one. <i>Limitation:</i> the figures value each retrofit at today's grid, not the grid the home ran on at the time; the EnerGuide data implies an Alberta electricity factor about a third higher than ECCC's 2026 value (585 vs 438 g/kWh).</p>
+    <p>That tCO₂e total is priced two ways, both as flat, single-year rates (not the phased schedules either source actually uses):</p>
     <ul>
       <li><b>Carbon tax:</b> $80/tCO₂e, the federal fuel charge / OBPS benchmark price for 2024 — the last full year before the federal consumer fuel charge was removed 2025-04-01. Applied identically to every matched pair regardless of its own audit year, so this is illustrative, not a reconstruction of the 2019 ($20) → 2024 ($80) schedule, and it is not a live policy figure.</li>
       <li><b>Social Cost of Carbon:</b> $266/tCO₂e (C$2021), ECCC's 2024 central estimate for SC-CO2 at a 2% near-term Ramsey discount rate, from <a href="https://www.canada.ca/en/environment-climate-change/services/climate-change/science-research-data/social-cost-ghg.html" style="color:var(--ink)">"Social Cost of Greenhouse Gas Estimates – Interim Updated Guidance"</a> (Table 1). This is an estimate of global avoided climate damage, not a price anyone actually pays — ECCC's own FAQ makes this distinction explicit.</li>
@@ -2196,7 +2168,7 @@ function sec10(){return loadJSON(INS+'meta.json').then(m=>{
       </li>
       <li>
         <b>Is earliest-D-to-latest-E the right way to pair a re-audited home?</b>
-        <span>Changed 2026-07-24: homes with more than one initial or follow-up audit (149,145 nationally, ~9% of homes holding both) used to be excluded entirely; they are now reduced to their earliest initial audit and latest follow-up, which lifted every figure on this page to a 1,451,433-pair base from 1,369,305. About 55% of those homes have two of each, so their single row may span two separate retrofit projects. We chose this because it captures the home's whole change rather than an arbitrary half, and because the headline results barely moved when the homes were added — but if the intended reading is one row per project, pairing each initial audit with the next follow-up would be the correct treatment instead. Which matches how EnerGuide records these?</span>
+        <span>Changed 2026-07-24: homes with more than one initial or follow-up audit (149,145 nationally, ~9% of homes holding both) used to be excluded entirely; they are now reduced to their earliest initial audit and latest follow-up, which lifted every figure on this page to a 1,451,433-pair base from 1,369,305 (1,523,774 since the 2026-09-23 same-month, floor-area and weather-file rule changes — see the Retrofit Explorer methodology). About 55% of those homes have two of each, so their single row may span two separate retrofit projects. We chose this because it captures the home's whole change rather than an arbitrary half, and because the headline results barely moved when the homes were added — but if the intended reading is one row per project, pairing each initial audit with the next follow-up would be the correct treatment instead. Which matches how EnerGuide records these?</span>
       </li>
       <li>
         <b>How should zero-measure pairs be treated?</b>

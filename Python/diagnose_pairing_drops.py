@@ -17,10 +17,15 @@ see build_pairs_index/_join_and_write):
                              99.6% of multi-audit homes yield a correctly-
                              ordered pair under this rule -- the pipeline used
                              to drop all 149,145 of them outright).
-  B  Date order            — the (newest) E must be dated strictly after the
-                             (oldest) D (build_pairs_index).
-  C  Floor-area change     — |E area - D area| / D area must be <= 10%, D area
-                             > 0 (_join_and_write floor-area filter).
+  B  Date order            — the (newest) E must not be dated before the
+                             (oldest) D (build_pairs_index). Same-month D/E is
+                             allowed since 2026-09-23: ENTRYDATE is month-
+                             precision, and the EnerGuide data team confirmed
+                             same-month D and E audits are usable.
+  C  Floor-area change     — |E area - D area| / D area must be <= 5%, D area
+                             > 0 (_join_and_write floor-area filter; tightened
+                             from 10% on 2026-09-23 per the data team). The
+                             report also counts the 5-10% band separately.
   D  Structural change     — TYPEOFHOUSE, STOREYS and NUMDWELLINGUNITS must all
                              match between the D and the E, via same_categorical/
                              same_numeric: both-missing counts as unchanged,
@@ -145,14 +150,17 @@ def main():
             d_dw.append(dtup[4]);    e_dw.append(etup[4])
     del home
 
-    # ---- Gate B: E dated strictly after D (NaT -> fails, as in the pipeline) ----
+    # ---- Gate B: E not dated before D (NaT -> fails, as in the pipeline) ----
     dd = pd.to_datetime(pd.Series(d_dates), errors='coerce')
     ed = pd.to_datetime(pd.Series(e_dates), errors='coerce')
-    pass_b = (ed > dd).fillna(False).to_numpy()
+    pass_b = (ed >= dd).fillna(False).to_numpy()
+    same_month = int(((ed == dd).fillna(False)).sum())
 
-    # ---- Gate C: floor area within +/-10%, D area > 0 ----
+    # ---- Gate C: floor area within +/-5%, D area > 0 ----
     fad = to_float(d_areas); fae = to_float(e_areas)
-    pass_c = ((fad > 0) & ((fae - fad).abs() / fad <= 0.10)).fillna(False).to_numpy()
+    area_chg = (fae - fad).abs() / fad
+    pass_c = ((fad > 0) & (area_chg <= 0.05)).fillna(False).to_numpy()
+    band_5_10 = ((fad > 0) & (area_chg > 0.05) & (area_chg <= 0.10)).fillna(False).to_numpy()
 
     # ---- Gate D: type / storeys / dwellings unchanged ----
     # Matches ers_web_pipeline.py's same_categorical/same_numeric (fix applied
@@ -181,6 +189,7 @@ def main():
     drop_date  = int((~pass_b).sum())
     reach_c    = pass_b
     drop_area  = int((reach_c & ~pass_c).sum())
+    drop_area_band = int((reach_c & band_5_10).sum())
     reach_d    = reach_c & pass_c
     drop_struct = int((reach_d & ~pass_d).sum())
     survivors  = int((reach_d & pass_d).sum())
@@ -203,8 +212,9 @@ def main():
     print("=" * 64)
     line("Candidates (oldest-D + newest-E per home)", candidates, candidates)
     print("  " + "-" * 60)
-    line("B  dropped: E not dated after D", drop_date, candidates)
-    line("C  dropped: floor area changed >10%", drop_area, candidates)
+    line("B  dropped: E dated before D", drop_date, candidates)
+    line("C  dropped: floor area changed >5%", drop_area, candidates)
+    line("   of which 5-10% (new under 5% rule)", drop_area_band, candidates)
     line("D  dropped: type/storeys/dwellings changed", drop_struct, candidates)
     print("  " + "-" * 60)
     line("MATCHED PAIRS (survivors)", survivors, candidates)
@@ -214,6 +224,8 @@ def main():
     for k, v in sorted(sub.items(), key=lambda kv: -kv[1]):
         d = int(among.sum())
         print(f"    {k:<26} {v:>10,}  {v/d*100:5.1f}%" if d else f"    {k}: -")
+
+    print(f"\n  Same-month D/E pairs (kept since 2026-09-23): {same_month:,}")
 
     drops = drop_date + drop_area + drop_struct
     print(f"\n  check: survivors + drops = {survivors + drops:,}"
