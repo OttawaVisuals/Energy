@@ -518,9 +518,16 @@ def _norm_cat(s):
 
 
 def same_categorical(a, b):
-    """True where a and b are the same category. Both-missing -> unchanged;
-    one-side-missing -> changed (dropped)."""
-    a, b = _norm_cat(a), _norm_cat(b)
+    """True where a and b are the same category, ignoring capitalization.
+    Both-missing -> unchanged; one-side-missing -> changed (dropped).
+
+    Case-insensitive since 2026-09-25: TYPEOFHOUSE switched from 'Single
+    detached' / 'Mobile home' to 'Single Detached' / 'Mobile Home' around
+    2016-2020, and 29,109 pairs were counted as a house-type change for that
+    alone. 99.4% of them also changed HOT2000 weather file (WTH100 -> Wth2020
+    or Wth110), so the weather gate still drops them; the fix mostly moves
+    them to the right drop reason (+145 pairs kept)."""
+    a, b = _norm_cat(a).str.lower(), _norm_cat(b).str.lower()
     both_na = a.isna() & b.isna()
     return (both_na | (a == b)).fillna(False)
 
