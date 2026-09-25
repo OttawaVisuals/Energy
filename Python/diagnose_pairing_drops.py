@@ -3,11 +3,13 @@ DIAGNOSTIC (not part of the production pipeline).
 
 Where do the D&E homes that DON'T become matched pairs get dropped?
 
-The national funnel (province_json/CA.json) reports de=1,629,313 candidates and
-matched=1,451,433 survivors -- a drop of 177,880. This script reproduces
-ers_web_pipeline.py's pairing gates, in the SAME order, and attributes each
-dropped home to the FIRST gate it fails, so the drop counts form a clean funnel
-that sums exactly.
+This script reproduces ers_web_pipeline.py's pairing gates, in the SAME order,
+and attributes each dropped home to the FIRST gate it fails, so the drop counts
+form a clean funnel that sums exactly.
+
+Last run 2026-09-25: 1,647,596 candidates -> 1,517,574 survivors (92.1%); the
+pipeline itself ships 1,517,936 (see the universe note below for the gap).
+Previous full run 2026-08-06: 1,629,313 -> 1,451,433 (89.1%).
 
 Gates (ers_web_pipeline.py order, current as of the 2026-07-18/19 fixes --
 see build_pairs_index/_join_and_write):
@@ -32,11 +34,20 @@ see build_pairs_index/_join_and_write):
                              text-format differences ('1.0' vs '1') are ignored,
                              one-side-missing or a genuine difference drops the
                              pair (_join_and_write structural filter).
+  E  Weather file          — WTHDATA must match between D and E when both are
+                             recorded ('Not Applicable' counts as not recorded);
+                             added 2026-09-23 per the data team.
 
-Universe note: this matches ers_web_pipeline.py (PROVINCE_FILTER=None), which does
-NOT require a province, so the candidate count here can be slightly higher than the
-funnel's "Both D&E" number (build_fsa_audit_totals.py only counts homes carrying a
-province). Survivors should land within rounding of the shipped matched-pair total.
+HOUSEID is normalized as it is read (trailing '.0' stripped), matching
+ers_web_pipeline.normalize_ids: files up to 2025.csv write '5063805.0', 2026.csv
+writes '5063805' (fixed 2026-09-24).
+
+Universe note: this keys homes by HOUSEID nationally, while the pipeline pairs
+within each province. 1,187 HOUSEIDs are reused for different addresses in
+different provinces, so this script's survivors land a few hundred below the
+shipped matched-pair total (362 on 2026-09-25). It also does not require a
+province, so candidates can be slightly higher than the funnel's "Both D&E"
+number (build_fsa_audit_totals.py only counts homes carrying a province).
 
 One streaming pass over C:\\ERS (D/E rows only, 7 columns). Read-only.
 """
@@ -60,7 +71,7 @@ CSV_FILES = [
     '2026.csv',
 ]
 NEEDED = ['HOUSEID', 'EVALTYPE', 'ENTRYDATE', 'FLOORAREA',
-          'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS']
+          'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS', 'WTHDATA']
 
 # home[hid] = [nD, nE, d_best, e_best]
 #   d_best = (entrydate, area, typeofhouse, storeys, numdwellingunits) of the
@@ -69,11 +80,12 @@ NEEDED = ['HOUSEID', 'EVALTYPE', 'ENTRYDATE', 'FLOORAREA',
 #   (oldest D, newest E) -- rows with no ENTRYDATE never win a slot, same as
 #   the pipeline dropping them before the sort.
 # Low-cardinality categoricals are interned to keep the ~2M-home dict small.
-def rec(entrydate, area, htype, storeys, dwell):
+def rec(entrydate, area, htype, storeys, dwell, wth=None):
     return (entrydate, area,
             sys.intern(htype) if htype else htype,
             sys.intern(storeys) if storeys else storeys,
-            sys.intern(dwell) if dwell else dwell)
+            sys.intern(dwell) if dwell else dwell,
+            sys.intern(wth) if wth else wth)
 
 
 def scan_file(csv_path, home):
@@ -101,11 +113,11 @@ def scan_file(csv_path, home):
         tbl = tbl.filter(pc.or_(pc.equal(et, 'D'), pc.equal(et, 'E')))
         if tbl.num_rows == 0:
             continue
-        hids = tbl.column('HOUSEID').to_pylist()
+        hids = pc.replace_substring_regex(pc.utf8_trim_whitespace(tbl.column('HOUSEID')), r'\.0+$', '').to_pylist()
         ets  = tbl.column('EVALTYPE').to_pylist()
         dts  = col(tbl, 'ENTRYDATE'); fas = col(tbl, 'FLOORAREA')
-        tys  = col(tbl, 'TYPEOFHOUSE'); sts = col(tbl, 'STOREYS'); dws = col(tbl, 'NUMDWELLINGUNITS')
-        for hid, et_v, dt, fa, ty, st, dw in zip(hids, ets, dts, fas, tys, sts, dws):
+        tys  = col(tbl, 'TYPEOFHOUSE'); sts = col(tbl, 'STOREYS'); dws = col(tbl, 'NUMDWELLINGUNITS'); wts = col(tbl, 'WTHDATA')
+        for hid, et_v, dt, fa, ty, st, dw, wt in zip(hids, ets, dts, fas, tys, sts, dws, wts):
             if not hid or not dt:
                 continue
             r = home.get(hid)
@@ -114,11 +126,11 @@ def scan_file(csv_path, home):
             if et_v == 'D':
                 r[0] += 1
                 if r[2] is None or dt < r[2][0]:
-                    r[2] = rec(dt, fa, ty, st, dw)
+                    r[2] = rec(dt, fa, ty, st, dw, wt)
             else:
                 r[1] += 1
                 if r[3] is None or dt > r[3][0]:
-                    r[3] = rec(dt, fa, ty, st, dw)
+                    r[3] = rec(dt, fa, ty, st, dw, wt)
             n += 1
     return n
 
@@ -140,6 +152,7 @@ def main():
     candidates = 0
     d_dates, e_dates, d_areas, e_areas = [], [], [], []
     d_ty, e_ty, d_st, e_st, d_dw, e_dw = [], [], [], [], [], []
+    d_wt, e_wt = [], []
     for nD, nE, dtup, etup in home.values():
         if dtup is not None and etup is not None:
             candidates += 1
@@ -148,6 +161,7 @@ def main():
             d_ty.append(dtup[2]);    e_ty.append(etup[2])
             d_st.append(dtup[3]);    e_st.append(etup[3])
             d_dw.append(dtup[4]);    e_dw.append(etup[4])
+            d_wt.append(dtup[5]);    e_wt.append(etup[5])
     del home
 
     # ---- Gate B: E not dated before D (NaT -> fails, as in the pipeline) ----
@@ -192,7 +206,14 @@ def main():
     drop_area_band = int((reach_c & band_5_10).sum())
     reach_d    = reach_c & pass_c
     drop_struct = int((reach_d & ~pass_d).sum())
-    survivors  = int((reach_d & pass_d).sum())
+    def _wnorm(l):
+        s = pd.Series(l).astype(str).str.strip()
+        return s.mask(s.isin(['', 'nan', 'None', 'Not Applicable']))
+    wd, we = _wnorm(d_wt), _wnorm(e_wt)
+    pass_e = ~(wd.notna() & we.notna() & (wd != we)).to_numpy()
+    reach_e = reach_d & pass_d
+    drop_wth = int((reach_e & ~pass_e).sum())
+    survivors  = int((reach_e & pass_e).sum())
 
     # Structural sub-breakdown among homes that REACH gate D (overlap allowed).
     among = reach_d
@@ -216,6 +237,7 @@ def main():
     line("C  dropped: floor area changed >5%", drop_area, candidates)
     line("   of which 5-10% (new under 5% rule)", drop_area_band, candidates)
     line("D  dropped: type/storeys/dwellings changed", drop_struct, candidates)
+    line("E  dropped: weather file changed", drop_wth, candidates)
     print("  " + "-" * 60)
     line("MATCHED PAIRS (survivors)", survivors, candidates)
     print("\n  Structural (gate D) sub-reasons, among the",
@@ -227,7 +249,7 @@ def main():
 
     print(f"\n  Same-month D/E pairs (kept since 2026-09-23): {same_month:,}")
 
-    drops = drop_date + drop_area + drop_struct
+    drops = drop_date + drop_area + drop_struct + drop_wth
     print(f"\n  check: survivors + drops = {survivors + drops:,}"
           f"  (candidates = {candidates:,})")
 

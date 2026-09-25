@@ -654,6 +654,20 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   floor area >5% 63,236 (of which ~18,700 moved 5–10%, removed only because of the
   2026-09-23 tightening) · type / storeys / units 60,268 · weather file 5,338.
 
+  **Independent recount (2026-09-25, `diagnose_pairing_drops.py`, updated with the
+  ID normalization and weather gate).** 1,647,596 homes carry both a D and an E;
+  1,517,574 (92.1%) survive, 362 (0.02%) below the pipeline — the recount keys
+  `HOUSEID` nationally, the pipeline per province (see the cross-province quirk).
+  First-failing gate: date order 486 · floor area >5% 63,896 (19,143 in the 5–10%
+  band) · type / storeys / units 60,281 · weather file 5,359. Against the
+  2026-08-06 run (1,629,313 → 1,451,433, 89.1%): +18,283 candidates from the ID fix,
+  ~84,300 fewer date drops from keeping same-month audits, ~29,000 more floor-area
+  drops from the 5% rule, structural about flat. Within the structural gate,
+  `NUMDWELLINGUNITS` still dominates (57,817): 79.7% are recorded in one audit and
+  blank in the other (top cases blank → `0.0` 15,912, blank → `1.0`/`1` 25,866),
+  20.3% genuinely different counts. Open question whether the one-side-blank cases
+  should count as unchanged.
+
   **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
   audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
   file between D and E, 5,141 of them `Wth110` → `Wth2020`. Those pairs showed a 31%
