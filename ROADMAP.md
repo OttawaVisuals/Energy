@@ -1,15 +1,18 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-25** (**Retrofit pairing drop recount + dwelling-units rule** —
+Updated **2026-09-25** (**Retrofit pairing drop recount + dwelling-units and house-type rules** —
 `diagnose_pairing_drops.py` brought in line with the ID normalization and weather
 gate and re-run: 1,517,574 of 1,647,596 D&E homes survived (92.1%, was 89.1% on
 2026-08-06), and `NUMDWELLINGUNITS` recorded in one audit but blank in the other
 was the largest remaining loss (46,068). Decision: blank-in-one-audit now counts as
 unchanged for that field only (+22,687), and so does a count of 0 (+361 only —
-most 0-unit homes also changed weather file). Matched pairs **1,517,936 →
-1,540,984** (93.6% of D&E homes); median saving unchanged at 19.8%; GHG 2,973,042
-tCO2e/yr net saved. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
+most 0-unit homes also changed weather file). Then house type: 92% of its
+31,548 "changes" were capitalization only (`Single detached` → `Single Detached`),
+and 99.4% of those also changed weather file — type/storeys now compared ignoring
+case (+144; weather-file drops 9,057 → 35,940, structural 33,501 → 6,474, i.e.
+correct attribution). Matched pairs **1,517,936 → 1,541,128** (93.6% of D&E
+homes); median saving unchanged at 19.8%; GHG 2,973,632 tCO2e/yr net saved. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
 Previously **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
 EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of

@@ -269,8 +269,8 @@ Effect on the national headline (2026-09-24 build): typical home **6.9 → 5.0 t
 (exact medians before/after; the Canada view shows 6.0 → 5.0 because `aggregate_canada.py`
 reports medians at the lower edge of 1-tonne bins — see Data notes), against 4.0 → 2.0 on
 the old raw-`ERSGHG` basis — the new figure covers every matched home instead of half, at
-2026 factors. Retrofit Insights: **2,973,042
-tCO2e/yr net saved across all 1,540,984 matched pairs** (2026-09-25 build); 63,644
+2026 factors. Retrofit Insights: **2,973,632
+tCO2e/yr net saved across all 1,541,128 matched pairs** (2026-09-25 build); 63,653
 homes (4.1%) show a modelled GHG rise. Exact medians 6.85 → 5.00 in that build.
 
 #### History: the four GHG bases (2026-08-02 → 2026-09-23, retired)
@@ -648,15 +648,18 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
 
-  **Current gate breakdown (2026-09-25 build, pipeline's own counts).** 1,540,984
+  **Current gate breakdown (2026-09-25 build, pipeline's own counts).** 1,541,128
   matched rows, one per address (0 duplicate `HOUSEID`s since the 2026-09-24 fix),
   93.6% of the 1,646,734 homes with both a D and an E.
   Removed, in pipeline order: date order 482 ·
   floor area >5% 63,236 (of which ~18,700 moved 5–10%, removed only because of the
-  2026-09-23 tightening) · type / storeys / units 33,501 · weather file 9,057.
+  2026-09-23 tightening) · type / storeys / units 6,474 · weather file 35,940.
   (Earlier builds: 2026-09-24, before the dwelling-units changes, 1,517,936 kept,
   structural 60,268, weather 5,338; 2026-09-25 blank-only rule, 1,540,623 kept,
-  structural 35,576, weather 7,343.)
+  structural 35,576, weather 7,343; plus 0-units rule, 1,540,984 kept, structural
+  33,501, weather 9,057. The jump in weather-file drops is attribution, not new
+  losses: pairs used to fail the house-type check first on a capitalization
+  artifact — see the changelog.)
 
   **Independent recount (2026-09-25, `diagnose_pairing_drops.py`, updated with the
   ID normalization and weather gate).** 1,647,596 homes carry both a D and an E;
@@ -676,7 +679,9 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   treating 0 units as not recorded: 1,540,628 kept (93.5%, 356 below the
   pipeline), structural 33,504 (house type 31,548 · storeys 4,323 · units
   genuinely changed 585, all of them two non-zero counts, top case 1 → 2),
-  weather file 9,082.
+  weather file 9,082. After the case-insensitive type/storeys compare: 1,540,773
+  kept (355 below the pipeline), structural 6,503 (storeys 4,323 · house type
+  2,439 · units 585, overlapping), weather file 35,938.
 
   **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
   audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
@@ -784,6 +789,24 @@ type. Genuine unit-count changes now drop only 585 pairs. GHG 2,973,042 tCO2e/yr
 net saved, 63,644 homes with a modelled rise; `Windows_Change` 307,538,
 `Windows_Partial` 184,717; median saving 19.8%, national GHG medians 6.85 → 5.00,
 all unchanged in substance.
+
+**Third change, same day: `TYPEOFHOUSE` / `STOREYS` compared ignoring
+capitalization.** A read-only breakdown of the 31,548 house-type "changes" found
+29,109 (92%) were capitalization only — `Single detached` → `Single Detached`
+(29,010), `Mobile home` → `Mobile Home`; the labels switched around 2016–2020.
+99.4% of those pairs also changed HOT2000 weather file (`WTH100` → `Wth2020`
+19,995, `WTH100` → `Wth110` 8,939): the new label and the new weather file arrived
+together with the newer software. So the weather gate drops them either way; the
+fix mainly moves them to the right reason. `same_categorical` now lowercases both
+sides (decided by the user 2026-09-25). **Effect:** 1,540,984 → **1,541,128**
+(+144); structural drops 33,501 → 6,474, weather-file drops 9,057 → 35,940.
+Remaining structural reasons are real changes: storeys 4,323 (e.g. one storey →
+two storeys; no capitalization cases), house type 2,439 (e.g. row end unit →
+semi-detached 714), units 585. One wording artifact left, not fixed: `Split
+entry / Raised basement` → `Split entry/Raised base.` (146 pairs, most likely also
+weather-file changes). GHG 2,973,632 tCO2e/yr net saved, 63,653 homes with a
+modelled rise; `Windows_Change` 307,641, `Windows_Partial` 184,728; median saving
+19.8%.
 
 ### 2026-09-24 Duplicate HOUSEID rows fixed — exact-record selection by EVALUATIONSID
 

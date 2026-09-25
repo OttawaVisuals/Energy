@@ -8,7 +8,7 @@ and attributes each dropped home to the FIRST gate it fails, so the drop counts
 form a clean funnel that sums exactly.
 
 Last run 2026-09-25 (after both dwelling-units changes): 1,647,596 candidates
--> 1,540,628 survivors (93.5%); the pipeline itself ships 1,540,984 (see the
+-> 1,540,773 survivors (93.5%); the pipeline itself ships 1,541,128 (see the
 universe note below for the gap).
 Previous full run 2026-08-06: 1,629,313 -> 1,451,433 (89.1%).
 
@@ -38,6 +38,8 @@ see build_pairs_index/_join_and_write):
                              since 2026-09-25: NUMDWELLINGUNITS missing on ONE
                              side counts as unchanged too (+22,687 pairs),
                              and so does a count of 0 (not recorded).
+                             TYPEOFHOUSE / STOREYS compare ignoring
+                             capitalization since 2026-09-25.
   E  Weather file          — WTHDATA must match between D and E when both are
                              recorded ('Not Applicable' counts as not recorded);
                              added 2026-09-23 per the data team.
@@ -49,7 +51,7 @@ writes '5063805' (fixed 2026-09-24).
 Universe note: this keys homes by HOUSEID nationally, while the pipeline pairs
 within each province. 1,187 HOUSEIDs are reused for different addresses in
 different provinces, so this script's survivors land a few hundred below the
-shipped matched-pair total (356 on 2026-09-25). It also does not require a
+shipped matched-pair total (355 on 2026-09-25). It also does not require a
 province, so candidates can be slightly higher than the funnel's "Both D&E"
 number (build_fsa_audit_totals.py only counts homes carrying a province).
 
@@ -191,7 +193,9 @@ def main():
         a = a.mask(a.isin(['', 'nan', 'None']))
         b = b.mask(b.isin(['', 'nan', 'None']))
         both_na = a.isna() & b.isna()
-        return (both_na | (a == b)).fillna(False).to_numpy()
+        # Case-insensitive (pipeline, 2026-09-25): 'Single detached' ==
+        # 'Single Detached'.
+        return (both_na | (a.str.lower() == b.str.lower())).fillna(False).to_numpy()
 
     def _same_numeric(lst_d, lst_e):
         # One-side-missing counts as unchanged too (pipeline rule since
