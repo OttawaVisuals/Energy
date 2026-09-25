@@ -7,8 +7,9 @@ This script reproduces ers_web_pipeline.py's pairing gates, in the SAME order,
 and attributes each dropped home to the FIRST gate it fails, so the drop counts
 form a clean funnel that sums exactly.
 
-Last run 2026-09-25: 1,647,596 candidates -> 1,517,574 survivors (92.1%); the
-pipeline itself ships 1,517,936 (see the universe note below for the gap).
+Last run 2026-09-25 (after the dwelling-units rule): 1,647,596 candidates ->
+1,540,266 survivors (93.5%); the pipeline itself ships 1,540,623 (see the
+universe note below for the gap).
 Previous full run 2026-08-06: 1,629,313 -> 1,451,433 (89.1%).
 
 Gates (ers_web_pipeline.py order, current as of the 2026-07-18/19 fixes --
@@ -33,7 +34,9 @@ see build_pairs_index/_join_and_write):
                              same_numeric: both-missing counts as unchanged,
                              text-format differences ('1.0' vs '1') are ignored,
                              one-side-missing or a genuine difference drops the
-                             pair (_join_and_write structural filter).
+                             pair (_join_and_write structural filter). Exception
+                             since 2026-09-25: NUMDWELLINGUNITS missing on ONE
+                             side counts as unchanged too (+22,687 pairs).
   E  Weather file          — WTHDATA must match between D and E when both are
                              recorded ('Not Applicable' counts as not recorded);
                              added 2026-09-23 per the data team.
@@ -45,7 +48,7 @@ writes '5063805' (fixed 2026-09-24).
 Universe note: this keys homes by HOUSEID nationally, while the pipeline pairs
 within each province. 1,187 HOUSEIDs are reused for different addresses in
 different provinces, so this script's survivors land a few hundred below the
-shipped matched-pair total (362 on 2026-09-25). It also does not require a
+shipped matched-pair total (357 on 2026-09-25). It also does not require a
 province, so candidates can be slightly higher than the funnel's "Both D&E"
 number (build_fsa_audit_totals.py only counts homes carrying a province).
 
@@ -190,9 +193,10 @@ def main():
         return (both_na | (a == b)).fillna(False).to_numpy()
 
     def _same_numeric(lst_d, lst_e):
+        # One-side-missing counts as unchanged too (pipeline rule since
+        # 2026-09-25): only two recorded values that differ are a change.
         an = to_float(lst_d); bn = to_float(lst_e)
-        both_na = an.isna() & bn.isna()
-        return (both_na | (an == bn)).fillna(False).to_numpy()
+        return (an.isna() | bn.isna() | (an == bn)).fillna(False).to_numpy()
 
     ty_same = _same_categorical(d_ty, e_ty)
     st_same = _same_categorical(d_st, e_st)

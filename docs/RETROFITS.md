@@ -269,9 +269,9 @@ Effect on the national headline (2026-09-24 build): typical home **6.9 → 5.0 t
 (exact medians before/after; the Canada view shows 6.0 → 5.0 because `aggregate_canada.py`
 reports medians at the lower edge of 1-tonne bins — see Data notes), against 4.0 → 2.0 on
 the old raw-`ERSGHG` basis — the new figure covers every matched home instead of half, at
-2026 factors. Retrofit Insights: **2,933,816
-tCO2e/yr net saved across all 1,517,936 matched pairs**; 63,172 homes (4.1%) show a
-modelled GHG rise.
+2026 factors. Retrofit Insights: **2,972,206
+tCO2e/yr net saved across all 1,540,623 matched pairs** (2026-09-25 build); 63,638
+homes (4.1%) show a modelled GHG rise. Exact medians 6.85 → 5.00 in that build.
 
 #### History: the four GHG bases (2026-08-02 → 2026-09-23, retired)
 
@@ -648,11 +648,14 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
 
-  **Current gate breakdown (2026-09-24 build, pipeline's own counts).** 1,517,936
-  matched rows, one per address (0 duplicate `HOUSEID`s since the 2026-09-24 fix).
+  **Current gate breakdown (2026-09-25 build, pipeline's own counts).** 1,540,623
+  matched rows, one per address (0 duplicate `HOUSEID`s since the 2026-09-24 fix),
+  93.6% of the 1,646,734 homes with both a D and an E.
   Removed, in pipeline order: date order 482 ·
   floor area >5% 63,236 (of which ~18,700 moved 5–10%, removed only because of the
-  2026-09-23 tightening) · type / storeys / units 60,268 · weather file 5,338.
+  2026-09-23 tightening) · type / storeys / units 35,576 · weather file 7,343.
+  (2026-09-24 build, before the dwelling-units change: 1,517,936 kept; structural
+  60,268, weather 5,338.)
 
   **Independent recount (2026-09-25, `diagnose_pairing_drops.py`, updated with the
   ID normalization and weather gate).** 1,647,596 homes carry both a D and an E;
@@ -665,8 +668,10 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   drops from the 5% rule, structural about flat. Within the structural gate,
   `NUMDWELLINGUNITS` still dominates (57,817): 79.7% are recorded in one audit and
   blank in the other (top cases blank → `0.0` 15,912, blank → `1.0`/`1` 25,866),
-  20.3% genuinely different counts. Open question whether the one-side-blank cases
-  should count as unchanged.
+  20.3% genuinely different counts. **Resolved 2026-09-25:** one-side-blank now
+  counts as unchanged (see the changelog). Recount after the change: 1,540,266 kept
+  (93.5%), structural 35,578 (house type changed 31,548 · units genuinely changed
+  11,749 · storeys changed 4,323, overlapping), weather file 7,370.
 
   **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
   audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
@@ -737,6 +742,32 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-09-25 Dwelling units: blank in one audit counts as unchanged
+
+**Why.** The drop recount (`diagnose_pairing_drops.py`, updated the same day with
+the ID normalization and weather gate) showed `NUMDWELLINGUNITS` as the largest
+remaining loss: 57,817 pairs, 79.7% of them with the field recorded in one audit
+and blank in the other (blank → `0.0` 15,912; blank → `1.0`/`1` 25,866). A blank
+there reads as "not recorded", not as a different number of units, and the
+pipeline already treated blank-in-both as unchanged. Decided by the user
+2026-09-25.
+
+**Change.** `same_numeric` in `ers_web_pipeline.py` (used only for
+`NUMDWELLINGUNITS`) now counts one-side-missing as unchanged; only two recorded
+values that differ drop the pair. `TYPEOFHOUSE` and `STOREYS` keep the stricter
+rule (`same_categorical`: one-side-missing → changed). Mirrored in
+`diagnose_pairing_drops.py`.
+
+**Effect.** Matched pairs 1,517,936 → **1,540,623** (+22,687). Structural drops
+60,268 → 35,576; weather-file drops 5,338 → 7,343 (the recovered pairs then reach
+that gate; ~2,000 fail it). Fewer came back than the 46,068 one-side-blank homes
+because ~21,000 of them also fail the house-type or storeys check. Median saving
+unchanged at 19.8%. Retrofit Insights GHG 2,933,816 → 2,972,206 tCO2e/yr net saved;
+homes with a modelled GHG rise 63,172 → 63,638. `Windows_Change` 304,471 → 307,491;
+`Windows_Partial` 181,584 → 184,659. Postal areas 1,684 → 1,685. Not done: the
+`0` → `1` case (8,000 pairs, D records 0 units, E records 1) still counts as a real
+change, though 0 is probably a placeholder too.
 
 ### 2026-09-24 Duplicate HOUSEID rows fixed — exact-record selection by EVALUATIONSID
 
