@@ -12,7 +12,13 @@ most 0-unit homes also changed weather file). Then house type: 92% of its
 and 99.4% of those also changed weather file — type/storeys now compared ignoring
 case (+144; weather-file drops 9,057 → 35,940, structural 33,501 → 6,474, i.e.
 correct attribution). Matched pairs **1,517,936 → 1,541,128** (93.6% of D&E
-homes); median saving unchanged at 19.8%; GHG 2,973,632 tCO2e/yr net saved. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
+homes); median saving unchanged at 19.8%; GHG 2,973,632 tCO2e/yr net saved.
+The four remaining same-home checks (storeys, house type, units, weather file) were
+reviewed and kept as they are. **Retrofit costs regenerated** against the current
+pairs: 1,313,102 priced homes (was 1,237,117 on the old pair set), median Mid-band
+cost $3,984 → $3,738, median payback 6.7 → 6.5 years; the cost extractor now picks
+the same oldest-D / newest-E records as the pipeline (it had kept the last of each
+in file order) — [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) changelog. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
 Previously **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
 EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of
@@ -60,7 +66,8 @@ across provinces for different addresses — harmless to pairing (per-province).
 1-tonne / 20-kWh bins (`aggregate_canada.py`), so its GHG headline reads 6.0 → 5.0
 where the exact medians are 6.9 → 5.0. 22,424 D/E evaluation pairs whose address
 record changed between audits aren't linked by `HOUSEID`. Retrofit cost figures
-(`retrofit_cost_estimate.py`) not regenerated against the new pairs. The chain
+(`retrofit_cost_estimate.py`) not regenerated against the new pairs — *done
+2026-09-25*. The chain
 order in memory/docs was missing required Steps 1b/1c — docs corrected.)
 
 

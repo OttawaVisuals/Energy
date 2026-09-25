@@ -44,9 +44,9 @@ OUT_DIR = os.path.join("retrofits", "data")
 ALL_PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NF', 'NS', 'NT', 'NU',
                   'ON', 'PE', 'QC', 'SK']
 
-# PE/ON/QC already validated (2026-07-31) — see docs/RETROFIT_COSTS.md
-# changelog. Now running the remaining 9 for full national coverage.
-PROVINCES_TO_RUN = [p for p in ALL_PROVINCES if p not in ('PE', 'ON', 'QC')]
+# All provinces in one pass (2026-09-25 refresh after the pairing changes).
+# The 2026-07-31 build ran PE/ON/QC first, then the remaining 9.
+PROVINCES_TO_RUN = ALL_PROVINCES
 
 CSV_FILES = [
     '2004-2006.csv', '2007.csv', '2008.csv', '2009.csv', '2010.csv',
@@ -57,7 +57,7 @@ CSV_FILES = [
 ]
 
 WANT_COLS = [
-    'HOUSEID', 'EVALTYPE', 'PROVINCE',
+    'HOUSEID', 'EVALTYPE', 'PROVINCE', 'ENTRYDATE', 'EVALUATIONSID',
     'FOOTPRINT', 'NUMWINDOWS', 'NUMDOORS', 'BASEMENTFLOORAR',
     'HPEquipType', 'NUMBEROFHEADS',
     'ACCENTESTAR', 'ACWINDNUM', 'ERSSPACECOOLENERGY', 'ERSDesCoolLoss',
@@ -88,6 +88,8 @@ def extract_all(provinces):
         for chunk in pd.read_csv(path, usecols=usecols, chunksize=CHUNK_ROWS,
                                   dtype=str, low_memory=False):
             chunk['HOUSEID'] = norm_id(chunk['HOUSEID'])
+            if 'EVALUATIONSID' in chunk.columns:
+                chunk['EVALUATIONSID'] = norm_id(chunk['EVALUATIONSID'])
             chunk = chunk[chunk['PROVINCE'].isin(provinces)]
             if chunk.empty:
                 continue
@@ -101,8 +103,15 @@ def extract_all(provinces):
     for p in provinces:
         d_df = pd.concat(d_rows[p], ignore_index=True) if d_rows[p] else pd.DataFrame(columns=usecols)
         e_df = pd.concat(e_rows[p], ignore_index=True) if e_rows[p] else pd.DataFrame(columns=usecols)
-        d_df = d_df.drop_duplicates(subset='HOUSEID', keep='last')
-        e_df = e_df.drop_duplicates(subset='HOUSEID', keep='last')
+        # Same record choice as ers_web_pipeline.build_pairs_index: OLDEST D and
+        # NEWEST E per HOUSEID (ISO ENTRYDATE sorts as text), ties broken by
+        # EVALUATIONSID, undated records dropped. Until 2026-09-25 this kept
+        # the LAST D and LAST E in file order, so a multi-audit home's Pre_*
+        # fields could come from a different D than the one on the page.
+        d_df = d_df.dropna(subset=['ENTRYDATE'])
+        e_df = e_df.dropna(subset=['ENTRYDATE'])
+        d_df = d_df.sort_values(['ENTRYDATE', 'EVALUATIONSID']).drop_duplicates('HOUSEID', keep='first')
+        e_df = e_df.sort_values(['ENTRYDATE', 'EVALUATIONSID']).drop_duplicates('HOUSEID', keep='last')
 
         pre = d_df[['HOUSEID'] + [c for c in PRE_COLS if c in d_df.columns]].copy()
         pre = pre.rename(columns={c: f'Pre_{c}' for c in PRE_COLS if c in pre.columns})

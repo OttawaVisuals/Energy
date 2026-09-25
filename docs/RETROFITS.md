@@ -753,6 +753,23 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 
 ## Changelog
 
+### 2026-09-25 Remaining filters kept as they are
+
+After the dwelling-units and capitalization changes below, the four same-home checks
+still in force — storeys (4,323 pairs), house type (2,439), dwelling units (585,
+two different non-zero counts) and weather file (35,940) — were reviewed with the
+user and **kept unchanged** (decided 2026-09-25). Why: the remaining storeys, type
+and unit differences read as real changes to the house (e.g. one storey → two
+storeys, row end unit → semi-detached, 1 → 2 units), not recording artifacts, and
+the weather-file check exists so that no saving on the page comes from a change in
+the model rather than the house. Known and left alone: the `Split entry / Raised
+basement` → `Split entry/Raised base.` wording change (146 pairs, most likely also
+weather-file changes).
+
+Same day: retrofit costs regenerated against the current pairs (1,313,102 priced
+homes, was 1,237,117; median Mid-band cost $3,984 → $3,738, median payback 6.7 →
+6.5 years) — see [RETROFIT_COSTS.md](RETROFIT_COSTS.md) changelog 2026-09-25.
+
 ### 2026-09-25 Dwelling units: blank in one audit counts as unchanged
 
 **Why.** The drop recount (`diagnose_pairing_drops.py`, updated the same day with
@@ -902,6 +919,9 @@ unchanged at 20%.
   are listed.
 - **Open, not introduced here:** cost-model figures on the page (1,420,044 of
   1,451,433) are from the last `retrofit_cost_estimate.py` run and were not regenerated.
+  *Resolved 2026-09-25:* costs regenerated against the 1,541,128 current pairs —
+  1,509,263 single-dwelling records, 1,313,102 priced; see
+  [RETROFIT_COSTS.md](RETROFIT_COSTS.md) changelog.
   (The duplicate-`HOUSEID` rows found in this pass were fixed the next day — see
   2026-09-24 below.)
 

@@ -608,6 +608,53 @@ sessions — see the changelog entry below):**
 
 ## Changelog
 
+### 2026-09-25 — regenerated against the current matched pairs; extractor record choice fixed
+
+**Why.** The cost tree dated from 2026-07-31/08-04 and covered the old 1,451,433-pair
+set; the page now shows 1,541,128 pairs (same-month audits kept, 5% floor-area gate,
+weather-file gate, duplicate and ID-format fixes, dwelling-units and capitalization
+rules — see [RETROFITS.md](RETROFITS.md) changelog 2026-09-23 → 2026-09-25), so about
+76,000 priced homes were missing their cost.
+
+**Fix found on the way.** `retrofit_cost_extract_fields.py` kept the *last* D and
+*last* E per `HOUSEID` in file order, while the pipeline pairs the *oldest* D with the
+*newest* E. For a multi-audit home the `Pre_*` cooling fields (and `Post_*` geometry)
+could therefore come from a different audit than the one on the page. It now makes
+the same choice as `ers_web_pipeline.build_pairs_index`: undated records dropped,
+sorted by `ENTRYDATE` then `EVALUATIONSID`, oldest D / newest E. It also runs all 12
+province/territory codes in one pass (it had been left set to the 9 non-PE/ON/QC
+codes from the 2026-07-31 staged rollout). Not isolated: the old and new builds
+differ in pair set too, so the effect of this fix alone was not measured.
+
+**Result.** Chain `retrofit_cost_extract_fields.py` → `retrofit_cost_estimate.py` →
+`build_retrofit_costs_json.py`, all provinces.
+
+| Province | Paired | Priced | ASHP records | ASHP class fallback |
+|---|---|---|---|---|
+| ON | 767,299 | 676,811 | 89,917 | Centrally ducted |
+| QC | 271,430 | 222,403 | 45,040 | Centrally ducted |
+| BC | 131,076 | 108,187 | 21,170 | Centrally ducted |
+| AB | 87,726 | 79,240 | 2,314 | Centrally ducted |
+| NS | 81,122 | 75,566 | 21,373 | Non-ducted, multi-zone |
+| NB | 68,706 | 60,741 | 19,769 | Non-ducted, single-zone |
+| SK | 48,574 | 41,614 | 246 | Centrally ducted |
+| MB | 27,421 | 23,830 | 1,159 | Centrally ducted |
+| NF | 13,453 | 12,914 | 5,525 | Non-ducted, multi-zone |
+| PE | 12,144 | 11,521 | 1,608 | Non-ducted, multi-zone |
+| NT | 308 | 271 | 2 | Centrally ducted |
+| NU | 4 | 4 | 0 | Non-ducted, single-zone |
+| **National** | **1,509,263** | **1,313,102** | **208,123** | — |
+
+Multi-dwelling records excluded: 31,865 (2.1%; was 31,389). Priced share unchanged at
+87%. National median total incremental cost (Mid band) **$3,984 → $3,738**; p90
+$17,918 → $17,445; national Mid sum $8.99B → $9.22B. Median simple payback
+**6.7 → 6.5 years** (n = 1,082,221 homes with a computable payback, was 1,016,494).
+NB's ASHP class fallback moved from ductless multi-zone to ductless single-zone
+(its most-common reported class changed with the new pairs); the Atlantic-vs-rest
+ducted/ductless split described below still holds. The lower median is not
+attributed to a single cause: the added pairs (mostly same-month D/E audits and
+recovered dwelling-unit pairs) and the extractor fix changed together.
+
 ### 2026-07-31 (8) — wired into retrofits.html (proof of concept, live behind a data check)
 Built the `retrofit_costs_json` companion tree and joined it into
 `retrofits.html`'s FSA/province/national views. First real UI for this POC —
