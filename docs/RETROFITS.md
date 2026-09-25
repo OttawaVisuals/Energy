@@ -269,8 +269,8 @@ Effect on the national headline (2026-09-24 build): typical home **6.9 → 5.0 t
 (exact medians before/after; the Canada view shows 6.0 → 5.0 because `aggregate_canada.py`
 reports medians at the lower edge of 1-tonne bins — see Data notes), against 4.0 → 2.0 on
 the old raw-`ERSGHG` basis — the new figure covers every matched home instead of half, at
-2026 factors. Retrofit Insights: **2,972,206
-tCO2e/yr net saved across all 1,540,623 matched pairs** (2026-09-25 build); 63,638
+2026 factors. Retrofit Insights: **2,973,042
+tCO2e/yr net saved across all 1,540,984 matched pairs** (2026-09-25 build); 63,644
 homes (4.1%) show a modelled GHG rise. Exact medians 6.85 → 5.00 in that build.
 
 #### History: the four GHG bases (2026-08-02 → 2026-09-23, retired)
@@ -648,14 +648,15 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
 
-  **Current gate breakdown (2026-09-25 build, pipeline's own counts).** 1,540,623
+  **Current gate breakdown (2026-09-25 build, pipeline's own counts).** 1,540,984
   matched rows, one per address (0 duplicate `HOUSEID`s since the 2026-09-24 fix),
   93.6% of the 1,646,734 homes with both a D and an E.
   Removed, in pipeline order: date order 482 ·
   floor area >5% 63,236 (of which ~18,700 moved 5–10%, removed only because of the
-  2026-09-23 tightening) · type / storeys / units 35,576 · weather file 7,343.
-  (2026-09-24 build, before the dwelling-units change: 1,517,936 kept; structural
-  60,268, weather 5,338.)
+  2026-09-23 tightening) · type / storeys / units 33,501 · weather file 9,057.
+  (Earlier builds: 2026-09-24, before the dwelling-units changes, 1,517,936 kept,
+  structural 60,268, weather 5,338; 2026-09-25 blank-only rule, 1,540,623 kept,
+  structural 35,576, weather 7,343.)
 
   **Independent recount (2026-09-25, `diagnose_pairing_drops.py`, updated with the
   ID normalization and weather gate).** 1,647,596 homes carry both a D and an E;
@@ -671,7 +672,11 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   20.3% genuinely different counts. **Resolved 2026-09-25:** one-side-blank now
   counts as unchanged (see the changelog). Recount after the change: 1,540,266 kept
   (93.5%), structural 35,578 (house type changed 31,548 · units genuinely changed
-  11,749 · storeys changed 4,323, overlapping), weather file 7,370.
+  11,749 · storeys changed 4,323, overlapping), weather file 7,370. After also
+  treating 0 units as not recorded: 1,540,628 kept (93.5%, 356 below the
+  pipeline), structural 33,504 (house type 31,548 · storeys 4,323 · units
+  genuinely changed 585, all of them two non-zero counts, top case 1 → 2),
+  weather file 9,082.
 
   **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
   audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
@@ -765,9 +770,20 @@ that gate; ~2,000 fail it). Fewer came back than the 46,068 one-side-blank homes
 because ~21,000 of them also fail the house-type or storeys check. Median saving
 unchanged at 19.8%. Retrofit Insights GHG 2,933,816 → 2,972,206 tCO2e/yr net saved;
 homes with a modelled GHG rise 63,172 → 63,638. `Windows_Change` 304,471 → 307,491;
-`Windows_Partial` 181,584 → 184,659. Postal areas 1,684 → 1,685. Not done: the
-`0` → `1` case (8,000 pairs, D records 0 units, E records 1) still counts as a real
-change, though 0 is probably a placeholder too.
+`Windows_Partial` 181,584 → 184,659. Postal areas 1,684 → 1,685.
+
+**Second change, same day: 0 units counts as not recorded.** `0.0` → `1.0`/`1` was
+the top remaining units mismatch (~10,000 pairs); a home cannot have zero dwelling
+units, so `same_numeric(..., zero_is_missing=True)` now treats 0 like a blank. Also
+covers ~700 `0` → `2`/`3` pairs (one rule is easier to state than a 0 → 1-only
+exception). Decided by the user 2026-09-25. **Effect: small.** 1,540,623 →
+**1,540,984** (+361): structural drops 35,576 → 33,501, but weather-file drops
+7,343 → 9,057 — most homes carrying a 0 were audited under a different HOT2000
+weather file at D and E, or also changed house
+type. Genuine unit-count changes now drop only 585 pairs. GHG 2,973,042 tCO2e/yr
+net saved, 63,644 homes with a modelled rise; `Windows_Change` 307,538,
+`Windows_Partial` 184,717; median saving 19.8%, national GHG medians 6.85 → 5.00,
+all unchanged in substance.
 
 ### 2026-09-24 Duplicate HOUSEID rows fixed — exact-record selection by EVALUATIONSID
 
