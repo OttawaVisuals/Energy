@@ -6,9 +6,10 @@ Updated **2026-09-25** (**Retrofit pairing drop recount + dwelling-units rule** 
 gate and re-run: 1,517,574 of 1,647,596 D&E homes survived (92.1%, was 89.1% on
 2026-08-06), and `NUMDWELLINGUNITS` recorded in one audit but blank in the other
 was the largest remaining loss (46,068). Decision: blank-in-one-audit now counts as
-unchanged for that field only. Matched pairs **1,517,936 → 1,540,623** (+22,687,
-93.6% of D&E homes); median saving unchanged at 19.8%; GHG 2,972,206 tCO2e/yr net
-saved. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
+unchanged for that field only (+22,687), and so does a count of 0 (+361 only —
+most 0-unit homes also changed weather file). Matched pairs **1,517,936 →
+1,540,984** (93.6% of D&E homes); median saving unchanged at 19.8%; GHG 2,973,042
+tCO2e/yr net saved. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
 Previously **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
 EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of

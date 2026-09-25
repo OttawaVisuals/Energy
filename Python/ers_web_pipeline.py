@@ -525,11 +525,15 @@ def same_categorical(a, b):
     return (both_na | (a == b)).fillna(False)
 
 
-def same_numeric(a, b):
+def same_numeric(a, b, zero_is_missing=False):
     """True where a and b are the same number, tolerating text-format differences
     ('1.0' vs '1'). Both-missing -> unchanged; one-side-missing -> unchanged:
-    only two recorded values that differ count as a change."""
+    only two recorded values that differ count as a change. zero_is_missing
+    treats 0 as "not recorded" (used for NUMDWELLINGUNITS: a home cannot have
+    zero dwelling units)."""
     an, bn = coerce_numeric(a), coerce_numeric(b)
+    if zero_is_missing:
+        an, bn = an.mask(an == 0), bn.mask(bn == 0)
     return (an.isna() | bn.isna() | (an == bn)).fillna(False)
 
 
@@ -670,11 +674,16 @@ def _join_and_write(d_df, e_df, output_path):
     # kept ~46,000 pairs that were dropped before; only two recorded values
     # that differ (e.g. 1 -> 2) still drop the pair. TYPEOFHOUSE / STOREYS keep
     # the stricter rule (one-side-missing -> changed).
+    # Since 2026-09-25 (second change that day) a NUMDWELLINGUNITS of 0 also
+    # counts as "not recorded": a home cannot have zero dwelling units, and
+    # 0 -> 1 was the top remaining mismatch (~10,000 pairs, '0.0' -> '1.0' /
+    # '1'), the same blank-then-filled pattern as above.
     n0 = len(merged)
     merged = merged[
         same_categorical(merged['TYPEOFHOUSE_D'], merged['TYPEOFHOUSE_E']) &
         same_categorical(merged['STOREYS_D'],      merged['STOREYS_E'])    &
-        same_numeric(merged['NUMDWELLINGUNITS_D'], merged['NUMDWELLINGUNITS_E'])
+        same_numeric(merged['NUMDWELLINGUNITS_D'], merged['NUMDWELLINGUNITS_E'],
+                     zero_is_missing=True)
     ]
     _GATE_DROPS['structural'] += n0 - len(merged)
 
