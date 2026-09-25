@@ -26,7 +26,7 @@ Details: [RETROFITS.md changelog, 2026-09-23/24](RETROFITS.md#changelog).
 retrofit data to two audiences at once — homeowners and technical practitioners
 (NRCan, EnerGuide/HOT2000 advisors, energy engineers). Every source, assumption
 and calculation is stated on the page. Repo: <https://github.com/OttawaVisuals/Energy>.
-Tools currently built on ERS data: Retrofit Explorer (1.52M matched pre/post
+Tools currently built on ERS data: Retrofit Explorer (1.54M matched pre/post
 pairs), New Homes Explorer, Heat Pump Explorer.
 
 **What we are asking for.** Mostly *confirmation* rather than new data — in
@@ -271,7 +271,7 @@ We construct retrofit pairs by matching a D (pre) audit to an E (post) audit on
    groups records into an intended before/after episode?
 
 For scale: of ~2.38M homes with any evaluation, ~1.63M have both a D and an E,
-and our filters yield ~1.52M usable pairs (as of 2026-09-24). Getting the pairing rule right moved
+and our filters yield ~1.54M usable pairs (as of 2026-09-25). Getting the pairing rule right moved
 that number by a factor of 2.5, so it materially changes published statistics.
 
 ---

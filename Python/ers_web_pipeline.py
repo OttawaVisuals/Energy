@@ -527,10 +527,10 @@ def same_categorical(a, b):
 
 def same_numeric(a, b):
     """True where a and b are the same number, tolerating text-format differences
-    ('1.0' vs '1'). Both-missing -> unchanged; one-side-missing -> changed."""
+    ('1.0' vs '1'). Both-missing -> unchanged; one-side-missing -> unchanged:
+    only two recorded values that differ count as a change."""
     an, bn = coerce_numeric(a), coerce_numeric(b)
-    both_na = an.isna() & bn.isna()
-    return (both_na | (an == bn)).fillna(False)
+    return (an.isna() | bn.isna() | (an == bn)).fillna(False)
 
 
 # AHRI is an identifier, not a number, but some source-CSV years write it as
@@ -663,6 +663,13 @@ def _join_and_write(d_df, e_df, output_path):
     # years is not counted as a change. A raw astype(str) compare (the previous
     # version) dropped ~831k otherwise-valid pairs on those two artifacts alone —
     # see diagnose_pairing_drops.py.
+    # Since 2026-09-25 NUMDWELLINGUNITS recorded in only ONE of the two audits
+    # also counts as unchanged (same_numeric): the field is blank on older
+    # audits and filled on later ones (blank -> 0.0 / 1.0 / 1 are the top
+    # cases), so a blank is "not recorded", not a different unit count. This
+    # kept ~46,000 pairs that were dropped before; only two recorded values
+    # that differ (e.g. 1 -> 2) still drop the pair. TYPEOFHOUSE / STOREYS keep
+    # the stricter rule (one-side-missing -> changed).
     n0 = len(merged)
     merged = merged[
         same_categorical(merged['TYPEOFHOUSE_D'], merged['TYPEOFHOUSE_E']) &
