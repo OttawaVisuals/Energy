@@ -265,10 +265,12 @@ AB 438 · BC 18 · MB 2.5 · NB 234 · NL 17 · NS 581 · NT 420 · NU 800 · ON
 QC 1.9 · SK 631 · YT 74. Combustion: natural gas 185–189 (varies slightly by province),
 oil 255.4, propane 213.6, wood 0.
 
-Effect on the national headline (2026-09-24 build): typical home **6.0 → 4.0 tCO2e/yr**
-(median before/after), against 4.0 → 2.0 on the old raw-`ERSGHG` basis — the new figure
-covers every matched home instead of half, at 2026 factors. Retrofit Insights: **2,950,932
-tCO2e/yr net saved across all 1,523,774 matched pairs**; 62,751 homes (4.1%) show a
+Effect on the national headline (2026-09-24 build): typical home **6.9 → 5.0 tCO2e/yr**
+(exact medians before/after; the Canada view shows 6.0 → 5.0 because `aggregate_canada.py`
+reports medians at the lower edge of 1-tonne bins — see Data notes), against 4.0 → 2.0 on
+the old raw-`ERSGHG` basis — the new figure covers every matched home instead of half, at
+2026 factors. Retrofit Insights: **2,933,816
+tCO2e/yr net saved across all 1,517,936 matched pairs**; 63,172 homes (4.1%) show a
 modelled GHG rise.
 
 #### History: the four GHG bases (2026-08-02 → 2026-09-23, retired)
@@ -329,7 +331,7 @@ All thresholds are computed per home in Step 1:
 |---|---|
 | `Roof_/Wall_/Foundation_/Floor_Insulation_Upgrade` | post insulation RSI **> 1.10 ×** pre (more than 10% higher) |
 | `Air_Tightness_Upgrade` | post air leakage (ACH50) **< 0.90 ×** pre (more than 10% tighter) |
-| `Windows_Change` | `WINDOWCODE` present in both audits and different, after normalizing text format (`201030.0` = `201030`; before 2026-09-23 a raw string compare counted that as a change; national window changes fell 444,304 → 305,500 after the fix despite 5% more matched pairs, so the artifact was large, though not isolated exactly because the pair set changed in the same build). `WINDOWCODE` describes the windows with the greatest area, so this reads as a full or main-type replacement |
+| `Windows_Change` | `WINDOWCODE` present in both audits and different, after normalizing text format (`201030.0` = `201030`; before 2026-09-23 a raw string compare counted that as a change; national window changes fell 444,304 → 304,471 after the fix despite 5% more matched pairs, so the artifact was large, though not isolated exactly because the pair set changed in the same build). `WINDOWCODE` describes the windows with the greatest area, so this reads as a full or main-type replacement |
 | `Windows_Partial` | added 2026-09-23: `WINDOWCODE` unchanged but `NUMWINESTAR` (installed ENERGY STAR windows) rose, both audits recorded. Mutually exclusive with `Windows_Change`. On 2020–2024 pairs: median 5 windows, ~32% of the house. Caveat: 98% of D audits record 0, so some E counts may include ENERGY STAR windows that pre-dated the D audit |
 | `Heating_Change` | heating **fuel** or **equipment type** differs, raw ERS diff (row-level table, FSA mode). Aggregate charts (province mode, `retrofit-insights.html`) override this downstream to `Heating_Change & ~HeatPump_Addition` — see the note below the table. |
 | `Cooling_Change` | air-conditioner type differs |
@@ -630,8 +632,8 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   separate retrofit projects, and collapsing it reports the combined change as one.
 
   **Gate B — RESOLVED 2026-09-23: same-month pairs now kept.** The EnerGuide data team
-  confirmed same-month D and E audits are usable. The rule is now `E >= D`: 84,881
-  same-month pairs are kept and only 504 genuine E-before-D reversals drop. The
+  confirmed same-month D and E audits are usable. The rule is now `E >= D`: 84,754
+  same-month pairs are kept and only 482 genuine E-before-D reversals drop. The
   paragraph below, written 2026-07-24, argued the opposite and is kept as the record;
   its "no recoverable ordering" reasoning was wrong, since `EVALTYPE`, not the date,
   says which audit came first.
@@ -646,11 +648,11 @@ build-on-top-of-`origin/gh-pages` pattern documented in
   a direction on a page whose entire premise is before-vs-after, so the honest handling
   is to keep excluding them and document the reason here.
 
-  **Current gate breakdown (2026-09-24 build, pipeline's own counts).** 1,523,774
-  matched rows (≈1,503,800 distinct homes — about 20,000 rows are duplicate `HOUSEID`s,
-  a pre-existing issue under investigation). Removed, in pipeline order: date order 504 ·
-  floor area >5% 64,263 (of which ~18,700 moved 5–10%, removed only because of the
-  2026-09-23 tightening) · type / storeys / units 62,313 · weather file 5,333.
+  **Current gate breakdown (2026-09-24 build, pipeline's own counts).** 1,517,936
+  matched rows, one per address (0 duplicate `HOUSEID`s since the 2026-09-24 fix).
+  Removed, in pipeline order: date order 482 ·
+  floor area >5% 63,236 (of which ~18,700 moved 5–10%, removed only because of the
+  2026-09-23 tightening) · type / storeys / units 60,268 · weather file 5,338.
 
   **Weather file (`WTHDATA`) — gate added 2026-09-23.** Three files cover almost every
   audit (`WTH100` 56%, `Wth2020` 35%, `Wth110` 9%). 5,258 matched pairs (0.35%) changed
@@ -722,21 +724,82 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 
 ## Changelog
 
+### 2026-09-24 Duplicate HOUSEID rows fixed — exact-record selection by EVALUATIONSID
+
+**Symptom.** 20,460 extra rows across 14,486 addresses (up to 9 rows for one
+address); the July build had 20,736, so it predates the 2026-09-23 changes.
+
+**Cause.** `process_pairs()` pulled each pair's D and E back out of their year files
+by `HOUSEID` only. `HOUSEID` is an **address** key (NRCan dictionary: "all
+evaluations with the same address information … will have the same HouseID"), so any
+other evaluation at the same address in the same year file came along too, and the
+`HOUSEID` join emitted every D × E combination. Some of those rows paired a D that was
+not the oldest or an E that was not the newest; within one address the copies'
+savings differed by more than 5 points for 5,658 addresses. The raw data holds no
+exact duplicate records — all 40,235 same-address, same-type, same-file groups are
+distinct evaluations.
+
+**Fix.** `build_pairs_index()` now records the `EVALUATIONSID` of the chosen oldest D
+and newest E (unique per D record and per E record), and `process_pairs()` selects
+by those IDs. Month ties (two evaluations at one address in its oldest or newest
+month, ~11,600 addresses on the D side) break on `EVALUATIONSID` for a deterministic
+choice. The pipeline now prints `duplicate HOUSEID rows: N (expected 0)`.
+
+**Pairing rule unchanged, by decision.** `EVALUATIONSID` is also NRCan's own D↔E
+pair key (1,769,466 IDs hold exactly one D and one E). Pairing by it would give one
+row per retrofit project rather than per address; Simon chose to keep oldest D +
+newest E per address, which captures a home's whole history across programs —
+`EVALUATIONSID` alone doesn't. For the record: 130,414 of the 1,630,171 address
+pairs (8%) join a D and E from different evaluations, which is what the
+oldest/newest rule means for re-audited homes; 22,424 evaluation pairs have a
+different `HOUSEID` on D and E (address record changed) and are not linked by the
+address rule.
+
+**Effect of the selection fix alone.** 1,523,774 → 1,502,376 rows, 0 duplicates.
+
+**Second bug, same day: `HOUSEID` text format.** Every yearly CSV up to `2025.csv`
+writes IDs float-style (`5063805.0`); `2026.csv` (July 2026 refresh) writes
+`5063805`. Compared as text, 23,402 addresses split in two — a D in 2025.csv and an
+E in 2026.csv never paired, and a split address could appear twice in one FSA file
+(1,085 such repeats, where `split_fsa_json.py` writes IDs as numbers). Fixed by
+`normalize_ids()` in `ers_web_pipeline.py` (strips a trailing `.0` from `HOUSEID`
+and `EVALUATIONSID` as each CSV batch is read) and the same normalization in
+`build_fsa_audit_totals.py`. Homes with both a D and an E: 1,629,313 → **1,646,734**;
+E-only addresses 22,681 → 2,605 (most were the 2026 half of a split address).
+Because the parquets now carry normalized IDs, the three scripts that join them to
+raw-CSV IDs normalize too, including any cached lookups:
+`HeatPump/pipeline/build_city_design_temps.py`, `build_city_house_profiles.py`,
+`Python/retrofit_cost_extract_fields.py` — without that they would silently match
+~nothing on their next run.
+
+**Known source quirk, not fixed:** 1,187 raw `HOUSEID`s (mostly 2022+, many ending
+`…746`) are reused for different addresses in different provinces. Pairing runs
+per province, so every pair is internally consistent (its D and E share an
+`EVALUATIONSID`); the effective unique key is (province, `HOUSEID`), which is what
+the pipeline's duplicate check tests. Side effects are small: the national audit
+funnel counts each such ID once (~0.05%), and the heat-pump city lookup
+(first-hit-wins by `HOUSEID`) may take the wrong province's station for ~500 homes.
+
+**Final effect (2026-09-24 build).** **1,517,936** matched rows, 0 duplicates per
+province. Median saving 19.8% (20% as displayed). Retrofit Insights GHG: 2,933,816
+tCO2e/yr net saved.
+
 ### 2026-09-23/24 EnerGuide data-team answers applied — pairing, windows, GHG
 
 Answers from a meeting with the team responsible for the EnerGuide data, applied in
-one pass. Matched pairs **1,451,433 → 1,523,774** (+72,341, +5.0%); median saving
+one pass. Matched pairs **1,451,433 → 1,523,774** (+72,341, +5.0%; 1,517,936 after the
+next day's duplicate and ID-format fixes); median saving
 unchanged at 20%.
 
-- **Same-month D/E kept** (`E > D` → `E >= D` in `build_pairs_index`): +84,881 pairs.
+- **Same-month D/E kept** (`E > D` → `E >= D` in `build_pairs_index`): +84,754 pairs.
   The team confirmed same-month audits are usable. Closes Gate B.
 - **Floor-area gate 10% → 5%**: −18,719 pairs whose area moved 5–10% (diagnostic).
-- **Weather-file gate added** (`WTHDATA` must match D vs E): −5,333 pairs. Covers the
+- **Weather-file gate added** (`WTHDATA` must match D vs E): −5,338 pairs. Covers the
   97 pairs spanning HOT2000 v10 → v11. See Data notes.
 - **`Windows_Change` `.0` fix**: codes normalized before comparing. National window
-  changes 444,304 → 305,500 despite 5% more pairs, so a large share of the old count was formatting artifacts (not isolated exactly: the pair set changed in the same build; PEI measured 22% on 2026-07-31).
+  changes 444,304 → 304,471 despite 5% more pairs, so a large share of the old count was formatting artifacts (not isolated exactly: the pair set changed in the same build; PEI measured 22% on 2026-07-31).
   The same fix was applied POC-side on 2026-07-31 only; now at the source.
-- **New `Windows_Partial` flag** from `NUMWINESTAR` (team suggestion): 181,290 homes,
+- **New `Windows_Partial` flag** from `NUMWINESTAR` (team suggestion): 181,584 homes,
   shown as "Some windows replaced". Kept separate so window costs and "Windows changed"
   stay tied to the code. Window heat loss (`EGHHLWINDOOR`) was offered as another
   signal but not used: it also moves with weather-file / version changes.
@@ -753,9 +816,10 @@ unchanged at 20%.
   overlap. Chain order corrected here: Steps 1b and 1c are **required** (Step 3
   crashes without the GHG columns), and `aggregate_canada.py` / `build_insights.py`
   are listed.
-- **Open, not introduced here:** ~20,000 matched rows are duplicate `HOUSEID`s (20,736
-  in the July build); cost-model figures on the page (1,420,044 of 1,451,433) are from
-  the last `retrofit_cost_estimate.py` run and were not regenerated.
+- **Open, not introduced here:** cost-model figures on the page (1,420,044 of
+  1,451,433) are from the last `retrofit_cost_estimate.py` run and were not regenerated.
+  (The duplicate-`HOUSEID` rows found in this pass were fixed the next day — see
+  2026-09-24 below.)
 
 ### 2026-09-23 Mobile-friendly filter bar (collapsing summary, theme toggle in header)
 

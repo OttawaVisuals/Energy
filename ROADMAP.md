@@ -6,10 +6,11 @@ EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of
 [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md).
 
-**Pairing.** Matched pairs **1,451,433 → 1,523,774** (+5.0%), median saving
-unchanged at 20%. (1) Same-month D/E audits kept (`E >= D`): +84,881 — closes
+**Pairing.** Matched pairs **1,451,433 → 1,517,936** (+4.6%, after the duplicate and
+ID-format fixes below), median saving
+unchanged at 20%. (1) Same-month D/E audits kept (`E >= D`): +84,754 — closes
 Gate B. (2) Floor-area gate 10% → 5%: −18,719. (3) New weather-file gate — D and
-E must use the same `WTHDATA`: −5,333 (0.35%). The team flagged HOT2000 v10 as a
+E must use the same `WTHDATA`: −5,338 (0.35%). The team flagged HOT2000 v10 as a
 big upgrade; only 97 matched pairs span v10 → v11 and all also change weather
 file, so gate (3) covers them. Weather-changed pairs had saved 31% vs 20%, mostly
 explained by a longer audit gap; excluded (not flagged) so no saving can come
@@ -17,22 +18,36 @@ from a model change — Simon's call.
 
 **Windows.** The `WINDOWCODE` `.0` formatting bug (flagged 2026-07-31, fixed
 POC-side only) is now fixed at the source: national "Windows changed" fell
-444,304 → 305,500 despite more pairs. New `Windows_Partial` flag ("Some windows
-replaced", 181,290 homes) from `NUMWINESTAR` rising while the code is unchanged
+444,304 → 304,471 despite more pairs. New `Windows_Partial` flag ("Some windows
+replaced", 181,584 homes) from `NUMWINESTAR` rising while the code is unchanged
 — median 5 windows, a third of the house. Kept separate from `Windows_Change` —
 Simon's call — so window costs stay tied to the code.
 
 **GHG.** One basis only: each home's own fuel use × current (2026) official
 ECCC factors. `ERSGHG` and the two ERS-calibrated scenarios retired on the
 team's advice (reported for ~50% of pairs; factor updates sporadic); the
-dropdown is gone from both pages. National typical home 6.0 → 4.0 tCO2e/yr;
-Retrofit Insights: 2,950,932 tCO2e/yr net saved across all matched pairs.
+dropdown is gone from both pages. National typical home 6.9 → 5.0 tCO2e/yr (exact medians);
+Retrofit Insights: 2,933,816 tCO2e/yr net saved across all matched pairs.
 
 **Wood:** no change — `wood_kwh()` already uses heating consumption before the
 species-sensitive tonnes fallback (~0.3% of records).
 
-**Found along the way (open):** ~20,000 matched rows are duplicate `HOUSEID`s
-(20,736 in the July build too — pre-existing). Retrofit cost figures
+**Duplicate rows fixed (2026-09-24).** 20,460 rows were duplicate `HOUSEID`s
+(pre-existing: 20,736 in the July build). `process_pairs()` selected records by
+address (`HOUSEID`) instead of by the chosen evaluation; it now selects the exact
+oldest D and newest E by `EVALUATIONSID`. Pairing rule unchanged (oldest D + newest
+E per address — Simon's call over NRCan's per-project `EVALUATIONSID` pairing).
+0 duplicates now. **Also fixed: `HOUSEID` text format** — files up to 2025 write
+`5063805.0`, `2026.csv` writes `5063805`, splitting 23,402 addresses; IDs are now
+normalized (pipeline, audit-funnel totals, and the three scripts that join raw IDs
+to the parquets). Homes with both audits 1,629,313 → 1,646,734; E-only addresses
+22,681 → 2,605. **Source quirk noted, not fixed:** 1,187 `HOUSEID`s are reused
+across provinces for different addresses — harmless to pairing (per-province).
+
+**Found along the way (open):** the Canada view's medians are the lower edge of
+1-tonne / 20-kWh bins (`aggregate_canada.py`), so its GHG headline reads 6.0 → 5.0
+where the exact medians are 6.9 → 5.0. 22,424 D/E evaluation pairs whose address
+record changed between audits aren't linked by `HOUSEID`. Retrofit cost figures
 (`retrofit_cost_estimate.py`) not regenerated against the new pairs. The chain
 order in memory/docs was missing required Steps 1b/1c — docs corrected.)
 

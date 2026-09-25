@@ -1490,7 +1490,7 @@ below).
 
 Moved from ROADMAP.md on 2026-09-24. Gate B was closed by the EnerGuide data
 team confirming on 2026-09-23 that same-month D and E audits are usable; the
-pipeline now uses `E >= D` (+84,881 pairs, 504 genuine reversals still
+pipeline now uses `E >= D` (+84,754 pairs, 482 genuine reversals still
 dropped). The original entries, verbatim:
 
 - [x] **Pairing Gate A recovered — matched sample 1,369,305 → 1,451,433

@@ -268,6 +268,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+
+def norm_id(s):
+    """HOUSEID text normalization, matching ers_web_pipeline.normalize_ids:
+    yearly CSVs up to 2025.csv write '5063805.0', 2026.csv writes '5063805',
+    and the web parquets store the normalized form (since 2026-09-24).
+    Applied to raw reads AND to cached lookups, so old caches still join."""
+    return s.astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "processed"
 INTERIM = ROOT / "data" / "interim"
@@ -358,7 +366,7 @@ def build_cooling_universe():
     build_city_design_temps.py's houseid_city.parquet was built over."""
     universe = set()
     for p in sorted(glob.glob(ERS_WEB_GLOB)):
-        universe |= set(pd.read_parquet(p, columns=["HOUSEID"])["HOUSEID"].astype(str))
+        universe |= set(norm_id(pd.read_parquet(p, columns=["HOUSEID"])["HOUSEID"]))
     return universe
 
 
@@ -368,7 +376,9 @@ def build_cooling_cache():
     build_city_design_temps.py's houseid_city.parquet."""
     if COOLING_CACHE.exists():
         print(f"reusing {COOLING_CACHE}")
-        return pd.read_parquet(COOLING_CACHE)
+        cached = pd.read_parquet(COOLING_CACHE)
+        cached["HOUSEID"] = norm_id(cached["HOUSEID"])
+        return cached
 
     universe = build_cooling_universe()
     print(f"cooling cache universe: {len(universe):,} matched-pair HOUSEIDs", flush=True)
@@ -384,6 +394,7 @@ def build_cooling_cache():
             continue
         for chunk in pd.read_csv(path, encoding="utf-8-sig", usecols=cols,
                                  dtype=str, chunksize=COOL_CHUNK, low_memory=False):
+            chunk["HOUSEID"] = norm_id(chunk["HOUSEID"])
             chunk = chunk[chunk["HOUSEID"].isin(universe) & ~chunk["HOUSEID"].isin(seen)]
             chunk = chunk.drop_duplicates("HOUSEID")
             if chunk.empty:
@@ -411,6 +422,7 @@ def load_cooling_design_map():
             f"{HOUSEID_CITY_CACHE} not found -- run build_city_design_temps.py "
             "first, it builds this HOUSEID->WEATHERLOC cache.")
     houseid_city = pd.read_parquet(HOUSEID_CITY_CACHE, columns=["HOUSEID", "WEATHERLOC"])
+    houseid_city["HOUSEID"] = norm_id(houseid_city["HOUSEID"])
     nbc = pd.read_csv(NBC_CSV)
     cool_design = dict(zip(nbc["WEATHERLOC"], nbc["design_cooling_db_C"]))
     return houseid_city, cool_design

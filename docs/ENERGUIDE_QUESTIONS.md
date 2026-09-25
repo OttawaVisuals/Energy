@@ -12,11 +12,11 @@ data). Their answers, and what we did with each:
 
 | # | Answer | Applied |
 |---|---|---|
-| 1 | D and E audits in the **same month are usable** | §6.1 closed; pairing rule now `E >= D` (+84,881 pairs) |
+| 1 | D and E audits in the **same month are usable** | §6.1 closed; pairing rule now `E >= D` (+84,754 pairs) |
 | 2 | A 10% floor-area filter may be too loose; **try 5%** | Floor-area gate now ≤5% (−18,719 pairs) |
 | 3 | `WINDOWCODE` is fine for window measures; **window heat loss or the ENERGY STAR windows field** also work | `.0` formatting fix at source; new `Windows_Partial` flag from `NUMWINESTAR`. Window heat loss not used (moves with weather file / version) |
 | 4 | **HOT2000 v10 was a big upgrade** (weather files, occupancy); check how many pairs span it | Only 97 matched pairs span v10 → v11 (`PROGRAMNAME`); all also change weather file, so #5 covers them |
-| 5 | **Weather files changed; check `WTHDATA`** | New gate: pairs whose D and E use different `WTHDATA` are excluded (5,333, 0.35%) |
+| 5 | **Weather files changed; check `WTHDATA`** | New gate: pairs whose D and E use different `WTHDATA` are excluded (5,338, 0.35%) |
 | 6 | **Wood**: softwood/hardwood differ; use heating consumption if the home is all-wood | Already our approach — `EGHFCONWOODGJ`, then `EGHHEATFCONSW`; the tonnes fallback is ~0.3% of records |
 | 7 | **GHG: use current emission factors, ignore `ERSGHG`** (not all reported; factor updates sporadic) | §5.4 closed; both retrofit pages now use current ECCC factors only |
 
@@ -249,6 +249,14 @@ Validated against the 50.5% of pairs that do have a reported `ERSGHG`:
 ---
 
 ## 6. Matched pre/post pairs — is there an intended pairing key?
+
+> **Partly answered by the data dictionary (found 2026-09-24).** `EVALUATIONSID` is
+> NRCan's D↔E pair key ("D and E files for the same house will have the same
+> EvaluationsId"); 1,769,466 IDs hold exactly one D and one E. `HOUSEID` is an
+> *address* key. We deliberately keep pairing per address (oldest D + newest E, to
+> capture a home's whole history across programs) and use `EVALUATIONSID` only to
+> select those exact two records. Still worth confirming: is oldest-D-to-newest-E
+> across different evaluations at one address a reading NRCan would endorse?
 
 We construct retrofit pairs by matching a D (pre) audit to an E (post) audit on
 `HOUSEID`. Two issues:
