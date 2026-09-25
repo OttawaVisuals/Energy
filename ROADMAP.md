@@ -1,7 +1,12 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
+Updated **2026-09-25** (**Retrofit pairing drop recount** — `diagnose_pairing_drops.py`
+brought in line with the ID normalization and weather gate and re-run: 1,647,596
+D&E homes → 1,517,574 survive (92.1%, was 89.1% on 2026-08-06), within 362 of the
+pipeline; dwelling-units one-side-blank drops (46,068) are the largest remaining
+loss. Details in [docs/RETROFITS.md](docs/RETROFITS.md).)
+Previously **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
 EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of
 [docs/ENERGUIDE_QUESTIONS.md](docs/ENERGUIDE_QUESTIONS.md).
