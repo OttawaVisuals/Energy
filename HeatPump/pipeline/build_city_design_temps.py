@@ -77,6 +77,14 @@ from collections import Counter
 
 import pandas as pd
 
+
+def norm_id(s):
+    """HOUSEID text normalization, matching ers_web_pipeline.normalize_ids:
+    yearly CSVs up to 2025.csv write '5063805.0', 2026.csv writes '5063805',
+    and the web parquets store the normalized form (since 2026-09-24).
+    Applied to raw reads AND to cached lookups, so old caches still join."""
+    return s.astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 NBC_CSV = os.path.join(ROOT, "reference", "nbc_station_design_temps.csv")
@@ -221,11 +229,13 @@ def build_house_cache():
     """HOUSEID -> (CLIENTCITY, WEATHERLOC, WTHDATA). Cached; scan runs once."""
     if os.path.exists(CACHE):
         print(f"reusing {CACHE}")
-        return pd.read_parquet(CACHE)
+        cached = pd.read_parquet(CACHE)
+        cached["HOUSEID"] = norm_id(cached["HOUSEID"])
+        return cached
 
     universe = set()
     for p in sorted(glob.glob(ERS_WEB_GLOB)):
-        universe |= set(pd.read_parquet(p, columns=["HOUSEID"])["HOUSEID"].astype(str))
+        universe |= set(norm_id(pd.read_parquet(p, columns=["HOUSEID"])["HOUSEID"]))
     print(f"universe: {len(universe):,} matched-pair HOUSEIDs", flush=True)
 
     seen, frames, skipped = set(), [], []
@@ -239,6 +249,7 @@ def build_house_cache():
             continue
         for chunk in pd.read_csv(path, encoding="utf-8-sig", usecols=cols,
                                  dtype=str, chunksize=CHUNK, low_memory=False):
+            chunk["HOUSEID"] = norm_id(chunk["HOUSEID"])
             chunk = chunk[chunk["HOUSEID"].isin(universe) & ~chunk["HOUSEID"].isin(seen)]
             chunk = chunk.drop_duplicates("HOUSEID")
             if chunk.empty:

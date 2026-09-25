@@ -30,6 +30,14 @@ import os
 
 import pandas as pd
 
+
+def norm_id(s):
+    """HOUSEID text normalization, matching ers_web_pipeline.normalize_ids:
+    yearly CSVs up to 2025.csv write '5063805.0', 2026.csv writes '5063805',
+    and the web parquets store the normalized form (since 2026-09-24).
+    Applied to raw reads AND to cached lookups, so old caches still join."""
+    return s.astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+
 INPUT_DIR = r"C:\ERS"
 OUT_DIR = os.path.join("retrofits", "data")
 
@@ -79,6 +87,7 @@ def extract_all(provinces):
         counts = {p: 0 for p in provinces}
         for chunk in pd.read_csv(path, usecols=usecols, chunksize=CHUNK_ROWS,
                                   dtype=str, low_memory=False):
+            chunk['HOUSEID'] = norm_id(chunk['HOUSEID'])
             chunk = chunk[chunk['PROVINCE'].isin(provinces)]
             if chunk.empty:
                 continue

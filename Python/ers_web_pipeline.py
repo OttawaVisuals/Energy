@@ -296,7 +296,7 @@ BASE_MAPPING = [
 # Columns needed for filtering (not all go to output)
 FILTER_COLS = ['HOUSEID', 'EVALTYPE', 'ENTRYDATE', 'FLOORAREA',
                'TYPEOFHOUSE', 'STOREYS', 'NUMDWELLINGUNITS', 'PROVINCE',
-               'WTHDATA']
+               'WTHDATA', 'EVALUATIONSID']
 
 # Flag columns computed at output stage
 FLAG_COLS = [
@@ -328,6 +328,28 @@ E_MAPPING = [m for m in BASE_MAPPING if m[2] == 'E']
 # STEP 1: Stream CSVs, split D/E, write per-year parquet intermediates
 # =============================================================================
 
+ID_COLS = ('HOUSEID', 'EVALUATIONSID')
+
+
+def normalize_ids(tbl):
+    """Strip whitespace and a trailing '.0' from the ID columns.
+
+    Every yearly CSV up to 2025.csv writes IDs float-style ('5063805.0');
+    2026.csv (July 2026 refresh) writes them as integers ('5063805'). Compared
+    as raw text, one address became two HOUSEIDs: 23,402 addresses were split,
+    so a D in 2025.csv and an E in 2026.csv never paired (17,425 homes with
+    both a D and an E were missed) and a split address could appear twice in
+    one FSA file. Found 2026-09-24. Same class of bug as the WINDOWCODE and
+    NUMDWELLINGUNITS '.0' artifacts.
+    """
+    for col in ID_COLS:
+        if col in tbl.schema.names:
+            i = tbl.schema.get_field_index(col)
+            v = pc.replace_substring_regex(pc.utf8_trim_whitespace(tbl.column(col)), r'\.0+$', '')
+            tbl = tbl.set_column(i, col, v)
+    return tbl
+
+
 def split_csv_to_parquet(csv_path, year_tag, temp_dir, province_filter):
     d_path = os.path.join(temp_dir, f"{year_tag}_D.parquet")
     e_path = os.path.join(temp_dir, f"{year_tag}_E.parquet")
@@ -356,6 +378,7 @@ def split_csv_to_parquet(csv_path, year_tag, temp_dir, province_filter):
     try:
         for batch in reader:
             tbl = pa.Table.from_batches([batch])
+            tbl = normalize_ids(tbl)
 
             if province_filter and 'PROVINCE' in tbl.schema.names:
                 tbl = tbl.filter(pc.equal(tbl.column('PROVINCE'), province_filter))
@@ -398,7 +421,7 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
         for suffix, lst in [('_D', d_frames), ('_E', e_frames)]:
             p = os.path.join(temp_dir, f"{year_tag}{suffix}.parquet")
             if os.path.exists(p):
-                df = pd.read_parquet(p, columns=['HOUSEID', 'ENTRYDATE'])
+                df = pd.read_parquet(p, columns=['HOUSEID', 'ENTRYDATE', 'EVALUATIONSID'])
                 df['_year'] = year_tag
                 lst.append(df)
 
@@ -435,8 +458,11 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
     # let a NaT sort to the end and win the "newest E" slot.
     all_d = all_d.dropna(subset=['ENTRYDATE'])
     all_e = all_e.dropna(subset=['ENTRYDATE'])
-    all_d = all_d.sort_values('ENTRYDATE').drop_duplicates('HOUSEID', keep='first')
-    all_e = all_e.sort_values('ENTRYDATE').drop_duplicates('HOUSEID', keep='last')
+    # Ties on the oldest/newest month (two evaluations at the same address in
+    # the same month) are broken by EVALUATIONSID so the choice is
+    # deterministic run to run.
+    all_d = all_d.sort_values(['ENTRYDATE', 'EVALUATIONSID']).drop_duplicates('HOUSEID', keep='first')
+    all_e = all_e.sort_values(['ENTRYDATE', 'EVALUATIONSID']).drop_duplicates('HOUSEID', keep='last')
     paired_ids = set(all_d['HOUSEID']) & set(all_e['HOUSEID'])
     print(f"  HOUSEIDs with >=1 D and >=1 E (oldest D + newest E): {len(paired_ids):,}")
 
@@ -446,6 +472,7 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
     pairs = all_d.merge(all_e, on='HOUSEID', suffixes=('_D', '_E')).rename(columns={
         '_year_D': 'D_year', '_year_E': 'E_year',
         'ENTRYDATE_D': 'D_date', 'ENTRYDATE_E': 'E_date',
+        'EVALUATIONSID_D': 'D_eid', 'EVALUATIONSID_E': 'E_eid',
     })
 
     pairs['_d_dt'] = pd.to_datetime(pairs['D_date'], errors='coerce')
@@ -463,7 +490,7 @@ def build_pairs_index(temp_dir, pairs_csv_path, year_tags):
     print(f"  after date-order filter: {len(pairs):,} (dropped {before - len(pairs):,}; "
           f"{same_month:,} same-month D/E kept)")
 
-    pairs[['HOUSEID', 'D_year', 'E_year', 'D_date', 'E_date']].to_csv(pairs_csv_path, index=False)
+    pairs[['HOUSEID', 'D_year', 'E_year', 'D_date', 'E_date', 'D_eid', 'E_eid']].to_csv(pairs_csv_path, index=False)
     print(f"  wrote {pairs_csv_path}")
 
 
@@ -793,14 +820,23 @@ def _to_arrow(df):
 
 
 def process_pairs(temp_dir, pairs_csv_path, output_path):
-    pairs  = pd.read_csv(pairs_csv_path, dtype={'HOUSEID': str})
+    pairs  = pd.read_csv(pairs_csv_path, dtype={'HOUSEID': str, 'D_eid': str, 'E_eid': str})
     groups = pairs.groupby(['D_year', 'E_year'])
     print(f"  {len(pairs):,} pairs across {len(groups)} year combinations")
 
     total = 0
     try:
         for (d_year, e_year), group in groups:
-            group_ids = set(group['HOUSEID'])
+            # Select the exact D and E records chosen in build_pairs_index, by
+            # EVALUATIONSID (unique per D record and per E record). Selecting by
+            # HOUSEID alone -- the rule until 2026-09-24 -- also pulled in any
+            # OTHER evaluation at the same address in the same year file, and
+            # the HOUSEID join then emitted every D x E combination: 20,460
+            # extra rows across 14,486 addresses, some pairing a D that was not
+            # the oldest or an E that was not the newest. HOUSEID is an address
+            # key, not an evaluation key (NRCan data dictionary).
+            d_eids = set(group['D_eid'])
+            e_eids = set(group['E_eid'])
             d_path = os.path.join(temp_dir, f"{d_year}_D.parquet")
             e_path = os.path.join(temp_dir, f"{e_year}_E.parquet")
             if not (os.path.exists(d_path) and os.path.exists(e_path)):
@@ -811,8 +847,8 @@ def process_pairs(temp_dir, pairs_csv_path, output_path):
             e_df = pd.read_parquet(e_path)
             d_df['HOUSEID'] = d_df['HOUSEID'].astype(str)
             e_df['HOUSEID'] = e_df['HOUSEID'].astype(str)
-            d_df = d_df[d_df['HOUSEID'].isin(group_ids)]
-            e_df = e_df[e_df['HOUSEID'].isin(group_ids)]
+            d_df = d_df[d_df['EVALUATIONSID'].astype(str).isin(d_eids)]
+            e_df = e_df[e_df['EVALUATIONSID'].astype(str).isin(e_eids)]
 
             n = _join_and_write(d_df, e_df, output_path)
             total += n
@@ -967,6 +1003,13 @@ def main():
             parquet_outputs.append(out)
     print(f"\n  Window flags, all provinces: {_WINDOW_STATS}")
     print(f"  Same-home filter drops, all provinces: {_GATE_DROPS}")
+    # One row per address is the invariant (oldest D + newest E per HOUSEID).
+    n_rows = n_dup = 0
+    for out in parquet_outputs:
+        ids = pd.read_parquet(out, columns=['HOUSEID'])['HOUSEID']
+        n_rows += len(ids)
+        n_dup += int(ids.duplicated().sum())
+    print(f"  Matched rows: {n_rows:,}; duplicate HOUSEID rows: {n_dup:,} (expected 0)")
 
     print("\n=== STEP 3b: build / load global dictionary ===")
     keys_path = os.path.join(OUTPUT_DIR, 'ers_web_keys.json')

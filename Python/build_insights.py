@@ -1218,7 +1218,7 @@ def validate(metrics, nat, prov_totals):
     print(f"\nNational matched total: {tot:,}")
     by_prov = nat.groupby("PROV").size().to_dict()
     print("  by province: " + ", ".join(f"{p}={n:,}" for p, n in sorted(by_prov.items())))
-    print(f"  sum check: {sum(by_prov.values()):,} (expect 1,369,305)")
+    print(f"  sum check: {sum(by_prov.values()):,} (expect == national matched total above)")
 
     # 2) 3 known FSAs cross-checked vs fsa_json/_index.json
     print("\nfsa_metrics vs fsa_json/<PROV>/_index.json (median saving %):")

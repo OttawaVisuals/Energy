@@ -116,7 +116,11 @@ def scan_file(csv_path, home):
         if tbl.num_rows == 0:
             continue
 
-        hids  = tbl.column('HOUSEID').to_pylist()
+        # Normalize HOUSEID text: files up to 2025.csv write '5063805.0',
+        # 2026.csv writes '5063805' -- compared raw, one address counted as
+        # two homes (see ers_web_pipeline.normalize_ids, 2026-09-24).
+        hids  = pc.replace_substring_regex(
+            pc.utf8_trim_whitespace(tbl.column('HOUSEID')), r'\.0+$', '').to_pylist()
         ets   = tbl.column('EVALTYPE').to_pylist()
         pcs   = tbl.column('CLIENTPCODE').to_pylist()
         provs = (tbl.column('PROVINCE').to_pylist()
