@@ -775,7 +775,13 @@ def load_audit_totals():
         return json.load(f)
 
 
-def build_province_json(parquet_path, out_dir, prov_composition=None):
+def load_province_df(parquet_path):
+    """Load one province parquet and apply every row-level preparation
+    compute_slice() expects: normalized categoricals, the Heating_Change
+    override, per-province energy pricing (_CostPre/_CostPost) and the
+    program-era column (_Era). Shared with aggregate_canada.py, which
+    concatenates these frames to compute exact national medians.
+    Returns (province, df)."""
     province = Path(parquet_path).stem.replace('ers_web_', '')
     print(f"\n--- {province} ---")
     df = pd.read_parquet(parquet_path)
@@ -805,15 +811,19 @@ def build_province_json(parquet_path, out_dir, prov_composition=None):
               f"oil {pv['oil']:.2f} $/L, propane {pv['propane']:.2f} $/L, "
               f"wood {pv['wood']:.3f} $/kWh")
 
-    types = sorted(t for t in df['BldgType'].dropna().unique() if t)
-    print(f"  house types: {types}")
-
     # Program-era column, from the INITIAL (Pre_Date) audit year -- see
     # ERA_DEFS/era_of_year() above. None where Pre_Date didn't parse.
     pre_year = pd.to_datetime(df['Pre_Date'], errors='coerce').dt.year
     df['_Era'] = pre_year.apply(era_of_year)
     era_counts = df['_Era'].value_counts(dropna=False).to_dict()
     print(f"  program eras (by initial-audit year): {era_counts}")
+    return province, df
+
+
+def build_province_json(parquet_path, out_dir, prov_composition=None):
+    province, df = load_province_df(parquet_path)
+    types = sorted(t for t in df['BldgType'].dropna().unique() if t)
+    print(f"  house types: {types}")
 
     def with_era_breakdown(sub):
         """compute_slice(sub) plus a nested by_era: {key: compute_slice(era subset)}
