@@ -886,7 +886,14 @@ newest E per address, which captures a home's whole history across programs —
 pairs (8%) join a D and E from different evaluations, which is what the
 oldest/newest rule means for re-audited homes; 22,424 evaluation pairs have a
 different `HOUSEID` on D and E (address record changed) and are not linked by the
-address rule.
+address rule. *Corrected 2026-09-26:* that count compared IDs as raw text and was
+mostly the `.0` ID-format split fixed the same day (below). With IDs normalized,
+**3,774** evaluation pairs have a different `HOUSEID` on D and E — all within one
+province, 99% with floor area within 5%, mostly 2022–2025 files, and in sampled rows
+the E's `HOUSEID` equals its `EVALUATIONSID` (a new address record created at the
+follow-up). 2,930 of them have no pair under either address, so linking them would
+add at most ~2,930 candidates (~0.2%) before the gates. Left as is (decided
+2026-09-26): too small to justify a second pairing key.
 
 **Effect of the selection fix alone.** 1,523,774 → 1,502,376 rows, 0 duplicates.
 

@@ -69,7 +69,9 @@ across provinces for different addresses — harmless to pairing (per-province).
 1-tonne / 20-kWh bins (`aggregate_canada.py`), so its GHG headline reads 6.0 → 5.0
 where the exact medians are 6.9 → 5.0 — *fixed 2026-09-25: exact medians from every
 matched row*. 22,424 D/E evaluation pairs whose address
-record changed between audits aren't linked by `HOUSEID`. Retrofit cost figures
+record changed between audits aren't linked by `HOUSEID` — *corrected 2026-09-26:
+3,774 once IDs are normalized (the rest was the `.0` split); at most ~2,930
+recoverable, left as is*. Retrofit cost figures
 (`retrofit_cost_estimate.py`) not regenerated against the new pairs — *done
 2026-09-25*. The chain
 order in memory/docs was missing required Steps 1b/1c — docs corrected.)
