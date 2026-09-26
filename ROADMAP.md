@@ -18,7 +18,10 @@ reviewed and kept as they are. **Retrofit costs regenerated** against the curren
 pairs: 1,313,102 priced homes (was 1,237,117 on the old pair set), median Mid-band
 cost $3,984 → $3,738, median payback 6.7 → 6.5 years; the cost extractor now picks
 the same oldest-D / newest-E records as the pipeline (it had kept the last of each
-in file order) — [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) changelog. Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
+in file order) — [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) changelog. **Canada
+view medians are now exact** (computed from all 1,541,128 rows instead of read off
+bin lower edges): GHG headline 6.0 → 5.0 became 6.85 → 5.00 tCO2e/yr, EUI 180 → 140
+became 197 → 156 kWh/m². Details in [docs/RETROFITS.md](docs/RETROFITS.md) changelog.)
 Previously **2026-09-24** (**Retrofit Explorer + Retrofit Insights** — applied the
 EnerGuide data team's answers from a 2026-09-23 meeting. Full record:
 [docs/RETROFITS.md](docs/RETROFITS.md) changelog; answers table at the top of
@@ -64,7 +67,8 @@ across provinces for different addresses — harmless to pairing (per-province).
 
 **Found along the way (open):** the Canada view's medians are the lower edge of
 1-tonne / 20-kWh bins (`aggregate_canada.py`), so its GHG headline reads 6.0 → 5.0
-where the exact medians are 6.9 → 5.0. 22,424 D/E evaluation pairs whose address
+where the exact medians are 6.9 → 5.0 — *fixed 2026-09-25: exact medians from every
+matched row*. 22,424 D/E evaluation pairs whose address
 record changed between audits aren't linked by `HOUSEID`. Retrofit cost figures
 (`retrofit_cost_estimate.py`) not regenerated against the new pairs — *done
 2026-09-25*. The chain

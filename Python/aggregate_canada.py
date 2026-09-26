@@ -18,13 +18,18 @@ by_type["All types"]["by_era"][era] slice is combined the same way as the
 top-level slice (aggregate_slices(), called once per era) and shipped as
 by_type["All types"]["by_era"] in CA.json.
 
-No raw row-level data is available here, only each province's own
-precomputed bins/medians/counts, so:
+Counts, bins and means come from each province's own precomputed JSON:
   - counts and histogram bins are additive -> summed directly (exact).
-  - medians are NOT additive -> recomputed from the summed bins via a
-    weighted-median estimate (walk cumulative counts to the 50th
-    percentile bucket). This is an approximation bounded by bin width,
-    not a recomputation from raw data.
+  - medians are NOT additive. Since 2026-09-25 they are computed EXACTLY:
+    the province parquets are loaded through precompute_province_stats's
+    own load_province_df(), concatenated, and run through the same
+    compute_slice() -- once for the whole country and once per program era --
+    and every median field (EXACT_MEDIAN_KEYS, including insulation_kpis) is
+    taken from that. Before, they were read off the summed bins (walk to the
+    50th-percentile bucket), which returns the bucket's LOWER EDGE: the Canada
+    GHG headline showed 6.0 -> 5.0 tCO2e/yr where the true medians are
+    6.85 -> 5.00. weighted_median_from_bins() remains only as the fallback
+    when the parquets are not on disk.
   - the fuel waterfall ships per-home MEANS, not totals -> weight by
     row_count to recover each province's total before summing.
   - solar_median_kw has no underlying histogram shipped -> approximated
@@ -34,6 +39,10 @@ import json
 import glob
 import os
 from collections import defaultdict, OrderedDict
+
+import pandas as pd
+
+from precompute_province_stats import compute_slice, load_province_df
 
 # Same OUTPUT_DIR as precompute_province_stats.py / ers_web_pipeline.py —
 # this reads the province JSONs that script just wrote and writes CA.json
@@ -83,6 +92,34 @@ def weighted_median_from_bins(bins):
         if cum >= half:
             return k
     return items[-1][0]
+
+
+# Median fields taken from the exact national compute_slice() (see module
+# docstring). Only fields the bin-summed slice already carries are replaced,
+# so the Canada view never gains a card the province-sum approach didn't have.
+EXACT_MEDIAN_KEYS = ['median_saving_pct', 'eui_pre_median', 'eui_post_median', 'eui_saving',
+                     'ghg_pre_median', 'ghg_post_median', 'ghg_saving',
+                     'hp_sizing47_median', 'hp_sizing5_median', 'solar_median_kw',
+                     'cost_pre_median', 'cost_post_median', 'cost_saving_median',
+                     'insulation_kpis']
+
+
+def exact_national_slices():
+    """compute_slice() over every matched row in the country, plus one per
+    program era. None if no province parquets are on disk."""
+    paths = sorted(glob.glob(os.path.join(OUTPUT_DIR, "ers_web_*.parquet")))
+    if not paths:
+        return None
+    df = pd.concat([load_province_df(p)[1] for p in paths], ignore_index=True)
+    print(f"\nExact national medians over {len(df):,} rows")
+    return {'all': compute_slice(df),
+            'by_era': {k: compute_slice(df[df['_Era'] == k]) for k in ERA_KEYS}}
+
+
+def apply_exact_medians(out, exact):
+    for k in EXACT_MEDIAN_KEYS:
+        if k in out and k in exact:
+            out[k] = exact[k]
 
 
 def aggregate_slices(slices):
@@ -303,6 +340,17 @@ def main():
     # cross-province aggregate rather than falling back to the unfiltered
     # total (see assets/retrofits.js renderProvince()'s by_era lookup).
     out["by_era"] = {k: aggregate_slices(v) for k, v in era_slices.items()}
+
+    exact = exact_national_slices()
+    if exact:
+        apply_exact_medians(out, exact['all'])
+        for k in ERA_KEYS:
+            apply_exact_medians(out["by_era"][k], exact['by_era'][k])
+        print(f"  exact medians: GHG {out.get('ghg_pre_median')} -> {out.get('ghg_post_median')}, "
+              f"EUI {out.get('eui_pre_median')} -> {out.get('eui_post_median')}, "
+              f"saving {out.get('median_saving_pct')}")
+    else:
+        print("  !! no province parquets -- medians left as bin lower-edge estimates")
 
     payload = {"province": "CA", "total_rows": total_rows,
                "funnel": out_funnel, "era_labels": ERA_LABELS,

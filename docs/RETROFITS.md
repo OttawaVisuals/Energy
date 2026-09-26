@@ -266,8 +266,9 @@ QC 1.9 · SK 631 · YT 74. Combustion: natural gas 185–189 (varies slightly by
 oil 255.4, propane 213.6, wood 0.
 
 Effect on the national headline (2026-09-24 build): typical home **6.9 → 5.0 tCO2e/yr**
-(exact medians before/after; the Canada view shows 6.0 → 5.0 because `aggregate_canada.py`
-reports medians at the lower edge of 1-tonne bins — see Data notes), against 4.0 → 2.0 on
+(exact medians before/after; until 2026-09-25 the Canada view showed 6.0 → 5.0 because
+`aggregate_canada.py` read medians off the lower edge of 1-tonne bins — fixed, see the
+changelog), against 4.0 → 2.0 on
 the old raw-`ERSGHG` basis — the new figure covers every matched home instead of half, at
 2026 factors. Retrofit Insights: **2,973,632
 tCO2e/yr net saved across all 1,541,128 matched pairs** (2026-09-25 build); 63,653
@@ -752,6 +753,37 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-09-25 Canada view: exact national medians
+
+**Symptom.** The "All of Canada" view read every median off the summed province
+histograms (`weighted_median_from_bins`), which returns the *lower edge* of the bin
+holding the 50th percentile. Headline GHG showed **6.0 → 5.0** tCO2e/yr where the true
+medians are **6.85 → 5.00**; EUI 180 → 140 where the truth is 197 → 156 kWh/m²; roof
+insulation RSI 3.5 → 4.5 vs 3.9 → 5.0.
+
+**Fix.** `precompute_province_stats.py`'s row preparation moved into
+`load_province_df()` (no output change: all 12 province JSONs are byte-identical after
+the refactor). `aggregate_canada.py` now loads every province parquet through it,
+concatenates them (1,541,128 rows) and runs the same `compute_slice()` once nationally
+and once per program era; every median field it already shipped (`EXACT_MEDIAN_KEYS`:
+saving %, EUI, GHG and their differences, heat-pump sizing ratios, solar kW,
+`insulation_kpis`) is replaced with the exact value. Counts, bins and means are still
+summed from the province JSONs. If the parquets aren't on disk, it falls back to the
+bin estimate and says so. No new fields — the Canada view's set of cards is unchanged.
+
+| Canada, all types | Before (bin lower edge) | Now (exact) |
+|---|---|---|
+| GHG median, tCO2e/yr | 6.0 → 5.0 (saving 1.0) | 6.85 → 5.00 (saving 1.8) |
+| EUI median, kWh/m² | 180 → 140 (saving 40) | 197 → 156 (saving 41) |
+| Median energy saving | 20% | 19.8% |
+| HP sizing ratio (47 °F / 5 °F) | 0.6 / 0.5 | 0.64 / 0.52 |
+| Solar median, kW | 8.9 (adopter-weighted mean of province medians) | 9.0 |
+| Roof / wall / foundation RSI | 3.5→4.5 / 2.0→2.0 / 1.25→1.75 | 3.9→5.0 / 2.1→2.2 / 1.3→1.8 |
+| Air leakage, ACH50 | 5.0 → 4.5 | 5.3 → 4.7 |
+
+By program era, GHG: ecoENERGY 8.0 → 6.0 became 8.26 → 6.10; no program 5.0 → 4.0
+became 5.86 → 4.41; Greener Homes 5.0 → 3.0 became 5.32 → 3.04.
 
 ### 2026-09-25 Remaining filters kept as they are
 
