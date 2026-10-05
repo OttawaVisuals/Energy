@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Dashboard — what's powering the grid right now</title>
+<meta name="description" content="Live-ish Ontario and Alberta electricity generation mix and emissions intensity, plus the average-vs-marginal question that decides whether a heat pump actually cuts emissions.">
+<meta property="og:title" content="Grid Dashboard — what's powering the grid right now">
+<meta property="og:description" content="Ontario and Alberta generation mix and emissions intensity, updated weekly from IESO/AESO, and why 'marginal' emissions are the number that matters for new electric load.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/grid">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/grid.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grid Dashboard social preview card">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/grid.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B2545'/%3E%3Cpath d='M17 3 6 18h7l-2 11 11-15h-7z' fill='%23E8A124'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<style>
+/* Reset, theme variables (light/dark/cb), header, hero, Simple/Advanced
+   toggle, theme toggle, footer and info-tooltip chrome all live in
+   assets/site-theme.css (shared with retrofits.html, retrofit-insights.html
+   and newhomes.html). This page's own charts DO wire up to the --d-*/--f-*
+   data vars (see readPalette() below) so they stay legible across all three
+   themes, following the pattern retrofits.html established. */
+
+/* ── Layout ── */
+main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
+.section-head{margin:2.1rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.section-head:first-child{margin-top:.25rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-size:1.4rem;font-weight:300;color:var(--ink);letter-spacing:-.01em;line-height:1.25}
+.section-head .sec-sub{font-size:13px;color:var(--muted);margin-top:3px;max-width:720px}
+
+/* ── Control bar ── */
+.ctrl-bar{position:sticky;top:48px;z-index:90;background:var(--navy);padding:.55rem 1.5rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 6px 14px rgba(11,37,69,.18)}
+.prov-toggle{display:inline-flex;background:rgba(255,255,255,.1);border-radius:20px;padding:2px;gap:2px}
+.prov-btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:6px 16px;border:none;border-radius:18px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .15s}
+.prov-btn.active{background:var(--amber2);color:var(--navy)}
+.prov-btn:not(.active):hover{color:#fff}
+.data-through{font-size:12px;color:rgba(255,255,255,.55)}
+.data-through strong{color:rgba(255,255,255,.85);font-weight:500}
+.ctrl-spacer{flex:1 1 0;min-width:0}
+
+/* ── Cards / stats (construction.html pattern, reused verbatim) ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.85rem;flex-wrap:wrap}
+.card-title-row .card-title{margin-bottom:0}
+.chart-legend-inline{display:flex;gap:10px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.55}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1rem}
+.chart-grid .card{margin-bottom:0}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-label{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;min-height:28px;line-height:1.3;display:flex;align-items:flex-start}
+.stat-value{font-family:'Fraunces',Georgia,serif;font-size:1.9rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.stat-sub{font-size:12px;color:var(--light);margin-top:4px}
+
+/* ── Chart wrappers (SVG, not Chart.js — see script note) ── */
+.cw{position:relative;width:100%}
+.cw-lg{height:250px}
+.cw-md{height:170px}
+.cw-sm{height:210px}
+.cw svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-tip{display:none;position:fixed;background:rgba(11,37,69,0.94);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:8px 12px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap}
+.chart-tip .tip-row{display:flex;align-items:center;gap:6px}
+.chart-tip .tip-dot{width:7px;height:7px;border-radius:2px;flex:none;display:inline-block}
+.hover-line{stroke:var(--muted);stroke-width:1;stroke-dasharray:3,3;pointer-events:none;opacity:.55}
+.axis-line{stroke:var(--border);stroke-width:1}
+.axis-text{font-family:'Inter',sans-serif;font-size:10px;fill:var(--muted)}
+.section-loading{padding:1.5rem 1rem;text-align:center;color:var(--muted);font-size:13px}
+
+/* ── Average vs marginal explainer ── */
+.basis-toggle{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px;gap:2px}
+.basis-btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:7px 16px;border:none;border-radius:18px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.basis-btn.active{background:var(--navy);color:#fff}
+.basis-btn:not(.active):hover{color:var(--ink)}
+.basis-panel{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap;margin-top:1rem}
+.basis-num{font-family:'Fraunces',Georgia,serif;font-size:2.6rem;font-weight:300;color:var(--ink);line-height:1;letter-spacing:-.02em;white-space:nowrap}
+.basis-num span{font-size:1rem;font-weight:400;color:var(--muted);margin-left:4px}
+.basis-copy{flex:1;min-width:260px;font-size:13.5px;color:var(--text);line-height:1.6}
+.basis-copy b{color:var(--ink)}
+.basis-link{display:inline-block;margin-top:8px;font-size:13px;color:var(--blue);text-decoration:none;font-weight:500}
+.basis-link:hover{text-decoration:underline}
+
+/* ── QC context card ── */
+.qc-card{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}
+.qc-big{font-family:'Fraunces',Georgia,serif;font-size:2.2rem;font-weight:300;color:var(--green);line-height:1}
+.qc-copy{flex:1;min-width:260px;font-size:13.5px;color:var(--text);line-height:1.6}
+.qc-years{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.qc-year{font-size:11px;color:var(--muted);background:var(--surface);border-radius:6px;padding:3px 7px}
+
+/* ── AB staleness banner ── */
+.stale-note{display:flex;gap:10px;align-items:flex-start;background:var(--build-bg,rgba(200,136,26,.1));border:1px solid var(--amber);border-radius:var(--r-md);padding:.7rem 1rem;font-size:13px;color:var(--text);margin-bottom:1rem}
+.stale-note b{color:var(--amber)}
+
+details.data-details{margin-top:10px}
+details.data-details summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+details.data-details summary::-webkit-details-marker{display:none}
+details.data-details summary::before{content:'▸ ';color:var(--amber)}
+details.data-details[open] summary::before{content:'▾ '}
+
+.state-msg{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+
+@media(max-width:600px){
+  main{padding:1rem 1rem 2rem}
+  .ctrl-bar{padding:.5rem 1rem}
+  .basis-num{font-size:2rem}
+}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body class="mode-simple">
+<script>
+// Same bootstrap as retrofits.html/newhomes.html/retrofit-insights.html —
+// resolved before any markup paints so there's no flash of the wrong
+// mode/theme. Shares the same localStorage keys on purpose: a reader's
+// Simple/Advanced and light/dark/cb choice carries across every tool.
+(function(){
+  var urlView=new URLSearchParams(location.search).get('view');
+  var mode=(urlView==='advanced'||urlView==='simple')?urlView:(localStorage.getItem('viewMode')||'simple');
+  if(mode!=='advanced')mode='simple';
+  try{localStorage.setItem('viewMode',mode);}catch(e){}
+  document.body.className='mode-'+mode;
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">grid<span id="logo-suffix">·live</span></div>
+    <div class="header-title" id="header-title">Generation mix &amp; emissions intensity</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="heatpump.html">↳ Heat Pump Explorer</a>
+    <a class="sibling-link" href="retrofits.html">↳ Retrofit Explorer</a>
+    <div class="header-badge" id="header-badge">IESO · AESO · HQ</div>
+  </div>
+</header>
+
+<div class="hero" id="hero-section">
+  <p class="eyebrow">Ontario &amp; Alberta, years of history · Quebec context</p>
+  <h1>What's actually powering the grid?</h1>
+  <p class="hero-sub">Generation by fuel type, how hard each fuel is actually working, demand, price and imports/exports — years of real IESO/AESO history, not just the last few days. Plus the average-vs-marginal question that decides whether plugging in a heat pump actually cuts emissions.</p>
+</div>
+
+<div class="ctrl-bar">
+  <div class="prov-toggle" role="group" aria-label="Province">
+    <button type="button" class="prov-btn active" data-prov="ON" onclick="setProvince('ON')">Ontario</button>
+    <button type="button" class="prov-btn" data-prov="AB" onclick="setProvince('AB')">Alberta</button>
+  </div>
+  <span class="data-through" id="data-through-label">Loading…</span>
+  <div class="ctrl-spacer"></div>
+  <div class="mode-toggle" role="group" aria-label="View mode">
+    <button type="button" class="mode-btn" data-view="simple" onclick="setViewMode('simple')">Simple</button>
+    <button type="button" class="mode-btn" data-view="advanced" onclick="setViewMode('advanced')">Advanced</button>
+  </div>
+  <div class="theme-toggle" role="group" aria-label="Colour theme">
+    <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+    </button>
+    <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+    </button>
+    <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+    </button>
+  </div>
+</div>
+
+<main>
+<div id="loading-msg" class="state-msg">Loading grid data…</div>
+<div id="error-msg" class="state-msg" style="display:none">Couldn't load grid data.<span id="error-detail"></span></div>
+
+<div id="page-body" style="display:none">
+
+  <!-- ── KPI row ── -->
+  <div class="stats-grid" id="kpi-row"></div>
+
+  <!-- ── Historical generation mix ── -->
+  <div class="section-head">
+    <h2>The generation mix, over time</h2>
+    <p class="sec-sub" id="histmix-sub">Monthly share of generation by fuel type, full available history.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title" id="histmix-title">Loading…</span>
+      <div class="chart-legend-inline" id="histmix-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="histmix-mix"></svg></div>
+    <p class="note" id="histmix-note"></p>
+  </div>
+
+  <!-- ── Capacity utilization by fuel type ── -->
+  <div class="section-head">
+    <h2>How hard is each fuel type actually working?</h2>
+    <p class="sec-sub">Capacity factor = actual output ÷ capacity, by fuel type, by month. A gas fleet running at 20% is mostly idle backup; nuclear running near 90% is baseload doing what baseload does.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title" id="histcap-title">Loading…</span>
+      <div class="chart-legend-inline" id="histcap-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="histcap-chart"></svg></div>
+    <p class="note" id="histcap-note"></p>
+  </div>
+
+  <!-- ── Demand (ON only) ── -->
+  <div class="section-head" id="demand-head">
+    <h2>How much power Ontario actually uses</h2>
+    <p class="sec-sub">Monthly mean and peak Ontario demand — real IESO-published figures, not derived from the fuel-mix totals above.</p>
+  </div>
+  <div class="card" id="demand-card">
+    <div class="card-title-row">
+      <span class="card-title" id="demand-title">Loading…</span>
+      <div class="chart-legend-inline" id="demand-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="demand-chart"></svg></div>
+    <p class="note" id="demand-note"></p>
+  </div>
+
+  <!-- ── HOEP price (ON only) ── -->
+  <div class="section-head" id="hoep-head">
+    <h2>What electricity actually traded for</h2>
+    <p class="sec-sub">Hourly Ontario Energy Price, monthly averages — the wholesale market price, not what appears on a household bill (that's dominated by the Global Adjustment, see below).</p>
+  </div>
+  <div class="card" id="hoep-card">
+    <div class="card-title-row">
+      <span class="card-title" id="hoep-title">Loading…</span>
+      <div class="chart-legend-inline" id="hoep-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="hoep-chart"></svg></div>
+    <p class="note" id="hoep-note"></p>
+  </div>
+
+  <!-- ── Intertie flows (ON only, Advanced) ── -->
+  <div class="section-head" id="intertie-head" data-mode="advanced" style="display:none">
+    <h2>Where surplus and shortfall go</h2>
+    <p class="sec-sub">Net monthly flow on Ontario's interties, by neighbouring jurisdiction. Positive = net import to Ontario, negative = net export.</p>
+  </div>
+  <div class="card" id="intertie-card" data-mode="advanced" style="display:none">
+    <div class="card-title-row">
+      <span class="card-title" id="intertie-title">Loading…</span>
+      <div class="chart-legend-inline" id="intertie-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="intertie-chart"></svg></div>
+    <p class="note" id="intertie-note"></p>
+  </div>
+
+  <!-- ── Global Adjustment (ON only, short window) ── -->
+  <div class="section-head" id="ga-head">
+    <h2>The Global Adjustment</h2>
+    <p class="sec-sub">The charge that actually dominates most Ontario electricity bills — usually bigger than the wholesale price above. Shown for as much history as IESO's source retains, which isn't much.</p>
+  </div>
+  <div class="card" id="ga-card">
+    <div class="card-title-row">
+      <span class="card-title" id="ga-title">Loading…</span>
+    </div>
+    <div class="cw cw-md"><svg id="ga-chart"></svg></div>
+    <p class="note" id="ga-note"></p>
+  </div>
+
+  <!-- ── Last 24 hours: chart pair ── -->
+  <div class="section-head">
+    <h2 id="h2-24h">The last 24 hours</h2>
+    <p class="sec-sub">Generation by fuel (share of total) above, grid-average emissions intensity below — same hour on both, hover to line them up.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title" id="day24-title">Loading…</span>
+      <div class="chart-legend-inline" id="day24-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="day24-mix"></svg></div>
+    <div class="cw cw-md" style="margin-top:6px"><svg id="day24-ef"></svg></div>
+    <p class="note">"Average" intensity = the grid's whole generation mix that hour. IESO/AESO fuel categories; hydro, nuclear, wind, solar and biofuel counted as zero direct-combustion emissions (see <a href="HeatPump/METHODOLOGY.md" target="_blank" rel="noopener">HeatPump/METHODOLOGY.md</a>).</p>
+  </div>
+
+  <!-- ── Last 12 months: daily band ── -->
+  <div class="section-head">
+    <h2>The last 12 months</h2>
+    <p class="sec-sub">Daily average emissions intensity — the shaded band is each day's min–max range, the line is the daily mean.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title" id="band-title">Loading…</span>
+    </div>
+    <div class="cw cw-lg"><svg id="band-ef"></svg></div>
+    <p class="note" id="band-note"></p>
+  </div>
+
+  <!-- ── Average vs marginal explainer ── -->
+  <div class="section-head">
+    <h2>Average vs. marginal — which number matters?</h2>
+    <p class="sec-sub">The same grid, two honest answers, and they don't agree.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <span class="card-title">Right now, per kWh</span>
+      <div class="basis-toggle" role="group" aria-label="Emissions basis">
+        <button type="button" class="basis-btn active" data-basis="avg" onclick="setBasis('avg')">Average</button>
+        <button type="button" class="basis-btn" data-basis="marg" onclick="setBasis('marg')">Marginal</button>
+      </div>
+    </div>
+    <div class="basis-panel">
+      <div class="basis-num" id="basis-num">—<span>g CO₂e/kWh</span></div>
+      <div class="basis-copy" id="basis-copy"></div>
+    </div>
+    <a class="basis-link" href="heatpump.html">See how this changes the heat-pump verdict — the Heat Pump Explorer's default assumption →</a>
+    <p class="note">"Average" is the whole grid's mix this hour — what an emissions inventory uses. "Marginal" is the fuel that ramps to cover one more kWh of demand right now — what a *new* load like a heat pump or an EV actually causes, because the clean baseload (nuclear, hydro) was already running flat out. The two agree only when the marginal fuel happens to match the average mix, which rarely holds. Full reasoning in <a href="HeatPump/METHODOLOGY.md" target="_blank" rel="noopener">HeatPump/METHODOLOGY.md</a> §Phase 1.</p>
+  </div>
+
+  <!-- ── Typical day by season (Advanced) ── -->
+  <div class="section-head" data-mode="advanced" style="display:none">
+    <h2>A typical day, by season</h2>
+    <p class="sec-sub" id="seasonal-sub">Multi-year hourly average, not "today" — see the note below.</p>
+  </div>
+  <div class="card" data-mode="advanced" style="display:none">
+    <div class="card-title-row">
+      <span class="card-title">Average emissions intensity by hour of day</span>
+      <div class="chart-legend-inline" id="seasonal-legend"></div>
+    </div>
+    <div class="cw cw-lg"><svg id="seasonal-ef"></svg></div>
+    <p class="note" id="seasonal-note"></p>
+  </div>
+
+  <!-- ── AB staleness (shown only when AB selected) ── -->
+  <div class="stale-note" id="ab-stale-note" style="display:none">
+    <span>⚠️</span>
+    <span><b>Alberta isn't live.</b> There's no scriptable public feed for recent AESO data — the CSD generation files are Box-hosted with no direct-download URL, and AESO's real-time API needs a registered key nobody here has. Alberta's numbers only update when a new file is manually dropped in, so they lag Ontario. Ontario <em>is</em> fully live, re-fetched every weekly refresh.</span>
+  </div>
+
+  <!-- ── Quebec context card ── -->
+  <div class="section-head">
+    <h2>Quebec, for context</h2>
+    <p class="sec-sub">Not a live series — Hydro-Québec's grid is &gt;99% hydro and wind, so a full live pipeline isn't warranted for what's essentially a flat line.</p>
+  </div>
+  <div class="card qc-card">
+    <div class="qc-big" id="qc-big">—</div>
+    <div class="qc-copy">
+      <p><b id="qc-headline">Loading…</b></p>
+      <p id="qc-sub" style="color:var(--muted);margin-top:4px"></p>
+      <div class="qc-years" id="qc-years"></div>
+    </div>
+  </div>
+
+  <!-- ── Sources ── -->
+  <div class="card">
+    <details class="data-details">
+      <summary>Data sources &amp; methodology</summary>
+      <div style="margin-top:.6rem;font-size:13px;color:var(--text);line-height:1.7">
+        <p><b>Ontario, recent (last 24h / 12mo):</b> IESO Generator Output by Fuel Type Hourly (reports-public.ieso.ca) — fully live, re-fetched every run.</p>
+        <p><b>Ontario, historical (generation mix, capacity, demand, price, interties, Global Adjustment):</b> six further IESO reports (Generator Output by Fuel Type Monthly, Generator Output and Capability Month, Hourly Demand, HOEP Monthly Averages, Yearly Intertie Schedule and Flow, Global Adjustment Class B Rates) — see <a href="Python/grid_history_etl.py" target="_blank" rel="noopener">Python/grid_history_etl.py</a> for exactly which report backs which chart, and why each one starts in a different year (each source's own retention/archive limit, stated plainly rather than padded or truncated to match the others).</p>
+        <p><b>Alberta:</b> AESO CSD Generation (Hourly) — manually refreshed from Box-hosted files, not live. Fuel mix and capacity factor go back to 2015; Alberta has no equivalent to Ontario's demand/HOEP/intertie/Global-Adjustment reports (those are IESO-specific market mechanisms).</p>
+        <p><b>Quebec:</b> Hydro-Québec hourly generation by source — manually refreshed, static context only.</p>
+        <p style="margin-top:6px">Gas/coal emission factors are calibrated against The Atmospheric Fund (Ontario) and Alberta.ca's published NIR-sourced generation intensity — see <a href="HeatPump/METHODOLOGY.md" target="_blank" rel="noopener">HeatPump/METHODOLOGY.md</a> for the full derivation, and <a href="docs/GRID.md" target="_blank" rel="noopener">docs/GRID.md</a> for this page's data layer. The "typical day by season" panel (Advanced) reuses the Heat Pump tool's own multi-year hourly Phase-1 output rather than re-deriving anything — see <a href="Python/build_grid_seasonal.py" target="_blank" rel="noopener">Python/build_grid_seasonal.py</a>.</p>
+        <p style="margin-top:6px" id="meta-generated"></p>
+      </div>
+    </details>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  Data: <a href="https://www.ieso.ca/" target="_blank" rel="noopener">IESO</a> · <a href="https://www.aeso.ca/" target="_blank" rel="noopener">AESO</a> · <a href="https://www.hydroquebec.com/" target="_blank" rel="noopener">Hydro-Québec</a> — refreshed weekly (Ontario live, Alberta/Quebec manual)<br>
+  Emission factors are a direct-combustion screening model, not an official government inventory figure. See methodology for caveats.<br>
+  Website, data pipeline and python scripts were developed using Claude AI.
+</footer>
+
+<div class="chart-tip" id="chart-tip"></div>
+
+<script>
+// ── BASE_URL / fetch pattern (same as retrofits.html) ─────────────────
+const BASE_URL='./';   // data ships on gh-pages next to this page (same origin)
+const GRID_JSON_BASE=`${BASE_URL}grid_json/`;
+function fetchJSON(url){
+  return fetch(url).then(r=>{
+    if(!r.ok)throw new Error(`fetch failed (${r.status}): ${url}`);
+    return r.json();
+  });
+}
+
+// ── Palette (retrofits.html's readPalette() pattern, trimmed to what
+//    this page's charts need) ───────────────────────────────────────
+const PAL={};
+function hexToRgb(hex){
+  const h=(hex||'').replace('#','');
+  return h.length>=6?[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]:[128,128,128];
+}
+function mix(a,b,t){
+  const A=hexToRgb(a),B=hexToRgb(b);
+  return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  Object.assign(PAL,{
+    primary:g('--d-primary'),secondary:g('--d-secondary'),
+    pos:g('--d-pos'),neg:g('--d-neg'),blue:g('--d-blue'),purple:g('--d-purple'),
+    track:g('--d-track'),axis:g('--d-axis'),tick:g('--d-tick'),grid:g('--d-grid'),
+    text:g('--text'),muted:g('--muted'),light:g('--light'),card:g('--card'),
+  });
+  // Fuel colours are fixed identities (a fuel should always read the same
+  // colour), but pulled from theme vars where one already fits so they
+  // still shift sensibly in dark/cb mode rather than clashing with it.
+  FUEL_COLORS.GAS=PAL.neg; FUEL_COLORS.COAL=mix(PAL.neg,'#000000',.28);
+  FUEL_COLORS.NUCLEAR=PAL.primary; FUEL_COLORS.HYDRO=PAL.blue;
+  FUEL_COLORS.WIND=mix(PAL.blue,PAL.card,.35); FUEL_COLORS.SOLAR=PAL.secondary;
+  FUEL_COLORS.BIOFUEL=mix('#6B4C2A',PAL.card,.05);
+  FUEL_COLORS['DUAL FUEL']=PAL.purple; FUEL_COLORS['ENERGY STORAGE']=PAL.muted;
+  FUEL_COLORS.OTHER=PAL.light;
+}
+const FUEL_COLORS={}; // filled by readPalette()
+function fuelColor(f){ return FUEL_COLORS[f]||PAL.light||'#8A9BB0'; }
+// Display order: clean baseload -> clean variable -> emitters, so the
+// stacked chart reads "clean at the bottom, dirty on top".
+const FUEL_ORDER=['NUCLEAR','HYDRO','WIND','SOLAR','BIOFUEL','OTHER','ENERGY STORAGE','DUAL FUEL','GAS','COAL'];
+function titleCaseFuel(f){ return f.split(' ').map(w=>w[0]+w.slice(1).toLowerCase()).join(' '); }
+
+const THEMES=['light','dark','cb'];
+function initTheme(){
+  let t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(!THEMES.includes(t)){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+  readPalette();
+  syncThemeButtons(t);
+}
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  readPalette();
+  syncThemeButtons(t);
+  if(DATA)renderAll();
+}
+function isAdvancedMode(){return document.body.classList.contains('mode-advanced');}
+function setViewMode(mode){
+  if(mode!=='advanced')mode='simple';
+  document.body.className='mode-'+mode;
+  try{localStorage.setItem('viewMode',mode);}catch(e){}
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===mode));
+  if(DATA){renderSeasonal();renderIntertie();}
+}
+
+// ── Generic SVG chart helpers (construction.html's proven chart-pair
+//    engine — bespoke SVG, not Chart.js, so it stays crisp and animation-
+//    free at any size and needs no external library beyond fonts). ────
+const NS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs,parent){
+  const el=document.createElementNS(NS,tag);
+  for(const k in attrs)el.setAttribute(k,attrs[k]);
+  if(parent)parent.appendChild(el);
+  return el;
+}
+function niceTicks(max,n){
+  n=n||4;
+  if(max<=0)return[0];
+  const raw=max/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(x=>x*mag).filter(x=>x>=raw)[0]||10*mag;
+  const out=[];for(let v=0;v<=max+1e-9;v+=step)out.push(+v.toFixed(6));
+  return out;
+}
+const tipEl=document.getElementById('chart-tip');
+function showTip(html,x,y){
+  tipEl.innerHTML=html;tipEl.style.display='block';
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  let px=x+14,py=y-h-10;
+  if(px+w>window.innerWidth-8)px=x-w-14;
+  if(py<8)py=y+16;
+  tipEl.style.left=px+'px';tipEl.style.top=py+'px';
+}
+function hideTip(){tipEl.style.display='none';}
+function tipRow(color,label,val){
+  return `<div class="tip-row"><span class="tip-dot" style="background:${color}"></span>${label}: <strong style="margin-left:3px">${val}</strong></div>`;
+}
+function hourLabel(h){ // h is 1..24 (hour ENDING at :00 — IESO/AESO convention)
+  const h0=(h-1)%24;
+  const ap=h0<12?'a':'p';
+  let hh=h0%12; if(hh===0)hh=12;
+  return hh+ap;
+}
+let linkGroups={};
+function fireLink(key,m,fromSelf){
+  if(!key||!linkGroups[key])return;
+  linkGroups[key].forEach(f=>{if(f!==fromSelf)f(m,0,0,true);});
+}
+
+// hourStackedShare: 100%-stacked area, x = hour 1..24
+function hourStackedShare(mountId,hours,fuelKeys,cfg){
+  const mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  const W=mount.clientWidth||800,H=mount.clientHeight||240,M={t:8,r:10,b:20,l:36};
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},mount);
+  if(!hours.length){mount.innerHTML='<div class="section-loading">No data.</div>';return;}
+  const X=h=>M.l+(h-1)/23*(W-M.l-M.r);
+  const Y=v=>M.t+(1-v/100)*(H-M.t-M.b);
+  [0,25,50,75,100].forEach(t=>{
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),class:'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end',class:'axis-text'},svg).textContent=t+'%';
+  });
+  for(let h=1;h<=24;h+=3)
+    svgEl('text',{x:X(h),y:H-6,'text-anchor':'middle',class:'axis-text'},svg).textContent=hourLabel(h);
+
+  let cum=hours.map(()=>0);
+  fuelKeys.forEach(f=>{
+    const top=[],bot=[];
+    hours.forEach((row,i)=>{
+      const v=(row.fuel_mix[f]||0)*100;
+      bot.push(cum[i]);
+      cum[i]+=v;
+      top.push(cum[i]);
+    });
+    let d='M'+X(hours[0].hour).toFixed(1)+' '+Y(bot[0]).toFixed(1);
+    hours.forEach((row,i)=>{d+=' L'+X(row.hour).toFixed(1)+' '+Y(top[i]).toFixed(1);});
+    for(let i=hours.length-1;i>=0;i--)d+=' L'+X(hours[i].hour).toFixed(1)+' '+Y(bot[i]).toFixed(1);
+    d+=' Z';
+    svgEl('path',{d,fill:fuelColor(f),opacity:.92},svg);
+  });
+
+  const hover=svgEl('line',{y1:M.t,y2:H-M.b,class:'hover-line',style:'display:none'},svg);
+  function onHover(h,cx,cy,fromLink){
+    if(h==null){hover.style.display='none';if(!fromLink)hideTip();return;}
+    hover.style.display='';hover.setAttribute('x1',X(h));hover.setAttribute('x2',X(h));
+    if(fromLink)return;
+    const row=hours.find(r=>r.hour===h);
+    if(!row)return;
+    let rows=`<strong>${hourLabel(h)} · ${row.total_mw.toLocaleString('en-CA')} MW</strong>`;
+    [...fuelKeys].reverse().forEach(f=>{
+      const v=row.fuel_mix[f]||0;
+      if(Math.abs(v)<0.005)return;
+      rows+=tipRow(fuelColor(f),titleCaseFuel(f),(v*100).toFixed(1)+'%');
+    });
+    showTip(rows,cx,cy);
+  }
+  const ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect();
+    const h=Math.max(1,Math.min(24,Math.round(1+(e.clientX-r.left-M.l)/(W-M.l-M.r)*23)));
+    onHover(h,e.clientX,e.clientY,false);
+    fireLink(cfg&&cfg.linkKey,h,onHover);
+  });
+  ov.addEventListener('mouseleave',()=>{onHover(null);fireLink(cfg&&cfg.linkKey,null,onHover);});
+  if(cfg&&cfg.linkKey){linkGroups[cfg.linkKey]=linkGroups[cfg.linkKey]||[];linkGroups[cfg.linkKey].push(onHover);}
+}
+
+// hourLineChart: 1+ lines, x = hour 1..24. series: [{label,color,get(row)}]
+function hourLineChart(mountId,hours,series,cfg){
+  const mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  const W=mount.clientWidth||800,H=mount.clientHeight||170,M={t:10,r:10,b:20,l:36};
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},mount);
+  if(!hours.length){mount.innerHTML='<div class="section-loading">No data.</div>';return;}
+  let vmax=0;
+  hours.forEach(row=>series.forEach(s=>{const v=s.get(row);if(v!=null&&v>vmax)vmax=v;}));
+  vmax=(cfg&&cfg.yMax!=null)?cfg.yMax:vmax*1.15||1;
+  const X=h=>M.l+(h-1)/23*(W-M.l-M.r);
+  const Y=v=>M.t+(1-v/vmax)*(H-M.t-M.b);
+  niceTicks(vmax).forEach(t=>{
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),class:'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end',class:'axis-text'},svg).textContent=t;
+  });
+  for(let h=1;h<=24;h+=3)
+    svgEl('text',{x:X(h),y:H-6,'text-anchor':'middle',class:'axis-text'},svg).textContent=hourLabel(h);
+  series.forEach(s=>{
+    let d='';
+    hours.forEach((row,i)=>{
+      const v=s.get(row); if(v==null)return;
+      d+=(i===0?' M':' L')+X(row.hour).toFixed(1)+' '+Y(v).toFixed(1);
+    });
+    svgEl('path',{d:d.trim(),fill:'none',stroke:s.color,'stroke-width':2.2,'stroke-dasharray':s.dash||'','stroke-linejoin':'round','stroke-linecap':'round'},svg);
+  });
+  const hover=svgEl('line',{y1:M.t,y2:H-M.b,class:'hover-line',style:'display:none'},svg);
+  function onHover(h,cx,cy,fromLink){
+    if(h==null){hover.style.display='none';if(!fromLink)hideTip();return;}
+    hover.style.display='';hover.setAttribute('x1',X(h));hover.setAttribute('x2',X(h));
+    if(fromLink)return;
+    const row=hours.find(r=>r.hour===h);
+    if(!row)return;
+    let rows=`<strong>${hourLabel(h)}</strong>`;
+    series.forEach(s=>{const v=s.get(row);if(v!=null)rows+=tipRow(s.color,s.label,v.toFixed(1)+' g/kWh');});
+    showTip(rows,cx,cy);
+  }
+  const ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect();
+    const h=Math.max(1,Math.min(24,Math.round(1+(e.clientX-r.left-M.l)/(W-M.l-M.r)*23)));
+    onHover(h,e.clientX,e.clientY,false);
+    fireLink(cfg&&cfg.linkKey,h,onHover);
+  });
+  ov.addEventListener('mouseleave',()=>{onHover(null);fireLink(cfg&&cfg.linkKey,null,onHover);});
+  if(cfg&&cfg.linkKey){linkGroups[cfg.linkKey]=linkGroups[cfg.linkKey]||[];linkGroups[cfg.linkKey].push(onHover);}
+}
+
+// dayBandChart: shaded min-max band + mean line, x = day index over ~12 months
+function dayBandChart(mountId,days,cfg){
+  const mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  const W=mount.clientWidth||900,H=mount.clientHeight||250,M={t:10,r:14,b:22,l:40};
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},mount);
+  if(!days.length){mount.innerHTML='<div class="section-loading">No data yet — first weekly refresh still pending.</div>';return;}
+  const n=days.length;
+  const vmax=Math.max(...days.map(d=>d.max))*1.08||1;
+  const X=i=>M.l+i/(n-1||1)*(W-M.l-M.r);
+  const Y=v=>M.t+(1-v/vmax)*(H-M.t-M.b);
+  niceTicks(vmax).forEach(t=>{
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),class:'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end',class:'axis-text'},svg).textContent=t;
+  });
+  // month-boundary ticks
+  let lastMonth=null;
+  days.forEach((d,i)=>{
+    const m=d.date.slice(0,7);
+    if(m!==lastMonth){
+      svgEl('text',{x:X(i),y:H-6,'text-anchor':'middle',class:'axis-text'},svg)
+        .textContent=new Date(d.date+'T00:00:00').toLocaleDateString('en-CA',{month:'short'});
+      lastMonth=m;
+    }
+  });
+  let bandD='M'+X(0)+' '+Y(days[0].min);
+  days.forEach((d,i)=>{bandD+=' L'+X(i).toFixed(1)+' '+Y(d.max).toFixed(1);});
+  for(let i=n-1;i>=0;i--)bandD+=' L'+X(i).toFixed(1)+' '+Y(days[i].min).toFixed(1);
+  bandD+=' Z';
+  svgEl('path',{d:bandD,fill:PAL.primary,opacity:.14},svg);
+  let meanD='';
+  days.forEach((d,i)=>{meanD+=(i===0?' M':' L')+X(i).toFixed(1)+' '+Y(d.mean).toFixed(1);});
+  svgEl('path',{d:meanD.trim(),fill:'none',stroke:PAL.primary,'stroke-width':2,'stroke-linejoin':'round'},svg);
+
+  const hover=svgEl('line',{y1:M.t,y2:H-M.b,class:'hover-line',style:'display:none'},svg);
+  const ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect();
+    const i=Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left-M.l)/(W-M.l-M.r)*(n-1))));
+    const d=days[i];
+    hover.style.display='';hover.setAttribute('x1',X(i));hover.setAttribute('x2',X(i));
+    const label=new Date(d.date+'T00:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+    showTip(`<strong>${label}</strong>`+tipRow(PAL.primary,'mean',d.mean.toFixed(1)+' g/kWh')+tipRow(mix(PAL.primary,PAL.card,.55),'range',d.min.toFixed(1)+'–'+d.max.toFixed(1)),e.clientX,e.clientY);
+  });
+  ov.addEventListener('mouseleave',()=>{hover.style.display='none';hideTip();});
+}
+
+// ── Month-indexed charts (generation mix / capacity / demand / price /
+//    intertie all share this x-axis shape: N months, evenly spaced, N
+//    varies per metric since each source's own history starts on a
+//    different date — see grid_history_etl.py docstring). Deliberately NOT
+//    the same function as hourStackedShare/hourLineChart above: those are
+//    hardcoded to a fixed 1..24 hour axis, these take an arbitrary row
+//    count and a "month" string per row. ──────────────────────────────
+function monthTickStep(n){ return Math.max(1,Math.ceil(n/9)); }
+function monthLabel(m,withYear){
+  const d=new Date(m+'-01T00:00:00');
+  return d.toLocaleDateString('en-CA',withYear?{month:'short',year:'2-digit'}:{month:'short'});
+}
+function drawMonthTicks(svg,rows,X,H,M){
+  const step=monthTickStep(rows.length);
+  let lastYear=null;
+  rows.forEach((row,i)=>{
+    if(i%step!==0)return;
+    const yr=row.month.slice(0,4);
+    svgEl('text',{x:X(i),y:H-6,'text-anchor':'middle',class:'axis-text'},svg).textContent=monthLabel(row.month,yr!==lastYear);
+    lastYear=yr;
+  });
+}
+
+// monthStackedShare: 100%-stacked area by fuel, x = month index
+function monthStackedShare(mountId,rows,fuelKeys,getFrac,cfg){
+  const mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  const W=mount.clientWidth||900,H=mount.clientHeight||250,M={t:8,r:10,b:22,l:36};
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},mount);
+  if(!rows.length){mount.innerHTML='<div class="section-loading">No data.</div>';return;}
+  const n=rows.length;
+  const X=i=>M.l+i/(n-1||1)*(W-M.l-M.r);
+  const Y=v=>M.t+(1-v/100)*(H-M.t-M.b);
+  [0,25,50,75,100].forEach(t=>{
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),class:'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end',class:'axis-text'},svg).textContent=t+'%';
+  });
+  drawMonthTicks(svg,rows,X,H,M);
+
+  let cum=rows.map(()=>0);
+  fuelKeys.forEach(f=>{
+    const top=[],bot=[];
+    rows.forEach((row,i)=>{
+      const v=getFrac(row,f)*100;
+      bot.push(cum[i]);
+      cum[i]+=v;
+      top.push(cum[i]);
+    });
+    let d='M'+X(0).toFixed(1)+' '+Y(bot[0]).toFixed(1);
+    rows.forEach((row,i)=>{d+=' L'+X(i).toFixed(1)+' '+Y(top[i]).toFixed(1);});
+    for(let i=n-1;i>=0;i--)d+=' L'+X(i).toFixed(1)+' '+Y(bot[i]).toFixed(1);
+    d+=' Z';
+    svgEl('path',{d,fill:fuelColor(f),opacity:.92},svg);
+  });
+
+  const hover=svgEl('line',{y1:M.t,y2:H-M.b,class:'hover-line',style:'display:none'},svg);
+  const ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect();
+    const i=Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left-M.l)/(W-M.l-M.r)*(n-1))));
+    const row=rows[i];
+    hover.style.display='';hover.setAttribute('x1',X(i));hover.setAttribute('x2',X(i));
+    let tip=`<strong>${monthLabel(row.month,true)}</strong>`;
+    [...fuelKeys].reverse().forEach(f=>{
+      const v=getFrac(row,f);
+      if(Math.abs(v)<0.005)return;
+      tip+=tipRow(fuelColor(f),titleCaseFuel(f),(v*100).toFixed(1)+'%');
+    });
+    showTip(tip,e.clientX,e.clientY);
+  });
+  ov.addEventListener('mouseleave',()=>{hover.style.display='none';hideTip();});
+}
+
+// monthLineChart: 1+ lines by month, y-domain auto-fit (can go negative,
+// e.g. intertie net flow). series: [{label,color,get(row)=>num|null,dash}]
+function monthLineChart(mountId,rows,series,cfg){
+  cfg=cfg||{};
+  const mount=document.getElementById(mountId);
+  mount.innerHTML='';
+  const W=mount.clientWidth||900,H=mount.clientHeight||250,M={t:10,r:10,b:22,l:44};
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},mount);
+  if(!rows.length){mount.innerHTML='<div class="section-loading">No data.</div>';return;}
+  const n=rows.length;
+  let vmin=0,vmax=0;
+  rows.forEach(row=>series.forEach(s=>{const v=s.get(row);if(v==null)return;if(v>vmax)vmax=v;if(v<vmin)vmin=v;}));
+  if(cfg.yMax!=null)vmax=cfg.yMax; else vmax=vmax*1.12||1;
+  if(cfg.yMin!=null)vmin=cfg.yMin; else if(vmin<0)vmin=vmin*1.12;
+  const X=i=>M.l+i/(n-1||1)*(W-M.l-M.r);
+  const Y=v=>M.t+(1-(v-vmin)/(vmax-vmin||1))*(H-M.t-M.b);
+  niceTicks(Math.max(vmax,-vmin)).forEach(t=>{
+    (t===0?[0]:[t,-t]).forEach(tv=>{
+      if(tv<vmin||tv>vmax)return;
+      svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(tv),y2:Y(tv),class:'axis-line'},svg);
+      svgEl('text',{x:M.l-6,y:Y(tv)+3,'text-anchor':'end',class:'axis-text'},svg).textContent=cfg.pct?(tv*100).toFixed(0)+'%':tv.toLocaleString('en-CA');
+    });
+  });
+  if(vmin<0){svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(0),y2:Y(0),class:'axis-line',style:'opacity:.7'},svg);}
+  drawMonthTicks(svg,rows,X,H,M);
+
+  series.forEach(s=>{
+    let d='',started=false;
+    rows.forEach((row,i)=>{
+      const v=s.get(row);
+      if(v==null){started=false;return;}
+      d+=(!started?' M':' L')+X(i).toFixed(1)+' '+Y(v).toFixed(1);
+      started=true;
+    });
+    svgEl('path',{d:d.trim(),fill:'none',stroke:s.color,'stroke-width':2.2,'stroke-dasharray':s.dash||'','stroke-linejoin':'round','stroke-linecap':'round'},svg);
+  });
+
+  const hover=svgEl('line',{y1:M.t,y2:H-M.b,class:'hover-line',style:'display:none'},svg);
+  const ov=svgEl('rect',{x:M.l,y:M.t,width:W-M.l-M.r,height:H-M.t-M.b,fill:'transparent'},svg);
+  ov.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect();
+    const i=Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left-M.l)/(W-M.l-M.r)*(n-1))));
+    const row=rows[i];
+    hover.style.display='';hover.setAttribute('x1',X(i));hover.setAttribute('x2',X(i));
+    let tip=`<strong>${monthLabel(row.month,true)}</strong>`;
+    series.forEach(s=>{
+      const v=s.get(row);
+      if(v==null)return;
+      tip+=tipRow(s.color,s.label,cfg.pct?(v*100).toFixed(1)+'%':(cfg.fmt?cfg.fmt(v):v.toLocaleString('en-CA')));
+    });
+    showTip(tip,e.clientX,e.clientY);
+  });
+  ov.addEventListener('mouseleave',()=>{hover.style.display='none';hideTip();});
+}
+
+// ── Data loading & derivation ──────────────────────────────────────
+let DATA={ON:null,AB:null,QC:null,META:null,TYPICAL:{ON:null,AB:null},HIST:{ON:null,AB:null}};
+let PROV='ON';
+
+function dayKey(date){return date;}
+// Merge grid_json's {daily[], recent_hourly[]} into one continuous
+// day-by-day min/mean/max series (see grid_etl.py docstring: daily covers
+// the older ~350 days, recent_hourly the last 14 — they don't overlap).
+function mergedDaily(g){
+  const byDay={};
+  (g.daily||[]).forEach(d=>{byDay[d.date]={date:d.date,min:d.avg_ef_min,mean:d.avg_ef_mean,max:d.avg_ef_max};});
+  const recentByDay={};
+  (g.recent_hourly||[]).forEach(r=>{
+    (recentByDay[r.date]=recentByDay[r.date]||[]).push(r.avg_ef);
+  });
+  Object.keys(recentByDay).forEach(date=>{
+    const vs=recentByDay[date];
+    byDay[date]={date,min:Math.min(...vs),mean:vs.reduce((a,b)=>a+b,0)/vs.length,max:Math.max(...vs)};
+  });
+  return Object.values(byDay).sort((a,b)=>a.date<b.date?-1:1);
+}
+function latestFullDay(g){
+  const hs=g.recent_hourly||[];
+  if(!hs.length)return[];
+  const maxDate=hs.reduce((m,r)=>r.date>m?r.date:m,hs[0].date);
+  return hs.filter(r=>r.date===maxDate).sort((a,b)=>a.hour-b.hour);
+}
+function latestHour(g){
+  const hs=g.recent_hourly||[];
+  return hs.length?hs.reduce((m,r)=>(r.date>m.date||(r.date===m.date&&r.hour>m.hour))?r:m,hs[0]):null;
+}
+function fuelKeysFor(g){
+  return (g.meta.fuels||[]).slice().sort((a,b)=>FUEL_ORDER.indexOf(a)-FUEL_ORDER.indexOf(b));
+}
+
+function setProvince(p){
+  PROV=p;
+  document.querySelectorAll('.prov-btn').forEach(b=>b.classList.toggle('active',b.dataset.prov===p));
+  if(DATA.ON)renderAll();
+}
+let CURRENT_BASIS='avg';
+function setBasis(b){
+  CURRENT_BASIS=b;
+  document.querySelectorAll('.basis-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.basis===b));
+  renderBasis();
+}
+
+function fmtDate(d){return new Date(d+'T00:00:00').toLocaleDateString('en-CA',{month:'long',day:'numeric',year:'numeric'});}
+
+function renderKPIs(){
+  const g=DATA[PROV];
+  const last=latestHour(g);
+  const kpi=document.getElementById('kpi-row');
+  if(!last){kpi.innerHTML='';return;}
+  const topFuel=Object.entries(last.fuel_mix).sort((a,b)=>b[1]-a[1])[0];
+  kpi.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Average intensity, latest hour</div><div class="stat-value">${last.avg_ef.toFixed(0)}</div><div class="stat-sub">g CO₂e/kWh</div></div>
+    <div class="stat-card"><div class="stat-label">Marginal intensity, latest hour</div><div class="stat-value">${last.marginal_ef.toFixed(0)}</div><div class="stat-sub">g CO₂e/kWh</div></div>
+    <div class="stat-card"><div class="stat-label">Total generation</div><div class="stat-value">${(last.total_mw/1000).toFixed(1)}</div><div class="stat-sub">GW, ${last.date} ${hourLabel(last.hour)}</div></div>
+    <div class="stat-card"><div class="stat-label">Largest source, latest hour</div><div class="stat-value" style="font-size:1.4rem;color:${fuelColor(topFuel[0])}">${titleCaseFuel(topFuel[0])}</div><div class="stat-sub">${(topFuel[1]*100).toFixed(0)}% of generation</div></div>
+  `;
+}
+
+function renderDay24(){
+  const g=DATA[PROV];
+  const hours=latestFullDay(g);
+  const fuels=fuelKeysFor(g);
+  document.getElementById('day24-title').textContent=hours.length?`${PROV} · ${fmtDate(hours[0].date)}`:`${PROV}`;
+  document.getElementById('day24-legend').innerHTML=fuels.map(f=>
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${fuelColor(f)}"></span>${titleCaseFuel(f)}</span>`
+  ).join('');
+  hourStackedShare('day24-mix',hours,fuels,{linkKey:'day24'});
+  const series=[{label:'Average',color:PAL.primary,get:r=>r.avg_ef}];
+  if(isAdvancedMode())series.push({label:'Marginal',color:PAL.secondary,dash:'4,3',get:r=>r.marginal_ef});
+  hourLineChart('day24-ef',hours,series,{linkKey:'day24'});
+}
+
+function renderBand(){
+  const g=DATA[PROV];
+  const days=mergedDaily(g);
+  document.getElementById('band-title').textContent=`${PROV} · daily average emissions intensity, g CO₂e/kWh`;
+  dayBandChart('band-ef',days);
+  const first=days[0],last=days[days.length-1];
+  document.getElementById('band-note').textContent=first&&last
+    ?`${fmtDate(first.date)} to ${fmtDate(last.date)} (${days.length} days). Data source: ${g.meta.source}.`
+    :'';
+}
+
+function renderBasis(){
+  const g=DATA[PROV];
+  const last=latestHour(g);
+  if(!last)return;
+  const v=CURRENT_BASIS==='avg'?last.avg_ef:last.marginal_ef;
+  document.getElementById('basis-num').innerHTML=`${v.toFixed(0)}<span>g CO₂e/kWh</span>`;
+  const ratio=last.avg_ef>0?(last.marginal_ef/last.avg_ef):null;
+  const copy=CURRENT_BASIS==='avg'
+    ? `This is <b>${PROV}</b>'s whole generation mix blended together, right now — the number an annual emissions inventory would use. It looks clean because nuclear/hydro/wind are doing most of the work.`
+    : `This is what actually turns on to cover <b>one more kWh</b> of demand right now — in ${PROV}, that's almost always the gas${PROV==='AB'?'/coal':''} fleet, because the clean baseload was already committed. ${ratio&&ratio>1.05?`That's <b>${ratio.toFixed(1)}×</b> dirtier than the average number above.`:''}`;
+  document.getElementById('basis-copy').innerHTML=copy;
+}
+
+function renderSeasonal(){
+  if(!isAdvancedMode())return;
+  const t=DATA.TYPICAL[PROV];
+  if(!t){document.getElementById('seasonal-ef').closest('.cw').innerHTML='<div class="section-loading">No seasonal data for this province.</div>';return;}
+  const SEASON_COLORS={winter:PAL.blue,spring:PAL.pos,summer:PAL.secondary,fall:mix(PAL.neg,PAL.card,.15)};
+  const order=['winter','spring','summer','fall'];
+  document.getElementById('seasonal-legend').innerHTML=order.map(s=>
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${SEASON_COLORS[s]}"></span>${s[0].toUpperCase()+s.slice(1)}</span>`
+  ).join('');
+  // Build a common 1..24 hour axis; each season's rows already keyed by hour.
+  const byHour=order.reduce((acc,s)=>{acc[s]={};(t.seasons[s]||[]).forEach(r=>{acc[s][r.hour]=r;});return acc;},{});
+  const hours=Array.from({length:24},(_,i)=>({hour:i+1}));
+  const series=order.map(s=>({label:s[0].toUpperCase()+s.slice(1),color:SEASON_COLORS[s],get:row=>{const r=byHour[s][row.hour];return r?r.avg_ef_mean:null;}}));
+  hourLineChart('seasonal-ef',hours,series,{});
+  document.getElementById('seasonal-note').textContent=
+    `Multi-year hourly average, ${t.date_range[0]} to ${t.date_range[1]} — not "today". `+
+    `${PROV}'s grid has gotten dirtier over that window (more gas dispatched in recent years), `+
+    `so today's actual intensity likely runs above these historical-average lines. Source: ${t.methodology}`;
+}
+
+function renderAB(){
+  document.getElementById('ab-stale-note').style.display=(PROV==='AB')?'flex':'none';
+}
+
+// ── Deep-history sections (grid_on_history.json / grid_ab_history.json —
+//    see Python/grid_history_etl.py). ON-only metrics (demand/HOEP/
+//    intertie/GA) hide their whole section+card when Alberta is selected,
+//    same pattern as the AB staleness note above. ─────────────────────
+function histFuelKeys(g){ return (g.meta.fuels||[]).slice().sort((a,b)=>FUEL_ORDER.indexOf(a)-FUEL_ORDER.indexOf(b)); }
+function monthSpan(rows){ return rows.length?monthLabel(rows[0].month,true)+' – '+monthLabel(rows[rows.length-1].month,true):'—'; }
+
+function renderHistMix(){
+  const g=DATA.HIST[PROV];
+  if(!g){document.getElementById('histmix-mix').closest('.cw').innerHTML='<div class="section-loading">No historical data.</div>';return;}
+  const rows=(g.monthly||[]).filter(r=>r.fuel_mix);
+  const fuels=histFuelKeys(g);
+  document.getElementById('histmix-title').textContent=`${PROV} · monthly share of generation, ${monthSpan(rows)}`;
+  document.getElementById('histmix-legend').innerHTML=fuels.map(f=>
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${fuelColor(f)}"></span>${titleCaseFuel(f)}</span>`
+  ).join('');
+  monthStackedShare('histmix-mix',rows,fuels,(row,f)=>row.fuel_mix[f]||0,{});
+  document.getElementById('histmix-note').textContent=`${rows.length} months. Source: ${g.meta.sources.fuel_mix}.`;
+}
+
+function renderHistCap(){
+  const g=DATA.HIST[PROV];
+  if(!g){document.getElementById('histcap-chart').closest('.cw').innerHTML='<div class="section-loading">No capacity data.</div>';return;}
+  const rows=(g.monthly||[]).filter(r=>r.capacity_factor);
+  const capFuels=Array.from(new Set(rows.flatMap(r=>Object.keys(r.capacity_factor))))
+    .sort((a,b)=>FUEL_ORDER.indexOf(a)-FUEL_ORDER.indexOf(b));
+  document.getElementById('histcap-title').textContent=`${PROV} · capacity factor by fuel type, ${monthSpan(rows)}`;
+  document.getElementById('histcap-legend').innerHTML=capFuels.map(f=>
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${fuelColor(f)}"></span>${titleCaseFuel(f)}</span>`
+  ).join('');
+  const series=capFuels.map(f=>({label:titleCaseFuel(f),color:fuelColor(f),
+    get:row=>row.capacity_factor&&row.capacity_factor[f]!=null?row.capacity_factor[f]:null}));
+  monthLineChart('histcap-chart',rows,series,{pct:true,yMax:1.05,yMin:0});
+  document.getElementById('histcap-note').textContent=`${rows.length} months. ${g.meta.capacity_methodology}`;
+}
+
+function renderDemand(){
+  const show=PROV==='ON';
+  document.getElementById('demand-head').style.display=show?'':'none';
+  document.getElementById('demand-card').style.display=show?'':'none';
+  if(!show)return;
+  const g=DATA.HIST.ON;
+  const rows=(g.monthly||[]).filter(r=>r.demand_mw_mean!=null);
+  document.getElementById('demand-title').textContent=`Ontario · monthly demand, ${monthSpan(rows)}`;
+  document.getElementById('demand-legend').innerHTML=
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${PAL.primary}"></span>Mean</span>`+
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${PAL.secondary}"></span>Peak</span>`;
+  monthLineChart('demand-chart',rows,[
+    {label:'Mean',color:PAL.primary,get:r=>r.demand_mw_mean},
+    {label:'Peak',color:PAL.secondary,dash:'4,3',get:r=>r.demand_mw_peak},
+  ],{fmt:v=>Math.round(v).toLocaleString('en-CA')+' MW'});
+  document.getElementById('demand-note').textContent=`${rows.length} months. "Ontario Demand" (province's own consumption), not "Market Demand" (which also includes scheduled exports). Source: ${g.meta.sources.demand}.`;
+}
+
+function renderHOEP(){
+  const show=PROV==='ON';
+  document.getElementById('hoep-head').style.display=show?'':'none';
+  document.getElementById('hoep-card').style.display=show?'':'none';
+  if(!show)return;
+  const g=DATA.HIST.ON;
+  const rows=(g.monthly||[]).filter(r=>r.hoep_weighted_avg!=null);
+  document.getElementById('hoep-title').textContent=`Ontario · HOEP monthly average, $/MWh, ${monthSpan(rows)}`;
+  document.getElementById('hoep-legend').innerHTML=
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${PAL.primary}"></span>Weighted avg</span>`+
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${PAL.light}"></span>Arithmetic avg</span>`;
+  monthLineChart('hoep-chart',rows,[
+    {label:'Weighted avg',color:PAL.primary,get:r=>r.hoep_weighted_avg},
+    {label:'Arithmetic avg',color:PAL.light,dash:'4,3',get:r=>r.hoep_arith_avg},
+  ],{fmt:v=>(v<0?'-$'+(-v).toFixed(2):'$'+v.toFixed(2))});
+  document.getElementById('hoep-note').textContent=`${rows.length} months. Generation-weighted average is the more representative figure (arithmetic treats every hour equally, weighted accounts for how much actually traded then). Source: ${g.meta.sources.hoep}.`;
+}
+
+function renderIntertie(){
+  const show=PROV==='ON'&&isAdvancedMode();
+  document.getElementById('intertie-head').style.display=show?'':'none';
+  document.getElementById('intertie-card').style.display=show?'':'none';
+  if(!show)return;
+  const g=DATA.HIST.ON;
+  const rows=(g.monthly||[]).filter(r=>r.intertie_net_mw);
+  const regions=Array.from(new Set(rows.flatMap(r=>Object.keys(r.intertie_net_mw)))).sort();
+  const REGION_COLORS={QUEBEC:PAL.blue,MANITOBA:PAL.pos,MICHIGAN:PAL.neg,MINNESOTA:PAL.secondary,NEW_YORK:PAL.purple,OTHER:PAL.muted};
+  document.getElementById('intertie-title').textContent=`Ontario · net intertie flow, MW, ${monthSpan(rows)}`;
+  document.getElementById('intertie-legend').innerHTML=regions.map(r=>
+    `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${REGION_COLORS[r]||PAL.muted}"></span>${r.replace('_',' ')}</span>`
+  ).join('');
+  monthLineChart('intertie-chart',rows,regions.map(r=>({label:r.replace('_',' '),color:REGION_COLORS[r]||PAL.muted,
+    get:row=>row.intertie_net_mw[r]!=null?row.intertie_net_mw[r]:null})),{fmt:v=>Math.round(v).toLocaleString('en-CA')+' MW'});
+  document.getElementById('intertie-note').textContent=`${rows.length} months. Positive = net import to Ontario, negative = net export. Individual tie-lines grouped to their parent jurisdiction. Source: ${g.meta.sources.intertie_net_mw}.`;
+}
+
+function renderGA(){
+  const show=PROV==='ON';
+  document.getElementById('ga-head').style.display=show?'':'none';
+  document.getElementById('ga-card').style.display=show?'':'none';
+  if(!show)return;
+  const g=DATA.HIST.ON;
+  const rows=g.global_adjustment_monthly||[];
+  document.getElementById('ga-title').textContent=`Ontario · Global Adjustment Class B rate, $/MWh, ${monthSpan(rows)}`;
+  monthLineChart('ga-chart',rows,[{label:'GA rate',color:PAL.secondary,get:r=>r.rate_cad_per_mwh}],{fmt:v=>(v<0?'-$'+(-v).toFixed(1):'$'+v.toFixed(1))});
+  const lastEst=rows.length&&rows[rows.length-1].rate_type!=='actual';
+  document.getElementById('ga-note').textContent=
+    `${rows.length} months — this is genuinely all the history available: IESO's own source for this report retains no yearly archive, `+
+    `unlike every other chart on this page (confirmed by checking the source directory directly). `+
+    (lastEst?'The most recent month shown is still an estimate, not the finalized actual rate. ':'')+
+    `Source: ${g.meta.sources.global_adjustment}.`;
+}
+
+function renderQC(){
+  const qc=DATA.QC;
+  if(!qc)return;
+  const ctx=qc.context;
+  document.getElementById('qc-big').textContent='≈0';
+  document.getElementById('qc-headline').textContent=
+    `Quebec's grid runs at roughly ${(ctx.avg_ef_g_per_kwh).toFixed(3)} g CO₂e/kWh — essentially zero.`;
+  document.getElementById('qc-sub').textContent=
+    `>99% hydro and wind generation. Last full year (${ctx.last_full_year}): ${ctx.last_full_year_avg_ef_g_per_kwh.toFixed(3)} g/kWh. `+
+    `For comparison, Ontario's average right now is roughly ${latestHour(DATA.ON)?latestHour(DATA.ON).avg_ef.toFixed(0):'—'} g/kWh — Quebec runs at well under 1% of that.`;
+  document.getElementById('qc-years').innerHTML=Object.entries(ctx.annual_g_per_kwh).map(([y,v])=>
+    `<span class="qc-year">${y}: ${v.toFixed(3)} g/kWh</span>`
+  ).join('')+(qc.meta.years_missing&&qc.meta.years_missing.length?`<span class="qc-year">${qc.meta.years_missing.join(', ')} missing from source</span>`:'');
+}
+
+function renderAll(){
+  renderKPIs();
+  renderHistMix();
+  renderHistCap();
+  renderDemand();
+  renderHOEP();
+  renderIntertie();
+  renderGA();
+  renderDay24();
+  renderBand();
+  renderBasis();
+  renderSeasonal();
+  renderAB();
+  document.getElementById('data-through-label').innerHTML=
+    `<strong>${PROV}</strong> data current through ${DATA[PROV].meta.data_through}`;
+}
+
+function boot(){
+  Promise.all([
+    fetchJSON(GRID_JSON_BASE+'grid_on.json'),
+    fetchJSON(GRID_JSON_BASE+'grid_ab.json'),
+    fetchJSON(GRID_JSON_BASE+'grid_qc.json'),
+    fetchJSON(GRID_JSON_BASE+'meta.json'),
+    fetchJSON(GRID_JSON_BASE+'typical_day_on.json').catch(()=>null),
+    fetchJSON(GRID_JSON_BASE+'typical_day_ab.json').catch(()=>null),
+    fetchJSON(GRID_JSON_BASE+'grid_on_history.json').catch(()=>null),
+    fetchJSON(GRID_JSON_BASE+'grid_ab_history.json').catch(()=>null),
+  ]).then(([on,ab,qc,meta,tOn,tAb,histOn,histAb])=>{
+    DATA.ON=on; DATA.AB=ab; DATA.QC=qc; DATA.META=meta;
+    DATA.TYPICAL.ON=tOn; DATA.TYPICAL.AB=tAb;
+    DATA.HIST.ON=histOn; DATA.HIST.AB=histAb;
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('page-body').style.display='block';
+    document.getElementById('meta-generated').textContent=
+      'Last data refresh: '+new Date(meta.generated_at).toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'});
+    renderQC();
+    renderAll();
+  }).catch(err=>{
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('error-msg').style.display='block';
+    document.getElementById('error-detail').textContent=' '+err.message;
+    console.error(err);
+  });
+}
+
+initTheme();
+document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===(isAdvancedMode()?'advanced':'simple')));
+boot();
+
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{if(DATA.ON)renderAll();},200);
+});
+</script>
+</body>
+</html>
