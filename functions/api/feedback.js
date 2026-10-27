@@ -12,6 +12,21 @@ const MAX_BODY_BYTES = 16_384;
 const MAX_COMMENT_LENGTH = 1_200;
 const MAX_CONTEXT_ITEMS = 20;
 const MAX_CONTEXT_ITEM_LENGTH = 200;
+// The same pages are also served from GitHub Pages; allow its cross-origin POSTs.
+const ALLOWED_ORIGINS = new Set(["https://ottawavisuals.github.io"]);
+
+function isAllowedOrigin(request, origin) {
+  return Boolean(origin) && (origin === new URL(request.url).origin || ALLOWED_ORIGINS.has(origin));
+}
+
+function withCors(request, response) {
+  const origin = request.headers.get("origin");
+  if (ALLOWED_ORIGINS.has(origin)) {
+    response.headers.set("access-control-allow-origin", origin);
+    response.headers.set("vary", "Origin");
+  }
+  return response;
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -79,7 +94,7 @@ async function handlePost({ request, env }) {
   }
 
   const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(request.url).origin) {
+  if (!isAllowedOrigin(request, origin)) {
     return json({ error: "Invalid request origin." }, 403);
   }
 
@@ -142,9 +157,22 @@ async function handlePost({ request, env }) {
   return json({ ok: true, alerted });
 }
 
-export function onRequest(context) {
-  if (context.request.method !== "POST") {
-    return json({ error: "Method not allowed." }, 405);
+export async function onRequest(context) {
+  const { request } = context;
+  if (request.method === "OPTIONS") {
+    if (!ALLOWED_ORIGINS.has(request.headers.get("origin"))) return json({ error: "Method not allowed." }, 405);
+    const response = new Response(null, {
+      status: 204,
+      headers: {
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+      },
+    });
+    return withCors(request, response);
   }
-  return handlePost(context);
+  if (request.method !== "POST") {
+    return withCors(request, json({ error: "Method not allowed." }, 405));
+  }
+  return withCors(request, await handlePost(context));
 }

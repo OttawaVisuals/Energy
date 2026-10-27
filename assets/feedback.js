@@ -10,6 +10,8 @@
   var status = root.querySelector('.feedback-status');
   var send = root.querySelector('.feedback-send');
   var rating = '';
+  // GitHub Pages has no /api, so off-madeclear hosts post cross-origin (CORS allow-listed in the function).
+  var API = location.hostname === 'energy.madeclear.ca' ? '/api/feedback' : 'https://energy.madeclear.ca/api/feedback';
 
   choices.forEach(function (choice) {
     choice.addEventListener('click', function () {
@@ -49,9 +51,9 @@
     }
     send.disabled = true;
     status.textContent = 'Sending…';
-    fetch('/api/feedback', {
+    fetch(API, {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'omit',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         page: pageSlug(),
@@ -65,7 +67,9 @@
       status.textContent = 'Thank you — your feedback is private.';
       textarea.value = '';
     }).catch(function () {
-      status.innerHTML = 'Could not send. Try <a href="mailto:hello@madeclear.ca">hello@madeclear.ca</a>.';
+      var mail = 'mailto:hello@madeclear.ca?subject=' + encodeURIComponent('Feedback: ' + pageSlug()) +
+        '&body=' + encodeURIComponent('Rating: ' + rating + '\n\n' + textarea.value);
+      status.innerHTML = 'Could not send. Try <a href="' + mail + '">hello@madeclear.ca</a>.';
     }).then(function () { send.disabled = false; });
   });
 })();
