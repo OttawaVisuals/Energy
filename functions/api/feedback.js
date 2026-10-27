@@ -4,7 +4,7 @@
 // validation, honeypot and per-day/IP/UA dedupe logic. Requires a D1 binding
 // named FEEDBACK_DB (separate database from madeclear.ca's — see
 // migrations/0001_feedback.sql) and a secret FEEDBACK_HASH_KEY, both set on
-// the Cloudflare Pages project. FEEDBACK_ALERT (Email Send binding) and
+// the Cloudflare Pages project. RESEND_API_KEY (secret) and
 // FEEDBACK_ALERT_TO are optional — email alerting is skipped if absent.
 const RATINGS = new Set(["clear", "almost", "not-yet"]);
 const PAGE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -49,7 +49,7 @@ function normalizeContext(value) {
 }
 
 async function sendFeedbackAlert(env, { page, rating, comment, context }) {
-  if (!env.FEEDBACK_ALERT || !env.FEEDBACK_ALERT_TO) return false;
+  if (!env.RESEND_API_KEY || !env.FEEDBACK_ALERT_TO) return false;
   try {
     const lines = [
       `Page: ${page}`,
@@ -57,12 +57,20 @@ async function sendFeedbackAlert(env, { page, rating, comment, context }) {
       comment ? `Comment: ${comment}` : "Comment: (none)",
       context.length ? `Context: ${context.join(" | ")}` : "",
     ].filter(Boolean);
-    await env.FEEDBACK_ALERT.send({
-      from: "alerts@madeclear.ca",
-      to: env.FEEDBACK_ALERT_TO,
-      subject: `New feedback: ${page} (${rating})`,
-      text: lines.join("\n"),
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "alerts@madeclear.ca",
+        to: [env.FEEDBACK_ALERT_TO],
+        subject: `New feedback: ${page} (${rating})`,
+        text: lines.join("\n"),
+      }),
     });
+    if (!response.ok) throw new Error(`Resend responded ${response.status}`);
     return true;
   } catch (err) {
     // Alerting is best-effort only — never let a notification failure block a feedback submission.
