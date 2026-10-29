@@ -373,8 +373,13 @@ def compute_slice(df):
     eui_post_med = median(post_euis)
     out['eui_pre_median'] = eui_pre_med
     out['eui_post_median'] = eui_post_med
-    out['eui_saving'] = (round(eui_pre_med - eui_post_med)
-                          if eui_pre_med is not None and eui_post_med is not None else None)
+    # Headline saving = median of each home's OWN (pre-post) change, matching
+    # renderStats() in assets/retrofits.js -- not median(pre) - median(post),
+    # a gap between two separate medians that no individual home experienced.
+    both_e = valid_area & pre_e.notna() & post_e.notna()
+    eui_deltas = ((pre_e[both_e] - post_e[both_e]) / area[both_e]).to_numpy()
+    eui_save_med = median(eui_deltas)
+    out['eui_saving'] = round(eui_save_med) if eui_save_med is not None else None
     out['eui_pre_bins'] = bin_counts(pre_euis, step=20, max_val=500)
     out['eui_post_bins'] = bin_counts(post_euis, step=20, max_val=500)
 
@@ -394,8 +399,8 @@ def compute_slice(df):
     deltas = deltas[(deltas > 0) & (deltas <= 30)].to_numpy()
     out['ghg_pre_median'] = ghg_pre_med
     out['ghg_post_median'] = ghg_post_med
-    out['ghg_saving'] = (round(ghg_pre_med - ghg_post_med, 1)
-                         if ghg_pre_med is not None and ghg_post_med is not None else None)
+    ghg_save_med = median((pair['pre'] - pair['post']).to_numpy())
+    out['ghg_saving'] = round(ghg_save_med, 1) if ghg_save_med is not None else None
     out['ghg_pre_bins'] = bin_counts(pre_v, step=1, max_val=30)
     out['ghg_post_bins'] = bin_counts(post_v, step=1, max_val=30)
     out['ghg_delta_bins'] = bin_counts(deltas, step=1)
