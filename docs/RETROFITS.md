@@ -754,6 +754,31 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 
 ## Changelog
 
+### 2026-10-29 Province and Canada headline savings: median of per-home change
+
+**What changed.** `Python/precompute_province_stats.py` computed the province and
+Canada headline `eui_saving` and `ghg_saving` as `median(pre) − median(post)`,
+while the FSA view in `assets/retrofits.js` (`renderStats()`) already used the
+median of each home's own `(pre − post)`. The two views therefore disagreed for the
+same homes. The JS comment says why the per-home form is the right one: the gap
+between two separate medians is a figure no individual home experienced, and it
+doesn't match the per-home delta histogram drawn below it. Province and Canada now
+use the per-home form. Only `eui_saving` and `ghg_saving` changed; every other field
+in all 13 `province_json/*.json` files is byte-for-byte the same values (checked by
+diffing old against new).
+
+**Effect (All types).** Canada EUI saving 41 → 37 kWh/m², GHG 1.8 → 1.3 tCO2e/yr.
+BC 52 → 45 and 3.0 → 1.7; PE 36 → 21 and 1.6 → 0.9; ON 40 → 39 and 1.7 → 1.7.
+The pre and post medians themselves (e.g. Canada GHG 6.85 → 5.00) are unchanged.
+
+**Deployed** incrementally to `gh-pages` (commit `a8a3dfd`, 13 files). Verified live
+on 2026-10-29: Canada shows 37 / 1.3.
+
+**Known remaining differences between the Python and JS paths** (found in the same
+audit, not changed): the JS drops homes with zero energy from the EUI while Python
+keeps them; JS rounds half-up where Python rounds half-even (affects the 1% savings
+histogram only at exact .5).
+
 ### 2026-09-25 Canada view: exact national medians
 
 **Symptom.** The "All of Canada" view read every median off the summed province

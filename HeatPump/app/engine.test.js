@@ -68,7 +68,7 @@ function approx(name, got, want) {
 //   backup elec  = 2.0 / 1.0 = 2.0 kWh   (total site elec 4.0)
 //   proj elec GHG (avg)  = 100 * 4.0 * 1.05 / 1000 = 0.42 kg
 //   proj elec GHG (marg) = 500 * 4.0 * 1.05 / 1000 = 2.10 kg
-//   base gas fuel = 7.0 / 0.8 = 8.75 kWh ; base combustion = 181*8.75/1000 = 1.58375 kg
+//   base gas fuel = 7.0 / 0.8 = 8.75 kWh ; base combustion = (1921.072/10.3611)*8.75/1000 = 1.622355 kg
 // ==========================================================================
 console.log("Case 1: -10 C, load > capacity, electric backup");
 var r1 = E.simulate(baseOpts());
@@ -80,7 +80,7 @@ approx("backup_electricity_kWh", r1.project.energy.backup_electricity_kWh, 2.0);
 approx("project electricity_kWh", r1.project.energy.electricity_kWh, 4.0);
 approx("project ghg.electricity (avg)", r1.project.ghg.electricity, 0.42);
 approx("base fuel_kWh", r1.base.energy.fuel_kWh, 8.75);
-approx("base ghg.combustion", r1.base.ghg.combustion, 1.58375);
+approx("base ghg.combustion", r1.base.ghg.combustion, 1.622355);
 approx("hp_run_hours", r1.project.diagnostics.hp_run_hours, 1);
 approx("backup_hours", r1.project.diagnostics.backup_hours, 1);
 
@@ -140,8 +140,8 @@ approx("project ghg.refrigerant", r4.project.ghg.refrigerant, 699.36);
 // ==========================================================================
 // Case 5: upstream methane on the BASE gas throughput. Force a clean 100 kWh
 //   of gas input by choosing load 80 kWh (eff 0.8 -> 100 kWh fuel) via a big UA.
-//   100 kWh -> 100/10.55 = 9.478673 m3 -> *0.68 = 6.445498 kg gas
-//   2% leak -> 0.128910 kg CH4 -> *28 = 3.609479 kg CO2e
+//   100 kWh -> 100/10.3611 = 9.651... m3 -> *0.68 = 6.563 kg gas
+//   2% leak -> 0.131264 kg CH4 -> *28 = 3.675285 kg CO2e
 // ==========================================================================
 console.log("Case 5: upstream methane on base gas");
 // UA chosen so load = 80 kWh at -10 C: UA*(18+10)=80 -> UA = 80/28 kW/K = 2857.142857 W/K
@@ -152,7 +152,7 @@ var r5 = E.simulate(
   })
 );
 approx("base fuel_kWh", r5.base.energy.fuel_kWh, 100.0);
-approx("base ghg.upstream_methane", r5.base.ghg.upstream_methane, 3.609479);
+approx("base ghg.upstream_methane", r5.base.ghg.upstream_methane, 3.675285);
 
 // ==========================================================================
 // Case 6: below-lock-out "derate" mode (ROADMAP item 9 workstream E).

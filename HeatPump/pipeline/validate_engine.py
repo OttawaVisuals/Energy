@@ -26,10 +26,17 @@ import sys
 # ---------------------------------------------------------------------------
 # Constants -- identical to engine.js.
 # ---------------------------------------------------------------------------
-COMBUSTION_EF_G_PER_KWH = {"gas": 181.0, "oil": 275.0, "propane": 214.0, "electric": 0.0}
-GAS_KWH_PER_M3 = 10.55
+GAS_KWH_PER_M3 = 10.3611
+OIL_KWH_PER_L = 10.7778
+PROPANE_KWH_PER_L = 7.0917
 GAS_KG_PER_M3 = 0.68
-CH4_GWP_DEFAULT = 28.0
+COMBUSTION_EF_G_PER_KWH = {
+    "gas": (1921 + 0.072) / GAS_KWH_PER_M3,
+    "oil": (2753 + 0.026 + 0.006) / OIL_KWH_PER_L,
+    "propane": (1515 + 0.027 + 0.108) / PROPANE_KWH_PER_L,
+    "electric": 0.0,
+}
+CH4_GWP_DEFAULT = 85.0
 G2KG = 0.001
 
 SEASON_BY_MONTH = {
@@ -160,14 +167,13 @@ def simulate(opts):
     line_loss = 1.0 + lc.get("lineLossPct", 5.0) / 100.0
     methane_pct = lc.get("methaneLeakPct", 0.0)
     methane_gwp = lc.get("methaneGWP", CH4_GWP_DEFAULT)
-    oil_up = lc.get("oilUpstreamFrac", 0.0)
     ef_mode = "marginal" if opts.get("efMode") == "marginal" else "average"
     ef_level = opts.get("efLevel")
     start_month = opts.get("startMonth", 1)
 
     base_fuel_kwh = base_elec = 0.0
     hp_elec = bk_elec = bk_fuel = 0.0
-    base_comb = base_elecghg = base_ch4 = base_oilup = 0.0
+    base_comb = base_elecghg = base_ch4 = 0.0
     proj_comb = proj_elecghg = proj_ch4 = 0.0
     total_load = hp_delivered = bk_delivered = 0.0
     hp_run = backup_h = lockout_h = derated_h = heating_h = 0
@@ -197,9 +203,7 @@ def simulate(opts):
             bf = load / base_eff
             base_fuel_kwh += bf
             base_comb += base_comb_ef * bf * G2KG
-            if base_fuel == "oil":
-                base_oilup += oil_up * base_comb_ef * bf * G2KG
-            elif base_fuel in ("gas", "propane"):
+            if base_fuel == "gas":
                 base_ch4 += (methane_pct / 100.0) * (bf / GAS_KWH_PER_M3) * GAS_KG_PER_M3 * methane_gwp
 
         # project case
@@ -233,7 +237,7 @@ def simulate(opts):
                 bkf = bk_heat / backup["efficiency"]
                 bk_fuel += bkf
                 proj_comb += backup_comb_ef * bkf * G2KG
-                if backup["type"] in ("gas", "propane"):
+                if backup["type"] == "gas":
                     proj_ch4 += (methane_pct / 100.0) * (bkf / GAS_KWH_PER_M3) * GAS_KG_PER_M3 * methane_gwp
         elif bk_heat > 1e-12 and backup["type"] == "none":
             backup_h += 1
@@ -251,8 +255,7 @@ def simulate(opts):
             "ghg": {
                 "combustion": base_comb, "electricity": base_elecghg,
                 "refrigerant": 0.0, "upstream_methane": base_ch4,
-                "upstream_oil": base_oilup,
-                "total": base_comb + base_elecghg + base_ch4 + base_oilup,
+                "total": base_comb + base_elecghg + base_ch4,
             },
         },
         "project": {
@@ -263,7 +266,6 @@ def simulate(opts):
             "ghg": {
                 "combustion": proj_comb, "electricity": proj_elecghg,
                 "refrigerant": refrigerant, "upstream_methane": proj_ch4,
-                "upstream_oil": 0.0,
                 "total": proj_comb + proj_elecghg + refrigerant + proj_ch4,
             },
             "diagnostics": {

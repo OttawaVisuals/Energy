@@ -1,7 +1,23 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-09-25** (**Retrofit pairing drop recount + dwelling-units and house-type rules** —
+Updated **2026-10-29** (**Retrofit savings headline + heat pump engine copy** — an
+audit (read-only cloud session) found two defects, both fixed. (1) Province and
+Canada `eui_saving` / `ghg_saving` were `median(pre) − median(post)` while the FSA
+view used the median of each home's own change; now all views use the per-home form
+(Canada 41 → 37 kWh/m², 1.8 → 1.3 tCO2e/yr; only those two fields changed), live on
+`gh-pages` as of 2026-10-29 — [docs/RETROFITS.md](docs/RETROFITS.md) changelog.
+(2) `HeatPump/app/engine.js` had drifted ~169 lines from the engine inlined in
+`heatpump.html` (old fuel factors, methane GWP 28 vs 85, missing `extrapolateShape`
+and `h_hp_cop`, and the oil-upstream term removed on 2026-08-19), so
+`node engine.test.js` was passing against code that doesn't ship. `engine.js` is now
+a re-extract of the page's engine, with the test expectations and the
+`validate_engine.py` mirror updated to match (gas combustion 185.4 g/kWh, gas
+methane only). Still open from the audit: methodology gaps on `ceud`, `construction`,
+`grid`, `heatpump`, `heatpumpAC`; `deploy.sh` doesn't publish `docs/`/`Python/` so
+links to them 404; NaN opportunity score in `build_insights.py`; Edmonton permits
+pull capped at 30,000 rows.)
+Previously **2026-09-25** (**Retrofit pairing drop recount + dwelling-units and house-type rules** —
 `diagnose_pairing_drops.py` brought in line with the ID normalization and weather
 gate and re-run: 1,517,574 of 1,647,596 D&E homes survived (92.1%, was 89.1% on
 2026-08-06), and `NUMDWELLINGUNITS` recorded in one audit but blank in the other

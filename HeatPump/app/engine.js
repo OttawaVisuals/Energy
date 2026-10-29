@@ -58,19 +58,38 @@
   // (higher-heating-value basis, matching the AFUE/seasonal-efficiency the
   // base-case `efficiency` is expressed on). Electric baseboard has no
   // combustion term -- its emissions come entirely from the grid.
+  // Fuel energy content (HHV), native billing unit -> kWh. ONE source for the
+  // emission factors below, the upstream-methane leak mass, and the volumetric
+  // cost conversions -- and deliberately the same numbers Python/ghg_factors.py
+  // uses, so this tool and the retrofit pipeline cannot drift apart.
+  // Changed 2026-08-19: gas was 10.55 and oil 10.0 here against 10.3611 and
+  // 10.7778 in the pipeline, which put the two tools' fuel factors 2-8% apart.
+  var GAS_KWH_PER_M3 = 10.3611;
+  var OIL_KWH_PER_L = 10.7778;
+  var PROPANE_KWH_PER_L = 7.0917;
+  var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
+
+  // Combustion factors, g CO2e per kWh of fuel *input*. Derived from the
+  // volumetric factors and the conversions above rather than hardcoded, so a
+  // change to either can't leave the two inconsistent (the old hardcoded gas
+  // value did not reproduce its own stated derivation). CO2 + CH4 + N2O,
+  // residential rows, ECCC National Inventory Report:
+  //   gas     1921 g CO2/m3 (Ontario, Table 1.x "Marketable") + 0.072 CH4+N2O
+  //   oil     2753 g CO2/L  (Light Fuel Oil - Residential) + 0.026 + 0.006
+  //   propane 1515 g CO2/L  (Propane - Residential) + 0.027 + 0.108
   var COMBUSTION_EF_G_PER_KWH = {
-    gas: 181.0, // natural gas: 1.921 kg CO2e/m3 / 10.55 kWh/m3
-    oil: 275.0, // light fuel oil (No.2): ~2.75 kg CO2e/L / ~10 kWh/L
-    propane: 214.0, // 1.55 kg CO2e/L / ~7.2 kWh/L
+    gas: (1921 + 0.072) / GAS_KWH_PER_M3, // 185.41
+    oil: (2753 + 0.026 + 0.006) / OIL_KWH_PER_L, // 255.44
+    propane: (1515 + 0.027 + 0.108) / PROPANE_KWH_PER_L, // 213.65
     electric: 0.0,
   };
 
-  // Natural-gas physical properties, for converting a gas energy throughput
-  // (kWh, HHV) into a leaked-methane mass for the upstream-methane term.
-  var GAS_KWH_PER_M3 = 10.55; // HHV energy content
-  var GAS_KG_PER_M3 = 0.68; // density of pipeline gas (~100% CH4 assumed for leak)
-
-  var CH4_GWP_DEFAULT = 28.0; // AR5, 100-yr (methane); AR6 ~29.8
+  // GWP20 (20-yr), not GWP100 -- TAF's Fugitive Methane guideline (May 2022)
+  // specifies GWP20 for "modelling activities that impact natural gas
+  // consumption" (their own words), which is exactly what this tool does;
+  // GWP100 (~28-30) is TAF's recommendation for emissions INVENTORIES only.
+  // Was 28 (AR5, 100-yr) before this correction -- see METHODOLOGY.md.
+  var CH4_GWP_DEFAULT = 85.0; // TAF Fugitive Methane guideline, Figure 2
 
   var SEASON_BY_MONTH = {
     1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring",
@@ -148,9 +167,66 @@
     return { tEdge: T[i0], capEdge: cap[i0], copFloor: cop[i0], capSlope: slope };
   }
 
+  // Sorted [tbin, ratio0, ratio1, n] rows from ef.coarse_t with n >= thin,
+  // ascending by temperature. Cached on the ef object (one build per
+  // fetched surface, not per lookup).
+  function coarseTRows(ef, thin) {
+    if (ef._coarseTRows) return ef._coarseTRows;
+    var rows = [];
+    for (var tb in ef.coarse_t) {
+      if (!Object.prototype.hasOwnProperty.call(ef.coarse_t, tb)) continue;
+      var c = ef.coarse_t[tb];
+      if (c[2] >= thin) rows.push([Number(tb), c[0], c[1], c[2]]);
+    }
+    rows.sort(function (a, b) { return a[0] - b[0]; });
+    ef._coarseTRows = rows;
+    return rows;
+  }
+
+  // Least-squares slope+intercept through a set of [x, y] pairs.
+  function linRegress(pts) {
+    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0, i;
+    for (i = 0; i < n; i++) { sx += pts[i][0]; sy += pts[i][1]; }
+    var mx = sx / n, my = sy / n;
+    for (i = 0; i < n; i++) {
+      sxx += (pts[i][0] - mx) * (pts[i][0] - mx);
+      sxy += (pts[i][0] - mx) * (pts[i][1] - my);
+    }
+    var slope = sxx ? sxy / sxx : 0;
+    return { slope: slope, intercept: my - slope * mx };
+  }
+
+  var EXTRAP_TAIL_N = 6; // how many of the coldest/warmest sufficiently-
+                         // sampled coarse_t bins to fit the tail trend on
+
+  // Beyond the coldest/warmest temperature the surface has real (>= thin)
+  // data for, extend a least-squares trend line fit through the tail's
+  // EXTRAP_TAIL_N most extreme sufficiently-sampled coarse_t bins, rather
+  // than falling back to the flat global mean (shape ratio 1.0) at the
+  // very first missing bin. A 2-point edge slope was tried first but is
+  // noisy -- the outermost bins have the fewest hours, so a single edge
+  // bin's sampling noise can flip the extrapolated direction; fitting
+  // across several bins averages that out. See "Province vs. city
+  // temperature" / cold-tail note in build_ef_surface.py. Floored at 0 (a
+  // shape ratio can't go negative). Returns null if there aren't at least
+  // two coarse_t bins to found a trend on (falls through to global).
+  function extrapolateShape(ef, tbin, field) {
+    var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
+    var rows = coarseTRows(ef, thin);
+    if (rows.length < 2) return null;
+    var lo = rows[0], hi = rows[rows.length - 1];
+    var tail;
+    if (tbin < lo[0]) tail = rows.slice(0, Math.min(EXTRAP_TAIL_N, rows.length));
+    else if (tbin > hi[0]) tail = rows.slice(-Math.min(EXTRAP_TAIL_N, rows.length));
+    else return null; // interior gap, not a tail -- let caller fall to global
+    var reg = linRegress(tail.map(function (r) { return [r[0], r[field + 1]]; }));
+    return Math.max(0, reg.intercept + reg.slope * tbin);
+  }
+
   // Grid-EF shape ratio with the surface's thin-bin fallback -- a direct port
-  // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t -> global).
-  // `field`: 0 = average-EF ratio, 1 = marginal-EF ratio.
+  // of build_ef_surface.lookup_shape (fine -> coarse_ts -> coarse_t ->
+  // cold/warm-tail extrapolation -> global). `field`: 0 = average-EF ratio,
+  // 1 = marginal-EF ratio.
   function lookupShape(ef, season, hour, tbin, field) {
     var thin = (ef.meta && ef.meta.thin_bin_min_hours) || 20;
     var h = String(hour),
@@ -162,6 +238,8 @@
     if (c && c[2] >= thin) return c[field];
     c = ef.coarse_t && ef.coarse_t[tb];
     if (c && c[2] >= thin) return c[field];
+    var ex = extrapolateShape(ef, tbin, field);
+    if (ex !== null) return ex;
     return ef.global[field];
   }
 
@@ -242,7 +320,6 @@
   //     belowLockout?: 'hard' | 'derate', // ASHP behaviour below minOpTemp_C:
   //         'hard' (default) = hard stop; 'derate' = keep running, capacity
   //         extrapolated on the coldest segment slope, COP held at the floor
-  //         (manufacturer-unspecified below the published minimum)
   //     ewtSeries?, ewt?,        // GSHP entering-water temp (series or constant C)
   //     antifreezeFactor?        // GSHP COP derate for glycol (~0.91), default 1.0
   //   }
@@ -252,7 +329,6 @@
   //     refrigerantGWP, charge_kg, leakRate_frac,   // annual leak fraction
   //     eolLossFrac?, lifetimeYears?,               // amortized end-of-life loss
   //     methaneLeakPct?, methaneGWP?,               // upstream gas methane
-  //     oilUpstreamFrac?,                           // upstream oil adder (frac of combustion)
   //     lineLossPct?                                // grid line losses on delivered elec
   //   }
   //   ef:       province EF surface JSON (ef_surface_*.json)
@@ -286,7 +362,6 @@
     var lineLoss = 1.0 + (lc.lineLossPct == null ? 5.0 : lc.lineLossPct) / 100.0;
     var methanePct = lc.methaneLeakPct == null ? 0.0 : lc.methaneLeakPct;
     var methaneGWP = lc.methaneGWP == null ? CH4_GWP_DEFAULT : lc.methaneGWP;
-    var oilUpstream = lc.oilUpstreamFrac == null ? 0.0 : lc.oilUpstreamFrac;
 
     var efMode = opts.efMode === "marginal" ? "marginal" : "average";
     var efLevel = opts.efLevel || null;
@@ -319,8 +394,7 @@
     // ghg (kg CO2e) -- combustion / electricity, per case, per month
     var m_base_comb = zeros12(),
       m_base_elecghg = zeros12(),
-      m_base_ch4 = zeros12(),
-      m_base_oilup = zeros12();
+      m_base_ch4 = zeros12();
     var m_proj_comb = zeros12(),
       m_proj_elecghg = zeros12(),
       m_proj_ch4 = zeros12();
@@ -354,6 +428,10 @@
     var h_base_in = new Array(N).fill(0),
       h_hp_elec = new Array(N).fill(0),
       h_bk_in = new Array(N).fill(0);
+    // hourly HP performance at the outdoor temp that hour -- captured even on
+    // hours the HP doesn't run (locked out) so the table/export can show why.
+    var h_hp_cop = new Array(N).fill(null),
+      h_hp_cap = new Array(N).fill(0);
 
     var G2KG = 0.001; // grams -> kg
 
@@ -393,16 +471,21 @@
         var baseCombGhg = baseCombEF * baseFuelIn * G2KG;
         m_base_comb[mi] += baseCombGhg;
         h_base_ghg[i] += baseCombGhg;
-        if (baseFuel === "oil") {
-          m_base_oilup[mi] += oilUpstream * baseCombEF * baseFuelIn * G2KG;
-        } else if (baseFuel === "gas") {
+        if (baseFuel === "gas") {
           // Methane-leak adder is pipeline-gas-specific (density/energy
           // constants below are natural gas's, not propane's); propane gets
           // no leak adder here rather than reusing gas's number -- no
           // defensible propane upstream-loss constant exists yet.
           var baseM3 = baseFuelIn / GAS_KWH_PER_M3;
           var baseCH4kg = (methanePct / 100.0) * baseM3 * GAS_KG_PER_M3;
-          m_base_ch4[mi] += baseCH4kg * methaneGWP;
+          var baseCH4ghg = baseCH4kg * methaneGWP;
+          m_base_ch4[mi] += baseCH4ghg;
+          // Also fold into the hourly series (not just the monthly/annual
+          // total) -- otherwise every chart keyed off h_base_ghg (by-
+          // temperature, weighted-by-hours, full-year day/hour views) never
+          // reflects the "Upstream losses" toggle for gas, even though the
+          // annual total (computed from base_ch4 = sum(m_base_ch4)) does.
+          h_base_ghg[i] += baseCH4ghg;
         }
       }
 
@@ -414,6 +497,8 @@
             : hp.ewt
           : undefined;
       var perf = hpPerformance(hp, T, ewt);
+      h_hp_cop[i] = perf.cop;
+      h_hp_cap[i] = perf.capacity_kW;
 
       // Control strategy decides whether the HP is allowed to run this hour and
       // how much of the load it may take.
@@ -470,7 +555,11 @@
             // reused from gas's density/energy constants.
             var bkM3 = bkFuelIn / GAS_KWH_PER_M3;
             var bkCH4kg = (methanePct / 100.0) * bkM3 * GAS_KG_PER_M3;
-            m_proj_ch4[mi] += bkCH4kg * methaneGWP;
+            var bkCH4ghg = bkCH4kg * methaneGWP;
+            m_proj_ch4[mi] += bkCH4ghg;
+            // Same fix as the base case above: fold into the hourly series too.
+            h_proj_ghg[i] += bkCH4ghg;
+            h_bk_ghg[i] += bkCH4ghg;
           }
         }
       }
@@ -503,8 +592,7 @@
 
     var base_comb = sum(m_base_comb),
       base_elecghg = sum(m_base_elecghg),
-      base_ch4 = sum(m_base_ch4),
-      base_oilup = sum(m_base_oilup);
+      base_ch4 = sum(m_base_ch4);
     var proj_comb = sum(m_proj_comb),
       proj_elecghg = sum(m_proj_elecghg),
       proj_ch4 = sum(m_proj_ch4);
@@ -520,8 +608,7 @@
         electricity: base_elecghg,
         refrigerant: 0,
         upstream_methane: base_ch4,
-        upstream_oil: base_oilup,
-        total: base_comb + base_elecghg + base_ch4 + base_oilup,
+        total: base_comb + base_elecghg + base_ch4,
       },
       monthly: monthlyRows({
         fuel_kWh: m_base_fuel,
@@ -529,7 +616,6 @@
         combustion: m_base_comb,
         electricity_ghg: m_base_elecghg,
         upstream_methane: m_base_ch4,
-        upstream_oil: m_base_oilup,
       }),
     };
 
@@ -547,7 +633,6 @@
         electricity: proj_elecghg,
         refrigerant: refrigerantKg,
         upstream_methane: proj_ch4,
-        upstream_oil: 0,
         total: proj_comb + proj_elecghg + refrigerantKg + proj_ch4,
       },
       monthly: monthlyRows({
@@ -584,6 +669,9 @@
         base_energy_kWh: h_base_in,
         hp_elec_kWh: h_hp_elec,
         backup_energy_kWh: h_bk_in,
+        hp_cop: h_hp_cop,
+        hp_capacity_kW: h_hp_cap,
+        temp_C: temps,
       },
       meta: {
         hours: N,
@@ -591,6 +679,10 @@
         ef_level_g_per_kWh: efLevel || opts.ef.reference_level_g_per_kWh,
         ef_province: opts.ef.meta ? opts.ef.meta.province : null,
         control_strategy: control.strategy,
+        base_efficiency: baseEff,
+        backup_efficiency: backup.efficiency,
+        backup_type: backup.type,
+        start_month: startMonth,
       },
     };
   }
@@ -732,9 +824,22 @@
       monthly.push({ month: mo + 1, electricity_kWh: m_elec[mo], electricity_ghg: m_ghg[mo] });
     }
 
+    // ---- refrigerant (annual, amortized) -- same formula as simulate()'s
+    // project case: in-service leak + end-of-life share, weighted by GWP.
+    // Only meaningful when the caller passes this unit's own charge/GWP
+    // (e.g. the standalone AC); omit lc.charge_kg/refrigerantGWP for a unit
+    // whose refrigerant is already counted elsewhere (see computeCoolingResults).
+    var refrigerantKg = 0;
+    if (lc.charge_kg && lc.refrigerantGWP) {
+      var eol = lc.eolLossFrac == null ? 0.0 : lc.eolLossFrac;
+      var life = lc.lifetimeYears == null ? 15.0 : lc.lifetimeYears;
+      var annualLeakFrac = (lc.leakRate_frac || 0.0) + eol / life;
+      refrigerantKg = lc.charge_kg * annualLeakFrac * lc.refrigerantGWP;
+    }
+
     return {
       energy: { electricity_kWh: elecKWh, elec_month_hour: mh_elec },
-      ghg: { electricity: ghgKg, total: ghgKg },
+      ghg: { electricity: ghgKg, refrigerant: refrigerantKg, total: ghgKg + refrigerantKg },
       monthly: monthly,
       hourly: { load_kW: h_load, capacity_kW: h_cap, cop: h_cop, elec_kWh: h_elec, ghg_kg: h_ghg, ef_g_per_kWh: h_ef, temp_C: temps },
       diagnostics: {
@@ -761,6 +866,8 @@
     monthOfDay: monthOfDay,
     COMBUSTION_EF_G_PER_KWH: COMBUSTION_EF_G_PER_KWH,
     GAS_KWH_PER_M3: GAS_KWH_PER_M3,
+    OIL_KWH_PER_L: OIL_KWH_PER_L,
+    PROPANE_KWH_PER_L: PROPANE_KWH_PER_L,
     GAS_KG_PER_M3: GAS_KG_PER_M3,
   };
 });
