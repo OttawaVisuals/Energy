@@ -1,5 +1,13 @@
 # Ottawa Geothermal Feasibility — Process Documentation
 
+2026-10-30: tab icon and dedicated social preview added to the generated page
+and tracked map template; see [branding](../docs/BRANDING.md).
+
+2026-10-30: approved landing-page icon option 2 pairs a local map and pin with
+a house/ground-loop cutaway (`../assets/icons/geothermal.png`). Ground layers
+are conceptual, not site-specific geology or a suitability finding. Applied locally;
+Published 2026-10-30.
+
 An end-to-end pipeline that turns Ontario's water-well archive and City of
 Ottawa open data into an interactive ground-source-heat-pump (GSHP)
 feasibility map for Ottawa: estimated ground thermal conductivity, a

@@ -1,5 +1,12 @@
 # Heat Pump Explorer
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 3 combines a warm home, outdoor
+heat pump and clock (`assets/icons/heat-pump.png`), conveying hourly heating
+simulation. Conceptual illustration; no performance claim. Applied locally;
+Published 2026-10-30.
+
 **Live:** [/heatpump](https://ottawavisuals.github.io/Energy/heatpump) ·
 **Page:** [heatpump.html](../heatpump.html) ·
 **Method:** [HeatPump/METHODOLOGY.md](../HeatPump/METHODOLOGY.md)

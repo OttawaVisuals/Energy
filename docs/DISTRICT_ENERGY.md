@@ -1,5 +1,11 @@
 # District Energy Explorer
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 1 connects an energy centre to
+multiple buildings through amber/teal thermal pipes (`assets/icons/district-energy.png`).
+Conceptual illustration, not a detailed network design. Applied locally; Published 2026-10-30.
+
 **Page:** [`districtenergy.html`](../districtenergy.html) · **Live:** https://ottawavisuals.github.io/Energy/districtenergy
 **Pipeline:** [`Python/district_energy_etl.py`](../Python/district_energy_etl.py)
 **Data:** `districtenergy_json/` (gitignored on `main`, published to `gh-pages`)

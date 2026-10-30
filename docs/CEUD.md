@@ -1,5 +1,11 @@
 # CEUD Explorer
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 2 pairs a donut chart with sector
+symbols (`assets/icons/ceud.png`). The chart is schematic; segment sizes do not
+represent actual sector shares. Applied locally; Published 2026-10-30.
+
 `ceud.html` — NRCan's **Comprehensive Energy Use Database** (the government's own
 "how Canada uses energy" tables) turned into one browsable page: all 5 sectors
 (residential, commercial/institutional, industrial, transportation, agriculture),

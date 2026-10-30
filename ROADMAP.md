@@ -1,6 +1,48 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-10-30**: approved artwork, tab icons and social previews published
+to `gh-pages` (`0b29bfd`) and verified live: all 58 release files match (12 pages,
+24 SVG/PNG tab-icon files, 12 social previews, ten tile images). Existing data and
+Geothermal's embedded map content preserved. See `docs/BRANDING.md`.
+Updated **2026-10-30**: tab icons and social previews refreshed locally for all
+ten tools, landing page and Atlas. Added distinct Permits and Geothermal previews,
+SVG/PNG favicon pairs and reproducible asset builder. Published 2026-10-30; see
+`docs/BRANDING.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Heat Pump Explorer landing-page icon option 3 approved
+and applied locally: home, heat pump and clock. All ten landing-page tiles now
+use the approved illustrated icons. Published 2026-10-30; see `docs/HEATPUMP.md`
+and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Ottawa Geothermal Map landing-page icon option 2 approved
+and applied locally: map and ground-loop cutaway. Published 2026-10-30; see
+`Geothermal/README.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: District Energy Explorer landing-page icon option 1
+approved and applied locally: energy centre with thermal pipes to multiple
+buildings. Published 2026-10-30; see `docs/DISTRICT_ENERGY.md` and
+`docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Grid Dashboard landing-page icon option 1 approved and
+applied locally: transmission pylon with a schematic dashboard. Published 2026-10-30; see `docs/GRID.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Permits Explorer landing-page icon option 2 approved and
+applied locally: permit document, magnifying glass and buildings. Published 2026-10-30; see `docs/PERMITS.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Construction Tracker landing-page icon option 1 approved
+and applied locally: crane, buildings and schematic chart. Published 2026-10-30;
+see `docs/CONSTRUCTION.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: CEUD Explorer landing-page icon option 2 approved and applied
+locally: schematic donut chart with sector symbols. Segment sizes are illustrative,
+not measured shares. Published 2026-10-30; see `docs/CEUD.md` and
+`docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: New Homes Explorer landing-page icon option 1 approved and
+applied locally: architectural plan to finished home. It represents plan-to-built
+comparison, not an assumed efficiency improvement. Published 2026-10-30; see
+`docs/NEWHOMES.md` and `docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: Retrofit Insights landing-page icon option 3 approved and
+applied locally: Canada silhouette with schematic comparison charts. Decorative
+illustration, not a data map. Published 2026-10-30; completed record in
+`docs/archive/ROADMAP_COMPLETED.md`.
+Updated **2026-10-30**: approved Retrofit Explorer landing-page icon applied locally;
+three heat waves before, one after, thicker teal insulation. The icon is conceptual,
+not a measured savings ratio. See `docs/RETROFITS.md` and
+`docs/archive/ROADMAP_COMPLETED.md`. Published 2026-10-30.
 Updated **2026-10-30** (**Landing page as portfolio: author block + contact form** —
 `index.html` gains a first-name-only author card (credentials, personal-project and
 AI-assistant disclosure) and a "Get in touch" form. The form posts to a new Cloudflare
@@ -10,7 +52,12 @@ use without publishing a mailbox or surname. Spam is bounded (honeypot, origin
 allow-list, size limits, 3 s minimum fill time), not eliminated; no database. Verified
 live 2026-10-30: `/api/contact` returns 405 and a test message arrived. **Deploy fact:**
 the Cloudflare Pages project builds the `gh-pages` branch, not `main`, so `functions/`
-changes go live only via a `gh-pages` push.)
+changes go live only via a `gh-pages` push.) Same day: shared author footer —
+`assets/author-footer.js` appends "Built by Simon · energy engineer (MEng, CEM) · All
+tools · Get in touch" to the `<footer>` of the 10 tool pages (not `index.html`, which
+has the full card; not yet `Geothermal/output/index.html`, whose asset path differs).
+Self-styled because `ceud`, `construction` and `permits` don't load `site-theme.css`.
+Checked locally on all 10 pages; Published 2026-10-30.
 Previously updated **2026-10-30** (**NEEP licensing review, heat pump page** — NEEP's Terms of
 Use (as of Aug 2014) allow only personal, non-commercial use; anything else needs
 written permission. Audit: no published curve uses NEEP data (all 9 cells cite

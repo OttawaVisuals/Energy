@@ -1,5 +1,11 @@
 # Permits Explorer
 
+2026-10-30: matching tab icon and dedicated social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 2 pairs a permit document and
+magnifying glass with buildings (`assets/icons/permits.png`), emphasizing record
+exploration. Applied locally; Published 2026-10-30.
+
 `permits.html` — nine Canadian municipal permit desks at permit-level detail:
 the full record back to each city's own first month, a density map of where
 building actually happens, who files the permits, how long approval takes, and

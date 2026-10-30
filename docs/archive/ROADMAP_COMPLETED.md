@@ -6,6 +6,60 @@ for the record. Living tracker: [ROADMAP.md](../../ROADMAP.md).
 
 ---
 
+2026-10-30: tab-icon and social-preview refresh implemented locally for ten tools,
+landing page and Atlas. Twelve SVG/32px PNG icon pairs and twelve 1200×630 cards,
+using approved artwork; distinct Permits/Geothermal cards, tracked map template
+metadata and reproducible builder. AC excluded. See `../BRANDING.md`. Published 2026-10-30.
+
+2026-10-30: Heat Pump Explorer landing-page icon option 3 approved and applied
+locally in `index.html`, using `assets/icons/heat-pump.png`: warm home, heat pump
+and clock for hourly simulation. Conceptual illustration, no performance claim.
+All ten landing-page icons now selected and applied locally. Published 2026-10-30.
+
+2026-10-30: Ottawa Geothermal Map landing-page icon option 2 approved and applied
+locally in `index.html`, using `assets/icons/geothermal.png`: map and ground-loop
+cutaway. Layers are conceptual, not site-specific geology or a suitability finding.
+White backing preserves contrast. Published 2026-10-30.
+
+2026-10-30: District Energy Explorer landing-page icon option 1 approved and
+applied locally in `index.html`, using `assets/icons/district-energy.png`:
+energy centre linked to multiple buildings by thermal pipes. Conceptual illustration.
+White backing preserves contrast. Published 2026-10-30.
+
+2026-10-30: Grid Dashboard landing-page icon option 1 approved and applied locally
+in `index.html`, using `assets/icons/grid.png`: pylon and schematic dashboard.
+Chart shapes do not encode actual values. White backing preserves contrast.
+Published 2026-10-30.
+
+2026-10-30: Permits Explorer landing-page icon option 2 approved and applied
+locally in `index.html`, using `assets/icons/permits.png`: permit document,
+magnifying glass and buildings. White backing preserves contrast. Published 2026-10-30.
+
+2026-10-30: Construction Tracker landing-page icon option 1 approved and applied
+locally in `index.html`, using `assets/icons/construction.png`: crane, buildings
+and a schematic chart. No actual values or growth claim. White backing preserves
+contrast. Published 2026-10-30.
+
+2026-10-30: CEUD Explorer landing-page icon option 2 approved and applied locally
+in `index.html`, using `assets/icons/ceud.png`: donut chart plus sector symbols.
+Segment sizes are schematic, not actual shares. White backing preserves contrast.
+Published 2026-10-30.
+
+2026-10-30: New Homes Explorer landing-page icon option 1 approved and applied
+locally in `index.html`, using `assets/icons/new-homes.png`: architectural plans
+to a finished home. No performance improvement implied. White backing preserves
+contrast. Published 2026-10-30.
+
+2026-10-30: Retrofit Insights landing-page icon option 3 approved and applied locally
+in `index.html`, using `assets/icons/retrofit-insights.png`: Canada silhouette plus
+schematic comparison charts to convey national analysis. Decorative, not a data
+map or numerical findings. White backing preserves contrast. Published 2026-10-30.
+
+2026-10-30: Retrofit Explorer landing-page icon approved and applied locally in
+`index.html`, using `assets/icons/retrofit-explorer.png`. Thin walls / three heat
+waves transition to thicker insulation / one wave; qualitative symbolism only.
+White icon backing preserves navy contrast in all themes. Published 2026-10-30.
+
 ## 1. Ship the Geothermal map — ✅ DONE (2026-07-10)
 
 Committed in `cf1c862` (everything fit under GitHub's 100 MB limit, nothing
