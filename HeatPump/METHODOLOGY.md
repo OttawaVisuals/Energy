@@ -312,8 +312,8 @@ actually creates.
 **Where the curve points come from.** Each unit's own published manufacturer
 datasheet (submittal or product data), cited per cell in the `source` field —
 AHRI publishes capacity at three temperatures and COP at only one, which is not
-enough points to simulate a season. Where no datasheet table exists for a unit,
-its **NEEP cold-climate listing** is used instead and cited for that model.
+enough points to simulate a season. All nine cells currently use a datasheet;
+no curve uses NEEP data.
 
 **Cross-check.** The page carries a per-unit table comparing the digitized curve
 against the AHRI certificate and against NEEP's republication of the same
@@ -991,8 +991,14 @@ versioned; not the bytes.
 | Residential tariffs | provincial utilities | monthly | Cost card | |
 | Heating oil prices (18-10-0001) | StatCan | — | Cost card | |
 
-**Redistribution.** NEEP's product list is not openly redistributable. No NEEP
-data is embedded in any shipped file: the published curves are digitized from
-manufacturer datasheets, and NEEP appears only as a per-model fallback citation
-and in the on-page cross-check table. Manufacturer datasheet PDFs are kept
-locally and are not committed.
+**Redistribution.** NEEP's Terms of Use (as of August 2014) allow personal,
+non-commercial use and require written permission for anything else. NEEP's
+listing values appear only in the on-page cross-check table (8 of 9 units),
+attributed, for verification; they are also quoted in note text in
+`hp_cell_curves.json` and `hp_tier_selection.json`. No curve uses NEEP data: the
+published curves are digitized from manufacturer datasheets. Written permission
+to keep the table has not yet been requested [update with the date sent and the
+reply]. If NEEP
+declines, remove the NEEP columns and the NEEP values in those notes. The raw
+page capture (`reference/neep/`) is gitignored, not committed. Manufacturer
+datasheet PDFs are kept locally and are not committed.
