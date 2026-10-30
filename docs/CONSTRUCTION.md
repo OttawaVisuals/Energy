@@ -1,5 +1,11 @@
 # Construction Tracker
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 1 uses a crane, buildings and a
+schematic chart (`assets/icons/construction.png`). Bars convey tracking, not
+actual values or a growth claim. Applied locally; Published 2026-10-30.
+
 `construction.html` — Canadian building permits, housing starts and construction
 investment in one dashboard, at national, provincial and metro-area (CMA) level.
 Full design/data plan: [archive/CONSTRUCTION_PLAN.md](archive/CONSTRUCTION_PLAN.md);

@@ -1,5 +1,11 @@
 # New Homes Explorer
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 1 pairs an architectural plan with
+a finished home (`assets/icons/new-homes.png`). It conveys plan-to-built comparison,
+without implying the built home performs better. Applied locally; Published 2026-10-30.
+
 `newhomes.html` — how energy-efficient Canada's **new** homes actually are, built
 from the same NRCan EnerGuide/ERS open data as the Retrofit Explorer, but using
 the **new-construction** evaluation types instead of the retrofit ones:

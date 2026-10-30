@@ -1,5 +1,12 @@
 # Retrofit Explorer
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon uses three heat waves in a thin-walled
+home, then one in a home with thicker teal insulation. It represents lower
+heating demand conceptually; the symbols do not encode a measured savings ratio.
+Asset: `assets/icons/retrofit-explorer.png`.
+
 An interactive tool for exploring real Canadian home-energy retrofits — built from
 Natural Resources Canada's **EnerGuide / Energy Rating System (ERS)** open audit data
 (audit years **2004–2026**).

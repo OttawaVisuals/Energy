@@ -1,5 +1,11 @@
 # Live Grid Dashboard
 
+2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
+
+2026-10-30: approved landing-page icon option 1 pairs a transmission pylon with
+a schematic dashboard (`assets/icons/grid.png`). Chart shapes do not encode
+actual values. Applied locally; Published 2026-10-30.
+
 `grid.html` — years of real generation-mix, capacity-utilization, demand,
 price and intertie history for Ontario and Alberta, plus a recent/live layer
 ("what's powering the grid right now") and the **average vs marginal
