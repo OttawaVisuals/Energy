@@ -1,7 +1,20 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-10-29** (**Retrofit savings headline + heat pump engine copy** — an
+Updated **2026-10-30** (**NEEP licensing review, heat pump page** — NEEP's Terms of
+Use (as of Aug 2014) allow only personal, non-commercial use; anything else needs
+written permission. Audit: no published curve uses NEEP data (all 9 cells cite
+manufacturer datasheets); NEEP appears only in the on-page cross-check table (8 of 9
+units), note text in `hp_cell_curves.json` / `hp_tier_selection.json`, and a raw
+page capture. Decision (kept the table, mitigated): added an attribution line under
+the table, removed the unused "NEEP fallback" sentence from the page and
+`HeatPump/METHODOLOGY.md`, untracked + gitignored `HeatPump/reference/neep/` (history
+still holds the old copy; a full `./deploy.sh` clears gh-pages). **Open:** ask NEEP
+for written permission, then record the reply; if declined, drop the NEEP columns and
+the NEEP values in those notes. Why kept: ≈8 attributed values for verification,
+free and non-commercial — Simon's call, accepting the residual risk until NEEP
+replies.)
+Previously updated **2026-10-29** (**Retrofit savings headline + heat pump engine copy** — an
 audit (read-only cloud session) found two defects, both fixed. (1) Province and
 Canada `eui_saving` / `ghg_saving` were `median(pre) − median(post)` while the FSA
 view used the median of each home's own change; now all views use the per-home form
