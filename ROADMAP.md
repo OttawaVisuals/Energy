@@ -1,7 +1,17 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
-Updated **2026-10-30** (**NEEP licensing review, heat pump page** — NEEP's Terms of
+Updated **2026-10-30** (**Landing page as portfolio: author block + contact form** —
+`index.html` gains a first-name-only author card (credentials, personal-project and
+AI-assistant disclosure) and a "Get in touch" form. The form posts to a new Cloudflare
+Pages Function, `functions/api/contact.js`, which emails the author through Resend using
+the existing `FEEDBACK_ALERT_TO` secret, so no address is on the page. Why: portfolio
+use without publishing a mailbox or surname. Spam is bounded (honeypot, origin
+allow-list, size limits, 3 s minimum fill time), not eliminated; no database. Logic
+tested locally with a mocked Resend; **not yet verified live** — check
+`energy.madeclear.ca/api/contact` returns 405 after the push, then send one test
+message. Open: whether a push to `main` redeploys the Cloudflare function.)
+Previously updated **2026-10-30** (**NEEP licensing review, heat pump page** — NEEP's Terms of
 Use (as of Aug 2014) allow only personal, non-commercial use; anything else needs
 written permission. Audit: no published curve uses NEEP data (all 9 cells cite
 manufacturer datasheets); NEEP appears only in the on-page cross-check table (8 of 9
