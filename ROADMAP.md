@@ -7,10 +7,10 @@ AI-assistant disclosure) and a "Get in touch" form. The form posts to a new Clou
 Pages Function, `functions/api/contact.js`, which emails the author through Resend using
 the existing `FEEDBACK_ALERT_TO` secret, so no address is on the page. Why: portfolio
 use without publishing a mailbox or surname. Spam is bounded (honeypot, origin
-allow-list, size limits, 3 s minimum fill time), not eliminated; no database. Logic
-tested locally with a mocked Resend; **not yet verified live** — check
-`energy.madeclear.ca/api/contact` returns 405 after the push, then send one test
-message. Open: whether a push to `main` redeploys the Cloudflare function.)
+allow-list, size limits, 3 s minimum fill time), not eliminated; no database. Verified
+live 2026-10-30: `/api/contact` returns 405 and a test message arrived. **Deploy fact:**
+the Cloudflare Pages project builds the `gh-pages` branch, not `main`, so `functions/`
+changes go live only via a `gh-pages` push.)
 Previously updated **2026-10-30** (**NEEP licensing review, heat pump page** — NEEP's Terms of
 Use (as of Aug 2014) allow only personal, non-commercial use; anything else needs
 written permission. Audit: no published curve uses NEEP data (all 9 cells cite
