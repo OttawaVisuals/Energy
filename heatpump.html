@@ -513,8 +513,10 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 </script>
 <link rel="icon" type="image/svg+xml" href="assets/favicons/heatpump.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/heatpump.png">
+<link rel="stylesheet" href="assets/visual-polish.css">
+<script defer src="assets/visual-polish.js"></script>
 </head>
-<body>
+<body data-energy-tool="heatpump">
 <script>
 // Resolve the colour theme before any markup paints, so a dark-mode reader
 // never sees a cream flash. Saved choice wins; otherwise follow the OS. Same
@@ -557,7 +559,7 @@ main{max-width:1280px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 
 <div class="hero">
   <p class="hero-eyebrow">Air-source heat pumps · ON · QC · AB</p>
-  <h1>Would a heat pump <em>cut your emissions</em>?</h1>
+  <div class="tool-heading"><img class="tool-heading-art" src="assets/icons/web/heat-pump.webp" alt="" width="512" height="216"><h1>Would a heat pump <em>cut your emissions</em>?</h1></div>
   <p class="hero-sub">An hour-by-hour simulation of one typical year — your home, your heating, real cold-climate equipment curves, and each province's real grid. Change anything below and every chart recomputes instantly.</p>
 </div>
 
@@ -2816,13 +2818,18 @@ function renderHouseTypes(){
 // each point's own (design temp, peak kW) and (balance point T0, 0 kW).
 // Reuses the engine's inline-SVG chart helpers (polyline/niceTicks/stepAxes)
 // for visual consistency rather than pulling in Chart.js for one more chart.
+// Mobile charts use their real width so 11px axis text stays 11px on screen.
+// This changes drawing coordinates only; simulation inputs/results are untouched.
+function heatChartWidth(svg,fallback){
+  return window.innerWidth<=700 ? Math.max(240,Math.round(svg.parentElement.getBoundingClientRect().width)||fallback) : fallback;
+}
 function renderHouseTypesChart(svg,points,tDesign){
   if(!svg) return '';
   const allT0=points.map(p=>p.t0);
   const Tmin=Math.floor(Math.min(tDesign,...allT0)/5)*5-2;
   const Tmax=Math.ceil(Math.max(...allT0)/5)*5+2;
   const maxKW=Math.max(1,...points.map(p=>p.peak))*1.1;
-  const W=740,Hh=340,m={l:52,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=340,m={l:52,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxKW)*pH;
   const light=css('--light'),muted=css('--muted');
   const s={v:''};
@@ -4033,7 +4040,7 @@ function hourlyMonthAxis(s,x,N,m,W,H,pW,pH,hourOffset){
   if(hourOffset==null){
     const bnd=monthStartHours(N), MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     for(let mo=0;mo<12;mo++){const mid=(bnd[mo]+Math.min(bnd[mo+1],N))/2;
-      s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MON[mo]}</text>`;
+      if(mo%Math.max(1,Math.ceil(12*32/pW))===0)s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MON[mo]}</text>`;
       if(mo>0)s.v+=`<line x1="${x(bnd[mo])}" y1="${m.t}" x2="${x(bnd[mo])}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
     s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Hour of year (8,760 h)</text>`;
   } else {
@@ -4085,11 +4092,11 @@ function dailyMonthAxis(s,x,N,m,W,H,pW,pH,dayOffset){
   if(dayOffset==null){
     const bnd=monthStartDays(N), MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     for(let mo=0;mo<12;mo++){const mid=(bnd[mo]+Math.min(bnd[mo+1],N))/2;
-      s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MON[mo]}</text>`;
+      if(mo%Math.max(1,Math.ceil(12*32/pW))===0)s.v+=`<text x="${x(mid)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${MON[mo]}</text>`;
       if(mo>0)s.v+=`<line x1="${x(bnd[mo])}" y1="${m.t}" x2="${x(bnd[mo])}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
     s.v+=`<text x="${m.l+pW/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="${muted}">Day of year (${N} d)</text>`;
   } else {
-    const step=N>20?5:(N>10?2:1);
+    const step=Math.max(N>20?5:(N>10?2:1),Math.ceil(N*28/pW));
     for(let d=0;d<N;d+=step){
       s.v+=`<text x="${x(d)}" y="${H-m.b+18}" text-anchor="middle" font-size="10.5" fill="${light}">${d+1}</text>`;
       if(d>0)s.v+=`<line x1="${x(d)}" y1="${m.t}" x2="${x(d)}" y2="${m.t+pH}" stroke="${css('--surface')}" stroke-width="1"/>`;}
@@ -4158,7 +4165,7 @@ function renderLoadStep(res,opts){
 }
 // Plain load-vs-temperature line, no weighting.
 function renderLoadChartTemp(svgT,C,medT){
-  const W=740,Hh=340,m={l:52,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svgT,740),Hh=340,m={l:52,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const maxKW=Math.max(1,...C.load)*1.08;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, yL=v=>m.t+pH-(v/maxKW)*pH;
@@ -4193,7 +4200,7 @@ function renderLoadChartTemp(svgT,C,medT){
 function renderLoadChartWeighted(svgT,temps,H){
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const bins=binByTemp(temps,H.load_kW,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
-  const W=740,Hh=340,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svgT,740),Hh=340,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...bins.map(b=>b.sum))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -4216,7 +4223,7 @@ function renderLoadChartWeighted(svgT,temps,H){
 // daily-mean, when daily is true).
 function renderLoadChartHourly(svgT,H,temps,daily){
   const {series,offset}=sliceRange(H.load_kW,daily,state.loadMonth,state.loadWeek), N=series.length;
-  const W=920,Hh=423,m={l:52,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svgT,920),Hh=423,m={l:52,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...series)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
   const navy=css('--ink'),light=css('--light'),muted=css('--muted');
@@ -4274,7 +4281,7 @@ function renderEquipStep(res,opts){
 }
 // Plain capacity/delivered vs temperature — no COP (that's step 4).
 function renderEquipChartTemp(svg,C){
-  const W=740,H=360,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
+  const W=heatChartWidth(svg,740),H=360,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const maxKW=Math.max(1,...C.load,...C.cap)*1.08;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, yL=v=>m.t+pH-(v/maxKW)*pH;
@@ -4334,7 +4341,7 @@ function renderEquipChartWeighted(svg,temps,H,opts){
   const binsHp=binByTemp(temps,hpHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsBk=binByTemp(temps,bkHeat,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const hasBackup=true; // backup is now mandatory (electric/gas/oil/propane), 'none' option removed
-  const W=740,Hh=360,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=360,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsHp.map((b,i)=>b.sum+(hasBackup?binsBk[i].sum:0)))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -4376,7 +4383,7 @@ function renderEquipChartHourly(svg,H,temps,opts,daily){
   const rC=sliceRange(cap,daily,state.equipMonth,state.equipWeek), rD=sliceRange(hpDeliv,daily,state.equipMonth,state.equipWeek), rL=sliceRange(load,daily,state.equipMonth,state.equipWeek);
   cap=rC.series; hpDeliv=rD.series; load=rL.series; const offset=rC.offset;
   const N=cap.length;
-  const W=920,Hh=448,m={l:52,r:22,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=448,m={l:52,r:22,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const bk=load.map((L,i)=>Math.max(0,L-hpDeliv[i]));
   const hasBackup=bk.some(v=>v>0);
   const maxKW=Math.max(1,...cap,...load)*1.08;
@@ -4470,7 +4477,7 @@ function renderCopChartTemp(svg,C,opts){
   if(!svg)return[];
   const hasBackup=true; // backup is now mandatory (electric/gas/oil/propane), 'none' option removed
   const backupEff=opts.backup.efficiency;
-  const W=740,Hh=150,m={l:52,r:22,t:14,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=150,m={l:52,r:22,t:14,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const green=css('--green'),backup=backupColor(),muted=css('--muted'),light=css('--light'),red=css('--red');
   const onCutoff=C.isFuel?C.lock:C.minOp;
@@ -4524,7 +4531,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
   const s={v:''};
   const legend=[];
   if(!weighted){
-    const W=740,Hh=190,m={l:52,r:22,t:14,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+    const W=heatChartWidth(svg,740),Hh=190,m={l:52,r:22,t:14,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
     const onCutoff=C.isFuel?C.lock:C.minOp;
     // Illustrative: energy each source would need to carry the WHOLE load alone.
     const hpIn=C.load.map((L,i)=>C.cop[i]?L/C.cop[i]:null);
@@ -4565,7 +4572,7 @@ function renderEnergyChartTemp(svg,opts,H,temps,weighted){
     ]});
     $('ecop-note').innerHTML=`Energy input if that source alone carried the <b>whole</b> load. Green is solid while the pump is actually the one running${C.isFuel?`, and continues faint-dashed past <b>${fmtSigned(Math.round(onCutoff))} °C</b> — how much less it would need to buy if it kept going instead of handing off to the ${FUEL_LABEL[state.backup]} furnace there`:''}. In practice they split the load — see "Weighted by hours" for what's actually bought.`;
   } else {
-    const W=740,Hh=340,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+    const W=heatChartWidth(svg,740),Hh=340,m={l:66,r:22,t:18,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
     // Actual energy bought per 1 °C bin, from the real hourly dispatch.
     const binsHp=binByTemp(temps,H.hp_elec_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
     const binsBk=binByTemp(temps,H.backup_energy_kWh,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
@@ -4601,7 +4608,7 @@ function renderEnergyChartHourly(svg,H,daily){
   const hp=rHp.series, bk=rBk.series, offset=rHp.offset;
   const N=hp.length;
   const hasBackup=bk.some(v=>v>0);
-  const W=920,Hh=423,m={l:58,r:16,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=423,m={l:58,r:16,t:18,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const tot=hp.map((v,i)=>v+bk[i]);
   const maxV=Math.max(1,...tot)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
@@ -4685,7 +4692,7 @@ function drawStepRefLines(s,x,m,pH,Tmin,Tmax,C){
 // Grid intensity vs temperature -- plain line, mean intensity per 1 °C bin.
 function renderGridChartTemp(svg,temps,ef,C){
   const bins=binByTemp(temps,ef).filter(b=>b.cnt>0);
-  const W=740,Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:56,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const shown=bins.filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const maxEF=Math.max(1,...shown.map(b=>b.mean))*1.15;
@@ -4719,7 +4726,7 @@ function renderGridChartWeighted(svg,temps,H,C){
   const bins=binByTemp(temps,ef).filter(b=>b.cnt>0);
   const Tmin=STEP_Tmin,Tmax=STEP_Tmax;
   const shown=bins.filter(b=>b.T>=Tmin&&b.T<=Tmax);
-  const W=740,Hh=320,m={l:68,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:68,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxEF=Math.max(1,...shown.map(b=>b.sum))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxEF)*pH;
   const bw=pW/(Tmax-Tmin)-1;
@@ -4743,7 +4750,7 @@ function renderGridChartWeighted(svg,temps,H,C){
 function renderGridChartHourly(svg,ef0,temps,daily){
   const {series:ef,offset}=sliceRange(ef0,daily,state.gridMonth,state.gridWeek);
   const N=ef.length;
-  const W=920,Hh=398,m={l:56,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=398,m={l:56,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxEF=Math.max(1,...ef)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxEF)*pH;
   const green=css('--green'),light=css('--light'),muted=css('--muted');
@@ -4941,7 +4948,7 @@ function renderEmisChartTemp(svg,temps,H,weighted,C){
   const binsHp=binByTemp(temps,H.hp_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsBk=binByTemp(temps,H.backup_ghg_kg,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
-  const W=740,Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),backup=backupColor(),light=css('--light'),muted=css('--muted');
@@ -5008,7 +5015,7 @@ function renderEmisChartHourly(svg,H,daily){
   const rB=sliceRange(H.base_ghg_kg,daily,state.emisMonth,state.emisWeek,true), rP=sliceRange(H.proj_ghg_kg,daily,state.emisMonth,state.emisWeek,true);
   const base=rB.series, proj=rP.series, offset=rB.offset;
   const N=base.length;
-  const W=920,Hh=398,m={l:52,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=398,m={l:52,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(1,...base,...proj)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),light=css('--light'),muted=css('--muted');
@@ -5083,7 +5090,7 @@ let WX_MODEL=null;
 function renderWeatherChartTemp(ctx){
   const {w,selId,selLabel,selSeries}=ctx;
   const svg=$('weatherchart');
-  const W=740,H=380,m={l:52,r:16,t:16,b:42},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
+  const W=heatChartWidth(svg,740),H=380,m={l:52,r:16,t:16,b:42},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
   const tags=w.meta.tags||{};
   const tmySeries=TMY&&TMY[state.city];
 
@@ -5219,7 +5226,7 @@ function renderWeatherChartHourly(ctx,daily){
   const {series,offset}=sliceRange(ctx.selSeries,daily,state.weatherMonth,state.weatherWeek);
   const svg=$('weatherchart');
   const N=series.length;
-  const W=920,H=472,m={l:52,r:16,t:16,b:34},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
+  const W=heatChartWidth(svg,920),H=472,m={l:52,r:16,t:16,b:34},plotW=W-m.l-m.r,plotH=H-m.t-m.b;
   const design=w.meta.design_temp_computed_2p5_C, so=switchOffTemp();
   let lo=Math.min(design!=null?design:0,so,...series)-2, hi=Math.max(...series)+2;
   const x=i=>m.l+(N>1?(i/(N-1))*plotW:0), y=v=>m.t+plotH-(v-lo)/(hi-lo)*plotH;
@@ -6127,7 +6134,7 @@ function binByTempRange(temps,vals,lo,hi,Wb){
 // Grouped (not stacked -- AC and HP are alternatives, not additive) bar
 // chart of per-1°C-bin sums, for the "Weighted by hours" view.
 function renderGroupedBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal){
-  const W=740,Hh=320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const bins=series.map(s=>binByTempRange(temps,s.arr,Tmin,Tmax,1));
   const maxV=Math.max(1,...bins.flat().map(b=>b.sum))*1.12;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
@@ -6155,7 +6162,7 @@ function renderGroupedBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLa
 // temperature" view for metrics with no clean analytic curve (energy, GHG,
 // cost, grid EF all depend on the grid/rate at that hour, not just temp).
 function renderMeanBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel,fmtVal,heightPx){
-  const W=740,Hh=heightPx||320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=heightPx||320,m={l:66,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const bins=series.map(s=>binByTempRange(temps,s.arr,Tmin,Tmax,1));
   const maxV=Math.max(0.01,...bins.flat().map(b=>b.mean||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
@@ -6180,7 +6187,7 @@ function renderMeanBinChart(svg,legendId,tipPrefix,series,temps,Tmin,Tmax,yLabel
 function renderTimeSeriesChart(svg,legendId,tipPrefix,series,daily,monthVal,weekVal,yLabel,fmtVal,sumMode){
   const sliced=series.map(s=>sliceRange(s.arr,daily,monthVal,weekVal,sumMode));
   const N=sliced[0].series.length, offset=sliced[0].offset;
-  const W=920,Hh=380,m={l:58,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=380,m={l:58,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...sliced.flatMap(sl=>sl.series.filter(v=>v!=null)))*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
   const light=css('--light'),muted=css('--muted');
@@ -6204,7 +6211,7 @@ function renderTimeSeriesChart(svg,legendId,tipPrefix,series,daily,monthVal,week
 }
 function renderCoolingChart(svg,UA,Tc,acEquip,hpEquip,hpLabel,designCoolingTempC,legendId){
   legendId=legendId||'cooling-legend';
-  const W=740,H=320,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
+  const W=heatChartWidth(svg,740),H=320,m={l:52,r:22,t:18,b:44},pW=W-m.l-m.r,pH=H-m.t-m.b;
   // The chart's hot end is bounded near the city's OWN design cooling
   // temperature, not a fixed ceiling: UA_cool is inversely proportional to
   // (design_temp - 25 C), so a mild-summer city (Vancouver's design temp is
@@ -6598,7 +6605,7 @@ function renderCostChartByHour(svg,elec,planKey){
   const winter=[],summer=[];
   for(let h=0;h<24;h++){winter.push(rateAt(0,h));summer.push(rateAt(6,h));}
   const seasonal=winter.some((v,h)=>Math.abs(v-summer[h])>0.0005);
-  const W=740,Hh=320,m={l:56,r:22,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:56,r:22,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...winter,...summer)*1.15;
   const x=h=>m.l+(h/23)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const purple=css('--purple'),blue=css('--blue'),light=css('--light'),muted=css('--muted');
@@ -6607,7 +6614,7 @@ function renderCostChartByHour(svg,elec,planKey){
     s.v+=`<text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="${light}">$${v.toFixed(2)}</text>`;});
   s.v+=`<text x="16" y="${m.t+pH/2}" transform="rotate(-90 16 ${m.t+pH/2})" text-anchor="middle" font-size="11" fill="${muted}">$/kWh</text>`;
   s.v+=`<line x1="${m.l}" y1="${m.t+pH}" x2="${W-m.r}" y2="${m.t+pH}" stroke="${css('--border')}" stroke-width="1"/>`;
-  for(let h=0;h<24;h+=2)s.v+=`<text x="${x(h)}" y="${m.t+pH+18}" text-anchor="middle" font-size="10.5" fill="${light}">${HOUR_OF_DAY_LABELS[h].replace('am',' am').replace('pm',' pm')}</text>`;
+  for(let h=0;h<24;h+=Math.max(2,Math.ceil(24*40/pW)))s.v+=`<text x="${x(h)}" y="${m.t+pH+18}" text-anchor="middle" font-size="10.5" fill="${light}">${HOUR_OF_DAY_LABELS[h].replace('am',' am').replace('pm',' pm')}</text>`;
   s.v+=polyline(winter.map((v,h)=>[h,v]),x,y,purple,2.4);
   winter.forEach((v,h)=>s.v+=`<circle cx="${x(h)}" cy="${y(v)}" r="2.4" fill="${purple}"/>`);
   if(seasonal){
@@ -6639,7 +6646,7 @@ function renderCostChartTemp(svg,temps,series,weighted){
   const binsBk=binByTemp(temps,series.bkCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const binsProj=binByTemp(temps,series.projCost,1).filter(b=>b.T>=Tmin&&b.T<=Tmax);
   const field=weighted?'sum':'mean';
-  const W=740,Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,740),Hh=320,m={l:64,r:22,t:16,b:44},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...binsBase.map(b=>b[field]||0),...binsProj.map(b=>b[field]||0))*1.15;
   const x=t=>m.l+(t-Tmin)/(Tmax-Tmin)*pW, y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),backup=backupColor(),light=css('--light'),muted=css('--muted');
@@ -6689,7 +6696,7 @@ function renderCostChartHourly(svg,series,daily){
   const base=rB.series, hp=rHp.series, bk=rBk.series, projCost=rP.series, offset=rB.offset;
   const N=base.length;
   const hasBackup=bk.some(v=>v>0);
-  const W=920,Hh=398,m={l:56,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
+  const W=heatChartWidth(svg,920),Hh=398,m={l:56,r:16,t:16,b:34},pW=W-m.l-m.r,pH=Hh-m.t-m.b;
   const maxV=Math.max(0.01,...base,...projCost)*1.1;
   const x=i=>m.l+(N>1?(i/(N-1))*pW:0), y=v=>m.t+pH-(v/maxV)*pH;
   const red=css('--red'),green=css('--green'),backup=backupColor(),light=css('--light'),muted=css('--muted');
