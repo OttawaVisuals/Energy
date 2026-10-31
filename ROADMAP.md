@@ -1,6 +1,9 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-10-31**: tool-page author credit (`assets/author-footer.js`) reworded to match
+the landing card: "energy efficiency professional (CEM, RETScreen Expert)", AI-assistant
+disclosure, feedback invitation; MEng dropped. Published to both branches.
 Updated **2026-10-31**: landing-page author card reworded as a portfolio statement
 (credentials, three skill bullets, feedback invitation, "Start here" links) and the
 visual-polish batch committed to `main` and published to `gh-pages`.

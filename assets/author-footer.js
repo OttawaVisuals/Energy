@@ -7,7 +7,7 @@
    function as index.html (functions/api/contact.js). Pages include it with
    <script defer src="assets/author-footer.js">. */
 (function () {
-  var TEXT = 'Built by Simon · energy engineer (MEng, CEM)';
+  var TEXT = 'Built by Simon · energy efficiency professional (CEM, RETScreen Expert)';
   // GitHub Pages has no /api, so off-madeclear hosts post cross-origin (CORS allow-listed in the function).
   var API = location.hostname === 'energy.madeclear.ca' ? '/api/contact' : 'https://energy.madeclear.ca/api/contact';
 
@@ -89,8 +89,8 @@
   pop.hidden = true;
 
   pop.appendChild(el('p', 'ab-name', 'Simon · Ottawa, ON'));
-  pop.appendChild(el('p', null, 'Energy engineer (MEng, CEM, RETScreen Expert). I build these open-data tools to make Canadian energy, retrofit and construction data easier to read.'));
-  pop.appendChild(el('p', 'ab-note', 'A personal project, built with help from Claude (an AI assistant). Every source and assumption is on each page’s methodology.'));
+  pop.appendChild(el('p', null, 'Energy efficiency professional (Certified Energy Manager, RETScreen Expert) with 10+ years of experience in energy audits (ASHRAE Level I and II), technical review of efficiency measures, and electrification and savings-potential studies. A personal project to visualize public datasets to inform decisions.'));
+  pop.appendChild(el('p', 'ab-note', 'Views are my own. Built with AI as coding assistant. Every source and assumption is on each page’s methodology. Feedback or ideas for new visuals? Use Contact below.'));
 
   var more = el('p');
   more.appendChild(link('All tools', 'index.html'));
