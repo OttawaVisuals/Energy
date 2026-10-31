@@ -1,5 +1,9 @@
 # CEUD Explorer
 
+2026-10-31: shared artwork/header and chart polish, including phone-sized SVG
+coordinates and fewer axis labels; displayed KPI values match the prior page.
+See [Visual polish](VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 2 pairs a donut chart with sector

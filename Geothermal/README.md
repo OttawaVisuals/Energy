@@ -1,5 +1,9 @@
 # Ottawa Geothermal Feasibility — Process Documentation
 
+2026-10-31: compact title artwork and expandable phone controls keep the map
+visible; keyboard assumptions toggle and template updated without rebuilding
+map data. See [Visual polish](../docs/VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: tab icon and dedicated social preview added to the generated page
 and tracked map template; see [branding](../docs/BRANDING.md).
 

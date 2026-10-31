@@ -1,5 +1,8 @@
 # Retrofit Explorer
 
+2026-10-31: shared artwork/header, chart controls and phone polish; see
+[Visual polish](VISUAL_POLISH.md). Local verification complete; publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon uses three heat waves in a thin-walled

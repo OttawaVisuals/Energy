@@ -1,5 +1,8 @@
 # Construction Tracker
 
+2026-10-31: shared artwork/header and chart polish, with narrow-screen chart
+grids and KPI cards; see [Visual polish](VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 1 uses a crane, buildings and a

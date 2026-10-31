@@ -6,6 +6,14 @@ for the record. Living tracker: [ROADMAP.md](../../ROADMAP.md).
 
 ---
 
+2026-10-31: shared visual-polish implementation completed locally for homepage
+and ten tools: balanced WebP artwork and title images, dark art panels, chart
+typography/tooltips, touch controls and keyboard table scrolling. Fixed phone
+headers, Heat Pump labels, New Homes filters, CEUD/Heat Pump SVG geometry and
+Geothermal panel crowding. 58 layout/theme cases and 11 interactions pass;
+CEUD KPIs and full Heat Pump simulation match the prior committed versions.
+Published 2026-10-31, together with a landing-page author-card rewrite (portfolio framing, decided by Simon: personal-project disclaimer shortened to "Views are my own. Built with AI as coding assistant"). See `../VISUAL_POLISH.md` for methodology and limits.
+
 2026-10-30: tab-icon and social-preview refresh implemented locally for ten tools,
 landing page and Atlas. Twelve SVG/32px PNG icon pairs and twelve 1200×630 cards,
 using approved artwork; distinct Permits/Geothermal cards, tracked map template

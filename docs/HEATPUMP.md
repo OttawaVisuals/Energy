@@ -1,5 +1,9 @@
 # Heat Pump Explorer
 
+2026-10-31: shared artwork/header and phone polish, including unclipped controls
+and screen-sized SVG chart coordinates. Full default simulation result matches
+the prior page. See [Visual polish](VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 3 combines a warm home, outdoor

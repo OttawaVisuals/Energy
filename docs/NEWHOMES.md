@@ -1,5 +1,8 @@
 # New Homes Explorer
 
+2026-10-31: shared artwork/header and chart polish, with usable postal-area
+filter widths on phones; see [Visual polish](VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 1 pairs an architectural plan with

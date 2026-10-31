@@ -1,5 +1,9 @@
 # Live Grid Dashboard
 
+2026-10-31: shared artwork/header and chart polish, including a wrapping phone
+header and viewport-contained tooltips; see [Visual polish](VISUAL_POLISH.md).
+Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 1 pairs a transmission pylon with
