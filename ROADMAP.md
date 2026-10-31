@@ -1,6 +1,15 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-10-31**: landing-page author card reworded as a portfolio statement
+(credentials, three skill bullets, feedback invitation, "Start here" links) and the
+visual-polish batch committed to `main` and published to `gh-pages`.
+Updated **2026-10-31**: shared visual polish implemented locally across the hub
+and ten tools: balanced compact artwork, dark-mode art panels, title images,
+chart/control consistency and phone layouts. Fixed header overflow, clipped
+inputs, compressed SVG labels and map-panel crowding. 58 layout/theme cases,
+11 interactions and unchanged CEUD/Heat Pump result comparisons pass. Publication
+done 2026-10-31 (see line above); see `docs/VISUAL_POLISH.md` and `docs/archive/ROADMAP_COMPLETED.md`.
 Updated **2026-10-30**: approved artwork, tab icons and social previews published
 to `gh-pages` (`0b29bfd`) and verified live: all 58 release files match (12 pages,
 24 SVG/PNG tab-icon files, 12 social previews, ten tile images). Existing data and

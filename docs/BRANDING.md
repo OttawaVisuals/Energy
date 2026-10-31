@@ -1,5 +1,8 @@
 # Tab icons and social previews
 
+2026-10-31: shared tile/header styling and compact web artwork are documented in
+[Visual polish](VISUAL_POLISH.md). That follow-up is local and not yet published.
+
 Updated 2026-10-30. Published and verified live 2026-10-30.
 
 Release: `gh-pages` commit `0b29bfd`; all 58 published files matched the release

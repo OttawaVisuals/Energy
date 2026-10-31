@@ -198,8 +198,10 @@ footer a:hover{color:var(--amber2)}
 </script>
 <link rel="icon" type="image/svg+xml" href="assets/favicons/ceud.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/ceud.png">
+<link rel="stylesheet" href="assets/visual-polish.css">
+<script defer src="assets/visual-polish.js"></script>
 </head>
-<body class="mode-simple sector-residential">
+<body data-energy-tool="ceud" class="mode-simple sector-residential">
 <script>
 (function(){
   var urlView=new URLSearchParams(location.search).get('view');
@@ -234,7 +236,7 @@ footer a:hover{color:var(--amber2)}
 
 <div class="hero">
   <p class="hero-eyebrow">NRCan Comprehensive Energy Use Database</p>
-  <h1 id="hero-h1">How Canadian homes <em>use energy</em> — and how that's changing</h1>
+  <div class="tool-heading"><img class="tool-heading-art" src="assets/icons/web/ceud.webp" alt="" width="512" height="216"><h1 id="hero-h1">How Canadian homes <em>use energy</em> — and how that's changing</h1></div>
   <p class="hero-sub" id="hero-sub">One slice at a time. Pick a region, a metric and a year range to see where residential energy goes and how it's shifted since 2000 — no more digging through fifty static tables.</p>
 
   <div class="filter-bar">
@@ -1028,6 +1030,13 @@ function renderInsight(){
 
 /* ── section 2: trend chart ── */
 var trendHover = null;
+// Draw mobile axes in screen pixels instead of squeezing a 900px viewBox.
+function ceudChartWidth(svg,fallback){
+  return window.innerWidth<=700 ? Math.max(240,Math.round(svg.parentElement.clientWidth)||fallback) : fallback;
+}
+function ceudChartHeight(svg,fallback){
+  return window.innerWidth<=700 ? (svg.parentElement.clientHeight||fallback) : fallback;
+}
 
 function computeTrendSeries(){
   var d = currentData;
@@ -1086,7 +1095,7 @@ function renderTrend(){
     legend.appendChild(item);
   });
 
-  var W=900,H=340,ML=54,MR=16,MT=14,MB=30;
+  var W=ceudChartWidth(document.getElementById('trend-svg'),900),H=340,ML=54,MR=16,MT=14,MB=30;
   var plotW=W-ML-MR, plotH=H-MT-MB;
   var svg = document.getElementById('trend-svg');
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
@@ -1125,7 +1134,7 @@ function renderTrend(){
     txt.textContent = state.shareMode==='share' ? Math.round(val)+'%' : fmtNum(val,0);
     svg.appendChild(txt);
   }
-  var xTickEvery = years.length>16 ? 4 : (years.length>8?2:1);
+  var xTickEvery = Math.max(years.length>16 ? 4 : (years.length>8?2:1),Math.ceil(years.length/Math.max(2,Math.floor(plotW/58))));
   years.forEach(function(y,i){
     if(i%xTickEvery!==0 && i!==years.length-1) return;
     var x = xOf(y);
@@ -1267,7 +1276,7 @@ function renderBreakdown(){
   if(!crossTabAvailable) dimCats.forEach(function(c){ var v=innerVals.all[c]; if(v!=null) innerTotal+=v; });
 
   var svg = document.getElementById('donut-svg');
-  var W=480,H=380,cx=180,cy=190;
+  var W=ceudChartWidth(svg,480),H=380,cx=window.innerWidth<=700?W/2:180,cy=190;
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
   svg.innerHTML='';
   var svgns='http://www.w3.org/2000/svg';
@@ -1283,8 +1292,9 @@ function renderBreakdown(){
     return;
   }
 
-  var rOuterIn=118, rOuterOut=150;
-  var rInnerIn = hasOuter ? 70 : 90, rInnerOut = hasOuter ? 112 : 150;
+  var ringScale=window.innerWidth<=700?Math.min(1,(W-24)/300):1;
+  var rOuterIn=118*ringScale, rOuterOut=150*ringScale;
+  var rInnerIn = (hasOuter ? 70 : 90)*ringScale, rInnerOut = (hasOuter ? 112 : 150)*ringScale;
 
   function polar(cx,cy,r,angle){ return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)]; }
   function ringPath(cx,cy,rIn,rOut,a0,a1){
@@ -1469,7 +1479,7 @@ function toShareValues(cats, valuesByCat, years){
 
 function drawLineChart(svg, years, series, opts){
   opts = opts || {};
-  var W = opts.W||900, H = opts.H||260;
+  var W = ceudChartWidth(svg,opts.W||900), H = ceudChartHeight(svg,opts.H||260);
   var ML = opts.ML!=null?opts.ML:46, MR = opts.MR!=null?opts.MR:14, MT = opts.MT!=null?opts.MT:12, MB = opts.MB!=null?opts.MB:26;
   var plotW=W-ML-MR, plotH=H-MT-MB;
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
@@ -1503,7 +1513,7 @@ function drawLineChart(svg, years, series, opts){
       txt.textContent = opts.yFormat ? opts.yFormat(val) : fmtNum(val,0);
       svg.appendChild(txt);
     }
-    var xTickEvery = opts.xTickEvery || (years.length>16?4:(years.length>8?2:1));
+    var xTickEvery = Math.max(opts.xTickEvery || (years.length>16?4:(years.length>8?2:1)),Math.ceil(years.length/Math.max(2,Math.floor(plotW/58))));
     years.forEach(function(y,i){
       if(i%xTickEvery!==0 && i!==years.length-1) return;
       var txt = el('text',{x:xOf(y),y:H-MB+16,'text-anchor':'middle',class:'axis-text'});
@@ -1556,7 +1566,7 @@ function drawLineChart(svg, years, series, opts){
 
 function drawStackedAreaChart(svg, years, cats, colorOf, labelOf, valuesByCat, opts){
   opts = opts || {};
-  var W=opts.W||900, H=opts.H||300, ML=opts.ML!=null?opts.ML:54, MR=opts.MR!=null?opts.MR:16, MT=opts.MT!=null?opts.MT:14, MB=opts.MB!=null?opts.MB:30;
+  var W=ceudChartWidth(svg,opts.W||900), H=ceudChartHeight(svg,opts.H||300), ML=opts.ML!=null?opts.ML:54, MR=opts.MR!=null?opts.MR:16, MT=opts.MT!=null?opts.MT:14, MB=opts.MB!=null?opts.MB:30;
   var plotW=W-ML-MR, plotH=H-MT-MB;
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
   svg.innerHTML='';
@@ -1579,7 +1589,7 @@ function drawStackedAreaChart(svg, years, cats, colorOf, labelOf, valuesByCat, o
     txt.textContent = opts.shareMode?Math.round(val)+'%':fmtNum(val,0);
     svg.appendChild(txt);
   }
-  var xTickEvery = years.length>16?4:(years.length>8?2:1);
+  var xTickEvery = Math.max(years.length>16?4:(years.length>8?2:1),Math.ceil(years.length/Math.max(2,Math.floor(plotW/58))));
   years.forEach(function(y,i){
     if(i%xTickEvery!==0 && i!==years.length-1) return;
     var txt=el('text',{x:xOf(y),y:H-MB+16,'text-anchor':'middle',class:'axis-text'});
@@ -1634,7 +1644,7 @@ function drawStackedAreaChart(svg, years, cats, colorOf, labelOf, valuesByCat, o
 
 function drawBarChart(svg, items, opts){
   opts = opts||{};
-  var W=opts.W||900, rowH=opts.rowH||24, gap=opts.gap||8, labelW=opts.labelW||130, MR=opts.MR||64, MT=opts.MT||6;
+  var W=ceudChartWidth(svg,opts.W||900), rowH=opts.rowH||24, gap=opts.gap||8, labelW=opts.labelW||130, MR=opts.MR||64, MT=opts.MT||6;
   var H = MT + items.length*(rowH+gap);
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
   svg.setAttribute('height', H);

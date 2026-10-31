@@ -1,5 +1,8 @@
 # District Energy Explorer
 
+2026-10-31: shared artwork/header, chart controls and one-column phone chart
+grids; see [Visual polish](VISUAL_POLISH.md). Publication pending.
+
 2026-10-30: matching tab icon and social preview added; see [branding](BRANDING.md).
 
 2026-10-30: approved landing-page icon option 1 connects an energy centre to
