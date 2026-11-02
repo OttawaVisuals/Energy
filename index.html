@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ottawa Visuals — Canadian energy data tools</title>
+<meta name="description" content="Ten interactive tools built from public Canadian energy data: home retrofits, new construction, heat pumps, grid emissions, geothermal potential, energy use, building activity, municipal building permits and district energy networks.">
+<meta property="og:title" content="Ottawa Visuals — Canadian energy data tools">
+<meta property="og:description" content="Ten interactive tools built from public Canadian energy data — no backend, just open data and a browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/">
+<meta property="og:image" content="https://ottawavisuals.github.io/Energy/assets/og/index-v2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ottawa Visuals — Canadian energy data tools">
+<meta property="og:site_name" content="Ottawa Visuals">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/index-v2.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<style>
+/* Reset, theme variables, header, hero, theme toggle, footer all live in
+   assets/site-theme.css (shared with every other page in the suite). This
+   page adds only the card-grid layout below — no data fetches, no chart
+   library, everything on the page is inline SVG. */
+
+main{max-width:1180px;margin:0 auto;padding:2.2rem 1.25rem 3rem}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem;margin-bottom:2.5rem}
+.tool-card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);text-decoration:none;color:inherit;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.tool-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(11,37,69,.16),0 1px 3px rgba(11,37,69,.1)}
+.tool-card:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tc-graphic{height:92px;background:var(--surface);display:flex;align-items:center;justify-content:center;padding:.5rem}
+.tc-graphic svg{width:100%;height:100%;max-width:200px}
+.tc-graphic img{width:100%;height:100%;max-width:200px;object-fit:contain}
+.tc-graphic:has(img){background:#fff}
+.tc-body{padding:1rem 1.15rem 1.15rem;display:flex;flex-direction:column;gap:.4rem;flex:1}
+.tc-title{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;font-weight:400;color:var(--ink);letter-spacing:-.01em}
+.tc-desc{font-size:13.5px;color:var(--text);line-height:1.5;flex:1}
+.tc-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:.3rem;padding-top:.55rem;border-top:1px solid var(--border)}
+.tc-source{font-size:11px;color:var(--muted);letter-spacing:.02em}
+.tc-cta{font-size:12.5px;font-weight:500;color:var(--blue);white-space:nowrap}
+.tool-card:hover .tc-cta{color:var(--ink)}
+
+.section-lede{margin:0 0 1.1rem;font-size:13px;color:var(--muted);max-width:640px}
+
+.about-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:1.3rem 1.5rem}
+.about-card h2{font-family:'Fraunces',Georgia,serif;font-size:1.25rem;font-weight:300;color:var(--ink);margin-bottom:.6rem}
+.about-card p{font-size:13.5px;color:var(--text);line-height:1.65;margin-bottom:.6rem}
+.about-card p:last-child{margin-bottom:0}
+.about-card a{color:var(--blue)}
+.src-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:.8rem}
+.src-tag{font-size:11px;color:var(--muted);background:var(--surface);border-radius:6px;padding:3px 8px}
+
+.internal-link{display:block;text-align:center;margin-top:1.4rem;font-size:12px;color:var(--light)}
+.internal-link a{color:var(--muted);text-decoration:none}
+.internal-link a:hover{color:var(--ink)}
+
+.author-card{margin-bottom:1.2rem}
+.skill-list{margin:0 0 .7rem;padding-left:1.1rem;font-size:13.5px;color:var(--text);line-height:1.6}
+.skill-list li{margin-bottom:.35rem}
+.skill-list strong{color:var(--ink);font-weight:500}
+.skill-start{font-weight:500}
+.contact-card{margin-bottom:1.2rem;position:relative}
+.contact-card label{display:block;font-size:12.5px;color:var(--muted);margin-top:.7rem}
+.contact-card input,.contact-card textarea{display:block;width:100%;margin-top:.25rem;padding:.5rem .6rem;font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px}
+.contact-card button{margin-top:.8rem;padding:.5rem 1.1rem;font:inherit;font-size:13px;font-weight:500;color:#fff;background:var(--blue);border:0;border-radius:6px;cursor:pointer}
+#contact-status{margin-left:.6rem;font-size:12.5px;color:var(--muted)}
+
+@media(max-width:600px){
+  main{padding:1.5rem 1rem 2rem}
+  .about-card{padding:1.1rem 1.2rem}
+}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicons/index.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/index.png">
+<link rel="stylesheet" href="assets/visual-polish.css">
+<script defer src="assets/visual-polish.js"></script>
+</head>
+<body data-energy-tool="index">
+<script>
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">ottawa<span>visuals</span></div>
+    <div class="header-title">Canadian energy data tools</div>
+  </div>
+  <div class="theme-toggle" role="group" aria-label="Colour theme">
+    <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+    </button>
+    <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+    </button>
+    <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.9"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="hero">
+  <p class="eyebrow">Ottawa Visuals</p>
+  <h1>Canadian energy data, <em>made explorable</em></h1>
+  <p class="hero-sub">Ten interactive tools built from public data — how Canadians heat their homes, what gets built, and what powers the grid. Each one is a Python pipeline turning open data into a self-contained page: no backend, no login, no live queries. Pick one below.</p>
+</div>
+
+<main>
+
+<div class="about-card author-card">
+  <h2>Built by Simon · Ottawa, ON</h2>
+  <p>Energy efficiency professional (Certified Energy Manager, RETScreen Expert) with 10+ years of experience, including energy audits (ASHRAE Level I and II), technical review of energy efficiency measures, and technical analysis of technologies and specific studies (electrification, energy savings potential). This is a personal project to visualize public datasets to inform potential decisions:</p>
+  <ul class="skill-list">
+    <li><strong>Data collection/transformation:</strong> offline Python scripts to transform and combine datasets into compact, self-contained pages. Python scripts and methodologies clearly explained for transparency.</li>
+    <li><strong>Data analysis:</strong> domain-specific cleaning and quality checks (HOT2000/EnerGuide fields, audit noise, paired before/after records). Dropped records are counted, not hidden.</li>
+    <li><strong>Visualization:</strong> interactive maps and charts for homeowners and for technical readers, with plain-language and advanced methodology on every page.</li>
+  </ul>
+  <p>If you have feedback or suggestions for new visuals or projects, do not hesitate to <a href="#contact">contact me</a>.</p>
+  <p class="skill-start">Start here: <a href="retrofit-insights.html">Retrofit Insights</a> &middot; <a href="heatpump.html">Heat Pump Explorer</a> &middot; <a href="newhomes.html">New Homes Explorer</a></p>
+  <p>These tools are personal projects built on public data. Views are my own. Built with AI as coding assistant. <a href="#contact">Get in touch</a> &middot; <a href="https://github.com/OttawaVisuals" target="_blank" rel="noopener">GitHub</a></p>
+</div>
+
+<div class="card-grid">
+
+  <a class="tool-card" href="retrofits.html">
+    <div class="tc-graphic"><img src="assets/icons/web/retrofit-explorer.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Retrofit Explorer</div>
+      <div class="tc-desc">1.45M real Canadian home-energy retrofits — what homes like yours did, and what their audits say it saved.</div>
+      <div class="tc-meta"><span class="tc-source">NRCan EnerGuide, 2004–2026</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="retrofit-insights.html">
+    <div class="tc-graphic"><img src="assets/icons/web/retrofit-insights.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Retrofit Insights</div>
+      <div class="tc-desc">The national picture behind the same 1.45M retrofits — leaderboards, climate &amp; equity lenses, what actually works.</div>
+      <div class="tc-meta"><span class="tc-source">NRCan EnerGuide + StatCan</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="newhomes.html">
+    <div class="tc-graphic"><img src="assets/icons/web/new-homes.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">New Homes Explorer</div>
+      <div class="tc-desc">How efficient brand-new construction actually is — as-designed plans vs. blower-door-tested as-built homes.</div>
+      <div class="tc-meta"><span class="tc-source">NRCan EnerGuide (P/N)</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="ceud.html">
+    <div class="tc-graphic"><img src="assets/icons/web/ceud.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">CEUD Explorer</div>
+      <div class="tc-desc">NRCan's Comprehensive Energy Use Database, browsable — where Canada's energy actually goes, sector by sector.</div>
+      <div class="tc-meta"><span class="tc-source">NRCan CEUD</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="construction.html">
+    <div class="tc-graphic"><img src="assets/icons/web/construction.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Construction Tracker</div>
+      <div class="tc-desc">Permits, housing starts and construction investment — national, provincial and metro, refreshed monthly.</div>
+      <div class="tc-meta"><span class="tc-source">StatCan · CMHC · BoC</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="permits.html">
+    <div class="tc-graphic"><img src="assets/icons/web/permits.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Permits Explorer</div>
+      <div class="tc-desc">Nine cities' own permit desks — where building actually happens, block by block, and who is doing it.</div>
+      <div class="tc-meta"><span class="tc-source">9 municipal portals</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="grid.html">
+    <div class="tc-graphic"><img src="assets/icons/web/grid.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Grid Dashboard</div>
+      <div class="tc-desc">What's powering the grid right now — Ontario &amp; Alberta generation mix, and why "average" and "marginal" emissions disagree.</div>
+      <div class="tc-meta"><span class="tc-source">IESO · AESO · Hydro-Québec</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="districtenergy.html">
+    <div class="tc-graphic"><img src="assets/icons/web/district-energy.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">District Energy Explorer</div>
+      <div class="tc-desc">Canada's 238 thermal networks — what district energy is, how the generations differ, and every system on the map.</div>
+      <div class="tc-meta"><span class="tc-source">CEEDC · Simon Fraser University</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="Geothermal/output/">
+    <div class="tc-graphic"><img src="assets/icons/web/geothermal.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Ottawa Geothermal Map</div>
+      <div class="tc-desc">Ground-source heat pump screening for Ottawa — conductivity from 55k water wells, drilling difficulty, grid capacity.</div>
+      <div class="tc-meta"><span class="tc-source">Ontario WWIS · City of Ottawa</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+  <a class="tool-card" href="heatpump.html">
+    <div class="tc-graphic"><img src="assets/icons/web/heat-pump.webp" alt="" width="512" height="216" loading="lazy" decoding="async"></div>
+    <div class="tc-body">
+      <div class="tc-title">Heat Pump Explorer</div>
+      <div class="tc-desc">An hour-by-hour simulation: your home, your heating, real cold-climate equipment and your province's real grid.</div>
+      <div class="tc-meta"><span class="tc-source">IESO/AESO/HQ · NEEP · ERS</span><span class="tc-cta">Explore →</span></div>
+    </div>
+  </a>
+
+</div>
+
+<div class="about-card contact-card" id="contact">
+  <h2>Get in touch</h2>
+  <p>Questions about a tool, the methods, or energy-audit work? Your message goes to the site author; your email is used only to reply.</p>
+  <form id="contact-form" novalidate>
+    <label>Name (optional) <input name="name" maxlength="80" autocomplete="name"></label>
+    <label>Email <input name="email" type="email" maxlength="120" required autocomplete="email"></label>
+    <label>Message <textarea name="message" maxlength="2000" rows="4" required></textarea></label>
+    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+    <button type="submit">Send</button><span id="contact-status" role="status"></span>
+  </form>
+</div>
+
+<div class="about-card">
+  <h2>About the data</h2>
+  <p>Every tool here follows the same pattern: an offline Python pipeline turns a public government (or utility) dataset into compact JSON, and a single self-contained HTML page renders it in your browser — no server, no account, no tracking beyond standard page analytics. Values are modelled or reported figures from the original source, not independently measured; each tool states its own caveats on-page.</p>
+  <p>Built by <a href="https://github.com/OttawaVisuals" target="_blank" rel="noopener">Ottawa Visuals</a>, source on <a href="https://github.com/OttawaVisuals/Energy" target="_blank" rel="noopener">GitHub</a>. Website, data pipelines and Python scripts were developed using Claude AI.</p>
+  <div class="src-tags">
+    <span class="src-tag">NRCan EnerGuide / ERS</span>
+    <span class="src-tag">NRCan CEUD</span>
+    <span class="src-tag">Statistics Canada</span>
+    <span class="src-tag">CMHC</span>
+    <span class="src-tag">Bank of Canada</span>
+    <span class="src-tag">IESO</span>
+    <span class="src-tag">AESO</span>
+    <span class="src-tag">Hydro-Québec</span>
+    <span class="src-tag">Ontario WWIS</span>
+    <span class="src-tag">City of Ottawa</span>
+    <span class="src-tag">Hydro Ottawa / OEB CCIM</span>
+  </div>
+</div>
+
+<div class="internal-link"><a href="project-atlas.html">Project Atlas — internal build notes &amp; assumptions for every tool ↗</a></div>
+
+</main>
+
+<footer>
+  A collection of open-data explainers about how Canada uses energy. No backend, hosted on GitHub Pages.<br>
+  Website, data pipeline and python scripts were developed using Claude AI.
+</footer>
+
+<script>
+const THEMES=['light','dark','cb'];
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!THEMES.includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  syncThemeButtons(t);
+}
+syncThemeButtons(document.documentElement.dataset.theme);
+
+(function(){
+  var form=document.getElementById('contact-form');
+  if(!form)return;
+  var status=document.getElementById('contact-status');
+  var t0=Date.now();
+  // GitHub Pages has no /api, so off-madeclear hosts post cross-origin (CORS allow-listed in the function).
+  var API=location.hostname==='energy.madeclear.ca'?'/api/contact':'https://energy.madeclear.ca/api/contact';
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var f=form.elements;
+    if(!f.email.value||!f.message.value.trim()){status.textContent='Please enter your email and a message.';return;}
+    status.textContent='Sending…';
+    fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+      name:f.name.value,email:f.email.value,message:f.message.value,website:f.website.value,fillMs:Date.now()-t0})})
+    .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+    .then(function(x){
+      if(x.ok){form.reset();status.textContent='Sent. Thank you.';}
+      else status.textContent=(x.d&&x.d.error)||'Could not send.';
+    })
+    .catch(function(){status.textContent='Could not send. Please try again later.';});
+  });
+})();
+</script>
+</body>
+</html>
