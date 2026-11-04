@@ -258,13 +258,13 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
 .sheet-head { border-bottom: 2px solid var(--paper-ink); padding-bottom: 6px; display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
 .sheet-head h2 { font: 700 22px/1.05 var(--display); text-transform: uppercase; letter-spacing: .04em; }
 .sheet-head span { font: 400 11px var(--mono); }
-.legend { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 22px; align-items: start; border: 1px solid var(--paper-rule); padding: 10px 14px; }
-.legend h3 { grid-column: 1 / -1; font: 700 13px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.model-key { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 22px; align-items: start; border: 1px solid var(--paper-rule); padding: 10px 14px; }
+.model-key h3 { grid-column: 1 / -1; font: 700 13px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
 .legend-code { font: 700 20px/1 var(--mono); letter-spacing: .12em; display: flex; gap: 8px; padding-top: 4px; }
 .legend-code span { border-bottom: 2px solid var(--paper-rule); padding-bottom: 2px; }
-.legend dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 13px; line-height: 1.4; }
-.legend dt { font: 700 12px/1.45 var(--mono); }
-.legend dd { margin: 0; }
+.model-key dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 13px; line-height: 1.4; }
+.model-key dt { font: 700 12px/1.45 var(--mono); }
+.model-key dd { margin: 0; }
 .models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 22px; }
 .model { padding: 10px 0 4px; border-top: 1px solid var(--paper-rule); display: flex; flex-direction: column; gap: 3px; }
 .model b { font: 700 15px/1.2 var(--mono); letter-spacing: .1em; }
@@ -509,7 +509,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
 .ghost-wt { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); opacity: .92; }
 
 /* Narrow screens: stack and scroll (laptop is the target for now) */
-@media (max-width: 900px), (max-height: 600px) {
+@media (max-width: 1180px), (max-height: 680px) {
   html, body { height: auto; }
   body { overflow: auto; }
   main { display: flex; flex-direction: column; }
@@ -527,10 +527,255 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
   .stage { height: calc(100% - 70px); }
   .chapter .badge, .chapter .timer { display: none; }
 }
+.timeline-scroll, .timeline-content { min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.review-line { grid-column: 2; justify-self: start; border: 0; background: none; padding: 2px 0; color: var(--copper-ink); text-decoration: underline; }
+.pan-add { border: 1px solid #263b48; border-radius: 4px; padding: 5px; font-size: 11px; background: var(--paper); color: var(--ink); }
+.cost-method { font-size: 13px; }
+.cost-method summary { cursor: pointer; font-weight: 600; }
+.cost-method p { margin-top: 8px; }
+@media (max-width: 1180px), (max-height: 680px) {
+  .masthead { height: auto; min-height: 60px; flex-wrap: wrap; gap: 8px 12px; padding: 10px 16px; }
+  .brand { flex-shrink: 0; }
+  .chapter { margin-left: auto; font-size: 10px; gap: 8px; }
+  .mast-tools { flex-wrap: wrap; gap: 6px; }
+  .table { height: auto; min-height: 520px; padding: 16px; overflow: visible; }
+  .p1, .p3, .p4, .p5, .p6 { grid-template-columns: minmax(0, 1fr); height: auto; gap: 20px; }
+  .sheet { transform: none; overflow: visible; }
+  .sheet-head { flex-wrap: wrap; }
+  .viewer, .loop-wrap { height: auto; container-type: normal; }
+  .room, .loop { width: 100%; }
+  .tabs { flex-wrap: wrap; }
+  .kit, .p5-side, .p6-side { overflow: visible; }
+  .timeline-scroll { overflow-x: auto; }
+  .timeline-content { min-width: 760px; }
+  .board { min-width: 0; }
+  .p4-side { overflow: visible; }
+  .stage { height: 600px; justify-content: flex-start; overflow-x: auto; }
+  .shred { --h: 580px; flex-shrink: 0; }
+  .scale { flex: none; display: grid; gap: 14px; }
+  .scale > svg { display: none; }
+  .scale .pan { position: static; width: 100%; transform: none; border-radius: 8px; min-height: 100px; }
+  .pan-items { padding-bottom: 4px; }
+  .scale-dial { flex-wrap: wrap; padding: 8px; gap: 8px; font-size: 10px; }
+  .scale-dial b, .scale-dial .saved b { font-size: 19px; }
+  .note:nth-child(n) { transform: none; max-width: 100%; overflow-wrap: anywhere; }
+  .debrief { position: fixed; padding: 12px; }
+  .debrief-card { max-height: calc(100dvh - 24px); padding: 18px; }
+  .debrief-card h2 { font-size: 34px; }
+  .socket { font-size: 11px; padding: 3px; min-height: 40px; }
+  .sticker { font-size: 9px; padding: 2px 3px; }
+  .calcpad { max-width: calc(100vw - 24px); right: 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .sheet { transform: none; }
   .shred, .strip, #needle { transition: none; }
 }
+
+/* Visual refinement · 2026-11-04. Inline vectors and CSS only. */
+:root { --cream:#eeece5; --paper:#fffcf5; --muted:#55636b; --copper:#bb683c; --on-dark-muted:#b5c5cc; }
+body { background-image:radial-gradient(#15232c0a .7px,transparent .7px); background-size:12px 12px; }
+button { transition:background-color .16s,border-color .16s,box-shadow .16s; }
+.masthead { height:68px; background:linear-gradient(110deg,#142630,#203740); border-bottom:1px solid #b67751; box-shadow:0 3px 14px #10232b14; }
+.brand svg { width:38px; height:38px; }
+.brand-title { font-size:25px; letter-spacing:.045em; }
+.brand-kicker { letter-spacing:.2em; color:#b2cbd4; }
+.chapter { font-size:11px; letter-spacing:.1em; gap:14px; }
+.badge { border-color:#966244; color:#efba91; background:#c46a3212; }
+.masthead .reset { border-color:#ffffff24; background:#ffffff05; border-radius:8px; font-size:12px; height:34px; }
+.masthead .reset:hover { background:#ffffff10; border-color:#abc4ce; }
+.call > .call-head { order:0; }
+.call > div:not(.call-head):not(.service-progress) { order:1; }
+.call > .lock { order:2; }
+.call > .service-progress { order:3; }
+.call > .call-lines { order:4; }
+.call { background:linear-gradient(180deg,#fcfaf4,#f3f0e7); padding-top:22px; gap:16px; border-right-color:#d7d5ca; }
+.call-head span { font-size:10px; }
+.call-title { font-size:27px; line-height:1.05; letter-spacing:.015em; margin-bottom:7px; }
+.call-sub { font-size:12px; line-height:1.5; }
+.service-progress { display:grid; gap:7px; }
+.service-progress > div:first-child { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font:500 10px var(--mono); }
+.progress-track { height:4px; border-radius:4px; background:#dddcd2; overflow:hidden; }
+.progress-track i { display:block; height:100%; width:var(--completion,0%); background:#3e7f6b; border-radius:inherit; transition:width .3s; }
+.call-lines { border:0; display:grid; gap:3px; }
+.call-lines li { padding:8px; border:1px solid transparent; border-radius:7px; gap:2px 10px; color:#66717a; }
+.call-lines li.current { background:#fffaf0; border-color:#d7b494; box-shadow:0 2px 5px #412b1110; }
+.call-lines .ln { width:24px; height:24px; font-size:10px; border-color:#bbc2bf; }
+.call-lines li.current .ln { background:var(--copper-ink); border-color:var(--copper-ink); }
+.call-lines .step { font-size:13px; font-weight:600; }
+.call-lines .res { font-size:10.5px; }
+.call-lines li.done { background:#e8efe9; }
+.review-line { font:500 11px var(--sans); text-underline-offset:3px; }
+.lock { padding:16px; background:#fffdf8; border:1px solid #d8d7cd; border-top:3px solid var(--copper); border-radius:9px; box-shadow:0 4px 12px #27342c07; gap:8px; }
+.lock h2 { font-size:25px; }
+.lock .prompt { font-size:13px; }
+.display { border:1px solid #324e5b; border-radius:7px; padding:8px; }
+.display input { font-size:21px; }
+.display span { font-size:10px; }
+.lock .primary { padding:0 12px; font-size:13px; border-radius:7px; background:#254450; }
+.hint-btn { font-size:12px; }
+.feedback:empty { min-height:0; }
+.workspace { padding:22px 24px 24px; }
+.puzzle { gap:18px; }
+.scene-head { gap:24px; align-items:center; }
+.scene-title { display:grid; grid-template-columns:48px auto; column-gap:12px; align-items:center; flex-shrink:0; }
+.scene-icon { grid-row:span 2; width:46px; height:46px; display:grid; place-items:center; background:#fcfaf4; border:1px solid #d7d4c8; border-radius:12px; color:#9a542f; box-shadow:0 2px 5px #1d303008; }
+.scene-icon svg { width:27px; height:27px; }
+.scene-head .eyebrow { font-size:10px; letter-spacing:.14em; }
+.scene-head h1 { font-size:clamp(27px,2.5vw,38px); letter-spacing:-.015em; margin-top:3px; }
+.objective { font-size:13px; line-height:1.5; max-width:57ch; }
+.objective b { font-weight:600; }
+.table { border:1px solid #162b35; border-radius:14px; padding:22px; background-color:#1d303a; background-image:linear-gradient(#a3c7d305 1px,transparent 1px),linear-gradient(90deg,#a3c7d305 1px,transparent 1px),radial-gradient(ellipse at 45% 0%,#314a55,transparent 75%); background-size:32px 32px,32px 32px,100% 100%; box-shadow:inset 0 1px #ffffff0d,0 12px 24px #162a3518; }
+.tlabel { font-size:10px; letter-spacing:.15em; color:#b6cbd3; }
+.unit { gap:12px; }
+.furnace-box { border:1px solid #b4ccd313; border-radius:9px; padding:12px 8px 0; background:radial-gradient(ellipse at 50% 70%,#82958b24,transparent 70%); }
+.furnace { filter:drop-shadow(5px 8px 6px #07151b50); }
+.plate { border:1px solid #e0e4e6; border-radius:7px; padding:13px; box-shadow:0 5px 12px #07151b50; }
+.plate-head { font-size:16px; margin-bottom:4px; }
+.sheet { border-radius:6px; padding:20px; transform:none; border:1px solid #dcd8cb; box-shadow:0 8px 24px #06141b40; }
+.sheet-head { border-bottom:2px solid #7c5a3f; padding-bottom:12px; }
+.sheet-head h2 { font-size:23px; }
+.sheet-head span { font-size:10px; color:#62645e; max-width:175px; }
+.model-key { border:0; border-radius:5px; background:#efece2; padding:12px; color:#303e42; margin:0; display:grid; grid-template-columns:auto 1fr; gap:8px 18px; }
+.model-key h3 { color:#805136; }
+.model-key .legend-code { color:#805136; font-size:17px; }
+.model-key dl { font-size:12px; }
+.models { gap:12px; }
+.model { border:1px solid #dedbd0; border-radius:5px; background:#fffdf8; padding:12px; gap:8px; }
+.model b { font-size:13px; color:#87502f; letter-spacing:.05em; }
+.model p { font-size:12px; line-height:1.5; }
+.corner { background:#172a32e8; border:1px solid #b4ccd320; padding:14px; border-radius:9px; max-width:calc(50% - 220px); }
+.corner p { font-size:12px; }
+.instrument { border-color:#66818a55; background:linear-gradient(155deg,#182d37,#11212a); box-shadow:inset 0 1px #ffffff0a,0 4px 8px #07151b25; }
+.worklist,.yearcard { border-radius:8px; padding:15px; border:1px solid #dedbd0; box-shadow:0 5px 12px #07151b30; }
+.tabs { gap:6px; }
+.tab { border-radius:7px; padding:8px 11px; font-size:13px; }
+.tool { border-radius:6px; border:1px solid #d9d4c4; padding:9px 11px; font-size:12px; }
+.tray .job { width:auto; min-width:95px; flex:1 1 95px; height:42px; }
+.readout { gap:10px; }
+.lcd { padding:10px 14px; border-radius:9px; background:#10232c; border-color:#63849070; }
+.legend { border:0; padding:0; margin:0; font-size:10px; gap:5px 10px; }
+.note { border-radius:5px; padding:14px 15px; }
+.note.wish,.p6-side .note.wish { font:500 13px/1.5 var(--sans); gap:9px; background:#f3e6b9; border-top:3px solid #bca46a; }
+.note.wish > b { font:700 16px var(--display); text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
+#rules { gap:8px; }
+.rule { padding-left:22px; text-indent:-22px; }
+.rule::before { width:22px; font-size:13px; }
+.status { font-size:12px; line-height:1.5; }
+.loop { border:1px solid #79929b40; border-radius:12px; }
+.socket { border-radius:9px; border-color:#a9c8d280; font-size:13px; }
+.sticker { border:1px solid #cbb789; box-shadow:0 2px 4px #07151b35; background:#f2e5bd; font-size:11px; }
+.part { border:1px solid #d7d6cc; border-left:3px solid #81aab5; border-radius:7px; padding:10px 12px; }
+.part span { font-size:12px; }
+.part.sel,.wt.sel { outline:2px solid #e9a16d; outline-offset:2px; }
+#p6 .table { overflow:auto; }
+.p6 { grid-template-columns:minmax(0,1fr) 280px; }
+.scale-dial { padding:12px 14px; border-color:#63849070; border-radius:10px; font-size:11px; }
+.scale-dial b { margin-top:4px; font-size:23px; }
+.scale-dial .saved b { font-size:28px; }
+.pan { border:1px solid #a7b9bf; border-top:3px solid #d4dee1; border-radius:10px 10px 24px 24px; background:linear-gradient(140deg,#728894,#506773); box-shadow:0 8px 16px #06141b40; padding:9px; }
+.pan-label { font-size:11px; letter-spacing:.05em; }
+.pan-add { font:600 10px var(--sans); padding:6px; border:1px solid #d7e0dd; border-radius:5px; background:#f6f3e9; }
+.weights { gap:8px; }
+.wt { flex:1 1 130px; min-height:57px; padding:9px 10px; border:1px solid #d6d3c5; border-left:3px solid #bb794d; border-radius:7px; gap:3px; font-size:11px; box-shadow:0 3px 6px #07151b35; }
+.wt b { font-size:17px; }
+.wt.k-hp { border-left-color:#6d9cae; background:#e9f1f3; }
+.pan .wt { flex:1 1 100%; min-height:0; gap:2px; padding:4px 7px; font-size:10px; border-left-width:2px; }
+.pan .wt b { font-size:12px; }
+.pan-items { gap:4px; padding-bottom:3px; }
+.debrief { background:#081820bd; backdrop-filter:blur(3px); border-radius:inherit; }
+.debrief-card { border-radius:12px; border:1px solid #e0d6c2; border-top:4px solid #5f9274; padding:26px; gap:13px; }
+.debrief-card > * { flex-shrink:0; }
+.debrief-card button { min-height:40px; }
+.debrief-card h2 { font-size:46px; letter-spacing:-.02em; }
+.debrief-card .calc { background:#eeece2; border-left:3px solid #91a996; border-radius:4px; padding:12px; font-size:13px; }
+.debrief-card .meta { font-size:11px; }
+.cost-method { padding:12px; background:#efede5; border:1px solid #dfdbce; border-radius:6px; }
+.cost-method p { font-size:12px; }
+@media (min-width:1181px) and (min-height:681px) {
+  .scale-wrap { position:relative; }
+  .scale-wrap > .status { position:absolute; left:0; right:0; top:88px; z-index:1; pointer-events:none; }
+  .pan .wt { flex-direction:row; align-items:center; justify-content:space-between; gap:6px; min-height:28px; }
+  .pan .wt b { flex-shrink:0; font-size:11px; }
+}
+@media (max-width:1180px),(max-height:680px) {
+  .masthead { height:auto; padding:12px 16px; gap:10px; }
+  .brand-title { font-size:23px; }
+  .brand svg { width:34px; height:34px; }
+  .mast-tools { flex:1 0 100%; gap:7px; }
+  .masthead .reset { height:32px; padding-inline:4px; font-size:10px; }
+  .mast-tools { gap:5px; }
+  .masthead .ab-wrap .ab-btn { height:28px; padding:2px 7px; }
+  .masthead .ab-wrap .ab-short { font-size:10px; }
+  .masthead .ab-wrap { order:3; margin-left:auto; }
+  .masthead .ab-mini .ab-btn { width:auto; height:28px; padding:2px 8px; line-height:22px; }
+  .masthead .ab-mini .ab-short { font-size:11px; }
+  .workspace { padding:20px 14px; }
+  .scene-head { gap:12px; align-items:flex-start; }
+  .scene-title { grid-template-columns:40px auto; gap:2px 10px; }
+  .scene-icon { width:38px; height:38px; border-radius:10px; }
+  .scene-icon svg { width:23px; height:23px; }
+  .scene-head h1 { font-size:29px; }
+  .objective { font-size:13px; text-align:left; }
+  .table { padding:15px; border-radius:11px; }
+  .p6 { grid-template-columns:minmax(0,1fr); }
+  .call { padding:22px 18px; }
+  .call-lines { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+  .call-lines li { align-content:start; padding:9px; }
+  .call-lines .step { font-size:12px; }
+  .call > .lock { order:-1; padding:16px; }
+  .call-head { margin-top:4px; }
+  .lock .primary { min-height:44px; padding-inline:18px; }
+  .sheet { padding:15px; }
+  .sheet-head { gap:10px; }
+  .model-key { grid-template-columns:1fr; padding:12px; gap:10px; }
+  .model-key h3 { grid-column:1; }
+  .model-key dl { font-size:12px; }
+  .model-key .legend-code { padding:0; }
+  .models { gap:10px; }
+  .furnace-box { height:320px; }
+  .corner { max-width:none; margin-bottom:12px; padding:12px; }
+  .corner p { font-size:12px; }
+  .note:nth-child(n) { transform:none; }
+  .tab { font-size:12px; padding:8px; }
+  .tool { font-size:12px; }
+  .pan { border-radius:10px; padding:12px; }
+  .pan .wt { flex:1 1 110px; padding:8px; font-size:11px; }
+  .pan .wt b { font-size:14px; }
+  .scale-dial { padding:10px; font-size:10px; }
+  .scale-dial b,.scale-dial .saved b { font-size:21px; }
+  .socket { font-size:10px; min-height:40px; padding:3px; }
+  .sticker { font-size:8px; padding:2px 3px; }
+  .debrief-card { padding:20px; gap:12px; }
+  .debrief-card h2 { font-size:38px; }
+  .debrief-card p { font-size:13px; }
+}
+@media (prefers-reduced-motion:reduce) { .progress-track i,button { transition:none; } .debrief { backdrop-filter:none; } }
+
+
+/* Service-call briefing and model-group diagram · 2026-11-04 */
+.call-address { font-size:11px; line-height:1.45; margin-bottom:9px; }
+.call-story { font-size:13px; line-height:1.5; color:var(--ink); }
+.call-notes { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
+.call-notes h3 { font:700 10px var(--sans); text-transform:uppercase; letter-spacing:.13em; color:var(--copper-ink); margin:0 0 5px; }
+.call-notes p { font-size:12px; line-height:1.5; color:var(--muted); }
+.model-key { display:block; }
+.model-key > h3 { margin-bottom:12px; }
+.model-fields { display:grid; grid-template-columns:.9fr .9fr 1.6fr 1.2fr; gap:12px; }
+.model-field { min-width:0; }
+.model-slot { min-height:34px; padding:0 6px 6px; border:1px solid #d3c9b5; border-radius:5px; background:#fffaf0; color:#744b32; font:700 22px/1 var(--mono); text-align:center; white-space:nowrap; }
+.key-arrow { display:block; text-align:center; color:#916844; font:400 23px/1.2 var(--sans); margin:3px 0; }
+.model-field h4 { margin:0 0 7px; color:#805136; font:700 12px var(--display); text-transform:uppercase; letter-spacing:.05em; }
+.model-field dl { display:block; font-size:11px; }
+.model-field dt { font:700 11px/1.4 var(--mono); color:#303e42; }
+.model-field dd { margin:0 0 7px; font:400 11px/1.4 var(--sans); color:#3e4a4d; }
+.model-field .model-years { display:grid; grid-template-columns:auto 1fr; gap:3px 8px; }
+.model-years dd { margin:0; }
+@media (max-width:640px) {
+  .model-fields { grid-template-columns:1fr 1fr; gap:16px; }
+  .model-field h4 { font-size:14px; }
+  .model-field dt,.model-field dd { font-size:12px; }
+}
+
 </style>
 
 <header class="masthead">
@@ -552,7 +797,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <a class="reset sibling-link" href="index.html">&#8962; All tools</a>
     <button class="reset" type="button" id="fbBtn" title="Tell us how it is going">Feedback</button>
     <button class="reset" type="button" id="calcBtn" aria-expanded="false" aria-controls="calcpad">Calculator</button>
-    <button class="reset" type="button" id="resetBtn">Start again</button>
+    <button class="reset" type="button" id="resetBtn">Reset</button>
   </div>
 </header>
 
@@ -575,8 +820,18 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <div class="call-head"><span class="eyebrow">Service call</span><span>No. 2026-1103</span></div>
     <div>
       <h2 class="call-title">Furnace replacement</h2>
-      <p class="call-sub">Install a heat pump &middot; 1450 Concession Rd 6<br>Rural house on propane &middot; &minus;24&nbsp;&deg;C &middot; furnace down since last night</p>
+      <p class="call-sub call-address">1450 Concession Rd 6 &middot; Rural house &middot; &minus;24&nbsp;&deg;C</p>
+      <p class="call-story">The propane furnace failed overnight. You have been called out in midwinter to replace it with a heat pump and get the family warm again.</p>
+      <div class="call-notes"><h3>On site</h3>
+        <p data-call-note="1">The rating plate is worn. A model guide is taped to the furnace cabinet.</p>
+        <p data-call-note="2" hidden>The homeowner shreds paid bills. The propane supplier’s December statement, with the yearly summary, is still in the shredder bin.</p>
+        <p data-call-note="3" hidden>The blower door is running at &minus;50&nbsp;Pa, drawing cold outside air through the gaps. Use the thermal camera to find them.</p>
+        <p data-call-note="4" hidden>The clients want to automate their appliances. Their load manager runs one appliance at a time, keeping big loads off the peak price.</p>
+        <p data-call-note="5" hidden>The heat pump has arrived with an empty refrigerant loop. The clients ask how it can heat their house from &minus;2&nbsp;&deg;C outdoor air.</p>
+        <p data-call-note="6" hidden>Before signing, the clients ask about annual savings. Their job summary lists every change included in the retrofit.</p>
+      </div>
     </div>
+    <div class="service-progress" aria-label="Service call completion"><div><span>Job progress</span><span id="completedCount">0 of 6 complete</span></div><div class="progress-track" aria-hidden="true"><i></i></div></div>
     <ol class="call-lines" id="callLines">
       <li data-line="1"><span class="ln">1</span><span class="step">Furnace age</span><span class="res"></span></li>
       <li data-line="2"><span class="ln">2</span><span class="step">Total heating need</span><span class="res"></span></li>
@@ -641,7 +896,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <section class="lock" data-answer="5" aria-label="Line 5 answer" hidden>
       <p class="eyebrow">Line 5</p>
       <h2>Energy and GHG savings</h2>
-      <p class="prompt">Switching from the furnace to the heat pump, how much GHG does the house save each year on heating?</p>
+      <p class="prompt">With air sealing and the heat pump, how much GHG does this scenario save each year on heating?</p>
       <form novalidate>
         <label class="display"><span class="sr">GHG saved in tonnes of CO2e per year</span><input id="p5-answer" inputmode="decimal" autocomplete="off" placeholder="-.-"><span>t CO&#8322;e</span></label>
         <button class="primary" type="submit">Check</button>
@@ -654,7 +909,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <section class="lock" data-answer="6" aria-label="Line 6 answer" hidden>
       <p class="eyebrow">Line 6</p>
       <h2>$ savings</h2>
-      <p class="prompt">How much does the job save the clients each year?</p>
+      <p class="prompt">What are the annual operating savings for this retrofit package?</p>
       <form novalidate>
         <label class="display"><span class="sr">Savings in dollars per year</span><span>$</span><input id="p6-answer" inputmode="numeric" autocomplete="off" placeholder="----"><span>/yr</span></label>
         <button class="primary" type="submit">Check</button>
@@ -671,8 +926,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 1 -->
     <div class="puzzle" id="p1">
       <div class="scene-head">
-        <div><p class="eyebrow">Line 1 &middot; The basement</p><h1>The broken furnace</h1></div>
-        <p class="objective">You're called in in the middle of winter because someone's furnace has broken down. You're here to install a heat pump to replace it. <b>The rating plate is worn. The model sheet is taped to the cabinet.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="18" height="26" rx="2"/><path d="M10 16h12M11 20h10M11 23h10M11 26h10M11 7h6v5h-6z"/></svg></span><p class="eyebrow">Line 1 &middot; The basement</p><h1>The broken furnace</h1></div>
+        <p class="objective"><b>Match the furnace to the model guide, then decode its year.</b></p>
       </div>
       <div class="table">
         <div class="p1">
@@ -682,6 +937,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
               <svg class="furnace" viewBox="0 0 260 440" role="img" aria-labelledby="furnaceDesc">
                 <desc id="furnaceDesc">An almond-coloured furnace cabinet. A galvanized metal flue pipe rises from the top. The upper door has a small rating plate and no window. The lower door has six horizontal louvre slots. Both doors are held by quarter-turn latches.</desc>
                 <defs>
+                  <linearGradient id="cabinet" x2=".9" y2="1"><stop stop-color="#f0e5c8"/><stop offset=".55" stop-color="#dfd0a6"/><stop offset="1" stop-color="#b8a77e"/></linearGradient>
+                  <linearGradient id="panel" x2="0" y2="1"><stop stop-color="#f5ebd1"/><stop offset="1" stop-color="#e3d5b0"/></linearGradient>
                   <linearGradient id="metal" x1="0" x2="1">
                     <stop offset="0" stop-color="#8e979e"/><stop offset=".45" stop-color="#d9dee2"/><stop offset="1" stop-color="#9aa3aa"/>
                   </linearGradient>
@@ -690,8 +947,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
                 <rect x="104" y="0" width="52" height="58" fill="url(#metal)"/>
                 <rect x="100" y="18" width="60" height="6" fill="url(#metal)"/>
                 <line x1="130" y1="0" x2="130" y2="58" stroke="#7d868d" stroke-width="1"/>
-                <rect x="20" y="56" width="220" height="370" rx="4" fill="#e6d9b8" stroke="#a8996f" stroke-width="2"/>
-                <rect x="32" y="68" width="196" height="150" rx="2" fill="#efe4c6" stroke="#b5a67c" stroke-width="1.5"/>
+                <rect x="20" y="56" width="220" height="370" rx="4" fill="url(#cabinet)" stroke="#a8996f" stroke-width="2"/>
+                <rect x="32" y="68" width="196" height="150" rx="2" fill="url(#panel)" stroke="#b5a67c" stroke-width="1.5"/>
                 <rect x="48" y="84" width="84" height="50" rx="2" fill="#c3c9ce" stroke="#8e979e"/>
                 <rect x="56" y="92" width="50" height="4" fill="#5f676e"/>
                 <rect x="56" y="102" width="68" height="3" fill="#7d868d"/>
@@ -699,7 +956,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
                 <rect x="56" y="118" width="60" height="3" fill="#7d868d"/>
                 <g fill="url(#metal)" stroke="#6f777e"><circle cx="48" cy="198" r="7"/><circle cx="212" cy="198" r="7"/></g>
                 <g stroke="#555c62" stroke-width="2"><line x1="43" y1="198" x2="53" y2="198"/><line x1="207" y1="198" x2="217" y2="198"/></g>
-                <rect x="32" y="228" width="196" height="186" rx="2" fill="#efe4c6" stroke="#b5a67c" stroke-width="1.5"/>
+                <rect x="32" y="228" width="196" height="186" rx="2" fill="url(#panel)" stroke="#b5a67c" stroke-width="1.5"/>
                 <g fill="#5d5442">
                   <rect x="62" y="252" width="136" height="9" rx="3"/>
                   <rect x="62" y="272" width="136" height="9" rx="3"/>
@@ -728,15 +985,34 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
               <h2 id="sheetTitle">BC series propane furnaces</h2>
               <span>Model guide 1988&ndash;1993 &middot; Keep with furnace</span>
             </div>
-            <div class="legend">
+            <div class="model-key">
               <h3>Reading a model number</h3>
-              <div class="legend-code" aria-hidden="true"><span>BC</span><span>18</span><span>L</span><span>A</span></div>
-              <dl>
-                <dt>BC</dt><dd>Boreal Comfort series</dd>
-                <dt>18</dt><dd>Fuel input in kW</dd>
-                <dt>L&nbsp;M&nbsp;H</dt><dd>Efficiency. L: low, 65% AFUE, standing pilot. M: mid, 78% AFUE, induced-draft fan. H: high, 90% AFUE, condensing.</dd>
-                <dt>A&ndash;F</dt><dd>Year made. A 1988 &middot; B 1989 &middot; C 1990 &middot; D 1991 &middot; E 1992 &middot; F 1993</dd>
-              </dl>
+              <p class="sr">Four groups in order: two series letters, two fuel-input digits, one efficiency letter and one year letter. Each arrow connects a blank group to its possible values below.</p>
+              <div class="model-fields">
+                <section class="model-field" aria-label="First group: series">
+                  <div class="model-slot" aria-hidden="true">_ _</div><span class="key-arrow" aria-hidden="true">↓</span>
+                  <h4>Series</h4><dl><dt>BC</dt><dd>Boreal Comfort</dd></dl>
+                </section>
+                <section class="model-field" aria-label="Second group: fuel input">
+                  <div class="model-slot" aria-hidden="true">_ _</div><span class="key-arrow" aria-hidden="true">↓</span>
+                  <h4>Fuel input</h4><dl><dt>18 · 24 · 30</dt><dd>Input in kW</dd></dl>
+                </section>
+                <section class="model-field" aria-label="Third group: efficiency">
+                  <div class="model-slot" aria-hidden="true">_</div><span class="key-arrow" aria-hidden="true">↓</span>
+                  <h4>Efficiency</h4><dl>
+                    <dt>L — Low</dt><dd>65% AFUE · standing pilot</dd>
+                    <dt>M — Mid</dt><dd>78% AFUE · induced-draft fan</dd>
+                    <dt>H — High</dt><dd>90% AFUE · condensing</dd>
+                  </dl>
+                </section>
+                <section class="model-field" aria-label="Fourth group: year made">
+                  <div class="model-slot" aria-hidden="true">_</div><span class="key-arrow" aria-hidden="true">↓</span>
+                  <h4>Year made</h4><dl class="model-years">
+                    <dt>A</dt><dd>1988</dd><dt>B</dt><dd>1989</dd><dt>C</dt><dd>1990</dd>
+                    <dt>D</dt><dd>1991</dd><dt>E</dt><dd>1992</dd><dt>F</dt><dd>1993</dd>
+                  </dl>
+                </section>
+              </div>
             </div>
             <div class="models">
               <div class="model"><b>BC18LA</b><p>Our original workhorse. Dove-grey cabinet with a round flame window in the upper door, so you can check the pilot. Eight louvre slots on the lower door. Front panels fastened with screws. Vents through a galvanized metal flue.</p></div>
@@ -771,13 +1047,13 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 2 -->
     <div class="puzzle" id="p2" hidden>
       <div class="scene-head">
-        <div><p class="eyebrow">Line 2 &middot; The kitchen</p><h1>The shredded propane bill</h1></div>
-        <p class="objective">To know what the heat pump has to take over, you need a full year of propane use. The homeowner shreds every bill once it's paid. <b>The propane supplier's December statement, with the yearly summary, is still in the shredder bin.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h12l5 5v21H8zM20 3v6h5M12 13h9M12 17h6M12 21h9M12 25h6"/></svg></span><p class="eyebrow">Line 2 &middot; The kitchen</p><h1>The shredded propane bill</h1></div>
+        <p class="objective"><b>Rebuild the statement and calculate a year of propane energy.</b></p>
       </div>
       <div class="table">
         <div class="corner">
           <p class="tlabel">Shredder bin &middot; December statement</p>
-          <p id="shredHelp">Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows.</p>
+          <p id="shredHelp">Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows. On a small screen, scroll the statement area sideways.</p>
           <p class="sr" id="shredLive" aria-live="polite"></p>
         </div>
         <div class="stage"><div class="shred" id="shred"></div></div>
@@ -787,7 +1063,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
             <p class="eyebrow">Line 2 complete &middot; Total heating need</p>
             <h2>22,690 kWh</h2>
             <p class="calc">3,200 L &times; 7.09 kWh/L = 22,688 kWh &asymp; 22,690 kWh</p>
-            <p>That's the energy in the propane this house bought last year. With the old furnace at 78% AFUE, about 17,700&nbsp;kWh of it became useful heat.</p>
+            <p>That's the energy in the propane this house bought last year. Only the space-heating portion goes through the old furnace at 78% AFUE; the water heater and stove have separate efficiencies.</p>
             <p>Look at the summer bars: the furnace was off, yet the house still used about 40&nbsp;L a month. That's the water heater and the stove. Over a year that baseload is about 460&nbsp;L, so roughly 2,740&nbsp;L (about 19,400&nbsp;kWh) went to space heating. That's the part the heat pump takes over.</p>
             <p class="meta" data-meta></p>
             <button class="primary" type="button" data-next="3">Continue to line 3 &rarr;</button>
@@ -799,8 +1075,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 3 -->
     <div class="puzzle" id="p3" hidden>
       <div class="scene-head">
-        <div><p class="eyebrow">Line 3 &middot; Blower door test</p><h1>The drafty house</h1></div>
-        <p class="objective">Your blower door is set up in the back doorway and running: it pulls the house down to &minus;50&nbsp;Pa, so outside air rushes in through every gap. <b>Find the leaks with your thermal camera and seal them.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16 16 5l13 11M7 13v15h18V13M13 28v-9h6v9M9 7V3h5"/></svg></span><p class="eyebrow">Line 3 &middot; Blower door test</p><h1>The drafty house</h1></div>
+        <p class="objective"><b>Find and seal the leaks, then calculate peak heating demand.</b></p>
       </div>
       <div class="table">
         <div class="p3">
@@ -828,7 +1104,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
               <p class="empty-note" id="leakEmpty">None yet. Leaks only show through the camera.</p>
             </div>
             <div class="worklist report" id="report" hidden tabindex="-1">
-              <h3>Smart camera report</h3>
+              <h3>Scenario heat-loss report</h3><p>Assumed training values, not measurements from the camera. A real heat-loss calculation needs building dimensions, insulation and ventilation inputs.</p>
               <table>
                 <tr><th>Heat loss, W/&deg;C</th><th>Before</th><th>After</th></tr>
                 <tr><td>Walls</td><td>35</td><td>35</td></tr>
@@ -849,7 +1125,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
             <p class="eyebrow">Line 3 complete &middot; Peak heating demand</p>
             <h2>5.8 kW</h2>
             <p class="calc">126 W/&deg;C &times; (21 &minus; (&minus;25)) &deg;C = 5,796 W &asymp; 5.8 kW</p>
-            <p>Air sealing took the house from 7.0 to 4.2 ACH50 and cut its peak heat loss from 6.4&nbsp;kW to 5.8&nbsp;kW. Cheap fixes done before the heat pump goes in mean a smaller heat pump.</p>
+            <p>Air sealing took the house from 7.0 to 4.2 ACH50 and cut its peak heat loss from 6.4&nbsp;kW to 5.8&nbsp;kW. Lower heat loss can allow a smaller heat pump. Real selection must check heating capacity at the design temperature, defrost and backup heat; this game does not size equipment.</p>
             <p>The old furnace put out 18.7&nbsp;kW, about 3 times what this house needs on the coldest night.</p>
             <p>Why the camera works: the blower door pulls the house to &minus;50&nbsp;Pa, so every gap draws in outside air. On a winter day that air shows up as cold streaks.</p>
             <p class="meta" data-meta></p>
@@ -862,8 +1138,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 4 -->
     <div class="puzzle" id="p4" hidden>
       <div class="scene-head">
-        <div><p class="eyebrow">Line 4 &middot; The electrical panel</p><h1>Program the house</h1></div>
-        <p class="objective">The clients are big on automation. They asked you to help program their appliances so the house's hourly load stays as low as possible. Their load manager runs one appliance at a time, and they want to stay off the peak price. <b>Drag each appliance onto the schedule for the lowest peak, keeping every rule.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2-12 17h9l-1 11 12-18h-9z"/></svg></span><p class="eyebrow">Line 4 &middot; The electrical panel</p><h1>Program the house</h1></div>
+        <p class="objective"><b>Schedule every appliance for the lowest peak, keeping all the rules.</b></p>
       </div>
       <div class="table">
         <div class="p4">
@@ -873,6 +1149,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
               <p class="verdict" id="verdict"></p>
               <div class="legend" id="legend"></div>
             </div>
+            <div class="timeline-scroll"><div class="timeline-content">
             <div class="chart">
               <div class="yaxis"><span style="bottom:0%">0 A</span><span style="bottom:16.667%">20</span><span style="bottom:33.333%">40</span><span style="bottom:50%">60</span><span style="bottom:66.667%">80</span><span style="bottom:83.333%">100</span><span style="bottom:100%">120</span></div>
               <div class="plot" id="plot" role="img" aria-label="Electrical load per hour"></div>
@@ -880,6 +1157,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
             <div class="hours"><span></span><div class="hrow" id="hrow"></div></div>
             <div class="schedule"><div class="prog-label">Schedule<small>7 am &rarr; 7 am</small></div><div class="track4" id="track4" aria-label="Schedule: one appliance at a time"></div></div>
             <div class="schedule"><div class="prog-label">Appliances<small>drag onto the schedule</small></div><div class="tray" id="tray" aria-label="Appliances not scheduled yet"></div></div>
+            </div></div>
             <p class="status" id="rushStatus" aria-live="polite">Nothing is scheduled yet. Drag an appliance onto the schedule, or click it and then click the hour it should start. Drag it back down to unschedule it.</p>
           </div>
 
@@ -921,8 +1199,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 5 -->
     <div class="puzzle" id="p5" hidden>
       <div class="scene-head">
-        <div><p class="eyebrow">Line 5 &middot; The install</p><h1>Build the heat pump</h1></div>
-        <p class="objective">The heat pump has arrived, and its refrigerant loop is empty. The clients want to know how something can heat their house from &minus;2&nbsp;&deg;C outdoor air. <b>Put each part where it belongs in the loop, start it up, and see what the house saves.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h16v6M24 21v6H8v-6M4 11h8v10H4zM20 11h8v10h-8zM12 16h8M19 2l5 3-5 3M13 24l-5 3 5 3"/></svg></span><p class="eyebrow">Line 5 &middot; The install</p><h1>Build the heat pump</h1></div>
+        <p class="objective"><b>Complete the refrigerant loop, then calculate the heating emissions saved.</b></p>
       </div>
       <div class="table">
         <div class="p5">
@@ -975,7 +1253,7 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
             </div>
             <div class="yearcard" id="yearCard" hidden tabindex="-1">
               <p class="spec-head">It runs &middot; one year of heating</p>
-              <p class="yc-sub">Season average &minus;2&nbsp;&deg;C, so the heat pump works at a COP of 2.8. Your air sealing cut the heat the house needs to 13,640&nbsp;kWh.</p>
+              <p class="yc-sub">For this fictional training house, assume a seasonal COP of 2.8. This is not calculated from the average outdoor temperature. The &minus;2&nbsp;&deg;C loop illustrates one operating condition. Assume air sealing reduces annual heating demand by 10%, to about 13,640&nbsp;kWh. Actual performance varies with weather, defrost and backup heat.</p>
               <div class="split" aria-hidden="true"><i class="s-elec" style="flex:4870"></i><i class="s-air" style="flex:8770"></i></div>
               <dl class="ycl">
                 <dt>Heat into the house</dt><dd>13,640 kWh</dd>
@@ -1012,8 +1290,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
     <!-- Line 6 -->
     <div class="puzzle" id="p6" hidden>
       <div class="scene-head">
-        <div><p class="eyebrow">Line 6 &middot; The kitchen table</p><h1>Where's the money?</h1></div>
-        <p class="objective">Before they sign, the clients ask what the job saves them each year. Their job summary lists what changes. <b>Load each cost onto the right year, and read what the scale says they save.</b></p>
+        <div class="scene-title"><span class="scene-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3v26M5 10h22M6 10l-4 10h8zM26 10l-4 10h8zM10 29h12"/></svg></span><p class="eyebrow">Line 6 &middot; The kitchen table</p><h1>Where's the money?</h1></div>
+        <p class="objective"><b>Load the costs from the job summary and compare the two years.</b></p>
       </div>
       <div class="table">
         <div class="p6">
@@ -1028,10 +1306,10 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
                 <path d="M300 96 L262 286 H338 Z" fill="#7d868d"/>
                 <rect x="230" y="282" width="140" height="10" rx="3" fill="#5b646b"/>
                 <g id="strings" stroke="#c9cfd4" stroke-width="2"></g>
-                <g id="beam"><rect x="70" y="84" width="460" height="12" rx="6" fill="#c9a26c"/><circle cx="300" cy="90" r="11" fill="#c46a32"/></g>
+                <g id="beam"><rect x="110" y="84" width="380" height="12" rx="6" fill="#c9a26c"/><circle cx="300" cy="90" r="11" fill="#c46a32"/></g>
               </svg>
-              <div class="pan" data-pan="furnace" id="panL"><p class="pan-label">Year with the propane furnace</p><div class="pan-items"></div></div>
-              <div class="pan" data-pan="hp" id="panR"><p class="pan-label">Year with the heat pump</p><div class="pan-items"></div></div>
+              <div class="pan" data-pan="furnace" id="panL"><p class="pan-label">Year with the propane furnace</p><button type="button" class="pan-add" data-add-pan="furnace" aria-label="Add selected cost to propane year">+ Add selected cost</button><div class="pan-items"></div></div>
+              <div class="pan" data-pan="hp" id="panR"><p class="pan-label">Year with the heat pump</p><button type="button" class="pan-add" data-add-pan="hp" aria-label="Add selected cost to heat pump year">+ Add selected cost</button><div class="pan-items"></div></div>
             </div>
             <p class="status" id="scaleStatus" aria-live="polite">Drag a cost onto a pan, or click a cost and then a pan. Click a cost on a pan to put it back in the box.</p>
           </div>
@@ -1051,11 +1329,16 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
         <div class="debrief" data-solved="6" hidden>
           <div class="debrief-card" tabindex="-1">
             <p class="eyebrow">Line 6 complete &middot; Service call closed</p>
-            <h2>$1,889 a year</h2>
-            <p class="calc">$2,809 (propane year) &minus; $920 (heat pump year) = $1,889</p>
+            <h2>$1,885 a year</h2><p>Illustrative annual operating savings for the full retrofit package: air sealing, heat pump, electric water heater and stove, and propane tank removal. Installation and financing costs are excluded.</p>
+            <p class="calc">$2,805 (propane year) &minus; $920 (heat pump year) = $1,885</p>
             <p>Heating alone saves about $1,600: heat from propane costs about 14&nbsp;&cent; per kWh, from the programmed heat pump about 3&nbsp;&cent; after the Ontario Electricity Rebate. Picking up the tank and retiring the old A/C add the rest. Left unprogrammed, the heat pump would cost $166 more a year.</p>
-            <p>Prices: Ontario Ultra-Low Overnight plan (November 2025) and about $0.75 a litre for delivered propane. Real bills vary with the supplier and the winter.</p>
-            <p>Furnace dated, energy measured, house sealed, loads programmed, heat pump running, savings explained. The family is warm again.</p>
+            <details class="cost-method"><summary>Scenario assumptions and sources</summary>
+              <p>Heating electricity: 4,870 kWh × (50% × 3.9¢ + 40% × 15.7¢ + 10% × 39.1¢) × (1 − 23.5%) ≈ $452. These are assumed usage shares and historical November 2025 commodity rates, not a result of the one-day schedule.</p>
+              <p>This simplified comparison excludes electricity delivery, regulatory charges and taxes; the rebate is applied to the commodity cost only. Other electricity, maintenance and rental cards are fixed training allowances, not supplier quotes. The $618 unprogrammed heating card is also a fixed allowance.</p>
+              <p>Propane is assumed at $0.75/L: 2,740 L × $0.75 = $2,055 for heating; 460 L × $0.75 = $345 for water and cooking. This is not a verified local price. Energy and GHG factors are rounded scenario inputs: 7.09 kWh/L, 1.5 kg CO₂e/L and 70 g CO₂e/kWh of electricity.</p>
+              <p><a href="https://www.oeb.ca/newsroom/2025/ontario-energy-board-announces-changes-electricity-prices-households-small-businesses">OEB historical rates and rebate</a> · <a href="https://natural-resources.canada.ca/energy-efficiency/energy-star/heating-cooling-heat-pump">NRCan heat-pump performance</a>. These are historical teaching inputs, not a current bill estimate. Actual costs depend on supplier, weather, equipment and usage.</p>
+            </details>
+            <p>Furnace dated, scenario energy calculated, house sealed, loads programmed, heat pump running, savings explained. The family is warm again.</p>
             <p class="meta" data-meta></p>
             <p>Thank you for playtesting. Tell us what you thought: which lines were fun, and where you got stuck.</p>
             <div class="row"><button class="primary" type="button" data-feedback>Tell us how it went</button><button class="btn-quiet" type="button" data-again>Play again</button></div>
@@ -1109,6 +1392,15 @@ function setupPuzzle(n, { hints, judge }) {
   const box = document.querySelector(`[data-answer="${n}"]`), form = box.querySelector("form"), input = form.querySelector("input");
   const fb = box.querySelector(".feedback"), hintBtn = box.querySelector("[data-hint]"), list = box.querySelector(".hints ol");
   const debrief = document.querySelector(`[data-solved="${n}"]`);
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "btn-quiet";
+  close.textContent = "Close explanation";
+  close.addEventListener("click", () => {
+    debrief.hidden = true;
+    document.querySelector(`#callLines [data-line="${n}"] .review-line`)?.focus();
+  });
+  debrief.querySelector(".debrief-card").append(close);
   let used = 0, start = Date.now();
   form.addEventListener("submit", e => {
     e.preventDefault();
@@ -1135,6 +1427,7 @@ function setupPuzzle(n, { hints, judge }) {
     box.classList.add("done");
     debrief.hidden = false;
     debrief.querySelector(".debrief-card").focus();
+    debrief.querySelector(".debrief-card").scrollTop = 0;
     store.add(n);
     fillLine(n);
     if (n === LAST_BUILT) clearInterval(timer);
@@ -1143,16 +1436,28 @@ function setupPuzzle(n, { hints, judge }) {
 }
 
 // Service call sheet: what each solved line records.
-const RESULTS = { 1: "Made 1992 · 34 years old", 2: "22,690 kWh of propane a year", 3: "5.8 kW after air sealing", 4: "13.0 kW peak · appliances scheduled", 5: "14,530 kWh and 3.8 t CO₂e saved a year", 6: "$1,889 saved a year" };
+const RESULTS = { 1: "Made 1992 · 34 years old", 2: "22,690 kWh of propane a year", 3: "5.8 kW after air sealing", 4: "13.0 kW peak · appliances scheduled", 5: "14,530 kWh and 3.8 t CO₂e saved a year", 6: "$1,885 saved a year" };
 const line = n => document.querySelector(`#callLines [data-line="${n}"]`);
 function fillLine(n) {
   const li = line(n);
   li.classList.remove("current");
   li.classList.add("done");
+  const completed = document.querySelectorAll("#callLines li.done").length;
+  $("completedCount").textContent = `${completed} of 6 complete`;
+  document.documentElement.style.setProperty("--completion", `${completed / 6 * 100}%`);
+  if (!li.querySelector("button")) {
+    const review = document.createElement("button");
+    review.type = "button";
+    review.textContent = `Review line ${n}`;
+    review.className = "review-line";
+    review.addEventListener("click", () => show(n));
+    li.append(review);
+  }
   li.querySelector(".ln").textContent = "✓";
   li.querySelector(".res").textContent = RESULTS[n];
 }
 function show(n) {
+  document.querySelectorAll("[data-call-note]").forEach(note => { note.hidden = +note.dataset.callNote !== n; });
   document.querySelectorAll(".puzzle").forEach(p => { p.hidden = p.id !== "p" + n; });
   document.querySelectorAll("[data-answer]").forEach(b => { b.hidden = +b.dataset.answer !== n; });
   document.querySelectorAll("#callLines li").forEach(li => {
@@ -1163,6 +1468,14 @@ function show(n) {
   $("chapter").textContent = `LINE ${n} OF 6`;
   if (puzzles[n]) puzzles[n].restart();
   if (n === 3) placeCam();
+  const done = store.get().includes(n);
+  const debrief = document.querySelector(`[data-solved="${n}"]`);
+  debrief.hidden = !done;
+  if (done) {
+    debrief.querySelector("[data-meta]").textContent = "Completed earlier · reviewing the explanation.";
+    debrief.querySelector(".debrief-card").focus();
+    debrief.querySelector(".debrief-card").scrollTop = 0;
+  }
 }
 
 /* ---------- Line 1: furnace model ---------- */
@@ -1237,7 +1550,7 @@ const strips = Array.from({ length: NSTRIP }, (_, i) => {
   b.innerHTML = `<svg viewBox="${i * SW} 0 ${SW} ${PH}" preserveAspectRatio="none" aria-hidden="true">${page}</svg>`;
   return b;
 });
-const HELP = "Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows.";
+const HELP = "Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows. On a small screen, scroll the statement area sideways.";
 function renderShred(focusPiece) {
   shred.replaceChildren(...order.map(i => strips[i]));
   strips.forEach(s => s.classList.toggle("sel", sel === +s.dataset.piece));
@@ -1321,6 +1634,7 @@ setupPuzzle(2, {
     const v = String(raw).replace(/[\s,]/g, "");
     if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kWh.";
     const n = parseFloat(v);
+    if (!order.every((piece, i) => piece === i)) return "Rebuild the statement first, then calculate its energy.";
     if (near(n, TRUE_L * KWH_PER_L, 70)) return null;
     if (near(n, TRUE_L, 5)) return "That's the propane volume in litres. The line asks for energy in kWh.";
     if (near(n, TRUE_L / KWH_PER_L, 2)) return "You divided. Multiply the litres by the kWh in each litre.";
@@ -1526,7 +1840,7 @@ function applyTool(leakId, toolId) {
   setGauge();
   renderRoom(); renderList();
   if (sealed.size === LEAKS.length) {
-    status(`All ${LEAKS.length} leaks sealed. The house is down to ${(achTenths / 10).toFixed(1)} ACH50. Your smart camera has a report.`, "good");
+    status(`All ${LEAKS.length} leaks sealed. The house is down to ${(achTenths / 10).toFixed(1)} ACH50. The scenario heat-loss report is ready.`, "good");
     $("worklist").hidden = true;
     $("report").hidden = false;
   } else status(`Sealed: ${l.label}. The gauge drops to ${(achTenths / 10).toFixed(1)} ACH50.`, "good");
@@ -1620,6 +1934,7 @@ setupPuzzle(3, {
     const v = String(raw).replace(/[\s,]/g, "").replace(/kw$/i, "");
     if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kW.";
     const n = parseFloat(v);
+    if (sealed.size !== LEAKS.length) return "Find and seal all five leaks first, then use the scenario heat-loss report.";
     if ((n >= 5.7 && n <= 5.9) || (n >= 5700 && n <= 5900)) return null;
     if (near(n, 6.44, .06) || near(n, 6440, 60)) return "That's the peak before your repairs. Use the heat loss after sealing.";
     if (near(n, 2.65, .06) || near(n, 2646, 60) || near(n, 3.15, .06) || near(n, 3150, 60) || near(n, .5, .02) || near(n, 504, 10))
@@ -1825,6 +2140,8 @@ setupPuzzle(4, {
     const v = String(raw).replace(/[\s,]/g, "").replace(/kw$/i, "");
     if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kW.";
     const n = parseFloat(v);
+    if (!rulesKept()) return "Schedule every appliance and keep all the clients’ rules first.";
+    if (rushPeak() !== BEST_A) return "Your schedule keeps the rules, but a lower peak is possible. Try the other night order.";
     if ((n >= 12.95 && n <= 13.05) || (n >= 12910 && n <= 13010)) return null;
     if (near(n, BEST_A, .5)) return "That's in amps. Multiply by 240 V for watts, then convert to kW.";
     const onBoard = near(n, +kw(rushPeak()), .05);
@@ -1918,6 +2235,13 @@ function readCop() {
 let drag5 = null;
 PART_ORDER.forEach(k => {
   const b = partEl[k];
+  b.addEventListener("click", e => {
+    if (e.detail !== 0 || running5) return;
+    pick5 = pick5 === k ? null : k;
+    renderLoop();
+    b.focus();
+    if (pick5) say5(`${PARTS[k].name} picked. Choose its socket, then press Enter or Space.`);
+  });
   b.addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
     drag5 = { k, x0: e.clientX, y0: e.clientY, ghost: null };
@@ -1966,6 +2290,7 @@ setupPuzzle(5, {
     const v = String(raw).replace(/[\s,]/g, "").replace(/(tco2e|tco₂e|kg|t)$/i, "");
     if (!/^\d+(\.\d+)?$/.test(v)) return "Enter the GHG saved, in tonnes of CO₂e.";
     const n0 = parseFloat(v), n = n0 > 100 ? n0 / 1000 : n0;   // accept kilograms too
+    if (!running5) return "Build the working refrigerant loop first, then read its heating card.";
     if (n >= 3.7 && n <= 3.9) return null;
     if (near(n0, 14530, 100)) return "That's the energy saved. The line asks for GHG, in tonnes of CO₂e.";
     if (near(n, 4.11, .05)) return "That's what the furnace emitted. Take away what the heat pump emits.";
@@ -1977,14 +2302,14 @@ setupPuzzle(5, {
 
 /* ---------- Line 6: where's the money ---------- */
 // Each yearly cost belongs to one side by its kind (propane/furnace costs left, electric costs right); the player
-// chooses which belong in the year. The amounts are tuned so only the job summary's set gives $1,889 (none within ±2).
+// chooses which belong in the year. Completion requires the job summary's exact set.
 // Prices: Ontario ULO plan, Nov 2025, after the 23.5% Ontario Electricity Rebate; delivered propane ≈ $0.75/L.
 const COSTS = [
   { k: "heat", side: "furnace", name: "Propane for heating", note: "2,740 L × $0.75", $: 2055 },
   { k: "hpprog", side: "hp", name: "Heat pump heating, programmed", note: "4,870 kWh, mostly ultra-low", $: 452 },
   { k: "tank", side: "furnace", name: "Propane tank rental", note: "1,000 L tank", $: 125 },
   { k: "ev", side: "hp", name: "EV charging", note: "overnight, ultra-low", $: 89 },
-  { k: "water", side: "furnace", name: "Propane water heater + stove", note: "460 L × $0.75", $: 349 },
+  { k: "water", side: "furnace", name: "Propane water heater + stove", note: "460 L × $0.75", $: 345 },
   { k: "hptune", side: "hp", name: "Heat pump tune-up", note: "once a year", $: 156 },
   { k: "ac", side: "furnace", name: "Old central A/C", note: "summer electricity", $: 137 },
   { k: "hpfree", side: "hp", name: "Heat pump heating, not programmed", note: "4,870 kWh, any time", $: 618 },
@@ -2016,9 +2341,9 @@ function renderScale() {
   // Heavier side goes down: a negative angle lowers the left end.
   const a = -Math.max(-1, Math.min(1, d / 2500)) * 7, rad = a * Math.PI / 180;
   $("beam").style.transform = `rotate(${a}deg)`;
-  const ends = [[300 - 220 * Math.cos(rad), 90 - 220 * Math.sin(rad)], [300 + 220 * Math.cos(rad), 90 + 220 * Math.sin(rad)]];
+  const ends = [[300 - 180 * Math.cos(rad), 90 - 180 * Math.sin(rad)], [300 + 180 * Math.cos(rad), 90 + 180 * Math.sin(rad)]];
   $("strings").innerHTML = ends.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="${x - 40}" y2="${y + 52}"/><line x1="${x}" y1="${y}" x2="${x + 40}" y2="${y + 52}"/>`).join("");
-  [["panL", ends[0]], ["panR", ends[1]]].forEach(([id, [x, y]]) => { $(id).style.left = x / 6 + "%"; $(id).style.top = (y + 52) / 3 + "%"; });
+  [["panL", ends[0]], ["panR", ends[1]]].forEach(([id, [x, y]]) => { $(id).style.left = x / 6 + "%"; $(id).style.top = (y + 20) / 3 + "%"; });
   $("panL").querySelector(".pan-items").replaceChildren(...COSTS.filter(c => c.side === "furnace" && onPan6.has(c.k)).map(c => wtEl[c.k]));
   $("panR").querySelector(".pan-items").replaceChildren(...COSTS.filter(c => c.side === "hp" && onPan6.has(c.k)).map(c => wtEl[c.k]));
   $("weights").replaceChildren(...COSTS.filter(c => !onPan6.has(c.k)).map(c => wtEl[c.k]));
@@ -2038,6 +2363,12 @@ function unload6(k) { onPan6.delete(k); pick6 = null; renderScale(); say6(`${COS
 let drag6 = null;
 COSTS.forEach(c => {
   const b = wtEl[c.k];
+  b.addEventListener("click", e => {
+    if (e.detail !== 0) return;
+    if (onPan6.has(c.k)) unload6(c.k);
+    else { pick6 = pick6 === c.k ? null : c.k; renderScale(); say6(`${c.name} picked. Choose its year using the Add button.`); }
+    b.focus();
+  });
   b.addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
     drag6 = { k: c.k, x0: e.clientX, y0: e.clientY, ghost: null };
@@ -2074,7 +2405,10 @@ COSTS.forEach(c => {
   b.addEventListener("pointercancel", finish);
 });
 document.querySelectorAll("[data-pan]").forEach(p => p.addEventListener("click", e => {
-  if (pick6 !== null && !e.target.closest(".wt")) load6(pick6, p.dataset.pan);
+  if (pick6 !== null && !e.target.closest(".wt")) {
+    load6(pick6, p.dataset.pan);
+    if (e.target.closest("[data-add-pan]")) e.target.closest("[data-add-pan]").focus();
+  } else if (e.target.closest("[data-add-pan]")) say6("Choose a cost first, then add it to its year.");
 }));
 renderScale();
 
@@ -2082,18 +2416,19 @@ setupPuzzle(6, {
   hints: [
     "Each line of the job summary tells you which costs belong in each year. Propane costs go on the furnace side, electric costs on the heat pump side.",
     "The house is programmed, the old A/C goes, every system gets its tune-up, and the EV charger isn't part of this job.",
-    "Propane year: heating, water heater and stove, tank rental, furnace tune-up, old A/C = $2,809. Heat pump year: programmed heating, electric water heater and stove, heat pump tune-up, cooling = $920. Saved: $1,889."
+    "Propane year: heating, water heater and stove, tank rental, furnace tune-up, old A/C = $2,805. Heat pump year: programmed heating, electric water heater and stove, heat pump tune-up, cooling = $920. Saved: $1,885."
   ],
   judge(raw) {
     const v = String(raw).replace(/[\s,$]/g, "").replace(/\/?(yr|year)$/i, "");
     if (!/^\d+(\.\d+)?$/.test(v)) return "Enter the yearly savings in dollars.";
     const n = parseFloat(v);
-    if (near(n, 1889, 2)) return null;
     const right = RIGHT6.length === onPan6.size && RIGHT6.every(k => onPan6.has(k));
+    if (!right) return "Load exactly the costs in the job summary first; leave out the EV and unprogrammed heating.";
+    if (near(n, saved6(), 2)) return null;
     if (near(n, 1603, 2)) return "That's heating alone. What else changes when the propane tank goes?";
-    if (near(n, 1723, 2)) return "Is the heat pump programmed? Check the job summary.";
-    if (near(n, 1800, 2)) return "The EV charger isn't part of this job.";
-    if (near(n, 2809, 2) || near(n, 920, 2)) return "That's one year's total. The line asks what they save: the difference.";
+    if (near(n, 1719, 2)) return "Is the heat pump programmed? Check the job summary.";
+    if (near(n, 1796, 2)) return "The EV charger isn't part of this job.";
+    if (near(n, 2805, 2) || near(n, 920, 2)) return "That's one year's total. The line asks what they save: the difference.";
     if (near(n, saved6(), 2) && !right) return "That's what your scale reads, but its costs don't match the job summary yet.";
     return "That doesn't match. Load the scale from the job summary and read what it says they save.";
   }
@@ -2176,7 +2511,7 @@ let resetArmed = null;
 $("resetBtn").addEventListener("click", () => {
   if (resetArmed) { store.clear(); location.reload(); return; }
   $("resetBtn").textContent = "Click again to reset";
-  resetArmed = setTimeout(() => { resetArmed = null; $("resetBtn").textContent = "Start again"; }, 3000);
+  resetArmed = setTimeout(() => { resetArmed = null; $("resetBtn").textContent = "Reset"; }, 3000);
 });
 document.querySelectorAll("[data-again]").forEach(b => b.addEventListener("click", () => { store.clear(); location.hash = ""; location.reload(); }));
 
@@ -2223,5 +2558,6 @@ solvedSoFar.forEach(n => {
 });
 const jump = /^#line([1-6])$/.exec(location.hash);
 show(jump ? +jump[1] : Math.min(LAST_BUILT, Math.max(0, ...solvedSoFar) + 1));
+if (solvedSoFar.length === LAST_BUILT) { clearInterval(timer); $("clock").textContent = "Complete"; }
 </script>
 <script defer src="assets/author-footer.js"></script>
