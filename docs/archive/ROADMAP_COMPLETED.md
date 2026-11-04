@@ -6,6 +6,8 @@ for the record. Living tracker: [ROADMAP.md](../../ROADMAP.md).
 
 ---
 
+2026-11-04: published The Cold Call review and visual refinements to Energy GitHub Pages. Keyboard interaction, completed-activity checks, corrected $1,885 package operating savings, explicit assumptions/sources, reload/review controls, responsive workbench, section icons and progress, sidebar service-call briefing and blank model-number groups with arrows. Remains an unlisted playtest. Validation and limits: `../COLDCALL.md`.
+
 2026-10-31: shared visual-polish implementation completed locally for homepage
 and ten tools: balanced WebP artwork and title images, dark art panels, chart
 typography/tooltips, touch controls and keyboard table scrolling. Fixed phone
