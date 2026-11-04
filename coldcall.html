@@ -1,0 +1,2227 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>The Cold Call · an HVAC escape room · Energy Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&family=Caveat:wght@500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Escape Backpack play layout (dark masthead, paper side panel, dark work table), laptop first.
+   Cold Call palette: winter slate + copper line set. Single light look by design: the masthead and table are dark in every theme. */
+:root {
+  color-scheme: light;
+  --ink: #15232c;            /* slate night */
+  --steel: #2b3d48;
+  --cream: #ebe6db;          /* page */
+  --paper: #faf7f0;          /* side panel, documents */
+  --muted: #5b6770;
+  --line: #d9d1c0;
+  --copper: #c46a32;         /* accent line, like refrigerant copper */
+  --copper-ink: #9a4b1e;     /* copper text on paper */
+  --frost: #9fc3d6;
+  --table: #22313a;
+  --table-edge: #111a20;
+  --on-dark: #eef2f4;
+  --on-dark-muted: #a9bac5;
+  --good: #2f7a4f;
+  --bad: #a3271f;
+  --paper-ink: #2a2721;
+  --paper-rule: #cfc6b3;
+  --paper-mark: #2f5d8a;
+  --alu-1: #e1e4e7;
+  --alu-2: #b7bdc3;
+  --stamp: #1b2229;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "B612 Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font: 15px/1.5 var(--sans);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--copper); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+.eyebrow { font: 700 10px/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Masthead */
+.masthead {
+  flex: none;
+  height: 60px;
+  background: var(--ink);
+  color: var(--on-dark);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px));
+  border-bottom: 3px solid var(--copper);
+}
+.brand { display: grid; grid-template-columns: auto auto; column-gap: 12px; align-items: center; line-height: 1.1; }
+.brand svg { width: 36px; height: 36px; grid-row: span 2; }
+.brand-kicker { font: 600 10px var(--sans); letter-spacing: .24em; text-transform: uppercase; color: var(--frost); align-self: end; }
+.brand-title { font: 700 22px var(--display); letter-spacing: .03em; text-transform: uppercase; align-self: start; }
+.chapter { margin-left: auto; display: flex; align-items: center; gap: 16px; font: 600 12px var(--sans); letter-spacing: .16em; white-space: nowrap; }
+.timer { display: inline-flex; align-items: center; gap: 6px; font: 400 13px var(--mono); letter-spacing: 0; color: var(--on-dark-muted); }
+.timer svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.badge { font: 600 10px var(--sans); letter-spacing: .14em; text-transform: uppercase; border: 1px solid var(--copper); color: #e89a66; padding: 3px 9px; border-radius: 20px; }
+.masthead .reset { height: 34px; background: transparent; border: 1px solid #4b6170; border-radius: 6px; padding: 0 12px; font-size: 13px; color: var(--on-dark); }
+.masthead .reset:hover { border-color: var(--frost); }
+.mast-tools { display: flex; align-items: center; gap: 10px; }
+.masthead a.reset { display: inline-flex; align-items: center; text-decoration: none; white-space: nowrap; }
+
+/* Calculator, opened from the masthead on every line */
+.calcpad { position: fixed; z-index: 45; top: 68px; right: max(22px, env(safe-area-inset-right, 0px)); width: 236px; padding: 10px 12px 12px; border-radius: 12px; background: #1b2a33; border: 1px solid #3a4f5c; box-shadow: 0 18px 40px rgba(0, 0, 0, .45); color: var(--on-dark); display: flex; flex-direction: column; gap: 6px; }
+.calc-top { display: flex; justify-content: space-between; align-items: center; font: 600 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--on-dark-muted); cursor: move; touch-action: none; user-select: none; }
+.calc-x { background: none; border: 0; color: var(--on-dark-muted); font-size: 20px; line-height: 1; padding: 0 4px; }
+.calc-screen { width: 100%; border: 0; border-radius: 6px; padding: 8px 10px; background: #0e161b; color: #cfeaff; font: 700 20px/1.2 var(--mono); text-align: right; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .5); }
+.calc-screen:focus-visible { outline: 2px solid var(--copper); outline-offset: 0; }
+.calc-prev { min-height: 1.3em; font: 400 11.5px var(--mono); color: var(--on-dark-muted); text-align: right; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.calc-keys button { height: 38px; border: 0; border-radius: 6px; background: #2e414d; color: var(--on-dark); font: 600 16px var(--mono); }
+.calc-keys button:hover { background: #3a5160; }
+.calc-keys .op { background: #3a4a55; color: #e89a66; }
+.calc-keys .fn { background: #25343d; color: var(--on-dark-muted); }
+.calc-keys .eq { grid-row: span 2; height: auto; background: var(--copper); color: #fff; }
+.calc-keys .zero { grid-column: span 2; }
+
+/* Main: service call on the left, work table on the right */
+main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+
+.call {
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  padding: 18px 20px 20px max(20px, env(safe-area-inset-left, 0px));
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.call-head { display: flex; justify-content: space-between; align-items: baseline; }
+.call-head span { font: 400 12px var(--mono); color: var(--muted); }
+.call-title { font: 700 26px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.call-sub { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.call-lines { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
+.call-lines li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 1px 10px; padding: 8px 0; border-top: 1px solid var(--line); color: #8a9298; }
+.call-lines .ln { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; font: 700 11px var(--mono); }
+.call-lines .step { font: 600 13.5px/1.3 var(--sans); }
+.call-lines .res { font: 400 11.5px/1.35 var(--mono); }
+.call-lines li.current { color: var(--ink); }
+.call-lines li.current .ln { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.call-lines li.current .res { color: var(--copper-ink); }
+.call-lines li.done { color: var(--ink); }
+.call-lines li.done .ln { background: var(--good); border-color: var(--good); color: #fff; }
+.call-lines li.done .res { color: var(--good); }
+
+.lock { display: flex; flex-direction: column; gap: 8px; }
+.lock h2 { font: 700 26px/1.05 var(--display); }
+.lock .prompt { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.lock form { display: flex; gap: 8px; margin-top: 4px; }
+.display {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: #142028;
+  border-radius: 6px;
+  padding: 7px 12px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .5);
+  color: #cfeaff;
+}
+.display input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; color: inherit; font: 700 24px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.display input::placeholder { color: #4d6676; }
+.display input:focus-visible { outline: none; }
+.display:focus-within { box-shadow: inset 0 2px 6px rgba(0, 0, 0, .5), 0 0 0 2px var(--copper); }
+.display span { font: 700 13px var(--mono); color: #7fa9c4; }
+.primary { background: var(--ink); color: #fff; border: 1px solid var(--ink); border-radius: 6px; padding: 0 18px; font-weight: 600; }
+.primary:hover { background: var(--steel); }
+.feedback { font-size: 13.5px; min-height: 1.4em; line-height: 1.4; }
+.feedback.bad { color: var(--bad); }
+.hint-btn { align-self: flex-start; background: none; border: 0; padding: 2px 0; font-size: 13px; color: var(--copper-ink); text-decoration: underline; text-underline-offset: 3px; }
+.hint-btn:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+.hints ol { margin: 6px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 5px; font-size: 13px; line-height: 1.4; }
+.hints ol:empty { display: none; }
+.done-note { display: none; font-size: 13.5px; color: var(--good); font-weight: 600; }
+.lock.done form, .lock.done .hints, .lock.done .feedback { display: none; }
+.lock.done .done-note { display: block; }
+
+/* Workspace */
+.workspace { min-width: 0; min-height: 0; padding: 14px max(22px, env(safe-area-inset-right, 0px)) 18px 22px; display: flex; flex-direction: column; }
+.puzzle { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.scene-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; }
+.scene-head h1 { font: 700 clamp(26px, 2.3vw, 34px)/1 var(--display); letter-spacing: .01em; margin-top: 4px; }
+.objective { max-width: 62ch; font-size: 14px; color: var(--muted); text-align: right; line-height: 1.45; }
+.objective b { color: var(--ink); font-weight: 600; }
+.table {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: 10px;
+  padding: 20px 22px;
+  background: var(--table-edge) radial-gradient(ellipse at 45% 0%, #314650 0%, var(--table) 45%, #1a262d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05), 0 10px 30px rgba(10, 18, 24, .25);
+  color: var(--on-dark);
+  overflow: hidden;
+}
+.tlabel { font: 600 11px/1.2 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--on-dark-muted); }
+
+/* Debrief over the table */
+.debrief { position: absolute; inset: 0; z-index: 20; background: rgba(10, 18, 23, .74); display: grid; place-items: center; padding: 24px; }
+.debrief-card {
+  width: min(620px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 8px;
+  border-top: 4px solid var(--copper);
+  padding: 24px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .45);
+}
+.debrief-card h2 { font: 700 44px/1 var(--display); color: var(--good); }
+.debrief-card p { font-size: 14.5px; line-height: 1.5; }
+.calc { font: 700 15px/1.4 var(--mono); }
+.decode { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 14px; font-size: 14px; }
+.decode dt { font: 700 14px/1.5 var(--mono); }
+.decode dd { margin: 0; }
+.meta { font: 400 12.5px var(--mono); color: var(--muted); }
+.debrief-card .primary { align-self: flex-start; height: 42px; margin-top: 6px; }
+.debrief-card .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn-quiet { height: 42px; margin-top: 6px; background: transparent; border: 1px solid var(--ink); border-radius: 6px; padding: 0 16px; font-weight: 600; }
+.btn-quiet:hover { background: rgba(21, 35, 44, .06); }
+
+/* Playtest feedback (sent to the site's Formspree form, like the Hiking playtest) */
+.fb-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 32px); border: 0; border-top: 4px solid var(--copper); border-radius: 8px; padding: 22px 24px 20px; background: var(--paper); color: var(--ink); box-shadow: 0 20px 50px rgba(0, 0, 0, .45); }
+.fb-dialog::backdrop { background: rgba(10, 18, 23, .74); }
+.fb-dialog form { display: flex; flex-direction: column; gap: 8px; }
+.fb-dialog h2 { font: 700 30px/1.05 var(--display); }
+.fb-dialog label { font-weight: 600; font-size: 13.5px; margin-top: 4px; }
+.fb-dialog select, .fb-dialog textarea, .fb-dialog input[type=email] { font: inherit; width: 100%; padding: 8px 10px; border: 1px solid var(--paper-rule); border-radius: 6px; background: #fff; color: var(--ink); }
+.fb-dialog textarea { min-height: 110px; resize: vertical; }
+.fb-dialog .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+.fb-dialog .check input { margin-top: 4px; }
+.fb-dialog .fb-note { font-size: 12.5px; color: var(--muted); }
+.fb-dialog .fb-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.fb-dialog .fb-buttons button { height: 38px; margin: 0; }
+#fbResult:empty { display: none; }
+
+/* ---------- Line 1: furnace and model sheet ---------- */
+.p1 { height: 100%; display: grid; grid-template-columns: minmax(220px, 27%) minmax(0, 1fr); gap: 30px; }
+.unit { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.furnace-box { flex: 1; min-height: 0; display: flex; justify-content: center; }
+.furnace { height: 100%; width: auto; max-width: 100%; }
+.plate {
+  flex: none;
+  padding: 12px 14px;
+  border-radius: 6px;
+  color: var(--stamp);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .07) 0 1px, transparent 1px 3px), linear-gradient(180deg, var(--alu-1), var(--alu-2));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+  font: 400 12px/1.45 var(--mono);
+}
+.plate-head { font: 700 15px/1.1 var(--display); letter-spacing: .14em; text-transform: uppercase; }
+.plate-row { display: flex; gap: 4px 10px; align-items: baseline; margin: 0; }
+.plate-row dt { min-width: 9ch; font-size: 10.5px; letter-spacing: .06em; }
+.plate-row dd { margin: 0; font-weight: 700; font-size: 14px; letter-spacing: .12em; }
+.worn { display: inline-block; min-width: .9em; color: transparent; border-radius: 2px; background: repeating-linear-gradient(115deg, rgba(0, 0, 0, .28) 0 2px, rgba(255, 255, 255, .25) 2px 4px, transparent 4px 7px); }
+
+.sheet {
+  min-height: 0;
+  max-height: 100%;
+  align-self: start;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--paper-ink);
+  padding: 18px 24px 20px;
+  border-radius: 2px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  transform: rotate(-.35deg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet-head { border-bottom: 2px solid var(--paper-ink); padding-bottom: 6px; display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.sheet-head h2 { font: 700 22px/1.05 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.sheet-head span { font: 400 11px var(--mono); }
+.legend { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 22px; align-items: start; border: 1px solid var(--paper-rule); padding: 10px 14px; }
+.legend h3 { grid-column: 1 / -1; font: 700 13px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.legend-code { font: 700 20px/1 var(--mono); letter-spacing: .12em; display: flex; gap: 8px; padding-top: 4px; }
+.legend-code span { border-bottom: 2px solid var(--paper-rule); padding-bottom: 2px; }
+.legend dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 13px; line-height: 1.4; }
+.legend dt { font: 700 12px/1.45 var(--mono); }
+.legend dd { margin: 0; }
+.models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 22px; }
+.model { padding: 10px 0 4px; border-top: 1px solid var(--paper-rule); display: flex; flex-direction: column; gap: 3px; }
+.model b { font: 700 15px/1.2 var(--mono); letter-spacing: .1em; }
+.model p { font-size: 13px; line-height: 1.42; }
+
+/* ---------- Line 2: shredded bill ---------- */
+.stage { height: 100%; container-type: size; display: flex; justify-content: center; align-items: center; }
+.shred {
+  --h: min(calc(100cqh - 8px), 780px);
+  height: var(--h);
+  width: calc(var(--h) * .8 + 42px);
+  display: flex;
+  gap: 6px;
+  transition: gap .5s ease, width .5s ease;
+}
+.shred.whole { gap: 0; width: calc(var(--h) * .8); filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .5)); }
+.strip { flex: 1 1 0; min-width: 0; height: 100%; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; position: relative; box-shadow: 0 3px 8px rgba(0, 0, 0, .45); transition: transform .18s ease, box-shadow .18s ease; }
+.strip svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+.strip.sel { transform: translateY(-12px); box-shadow: 0 0 0 2px var(--copper), 0 10px 18px rgba(0, 0, 0, .5); }
+.strip.dragging { transition: none; z-index: 2; cursor: grabbing; box-shadow: 0 12px 24px rgba(0, 0, 0, .55); }
+.shred.whole .strip { box-shadow: none; cursor: default; }
+.corner { position: absolute; left: 22px; top: 18px; display: flex; flex-direction: column; gap: 6px; max-width: calc(50% - 240px); }
+.corner p { font-size: 13px; color: var(--on-dark-muted); line-height: 1.45; }
+.corner p.done { color: #8fe0ae; font-weight: 600; }
+.pg-paper { fill: var(--paper); }
+.pg-ink { fill: var(--paper-ink); }
+.pg-mark { fill: var(--paper-mark); }
+.pg-bar { fill: var(--paper-mark); fill-opacity: .78; }
+.pg-rule { stroke: var(--paper-rule); fill: none; }
+
+/* ---------- Line 3: blower door and thermal camera ---------- */
+.p3 { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 24px; }
+.viewer { min-height: 0; container-type: size; display: flex; flex-direction: column; gap: 10px; }
+.tabs { display: flex; gap: 6px; }
+.tab { border: 1px solid rgba(255, 255, 255, .22); background: transparent; color: var(--on-dark); padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+.tab:hover { border-color: var(--frost); }
+.tab[aria-selected="true"] { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
+.tab small { font: 400 11px var(--mono); opacity: .75; margin-left: 6px; }
+.room { flex: none; position: relative; width: min(100%, calc((100cqh - 172px) * 1.5789)); aspect-ratio: 600 / 380; border-radius: 6px; overflow: hidden; touch-action: none; cursor: crosshair; background: #222; box-shadow: 0 8px 22px rgba(0, 0, 0, .45); }
+.room svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.room .thermal { pointer-events: none; }
+.ring { position: absolute; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0, 0, 0, .55); pointer-events: none; z-index: 2; }
+.ring::before, .ring::after { content: ""; position: absolute; background: #fff; left: 50%; top: 50%; }
+.ring::before { width: 14px; height: 2px; margin: -1px 0 0 -7px; }
+.ring::after { width: 2px; height: 14px; margin: -7px 0 0 -1px; }
+.ring span { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 6px); background: rgba(0, 0, 0, .78); color: #fff; font: 700 12px/1 var(--mono); padding: 4px 6px; border-radius: 3px; white-space: nowrap; }
+.marker { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px dashed #2b6cf0; background: rgba(255, 255, 255, .9); color: #1d3f8a; font: 700 13px/1 var(--mono); display: grid; place-items: center; padding: 0; z-index: 3; }
+.marker.sel { border-style: solid; border-color: var(--copper); color: var(--copper-ink); box-shadow: 0 0 0 5px rgba(196, 106, 50, .4); }
+.marker.sealed { border-style: solid; border-color: var(--good); color: #fff; background: var(--good); }
+.toolrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool { border: 0; background: #f3eee2; color: var(--ink); padding: 7px 11px; border-radius: 4px; font-size: 13px; font-weight: 600; line-height: 1.2; cursor: grab; touch-action: none; box-shadow: 0 2px 4px rgba(0, 0, 0, .35); }
+.tool:hover { box-shadow: 0 0 0 2px var(--copper), 0 2px 4px rgba(0, 0, 0, .35); }
+.ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -130%); padding: 6px 10px; border-radius: 4px; background: #f3eee2; color: var(--ink); font-size: 13px; font-weight: 600; box-shadow: 0 8px 18px rgba(0, 0, 0, .45); }
+.status { font-size: 13.5px; line-height: 1.45; color: var(--on-dark-muted); min-height: 2.9em; }
+.status.bad { color: #ff9a8f; }
+.status.good { color: #8fe0ae; }
+.tscale { display: flex; align-items: center; gap: 8px; font: 400 11px var(--mono); color: var(--on-dark-muted); }
+.tscale i { flex: 0 0 120px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, #36c6ff, #2b4fe0, #8a55b4, #e4602a, #f5b743, #ffd54f); }
+.kit { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+.instrument { background: #0e161b; border: 1px solid #2d3d47; border-radius: 10px; padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+.gauge { width: 100%; max-width: 230px; display: block; margin: 0 auto; }
+.g-good { stroke: #5fbf86; } .g-warn { stroke: #e0b04a; } .g-bad { stroke: #e36b5d; }
+.g-tick { stroke: #8fa3b0; } .g-lab { fill: #8fa3b0; font: 400 11px var(--mono); }
+.g-needle { stroke: #f3f5f6; } .g-hub { fill: var(--copper); }
+#needle { transition: transform .9s cubic-bezier(.3, 1.4, .5, 1); }
+.gauge-read { display: flex; justify-content: space-between; align-items: baseline; font: 400 12px var(--mono); color: var(--on-dark-muted); }
+.gauge-read b { color: var(--on-dark); }
+.ach { font: 700 26px/1 var(--mono); color: #cfeaff; font-variant-numeric: tabular-nums; }
+.worklist { background: var(--paper); color: var(--paper-ink); border-radius: 3px; padding: 12px 14px 10px; box-shadow: 0 6px 16px rgba(0, 0, 0, .4); display: flex; flex-direction: column; gap: 6px; }
+.worklist h3 { font: 700 15px/1.1 var(--display); letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; }
+.worklist h3 span { font: 400 12px var(--mono); letter-spacing: 0; text-transform: none; }
+.leak-list { list-style: none; margin: 0; padding: 0; }
+.leak-item { width: 100%; display: flex; justify-content: space-between; gap: 8px; align-items: center; text-align: left; border: 0; border-top: 1px dotted var(--paper-rule); background: transparent; padding: 6px 2px; font-size: 13px; line-height: 1.3; }
+.leak-item:hover { color: var(--copper-ink); }
+.leak-item.sel { color: var(--copper-ink); font-weight: 600; }
+.chip { font: 600 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; padding: 3px 6px; border-radius: 3px; background: #e6dfcf; flex: none; }
+.leak-item.sealed .chip { background: var(--good); color: #fff; }
+.empty-note { font-size: 12.5px; color: #7a7466; }
+.report table { width: 100%; border-collapse: collapse; font: 400 12.5px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.report th, .report td { padding: 3px 0; border-bottom: 1px dotted var(--paper-rule); text-align: right; }
+.report th:first-child, .report td:first-child { text-align: left; }
+.report th { font: 600 10px/1.3 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: #6f685a; }
+.report tr.tot td { font-weight: 700; border-bottom: 0; }
+.report p { font-size: 12.5px; line-height: 1.4; }
+
+/* ---------- Line 4: evening rush ---------- */
+.p4 { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 26px; }
+.board { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.readout { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.lcd { background: #0e161b; border: 1px solid #2d3d47; border-radius: 8px; padding: 6px 14px; display: flex; gap: 10px; align-items: baseline; font: 700 24px/1.1 var(--mono); color: #cfeaff; font-variant-numeric: tabular-nums; }
+.lcd small { font: 400 11px var(--mono); color: var(--on-dark-muted); letter-spacing: .08em; }
+.verdict { font-weight: 600; font-size: 14px; }
+.verdict.over { color: #ff9a8f; }
+.verdict.ok { color: #8fe0ae; }
+.legend { margin-left: auto; display: flex; gap: 4px 10px; flex-wrap: wrap; justify-content: flex-end; max-width: 620px; font-size: 11px; color: var(--on-dark-muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.chart { flex: 1; min-height: 0; display: grid; grid-template-columns: 124px minmax(0, 1fr); }
+.yaxis { position: relative; }
+.yaxis span { position: absolute; right: 10px; transform: translateY(50%); font: 400 11px var(--mono); color: var(--on-dark-muted); }
+.plot { position: relative; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; border-bottom: 1px solid rgba(255, 255, 255, .35); background: repeating-linear-gradient(to top, rgba(255, 255, 255, .07) 0 1px, transparent 1px 16.667%); }
+.col { position: relative; display: flex; flex-direction: column-reverse; }
+.col.b-ulo, .cell.b-ulo, .bands i.b-ulo { background: rgba(95, 160, 220, .16); }
+.col.b-on, .cell.b-on, .bands i.b-on { background: rgba(227, 107, 93, .16); }
+.col.b-mid, .cell.b-mid, .bands i.b-mid { background: rgba(255, 255, 255, .05); }
+.bands { display: inline-flex; align-items: center; gap: 4px; }
+.bands i { margin-left: 6px; border: 1px solid rgba(255, 255, 255, .25); }
+.seg { flex: none; width: 100%; transition: height .25s ease; }
+.seg:last-child { border-radius: 3px 3px 0 0; }
+.col .val { display: none; position: absolute; left: 0; right: 0; bottom: calc(var(--h) + 3px); text-align: center; font: 700 11px var(--mono); color: var(--on-dark); }
+.col.peak .val, .col.over .val { display: block; }
+.col.over .val { color: #ff9a8f; }
+.col.over .seg:last-child { box-shadow: 0 -3px 0 #e36b5d; }
+.limit { position: absolute; left: 0; right: 0; bottom: 66.667%; border-top: 2px dashed #e36b5d; pointer-events: none; }
+.limit.main { bottom: 83.333%; border-top: 2px solid #e36b5d; }
+.limit span { position: absolute; right: 0; bottom: 3px; font: 600 11px var(--sans); letter-spacing: .06em; color: #ff9a8f; }
+.hours, .lane { display: grid; grid-template-columns: 124px minmax(0, 1fr); }
+.hrow, .track { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; }
+.hrow span { text-align: center; font: 400 10px var(--mono); color: var(--on-dark-muted); white-space: nowrap; }
+.hrow span.b-ulo { color: #9fd0f5; }
+.hrow span.b-on { color: #ff9a8f; }
+.lanes { display: flex; flex-direction: column; gap: 5px; }
+.lane-label { font: 600 13px/1.15 var(--sans); color: var(--on-dark); display: flex; flex-direction: column; justify-content: center; white-space: nowrap; overflow: hidden; }
+.lane-label small { font: 400 11px var(--mono); color: var(--on-dark-muted); }
+.track { position: relative; height: 30px; }
+.track { touch-action: none; border-radius: 3px; }
+.track .cell { border-radius: 3px; }
+.track:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.pieces { position: absolute; inset: 0; pointer-events: none; }
+.block { position: absolute; top: 2px; bottom: 2px; border-radius: 5px; padding: 0 6px; display: flex; align-items: center; font: 700 11px var(--mono); color: var(--ink); cursor: grab; pointer-events: auto; white-space: nowrap; overflow: hidden; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+.track.dragging .block { cursor: grabbing; box-shadow: 0 0 0 2px #fff, 0 6px 14px rgba(0, 0, 0, .5); }
+.p4-side { min-height: 0; overflow: hidden auto; padding: 4px 6px; display: flex; flex-direction: column; gap: 14px; }
+.breaker { width: 100%; max-width: 170px; display: block; margin: 0 auto; }
+.note { background: #f4e27c; color: #2b2510; padding: 8px 12px 10px; font: 500 19px/1.15 "Caveat", "Segoe Print", cursive; box-shadow: 0 4px 10px rgba(0, 0, 0, .4); }
+.note:nth-child(odd) { transform: rotate(-1.2deg); }
+.note:nth-child(even) { transform: rotate(1deg); }
+.note.pink { background: #f2c3c0; }
+.note b { font-weight: 700; }
+.note.wish { display: flex; flex-direction: column; gap: 3px; background: #f4e27c repeating-linear-gradient(to bottom, transparent 0 22px, rgba(60, 90, 140, .18) 22px 23px); font-size: 18px; }
+#rules { display: flex; flex-direction: column; gap: 3px; }
+.rule { padding-left: 20px; text-indent: -20px; }
+.rule::before { display: inline-block; width: 20px; text-indent: 0; font: 700 16px var(--sans); }
+.rule.ok::before { content: "✓"; color: #2a6f47; }
+.rule.bad::before { content: "✗"; color: #b3261e; }
+.rule.bad { color: #6b2a1d; }
+
+.rule.todo::before { content: "○"; color: #8a8270; }
+.rule.todo { color: #6f6754; }
+
+/* Schedule and tray (line 4 v5) */
+.schedule { display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; }
+.track4 { position: relative; height: 42px; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; }
+.slot { border: 0; padding: 0; border-radius: 3px; cursor: pointer; }
+.slot.b-ulo { background: rgba(95, 160, 220, .16); }
+.slot.b-on { background: rgba(227, 107, 93, .2); }
+.slot.b-mid { background: rgba(255, 255, 255, .06); }
+.slot:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .4); }
+.tray { --pitch: 28px; display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 6px; border: 1px dashed rgba(255, 255, 255, .22); border-radius: 7px; }
+.job { height: 34px; width: calc(var(--len) * var(--pitch) - 3px); border: 0; border-radius: 5px; padding: 0 6px; color: var(--ink); font: 700 12px/1.1 var(--sans); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: grab; touch-action: none; white-space: nowrap; overflow: hidden; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+.job small { font: 400 10.5px var(--mono); opacity: .85; }
+.job.on-track { position: absolute; top: 4px; bottom: 4px; height: auto; }
+.job.sel { box-shadow: 0 0 0 2px #fff, 0 6px 14px rgba(0, 0, 0, .5); }
+.job.lifted { opacity: .35; }
+.ghost-job { position: fixed; z-index: 60; height: 34px; pointer-events: none; opacity: .92; box-shadow: 0 10px 22px rgba(0, 0, 0, .5); }
+
+/* Program strips */
+.programs { display: flex; flex-direction: column; gap: 8px; }
+.prog { display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; }
+.prog-label { font: 600 14px/1.15 var(--sans); color: var(--on-dark); display: flex; flex-direction: column; }
+.prog-label small { font: 400 11px var(--mono); color: var(--on-dark-muted); }
+.seq { display: flex; gap: 3px; height: 40px; padding: 3px; border-radius: 7px; background: rgba(255, 255, 255, .06); }
+.pblock { flex-basis: 0; min-width: 0; border: 0; border-radius: 5px; padding: 0 6px; color: var(--ink); font: 700 12px/1.1 var(--sans); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: grab; touch-action: none; white-space: nowrap; overflow: hidden; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); transition: transform .15s ease, box-shadow .15s ease; }
+.pblock small { font: 400 10.5px var(--mono); opacity: .85; }
+.pblock.sel { transform: translateY(-4px); box-shadow: 0 0 0 2px #fff, 0 6px 14px rgba(0, 0, 0, .5); }
+.pblock.dragging { transition: none; z-index: 2; cursor: grabbing; box-shadow: 0 0 0 2px #fff, 0 10px 20px rgba(0, 0, 0, .5); }
+
+/* ---------- Line 5: build the heat pump ---------- */
+.p5 { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; }
+.loop-wrap { min-height: 0; container-type: size; display: flex; flex-direction: column; gap: 10px; }
+.loop { position: relative; flex: none; width: min(100%, calc((100cqh - 60px) * 1.5789)); aspect-ratio: 600 / 380; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 22px rgba(0, 0, 0, .45); }
+.loop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pipe { stroke: #59656d; }
+.pipe.hot { stroke: #d9573a; }
+.pipe.warm { stroke: #e8a54a; }
+.pipe.cold { stroke: #3d7fd6; }
+.pipe.cool { stroke: #7fc2e8; }
+.loop.running .pipe { stroke-dasharray: 14 10; animation: flow5 .9s linear infinite; }
+@keyframes flow5 { to { stroke-dashoffset: -24; } }
+.flowfx { opacity: 0; transition: opacity .6s ease; }
+.loop.running .flowfx { opacity: 1; }
+.sticker { position: absolute; transform: translate(-50%, -50%); padding: 3px 8px; border-radius: 3px; background: #f4e27c; color: #2b2510; font: 600 12px/1.2 var(--sans); white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); pointer-events: none; }
+.socket { position: absolute; transform: translate(-50%, -50%); width: 22%; min-height: 52px; padding: 4px 8px; border-radius: 8px; border: 2px dashed rgba(255, 255, 255, .55); background: rgba(10, 18, 23, .78); color: var(--on-dark-muted); font: 700 14px/1.15 var(--sans); }
+.socket.filled { border: 2px solid #f3eee2; background: #f3eee2; color: var(--ink); }
+.socket.target { border-color: var(--copper); color: var(--on-dark); }
+.loop.running .socket.filled { border-color: #8fe0ae; }
+.p5-side { min-height: 0; overflow: hidden auto; display: flex; flex-direction: column; gap: 12px; padding: 2px 4px; }
+.parts { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.part { text-align: left; border: 0; border-radius: 6px; padding: 8px 12px 9px; background: #f3eee2; color: var(--ink); cursor: grab; touch-action: none; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); display: flex; flex-direction: column; gap: 2px; }
+.part b { font: 700 15px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.part span { font-size: 12.5px; line-height: 1.35; color: #3d4650; }
+.part.sel { box-shadow: 0 0 0 2px var(--copper), 0 6px 14px rgba(0, 0, 0, .5); }
+.ghost-part { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); padding: 8px 14px; border-radius: 6px; background: #f3eee2; color: var(--ink); font: 700 15px var(--display); text-transform: uppercase; box-shadow: 0 10px 22px rgba(0, 0, 0, .5); }
+.yearcard { background: var(--paper); color: var(--paper-ink); border-radius: 3px; padding: 12px 14px 14px; box-shadow: 0 6px 16px rgba(0, 0, 0, .4); display: flex; flex-direction: column; gap: 7px; }
+.spec-head { font: 700 12px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.yc-sub { font-size: 12.5px; line-height: 1.4; color: #4a463c; }
+.split { display: flex; height: 12px; border-radius: 6px; overflow: hidden; }
+.s-elec { background: #f2c94c; }
+.s-air { background: #6fb6e0; }
+.ycl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: 12.5px; }
+.ycl dt { display: flex; align-items: center; gap: 6px; }
+.ycl dd { margin: 0; font: 700 12.5px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.cop-read { display: flex; justify-content: space-between; font: 400 12px var(--mono); margin-top: 4px; }
+.cop-read b { font-size: 14px; }
+#copTemp { width: 100%; accent-color: var(--copper); }
+
+/* ---------- Line 6: where's the money ---------- */
+.p6 { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 26px; }
+.scale-wrap { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.scale-dial { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; background: #0e161b; border: 1px solid #2d3d47; border-radius: 8px; padding: 8px 16px; font: 400 12px var(--mono); color: var(--on-dark-muted); }
+.scale-dial b { display: block; font: 700 20px/1.2 var(--mono); color: #cfeaff; font-variant-numeric: tabular-nums; }
+.scale-dial .saved { text-align: center; }
+.scale-dial .saved b { font-size: 26px; color: #8fe0ae; }
+.scale-dial span:last-child { text-align: right; }
+.scale { position: relative; flex: 1; min-height: 0; }
+.scale svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#beam { transition: transform .6s cubic-bezier(.3, 1.3, .5, 1); transform-origin: 300px 90px; }
+.pan { position: absolute; width: 36%; transform: translateX(-50%); min-height: 120px; padding: 8px; border-radius: 0 0 40% 40% / 0 0 22% 22%; background: linear-gradient(180deg, #8f989f, #5f686f); box-shadow: 0 10px 22px rgba(0, 0, 0, .4); display: flex; flex-direction: column; gap: 6px; transition: top .6s cubic-bezier(.3, 1.3, .5, 1); }
+.pan.target { box-shadow: 0 0 0 3px var(--copper), 0 10px 22px rgba(0, 0, 0, .4); }
+.pan-label { font: 700 12px/1.1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: #f3f5f6; text-align: center; }
+.pan-items { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; padding-bottom: 14px; }
+.p6-side { min-height: 0; overflow: hidden auto; display: flex; flex-direction: column; gap: 14px; padding: 2px 4px; }
+.p6-side .note.wish { font-size: 17px; }
+.weights { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wt { border: 0; border-radius: 5px; padding: 5px 9px; background: #f3eee2; color: var(--ink); text-align: left; cursor: grab; touch-action: none; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); display: flex; flex-direction: column; font: 600 12px/1.2 var(--sans); }
+.wt b { font: 700 13px var(--mono); }
+.wt small { font: 400 10.5px var(--sans); color: #5b6770; }
+.wt.k-hp { background: #e3eef6; }
+.wt.sel { box-shadow: 0 0 0 2px var(--copper), 0 6px 14px rgba(0, 0, 0, .5); }
+.pan .wt small { display: none; }
+.pan .wt { padding: 3px 7px; font-size: 11px; }
+.pan .wt b { font-size: 12px; }
+.ghost-wt { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); opacity: .92; }
+
+/* Narrow screens: stack and scroll (laptop is the target for now) */
+@media (max-width: 900px), (max-height: 600px) {
+  html, body { height: auto; }
+  body { overflow: auto; }
+  main { display: flex; flex-direction: column; }
+  .call { order: 2; border-right: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .workspace { padding: 14px 16px; }
+  .scene-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .objective { text-align: left; }
+  .table { flex: none; height: 78vh; min-height: 520px; overflow: auto; }
+  .p1, .p3, .p4 { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .chart { height: 300px; flex: none; }
+  .furnace-box { height: 300px; flex: none; }
+  .models { grid-template-columns: minmax(0, 1fr); }
+  .viewer { height: 70vh; }
+  .corner { position: static; max-width: none; margin-bottom: 10px; }
+  .stage { height: calc(100% - 70px); }
+  .chapter .badge, .chapter .timer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transform: none; }
+  .shred, .strip, #needle { transition: none; }
+}
+</style>
+
+<header class="masthead">
+  <div class="brand">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect x="2" y="2" width="36" height="36" rx="8" fill="none" stroke="#c46a32" stroke-width="2.5"/>
+      <path d="M20 9v22M10.5 14.5l19 11M29.5 14.5l-19 11" stroke="#9fc3d6" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M17 11l3 2.5 3-2.5M17 29l3-2.5 3 2.5" stroke="#9fc3d6" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="brand-kicker">Energy Suite</span>
+    <span class="brand-title">The Cold Call</span>
+  </div>
+  <div class="chapter">
+    <span id="chapter">LINE 1 OF 6</span>
+    <span class="timer" role="timer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 3h5"/></svg><span id="clock">0:00</span></span>
+    <span class="badge">Playtest</span>
+  </div>
+  <div class="mast-tools">
+    <a class="reset sibling-link" href="index.html">&#8962; All tools</a>
+    <button class="reset" type="button" id="fbBtn" title="Tell us how it is going">Feedback</button>
+    <button class="reset" type="button" id="calcBtn" aria-expanded="false" aria-controls="calcpad">Calculator</button>
+    <button class="reset" type="button" id="resetBtn">Start again</button>
+  </div>
+</header>
+
+<div class="calcpad" id="calcpad" hidden role="dialog" aria-label="Calculator">
+  <div class="calc-top" id="calcGrip" title="Drag to move"><span>&#10303; Calculator</span><button type="button" class="calc-x" id="calcClose" aria-label="Close calculator">&times;</button></div>
+  <input class="calc-screen" id="calcScreen" autocomplete="off" spellcheck="false" aria-label="Expression. Type or use the keys, Enter to calculate.">
+  <p class="calc-prev" id="calcPrev" aria-live="polite"></p>
+  <div class="calc-keys" id="calcKeys">
+    <button type="button" data-k="C" class="fn">C</button><button type="button" data-k="⌫" class="fn">&#9003;</button><button type="button" data-k="÷" class="op">&divide;</button><button type="button" data-k="×" class="op">&times;</button>
+    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="−" class="op">&minus;</button>
+    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="+" class="op">+</button>
+    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="=" class="eq">=</button>
+    <button type="button" data-k="0" class="zero">0</button><button type="button" data-k=".">.</button>
+  </div>
+</div>
+
+<main>
+  <!-- ============ SERVICE CALL (left) ============ -->
+  <aside class="call" aria-label="Service call">
+    <div class="call-head"><span class="eyebrow">Service call</span><span>No. 2026-1103</span></div>
+    <div>
+      <h2 class="call-title">Furnace replacement</h2>
+      <p class="call-sub">Install a heat pump &middot; 1450 Concession Rd 6<br>Rural house on propane &middot; &minus;24&nbsp;&deg;C &middot; furnace down since last night</p>
+    </div>
+    <ol class="call-lines" id="callLines">
+      <li data-line="1"><span class="ln">1</span><span class="step">Furnace age</span><span class="res"></span></li>
+      <li data-line="2"><span class="ln">2</span><span class="step">Total heating need</span><span class="res"></span></li>
+      <li data-line="3"><span class="ln">3</span><span class="step">Peak heating demand</span><span class="res"></span></li>
+      <li data-line="4"><span class="ln">4</span><span class="step">Managing the peak: EV, oven and other loads</span><span class="res"></span></li>
+      <li data-line="5"><span class="ln">5</span><span class="step">Energy and GHG savings</span><span class="res"></span></li>
+      <li data-line="6"><span class="ln">6</span><span class="step">$ savings</span><span class="res"></span></li>
+    </ol>
+
+    <section class="lock" data-answer="1" aria-label="Line 1 answer">
+      <p class="eyebrow">Line 1</p>
+      <h2>Furnace age</h2>
+      <p class="prompt">What year was the furnace made?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">Year made</span><input id="p1-answer" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="----"></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+
+    <section class="lock" data-answer="2" aria-label="Line 2 answer" hidden>
+      <p class="eyebrow">Line 2</p>
+      <h2>Total heating need</h2>
+      <p class="prompt">How much energy did the house buy as propane last year?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">Energy in kWh</span><input id="p2-answer" inputmode="numeric" autocomplete="off" placeholder="-----"><span>kWh</span></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+
+    <section class="lock" data-answer="3" aria-label="Line 3 answer" hidden>
+      <p class="eyebrow">Line 3</p>
+      <h2>Peak heating demand</h2>
+      <p class="prompt">After your repairs, how much heat does the house need on the coldest night?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">Peak in kW</span><input id="p3-answer" inputmode="decimal" autocomplete="off" placeholder="-.-"><span>kW</span></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+
+    <section class="lock" data-answer="4" aria-label="Line 4 answer" hidden>
+      <p class="eyebrow">Line 4</p>
+      <h2>Managing the peak</h2>
+      <p class="prompt">What's the lowest peak you can schedule the house down to, keeping every rule?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">Peak in kW</span><input id="p4-answer" inputmode="decimal" autocomplete="off" placeholder="--.-"><span>kW</span></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+
+    <section class="lock" data-answer="5" aria-label="Line 5 answer" hidden>
+      <p class="eyebrow">Line 5</p>
+      <h2>Energy and GHG savings</h2>
+      <p class="prompt">Switching from the furnace to the heat pump, how much GHG does the house save each year on heating?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">GHG saved in tonnes of CO2e per year</span><input id="p5-answer" inputmode="decimal" autocomplete="off" placeholder="-.-"><span>t CO&#8322;e</span></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+
+    <section class="lock" data-answer="6" aria-label="Line 6 answer" hidden>
+      <p class="eyebrow">Line 6</p>
+      <h2>$ savings</h2>
+      <p class="prompt">How much does the job save the clients each year?</p>
+      <form novalidate>
+        <label class="display"><span class="sr">Savings in dollars per year</span><span>$</span><input id="p6-answer" inputmode="numeric" autocomplete="off" placeholder="----"><span>/yr</span></label>
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="feedback" aria-live="polite"></p>
+      <p class="done-note">&check; Recorded on the service call.</p>
+      <div class="hints"><button class="hint-btn" type="button" data-hint>Need a hint? (3 left)</button><ol aria-live="polite"></ol></div>
+    </section>
+  </aside>
+
+  <!-- ============ WORKSPACE (right) ============ -->
+  <section class="workspace">
+
+    <!-- Line 1 -->
+    <div class="puzzle" id="p1">
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 1 &middot; The basement</p><h1>The broken furnace</h1></div>
+        <p class="objective">You're called in in the middle of winter because someone's furnace has broken down. You're here to install a heat pump to replace it. <b>The rating plate is worn. The model sheet is taped to the cabinet.</b></p>
+      </div>
+      <div class="table">
+        <div class="p1">
+          <div class="unit">
+            <p class="tlabel">Your furnace, front view</p>
+            <div class="furnace-box">
+              <svg class="furnace" viewBox="0 0 260 440" role="img" aria-labelledby="furnaceDesc">
+                <desc id="furnaceDesc">An almond-coloured furnace cabinet. A galvanized metal flue pipe rises from the top. The upper door has a small rating plate and no window. The lower door has six horizontal louvre slots. Both doors are held by quarter-turn latches.</desc>
+                <defs>
+                  <linearGradient id="metal" x1="0" x2="1">
+                    <stop offset="0" stop-color="#8e979e"/><stop offset=".45" stop-color="#d9dee2"/><stop offset="1" stop-color="#9aa3aa"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="130" cy="430" rx="118" ry="7" fill="#000" fill-opacity=".3"/>
+                <rect x="104" y="0" width="52" height="58" fill="url(#metal)"/>
+                <rect x="100" y="18" width="60" height="6" fill="url(#metal)"/>
+                <line x1="130" y1="0" x2="130" y2="58" stroke="#7d868d" stroke-width="1"/>
+                <rect x="20" y="56" width="220" height="370" rx="4" fill="#e6d9b8" stroke="#a8996f" stroke-width="2"/>
+                <rect x="32" y="68" width="196" height="150" rx="2" fill="#efe4c6" stroke="#b5a67c" stroke-width="1.5"/>
+                <rect x="48" y="84" width="84" height="50" rx="2" fill="#c3c9ce" stroke="#8e979e"/>
+                <rect x="56" y="92" width="50" height="4" fill="#5f676e"/>
+                <rect x="56" y="102" width="68" height="3" fill="#7d868d"/>
+                <rect x="56" y="110" width="44" height="3" fill="#7d868d"/>
+                <rect x="56" y="118" width="60" height="3" fill="#7d868d"/>
+                <g fill="url(#metal)" stroke="#6f777e"><circle cx="48" cy="198" r="7"/><circle cx="212" cy="198" r="7"/></g>
+                <g stroke="#555c62" stroke-width="2"><line x1="43" y1="198" x2="53" y2="198"/><line x1="207" y1="198" x2="217" y2="198"/></g>
+                <rect x="32" y="228" width="196" height="186" rx="2" fill="#efe4c6" stroke="#b5a67c" stroke-width="1.5"/>
+                <g fill="#5d5442">
+                  <rect x="62" y="252" width="136" height="9" rx="3"/>
+                  <rect x="62" y="272" width="136" height="9" rx="3"/>
+                  <rect x="62" y="292" width="136" height="9" rx="3"/>
+                  <rect x="62" y="312" width="136" height="9" rx="3"/>
+                  <rect x="62" y="332" width="136" height="9" rx="3"/>
+                  <rect x="62" y="352" width="136" height="9" rx="3"/>
+                </g>
+                <g fill="url(#metal)" stroke="#6f777e"><circle cx="48" cy="394" r="7"/><circle cx="212" cy="394" r="7"/></g>
+                <g stroke="#555c62" stroke-width="2"><line x1="43" y1="394" x2="53" y2="394"/><line x1="207" y1="394" x2="217" y2="394"/></g>
+              </svg>
+            </div>
+            <p class="tlabel">Rating plate, close up</p>
+            <div class="plate">
+              <div class="plate-head">Boreal Comfort</div>
+              <div>Propane-fired forced-air furnace</div>
+              <dl class="plate-row"><dt>MODEL NO.</dt><dd aria-label="worn away"><span class="worn">B</span><span class="worn">C</span><span class="worn">0</span><span class="worn">0</span><span class="worn">X</span><span class="worn">X</span></dd></dl>
+              <dl class="plate-row"><dt>SERIAL NO.</dt><dd aria-label="partly erased: unreadable, unreadable, unreadable, 0, 3, unreadable, 7, unreadable"><span class="worn">0</span><span class="worn">0</span><span class="worn">0</span>03<span class="worn">0</span>7<span class="worn">0</span></dd></dl>
+              <dl class="plate-row"><dt>INPUT</dt><dd aria-label="worn away"><span class="worn">0</span><span class="worn">0</span> kW</dd></dl>
+              <div>Propane (LP gas) &middot; 120 V &middot; 60 Hz</div>
+            </div>
+          </div>
+
+          <article class="sheet" aria-labelledby="sheetTitle">
+            <div class="sheet-head">
+              <h2 id="sheetTitle">BC series propane furnaces</h2>
+              <span>Model guide 1988&ndash;1993 &middot; Keep with furnace</span>
+            </div>
+            <div class="legend">
+              <h3>Reading a model number</h3>
+              <div class="legend-code" aria-hidden="true"><span>BC</span><span>18</span><span>L</span><span>A</span></div>
+              <dl>
+                <dt>BC</dt><dd>Boreal Comfort series</dd>
+                <dt>18</dt><dd>Fuel input in kW</dd>
+                <dt>L&nbsp;M&nbsp;H</dt><dd>Efficiency. L: low, 65% AFUE, standing pilot. M: mid, 78% AFUE, induced-draft fan. H: high, 90% AFUE, condensing.</dd>
+                <dt>A&ndash;F</dt><dd>Year made. A 1988 &middot; B 1989 &middot; C 1990 &middot; D 1991 &middot; E 1992 &middot; F 1993</dd>
+              </dl>
+            </div>
+            <div class="models">
+              <div class="model"><b>BC18LA</b><p>Our original workhorse. Dove-grey cabinet with a round flame window in the upper door, so you can check the pilot. Eight louvre slots on the lower door. Front panels fastened with screws. Vents through a galvanized metal flue.</p></div>
+              <div class="model"><b>BC24HF</b><p>Our condensing model. Almond cabinet with six louvre slots and quarter-turn latches. No flame window. The exhaust is cool enough to vent through white plastic pipe.</p></div>
+              <div class="model"><b>BC30MB</b><p>Almond cabinet, galvanized metal flue. A hot-surface igniter replaces the pilot, so there is no flame window. Six louvre slots. Front panels fastened with screws.</p></div>
+              <div class="model"><b>BC24LC</b><p>Chocolate-brown cabinet with a round flame window in the upper door. Six louvre slots, quarter-turn latches, galvanized metal flue.</p></div>
+              <div class="model"><b>BC18MD</b><p>Compact almond cabinet with quarter-turn latches and a galvanized metal flue. No flame window. Four louvre slots on the lower door.</p></div>
+              <div class="model"><b>BC24ME</b><p>Galvanized metal flue and quarter-turn latches. No flame window: a hot-surface igniter lights the burners. Almond cabinet, six louvre slots on the lower door.</p></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="debrief" data-solved="1" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 1 complete &middot; Furnace age</p>
+            <h2>Made in 1992</h2>
+            <dl class="decode">
+              <dt>BC</dt><dd>Boreal Comfort series</dd>
+              <dt>24</dt><dd>24 kW of propane input</dd>
+              <dt>M</dt><dd>Mid efficiency, 78% AFUE</dd>
+              <dt>E</dt><dd>Made in 1992</dd>
+            </dl>
+            <p>At 78% AFUE, about 24 &times; 0.78 &asymp; 18.7&nbsp;kW of that propane became heat in the house. The rest went up the flue.</p>
+            <p>This furnace is 34 years old. Most furnaces last 15 to 25 years. On most real furnaces the year hides in the serial number; this one was worn off, so you went through the model number.</p>
+            <p class="meta" data-meta></p>
+            <button class="primary" type="button" data-next="2">Continue to line 2 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line 2 -->
+    <div class="puzzle" id="p2" hidden>
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 2 &middot; The kitchen</p><h1>The shredded propane bill</h1></div>
+        <p class="objective">To know what the heat pump has to take over, you need a full year of propane use. The homeowner shreds every bill once it's paid. <b>The propane supplier's December statement, with the yearly summary, is still in the shredder bin.</b></p>
+      </div>
+      <div class="table">
+        <div class="corner">
+          <p class="tlabel">Shredder bin &middot; December statement</p>
+          <p id="shredHelp">Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows.</p>
+          <p class="sr" id="shredLive" aria-live="polite"></p>
+        </div>
+        <div class="stage"><div class="shred" id="shred"></div></div>
+
+        <div class="debrief" data-solved="2" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 2 complete &middot; Total heating need</p>
+            <h2>22,690 kWh</h2>
+            <p class="calc">3,200 L &times; 7.09 kWh/L = 22,688 kWh &asymp; 22,690 kWh</p>
+            <p>That's the energy in the propane this house bought last year. With the old furnace at 78% AFUE, about 17,700&nbsp;kWh of it became useful heat.</p>
+            <p>Look at the summer bars: the furnace was off, yet the house still used about 40&nbsp;L a month. That's the water heater and the stove. Over a year that baseload is about 460&nbsp;L, so roughly 2,740&nbsp;L (about 19,400&nbsp;kWh) went to space heating. That's the part the heat pump takes over.</p>
+            <p class="meta" data-meta></p>
+            <button class="primary" type="button" data-next="3">Continue to line 3 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line 3 -->
+    <div class="puzzle" id="p3" hidden>
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 3 &middot; Blower door test</p><h1>The drafty house</h1></div>
+        <p class="objective">Your blower door is set up in the back doorway and running: it pulls the house down to &minus;50&nbsp;Pa, so outside air rushes in through every gap. <b>Find the leaks with your thermal camera and seal them.</b></p>
+      </div>
+      <div class="table">
+        <div class="p3">
+          <div class="viewer">
+            <div class="tabs" role="tablist" id="roomTabs"></div>
+            <div class="room" id="room" tabindex="0">
+              <svg class="normal" id="roomNormal" viewBox="0 0 600 380" aria-hidden="true"></svg>
+              <svg class="thermal" id="roomThermal" viewBox="0 0 600 380" aria-hidden="true"></svg>
+              <div class="ring" id="ring"><span id="spot">19 &deg;C</span></div>
+              <div id="markers"></div>
+            </div>
+            <div class="toolrow" id="tools" aria-label="Toolbox"></div>
+            <p class="status" id="roomCap" aria-live="polite">Drag the thermal camera over the room. Tap a leak's marker, then pick a tool, or drag a tool onto the marker.</p>
+          </div>
+
+          <div class="kit">
+            <div class="instrument">
+              <p class="tlabel">Blower door &middot; running</p>
+              <svg class="gauge" id="gauge" viewBox="0 0 200 118" role="img" aria-label="Air leakage gauge"></svg>
+              <div class="gauge-read"><span>House <b>&minus;50&nbsp;Pa</b></span><span><span class="ach" id="achVal">7.0</span> ACH50</span></div>
+            </div>
+            <div class="worklist" id="worklist">
+              <h3>Leaks found <span id="leakCount">0 of 5</span></h3>
+              <ol class="leak-list" id="leakList"></ol>
+              <p class="empty-note" id="leakEmpty">None yet. Leaks only show through the camera.</p>
+            </div>
+            <div class="worklist report" id="report" hidden tabindex="-1">
+              <h3>Smart camera report</h3>
+              <table>
+                <tr><th>Heat loss, W/&deg;C</th><th>Before</th><th>After</th></tr>
+                <tr><td>Walls</td><td>35</td><td>35</td></tr>
+                <tr><td>Windows</td><td>30</td><td>30</td></tr>
+                <tr><td>Attic</td><td>15</td><td>15</td></tr>
+                <tr><td>Basement</td><td>25</td><td>25</td></tr>
+                <tr><td>Air leakage</td><td>35</td><td>21</td></tr>
+                <tr class="tot"><td>Total UA</td><td>140</td><td>126</td></tr>
+              </table>
+              <p>Indoor setpoint 21&nbsp;&deg;C. Design outdoor temperature for Ottawa &minus;25&nbsp;&deg;C.</p>
+            </div>
+            <div class="tscale"><span>&minus;10&deg;</span><i></i><span>22&nbsp;&deg;C</span></div>
+          </div>
+        </div>
+
+        <div class="debrief" data-solved="3" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 3 complete &middot; Peak heating demand</p>
+            <h2>5.8 kW</h2>
+            <p class="calc">126 W/&deg;C &times; (21 &minus; (&minus;25)) &deg;C = 5,796 W &asymp; 5.8 kW</p>
+            <p>Air sealing took the house from 7.0 to 4.2 ACH50 and cut its peak heat loss from 6.4&nbsp;kW to 5.8&nbsp;kW. Cheap fixes done before the heat pump goes in mean a smaller heat pump.</p>
+            <p>The old furnace put out 18.7&nbsp;kW, about 3 times what this house needs on the coldest night.</p>
+            <p>Why the camera works: the blower door pulls the house to &minus;50&nbsp;Pa, so every gap draws in outside air. On a winter day that air shows up as cold streaks.</p>
+            <p class="meta" data-meta></p>
+            <button class="primary" type="button" data-next="4">Continue to line 4 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line 4 -->
+    <div class="puzzle" id="p4" hidden>
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 4 &middot; The electrical panel</p><h1>Program the house</h1></div>
+        <p class="objective">The clients are big on automation. They asked you to help program their appliances so the house's hourly load stays as low as possible. Their load manager runs one appliance at a time, and they want to stay off the peak price. <b>Drag each appliance onto the schedule for the lowest peak, keeping every rule.</b></p>
+      </div>
+      <div class="table">
+        <div class="p4">
+          <div class="board">
+            <div class="readout">
+              <div class="lcd"><small>PEAK</small><span id="peakA">--</span><small>A</small><span id="peakKW">--</span><small>kW</small></div>
+              <p class="verdict" id="verdict"></p>
+              <div class="legend" id="legend"></div>
+            </div>
+            <div class="chart">
+              <div class="yaxis"><span style="bottom:0%">0 A</span><span style="bottom:16.667%">20</span><span style="bottom:33.333%">40</span><span style="bottom:50%">60</span><span style="bottom:66.667%">80</span><span style="bottom:83.333%">100</span><span style="bottom:100%">120</span></div>
+              <div class="plot" id="plot" role="img" aria-label="Electrical load per hour"></div>
+            </div>
+            <div class="hours"><span></span><div class="hrow" id="hrow"></div></div>
+            <div class="schedule"><div class="prog-label">Schedule<small>7 am &rarr; 7 am</small></div><div class="track4" id="track4" aria-label="Schedule: one appliance at a time"></div></div>
+            <div class="schedule"><div class="prog-label">Appliances<small>drag onto the schedule</small></div><div class="tray" id="tray" aria-label="Appliances not scheduled yet"></div></div>
+            <p class="status" id="rushStatus" aria-live="polite">Nothing is scheduled yet. Drag an appliance onto the schedule, or click it and then click the hour it should start. Drag it back down to unschedule it.</p>
+          </div>
+
+          <div class="p4-side">
+            <svg class="breaker" viewBox="0 0 210 150" role="img" aria-label="The house's electrical panel: 100 amp main breaker, 240 volts">
+              <rect x="5" y="5" width="200" height="140" rx="6" fill="#c9cfd4" stroke="#7d868d" stroke-width="2"/>
+              <rect x="20" y="18" width="170" height="30" rx="3" fill="#2b3036"/>
+              <text x="105" y="38" text-anchor="middle" font-size="14" font-weight="700" fill="#f3f5f6" font-family="'B612 Mono', monospace">MAIN 100 A &#183; 240 V</text>
+              <g fill="#3d444b">
+                <rect x="28" y="60" width="66" height="10" rx="2"/><rect x="116" y="60" width="66" height="10" rx="2"/>
+                <rect x="28" y="76" width="66" height="10" rx="2"/><rect x="116" y="76" width="66" height="10" rx="2"/>
+                <rect x="28" y="92" width="66" height="10" rx="2"/><rect x="116" y="92" width="66" height="10" rx="2"/>
+                <rect x="28" y="108" width="66" height="10" rx="2"/><rect x="116" y="108" width="66" height="10" rx="2"/>
+                <rect x="28" y="124" width="66" height="10" rx="2"/>
+              </g>
+              <rect x="116" y="124" width="66" height="10" rx="2" fill="#c46a32"/>
+            </svg>
+            <div class="note wish"><b>Our automation rules</b>
+              <div id="rules"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="debrief" data-solved="4" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 4 complete &middot; Managing the peak</p>
+            <h2>13.0 kW</h2>
+            <p class="calc">54 A &times; 240 V = 12,960 W &asymp; 13.0 kW</p>
+            <p>The day falls into place once you see the squeeze: 20 hours of appliances, but only 19 hours outside the peak. The slow cooker, at 1&nbsp;A, takes the one on-peak hour, and dinner cooks without the oven.</p>
+            <p>At night the order matters. The house is still busy at 9 pm, so the laundry goes first and the EV charges from 1 to 7 am. EV first would have hit 58&nbsp;A.</p>
+            <p>That's load management: the same appliances on the same day, with a lower peak. It keeps the 100&nbsp;A panel and keeps the big loads off the most expensive hours.</p>
+            <p class="meta" data-meta></p>
+            <button class="primary" type="button" data-next="5">Continue to line 5 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line 5 -->
+    <div class="puzzle" id="p5" hidden>
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 5 &middot; The install</p><h1>Build the heat pump</h1></div>
+        <p class="objective">The heat pump has arrived, and its refrigerant loop is empty. The clients want to know how something can heat their house from &minus;2&nbsp;&deg;C outdoor air. <b>Put each part where it belongs in the loop, start it up, and see what the house saves.</b></p>
+      </div>
+      <div class="table">
+        <div class="p5">
+          <div class="loop-wrap">
+            <div class="loop" id="loop">
+              <svg viewBox="0 0 600 380" aria-hidden="true">
+                <defs>
+                  <marker id="arw" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#eef2f4"/></marker>
+                </defs>
+                <rect x="0" y="0" width="300" height="380" fill="#1c2d3a"/>
+                <rect x="300" y="0" width="300" height="380" fill="#3a2a22"/>
+                <line x1="300" y1="0" x2="300" y2="380" stroke="#c9cfd4" stroke-width="6"/>
+                <text x="16" y="28" font-size="15" font-weight="700" fill="#9fc3d6" font-family="'Barlow Condensed', sans-serif" letter-spacing="2">OUTDOORS &#183; &#8722;2 &#176;C</text>
+                <text x="584" y="28" text-anchor="end" font-size="15" font-weight="700" fill="#f0b48a" font-family="'Barlow Condensed', sans-serif" letter-spacing="2">INDOORS &#183; 21 &#176;C</text>
+                <g class="pipes" fill="none" stroke-width="9" stroke-linecap="round">
+                  <path class="pipe hot" d="M178 90 H422"/>
+                  <path class="pipe warm" d="M480 128 V252"/>
+                  <path class="pipe cold" d="M422 290 H178"/>
+                  <path class="pipe cool" d="M120 252 V128"/>
+                </g>
+                <g fill="none" stroke="#eef2f4" stroke-width="2" marker-end="url(#arw)">
+                  <path d="M285 90 H318"/><path d="M480 178 V206"/><path d="M318 290 H285"/><path d="M120 206 V178"/>
+                </g>
+                <g class="flowfx">
+                  <path d="M10 330 C40 310 60 350 90 330" stroke="#9fd0f5" stroke-width="3" fill="none"/>
+                  <path d="M10 350 C40 330 60 370 90 350" stroke="#9fd0f5" stroke-width="3" fill="none"/>
+                  <text x="12" y="374" font-size="12" fill="#9fd0f5" font-family="Barlow, sans-serif">heat taken from the outdoor air</text>
+                  <path d="M560 40 v30 M548 58 l12 12 l12 -12" stroke="#f0b48a" stroke-width="3" fill="none"/>
+                  <text x="590" y="374" text-anchor="end" font-size="12" fill="#f0b48a" font-family="Barlow, sans-serif">heat into the house</text>
+                  <path d="M96 40 l-10 22 h12 l-10 22" stroke="#f2c94c" stroke-width="3" fill="none"/>
+                  <text x="112" y="60" font-size="12" fill="#f2c94c" font-family="Barlow, sans-serif">electricity</text>
+                </g>
+              </svg>
+              <span class="sticker" style="left:50%;top:13%">hot gas &middot; 70&nbsp;&deg;C &middot; high pressure</span>
+              <span class="sticker" style="left:80%;top:50%">warm liquid &middot; 35&nbsp;&deg;C</span>
+              <span class="sticker" style="left:50%;top:87%">cold mix &middot; &minus;10&nbsp;&deg;C &middot; low pressure</span>
+              <span class="sticker" style="left:20%;top:50%">cool gas &middot; &minus;5&nbsp;&deg;C</span>
+              <button type="button" class="socket" data-socket="tl" style="left:20%;top:23.7%">empty</button>
+              <button type="button" class="socket" data-socket="tr" style="left:80%;top:23.7%">empty</button>
+              <button type="button" class="socket" data-socket="br" style="left:80%;top:76.3%">empty</button>
+              <button type="button" class="socket" data-socket="bl" style="left:20%;top:76.3%">empty</button>
+            </div>
+            <p class="status" id="loopStatus" aria-live="polite">The arrows show which way the refrigerant flows. Drag a part onto a socket, or click a part and then a socket. Click a filled socket to take its part back.</p>
+          </div>
+
+          <div class="p5-side">
+            <div id="partsBox">
+              <p class="tlabel">In the box</p>
+              <div class="parts" id="parts"></div>
+            </div>
+            <div class="yearcard" id="yearCard" hidden tabindex="-1">
+              <p class="spec-head">It runs &middot; one year of heating</p>
+              <p class="yc-sub">Season average &minus;2&nbsp;&deg;C, so the heat pump works at a COP of 2.8. Your air sealing cut the heat the house needs to 13,640&nbsp;kWh.</p>
+              <div class="split" aria-hidden="true"><i class="s-elec" style="flex:4870"></i><i class="s-air" style="flex:8770"></i></div>
+              <dl class="ycl">
+                <dt>Heat into the house</dt><dd>13,640 kWh</dd>
+                <dt><i class="dot s-air"></i>From the outdoor air</dt><dd>8,770 kWh</dd>
+                <dt><i class="dot s-elec"></i>Electricity bought</dt><dd>4,870 kWh</dd>
+              </dl>
+              <p class="spec-head">Carbon, one year of heating</p>
+              <dl class="ycl">
+                <dt>Old furnace: 2,740 L of propane</dt><dd>4,110 kg CO&#8322;e</dd>
+                <dt>Heat pump: 4,870 kWh of electricity</dt><dd>340 kg CO&#8322;e</dd>
+              </dl>
+              <label class="cop-read" for="copTemp"><span>Try another day: <b id="copT">&minus;2 &deg;C</b></span><span>COP <b id="copV">2.80</b></span></label>
+              <input type="range" id="copTemp" min="-30" max="10" step="1" value="-2">
+              <p class="yc-sub" id="copShare"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="debrief" data-solved="5" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 5 complete &middot; Energy and GHG savings</p>
+            <h2>3.8 t CO&#8322;e a year</h2>
+            <p class="calc">4,110 kg (furnace) &minus; 340 kg (heat pump) &asymp; 3,770 kg<br>Energy bought: 19,400 &rarr; 4,870 kWh, 14,530 kWh less</p>
+            <p>The loop moves heat instead of making it. Outdoors, the cold refrigerant is colder than &minus;2&nbsp;&deg;C air, so it soaks up heat and boils. The compressor squeezes that gas until it's hotter than the house, the indoor coil hands the heat over, and the expansion valve drops the pressure to start again.</p>
+            <p>That's why almost two-thirds of the heat comes free from outside. On Ontario's mostly nuclear and hydro grid, each kWh carries about 70&nbsp;g of CO&#8322;e, against roughly 210&nbsp;g for a kWh of propane.</p>
+            <p>3.8 tonnes a year is about 80% of what a typical car emits in a year. Switching the water heater and stove off propane too saves about another 0.5&nbsp;t.</p>
+            <p class="meta" data-meta></p>
+            <button class="primary" type="button" data-next="6">Continue to line 6 &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line 6 -->
+    <div class="puzzle" id="p6" hidden>
+      <div class="scene-head">
+        <div><p class="eyebrow">Line 6 &middot; The kitchen table</p><h1>Where's the money?</h1></div>
+        <p class="objective">Before they sign, the clients ask what the job saves them each year. Their job summary lists what changes. <b>Load each cost onto the right year, and read what the scale says they save.</b></p>
+      </div>
+      <div class="table">
+        <div class="p6">
+          <div class="scale-wrap">
+            <div class="scale-dial" aria-live="polite">
+              <span>Propane year <b id="sumL">$0</b></span>
+              <span class="saved">Saved a year <b id="sumD">$0</b></span>
+              <span>Heat pump year <b id="sumR">$0</b></span>
+            </div>
+            <div class="scale" id="scale">
+              <svg viewBox="0 0 600 300" aria-hidden="true">
+                <path d="M300 96 L262 286 H338 Z" fill="#7d868d"/>
+                <rect x="230" y="282" width="140" height="10" rx="3" fill="#5b646b"/>
+                <g id="strings" stroke="#c9cfd4" stroke-width="2"></g>
+                <g id="beam"><rect x="70" y="84" width="460" height="12" rx="6" fill="#c9a26c"/><circle cx="300" cy="90" r="11" fill="#c46a32"/></g>
+              </svg>
+              <div class="pan" data-pan="furnace" id="panL"><p class="pan-label">Year with the propane furnace</p><div class="pan-items"></div></div>
+              <div class="pan" data-pan="hp" id="panR"><p class="pan-label">Year with the heat pump</p><div class="pan-items"></div></div>
+            </div>
+            <p class="status" id="scaleStatus" aria-live="polite">Drag a cost onto a pan, or click a cost and then a pan. Click a cost on a pan to put it back in the box.</p>
+          </div>
+
+          <div class="p6-side">
+            <div class="note wish"><b>Job summary &middot; signed by the clients</b>
+              <span class="rule ok">Heat pump replaces the propane furnace and the old central A/C</span>
+              <span class="rule ok">Water heater and stove switched to electric; propane tank picked up</span>
+              <span class="rule ok">All appliances programmed, as on line 4</span>
+              <span class="rule ok">Every system gets its yearly tune-up</span>
+              <span class="rule bad">EV charger: installed last year, not part of this job</span>
+            </div>
+            <div><p class="tlabel">Yearly costs</p><div class="weights" id="weights"></div></div>
+          </div>
+        </div>
+
+        <div class="debrief" data-solved="6" hidden>
+          <div class="debrief-card" tabindex="-1">
+            <p class="eyebrow">Line 6 complete &middot; Service call closed</p>
+            <h2>$1,889 a year</h2>
+            <p class="calc">$2,809 (propane year) &minus; $920 (heat pump year) = $1,889</p>
+            <p>Heating alone saves about $1,600: heat from propane costs about 14&nbsp;&cent; per kWh, from the programmed heat pump about 3&nbsp;&cent; after the Ontario Electricity Rebate. Picking up the tank and retiring the old A/C add the rest. Left unprogrammed, the heat pump would cost $166 more a year.</p>
+            <p>Prices: Ontario Ultra-Low Overnight plan (November 2025) and about $0.75 a litre for delivered propane. Real bills vary with the supplier and the winter.</p>
+            <p>Furnace dated, energy measured, house sealed, loads programmed, heat pump running, savings explained. The family is warm again.</p>
+            <p class="meta" data-meta></p>
+            <p>Thank you for playtesting. Tell us what you thought: which lines were fun, and where you got stuck.</p>
+            <div class="row"><button class="primary" type="button" data-feedback>Tell us how it went</button><button class="btn-quiet" type="button" data-again>Play again</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<dialog class="fb-dialog" id="fbDialog" aria-labelledby="fbTitle">
+  <form id="fbForm">
+    <p class="eyebrow">Playtest</p>
+    <h2 id="fbTitle">Tell us how it went</h2>
+    <p>Your notes decide what we fix. Everything is optional except a few words.</p>
+    <label for="fbRating">Overall</label>
+    <select id="fbRating"><option value="">Choose if you like</option><option value="5">5 · Loved it</option><option value="4">4 · Enjoyed it</option><option value="3">3 · Mixed</option><option value="2">2 · Frustrating</option><option value="1">1 · Needs work</option></select>
+    <label for="fbMessage">Your thoughts</label>
+    <textarea id="fbMessage" required maxlength="4000" placeholder="What worked? Where did you get stuck? Did the HVAC part make sense?"></textarea>
+    <label for="fbEmail">Email <span class="fb-note">(only if you would like a reply)</span></label>
+    <input id="fbEmail" type="email" maxlength="254" autocomplete="email">
+    <label class="check"><input type="checkbox" id="fbStats" checked> Include my game stats: time, hints and wrong tries per line (no answers)</label>
+    <p class="fb-note">Sent with Formspree, the service our site’s feedback form uses.</p>
+    <p class="fb-note" id="fbResult" role="status"></p>
+    <div class="fb-buttons"><button type="button" class="btn-quiet" id="fbClose">Close</button><button type="submit" class="primary" id="fbSend">Send</button></div>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const t0 = Date.now();
+const fmt = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+const elapsed = () => Math.floor((Date.now() - t0) / 1000);
+const timer = setInterval(() => { $("clock").textContent = fmt(elapsed()); }, 1000);
+const LAST_BUILT = 6;
+
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem("coldcall.solved") || "[]"); } catch { return []; } },
+  add(n) { try { const s = store.get(); if (!s.includes(n)) localStorage.setItem("coldcall.solved", JSON.stringify([...s, n])); } catch {} },
+  clear() { try { localStorage.removeItem("coldcall.solved"); } catch {} }
+};
+
+// Playtest stats for the feedback form (this visit only; answers are never sent).
+const STATS = {};
+const stat = n => (STATS[n] ??= { time: null, hints: 0, wrong: 0 });
+
+// Shared answer block (left panel), hint ladder and debrief (over the table) for one line.
+const puzzles = {};
+function setupPuzzle(n, { hints, judge }) {
+  const box = document.querySelector(`[data-answer="${n}"]`), form = box.querySelector("form"), input = form.querySelector("input");
+  const fb = box.querySelector(".feedback"), hintBtn = box.querySelector("[data-hint]"), list = box.querySelector(".hints ol");
+  const debrief = document.querySelector(`[data-solved="${n}"]`);
+  let used = 0, start = Date.now();
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const msg = judge(input.value, [...form.querySelectorAll("input")].map(i => i.value));
+    if (msg === null) return win();
+    stat(n).wrong++;
+    fb.textContent = msg;
+    fb.className = "feedback bad";
+  });
+  hintBtn.addEventListener("click", () => {
+    if (used >= hints.length) return;
+    const li = document.createElement("li");
+    li.textContent = hints[used++];
+    stat(n).hints = used;
+    list.append(li);
+    const left = hints.length - used;
+    hintBtn.textContent = left ? `Another hint? (${left} left)` : "No hints left";
+    hintBtn.disabled = !left;
+  });
+  function win() {
+    const s = Math.floor((Date.now() - start) / 1000);
+    stat(n).time = s;
+    debrief.querySelector("[data-meta]").textContent = `Solved in ${fmt(s)} with ${used} ${used === 1 ? "hint" : "hints"}.`;
+    box.classList.add("done");
+    debrief.hidden = false;
+    debrief.querySelector(".debrief-card").focus();
+    store.add(n);
+    fillLine(n);
+    if (n === LAST_BUILT) clearInterval(timer);
+  }
+  return (puzzles[n] = { restart() { start = Date.now(); } });
+}
+
+// Service call sheet: what each solved line records.
+const RESULTS = { 1: "Made 1992 · 34 years old", 2: "22,690 kWh of propane a year", 3: "5.8 kW after air sealing", 4: "13.0 kW peak · appliances scheduled", 5: "14,530 kWh and 3.8 t CO₂e saved a year", 6: "$1,889 saved a year" };
+const line = n => document.querySelector(`#callLines [data-line="${n}"]`);
+function fillLine(n) {
+  const li = line(n);
+  li.classList.remove("current");
+  li.classList.add("done");
+  li.querySelector(".ln").textContent = "✓";
+  li.querySelector(".res").textContent = RESULTS[n];
+}
+function show(n) {
+  document.querySelectorAll(".puzzle").forEach(p => { p.hidden = p.id !== "p" + n; });
+  document.querySelectorAll("[data-answer]").forEach(b => { b.hidden = +b.dataset.answer !== n; });
+  document.querySelectorAll("#callLines li").forEach(li => {
+    const cur = +li.dataset.line === n && !li.classList.contains("done");
+    li.classList.toggle("current", cur);
+    if (cur) li.querySelector(".res").textContent = "In progress";
+  });
+  $("chapter").textContent = `LINE ${n} OF 6`;
+  if (puzzles[n]) puzzles[n].restart();
+  if (n === 3) placeCam();
+}
+
+/* ---------- Line 1: furnace model ---------- */
+// Wrong years point at the feature that rules that model out.
+const NUDGES1 = {
+  1988: "That's the BC18LA. Check its colour and the flame window against your furnace.",
+  1989: "That's the BC30MB. Look at how your doors are held shut.",
+  1990: "That's the BC24LC. Check its colour and the flame window against your furnace.",
+  1991: "That's the BC18MD. Count the louvre slots on your lower door.",
+  1993: "That's the BC24HF. Look at the pipe on top of your furnace.",
+  92: "Enter all four digits of the year.",
+  24: "24 kW is the fuel input. The line asks for the year.",
+  78: "78% is the efficiency. The line asks for the year."
+};
+setupPuzzle(1, {
+  hints: [
+    "The model sheet describes six furnaces. Only one matches yours on every detail.",
+    "Compare five things: cabinet colour, the pipe on top, a flame window, the louvre slots, and how the doors are held shut.",
+    "Your furnace is the BC24ME. Use the legend to read the last letter."
+  ],
+  judge(raw) {
+    const v = String(raw).trim();
+    if (!/^\d+$/.test(v)) return "Enter the year as four digits.";
+    const n = parseInt(v, 10);
+    if (n === 1992) return null;
+    if (NUDGES1[n]) return NUDGES1[n];
+    return v.length === 4 ? "None of the furnaces on the sheet was made that year." : "Enter the year as four digits.";
+  }
+});
+
+/* ---------- Line 2: shredded propane bill ---------- */
+const MONTHS = "JFMAMJJASOND";
+const USE = [580, 510, 420, 250, 120, 40, 40, 40, 60, 200, 360, 580]; // litres of propane, sums to 3,200
+const KWH_PER_L = 7.09;
+const PW = 480, PH = 600, NSTRIP = 8, SW = PW / NSTRIP;
+const START_ORDER = [5, 2, 7, 0, 3, 6, 1, 4];                     // no two neighbours in place
+
+function pageSVG() {
+  const L = 56, R = 460, T = 130, B = 380, max = 650;
+  const y = v => B - v / max * (B - T), step = (R - L) / 12, bw = 22;
+  const sans = `font-family="Barlow, 'Segoe UI', sans-serif"`;
+  let s = `<rect class="pg-paper" width="${PW}" height="${PH}"/><rect class="pg-mark" width="${PW}" height="8"/>`;
+  s += `<text x="24" y="52" class="pg-mark" font-size="30" font-weight="700" letter-spacing="1" font-family="'Barlow Condensed', 'Arial Narrow', sans-serif">NORTHERN LAKES PROPANE</text>`;
+  s += `<text x="24" y="78" class="pg-ink" font-size="14" ${sans}>December 2026 statement &#183; Annual delivery summary</text>`;
+  s += `<text x="24" y="114" class="pg-ink" font-size="15" font-weight="600" ${sans}>Propane used per month (litres)</text>`;
+  for (let v = 0; v <= 600; v += 100) {
+    s += `<line class="pg-rule" x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}" stroke-width="${v % 200 ? .7 : 1.2}"/>`;
+    if (v % 200 === 0) s += `<text x="${L - 8}" y="${y(v) + 5}" text-anchor="end" class="pg-ink" font-size="13" ${sans}>${v}</text>`;
+  }
+  USE.forEach((u, i) => {
+    const x = L + i * step + (step - bw) / 2;
+    s += `<rect class="pg-bar" x="${x}" y="${y(u)}" width="${bw}" height="${B - y(u)}"/>`;
+    s += `<text x="${x + bw / 2}" y="${B + 22}" text-anchor="middle" class="pg-ink" font-size="15" font-weight="600" ${sans}>${MONTHS[i]}</text>`;
+  });
+  s += `<text x="${PW / 2}" y="440" text-anchor="middle" class="pg-ink" font-size="18" ${sans}>Propane used in the last 12 months</text>`;
+  s += `<text x="${PW / 2}" y="490" text-anchor="middle" class="pg-ink" font-size="44" font-weight="700" font-family="'B612 Mono', monospace">3,200 L</text>`;
+  s += `<rect class="pg-rule" x="24" y="514" width="${PW - 48}" height="46" stroke-width="1.2"/>`;
+  s += `<text x="${PW / 2}" y="543" text-anchor="middle" class="pg-ink" font-size="16" ${sans}>To compare with electricity: 1 L of propane &#8776; 7.09 kWh</text>`;
+  s += `<text x="24" y="588" class="pg-ink" font-size="12" ${sans}>Account 4471 0932 18 &#183; 1450 Concession Rd 6</text>`;
+  return s;
+}
+
+const shred = $("shred");
+const page = pageSVG();
+let order = START_ORDER.slice(), sel = null;
+const strips = Array.from({ length: NSTRIP }, (_, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "strip";
+  b.dataset.piece = i;
+  b.setAttribute("aria-label", `Shredded strip ${String.fromCharCode(65 + i)}`);
+  b.innerHTML = `<svg viewBox="${i * SW} 0 ${SW} ${PH}" preserveAspectRatio="none" aria-hidden="true">${page}</svg>`;
+  return b;
+});
+const HELP = "Drag a strip sideways, or click two strips to swap them. With a keyboard, focus a strip and use the left and right arrows.";
+function renderShred(focusPiece) {
+  shred.replaceChildren(...order.map(i => strips[i]));
+  strips.forEach(s => s.classList.toggle("sel", sel === +s.dataset.piece));
+  if (focusPiece !== undefined) strips[focusPiece].focus();
+  const whole = order.every((v, i) => v === i);
+  shred.classList.toggle("whole", whole);
+  $("shredHelp").classList.toggle("done", whole);
+  $("shredHelp").textContent = whole ? "Page rebuilt. Read it, then fill in line 2." : HELP;
+  $("shredLive").textContent = whole
+    ? "Page rebuilt. It reads: Northern Lakes Propane, December 2026 statement, annual delivery summary. A bar chart of propane used per month, highest in winter, lowest in summer. Propane used in the last 12 months: 3,200 litres. To compare with electricity: 1 litre of propane is about 7.09 kWh."
+    : "";
+}
+function move(piece, to) {
+  const from = order.indexOf(piece);
+  to = Math.max(0, Math.min(NSTRIP - 1, to));
+  if (from === to) return;
+  order.splice(from, 1);
+  order.splice(to, 0, piece);
+}
+function tapStrip(piece) {
+  if (sel === null) sel = piece;
+  else if (sel === piece) sel = null;
+  else {
+    const a = order.indexOf(sel), b = order.indexOf(piece);
+    [order[a], order[b]] = [order[b], order[a]];
+    sel = null;
+  }
+  renderShred();
+}
+let drag = null;
+strips.forEach(s => {
+  const piece = +s.dataset.piece;
+  s.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    drag = { piece, x0: e.clientX, dx: 0, moved: false };
+    s.setPointerCapture(e.pointerId);
+  });
+  s.addEventListener("pointermove", e => {
+    if (!drag || drag.piece !== piece) return;
+    drag.dx = e.clientX - drag.x0;
+    if (Math.abs(drag.dx) > 6) drag.moved = true;
+    if (drag.moved) { s.classList.add("dragging"); s.style.transform = `translateX(${drag.dx}px)`; }
+  });
+  const end = () => {
+    if (!drag || drag.piece !== piece) return;
+    const d = drag;
+    drag = null;
+    s.classList.remove("dragging");
+    s.style.transform = "";
+    if (!d.moved) return tapStrip(piece);
+    const pitch = s.getBoundingClientRect().width + parseFloat(getComputedStyle(shred).columnGap || 0);
+    move(piece, order.indexOf(piece) + Math.round(d.dx / pitch));
+    sel = null;
+    renderShred();
+  };
+  s.addEventListener("pointerup", end);
+  s.addEventListener("pointercancel", end);
+  s.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      move(piece, order.indexOf(piece) + (e.key === "ArrowLeft" ? -1 : 1));
+      renderShred(piece);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      tapStrip(piece);
+      strips[piece].focus();
+    }
+  });
+});
+renderShred();
+
+const TRUE_L = USE.reduce((a, b) => a + b, 0);
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+setupPuzzle(2, {
+  hints: [
+    "A shredder cuts straight down. Match the bars, gridlines and letters across each cut.",
+    "The utility's name starts at the left edge of the page. Winter has the tallest bars, at both ends of the year.",
+    "The rebuilt page says 3,200 L and 1 L ≈ 7.09 kWh. Multiply them: 22,688 ≈ 22,690 kWh."
+  ],
+  judge(raw) {
+    const v = String(raw).replace(/[\s,]/g, "");
+    if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kWh.";
+    const n = parseFloat(v);
+    if (near(n, TRUE_L * KWH_PER_L, 70)) return null;
+    if (near(n, TRUE_L, 5)) return "That's the propane volume in litres. The line asks for energy in kWh.";
+    if (near(n, TRUE_L / KWH_PER_L, 2)) return "You divided. Multiply the litres by the kWh in each litre.";
+    if (near(n, TRUE_L * 7, 60) || near(n, TRUE_L * 10.35, 100)) return "Use the exact conversion. The bill prints it.";
+    return "That doesn't match. Rebuild the page and read its bottom half.";
+  }
+});
+
+/* ---------- Line 3: blower door and thermal camera ---------- */
+// Room colours: N is what the eye sees, TH is the thermal camera's palette.
+const N = { ceiling: "#f1ede4", hatch: "#e4ddcd", wall: "#e8e0cf", floor: "#b88b5f", trim: "#f6f3ec", door: "#8a5a3b", doorDark: "#76492e", metal: "#a3abb1", device: "#f7f6f1", line: "#5b5246", wood: "#c9a26c", wood2: "#a98252", coat: "#4f6d5a", coat2: "#7a4a3a", frame: "#c7b08a", art: "#8fb0a6", glass: "#c4dcea", sofa: "#6f7f8f", sofa2: "#5f6f7f", concrete: "#b9b4aa", slab: "#a29d93", box: "#c8b48e", furnace: "#e6d9b8", tank: "#d9dcdf" };
+const TH = { ceiling: "#e2632d", hatch: "#e9873a", wall: "#e4602a", floor: "#f08b2e", trim: "#ee9a38", door: "#c9472a", doorDark: "#b83d27", metal: "#f2b544", device: "#f6a43c", line: "#7a2414", wood: "#d4552a", wood2: "#c04b2a", coat: "#e57434", coat2: "#e06a30", frame: "#ea7f34", art: "#e8742f", glass: "#8a55b4", sofa: "#f5b743", sofa2: "#efa13d", concrete: "#9a55a2", slab: "#7f4598", box: "#d86a35", furnace: "#7d4aa8", tank: "#ffd54f" };
+
+const SCENES = [
+  (P, t) => `<rect width="600" height="60" fill="${P.ceiling}"/>
+    <rect x="380" y="12" width="120" height="38" fill="${P.hatch}" stroke="${P.line}" stroke-width="2"/>
+    <rect y="60" width="600" height="260" fill="${P.wall}"/>
+    <rect y="320" width="600" height="60" fill="${P.floor}"/>
+    <rect y="308" width="600" height="12" fill="${P.trim}"/>
+    <rect x="90" y="110" width="140" height="210" fill="${P.trim}"/>
+    <rect x="100" y="120" width="120" height="198" fill="${P.door}"/>
+    <rect x="114" y="136" width="92" height="70" fill="${P.doorDark}"/>
+    <rect x="114" y="224" width="92" height="80" fill="${P.doorDark}"/>
+    <circle cx="207" cy="222" r="5" fill="${P.metal}"/>
+    <rect x="300" y="168" width="46" height="58" rx="6" fill="${P.device}" stroke="${P.line}"/>
+    ${t ? "" : `<text x="323" y="204" text-anchor="middle" font-size="17" font-weight="700" fill="#2a2721" font-family="'B612 Mono', monospace">21°</text>`}
+    <rect x="420" y="150" width="120" height="8" fill="${P.wood}"/>
+    <path d="M440 158 q-14 40 -6 110 h40 q8 -70 -6 -110z" fill="${P.coat}"/>
+    <path d="M500 158 q-12 36 -4 90 h34 q8 -56 -6 -90z" fill="${P.coat2}"/>`,
+  P => `<rect width="600" height="320" fill="${P.wall}"/>
+    <rect y="320" width="600" height="60" fill="${P.floor}"/>
+    <rect y="308" width="600" height="12" fill="${P.trim}"/>
+    <rect x="88" y="70" width="124" height="84" fill="${P.frame}" stroke="${P.line}" stroke-width="2"/>
+    <rect x="98" y="80" width="104" height="64" fill="${P.art}"/>
+    <rect x="358" y="58" width="184" height="154" fill="${P.trim}"/>
+    <rect x="370" y="70" width="160" height="130" fill="${P.glass}"/>
+    <rect x="447" y="70" width="6" height="130" fill="${P.trim}"/>
+    <rect x="40" y="196" width="220" height="44" rx="8" fill="${P.sofa2}"/>
+    <rect x="40" y="236" width="220" height="60" rx="6" fill="${P.sofa}"/>
+    <rect x="30" y="226" width="24" height="76" rx="8" fill="${P.sofa2}"/>
+    <rect x="246" y="226" width="24" height="76" rx="8" fill="${P.sofa2}"/>
+    <rect x="44" y="296" width="10" height="12" fill="${P.wood}"/><rect x="246" y="296" width="10" height="12" fill="${P.wood}"/>
+    <rect x="320" y="262" width="18" height="28" rx="2" fill="${P.device}" stroke="${P.line}"/>
+    <rect x="325" y="268" width="3" height="6" fill="${P.line}"/><rect x="330" y="268" width="3" height="6" fill="${P.line}"/>
+    <rect x="325" y="279" width="3" height="6" fill="${P.line}"/><rect x="330" y="279" width="3" height="6" fill="${P.line}"/>`,
+  P => `<rect width="600" height="22" fill="${P.wood2}"/>
+    ${[0, 1, 2, 3, 4, 5, 6, 7].map(k => `<rect x="${k * 80 + 20}" y="0" width="14" height="22" fill="${P.line}" opacity=".35"/>`).join("")}
+    <rect y="22" width="600" height="34" fill="${P.wood}"/>
+    <rect y="56" width="600" height="8" fill="${P.wood2}"/>
+    <rect y="64" width="600" height="256" fill="${P.concrete}"/>
+    <rect y="320" width="600" height="60" fill="${P.slab}"/>
+    <rect x="40" y="196" width="170" height="8" fill="${P.wood}"/>
+    <rect x="50" y="160" width="50" height="36" fill="${P.box}"/><rect x="110" y="170" width="60" height="26" fill="${P.box}"/>
+    <rect x="40" y="260" width="170" height="8" fill="${P.wood}"/>
+    <rect x="420" y="64" width="30" height="88" fill="${P.metal}"/>
+    <rect x="380" y="150" width="110" height="170" rx="3" fill="${P.furnace}" stroke="${P.line}"/>
+    <rect x="394" y="240" width="82" height="6" fill="${P.line}" opacity=".45"/>
+    <rect x="394" y="256" width="82" height="6" fill="${P.line}" opacity=".45"/>
+    <rect x="394" y="272" width="82" height="6" fill="${P.line}" opacity=".45"/>
+    <rect x="510" y="176" width="64" height="144" rx="10" fill="${P.tank}" stroke="${P.line}"/>`
+];
+const ROOMS = ["Front hall", "Living room", "Basement"];
+const LEAKS = [
+  { id: "door", room: 0, zone: { x: 85, y: 110, w: 150, h: 265 }, label: "Front door: edges and bottom", fix: "weather", ach: 8, temp: -8,
+    wrong: "A door has to open and close. It needs a seal that flexes." },
+  { id: "hatch", room: 0, zone: { x: 370, y: 4, w: 140, h: 96 }, label: "Attic hatch in the ceiling", fix: "gasket", ach: 6, temp: -4,
+    wrong: "The hatch has to lift off for access. It needs a seal around its edge." },
+  { id: "outlet", room: 1, zone: { x: 298, y: 242, w: 62, h: 66 }, label: "Outlet on the outside wall", fix: "outlet", ach: 4, temp: -2,
+    wrong: "The air comes through the electrical box, behind the cover plate." },
+  { id: "base", room: 1, zone: { x: 385, y: 294, w: 215, h: 44 }, label: "Gap under the baseboard", fix: "caulk", ach: 2, temp: 1,
+    wrong: "It's a thin, long crack along the trim." },
+  { id: "rim", room: 2, zone: { x: 0, y: 14, w: 370, h: 90 }, label: "Basement rim joist", fix: "foam", ach: 8, temp: -10,
+    wrong: "This gap is big and uneven, where the wood frame sits on the concrete." }
+];
+const DECOYS = [
+  { room: 1, zone: { x: 358, y: 58, w: 184, h: 154 }, temp: 11, msg: "The window is cooler than the wall, but evenly. That's heat going through the glass, not an air leak." },
+  { room: 2, zone: { x: 0, y: 110, w: 370, h: 200 }, temp: 9, msg: "The concrete is cold, but evenly. Basement walls lose heat straight through; there's no draft here." },
+  { room: 2, zone: { x: 380, y: 150, w: 110, h: 170 }, temp: 8, msg: "The dead furnace has gone cold. No draft, just no heat." }
+];
+const FX = {
+  door: `<path d="M100 316 L220 316 L262 378 L58 378 Z" fill="url(#cold0)"/><rect x="94" y="120" width="12" height="196" fill="#2b6cf0"/><rect x="214" y="120" width="10" height="196" fill="#2b6cf0" opacity=".7"/>`,
+  hatch: `<rect x="376" y="8" width="128" height="46" fill="none" stroke="#36c6ff" stroke-width="10"/><path d="M384 50 L496 50 L514 104 L366 104 Z" fill="url(#cold0)"/>`,
+  outlet: `<ellipse cx="329" cy="278" rx="30" ry="42" fill="url(#coldR1)"/>`,
+  base: `<rect x="390" y="300" width="210" height="16" fill="#2b6cf0" opacity=".85"/><path d="M390 316 L600 316 L600 348 L410 336 Z" fill="url(#cold1)"/>`,
+  rim: [40, 130, 215, 300].map(cx => `<ellipse cx="${cx}" cy="40" rx="36" ry="22" fill="url(#coldR2)"/>`).join("") + `<path d="M0 60 L370 60 L340 112 L20 112 Z" fill="url(#cold2)" opacity=".7"/>`
+};
+const TOOLS = [
+  { id: "weather", name: "Weatherstripping + door sweep" },
+  { id: "foam", name: "Spray foam can" },
+  { id: "caulk", name: "Caulking gun" },
+  { id: "outlet", name: "Foam outlet gaskets" },
+  { id: "gasket", name: "Attic hatch gasket" },
+  { id: "batt", name: "Fibreglass batt", decoy: "Fibreglass slows heat, but air goes right through it." },
+  { id: "tape", name: "Duct tape", decoy: "Duct tape dries out and peels off within a season." },
+  { id: "towel", name: "Rolled towel", decoy: "A towel works for one night. You need a permanent fix." }
+];
+const coldDefs = i => `<defs><filter id="blur${i}" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+  <linearGradient id="cold${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#36c6ff"/><stop offset=".6" stop-color="#2b4fe0" stop-opacity=".7"/><stop offset="1" stop-color="#2b4fe0" stop-opacity="0"/></linearGradient>
+  <radialGradient id="coldR${i}"><stop offset="0" stop-color="#5fe0ff"/><stop offset=".55" stop-color="#2b6cf0" stop-opacity=".85"/><stop offset="1" stop-color="#2b4fe0" stop-opacity="0"/></radialGradient></defs>`;
+
+let room = 0, selected = null, achTenths = 70;
+const cam = { x: 300, y: 190 }, found = [], sealed = new Set(), decoySeen = new Set();
+const roomEl = $("room"), ring = $("ring");
+const inZone = z => cam.x >= z.x && cam.x <= z.x + z.w && cam.y >= z.y && cam.y <= z.y + z.h;
+const leakById = id => LEAKS.find(l => l.id === id);
+
+function gaugeSVG() {
+  const cx = 100, cy = 100, R = 78;
+  const pt = (v, r) => { const a = Math.PI * (1 - v / 10); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
+  const arc = (v0, v1, cls) => { const [x0, y0] = pt(v0, R), [x1, y1] = pt(v1, R); return `<path d="M${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1}" class="${cls}" fill="none" stroke-width="12"/>`; };
+  let s = arc(0, 3, "g-good") + arc(3, 6, "g-warn") + arc(6, 10, "g-bad");
+  for (let v = 0; v <= 10; v++) {
+    const [x0, y0] = pt(v, R - 10), [x1, y1] = pt(v, R - (v % 5 ? 16 : 20));
+    s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" class="g-tick" stroke-width="${v % 5 ? 1 : 2}"/>`;
+  }
+  [0, 5, 10].forEach(v => { const [x, y] = pt(v, R - 32); s += `<text x="${x}" y="${y + 4}" text-anchor="middle" class="g-lab">${v}</text>`; });
+  s += `<text x="100" y="116" text-anchor="middle" class="g-lab">ACH50</text>`;
+  s += `<g id="needle" style="transform-origin:100px 100px"><line x1="100" y1="100" x2="100" y2="30" class="g-needle" stroke-width="3" stroke-linecap="round"/><circle cx="100" cy="100" r="6" class="g-hub"/></g>`;
+  return s;
+}
+function setGauge() {
+  const v = achTenths / 10;
+  $("needle").style.transform = `rotate(${v / 10 * 180 - 90}deg)`;
+  $("achVal").textContent = v.toFixed(1);
+  $("gauge").setAttribute("aria-label", `Air leakage gauge: ${v.toFixed(1)} ACH50`);
+}
+function renderTabs() {
+  $("roomTabs").innerHTML = ROOMS.map((name, i) => {
+    const n = LEAKS.filter(l => l.room === i && found.includes(l.id)).length;
+    return `<button class="tab" type="button" role="tab" aria-selected="${i === room}" data-room="${i}">${name}<small>${n ? n + " found" : ""}</small></button>`;
+  }).join("");
+}
+function renderRoom() {
+  $("roomNormal").innerHTML = SCENES[room](N, false);
+  $("roomThermal").innerHTML = coldDefs(room) + SCENES[room](TH, true) +
+    `<g filter="url(#blur${room})">${LEAKS.filter(l => l.room === room).map(l => `<g data-fx="${l.id}"${sealed.has(l.id) ? ' display="none"' : ""}>${FX[l.id]}</g>`).join("")}</g>`;
+  roomEl.setAttribute("aria-label", `${ROOMS[room]}. Thermal camera view. Use the arrow keys to move the camera.`);
+  renderTabs();
+  renderMarkers();
+  placeCam();
+}
+function renderMarkers() {
+  $("markers").innerHTML = found.filter(id => leakById(id).room === room).map(id => {
+    const l = leakById(id), z = l.zone, n = found.indexOf(id) + 1, done = sealed.has(id);
+    const left = (z.x + z.w / 2) / 6, top = (z.y + z.h / 2) / 3.8;
+    return `<button type="button" class="marker${done ? " sealed" : ""}${selected === id ? " sel" : ""}" data-leak="${id}" style="left:${left}%;top:${top}%" aria-label="Leak ${n}: ${l.label}, ${done ? "sealed" : "open"}">${done ? "✓" : n}</button>`;
+  }).join("");
+}
+function renderList() {
+  $("leakList").innerHTML = found.map((id, k) => {
+    const l = leakById(id), done = sealed.has(id);
+    return `<li><button type="button" class="leak-item${done ? " sealed" : ""}${selected === id ? " sel" : ""}" data-leak="${id}">${k + 1}. ${l.label}<span class="chip">${done ? "Sealed" : "Open"}</span></button></li>`;
+  }).join("");
+  $("leakCount").textContent = `${found.length} of ${LEAKS.length}`;
+  $("leakEmpty").hidden = found.length > 0;
+}
+function placeCam() {
+  const W = roomEl.clientWidth, s = W / 600, r = W * 0.12, px = cam.x * s, py = cam.y * s;
+  $("roomThermal").style.clipPath = `circle(${r}px at ${px}px ${py}px)`;
+  ring.style.width = ring.style.height = 2 * r + "px";
+  ring.style.left = px - r + "px";
+  ring.style.top = py - r + "px";
+  $("spot").textContent = probe() + " °C";
+}
+// Reads the spot under the camera, logs new leaks and explains decoys.
+function probe() {
+  const leak = LEAKS.find(l => l.room === room && inZone(l.zone));
+  if (leak) {
+    if (sealed.has(leak.id)) return 17;
+    if (!found.includes(leak.id)) {
+      found.push(leak.id);
+      status(`Found a leak: ${leak.label}. Cold air at ${leak.temp} °C. Tap its marker, then pick a tool.`, "");
+      renderTabs(); renderMarkers(); renderList();
+    }
+    return leak.temp;
+  }
+  const d = DECOYS.find(x => x.room === room && inZone(x.zone));
+  if (d) {
+    const key = DECOYS.indexOf(d);
+    if (!decoySeen.has(key)) { decoySeen.add(key); status(d.msg, ""); }
+    return d.temp;
+  }
+  return cam.y > 300 ? 18 : 20;
+}
+function status(text, cls) { $("roomCap").textContent = text; $("roomCap").className = "status " + cls; }
+function select(id) {
+  selected = id;
+  const l = leakById(id);
+  if (l.room !== room) { room = l.room; renderRoom(); }
+  renderMarkers(); renderList();
+  status(sealed.has(id) ? `${l.label} is already sealed.` : `Selected: ${l.label}. Pick a tool.`, "");
+}
+function applyTool(leakId, toolId) {
+  const tool = TOOLS.find(t => t.id === toolId);
+  if (!leakId) return status("Pick a leak first: tap its marker in the room or in the list.", "bad");
+  const l = leakById(leakId);
+  if (sealed.has(leakId)) return status(`${l.label} is already sealed.`, "");
+  if (tool.decoy) return status(tool.decoy, "bad");
+  if (tool.id !== l.fix) return status(`${tool.name} isn't right here. ${l.wrong}`, "bad");
+  sealed.add(leakId);
+  achTenths -= l.ach;
+  selected = null;
+  setGauge();
+  renderRoom(); renderList();
+  if (sealed.size === LEAKS.length) {
+    status(`All ${LEAKS.length} leaks sealed. The house is down to ${(achTenths / 10).toFixed(1)} ACH50. Your smart camera has a report.`, "good");
+    $("worklist").hidden = true;
+    $("report").hidden = false;
+  } else status(`Sealed: ${l.label}. The gauge drops to ${(achTenths / 10).toFixed(1)} ACH50.`, "good");
+}
+
+$("gauge").innerHTML = gaugeSVG();
+$("tools").innerHTML = TOOLS.map(t => `<button type="button" class="tool" data-tool="${t.id}">${t.name}</button>`).join("");
+$("roomTabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-room]");
+  if (!b) return;
+  room = +b.dataset.room; cam.x = 300; cam.y = 190;
+  renderRoom();
+});
+document.querySelector(".p3").addEventListener("click", e => {
+  const b = e.target.closest(".marker, .leak-item");
+  if (b) select(b.dataset.leak);
+});
+
+let camDrag = false;
+function moveCam(e) {
+  const b = roomEl.getBoundingClientRect();
+  cam.x = Math.max(0, Math.min(600, (e.clientX - b.left) / b.width * 600));
+  cam.y = Math.max(0, Math.min(380, (e.clientY - b.top) / b.height * 380));
+  placeCam();
+}
+roomEl.addEventListener("pointerdown", e => {
+  if (e.target.closest(".marker")) return;
+  camDrag = true;
+  roomEl.setPointerCapture(e.pointerId);
+  moveCam(e);
+});
+roomEl.addEventListener("pointermove", e => { if (camDrag || e.pointerType === "mouse") moveCam(e); });
+roomEl.addEventListener("pointerup", () => { camDrag = false; });
+roomEl.addEventListener("pointercancel", () => { camDrag = false; });
+roomEl.addEventListener("keydown", e => {
+  const d = { ArrowLeft: [-20, 0], ArrowRight: [20, 0], ArrowUp: [0, -20], ArrowDown: [0, 20] }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  cam.x = Math.max(0, Math.min(600, cam.x + d[0]));
+  cam.y = Math.max(0, Math.min(380, cam.y + d[1]));
+  placeCam();
+});
+new ResizeObserver(placeCam).observe(roomEl);
+
+// Tools: tap to use on the selected leak, or drag onto a marker.
+let toolDrag = null;
+$("tools").addEventListener("pointerdown", e => {
+  const b = e.target.closest(".tool");
+  if (!b || e.button !== 0) return;
+  toolDrag = { id: b.dataset.tool, el: b, x0: e.clientX, y0: e.clientY, ghost: null };
+  b.setPointerCapture(e.pointerId);
+});
+$("tools").addEventListener("pointermove", e => {
+  if (!toolDrag) return;
+  if (!toolDrag.ghost && Math.hypot(e.clientX - toolDrag.x0, e.clientY - toolDrag.y0) > 8) {
+    toolDrag.ghost = document.createElement("div");
+    toolDrag.ghost.className = "ghost";
+    toolDrag.ghost.textContent = toolDrag.el.textContent;
+    document.body.append(toolDrag.ghost);
+  }
+  if (toolDrag.ghost) { toolDrag.ghost.style.left = e.clientX + "px"; toolDrag.ghost.style.top = e.clientY + "px"; }
+});
+function endToolDrag(e) {
+  if (!toolDrag) return;
+  const d = toolDrag;
+  toolDrag = null;
+  if (!d.ghost) return applyTool(selected, d.id);
+  d.ghost.remove();
+  const target = e.type === "pointerup" && document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-leak]");
+  if (target) applyTool(target.dataset.leak, d.id);
+  else status("Drop the tool on a leak marker.", "");
+}
+$("tools").addEventListener("pointerup", endToolDrag);
+$("tools").addEventListener("pointercancel", endToolDrag);
+$("tools").addEventListener("keydown", e => {
+  const b = e.target.closest(".tool");
+  if (b && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); applyTool(selected, b.dataset.tool); }
+});
+
+setGauge();
+renderRoom();
+renderList();
+
+setupPuzzle(3, {
+  hints: [
+    "Leaks only show through the thermal camera. Sweep it over the doors, outlets, trim, the ceiling and the top of the basement wall.",
+    "Match the fix to the gap: a door has to open, a hatch has to lift off, a crack is thin, the rim joist gap is big and uneven, and outlets leak through the box.",
+    "After repairs UA = 126 W/°C. ΔT = 21 − (−25) = 46 °C. 126 × 46 = 5,796 W ≈ 5.8 kW."
+  ],
+  judge(raw) {
+    const v = String(raw).replace(/[\s,]/g, "").replace(/kw$/i, "");
+    if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kW.";
+    const n = parseFloat(v);
+    if ((n >= 5.7 && n <= 5.9) || (n >= 5700 && n <= 5900)) return null;
+    if (near(n, 6.44, .06) || near(n, 6440, 60)) return "That's the peak before your repairs. Use the heat loss after sealing.";
+    if (near(n, 2.65, .06) || near(n, 2646, 60) || near(n, 3.15, .06) || near(n, 3150, 60) || near(n, .5, .02) || near(n, 504, 10))
+      return "ΔT is inside minus outside: 21 − (−25) = 46 °C.";
+    if (near(n, 126, 1) || near(n, 140, 1)) return "That's the heat loss rate in W/°C. Multiply it by ΔT.";
+    if (near(n, 4.2, .01) || near(n, 7, .01)) return "That's air leakage in ACH50. The line asks for peak heating demand in kW.";
+    return "That doesn't match. Peak = UA after repairs × (inside − outside temperature).";
+  }
+});
+
+/* ---------- Line 4: program the house ---------- */
+// A 7 am → 7 am schedule (column c is hour (7 + c) % 24); on-peak 4–9 pm is columns 9–13.
+// 20 hours of appliances must fit 19 off-peak hours plus one on-peak hour, one appliance at a time.
+// Exhaustive search: only two placements keep every rule, 54 A (the answer) and 58 A.
+const HOURS = Array.from({ length: 24 }, (_, c) => (7 + c) % 24);
+const hl = h => (h % 12 || 12) + (h < 12 ? "a" : "p");
+const band = c => (c >= 9 && c <= 13) ? "on" : (c >= 16) ? "ulo" : "mid";
+const LIMIT = 80, VOLTS = 240, BEST_A = 54;                      // chart runs 0–120 A, so heights are amps / 1.2 %
+const HOUSE = [14, 12, 10, 4, 4, 4, 4, 4, 4, 14, 16, 16, 18, 16, 20, 16, 10, 10, 8, 6, 6, 4, 8, 12];
+const HP = [16, 15, 14, 12, 11, 10, 10, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 18, 18, 18, 18];
+const COOK = { 0: 10, 10: 8 };                                    // breakfast 7 am, stovetop 5 pm
+const JOBS = {
+  ev: { name: "EV charger", amps: [24, 24, 24, 24, 24, 24], color: "#c46a32" },
+  laundry: { name: "Washer → dryer", amps: [6, 6, 22, 22], colors: ["#ecd08c", "#ecd08c", "#d9a441", "#d9a441"], color: "#d9a441" },
+  water: { name: "Water heater", amps: [12, 12, 12, 12], color: "#a98bd6" },
+  dish: { name: "Dishwasher", amps: [6, 6], color: "#7fbf9a" },
+  slow: { name: "Slow cooker", amps: [1, 1, 1, 1], color: "#c99a6b" }
+};
+const KEYS = Object.keys(JOBS);
+const LOWEST = KEYS.reduce((a, b) => Math.max(...JOBS[b].amps) < Math.max(...JOBS[a].amps) ? b : a);
+const pos = Object.fromEntries(KEYS.map(k => [k, null]));         // start column, or null while in the tray
+const len = k => JOBS[k].amps.length;
+const end = k => pos[k] + len(k);
+const placed = k => pos[k] !== null;
+const onPeak = c => c >= 9 && c <= 13;
+function overlaps(k, start) {
+  return KEYS.find(o => o !== k && placed(o) && start < end(o) && pos[o] < start + len(k));
+}
+function layersAt() {
+  return HOURS.map((_, c) => {
+    const ls = [["House", HOUSE[c], "#5d7280"], ["Heat pump", HP[c], "#9fc3d6"], ["Cooking", COOK[c] || 0, "#b7a58a"]];
+    KEYS.forEach(k => { if (placed(k) && c >= pos[k] && c < end(k)) { const j = JOBS[k], i = c - pos[k]; ls.push([j.name, j.amps[i], j.colors ? j.colors[i] : j.color]); } });
+    return ls.filter(l => l[1]);
+  });
+}
+const rushTotals = () => layersAt().map(ls => ls.reduce((s, l) => s + l[1], 0));
+const rushPeak = () => Math.max(...rushTotals());
+const kw = a => (a * VOLTS / 1000).toFixed(1);
+// Each rule answers true (kept), false (broken) or null (can't tell yet: an appliance isn't scheduled).
+const RULES = [
+  { text: "Every appliance scheduled", ok: () => KEYS.every(placed) },
+  { text: "One appliance at a time", ok: () => true },
+  { text: "Stay off-peak (4–9 pm). If something must run then, only the appliance that draws the least", ok: () => !KEYS.some(k => k !== LOWEST && placed(k) && Array.from({ length: len(k) }, (_, i) => pos[k] + i).some(onPeak)) },
+  { text: "Car home at 5:30 pm, full by 7 am", ok: () => placed("ev") ? pos.ev >= 11 : null },
+  { text: "Hot water when we're home at 5 pm", ok: () => placed("water") ? end("water") <= 10 : null },
+  { text: "Dishwasher needs a hot tank", ok: () => placed("dish") && placed("water") ? pos.dish >= end("water") : null },
+  { text: "Slow-cooker dinner ready at 5 pm", ok: () => placed("slow") ? end("slow") <= 10 : null }
+];
+const rulesKept = () => RULES.every(r => r.ok() === true);
+const range = k => `${hl(HOURS[pos[k]])}–${hl((HOURS[end(k) - 1] + 1) % 24)}`;
+
+$("hrow").innerHTML = HOURS.map((h, c) => `<span class="b-${band(c)}">${hl(h)}</span>`).join("");
+$("legend").innerHTML = [["House", "#5d7280"], ["Heat pump", "#9fc3d6"], ["Cooking", "#b7a58a"], ...KEYS.map(k => [JOBS[k].name, JOBS[k].color])]
+  .map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("") +
+  `<span class="bands"><i class="b-ulo"></i>Ultra-low <i class="b-mid"></i>Mid-peak <i class="b-on"></i>On-peak</span>`;
+$("track4").innerHTML = HOURS.map((h, c) => `<button type="button" class="slot b-${band(c)}" data-col="${c}" aria-label="Start at ${hl(h)}"></button>`).join("");
+const jobEl = {};
+KEYS.forEach(k => {
+  const j = JOBS[k], b = document.createElement("button");
+  b.type = "button";
+  b.className = "job";
+  b.dataset.key = k;
+  b.style.setProperty("--len", len(k));
+  b.style.background = j.colors ? `linear-gradient(90deg, ${j.colors.map((c, i) => `${c} ${i * 100 / len(k)}% ${(i + 1) * 100 / len(k)}%`).join(", ")})` : j.color;
+  jobEl[k] = b;
+});
+
+let pick4 = null;
+function pitch() { const r = $("track4").getBoundingClientRect(); return (r.width + 3) / 24; }
+function renderRush() {
+  const layers = layersAt(), tot = layers.map(ls => ls.reduce((s, l) => s + l[1], 0)), peak = Math.max(...tot);
+  $("plot").innerHTML = HOURS.map((h, c) => {
+    const cls = tot[c] > LIMIT ? " over" : tot[c] === peak ? " peak" : "";
+    return `<div class="col b-${band(c)}${cls}" style="--h:${tot[c] / 1.2}%">${layers[c].map(([, a, col]) => `<div class="seg" style="height:${a / 1.2}%;background:${col}"></div>`).join("")}<span class="val">${tot[c]}</span></div>`;
+  }).join("") + `<div class="limit"><span>Electrician's limit 80 A</span></div><div class="limit main"><span>Main breaker trips 100 A</span></div>`;
+  $("plot").setAttribute("aria-label", "Amps per hour: " + HOURS.map((h, c) => `${hl(h)} ${tot[c]}`).join(", "));
+  const p = pitch();
+  $("tray").style.setProperty("--pitch", p + "px");
+  KEYS.forEach(k => {
+    const b = jobEl[k], j = JOBS[k];
+    b.classList.toggle("sel", pick4 === k);
+    if (placed(k)) {
+      b.classList.add("on-track");
+      b.style.left = `calc((100% + 3px) * ${pos[k]} / 24)`;
+      b.style.width = `calc((100% + 3px) * ${len(k)} / 24 - 3px)`;
+      b.innerHTML = `${j.name}<small>${range(k)}</small>`;
+      b.setAttribute("aria-label", `${j.name}, scheduled ${range(k)}. Arrow keys move it, Delete unschedules it.`);
+      if (b.parentElement !== $("track4")) $("track4").append(b);
+    } else {
+      b.classList.remove("on-track");
+      b.style.left = b.style.width = "";
+      b.innerHTML = `${j.name}<small>${len(k)} h &middot; ${Math.max(...j.amps)} A</small>`;
+      b.setAttribute("aria-label", `${j.name}, ${len(k)} hours, up to ${Math.max(...j.amps)} amps, not scheduled. Press Enter, then pick a start hour.`);
+      if (b.parentElement !== $("tray")) $("tray").append(b);
+    }
+  });
+  [...$("tray").children].sort((a, b) => KEYS.indexOf(a.dataset.key) - KEYS.indexOf(b.dataset.key)).forEach(el => $("tray").append(el));
+  $("rules").innerHTML = RULES.map(r => { const v = r.ok(); return `<span class="rule ${v === true ? "ok" : v === false ? "bad" : "todo"}">${r.text}</span>`; }).join("");
+  $("peakA").textContent = peak;
+  $("peakKW").textContent = kw(peak);
+  const left = KEYS.filter(k => !placed(k)).length, broken = RULES.filter(r => r.ok() === false).length - (left ? 1 : 0);
+  $("verdict").textContent = left ? `${left} still to schedule` + (broken ? `, ${broken} rule${broken > 1 ? "s" : ""} broken` : "") : broken ? `${broken} rule${broken > 1 ? "s" : ""} broken` : "Every rule kept";
+  $("verdict").className = "verdict " + (left || broken ? "over" : "ok");
+}
+// Places a job at a start column. Refuses overlaps (the load manager runs one appliance at a time).
+function place(k, col) {
+  const start = Math.max(0, Math.min(24 - len(k), col));
+  const clash = overlaps(k, start);
+  if (clash) { say(`One appliance at a time: that overlaps the ${JOBS[clash].name.toLowerCase()}.`, "bad"); return false; }
+  pos[k] = start;
+  pick4 = null;
+  renderRush();
+  say(`${JOBS[k].name}: ${range(k)}. Peak now ${rushPeak()} A.`, "");
+  return true;
+}
+function unplace(k) {
+  pos[k] = null;
+  pick4 = null;
+  renderRush();
+  say(`${JOBS[k].name} is back with the unscheduled appliances.`, "");
+}
+function say(text, cls) { $("rushStatus").textContent = text; $("rushStatus").className = "status " + cls; }
+
+// Drag: a ghost follows the pointer at schedule scale; drop on the schedule to place, on the tray to unschedule.
+let jobDrag = null;
+Object.values(jobEl).forEach(b => {
+  const k = b.dataset.key;
+  b.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    const r = b.getBoundingClientRect(), w = len(k) * pitch() - 3;
+    jobDrag = { k, x0: e.clientX, y0: e.clientY, off: Math.min(e.clientX - r.left, w - 8), w, ghost: null };
+    b.setPointerCapture(e.pointerId);
+  });
+  b.addEventListener("pointermove", e => {
+    if (!jobDrag || jobDrag.k !== k) return;
+    if (!jobDrag.ghost && Math.hypot(e.clientX - jobDrag.x0, e.clientY - jobDrag.y0) > 6) {
+      jobDrag.ghost = b.cloneNode(true);
+      jobDrag.ghost.classList.add("ghost-job");
+      jobDrag.ghost.style.width = jobDrag.w + "px";
+      jobDrag.ghost.style.background = b.style.background;
+      document.body.append(jobDrag.ghost);
+      b.classList.add("lifted");
+    }
+    if (jobDrag.ghost) { jobDrag.ghost.style.left = e.clientX - jobDrag.off + "px"; jobDrag.ghost.style.top = e.clientY - 18 + "px"; }
+  });
+  const finish = e => {
+    if (!jobDrag || jobDrag.k !== k) return;
+    const d = jobDrag;
+    jobDrag = null;
+    b.classList.remove("lifted");
+    if (!d.ghost) { pick4 = pick4 === k ? null : k; renderRush(); if (pick4) say(`${JOBS[k].name} picked. Click the hour it should start.`, ""); return; }
+    d.ghost.remove();
+    if (e.type !== "pointerup") return;
+    const t = $("track4").getBoundingClientRect(), tray = $("tray").getBoundingClientRect();
+    const inY = (r, pad) => e.clientY >= r.top - pad && e.clientY <= r.bottom + pad;
+    if (inY(t, 14) && e.clientX >= t.left - d.w && e.clientX <= t.right + d.w) place(k, Math.round((e.clientX - d.off - t.left) / pitch()));
+    else if (inY(tray, 30)) unplace(k);
+    else say("Drop it on the schedule, or back with the other appliances.", "");
+  };
+  b.addEventListener("pointerup", finish);
+  b.addEventListener("pointercancel", finish);
+  b.addEventListener("keydown", e => {
+    if (placed(k) && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      e.preventDefault();
+      place(k, pos[k] + (e.key === "ArrowLeft" ? -1 : 1));
+      b.focus();
+    } else if (placed(k) && (e.key === "Delete" || e.key === "Backspace")) {
+      e.preventDefault();
+      unplace(k);
+      b.focus();
+    } else if (!placed(k) && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      pick4 = k;
+      renderRush();
+      say(`${JOBS[k].name} picked. Tab to the schedule and pick the hour it should start.`, "");
+    }
+  });
+});
+$("track4").addEventListener("click", e => {
+  const s = e.target.closest(".slot");
+  if (s && pick4) place(pick4, +s.dataset.col);
+});
+new ResizeObserver(() => $("tray").style.setProperty("--pitch", pitch() + "px")).observe($("track4"));
+renderRush();
+
+setupPuzzle(4, {
+  hints: [
+    "There are 20 hours of appliances but only 19 hours outside the peak. Something has to run one hour on-peak: make it the appliance that draws the least.",
+    "The car is away all day, and hot water and the slow-cooker dinner are needed by 5 pm. That decides what runs in the day and what runs at night. Then try both night orders.",
+    "Water heater 7–11 am, dishwasher 11 am–1 pm, slow cooker 1–5 pm, laundry 9 pm–1 am, EV 1–7 am. The peak is 54 A: 54 × 240 V = 12,960 W ≈ 13.0 kW."
+  ],
+  judge(raw) {
+    const v = String(raw).replace(/[\s,]/g, "").replace(/kw$/i, "");
+    if (!/^\d+(\.\d+)?$/.test(v)) return "Enter a number in kW.";
+    const n = parseFloat(v);
+    if ((n >= 12.95 && n <= 13.05) || (n >= 12910 && n <= 13010)) return null;
+    if (near(n, BEST_A, .5)) return "That's in amps. Multiply by 240 V for watts, then convert to kW.";
+    const onBoard = near(n, +kw(rushPeak()), .05);
+    if (onBoard && KEYS.some(k => !placed(k))) return "Schedule every appliance first.";
+    if (onBoard && !rulesKept()) return "Your schedule breaks one of the clients' rules. Check their list.";
+    if (near(n, 13.9, .06) || near(n, 13920, 60)) return "So close. The other night order is 4 A lower.";
+    if (n > 13.05 && n < 30) return "There's a lower peak than that. Keep scheduling.";
+    if (n < 12.95 && n > 5) return "No schedule that keeps every rule gets that low.";
+    return "That doesn't match. Read the peak in amps, then × 240 V.";
+  }
+});
+
+/* ---------- Line 5: build the heat pump ---------- */
+// Refrigerant flows clockwise: top-left → top-right → bottom-right → bottom-left. Each part turns the pipe
+// coming in into the pipe going out, so only one arrangement works:
+// cool gas → compressor → hot gas → indoor coil → warm liquid → expansion valve → cold mix → outdoor coil → cool gas.
+const PARTS = {
+  compressor: { name: "Compressor", text: "Runs on electricity. Squeezes gas until it comes out much hotter than it went in.", socket: "tl" },
+  indoor: { name: "Indoor coil", text: "Sits where the furnace was. Whatever flows through it hands its heat to the house air and condenses.", socket: "tr" },
+  valve: { name: "Expansion valve", text: "A tiny opening. Liquid forced through it comes out at low pressure, and very cold.", socket: "br" },
+  outdoor: { name: "Outdoor coil", text: "A big fan blows outdoor air over its tubes. Whatever flows in cold soaks up heat and boils.", socket: "bl" },
+  burner: { name: "Propane burner", text: "Burns propane to make a flame.", decoy: "A propane burner has no place in a refrigerant loop: the whole point is to stop burning propane." },
+  element: { name: "Heating element", text: "Turns electricity straight into heat, one for one.", decoy: "A heating element makes heat one for one. The loop moves heat instead, so it doesn't belong there." }
+};
+const PART_ORDER = ["valve", "burner", "outdoor", "compressor", "element", "indoor"];
+const socket5 = { tl: null, tr: null, br: null, bl: null };
+let pick5 = null, running5 = false;
+const COP_PTS = [[-30, 1.4], [-25, 1.6], [-20, 1.9], [-15, 2.15], [-10, 2.4], [-5, 2.65], [-2, 2.8], [0, 2.95], [5, 3.35], [10, 3.8]];
+function copAt(t) {
+  for (let i = 1; i < COP_PTS.length; i++) {
+    const [t0, c0] = COP_PTS[i - 1], [t1, c1] = COP_PTS[i];
+    if (t <= t1) return c0 + (c1 - c0) * (t - t0) / (t1 - t0);
+  }
+  return COP_PTS[COP_PTS.length - 1][1];
+}
+
+const partEl = {};
+PART_ORDER.forEach(k => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "part";
+  b.dataset.part = k;
+  b.innerHTML = `<b>${PARTS[k].name}</b><span>${PARTS[k].text}</span>`;
+  partEl[k] = b;
+});
+function renderLoop() {
+  const used = Object.values(socket5);
+  document.querySelectorAll("[data-socket]").forEach(b => {
+    const k = socket5[b.dataset.socket];
+    b.textContent = k ? PARTS[k].name : "empty";
+    b.classList.toggle("filled", !!k);
+    b.classList.toggle("target", pick5 !== null && !k);
+    b.setAttribute("aria-label", `Socket ${{ tl: "top left, outdoors", tr: "top right, indoors", br: "bottom right, indoors", bl: "bottom left, outdoors" }[b.dataset.socket]}: ${k ? PARTS[k].name : "empty"}`);
+  });
+  $("parts").replaceChildren(...PART_ORDER.filter(k => !used.includes(k)).map(k => partEl[k]));
+  PART_ORDER.forEach(k => partEl[k].classList.toggle("sel", pick5 === k));
+  $("loop").classList.toggle("running", running5);
+  $("partsBox").hidden = running5;
+  $("yearCard").hidden = !running5;
+}
+function say5(text, cls) { $("loopStatus").textContent = text; $("loopStatus").className = "status " + (cls || ""); }
+function placePart(s, k) {
+  if (running5) return;
+  if (PARTS[k].decoy) { pick5 = null; renderLoop(); return say5(PARTS[k].decoy, "bad"); }
+  Object.keys(socket5).forEach(x => { if (socket5[x] === k) socket5[x] = null; });
+  socket5[s] = k;
+  pick5 = null;
+  checkLoop();
+}
+function checkLoop() {
+  const filled = Object.values(socket5).filter(Boolean).length;
+  const wrong = Object.entries(socket5).filter(([s, k]) => k && PARTS[k].socket !== s).length;
+  if (filled === 4 && !wrong) {
+    running5 = true;
+    renderLoop();
+    say5("It runs. Cold refrigerant soaks up heat outdoors, the compressor lifts it, and the indoor coil gives it to the house.", "good");
+    readCop();
+    $("yearCard").focus();
+    return;
+  }
+  renderLoop();
+  if (filled === 4) say5(`The loop won't start: ${wrong} part${wrong > 1 ? "s are" : " is"} in the wrong place. Check what each one does to the pipe coming in.`, "bad");
+  else say5(`${filled} of 4 parts in place.`, "");
+}
+function readCop() {
+  const t = +$("copTemp").value, c = copAt(t);
+  $("copT").textContent = `${t} °C`;
+  $("copV").textContent = c.toFixed(2);
+  $("copShare").textContent = `At ${t} °C, each kWh of electricity brings ${(c - 1).toFixed(1)} kWh from the outdoor air: ${Math.round((c - 1) / c * 100)}% of the heat is free.`;
+}
+let drag5 = null;
+PART_ORDER.forEach(k => {
+  const b = partEl[k];
+  b.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    drag5 = { k, x0: e.clientX, y0: e.clientY, ghost: null };
+    b.setPointerCapture(e.pointerId);
+  });
+  b.addEventListener("pointermove", e => {
+    if (!drag5 || drag5.k !== k) return;
+    if (!drag5.ghost && Math.hypot(e.clientX - drag5.x0, e.clientY - drag5.y0) > 6) {
+      drag5.ghost = document.createElement("div");
+      drag5.ghost.className = "ghost-part";
+      drag5.ghost.textContent = PARTS[k].name;
+      document.body.append(drag5.ghost);
+    }
+    if (drag5.ghost) { drag5.ghost.style.left = e.clientX + "px"; drag5.ghost.style.top = e.clientY + "px"; }
+  });
+  const finish = e => {
+    if (!drag5 || drag5.k !== k) return;
+    const d = drag5;
+    drag5 = null;
+    if (!d.ghost) { pick5 = pick5 === k ? null : k; renderLoop(); if (pick5) say5(`${PARTS[k].name} picked. Click the socket it belongs in.`); return; }
+    d.ghost.remove();
+    const s = e.type === "pointerup" && document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-socket]");
+    if (s) placePart(s.dataset.socket, k);
+    else say5("Drop the part on one of the four sockets.");
+  };
+  b.addEventListener("pointerup", finish);
+  b.addEventListener("pointercancel", finish);
+});
+document.querySelectorAll("[data-socket]").forEach(b => b.addEventListener("click", () => {
+  const s = b.dataset.socket;
+  if (running5) return;
+  if (pick5 !== null) placePart(s, pick5);
+  else if (socket5[s]) { socket5[s] = null; checkLoop(); }
+}));
+$("copTemp").addEventListener("input", readCop);
+renderLoop();
+readCop();
+
+setupPuzzle(5, {
+  hints: [
+    "Follow the arrows. Each part turns the pipe coming in into the pipe going out. Heat goes into the house indoors and comes from the air outdoors.",
+    "The compressor sits where cool gas comes in and hot gas leaves. The expansion valve sits where liquid goes in and a cold mix comes out.",
+    "Compressor top left, indoor coil top right, expansion valve bottom right, outdoor coil bottom left. Then 4,110 − 340 ≈ 3,770 kg ≈ 3.8 t CO₂e."
+  ],
+  judge(raw) {
+    const v = String(raw).replace(/[\s,]/g, "").replace(/(tco2e|tco₂e|kg|t)$/i, "");
+    if (!/^\d+(\.\d+)?$/.test(v)) return "Enter the GHG saved, in tonnes of CO₂e.";
+    const n0 = parseFloat(v), n = n0 > 100 ? n0 / 1000 : n0;   // accept kilograms too
+    if (n >= 3.7 && n <= 3.9) return null;
+    if (near(n0, 14530, 100)) return "That's the energy saved. The line asks for GHG, in tonnes of CO₂e.";
+    if (near(n, 4.11, .05)) return "That's what the furnace emitted. Take away what the heat pump emits.";
+    if (near(n, .34, .03)) return "That's what the heat pump emits. Saved = furnace − heat pump.";
+    if (near(n, 4.45, .05)) return "Saved means the difference, not the total.";
+    return running5 ? "That doesn't match. Compare the two carbon numbers on the card." : "Get the heat pump running first: its card shows the numbers you need.";
+  }
+});
+
+/* ---------- Line 6: where's the money ---------- */
+// Each yearly cost belongs to one side by its kind (propane/furnace costs left, electric costs right); the player
+// chooses which belong in the year. The amounts are tuned so only the job summary's set gives $1,889 (none within ±2).
+// Prices: Ontario ULO plan, Nov 2025, after the 23.5% Ontario Electricity Rebate; delivered propane ≈ $0.75/L.
+const COSTS = [
+  { k: "heat", side: "furnace", name: "Propane for heating", note: "2,740 L × $0.75", $: 2055 },
+  { k: "hpprog", side: "hp", name: "Heat pump heating, programmed", note: "4,870 kWh, mostly ultra-low", $: 452 },
+  { k: "tank", side: "furnace", name: "Propane tank rental", note: "1,000 L tank", $: 125 },
+  { k: "ev", side: "hp", name: "EV charging", note: "overnight, ultra-low", $: 89 },
+  { k: "water", side: "furnace", name: "Propane water heater + stove", note: "460 L × $0.75", $: 349 },
+  { k: "hptune", side: "hp", name: "Heat pump tune-up", note: "once a year", $: 156 },
+  { k: "ac", side: "furnace", name: "Old central A/C", note: "summer electricity", $: 137 },
+  { k: "hpfree", side: "hp", name: "Heat pump heating, not programmed", note: "4,870 kWh, any time", $: 618 },
+  { k: "ftune", side: "furnace", name: "Furnace tune-up", note: "once a year", $: 143 },
+  { k: "cool", side: "hp", name: "Cooling with the heat pump", note: "summer electricity", $: 95 },
+  { k: "ewater", side: "hp", name: "Electric water heater + stove", note: "programmed", $: 217 }
+];
+const RIGHT6 = ["heat", "water", "tank", "ftune", "ac", "hpprog", "ewater", "hptune", "cool"];
+const onPan6 = new Set();
+let pick6 = null;
+const money = v => "$" + v.toLocaleString("en-CA");
+const sum6 = side => COSTS.filter(c => c.side === side && onPan6.has(c.k)).reduce((s, c) => s + c.$, 0);
+const saved6 = () => sum6("furnace") - sum6("hp");
+const wtEl = {};
+COSTS.forEach(c => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "wt k-" + c.side;
+  b.dataset.k = c.k;
+  b.innerHTML = `${c.name}<b>${money(c.$)}</b><small>${c.note}</small>`;
+  b.setAttribute("aria-label", `${c.name}, ${money(c.$)} a year, ${c.side === "hp" ? "electric" : "propane-house"} cost`);
+  wtEl[c.k] = b;
+});
+function renderScale() {
+  const L = sum6("furnace"), R = sum6("hp"), d = L - R;
+  $("sumL").textContent = money(L);
+  $("sumR").textContent = money(R);
+  $("sumD").textContent = (d < 0 ? "−" : "") + money(Math.abs(d));
+  // Heavier side goes down: a negative angle lowers the left end.
+  const a = -Math.max(-1, Math.min(1, d / 2500)) * 7, rad = a * Math.PI / 180;
+  $("beam").style.transform = `rotate(${a}deg)`;
+  const ends = [[300 - 220 * Math.cos(rad), 90 - 220 * Math.sin(rad)], [300 + 220 * Math.cos(rad), 90 + 220 * Math.sin(rad)]];
+  $("strings").innerHTML = ends.map(([x, y]) => `<line x1="${x}" y1="${y}" x2="${x - 40}" y2="${y + 52}"/><line x1="${x}" y1="${y}" x2="${x + 40}" y2="${y + 52}"/>`).join("");
+  [["panL", ends[0]], ["panR", ends[1]]].forEach(([id, [x, y]]) => { $(id).style.left = x / 6 + "%"; $(id).style.top = (y + 52) / 3 + "%"; });
+  $("panL").querySelector(".pan-items").replaceChildren(...COSTS.filter(c => c.side === "furnace" && onPan6.has(c.k)).map(c => wtEl[c.k]));
+  $("panR").querySelector(".pan-items").replaceChildren(...COSTS.filter(c => c.side === "hp" && onPan6.has(c.k)).map(c => wtEl[c.k]));
+  $("weights").replaceChildren(...COSTS.filter(c => !onPan6.has(c.k)).map(c => wtEl[c.k]));
+  COSTS.forEach(c => wtEl[c.k].classList.toggle("sel", pick6 === c.k));
+  document.querySelectorAll("[data-pan]").forEach(p => p.classList.toggle("target", pick6 !== null && COSTS.find(c => c.k === pick6).side === p.dataset.pan));
+}
+function say6(t, cls) { $("scaleStatus").textContent = t; $("scaleStatus").className = "status " + (cls || ""); }
+function load6(k, pan) {
+  const c = COSTS.find(x => x.k === k);
+  pick6 = null;
+  if (c.side !== pan) { renderScale(); return say6(c.side === "furnace" ? `${c.name} is a cost of the propane year. It goes on the furnace side.` : `${c.name} is an electricity cost of the new house. It goes on the heat pump side.`, "bad"); }
+  onPan6.add(k);
+  renderScale();
+  say6(`${c.name} added. The scale says ${$("sumD").textContent} a year.`);
+}
+function unload6(k) { onPan6.delete(k); pick6 = null; renderScale(); say6(`${COSTS.find(c => c.k === k).name} is back in the box.`); }
+let drag6 = null;
+COSTS.forEach(c => {
+  const b = wtEl[c.k];
+  b.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    drag6 = { k: c.k, x0: e.clientX, y0: e.clientY, ghost: null };
+    b.setPointerCapture(e.pointerId);
+  });
+  b.addEventListener("pointermove", e => {
+    if (!drag6 || drag6.k !== c.k) return;
+    if (!drag6.ghost && Math.hypot(e.clientX - drag6.x0, e.clientY - drag6.y0) > 6) {
+      drag6.ghost = b.cloneNode(true);
+      drag6.ghost.classList.add("ghost-wt");
+      document.body.append(drag6.ghost);
+    }
+    if (drag6.ghost) { drag6.ghost.style.left = e.clientX + "px"; drag6.ghost.style.top = e.clientY + "px"; }
+  });
+  const finish = e => {
+    if (!drag6 || drag6.k !== c.k) return;
+    const d = drag6;
+    drag6 = null;
+    if (!d.ghost) {
+      if (onPan6.has(c.k)) return unload6(c.k);
+      pick6 = pick6 === c.k ? null : c.k;
+      renderScale();
+      if (pick6) say6(`${c.name} picked. Click the pan it goes on.`);
+      return;
+    }
+    d.ghost.remove();
+    const hit = e.type === "pointerup" && document.elementFromPoint(e.clientX, e.clientY);
+    const pan = hit && hit.closest("[data-pan]");
+    if (pan) load6(c.k, pan.dataset.pan);
+    else if (hit && hit.closest("#weights") && onPan6.has(c.k)) unload6(c.k);
+    else say6("Drop the cost on one of the two pans.");
+  };
+  b.addEventListener("pointerup", finish);
+  b.addEventListener("pointercancel", finish);
+});
+document.querySelectorAll("[data-pan]").forEach(p => p.addEventListener("click", e => {
+  if (pick6 !== null && !e.target.closest(".wt")) load6(pick6, p.dataset.pan);
+}));
+renderScale();
+
+setupPuzzle(6, {
+  hints: [
+    "Each line of the job summary tells you which costs belong in each year. Propane costs go on the furnace side, electric costs on the heat pump side.",
+    "The house is programmed, the old A/C goes, every system gets its tune-up, and the EV charger isn't part of this job.",
+    "Propane year: heating, water heater and stove, tank rental, furnace tune-up, old A/C = $2,809. Heat pump year: programmed heating, electric water heater and stove, heat pump tune-up, cooling = $920. Saved: $1,889."
+  ],
+  judge(raw) {
+    const v = String(raw).replace(/[\s,$]/g, "").replace(/\/?(yr|year)$/i, "");
+    if (!/^\d+(\.\d+)?$/.test(v)) return "Enter the yearly savings in dollars.";
+    const n = parseFloat(v);
+    if (near(n, 1889, 2)) return null;
+    const right = RIGHT6.length === onPan6.size && RIGHT6.every(k => onPan6.has(k));
+    if (near(n, 1603, 2)) return "That's heating alone. What else changes when the propane tank goes?";
+    if (near(n, 1723, 2)) return "Is the heat pump programmed? Check the job summary.";
+    if (near(n, 1800, 2)) return "The EV charger isn't part of this job.";
+    if (near(n, 2809, 2) || near(n, 920, 2)) return "That's one year's total. The line asks what they save: the difference.";
+    if (near(n, saved6(), 2) && !right) return "That's what your scale reads, but its costs don't match the job summary yet.";
+    return "That doesn't match. Load the scale from the job summary and read what it says they save.";
+  }
+});
+
+/* ---------- Calculator ---------- */
+// Evaluates + − × ÷ with the usual precedence. Accepts *, x, / and thousands commas as typed.
+function calcEval(expr) {
+  const src = expr.replace(/,/g, "").replace(/[×x*]/g, "×").replace(/[÷/]/g, "÷").replace(/[−–]/g, "-").replace(/\s+/g, "");
+  const toks = src.match(/\d*\.?\d+|[+\-×÷]/g);
+  if (!toks || toks.join("") !== src) return null;
+  const nums = [], ops = [];
+  let expectNum = true, sign = 1;
+  for (const t of toks) {
+    if (expectNum) {
+      if (t === "-") { sign = -sign; continue; }
+      if (!/\d/.test(t)) return null;
+      nums.push(sign * parseFloat(t)); sign = 1; expectNum = false;
+    } else {
+      if (/\d/.test(t)) return null;
+      ops.push(t); expectNum = true;
+    }
+  }
+  if (expectNum) return null;
+  // × and ÷ first, then + and −, left to right
+  const n2 = [nums[0]], o2 = [];
+  ops.forEach((o, i) => {
+    if (o === "×") n2.push(n2.pop() * nums[i + 1]);
+    else if (o === "÷") n2.push(n2.pop() / nums[i + 1]);
+    else { o2.push(o); n2.push(nums[i + 1]); }
+  });
+  const v = o2.reduce((acc, o, i) => o === "+" ? acc + n2[i + 1] : acc - n2[i + 1], n2[0]);
+  return isFinite(v) ? v : null;
+}
+const calcFmt = v => (Math.round(v * 1e6) / 1e6).toLocaleString("en-CA", { maximumFractionDigits: 6 });
+function calcPress(k) {
+  const s = $("calcScreen");
+  if (k === "C") { s.value = ""; $("calcPrev").textContent = ""; }
+  else if (k === "⌫") s.value = s.value.slice(0, -1);
+  else if (k === "=") {
+    const v = calcEval(s.value);
+    if (v === null) { $("calcPrev").textContent = "Can't calculate that"; return; }
+    $("calcPrev").textContent = `${s.value} =`;
+    s.value = calcFmt(v);
+  } else s.value += k;
+}
+function calcToggle(open) {
+  $("calcpad").hidden = !open;
+  $("calcBtn").setAttribute("aria-expanded", String(open));
+  if (open) $("calcScreen").focus();
+}
+$("calcBtn").addEventListener("click", () => calcToggle($("calcpad").hidden));
+$("calcClose").addEventListener("click", () => { calcToggle(false); $("calcBtn").focus(); });
+$("calcKeys").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { calcPress(b.dataset.k); $("calcScreen").focus(); } });
+// Drag the calculator by its title bar so it never hides what the player is working on.
+let calcDrag = null;
+$("calcGrip").addEventListener("pointerdown", e => {
+  if (e.button !== 0 || e.target.closest("button")) return;
+  const r = $("calcpad").getBoundingClientRect();
+  calcDrag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+  $("calcGrip").setPointerCapture(e.pointerId);
+});
+$("calcGrip").addEventListener("pointermove", e => {
+  if (!calcDrag) return;
+  const p = $("calcpad"), w = p.offsetWidth, h = p.offsetHeight;
+  p.style.left = Math.max(0, Math.min(innerWidth - w, e.clientX - calcDrag.dx)) + "px";
+  p.style.top = Math.max(0, Math.min(innerHeight - h, e.clientY - calcDrag.dy)) + "px";
+  p.style.right = "auto";
+});
+$("calcGrip").addEventListener("pointerup", () => { calcDrag = null; });
+$("calcGrip").addEventListener("pointercancel", () => { calcDrag = null; });
+$("calcScreen").addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === "=") { e.preventDefault(); calcPress("="); }
+  else if (e.key === "Escape") { calcToggle(false); $("calcBtn").focus(); }
+});
+
+// Navigation
+document.querySelectorAll("[data-next]").forEach(b => b.addEventListener("click", () => show(+b.dataset.next)));
+let resetArmed = null;
+$("resetBtn").addEventListener("click", () => {
+  if (resetArmed) { store.clear(); location.reload(); return; }
+  $("resetBtn").textContent = "Click again to reset";
+  resetArmed = setTimeout(() => { resetArmed = null; $("resetBtn").textContent = "Start again"; }, 3000);
+});
+document.querySelectorAll("[data-again]").forEach(b => b.addEventListener("click", () => { store.clear(); location.hash = ""; location.reload(); }));
+
+// Playtest feedback: same Formspree form as escapepack.ca/feedback.html and the Hiking playtest.
+const FORMSPREE = "https://formspree.io/f/xaqavoan";
+const LINE_NAMES = { 1: "Furnace age", 2: "Total heating need", 3: "Peak heating demand", 4: "Managing the peak", 5: "Energy and GHG savings", 6: "$ savings" };
+const plural = (k, one, many = one + "s") => `${k} ${k === 1 ? one : many}`;
+function statsText() {
+  const rows = Object.keys(LINE_NAMES).map(n => {
+    const s = STATS[n], done = store.get().includes(+n);
+    if (!s && !done) return `Line ${n} (${LINE_NAMES[n]}): not reached`;
+    const t = s?.time != null ? fmt(s.time) : done ? "solved earlier" : "not solved";
+    return `Line ${n} (${LINE_NAMES[n]}): ${t}, ${plural(s?.hints ?? 0, "hint")}, ${plural(s?.wrong ?? 0, "wrong try", "wrong tries")}`;
+  });
+  return [`Total time on the clock: ${$("clock").textContent}`, `Screen: ${innerWidth}×${innerHeight}`, ...rows].join("\n");
+}
+function openFeedback() { $("fbResult").textContent = ""; $("fbSend").disabled = false; $("fbDialog").showModal(); $("fbMessage").focus(); }
+$("fbBtn").addEventListener("click", openFeedback);
+document.querySelectorAll("[data-feedback]").forEach(b => b.addEventListener("click", openFeedback));
+$("fbClose").addEventListener("click", () => $("fbDialog").close());
+$("fbForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!$("fbForm").reportValidity()) return;
+  const body = { game: "cold-call-energy", rating: $("fbRating").value, email: $("fbEmail").value.trim(), _subject: "The Cold Call · Energy Suite playtest feedback",
+    message: $("fbMessage").value.trim() + ($("fbStats").checked ? `\n\n--- Game stats ---\n${statsText()}` : "") };
+  $("fbSend").disabled = true; $("fbResult").textContent = "Sending…";
+  try {
+    const r = await fetch(FORMSPREE, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status === 429 ? "busy" : "failed");
+    $("fbResult").textContent = "Thank you. It’s on its way to us.";
+    $("fbForm").reset();
+    setTimeout(() => $("fbDialog").close(), 1800);
+  } catch (err) {
+    $("fbResult").textContent = err.message === "busy" ? "Too many messages right now. Please try again in a minute." : "We couldn’t send it. Check your connection and try again.";
+    $("fbSend").disabled = false;
+  }
+});
+
+const solvedSoFar = store.get();
+solvedSoFar.forEach(n => {
+  if (!RESULTS[n]) return;
+  fillLine(n);
+  document.querySelector(`[data-answer="${n}"]`).classList.add("done");
+});
+const jump = /^#line([1-6])$/.exec(location.hash);
+show(jump ? +jump[1] : Math.min(LAST_BUILT, Math.max(0, ...solvedSoFar) + 1));
+</script>
+<script defer src="assets/author-footer.js"></script>
