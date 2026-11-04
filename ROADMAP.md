@@ -3,7 +3,7 @@
 The single source of truth for what's shipped, what's in flight, and what's next.
 Updated **2026-11-04**: **The Cold Call** (HVAC escape room, training tool) added as an
 unlisted playtest at `coldcall.html`, built from the Escape Backpack source; Google Fonts and
-Formspree feedback allowed as a playtest exception. See `docs/COLDCALL.md`.
+Formspree feedback allowed as a playtest exception. Review fixes published 2026-11-04: keyboard controls, activity gates, $1,885 corrected scenario savings, explicit assumptions, saved ending and responsive layouts; visual refinement adds section icons, clear model-key contrast, active-answer cards, solved-line progress and consistent workbench styling; service-call story and per-line notes moved left, model guide now uses blank groups with value arrows. See `docs/COLDCALL.md`.
 Updated **2026-10-31**: tool-page author credit (`assets/author-footer.js`) reworded to match
 the landing card: "energy efficiency professional (CEM, RETScreen Expert)", AI-assistant
 disclosure, feedback invitation; MEng dropped. Published to both branches.
