@@ -86,3 +86,63 @@ Validation (2026-11-04): complete keyboard walkthrough of all six lines; incompl
 - Validation: correct one-note-per-line switching on all six steps at 390/1280px; 320px diagram inspection, no full model in the key or page overflow; existing calculation/selection regression passes. Physical devices remain untested.
 
 Publication: the reviewed game, visual refinement and service-call/model-guide changes were released to Energy GitHub Pages on 2026-11-04. The game remains an unlisted playtest. This release does not deploy the separate escapepack.ca copy.
+
+## Teaching layer — 2026-11-04 (published 2026-11-05)
+
+Four evidence-led cards now appear after lines 1, 3, 5 and 6. The original solution explanation remains under **How this puzzle works**. Readers can revisit cards through the existing Review buttons. Educational inputs never alter puzzle answers or annual scenario totals.
+
+### Data and scope
+
+- **Heating mix (line 1):** reuse `ceud_json/res_ca.json`, NRCan CEUD Canada residential Table 27, 2000–2023. All 14 detailed equipment categories are retained and grouped identically to CEUD Explorer. Shares use their summed rounded counts, not residential energy use or equipment sales. In 2023: 1,340,000 primary heat-pump systems / 16,866,722 summed systems = 7.944638%. CEUD's separately rounded total is 16,900,000; both totals are shown in the card's data table. Primary stock can omit secondary heat pumps. A year selector and counts table expose the series; link to CEUD Explorer in advanced view.
+- **Airtightness (line 3):** read-only extraction from `C:/ERS/2025.csv`. Sequential gates: 230,609 records → 107,260 initial D audits → 22,167 Ontario → 17,485 single detached → 17,485 House building type → 16,909 with ENTRYDATE in 2025. Keep the earliest eligible initial audit per HOUSEID (21 repeats removed), then require positive finite AIR50P and LEAKAR (0 removed). Final n=16,888. No household IDs, addresses or row-level records are output. Initial-audit median ACH50=4.79815, Q1=3.465175, Q3=7.047325. This is a selected audit sample, not a representative Canadian or Ontario housing estimate; no follow-up audit is required by this cohort.
+- **Equivalent opening:** use the same cohort's measured LEAKAR field, cm² at 10 Pa. Median area=1190.07765 cm²; diameter=√(4×area/π)=38.92626 cm. A diagram represents a single circle with equivalent flow, not an actual hole or everyday ventilation. It is not inferred from ACH50; median ACH50 and median area need not describe one home. Game markers 7.0 and 4.2 ACH50 are explicitly scenario values. Link to Retrofit Explorer and the original NRCan dataset/CGSB standard.
+- **Fuel emissions (line 5):** ECCC **Emission factors and reference values**, v4.0, September 2026, tables 1.3/2.3/3.3/4.3/5.3, reference year 2026. Component factors are CO₂, CH₄ and N₂O; convert with GWP100 1/28/265 before dividing by native energy content and efficiency. Residential native totals: gas (Ontario) 1,931.311 g CO₂e/m³, oil 2,755.318 g/L, propane 1,544.376 g/L. Grid consumption-reference factors: ON 59, QC 1.9, AB 438 g CO₂e/kWh. Provincial selection changes electricity only; the gas factor remains Ontario's. Reference factors are neither a measured 2026 annual-average outcome nor hourly marginal intensities. Excludes upstream fuels, manufacture and refrigerant loss. No extra T&D multiplier is applied to consumption-side factors. Links to Heat Pump Explorer, Grid Dashboard, ECCC factor and GWP tables. The cards calculate CO₂e directly from gas components; they do not inherit the companion engine's unweighted trace-gas addition. Game rounded inputs (70 g electricity/kWh, ~1.5 kg propane/L) remain unchanged and separate.
+- **Useful-heat costs (line 6):** reuse the saved `prices_json/on.json` inputs, generated 2026-07-12, with explicit per-fuel dates. Electricity 18.317¢/kWh: Hydro Ottawa November 2025 TOU snapshot, assumed 63% off / 18% mid / 19% on plus 5.46¢ variable adders. Gas $0.2429/m³: October 2024 Ontario **Union South**, not an Ottawa tariff. Oil $2.432/L: Ottawa-Gatineau Ontario part, May 2026 (StatCan 18-10-0001). Propane $0.75/L: an unverified game assumption, not observed price data. These mixed-date/region references teach unit conversion and are not current quotes or a same-date fuel-price survey. Readers can enter their own prices. Excludes fixed charges, taxes and OER, and is separate from the game’s annual package calculation. A table exposes purchased-energy versus delivered-heat costs.
+
+### Assumptions and formulas
+
+- Gas efficiency 0.95, oil 0.85, propane 0.78, resistance 1.00; seasonal heat-pump COP defaults to the game's assumed 2.8, with 2/3/4 sensitivity options. These are not national equipment-average estimates.
+- Energy content: gas 10.3611 kWh/m³, oil 10.7778 kWh/L, propane 7.0917 kWh/L, matching Heat Pump Explorer's conversion constants.
+- Fuel cost (¢/kWh heat) = 100 × native-unit price ÷ native-unit kWh ÷ efficiency. Electricity cost = cents/kWh ÷ COP (or ÷1 for resistance).
+- Fuel GHG (g CO₂e/kWh heat) = (CO₂ + 28 CH₄ + 265 N₂O) ÷ native-unit kWh ÷ efficiency. Electricity = consumption-reference factor ÷ COP.
+- Dataset-level metadata and SHA-256 input fingerprints accompany the compact snapshot. The original public datasets supply the data; narrative, diagrams and aggregations are ours. No CGSB tables/text or identifiable audit records are redistributed.
+
+### Build, deployment and validation
+
+`python Python/build_coldcall_teaching.py` reads only the existing CEUD/rate snapshots and the single raw ERS file. It writes `coldcall_json/teaching.json` (10,645 bytes) plus a copy beside the original game at `C:/EscapeBackpack/Cold-Call/coldcall_json/teaching.json`. No collector or existing generated tree is modified. Pandas is needed only for the offline build, not in the browser.
+
+The JSON tree is ignored on `main`. Publish **coldcall.html and coldcall_json/teaching.json together** on `gh-pages`; both are now in the full deploy path list. The Escape Backpack deployment also needs its own adjacent JSON copy. Existing `make-energy-copy.py` still generates the branded Energy HTML. No new runtime library or external API is used; one same-origin JSON request loads the lessons. Missing data offers a retry and the Energy Suite link while the original puzzles keep working.
+
+Checks: `python Python/test_coldcall_teaching.py` (five source/arithmetic/privacy checks, including every CEUD year); `node Python/check_coldcall.cjs` (existing six-puzzle syntax/gates and all 2,048 cost selections). Browser: 16 lesson/viewport cases at 320/390/768/1280px; four additional open-source-disclosure checks at 320px; stock-year, provincial reference and COP changes; custom price edits, invalid/empty input and restore; actual puzzle-1 success, Review cards and missing-data retry/navigation. No overflow or normal-page browser errors observed. Physical touch devices and actual screen-reader applications remain unverified.
+
+Primary references:
+- [NRCan CEUD Table 27](https://oee.nrcan.gc.ca/corporate/statistics/neud/dpa/showTable.cfm?type=CP&sector=res&juris=ca&year=2023&rn=27&page=0)
+- [NRCan EnerGuide open dataset](https://open.canada.ca/data/en/dataset/0a7619fd-2ffe-44b5-9027-3dfcec0866fd)
+- [CAN/CGSB-149.10-2019](https://publications.gc.ca/collections/collection_2019/ongc-cgsb/P29-149-010-2019-eng.pdf)
+- [ECCC factors](https://www.canada.ca/en/environment-climate-change/services/climate-change/pricing-pollution-how-it-will-work/output-based-pricing-system/federal-greenhouse-gas-offset-system/emission-factors-reference-values.html) and [GWP100](https://www.canada.ca/en/environment-climate-change/services/climate-change/greenhouse-gas-emissions/quantification-guidance/global-warming-potentials.html)
+- [OEB November 2025 tariffs](https://www.oeb.ca/newsroom/2025/ontario-energy-board-announces-changes-electricity-prices-households-small-businesses) and [StatCan oil-price table](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810000101)
+
+
+## Puzzle navigation and scheduler — 2026-11-04 (published 2026-11-05)
+
+- Every checklist title opens that puzzle's workbench, including completed puzzles. Previous/Next buttons allow free browsing; the Answer & teaching button and existing Review links open completed explanations. Browsing does not mark activities complete or bypass their checks.
+- A prominent Calculator button appears in the workbench navigation. The pad has larger keys, stays inside the viewport and returns keyboard focus to its launcher when closed.
+- Appliance tiles have fixed widths derived from duration × the actual hour pitch. Removing a tile no longer stretches the others. A snapped drag preview shows the exact start/finish hours and marks overlap; preview and drop use the same hour mapping, retaining the hour grabbed within the tile.
+- Appliance/start–finish selectors plus Place/Move and Remove provide precise placement without dragging. Occupied times are labelled, and overlap attempts leave the schedule intact. The timeline scrolls sideways on narrow workbenches; its chart retains a readable height.
+- In-progress activities and appliance positions survive navigation within the current tab. Reload still restores completed answers, but does not save unfinished component arrangements.
+
+Validation: placed/removed a water heater and compared all remaining tile widths; placed all five appliances for the valid 54 A / 13.0 kW schedule; rejected an overlap; navigated away/back with all positions retained; reopened puzzle 1's workbench and teaching card; calculated 126 × 46 = 5,796 and verified close-focus return. An actual pointer drag placed the water heater at 7–11 am as intended. Layout checks at 320/390/768/1280px found no page overflow and retained the 200px chart. The regression script adds 2,196 hour-snap cases across every valid start/grabbed hour, fractional pointer positions and scrolled coordinates, plus edge clamping. Existing game and five teaching-data checks pass. Physical touch devices and screen-reader applications remain unverified.
+
+
+## Concise teaching copy — 2026-11-04 (published 2026-11-05)
+
+Removed “game” language from teaching cards and labelled the house’s before/after ACH50 as assumed values. Shortened visible ACH, equipment-share, emissions and cost text; retained the audit sample boundary and essential input caveats, with detailed exclusions and methodology under Sources. Data, calculations and puzzle answers are unchanged. Embedded-script/regression checks pass; ACH card reviewed in the browser.
+
+
+## Service sheet and compact header — 2026-11-05 (published)
+
+The workbench groups Previous, Next, review and Calculator beside the scene title. Each active line on the service sheet explains why the work matters and gives a short instruction above the answer. Line 3 connects sealing air leaks before installing the heat pump to lowering peak demand.
+
+Checked all six line notes and headers, calculator access and layout at 320, 390, 768 and 1280px. The game regression checks pass.
+
+Layout refinement (2026-11-05). Reduced outer padding and gaps. Replaced decorative outlines and rounding with flat sections and dividers on the service sheet, workbench and teaching cards. Checked all six puzzles at four widths and the teaching card at 320px.
