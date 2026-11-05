@@ -1,6 +1,8 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: **The Cold Call** gets a landing-page tile with new art
+(`assets/icons/cold-call.png`, `assets/icons/web/cold-call.webp`); still a playtest. See `docs/COLDCALL.md`.
 Updated **2026-11-05**: Retrofit Insights — the map moved to the top (section 01; old
 01–03 renumbered 02–04) and gained a **"Major repairs needed"** pill (2021 Census
 dwelling condition, every FSA with ≥ 1,000 households, retrofits or not). Section 09
@@ -2033,7 +2035,7 @@ lifecycle-update candidates logged — see
 |---|---|---|
 | 🏙️ **Ottawa Case Study** (heat demand → electrification → grid) | `██████▓░░` Phase 4 grid half done, feeder half unblocked 2026-08-03 | **Phase 4 (feeder half):** both inputs recovered from the 2026-07-27 `gh-pages` snapshot — `GridCapacity/Hydro.py` (now committed to `main`) and `ottawa_capacity.geojson` (3,884 feeder polygons, `capacity`/`capacityrange`/voltage/`ldc_name`). Next: build `feeder_demand.geojson` by intersecting the Phase 4 grid against those polygons, then derive the coincidence/diversity factor from real feeder loading → [item 7](#7-ottawa-case-study--heat-demand-electrification-grid-in-progress) |
 | 💰 **Retrofit Costs** (ERS × REMDB cost pairing) | `███████░░` live in `retrofits.html` behind a "Proof of concept" tag — band dropdown, per-measure breakdown, view totals, payback, national data (all 10 provinces + NT/NU; Yukon has no ERS records) | Verify province-mode UI once deployed (local checkout lacks `province_json`/`geo_json`); band-specific payback (currently mid-band only); investigate utility-rate source further (electricity just swapped after catching a stale rate, unverified beyond SK; gas found ~21mo stale, unresolved); source a real footprint-aspect-ratio dataset → [docs/RETROFIT_COSTS.md](docs/RETROFIT_COSTS.md) |
-| 🎮 **The Cold Call** (HVAC escape room, training tool) | unlisted playtest live at [/coldcall.html](https://ottawavisuals.github.io/Energy/coldcall.html) since 2026-11-04 — six puzzles, furnace → heat pump, propane base case | playtest with colleagues; then landing tile, Atlas entry and a decision on the external-dependency exception ([docs/COLDCALL.md](docs/COLDCALL.md)) |
+| 🎮 **The Cold Call** (HVAC escape room, training tool) | listed on the landing page since 2026-11-05 (tile + art); live at [/coldcall.html](https://ottawavisuals.github.io/Energy/coldcall.html) since 2026-11-04 — six puzzles, furnace → heat pump, propane base case | playtest with colleagues; then favicon/social card and a decision on the external-dependency exception ([docs/COLDCALL.md](docs/COLDCALL.md)) |
 
 ### Queued 🆕
 
