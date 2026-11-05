@@ -1,6 +1,8 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: The Cold Call now enforces line order (Next, service-call steps and
+`#lineN` links could skip to line 6 unsolved). See `docs/COLDCALL.md`.
 Updated **2026-11-05**: Cold Call workbench controls share the scene header. The service sheet records the purpose and instructions for each line. The service sheet and workbench now use tighter spacing and flat sections. Published 2026-11-05. See `docs/COLDCALL.md`.
 Updated **2026-11-04**: Cold Call navigation/scheduling improvements published 2026-11-05: revisit any puzzle, prominent calculator, duration-sized appliance tiles, snapped drag previews and exact start-time controls. Validation and limitations in `docs/COLDCALL.md`.
 Updated **2026-11-04**: Cold Call teaching cards published 2026-11-05: CEUD heating-system shares, measured Ontario audit airtightness/equivalent opening, useful-heat fuel costs and ECCC emissions; interactive inputs, original sources and companion-tool links. Reproducible aggregate pipeline and validation in `docs/COLDCALL.md`.
