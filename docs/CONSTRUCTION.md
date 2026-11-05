@@ -163,9 +163,15 @@ check flags 230 months, all explained by CMHC's 0.0 placeholders (above).
   (CMAs + 50k CAs adds PEI via Charlottetown), or a different small-n threshold.
 
 **Refresh.** `Python/construction_time_etl.py` reads public HMIP HTML pages only (1 req/s).
-The server takes ~1.5 min per geography, so a full pull runs ~80 min. **Not yet in
-`construction-refresh.yml`**; for now it's refreshed by hand and published via the
-incremental gh-pages path.
+The server takes ~1.5 min per geography, so a full pull runs ~80 min. Since 2026-11-05 it
+runs monthly in `construction-refresh.yml` as a **non-blocking, 150-minute-capped step**
+after the EWRB ETL. The script writes to a temp folder and swaps it into
+`construction_json/ctime/` only when all geographies succeed. It also refuses to publish if
+it finds fewer geographies than last time (a sign HMIP's layout changed). On any failure,
+last month's files (seeded from gh-pages) stay in place and the rest of the refresh still
+publishes. **Caveat:** the step sits after the municipal permits step, which failed the
+whole job on 2026-09-20 and 2026-10-20 (Calgary portal read timeout), so until that's fixed
+neither this step nor the publish runs.
 
 ## Data pipeline
 
@@ -553,7 +559,8 @@ python municipal_permits_etl.py       # writes municipal.json (live portals)
 python ewrb_etl.py                    # writes ewrb.json; --refresh re-downloads
 python cited_figures_verify.py        # writes programs.json; exits 1 if stale
 python construction_time_etl.py       # writes ctime/ from CMHC HMIP pages
-                                      #   (~80 min: slow server; --use-cache for dev)
+                                      #   (~80 min: slow server; --use-cache for dev;
+                                      #   monthly in the workflow, non-blocking)
 python cagbc_leed_etl.py              # writes cagbc.json from a MANUAL export,
                                       #   project_profile.csv at the repo root
                                       #   (gitignored; re-export by hand from
