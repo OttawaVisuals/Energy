@@ -845,6 +845,7 @@ button { transition:background-color .16s,border-color .16s,box-shadow .16s; }
 }
 .step-nav { border:0; padding:0; background:transparent; text-align:left; text-decoration:underline; text-decoration-color:#a7b3a670; text-underline-offset:3px; cursor:pointer; }
 .step-nav:hover { text-decoration-color:currentColor; }
+.step-nav:disabled { text-decoration:none; cursor:default; color:inherit; opacity:.7; }
 .call-lines li.viewing { box-shadow:inset 3px 0 #b77a49; }
 .calcpad { width:268px; padding:14px; top:78px; max-height:calc(100dvh - 16px); overflow:auto; }
 .calc-keys button { height:44px; }
@@ -1696,6 +1697,7 @@ function setupPuzzle(n, { hints, judge }) {
     store.add(n);
     fillLine(n);
     $("reviewPuzzle").hidden = false;
+    refreshNav();
     if (n === LAST_BUILT) clearInterval(timer);
   }
   return (puzzles[n] = { restart() { start = Date.now(); } });
@@ -1723,8 +1725,25 @@ function fillLine(n) {
   li.querySelector(".res").textContent = RESULTS[n];
 }
 let currentPuzzle = 1;
+// The service call is done in order: players can open solved lines and the first unsolved one, never skip ahead.
+function furthestLine() {
+  const solved = store.get();
+  let k = 1;
+  while (k < LAST_BUILT && solved.includes(k)) k++;
+  return k;
+}
+function refreshNav() {
+  const reach = furthestLine();
+  $("nextPuzzle").disabled = currentPuzzle >= reach;
+  $("nextPuzzle").title = currentPuzzle >= reach && currentPuzzle < LAST_BUILT ? "Solve this line to unlock the next one" : "";
+  document.querySelectorAll("#callLines .step-nav").forEach(b => {
+    const locked = +b.dataset.go > reach;
+    b.disabled = locked;
+    b.title = locked ? "Locked until the earlier lines are solved" : "";
+  });
+}
 function show(n, { review = false, focus = false } = {}) {
-  n = Math.max(1, Math.min(LAST_BUILT, n));
+  n = Math.max(1, Math.min(LAST_BUILT, furthestLine(), n));
   currentPuzzle = n;
   history.replaceState(null, "", "#line" + n);
   document.querySelectorAll(".puzzle").forEach(p => { p.hidden = p.id !== "p" + n; });
@@ -1742,7 +1761,7 @@ function show(n, { review = false, focus = false } = {}) {
   });
   $("chapter").textContent = `LINE ${n} OF 6`;
   $("previousPuzzle").disabled = n === 1;
-  $("nextPuzzle").disabled = n === LAST_BUILT;
+  refreshNav();
   $("navPuzzleCount").textContent = `${n} / ${LAST_BUILT}`;
   $("reviewPuzzle").hidden = !store.get().includes(n);
   if (puzzles[n]) puzzles[n].restart();

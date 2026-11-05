@@ -146,3 +146,8 @@ The workbench groups Previous, Next, review and Calculator beside the scene titl
 Checked all six line notes and headers, calculator access and layout at 320, 390, 768 and 1280px. The game regression checks pass.
 
 Layout refinement (2026-11-05). Reduced outer padding and gaps. Replaced decorative outlines and rounding with flat sections and dividers on the service sheet, workbench and teaching cards. Checked all six puzzles at four widths and the teaching card at 320px.
+
+## Line order enforced — 2026-11-05 (published 2026-11-05)
+
+- The "Next →" button, the service-call step buttons and `#lineN` links could open any line, so a player could skip to line 6 unsolved. `show()` now opens only solved lines and the first unsolved one; Next and later step buttons stay disabled (with a "Locked" tooltip) until the current line is solved. A finished game can still revisit every line.
+- Validation: fresh start with `#line6`, Next and sheet clicks stay on line 1; solving line 1 unlocks line 2 only; a fully solved save reaches all six; `node Python/check_coldcall.cjs` passes.
