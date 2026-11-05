@@ -1,5 +1,11 @@
 # Construction Tracker
 
+2026-11-05: **"How long it takes to build"** card added (local, not yet published).
+It shows CMHC's average construction time in months, monthly since 1990, with
+dropdowns for geography (Canada, provinces, all 42 CMAs) and breakdown (dwelling type or
+intended market), and a Monthly / 12-month toggle. See
+[How long it takes to build](#how-long-it-takes-to-build-construction-time) below.
+
 2026-10-31: shared artwork/header and chart polish, with narrow-screen chart
 grids and KPI cards; see [Visual polish](VISUAL_POLISH.md). Publication pending.
 
@@ -90,6 +96,77 @@ approval/build intervals. "Inside one city" is **no longer advanced-only and no
 longer renders as nothing** when the selected geography has no matching permit
 desk; it always shows a cross-reference card to the full page.
 
+## How long it takes to build (construction time)
+
+Added 2026-11-05. First series on the page that comes from CMHC's Housing Market
+Information Portal (HMIP) rather than StatCan: no StatCan table carries it (checked
+2026-11-05, see [HMIP_CATALOGUE.md](HMIP_CATALOGUE.md)).
+
+**Plain language.** It shows how many months new homes took from the foundation being
+poured to being finished, for homes finished each month since 1990. Across Canada's metro
+areas, single-detached houses went from about 5 months (1990) to about 9 (2025), and
+apartment buildings from about 11 to about 23. The "all homes" line rose faster (about 8 →
+19), partly because the mix shifted toward apartments.
+
+**Controls.** Geography dropdown: Canada, 10 provinces and 42 CMAs, grouped by province.
+It defaults to the page's own geography selector and resets when that changes. Breakdown
+dropdown: dwelling type (single, semi, row, apartment & other, all) or intended market
+(homeowner, condo, rental, co-op, all). Toggle: Monthly or 12-month average (default).
+
+**Method (advanced).**
+- Source tables: HMIP "Historical Time Periods" view of *Average Length of Construction
+  (in months)* (TableId 1.2.7 by dwelling type, 1.2.8 by intended market) and *Completions*
+  (same breakdowns). Every table is pulled at **"For: Census Metropolitan Areas"**
+  (`MetType=Cmas` on Canada and province pages; CMA pages take no `MetType` and return
+  HTTP 500 if given one).
+- Definition: CMHC publishes none for this measure. We read it as the mean months from
+  *start* (footings poured for the whole structure) to *completion* (all work done, or all
+  but 10%) over units completed in the month. Unverified.
+- 12-month average = Σ(months_t × completions_t) ÷ Σ completions_t over the trailing 12
+  months, so it's completion-weighted, not a plain average of averages.
+- Small-n rule: a point needs ≥ 20 completions (that month, or in the 12-month window),
+  and a 12-month point needs ≥ 6 months with data; otherwise it is dropped and shows as a
+  gap. The hover tip shows n for each point.
+- **0.0 = not recorded.** CMHC shows 0.0 months for all of 1992–1993 in every geography,
+  plus scattered CMA months (Toronto to 1999, Edmonton to 2001, Ottawa as late as 2025),
+  often with hundreds of completions. That's 8,660 cells across 51 geographies, nulled
+  in the ETL and counted per series in `index.json` (`zero_months_nulled`). Precedent:
+  the EnerGuide `ERSRating=0` placeholder. **CMHC's province, Canada and "All" figures
+  still average those zeros in.** Example: Ontario rental, Dec 2021, is published at
+  15.9 months vs 17.6 from its CMAs without Hamilton's 0.0. The ETL flags 230 months
+  across 49 series where "All" sits below every one of its non-zero categories. We show
+  CMHC's figures as published rather than recomputing them.
+- **Shorter or broken histories:** Brantford and Sherbrooke start 2007-01; Montréal and
+  London have rows for 1990–1997 but no values (start 1998-01). Windsor has no data
+  2023-01 to 2025-06 (CMHC notice), and its history page opens with no table, so the ETL
+  re-requests it with an explicit 1990..latest range from `/TableMapChart/Table`
+  (logged in `index.json` → `ranged_fallbacks`).
+- Annual figures in the plain-language text: the same completion-weighted average over
+  a calendar year, Canada (CMAs), from the 2026-11-05 pull.
+
+**Validation (2026-11-05).** Toronto completions from HMIP equal StatCan 34-10-0154
+completions in all 438 overlapping months. All 53 geographies pass the ETL's
+month-continuity and completions-sum checks (0 mismatches). The "All within its categories"
+check flags 230 months, all explained by CMHC's 0.0 placeholders (above).
+
+**Limitations.**
+- *What the data can't tell us:* rural areas and towns. Province and Canada values average
+  their CMAs only, and **PEI has no CMA, so it has no data**. CMHC has collected completions
+  only in CMAs since 2023-01-01. No reliability codes are published, and single months for
+  small categories swing a lot.
+- *Shorter histories:* see above. Earlier months are left empty (a gap, not zeros), and
+  the card's note says when a CMA's history starts.
+- *What we assumed:* the start-to-completion reading above. HMIP's "Ottawa" is the
+  Ontario part of Ottawa-Gatineau (page code `ottawa_on`) and "Gatineau" the Quebec part
+  (`ottawa_qc`). The combined Ottawa-Gatineau view shows the Ontario part.
+- *What would change the answer:* a CMHC definition note, a different coverage choice
+  (CMAs + 50k CAs adds PEI via Charlottetown), or a different small-n threshold.
+
+**Refresh.** `Python/construction_time_etl.py` reads public HMIP HTML pages only (1 req/s).
+The server takes ~1.5 min per geography, so a full pull runs ~80 min. **Not yet in
+`construction-refresh.yml`**; for now it's refreshed by hand and published via the
+incremental gh-pages path.
+
 ## Data pipeline
 
 ```
@@ -110,6 +187,13 @@ Python/construction_context_etl.py  # context: 18-10-0205 NHPI, 17-10-0009 pop,
 Python/municipal_permits_etl.py     # Vancouver (Opendatasoft) + Toronto (CKAN)
                                     #   + Calgary (Socrata SoQL)
         → construction_json/municipal.json
+
+Python/construction_time_etl.py     # CMHC HMIP (not StatCan): average length
+                                    #   of construction + completions, monthly
+                                    #   1990-01.., by dwelling type and by
+                                    #   intended market, Canada + 10 provinces
+                                    #   + 42 CMAs, CMA-only coverage (MetType=Cmas)
+        → construction_json/ctime/  # index.json + one <code>.json per geography
 
 Python/ewrb_etl.py                  # Ontario large-building energy disclosure
         → construction_json/ewrb.json       # XLSX per year, cached in ewrb_cache/
@@ -468,6 +552,8 @@ python construction_context_etl.py    # writes context.json AND bcpi.json
 python municipal_permits_etl.py       # writes municipal.json (live portals)
 python ewrb_etl.py                    # writes ewrb.json; --refresh re-downloads
 python cited_figures_verify.py        # writes programs.json; exits 1 if stale
+python construction_time_etl.py       # writes ctime/ from CMHC HMIP pages
+                                      #   (~80 min: slow server; --use-cache for dev)
 python cagbc_leed_etl.py              # writes cagbc.json from a MANUAL export,
                                       #   project_profile.csv at the repo root
                                       #   (gitignored; re-export by hand from
