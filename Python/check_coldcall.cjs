@@ -42,4 +42,23 @@ assert.equal(ctx.saved6(),1885);
 assert.notEqual(judges[6](ctx,'1889'),null,'Reject the previous incorrect savings');
 assert.equal(costs.find(c=>c.k==='water').$,460*.75);
 assert.equal(Math.round(4870*(.5*.039+.4*.157+.1*.391)*.765),452);
+// A pointer within an hour must resolve to that hour, preserving the grabbed tile hour.
+const dropColumn = new Function('return (' + script.match(/function scheduleDropColumn\([^)]*\) \{[\s\S]*?\n\}/)[0] + ')')();
+let snapChecks = 0;
+for (const duration of [2,4,6]) {
+  for (let start=0; start<=24-duration; start++) {
+    for (let grab=0; grab<duration; grab++) {
+      for (const fraction of [.1,.5,.9]) {
+        for (const left of [0,-312,470]) {
+          const step=28.125;
+          assert.equal(dropColumn(left+(start+grab+fraction)*step,left,step,grab,duration),start);
+          snapChecks++;
+        }
+      }
+    }
+  }
+  assert.equal(dropColumn(-1000,0,28,0,duration),0);
+  assert.equal(dropColumn(10000,0,28,duration-1,duration),24-duration);
+}
+console.log(`PASS: ${snapChecks} hour-snap cases, including scrolled tracks and every grabbed hour; boundary clamping.`);
 console.log('PASS: full script syntax; gates and completed answers for lines 2–5; all 2,048 cost selections; corrected costs and historical electricity calculation.');
