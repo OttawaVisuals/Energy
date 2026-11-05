@@ -1,6 +1,12 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: construction-time ETL added to `construction-refresh.yml` as a
+non-blocking, 150-min-capped monthly step, with staged writes so a CMHC outage can't publish
+half-updated data. **Found while doing it:** the monthly construction refresh **failed on
+2026-09-20 and 2026-10-20** at the municipal permits step (Calgary open-data portal read
+timeout, 180 s), so `construction_json/` and `permits_json/` have not auto-refreshed since
+2026-08-20. Not yet fixed.
 Updated **2026-11-05**: Construction Tracker gets **"How long it takes to build"**, its first
 CMHC-HMIP series (not on StatCan). Average construction time in months, monthly since
 1990-01, by dwelling type or intended market, for Canada, 10 provinces and 42 CMAs, with a

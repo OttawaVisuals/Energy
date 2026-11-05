@@ -82,7 +82,9 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
+import tempfile
 import time
 import unicodedata
 from datetime import date
@@ -323,6 +325,12 @@ def main() -> None:
         geos = [g for g in geos if g[0] in keep]
     print(f"{len(geos)} geographies ({len(cmas)} CMAs resolved)")
 
+    # Write to a temp folder; swap into OUT_DIR only after every geography
+    # succeeded. A CMHC outage mid-run (the monthly workflow runs this as a
+    # non-blocking step) then leaves last month's files untouched, and no
+    # half-written folder can be published. --only writes its files straight
+    # into OUT_DIR and leaves index.json alone.
+    stage = Path(tempfile.mkdtemp(prefix="ctime_")) if not args.only else OUT_DIR
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     report, index_geos, last_month, fallbacks = {}, [], None, []
     for code, gtype, gid, name, prov in geos:
@@ -367,7 +375,7 @@ def main() -> None:
         if has:
             m = month_index(START) + has[0]
             first_data = f"{m // 12:04d}-{m % 12 + 1:02d}"
-        (OUT_DIR / f"{code}.json").write_text(
+        (stage / f"{code}.json").write_text(
             json.dumps({"code": code, "name": name, "series": series}, separators=(",", ":")),
             encoding="utf-8")
         index_geos.append({"code": code, "name": name, "type": gtype, "hmip_id": gid,
@@ -392,8 +400,20 @@ def main() -> None:
         "validation": report,
         "ranged_fallbacks": fallbacks,
     }
-    (OUT_DIR / "index.json").write_text(json.dumps(index, indent=1, ensure_ascii=False),
-                                        encoding="utf-8")
+    if args.only:
+        print(f"--only: wrote {len(index_geos)} files into {OUT_DIR}; index.json not touched")
+        return
+    old_index = OUT_DIR / "index.json"
+    if old_index.exists():
+        prev = len(json.loads(old_index.read_text(encoding="utf-8"))["geographies"])
+        if len(index_geos) < prev:
+            shutil.rmtree(stage, ignore_errors=True)
+            sys.exit(f"refusing to publish: {len(index_geos)} geographies < {prev} last time "
+                     f"(HMIP layout change?); previous files left in place")
+    (stage / "index.json").write_text(json.dumps(index, indent=1, ensure_ascii=False),
+                                      encoding="utf-8")
+    shutil.rmtree(OUT_DIR)
+    shutil.move(str(stage), str(OUT_DIR))
     zt = sum(sum(g["zero_months_nulled"].values()) for g in index_geos)
     print(f"0.0-month placeholders nulled: {zt} cells across "
           f"{sum(1 for g in index_geos if g['zero_months_nulled'])} geographies")

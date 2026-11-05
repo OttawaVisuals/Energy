@@ -44,7 +44,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests pandas openpyxl   # openpyxl: EWRB ships XLSX
+        run: pip install requests pandas openpyxl beautifulsoup4   # openpyxl: EWRB ships XLSX; bs4: CMHC HMIP pages
 
       - name: Run core ETL (permits, starts, investment)
         working-directory: Python
@@ -70,6 +70,19 @@ jobs:
       - name: Run Ontario EWRB ETL (large-building energy)
         working-directory: Python
         run: python ewrb_etl.py
+
+      # Construction time (CMHC HMIP, not StatCan) → construction_json/ctime/.
+      # NON-BLOCKING and time-boxed: CMHC's portal is slow (~1.5 min per
+      # geography, ~80 min for all 53) and occasionally returns HTTP 500s. The
+      # script writes to a temp folder and swaps it in only when every
+      # geography succeeded, so a failure here leaves last month's files
+      # (seeded from gh-pages above) in place, and the rest of the refresh
+      # still publishes.
+      - name: Run construction-time ETL (CMHC HMIP)
+        continue-on-error: true
+        timeout-minutes: 150
+        working-directory: Python
+        run: python construction_time_etl.py
 
       # The cite-only figures (NRCan Greener Homes, CHBA Net Zero, CHBA HMI)
       # are hand-transcribed, not fetched — this step only re-confirms they
