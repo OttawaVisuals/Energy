@@ -1,6 +1,16 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: Retrofit Insights — the map moved to the top (section 01; old
+01–03 renumbered 02–04) and gained a **"Major repairs needed"** pill (2021 Census
+dwelling condition, every FSA with ≥ 1,000 households, retrofits or not). Section 09
+gains a major-repair quintile chart: participation falls 14.6% → 10.9% from fewest
+to most repairs needed, with a stated rurality confound (rural FSAs 1% of Q1 vs 33% of
+Q5). Prompted by CMHC's "Build more. Lose less" (2026-10-22); our rollup reproduces its
+6.1% national rate. **Decision:** the bivariate participation × repairs map was
+considered and not built — the quintile chart answers "are they reached?" in two
+sentences. Canadian Housing Survey not used (province-level only). Local only — not
+yet committed or published. See `docs/RETROFITS.md` "Housing-condition lens".
 Updated **2026-11-05**: The Cold Call now enforces line order (Next, service-call steps and
 `#lineN` links could skip to line 6 unsolved). See `docs/COLDCALL.md`.
 Updated **2026-11-05**: Cold Call workbench controls share the scene header. The service sheet records the purpose and instructions for each line. The service sheet and workbench now use tighter spacing and flat sections. Published 2026-11-05. See `docs/COLDCALL.md`.
