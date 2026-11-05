@@ -613,6 +613,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Same ERS retrofit pairs<small>row-level source is the raw parquets, not the shipped fsa_json split</small></div>
     <div class="src">StatCan 2021 Census Profile<small>per-FSA income, extracted for this page (extract_fsa_census.py extension)</small></div>
     <div class="src">ECCC Climate Normals<small>per-FSA heating/cooling degree-days, new build_fsa_climate.py join</small></div>
+    <div class="src">2021 Census dwelling condition<small>per-FSA share needing major repairs — map pill + §09 quintile chart, added 2026-11-05</small></div>
   </div>
 
   <h3>How it was built</h3>
@@ -691,6 +692,16 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
         </ol></div>
         <div class="where">docs/archive/ROADMAP_COMPLETED.md item 13 "Honesty rails".</div>
       </div></li>
+      <li><input type="checkbox" data-key="ri-repairs"><div class="a-body">
+        <span class="tag choice">judgment call</span><b>The major-repairs lens keeps postal areas with zero audits in its participation denominator — unlike the income and dwelling-value lenses.</b>
+        <p>Added 2026-11-05. The question is "do retrofits reach the areas where more homes need major repairs?", so the unreached areas are the point: 6 FSAs with no audits count at 0%, plus 4 with audits but no matched pair. Only FSAs with ≥ 1,000 census households are used (1,544 of 1,636). "Major repairs" is the household's own 2021 Census answer (plumbing, wiring, structure) — not an inspection and not an energy measure.</p>
+        <p class="alt"><b>Other options:</b> use the same FSA set as the income chart (consistent, but silently drops the least-reached areas); a 3×3 bivariate participation × repairs map (more visual, harder to read and defend — considered and not built).</p>
+        <div class="verify"><b>✅ Verify it yourself</b> ⏱️ 5 min<ol>
+          <li>Pick "Major repairs needed" on the map: grey should mean "under 1,000 households", and postal areas with no retrofits (e.g. A0R, H3V) should still be coloured.</li>
+          <li>Section 09's caveat should name the rurality confound: rural FSAs are 1% of Q1's households and 33% of Q5's.</li>
+        </ol></div>
+        <div class="where">Python/build_insights.py build_repair_quintiles() + MIN_HOUSEHOLDS_FOR_REPAIRS; docs/RETROFITS.md "Housing-condition lens".</div>
+      </div></li>
       <li><input type="checkbox" data-key="ri-cchp"><div class="a-body">
         <span class="tag choice">judgment call</span><b>"Screened against the DOE Challenge specifications" — never "meets" or "certified for" the Challenge.</b>
         <p>The screen checks published AHRI/ENERGY STAR certificate ratings against Table II-3 of the US DOE Cold Climate Heat Pump Challenge specifications. The Challenge itself is a verification programme with its own H11/H1N lab test protocol we do not hold, so a unit clearing every checkable criterion has rating-consistent performance and nothing more — the output column is named <code>screen_pass</code>, deliberately not "meets" or "certified". Only 4 of 8 Table II-3 criteria are checkable from the ratings we hold; the other 4 (turndown ratio, compressor cut-out/cut-in, electric-heat staging, ENERGY STAR CACHP sections) are shown as explicitly not checkable rather than silently dropped. Of 15,148 models / 439,975 ERS appearances, 4 certificate rows (3 distinct models, 8 appearances, 0.00%) clear every checkable criterion — three of the four sit exactly on the COP threshold, which is expected since Challenge-qualifying products only reached market in 2024–25 and this is a historical audit record.</p>
@@ -709,6 +720,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <ul>
       <li>National matched total in insights_json (1,451,433) cross-checked against the sum of the retrofit-explorer province files — exact match.</li>
       <li>Spot-checked FSAs (L3R, K2P, M5V) reproduce the same median saving % as retrofits.html's own <code>fsa_json</code> for those areas.</li>
+      <li>2021 Census major-repair rollup reproduces CMHC's national figure (919,410 of 14,978,730 homes, 6.14%, vs CMHC 919,550, 6.1%; NU 26.65% vs 26.6%) — the gap is FSA-level rounding. Checked 2026-11-05.</li>
       <li>National dwelling-weighted median household income (~$82,000) lands close to StatCan's 2020 published Canada figure (~$84,000) — same-ballpark sanity check, not an exact match (different weighting methods).</li>
     </ul>
   </div>

@@ -28,10 +28,15 @@ OUTPUTS  insights_json/ (compact, ensure_ascii=False, separators=(',',':')):
                      participation, savings, EUI, GHG, HP/deep/fuel-switch
                      rates, measure-mix shares, climate, income quintile,
                      dwelling value, pre-1980 share. n included for thresholds.
+                     Plus `repairs`: [fsa, prov, major_repairs_rate, households]
+                     for EVERY census FSA with >= MIN_HOUSEHOLDS_FOR_REPAIRS
+                     households, matched or not (the map's major-repairs pill).
   success.json       national stratified "what worked" analysis (bundles,
                      measure count, vintage x HDD, top-decile vs rest).
   climate.json       HDD-band and CDD-band aggregates.
-  equity.json        income-quintile and dwelling-value-quintile aggregates.
+  equity.json        income-quintile, dwelling-value-quintile and
+                     major-repair-rate-quintile aggregates (the repair lens
+                     keeps zero-audit FSAs in its participation denominator).
   opportunity.json   missed-opportunity composite ranking + per-FSA factors.
   timeline.json      national + per-province audits/yr (D and E) + matched
                      retrofits by E-year, with cited program-era annotations.
@@ -191,6 +196,29 @@ VINTAGE_BANDS = [
 
 QUINTILE_LABELS = ["Q1 (lowest)", "Q2", "Q3", "Q4", "Q5 (highest)"]
 
+# Minimum 2021 census households (dwelling-condition universe) before an FSA's
+# major-repair rate is reported. Same 1,000 floor as participation so the two
+# layers grey out under one rule; it also keeps StatCan's random rounding (counts
+# rounded to multiples of 5) well under a percentage point of the rate.
+# 2021 Census, 2026-11-05: 92 of 1,636 FSAs with condition data fall below it.
+MIN_HOUSEHOLDS_FOR_REPAIRS = 1000
+
+# FSA first letter -> ERS PROV code, for census FSAs that have no matched
+# retrofit (so no PROV from the parquets). X splits by FSA: X0A/X0B/X0C are
+# Nunavut, the other X codes the Northwest Territories.
+FSA_LETTER_TO_PROV = {
+    "A": "NF", "B": "NS", "C": "PE", "E": "NB", "G": "QC", "H": "QC", "J": "QC",
+    "K": "ON", "L": "ON", "M": "ON", "N": "ON", "P": "ON", "R": "MB", "S": "SK",
+    "T": "AB", "V": "BC", "Y": "YT",
+}
+NU_FSAS = {"X0A", "X0B", "X0C"}
+
+
+def prov_of_fsa(fsa):
+    if fsa[0] == "X":
+        return "NU" if fsa in NU_FSAS else "NT"
+    return FSA_LETTER_TO_PROV.get(fsa[0])
+
 # §GHG impact — two ways of pricing the same modelled tCO2e/yr saved.
 # CARBON_TAX_RATE: federal fuel charge / OBPS benchmark price for 2024 ($/tCO2e,
 # nominal). The last full year before the federal consumer fuel charge was
@@ -295,7 +323,8 @@ def census_derived(census):
     Per-FSA scalars used across the outputs:
       total_dwellings, median_income (median_total_income),
       median_dwelling_value, pre_1980_share (fraction of period-of-construction
-      dwellings built 1980 or earlier).
+      dwellings built 1980 or earlier), condition_households / major_repairs /
+      major_repairs_rate (dwelling condition).
     """
     out = {}
     for fsa, rec in census.items():
@@ -310,6 +339,15 @@ def census_derived(census):
         pre_1980_share = (pre80 / poc_sum) if poc_sum else None
         inc = rec.get("income") or {}
         own = rec.get("owner_stats") or {}
+        # Dwelling condition (2021 Census Profile chars 1450/1451): the two
+        # categories partition occupied private dwellings, so their sum is the
+        # universe. Self-reported, not inspected; "major" = defective plumbing
+        # or wiring, or structural repairs to walls, floors or ceilings.
+        cond = rec.get("condition") or {}
+        major = cond.get("major_repairs")
+        minor = cond.get("minor_repairs")
+        households = ((major or 0) + (minor or 0)) if (major is not None or minor is not None) else None
+        major_repairs_rate = (major / households) if (households and major is not None) else None
         out[fsa] = {
             "total_dwellings": rec.get("total_dwellings"),
             "median_income": inc.get("median_total_income"),
@@ -317,6 +355,9 @@ def census_derived(census):
             "pct_low_income": inc.get("pct_low_income_lim_at"),
             "median_dwelling_value": own.get("median_dwelling_value"),
             "pre_1980_share": pre_1980_share,
+            "condition_households": households,
+            "major_repairs": major,
+            "major_repairs_rate": major_repairs_rate,
         }
     return out
 
@@ -615,7 +656,46 @@ def _quintile_aggregate(nat, qcol, fsa_audit_dwellings):
     return rows
 
 
-def build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad):
+def build_repair_quintiles(nat, repair_cuts, repair_fad, cdrv, repair_q, coverage):
+    """
+    Major-repair-rate quintiles (2021 Census dwelling condition), the third lens
+    of the equity section: do retrofits reach the areas where more homes need
+    major repairs?
+
+    Unlike the income/value lenses, repair_fad covers EVERY census FSA that
+    clears the dwelling floor, including FSAs with zero audits (audited = 0):
+    the question is about reach, so the unreached areas must stay in the
+    denominator. See main() for the build and `coverage` for the counts.
+
+    Each row also carries the quintile's pooled major-repair rate
+    (sum major / sum households over its FSAs) so the page can label the band
+    with a number rather than just Q1..Q5.
+    """
+    rows = _quintile_aggregate(nat, "repair_q", repair_fad)
+    maj = defaultdict(float)
+    hh = defaultdict(float)
+    nfsa = Counter()
+    for fsa, q in repair_q.items():
+        if q is None:
+            continue
+        cd = cdrv[fsa]
+        maj[q] += cd["major_repairs"] or 0
+        hh[q] += cd["condition_households"] or 0
+        nfsa[q] += 1
+    for row in rows:
+        q = row["quintile"]
+        row["major_repairs_rate"] = r3(maj[q] / hh[q]) if hh[q] else None
+        row["n_fsas"] = nfsa[q]
+        row["households"] = int(hh[q])
+    return {
+        "cut_points": [r3(c) for c in repair_cuts] if repair_cuts else None,
+        "metric": "major_repairs_rate_2021 (major_repairs / (minor_repairs + major_repairs))",
+        "coverage": coverage,
+        "rows": rows,
+    }
+
+
+def build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad, repair_quintiles):
     return {
         "note": ("Ecological, not household-level: an FSA's income quintile "
                  "describes the neighbourhood, not the individual participants. "
@@ -631,6 +711,7 @@ def build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad):
             "metric": "median_dwelling_value_2021",
             "rows": _quintile_aggregate(nat, "dv_q", dv_fad),
         },
+        "repair_quintiles": repair_quintiles,
     }
 
 
@@ -1276,6 +1357,20 @@ def main():
     dv_cuts = weighted_quintile_cuts(dv_pairs)
     income_q = {fsa: quintile_of(cd["median_income"], income_cuts) for fsa, cd in cdrv.items()}
     dv_q = {fsa: quintile_of(cd["median_dwelling_value"], dv_cuts) for fsa, cd in cdrv.items()}
+    # Major-repair rate: household-weighted quintiles over FSAs that clear
+    # MIN_HOUSEHOLDS_FOR_REPAIRS (the same set the map pill colours).
+    repair_ok = {fsa: cd for fsa, cd in cdrv.items()
+                 if cd["major_repairs_rate"] is not None
+                 and (cd["condition_households"] or 0) >= MIN_HOUSEHOLDS_FOR_REPAIRS}
+    repair_cuts = weighted_quintile_cuts(
+        [(cd["major_repairs_rate"], cd["condition_households"]) for cd in repair_ok.values()])
+    repair_q = {fsa: quintile_of(cd["major_repairs_rate"], repair_cuts) for fsa, cd in repair_ok.items()}
+    n_cond = sum(1 for cd in cdrv.values() if cd["major_repairs_rate"] is not None)
+    print(f"Major-repair quintile cut points (household-weighted): "
+          f"{[r3(c) for c in repair_cuts] if repair_cuts else None} | "
+          f"{len(repair_ok):,} of {n_cond:,} FSAs with condition data clear "
+          f"{MIN_HOUSEHOLDS_FOR_REPAIRS:,} households")
+
     print(f"\nIncome quintile cut points (dwelling-weighted): "
           f"{[r0(c) for c in income_cuts] if income_cuts else None}")
     print(f"Dwelling-value quintile cut points (dwelling-weighted): "
@@ -1308,6 +1403,7 @@ def main():
     nat["cdd"] = nat["FSA"].map(lambda f: climate.get(f, {}).get("cdd"))
     nat["income_q"] = nat["FSA"].map(income_q)
     nat["dv_q"] = nat["FSA"].map(dv_q)
+    nat["repair_q"] = nat["FSA"].map(repair_q)
 
     # ---- per-FSA metrics ----
     print("\nComputing per-FSA metrics...")
@@ -1328,11 +1424,57 @@ def main():
         income_fad[fsa] = (m["audited"], dwellings, income_q.get(fsa))
         dv_fad[fsa] = (m["audited"], dwellings, dv_q.get(fsa))
 
+    # Repair quintiles take EVERY census FSA in repair_q, matched or not: an FSA
+    # with no audits at all is the clearest case of "not reached", so it counts
+    # as audited = 0 rather than dropping out. Only the participation rules
+    # still apply: under MIN_DWELLINGS_FOR_PARTICIPATION dwellings, or a ratio
+    # above 1.0, and the FSA stays out of the participation sum (its row-level
+    # retrofit stats still count, as for the other two lenses).
+    audited_flat = {fsa: c["de"] + c["d"] + c["e"]
+                    for pv in by_fsa_audit.values() for fsa, c in pv.items()}
+    repair_fad = {}
+    rep_cov = Counter()
+    for fsa, q in repair_q.items():
+        audited = audited_flat.get(fsa, 0)
+        dwellings = cdrv[fsa].get("total_dwellings")
+        if not dwellings or dwellings < MIN_DWELLINGS_FOR_PARTICIPATION:
+            rep_cov["participation_excluded_tiny_area"] += 1
+            continue
+        if audited / dwellings > 1.0:
+            rep_cov["participation_excluded_impossible"] += 1
+            continue
+        if audited == 0:
+            rep_cov["included_zero_audits"] += 1
+        elif fsa not in metrics:
+            rep_cov["included_audits_but_no_matched_pairs"] += 1
+        rep_cov["participation_included"] += 1
+        repair_fad[fsa] = (audited, dwellings, q)
+    repair_coverage = {
+        "fsas_with_condition": n_cond,
+        "fsas_below_household_floor": n_cond - len(repair_ok),
+        "fsas_in_quintiles": len(repair_ok),
+        "participation_included": rep_cov["participation_included"],
+        "included_zero_audits": rep_cov["included_zero_audits"],
+        "included_audits_but_no_matched_pairs": rep_cov["included_audits_but_no_matched_pairs"],
+        "participation_excluded_tiny_area": rep_cov["participation_excluded_tiny_area"],
+        "participation_excluded_impossible": rep_cov["participation_excluded_impossible"],
+        "matched_pairs_outside_quintiles": int(nat["repair_q"].isna().sum()),
+    }
+    print(f"  repair-quintile coverage: {repair_coverage}")
+
+    # Per-FSA repair rate for the map pill: every census FSA that clears the
+    # household floor, matched or not. [fsa, prov, rate, households].
+    repairs_list = []
+    for fsa, cd in sorted(repair_ok.items()):
+        prov = metrics[fsa]["prov"] if fsa in metrics else prov_of_fsa(fsa)
+        repairs_list.append([fsa, prov, r3(cd["major_repairs_rate"]), int(cd["condition_households"])])
+
     # ---- build the rest ----
     print("Building success / climate / equity / opportunity / timeline...")
     success = build_success(nat)
     climate_out = build_climate(nat)
-    equity = build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad)
+    repair_quintiles = build_repair_quintiles(nat, repair_cuts, repair_fad, cdrv, repair_q, repair_coverage)
+    equity = build_equity(nat, income_cuts, dv_cuts, income_fad, dv_fad, repair_quintiles)
     opportunity = build_opportunity(metrics)
     timeline = build_timeline(nat)
     ghg_impact = build_ghg_impact(nat)
@@ -1363,6 +1505,7 @@ def main():
         "thresholds": {
             "min_n_leaderboard_and_opportunity": MIN_N,
             "min_dwellings_for_participation": MIN_DWELLINGS_FOR_PARTICIPATION,
+            "min_households_for_repairs": MIN_HOUSEHOLDS_FOR_REPAIRS,
             "top_decile_percentile": 90,
         },
         "definitions": {
@@ -1380,6 +1523,15 @@ def main():
             "eui": "Pre/Post_TotalEnergy / FloorArea, kWh/m2/yr, area>0 only",
             "measure_shares": "share of the FSA's matched pairs carrying each of the 8 tracked measure flags",
             "income_quintile": "national dwelling-weighted quintile of median_total_income (Q1 lowest); ECOLOGICAL (neighbourhood, not participant)",
+            "major_repairs_rate": (
+                "2021 Census Profile dwelling condition: major_repairs / (minor_repairs + major_repairs), "
+                "i.e. share of occupied private dwellings the household reports as needing major repairs "
+                "(defective plumbing or wiring, structural repairs to walls/floors/ceilings). Self-reported, "
+                f"not inspected; not an energy measure. Reported only for FSAs with >= {MIN_HOUSEHOLDS_FOR_REPAIRS} households"),
+            "repair_quintile": (
+                "national household-weighted quintile of major_repairs_rate (Q1 fewest repairs needed). "
+                "Participation per quintile includes census FSAs with zero audits (audited = 0); "
+                "ECOLOGICAL, and a 2021 snapshot set against ~20 years of audits"),
         },
         "bands": {
             "hdd": [b[0] for b in HDD_BANDS],
@@ -1389,6 +1541,7 @@ def main():
         "quintile_cut_points": {
             "income_total_household_2020": [r0(c) for c in income_cuts] if income_cuts else None,
             "median_dwelling_value_2021": [r0(c) for c in dv_cuts] if dv_cuts else None,
+            "major_repairs_rate_2021": [r3(c) for c in repair_cuts] if repair_cuts else None,
         },
         "opportunity_formula": opportunity.get("formula"),
         "opportunity_weights": OPP_WEIGHTS,
@@ -1412,7 +1565,9 @@ def main():
         print(f"  wrote {path.name} ({kb:.1f} KB)")
 
     print("\nWriting insights_json/...")
-    write("fsa_metrics.json", {"min_n": MIN_N, "records": list(metrics.values())})
+    write("fsa_metrics.json", {"min_n": MIN_N, "records": list(metrics.values()),
+                               "repairs_fields": ["fsa", "prov", "major_repairs_rate", "households"],
+                               "repairs": repairs_list})
     write("success.json", success)
     write("climate.json", climate_out)
     write("equity.json", equity)

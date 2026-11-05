@@ -550,6 +550,45 @@ not need to be re-run as part of this refresh cadence.
 > locally. (Exactly that happened between 2026-07-30 and 2026-08-03.) Run it whenever
 > you rebuild `insights_json/`, and confirm both files are in the published tree.
 
+**Housing-condition lens (added 2026-11-05).** Prompted by CMHC's Housing Observer
+piece "Build more. Lose less" (2026-10-22), Retrofit Insights now sets the 2021
+Census dwelling-condition question against program reach. Two outputs, both from
+`build_insights.py` and both static-census on one side:
+
+- **Map pill "Major repairs needed"** (section 01, which is now the map — moved to the
+  top of the page the same day; former 01–03 renumbered 02–04). Per FSA,
+  `major_repairs_rate = major_repairs / (minor_repairs + major_repairs)` (Census
+  Profile chars 1450/1451). Written to `fsa_metrics.json` as a separate `repairs`
+  list, **not** into `records`, because it covers every census FSA with ≥ 1,000
+  households (`MIN_HOUSEHOLDS_FOR_REPAIRS`) whether or not it has matched retrofits:
+  1,544 of 1,636 FSAs with condition data; 92 below the floor are grey.
+- **Quintile chart in section 09** ("Who takes part"): household-weighted quintiles of
+  that rate (cuts 3.8 / 5.2 / 6.5 / 8.1%), in `equity.json → repair_quintiles`.
+  Unlike the income and dwelling-value lenses, participation here **keeps FSAs with
+  zero audits** (6 FSAs, counted at 0%) plus 4 with audits but no matched pair —
+  dropping the unreached areas would bias a question about reach. 8,526 matched
+  pairs sit in FSAs outside the quintiles and are excluded from this chart only
+  (stated on-page via `coverage`).
+
+Result at the 2026-09-25 data vintage: participation falls from **14.6%** (Q1, 2.8% of
+homes need major repairs) to **10.9%** (Q5, 10.2%); heat-pump rate is flat (22–24%);
+median modelled saving rises 19.4% → 23.8% and median pre-EUI 165 → 251 kWh/m².
+**Confound stated on-page:** rural-delivery FSAs (second character `0`) are 1% of Q1's
+households and 33% of Q5's, so condition and rurality cannot be separated here.
+
+Validation: the census rollup reproduces CMHC's national figure — 919,410 of
+14,978,730 homes (6.14%) vs CMHC's 919,550 (6.1%); NU 26.65% vs 26.6%, NT 18.38% vs
+18.4%. The gap is FSA-level random rounding. The CMHC article is cited, not reused.
+`records`, `income_quintiles`, `dwelling_value_quintiles` and every other
+`insights_json` file were byte-identical before/after the rebuild (only
+`fsa_metrics.json`, `equity.json`, `meta.json` changed). `insights_json/` total is
+now 2,065 KB, 17 KB over the script's soft 2,048 KB budget.
+
+*Not used:* the Canadian Housing Survey (2018, 2021, 2022, 2024 cycles; mould /
+pests / water by repair state). Its finest confirmed geography is province, so it
+can't sit on the FSA map; four points over six years, and a different measurement
+(~7% vs census 6.1%) means it must not be mixed into the census series.
+
 **Retrofit Costs** (the proof-of-concept cost/payback layer inside `retrofits.html`)
 is a third independent chain off the same Step-1 parquets:
 `retrofit_cost_extract_fields.py` → `retrofit_cost_estimate.py` →
