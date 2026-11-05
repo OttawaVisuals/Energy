@@ -998,6 +998,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Certified buildings<small>CaGBC LEED &amp; Zero Carbon — one-time export, no sign-in required, aggregated to province/program counts</small></div>
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
+    <div class="src">CMHC HMIP (not StatCan)<small>construction time in months + completions, monthly since 1990, Canada · 10 provinces · 42 CMAs, CMA-only coverage (construction_time_etl.py, added 2026-11-05, refreshed by hand for now)</small></div>
   </div>
 
   <h3>How it was built</h3>
@@ -1143,6 +1144,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <ul>
       <li>Canada and Ottawa views were compared against published StatCan figures (SAAR 261,377; permits $12.5B; under-construction 347,543 at its discontinuation) — matched.</li>
       <li>Zero console errors in browser verification; every toggle and view exercised.</li>
+      <li>Construction time (2026-11-05): HMIP completions for Toronto equal StatCan 34-10-0154 in all 438 overlapping months, which confirms the HTML parsing and the CMA-only coverage match. All 53 geographies pass the month-continuity and completions-sum checks. CMHC records "not recorded" as 0.0 months (all of 1992–93, plus scattered CMA months; 8,660 cells); these are treated as gaps. CMHC's own province and "All" figures still average them in, flagged in 230 months.</li>
       <li><b>Ongoing check you can do monthly:</b> after StatCan's monthly permits release (The Daily), the dashboard's headline should match The Daily's number within rounding once the 20th-of-month refresh runs.</li>
     </ul>
   </div>
@@ -1840,7 +1842,7 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
   <table class="remain">
     <tr><th>Order</th><th>What</th><th>Why / notes</th><th>Size</th></tr>
     <tr><td>1</td><td><b>Ottawa Case Study Phases 4–6</b> — the flagship</td><td>Phases 0–3 done (stock, load, electrified load). Next: feeder aggregation + coincidence factor → map layers → the narrative case-study page. Prompts in <code>HEATDEMAND_PLAN.md</code> §5</td><td>3 sessions</td></tr>
-    <tr><td>idea</td><td><b>CMHC HMIP data layer</b> — research only, nothing built</td><td>Catalogued 2026-11-05 (<code>Python/hmip_catalogue.py</code>, <code>docs/HMIP_CATALOGUE.md</code>): 60 measures / 79 tables on CMHC's portal against 36 active CMHC tables on StatCan. HMIP-only: rental by year of construction and starts down to census tract, condo/secondary rental, seniors' housing. No public CMHC API; licence and small-n suppression still to check before any use</td><td>—</td></tr>
+    <tr><td>idea</td><td><b>CMHC HMIP data layer</b> — first series in use: construction time on the Construction Tracker (2026-11-05)</td><td>Catalogued 2026-11-05 (<code>Python/hmip_catalogue.py</code>, <code>docs/HMIP_CATALOGUE.md</code>): 60 measures / 79 tables on CMHC's portal against 36 active CMHC tables on StatCan. HMIP-only: rental by year of construction and starts down to census tract, condo/secondary rental, seniors' housing. No public CMHC API; licence and small-n suppression still to check before any use</td><td>—</td></tr>
   </table>
 </section>
 
