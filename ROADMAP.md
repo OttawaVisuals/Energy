@@ -1,6 +1,15 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: **CMHC HMIP table catalogue** (research, no tool). CMHC has no
+public housing-statistics API. The `lt-ext-api` "CMHC Connect" portal is login-gated and
+probably partner-only. `Python/hmip_catalogue.py` reads HMIP's own menus (HTML only) and lists
+60 measures / 79 tables / 489 table × geography combos, against StatCan's 36 active CMHC tables.
+HMIP-only data includes rental vacancy/rent/units by year of construction down to census tract,
+starts/completions by tract, the condo/secondary rental market and seniors' housing. Output in
+gitignored `cmhc_json/`. **Decision:** one sample place per geography level, not every place
+(Bracebridge shows small centres get 37 of 59 measures). Nothing built on it yet; see
+`docs/HMIP_CATALOGUE.md` and Project ideas #6.
 Updated **2026-11-05**: **The Cold Call** gets a landing-page tile with new art
 (`assets/icons/cold-call.png`, `assets/icons/web/cold-call.webp`); still a playtest. See `docs/COLDCALL.md`.
 Updated **2026-11-05**: Retrofit Insights — the map moved to the top (section 01; old
@@ -2375,6 +2384,11 @@ GEOTHERMAL_STATUS.md's 2026-07-31 and 2026-08-03 entries.
 5. **EV charging load layer.** Same grid-stress framing as the case study's
    Phase 4: per-feeder added MW from EV adoption scenarios. Complements the
    heat-pump electrification story on the same GridCapacity polygons.
+6. **CMHC HMIP data layer.** Catalogued 2026-11-05 ([docs/HMIP_CATALOGUE.md](docs/HMIP_CATALOGUE.md)).
+   Strongest fits: rental stock and rents **by year of construction** at tract level (links
+   building age to the retrofit tools), and starts by census tract next to the FSA-level New
+   Homes data. Blockers to check first: CMHC Data License terms for republishing, the
+   undocumented `ExportTable` export, and small-n suppression (`**`, reliability codes a–d).
 
 ---
 
