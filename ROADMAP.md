@@ -1,6 +1,17 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-05**: Construction Tracker gets **"How long it takes to build"**, its first
+CMHC-HMIP series (not on StatCan). Average construction time in months, monthly since
+1990-01, by dwelling type or intended market, for Canada, 10 provinces and 42 CMAs, with a
+geography dropdown, a breakdown dropdown and a Monthly / 12-mo (completion-weighted) toggle.
+`Python/construction_time_etl.py` → `construction_json/ctime/`. **Decisions:** CMA-only
+coverage throughout (PEI has none, so it shows a gap); points with < 20 completions dropped;
+not yet in the monthly workflow (a full pull is ~80 min against a slow server); CMHC's 0.0
+months ("not recorded": all of 1992–93, plus scattered CMA months, 8,660 cells) treated as
+gaps, with CMHC's province/"All" values shown as published even though they average those
+zeros in. Toronto completions match StatCan 34-10-0154 in all 438 overlapping months. See
+`docs/CONSTRUCTION.md`.
 Updated **2026-11-05**: **CMHC HMIP table catalogue** (research, no tool). CMHC has no
 public housing-statistics API. The `lt-ext-api` "CMHC Connect" portal is login-gated and
 probably partner-only. `Python/hmip_catalogue.py` reads HMIP's own menus (HTML only) and lists
@@ -2385,7 +2396,11 @@ GEOTHERMAL_STATUS.md's 2026-07-31 and 2026-08-03 entries.
    Phase 4: per-feeder added MW from EV adoption scenarios. Complements the
    heat-pump electrification story on the same GridCapacity polygons.
 6. **CMHC HMIP data layer.** Catalogued 2026-11-05 ([docs/HMIP_CATALOGUE.md](docs/HMIP_CATALOGUE.md)).
-   Strongest fits: rental stock and rents **by year of construction** at tract level (links
+   First use shipped locally 2026-11-05: construction time on the Construction Tracker.
+   **Ruled out 2026-11-05:** converting tract data to FSAs for rents and vacancy. In
+   Ottawa, 53–97% of tract rent/vacancy cells are suppressed, and rural FSAs (18% of
+   dwellings) have no tracts. Counts (starts, rental units) would convert cleanly, but
+   that boundary test was not run. Other fits: rental stock and rents **by year of construction** at tract level (links
    building age to the retrofit tools), and starts by census tract next to the FSA-level New
    Homes data. Blockers to check first: CMHC Data License terms for republishing, the
    undocumented `ExportTable` export, and small-n suppression (`**`, reliability codes a–d).

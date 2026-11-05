@@ -1,8 +1,16 @@
 # CMHC HMIP table catalogue
 
-Research note, not a tool. It answers one question: **what does CMHC publish
+**In use (2026-11-05):** construction time (Length of Construction + Completions, CMA
+coverage) feeds the Construction Tracker's "How long it takes to build" card; see
+[CONSTRUCTION.md](CONSTRUCTION.md). **Tract → FSA conversion ruled out for rents and
+vacancy (2026-11-05):** in Ottawa CMA, tract cells are 53–97% suppressed (vacancy total
+58%, average rent total 53%, rent by year of construction 76–97%). Rental unit counts and
+starts are complete. Rural FSAs (181 of 1,646, 18% of dwellings) have no tracts. The
+tract/FSA boundary-alignment test wasn't run.
+
+Research note. It answers one question: **what does CMHC publish
 on its Housing Market Information Portal (HMIP) that Statistics Canada's
-CMHC-sourced tables don't?** Nothing is built on it yet. It's here so the next
+CMHC-sourced tables don't?** It's here so the next
 tool that needs CMHC data starts from a list, not a guess.
 
 - Script: [`Python/hmip_catalogue.py`](../Python/hmip_catalogue.py)

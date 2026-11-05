@@ -304,6 +304,34 @@ footer a:hover{color:var(--amber2)}
       <div id="market-table"></div>
     </div>
 
+    <!-- 4b ▸ How long it takes to build (CMHC HMIP, construction_json/ctime/) -->
+    <div class="section-head">
+      <h2>How long it takes to build</h2>
+      <p class="sec-sub">Months from the day the foundation is poured to the day the home is finished, for homes completed each month since 1990.</p>
+    </div>
+    <div class="card" id="ctime-card">
+      <div class="card-title-row">
+        <div class="card-title" id="ctime-title">Average construction time, months</div>
+        <div class="card-controls">
+          <select id="ctime-geo" class="card-select" aria-label="Geography for construction time"></select>
+          <select id="ctime-by" class="card-select" aria-label="Break construction time down by">
+            <option value="dt">By dwelling type</option>
+            <option value="im">By intended market</option>
+          </select>
+          <div class="seg-toggle" id="ctime-ma">
+            <button type="button" class="seg-btn" data-ma="raw">Monthly</button>
+            <button type="button" class="seg-btn active" data-ma="ma12">12-mo avg</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend-inline" id="ctime-legend" style="margin-bottom:.4rem"></div>
+      <div class="cw cw-xl" id="ctime-chart"></div>
+      <p class="note" id="ctime-note"></p>
+      <p class="note">In plain terms: across Canada's big metro areas, a single-detached house took about 5 months from foundation to finish in 1990 and about 9 months in 2025; an apartment building went from about 11 months to about 23. The "all homes" line rose faster still (about 8 → 19 months), partly because more of what gets built now is apartments. Points based on fewer than 20 finished homes are left out, so small places and rare types show gaps rather than noise. Source: CMHC Starts and Completions Survey, read from CMHC's Housing Market Information Portal. Not available from Statistics Canada.</p>
+      <p class="note" data-mode="advanced"><strong>Method.</strong> CMHC's monthly "Average Length of Construction (in months)" (HMIP tables 1.2.7 by dwelling type, 1.2.8 by intended market; "For: Census Metropolitan Areas", <code>MetType=Cmas</code>), 1990-01 onward. CMHC publishes no formal definition; we read it as the mean months from <em>start</em> (footings poured for the whole structure) to <em>completion</em> (all work done, or all but 10%) over units completed in the month. <strong>12-mo avg</strong> = Σ(months<sub>t</sub> × completions<sub>t</sub>) ÷ Σ completions<sub>t</sub> over the trailing 12 months, weighted by CMHC completions pulled at the same coverage, so a busy month counts more than a quiet one. Each point needs ≥ 20 completions (that month, or in the 12-month window), and a 12-month point needs ≥ 6 months with data; below that it's dropped. <strong>Gaps:</strong> CMHC shows 0.0 months where no time was recorded: all of 1992–1993 everywhere, plus scattered CMA months (8,660 cells in total). A zero-month build is impossible, so these are treated as missing. CMHC's own province, Canada and "All" figures still average those zeros in, which pulls them down in the affected months (230 months across 49 series sit below every one of their categories). We show CMHC's figures as published. <strong>Coverage:</strong> province and Canada values average their CMAs only, not rural areas or towns. PEI has no CMA, so it has no data. HMIP's "Ottawa" is the Ontario part of Ottawa-Gatineau; Gatineau is the Quebec part. CMHC has collected completions only in CMAs since 2023-01-01. No reliability codes are published for this table. Pipeline: <code>Python/construction_time_etl.py</code> → <code>construction_json/ctime/</code>; catalogue and caveats in <code>docs/HMIP_CATALOGUE.md</code> and <code>docs/CONSTRUCTION.md</code>.</p>
+      <div id="ctime-table"></div>
+    </div>
+
     <!-- 5 ▸ Residential vs non-residential -->
     <div class="section-head">
       <h2>Residential vs non-residential</h2>
@@ -554,7 +582,7 @@ footer a:hover{color:var(--amber2)}
 <div class="chart-tip" id="chart-tip"></div>
 
 <footer>
-  <div>Sources: <a href="https://www150.statcan.gc.ca/">Statistics Canada</a> (34-10-0292, 34-10-0293, 34-10-0143, 34-10-0148, 34-10-0154, 34-10-0158, 18-10-0205, 17-10-0009, 14-10-0355, 34-10-0145) · CMHC · <a href="https://www.bankofcanada.ca/valet/docs">Bank of Canada Valet</a></div>
+  <div>Sources: <a href="https://www150.statcan.gc.ca/">Statistics Canada</a> (34-10-0292, 34-10-0293, 34-10-0143, 34-10-0148, 34-10-0154, 34-10-0158, 18-10-0205, 17-10-0009, 14-10-0355, 34-10-0145) · CMHC (incl. construction time from the <a href="https://www03.cmhc-schl.gc.ca/hmip-pimh/">Housing Market Information Portal</a>) · <a href="https://www.bankofcanada.ca/valet/docs">Bank of Canada Valet</a></div>
   <div id="footer-updated"></div>
   <div>Built as part of <a href="ceud.html">Ottawa Visuals</a> · not affiliated with Statistics Canada or CMHC</div>
 </footer>
@@ -601,7 +629,8 @@ var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',purple:
 
 var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs',
                resnonresReal:'nominal', worktypeReal:'constant', renoCMA:null,
-               absorbMode:'units', bcpiBldg:null, ewrbYear:null };
+               absorbMode:'units', bcpiBldg:null, ewrbYear:null,
+               ctimeGeo:null, ctimeBy:'dt', ctimeMA:'ma12' };
 var dataCache = {}, currentData = null, contextData = null, metaData = null;
 var allLoaded = false, cmaSort = {col:'starts', dir:-1};
 
@@ -781,7 +810,8 @@ function timeChart(mountId,cfg){
     cfg.series.forEach(function(s){
       var near=null;
       for(var i=0;i<s.pts.length;i++) if(s.pts[i].m===m){near=s.pts[i];break;}
-      if(near) rows+=tipRow(s.color,s.label,(cfg.fmt||fmtInt)(near.v)+(cfg.unitLabel?' '+cfg.unitLabel:''));
+      if(near) rows+=tipRow(s.color,s.label,(cfg.fmt||fmtInt)(near.v)+(cfg.unitLabel?' '+cfg.unitLabel:'')+
+        (cfg.tipN&&near.n!=null?' <span style="font-weight:400;opacity:.7">(n='+fmtInt(near.n)+')</span>':''));
     });
     showTip(rows,cx,cy);
   }
@@ -1093,6 +1123,114 @@ function renderMarket(){
   });
   buildLegend(document.getElementById('market-legend'),layers);
   annualBars('market-chart',layers,{share:state.marketShare==='share'});
+}
+
+/* ── How long it takes to build (construction_json/ctime/, CMHC HMIP) ──
+   Per-geo files hold loc_<by>_<cat> (months) and cmp_<by>_<cat> (completed
+   units, same CMA-only coverage). 12-mo avg is completion-weighted; any
+   point resting on fewer than CTIME_MIN_N completions is dropped. */
+var CTIME_MIN_N=20;
+var CTIME_CATS={
+  dt:[['single','Single-detached',PAL.amber],['semi','Semi-detached',PAL.green],
+      ['row','Row (townhouse)',PAL.blue],['apartment','Apartment & other',PAL.navy],
+      ['all','All dwelling types','#1C2B3A']],
+  im:[['homeowner','Homeowner',PAL.navy],['condo','Condo',PAL.blue],['rental','Rental',PAL.amber],
+      ['coop','Co-op',PAL.gray],['all','All markets','#1C2B3A']]
+};
+var ctimeIndex=null, ctimeCache={}, ctimeIndexFailed=false;
+function ctimeDefaultGeo(){
+  var c=state.geo==='ottawa'?'ottawa_on':state.geo;
+  return ctimeIndex&&ctimeIndex.geographies.some(function(g){return g.code===c})?c:'ca';
+}
+function ctimeGeoName(code){
+  var g=ctimeIndex&&ctimeIndex.geographies.filter(function(x){return x.code===code})[0];
+  if(!g) return code;
+  if(code==='ottawa_on') return 'Ottawa (Ontario part)';
+  if(code==='ottawa_qc') return 'Gatineau (Ottawa-Gatineau, Quebec part)';
+  return code==='ca'?'Canada':g.name;
+}
+function populateCtimeGeo(){
+  var sel=document.getElementById('ctime-geo'); sel.innerHTML='';
+  var geos=ctimeIndex.geographies, provName={};
+  geos.forEach(function(g){ if(g.type==='Province') provName[g.code]=g.name; });
+  function add(parent,g){
+    var o=document.createElement('option'); o.value=g.code; o.textContent=ctimeGeoName(g.code);
+    parent.appendChild(o);
+  }
+  var og=document.createElement('optgroup'); og.label='Canada & provinces (their CMAs only)';
+  geos.filter(function(g){return g.type!=='MetropolitanMajorArea'}).forEach(function(g){add(og,g)});
+  sel.appendChild(og);
+  GEOS.provinces.slice(1).forEach(function(p){
+    var cmas=geos.filter(function(g){return g.type==='MetropolitanMajorArea'&&g.province===p[0]})
+      .sort(function(a,b){return ctimeGeoName(a.code).localeCompare(ctimeGeoName(b.code))});
+    if(!cmas.length) return;
+    var g2=document.createElement('optgroup'); g2.label='CMAs — '+p[1];
+    cmas.forEach(function(g){add(g2,g)}); sel.appendChild(g2);
+  });
+}
+/* months series + completions series → [{m,v,n}] (monthly or weighted 12-mo) */
+function ctimePts(loc,cmp,ma12){
+  var lp=pts(loc), cm={};
+  pts(cmp).forEach(function(p){cm[p.m]=p.v});
+  var out=[];
+  if(!ma12){
+    lp.forEach(function(p){ var n=cm[p.m]; if(n!=null&&n>=CTIME_MIN_N) out.push({m:p.m,v:p.v,n:n}); });
+    return out;
+  }
+  var byM={}; lp.forEach(function(p){byM[p.m]=p.v});
+  if(!lp.length) return out;
+  var m0=lp[0].m+11, m1=lp[lp.length-1].m;
+  for(var m=m0;m<=m1;m++){
+    var sw=0,sn=0,k=0;
+    for(var j=m-11;j<=m;j++){
+      var v=byM[j], n=cm[j];
+      if(v!=null&&n!=null&&n>0){ sw+=v*n; sn+=n; k++; }
+    }
+    /* needs >= 6 of the 12 months with data, so the average just after a
+       gap (e.g. CMHC's 1992-93 hole) never rests on one or two months */
+    if(sn>=CTIME_MIN_N&&k>=6) out.push({m:m,v:sw/sn,n:sn});
+  }
+  return out;
+}
+function renderCtime(){
+  var mount=document.getElementById('ctime-chart');
+  if(!mount) return;
+  if(ctimeIndexFailed){ mount.innerHTML='<div class="section-loading">Construction-time data unavailable.</div>'; return; }
+  if(!ctimeIndex){ mount.innerHTML='<div class="section-loading">Loading construction-time data…</div>'; return; }
+  var code=state.ctimeGeo||ctimeDefaultGeo();
+  document.getElementById('ctime-geo').value=code;
+  document.getElementById('ctime-by').value=state.ctimeBy;
+  var p=ctimeCache[code]?Promise.resolve(ctimeCache[code]):
+    loadJSON(BASE_URL+'ctime/'+code+'.json').then(function(d){ctimeCache[code]=d;return d;});
+  p.then(function(d){
+    if((state.ctimeGeo||ctimeDefaultGeo())!==code) return;   /* a newer pick won */
+    var ma12=state.ctimeMA==='ma12', by=state.ctimeBy;
+    var series=CTIME_CATS[by].map(function(c){
+      return {label:c[1],color:c[2],type:'line',dash:c[0]==='all'?'5 3':'',
+        pts:ctimePts(d.series['loc_'+by+'_'+c[0]],d.series['cmp_'+by+'_'+c[0]],ma12)};
+    });
+    var shown=series.filter(function(s){return s.pts.length});
+    buildLegend(document.getElementById('ctime-legend'),
+      series.map(function(s){return{label:s.label+(s.pts.length?'':' (no data)'),color:s.color}}));
+    document.getElementById('ctime-title').textContent='Average construction time, months — '+ctimeGeoName(code)+
+      (ma12?' (12-month, completion-weighted)':' (monthly)');
+    timeChart('ctime-chart',{series:shown,fmt:function(v){return v==null?'—':v.toFixed(1)},unitLabel:'mo',
+      tipN:true});
+    var all=series[series.length-1].pts, last=all.length?all[all.length-1]:null;
+    var note=code==='pe'?'':ctimeGeoName(code)+(code.length===2?': average over its Census Metropolitan Areas only. ':'. ');
+    var gi=ctimeIndex.geographies.filter(function(g){return g.code===code})[0];
+    if(gi&&gi.first_month&&gi.first_month>ctimeIndex.start)
+      note+='CMHC’s history for this CMA starts '+miLabel(mi(gi.first_month))+'. ';
+    if(code==='pe') note+='Prince Edward Island has no CMA, so CMHC publishes no value for it. ';
+    else if(last) note+='Latest '+(ma12?'12-month':'monthly')+' value for all '+(by==='dt'?'dwelling types':'markets')+': '+
+      last.v.toFixed(1)+' months ('+miLabel(last.m)+', '+fmtInt(last.n)+' completed homes). ';
+    note+='Data through '+miLabel(mi(ctimeIndex.end))+', retrieved '+ctimeIndex.retrieved+'.';
+    document.getElementById('ctime-note').textContent=note;
+    dataTable('ctime-table',shown,{fmt:function(v){return v==null?'—':v.toFixed(1)}});
+  }).catch(function(e){
+    mount.innerHTML='<div class="section-loading">Couldn’t load construction time for this area.</div>';
+    console.warn('ctime',code,e.message);
+  });
 }
 
 function renderResNonres(){
@@ -2208,6 +2346,7 @@ function renderAll(){
   renderPipeline();
   renderDwelling();
   renderMarket();
+  renderCtime();
   renderResNonres();
   renderAbsorb();
   renderHMI();
@@ -2263,6 +2402,7 @@ function switchGeo(code){
   if(code===state.geo) return;
   state.geo=code;
   state.renoCMA=null;   /* let the renovation card follow the new geography */
+  state.ctimeGeo=null;  /* construction-time card follows it too */
   document.getElementById('geo-sel').value=code;
   fetchGeo(code).then(function(d){
     currentData=d;
@@ -2282,6 +2422,12 @@ function boot(){
   wireToggle('resnonres-real','data-real',function(v){state.resnonresReal=v;renderResNonres();});
   wireToggle('worktype-real','data-real',function(v){state.worktypeReal=v;renderWorktype();});
   wireToggle('absorb-mode','data-mode',function(v){state.absorbMode=v;renderAbsorb();});
+  wireToggle('ctime-ma','data-ma',function(v){state.ctimeMA=v;renderCtime();});
+  document.getElementById('ctime-geo').addEventListener('change',function(e){state.ctimeGeo=e.target.value;renderCtime();});
+  document.getElementById('ctime-by').addEventListener('change',function(e){state.ctimeBy=e.target.value;renderCtime();});
+  loadJSON(BASE_URL+'ctime/index.json').then(function(ix){
+    ctimeIndex=ix; populateCtimeGeo(); if(currentData) renderCtime();
+  }).catch(function(e){ ctimeIndexFailed=true; renderCtime(); console.warn('ctime/index.json unavailable:',e.message); });
 
   Promise.all([fetchGeo(state.geo), loadJSON(BASE_URL+'meta.json')])
     .then(function(res){
