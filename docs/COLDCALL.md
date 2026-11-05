@@ -1,8 +1,9 @@
 # The Cold Call — HVAC escape room (training tool)
 
-**Status (2026-11-04):** unlisted playtest at
-[ottawavisuals.github.io/Energy/coldcall.html](https://ottawavisuals.github.io/Energy/coldcall.html).
-No landing-page tile and no Project Atlas entry yet: add them after the playtest.
+**Status (2026-11-05):** playtest at
+[ottawavisuals.github.io/Energy/coldcall.html](https://ottawavisuals.github.io/Energy/coldcall.html),
+listed on the landing page (last tile) and in the Project Atlas progress bars. The page itself
+keeps `noindex` for now. No favicon or social card yet.
 
 ## What it is
 
@@ -151,3 +152,10 @@ Layout refinement (2026-11-05). Reduced outer padding and gaps. Replaced decorat
 
 - The "Next →" button, the service-call step buttons and `#lineN` links could open any line, so a player could skip to line 6 unsolved. `show()` now opens only solved lines and the first unsolved one; Next and later step buttons stay disabled (with a "Locked" tooltip) until the current line is solved. A finished game can still revisit every line.
 - Validation: fresh start with `#line6`, Next and sheet clicks stay on line 1; solving line 1 unlocks line 2 only; a fully solved save reaches all six; `node Python/check_coldcall.cjs` passes.
+
+## Landing-page tile — 2026-11-05 (published 2026-11-05)
+
+- Designer asked for a tile and approved the art and text. Art: snowflake (winter breakdown), service-call clipboard (two lines ticked, one in progress) and padlock (escape room), in the suite's navy `#0B2545`, teal `#009D9D` and amber `#E8A124`.
+- Drawn with Pillow (no AI image generation) by `C:\EscapeBackpack\Cold-Call\make-tile-art.py`: `assets/icons/cold-call.png` (1942×809, transparent) and `assets/icons/web/cold-call.webp` (512×216, balanced like `Python/build_visual_polish.py`). Not added to `build_visual_polish.py` / `build_brand_assets.py` SPECS, so rerunning those leaves it alone.
+- Tile text: "A 30-minute HVAC escape room: a furnace fails mid-winter and you install the heat pump, solving six puzzles on real heating maths." Footer "Training game · playtest", CTA "Play →".
+- Validation: tile height matches its neighbours in the 4-column grid at 1366px; art legible in light and dark themes.
