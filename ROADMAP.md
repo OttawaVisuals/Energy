@@ -1,6 +1,7 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-06**: Cold Call opens new service calls with an emergency dispatch briefing. The timer starts when the player begins the call. Published 2026-11-06.
 Updated **2026-11-06**: Construction Tracker's "How long it takes to build" gets **CMHC vs
 city permit records**: when a CMA with permit completion dates is picked (Calgary, Edmonton,
 Winnipeg, Halifax, Toronto + Mississauga), new-home build time from the city's own permits is
