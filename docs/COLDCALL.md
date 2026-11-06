@@ -159,3 +159,8 @@ Layout refinement (2026-11-05). Reduced outer padding and gaps. Replaced decorat
 - Drawn with Pillow (no AI image generation) by `C:\EscapeBackpack\Cold-Call\make-tile-art.py`: `assets/icons/cold-call.png` (1942×809, transparent) and `assets/icons/web/cold-call.webp` (512×216, balanced like `Python/build_visual_polish.py`). Not added to `build_visual_polish.py` / `build_brand_assets.py` SPECS, so rerunning those leaves it alone.
 - Tile text: "A 30-minute HVAC escape room: a furnace fails mid-winter and you install the heat pump, solving six puzzles on real heating maths." Footer "Training game · playtest", CTA "Play →".
 - Validation: tile height matches its neighbours in the 4-column grid at 1366px; art legible in light and dark themes.
+
+
+## Emergency dispatch briefing — 2026-11-06 (published)
+
+A fresh service call opens with a short dispatch briefing. Start service call opens Line 1 and starts the timer. Reset and Play again return to the briefing. Saved progress and direct puzzle links enter the workbench with existing unlock rules.
