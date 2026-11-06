@@ -5,9 +5,14 @@ Updated **2026-11-06**: **Published-site size, step 1 of 3.** `gh-pages` was 1.7
 GitHub Pages' 1 GB limit, and each deploy repackages all of it (one timed out on 2026-11-06).
 `fsa_json` is now dictionary-encoded (1,112 → 811 MB, lossless, `Python/fsa_json_codec.py`)
 and per-home retrofit costs are whole dollars (379 → 240 MB). Site ≈ 1.32 GB, still over.
-Next, not yet decided: step 2, drop columns no page reads (needs a runtime audit, since column
-names are also built dynamically); step 3, serve the per-house trees from a separate site.
-See docs/RETROFITS.md and docs/RETROFIT_COSTS.md changelogs 2026-11-06.
+Saved 441 MB (1,795 → 1,354 MB published; Pages upload 410 → 338 MB).
+**Decision (2026-11-06): stay as-is. Step 3 not pursued** (moving `fsa_json` +
+`retrofit_costs_json` to a separate host, Cloudflare Pages or two extra GitHub repos). Why:
+it would break the same-origin, no-external-dependency rule and add a second host and deploy
+for every data refresh. Accepted: the site stays above GitHub's documented 1 GB limit, so
+deploys can still time out. Step 2 (drop unread columns, needs a runtime audit; ≤ ~250 MB,
+would not reach 1 GB alone) is not started. See docs/RETROFITS.md and
+docs/RETROFIT_COSTS.md changelogs 2026-11-06.
 Updated **2026-11-06**: Cold Call opens new service calls with an emergency dispatch briefing. The timer starts when the player begins the call. Published 2026-11-06.
 Updated **2026-11-06**: Construction Tracker's "How long it takes to build" gets **CMHC vs
 city permit records**: when a CMA with permit completion dates is picked (Calgary, Edmonton,
