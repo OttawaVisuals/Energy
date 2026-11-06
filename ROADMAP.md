@@ -1,6 +1,19 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-06**: Construction Tracker's "How long it takes to build" gets **CMHC vs
+city permit records**: when a CMA with permit completion dates is picked (Calgary, Edmonton,
+Winnipeg, Halifax, Toronto + Mississauga), new-home build time from the city's own permits is
+shown beside CMHC's, plus a house-floor-area / apartment-building-size chart (CMHC has no size
+data). `Python/city_build_time_etl.py` → `construction_json/city_build.json`, monthly in the
+workflow as a non-blocking step. **Decisions:** new residential only, by completion year,
+unit-weighted (CMHC's basis), with the existing all-permit, by-issue-year panels left as they
+are and linked. Median by default, average on a toggle. Status filter, because 3 cities date
+cancelled/dormant files. "Clean-up years" hidden: more than a third of closures 5+ years
+after issue, because Toronto has been bulk-closing old files since 2024. First year shown
+waits for the 95th-percentile build time. **Finding:** Calgary and Edmonton permit clocks
+track CMHC within a month for single-detached homes. Winnipeg, Halifax and Mississauga run
+3–11 months longer (final inspection long after move-in). See `docs/CONSTRUCTION.md`.
 Updated **2026-11-05**: construction-time ETL added to `construction-refresh.yml` as a
 non-blocking, 150-min-capped monthly step, with staged writes so a CMHC outage can't publish
 half-updated data. **Found while doing it:** the monthly construction refresh **failed on

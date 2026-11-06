@@ -1,5 +1,10 @@
 # Construction Tracker
 
+2026-11-06: **CMHC vs city permit records** added under "How long it takes to build":
+new-home build time from six cities' permits (new residential only, by completion year,
+unit-weighted) beside CMHC's, plus a house-size / apartment-building-size chart. See
+[City permit records beside CMHC](#city-permit-records-beside-cmhc-new-home-build-time-and-size).
+
 2026-11-05: **"How long it takes to build"** card added (local, not yet published).
 It shows CMHC's average construction time in months, monthly since 1990, with
 dropdowns for geography (Canada, provinces, all 42 CMAs) and breakdown (dwelling type or
@@ -173,6 +178,87 @@ publishes. **Caveat:** the step sits after the municipal permits step, which fai
 whole job on 2026-09-20 and 2026-10-20 (Calgary portal read timeout), so until that's fixed
 neither this step nor the publish runs.
 
+## City permit records beside CMHC (new-home build time and size)
+
+2026-11-06. When the "How long it takes to build" geography is a CMA containing a city with
+permit completion dates, two more charts appear under the CMHC chart: **CMHC vs the city's
+own permit records** (one dwelling type at a time, Median / Average toggle) and **Are new
+homes getting bigger?** (house floor area, or apartment building size). Cities: Calgary,
+Edmonton, Winnipeg, Halifax, Toronto and Mississauga (the last two both inside the Toronto
+CMA, with a city picker). Vancouver, Ottawa and Montréal publish no completion date.
+
+**Plain language.** The city line uses each city's building permits for new homes, from the
+day the permit was issued to the day the city closed it (Edmonton: occupancy granted). CMHC
+times foundation to finished home. The two clocks differ, so read them for whether they move
+together. CMHC publishes no floor area, so size comes from the permits.
+
+**Why a new series, not the existing per-city build-time panels.** Those (from
+`municipal_permits_etl.py`) mix every permit type, group by the year *issued* (so recent
+years hold only fast projects) and are unweighted. The new series is new residential
+construction only, grouped by **completion year** like CMHC, and **weighted by dwelling
+units** like CMHC (a 200-unit building counts 200 times). The old panels now link to it.
+
+**Method.**
+- *Scope per city* (checked live 2026-11-06): Calgary `workclass='New'`, residential, units
+  > 0, `statuscurrent='Completed'`, end `completeddate`. Edmonton new work types, units > 0,
+  end `occupancy_granted_date`. Winnipeg `work_type='Construct New'`, units > 0,
+  `status='Closed'`, end `final_date`. Mississauga `SCOPE='NEW BUILDING'`, units > 0, `STATUS`
+  all-inspections-signed-off, end `COMPLETE_DATE`. Halifax new residential building, net units
+  > 0, `Permit_Status='Completed'`, end `Completed_Date`. Toronto cleared permits, `New
+  Houses` / `New Building`, units created > 0, `STATUS='Closed'`, end `COMPLETED_DATE`.
+- *Status filter:* Calgary, Halifax and Toronto also stamp an end date on cancelled,
+  expired, withdrawn or dormant permits (1,990 / 303 / 1,446). Those are excluded and counted.
+  Winnipeg's 1,704 "closed with an incomplete inspection process" are excluded too.
+- *Dwelling types* map onto CMHC's four. Duplexes, multiplexes and stacked townhouses go to
+  apartment, as CMHC classes them. Homes in mixed-use buildings count as apartments: Toronto
+  has 226 such permits holding 61,421 homes, more than its apartment-building permits.
+  Suites, backyard houses and non-residential types are left out and counted.
+- *Statistic:* months = days ÷ 30.4375. The unit-weighted median is the default, because
+  permit files have long administrative tails. The unit-weighted average is CMHC's own
+  statistic and sits on the toggle. CMHC's line is its monthly CMA figure, averaged over the
+  calendar year and weighted by completions (≥ 20 completions, ≥ 6 months with data).
+- *Small n:* cells with < 20 permits keep their count but show no value.
+- *"All types" guard:* an "all" cell shows only when every type holding ≥ 10% of that year's
+  homes is publishable on its own. Without it, Mississauga's 2026 "all" read 47 months off 2
+  apartment permits carrying hundreds of homes.
+- *First year shown* = first full year of issue records + the 95th-percentile build time
+  (whole years, over files closed within 5 years). Before that only fast builds could
+  appear. Edmonton starts at 2022, when it began recording occupancy dates.
+- *Clean-up years:* a year where more than a third of closures came over 5 years after issue
+  is hidden, with its count and share kept in the table. Those closures date paperwork, not
+  builds. Toronto: 53% of 2025 single-detached closures were 5+ years old (2017–2024: 7–25%),
+  and 84–93% of 2024–2026 apartment closures. Toronto singles hide 2025–26 and apartments
+  2024–26. Winnipeg's row homes hide 2026. Size values are hidden in the same years.
+- *Size:* median floor area per single-detached home (Calgary `totalsqft`, Edmonton
+  `floor_area`, Mississauga `APPL_AREA` m², Toronto `RESIDENTIAL` m²; 400–15,000 sq ft kept).
+  Toronto's field is read as gross floor area from its magnitudes, which is an inference.
+  Halifax records only the footprint and Winnipeg no area, so neither has a house-size chart.
+  Apartment building size is the median homes per apartment permit with 5+ homes. The floor
+  keeps Toronto's one-unit stacked-townhouse permits from reading as one-home "buildings".
+
+**What it shows (2025, single-detached, permit median vs CMHC CMA average).** Calgary 6.6 vs
+7.5 months and Edmonton 7.2 vs 7.1 months: the city clock tracks CMHC closely. Halifax 11.9
+vs 8.8, Winnipeg 15.0 vs 8.4 and Mississauga 24.3 vs CMHC Toronto's 13.6 run much longer,
+because those permits close at a final inspection that can come long after move-in. Calgary
+single-detached homes grew from a median 1,766 sq ft (2003 completions) to 2,115 (2025),
+while build time stayed around 6–9 months.
+
+**Limitations.**
+- *Can't tell us:* when the home was physically finished in cities whose permits close late,
+  or why the gap to CMHC differs by city (inspection practice, not construction, is the
+  likeliest reason, but the data can't separate them).
+- *Assumed:* CMHC's dwelling-type definitions apply to each city's labels as mapped; Toronto's
+  `RESIDENTIAL` is gross floor area; a city is a fair stand-in for part of its CMA (Toronto and
+  Mississauga are two pieces of one CMA).
+- *Would change the answer:* a city publishing an occupancy date (as Edmonton does), a
+  different clean-up threshold, or using permit issue years instead of completion years.
+
+**Refresh.** `Python/city_build_time_etl.py` → `construction_json/city_build.json` (17 KB).
+Runs monthly in `construction-refresh.yml` as a **non-blocking, 30-minute-capped step** after
+the construction-time step (about 5 minutes; Calgary pages ~157k rows). A city that fails
+keeps its previous block, with its own older `retrieved` date, and the script exits 1. Same
+Calgary-timeout caveat as above until that fix lands.
+
 ## Data pipeline
 
 ```
@@ -200,6 +286,11 @@ Python/construction_time_etl.py     # CMHC HMIP (not StatCan): average length
                                     #   intended market, Canada + 10 provinces
                                     #   + 42 CMAs, CMA-only coverage (MetType=Cmas)
         → construction_json/ctime/  # index.json + one <code>.json per geography
+
+Python/city_build_time_etl.py       # six city permit desks: new-home build
+                                    #   time by completion year, unit-weighted,
+                                    #   + house floor area / apt building size
+        → construction_json/city_build.json
 
 Python/ewrb_etl.py                  # Ontario large-building energy disclosure
         → construction_json/ewrb.json       # XLSX per year, cached in ewrb_cache/
@@ -559,6 +650,7 @@ python municipal_permits_etl.py       # writes municipal.json (live portals)
 python ewrb_etl.py                    # writes ewrb.json; --refresh re-downloads
 python cited_figures_verify.py        # writes programs.json; exits 1 if stale
 python construction_time_etl.py       # writes ctime/ from CMHC HMIP pages
+python city_build_time_etl.py         # writes city_build.json (~5 min; --only city,...)
                                       #   (~80 min: slow server; --use-cache for dev;
                                       #   monthly in the workflow, non-blocking)
 python cagbc_leed_etl.py              # writes cagbc.json from a MANUAL export,

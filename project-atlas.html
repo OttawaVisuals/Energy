@@ -999,6 +999,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Energy performance<small>EnerGuide new-home ratings, reused from newhomes_json/ — no new fetch</small></div>
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
     <div class="src">CMHC HMIP (not StatCan)<small>construction time in months + completions, monthly since 1990, Canada · 10 provinces · 42 CMAs, CMA-only coverage (construction_time_etl.py, added 2026-11-05; monthly in the refresh workflow as a non-blocking step)</small></div>
+    <div class="src">City permits vs CMHC<small>new-home build time from six cities' permits (Calgary, Edmonton, Winnipeg, Halifax, Toronto, Mississauga), by completion year and unit-weighted to sit beside CMHC, plus house floor area and apartment building size (city_build_time_etl.py, added 2026-11-06; monthly, non-blocking)</small></div>
   </div>
 
   <h3>How it was built</h3>
@@ -1145,6 +1146,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <li>Canada and Ottawa views were compared against published StatCan figures (SAAR 261,377; permits $12.5B; under-construction 347,543 at its discontinuation) — matched.</li>
       <li>Zero console errors in browser verification; every toggle and view exercised.</li>
       <li>Construction time (2026-11-05): HMIP completions for Toronto equal StatCan 34-10-0154 in all 438 overlapping months, which confirms the HTML parsing and the CMA-only coverage match. All 53 geographies pass the month-continuity and completions-sum checks. CMHC records "not recorded" as 0.0 months (all of 1992–93, plus scattered CMA months; 8,660 cells); these are treated as gaps. CMHC's own province and "All" figures still average them in, flagged in 230 months.</li>
+      <li>City permits vs CMHC (2026-11-06): each city's scope, status values and type labels checked live. Permits with an end date but a cancelled, expired or dormant status are excluded and counted (Calgary 1,990, Halifax 303, Toronto 1,446). Toronto's bulk closure of old files is detected and hidden (53% of 2025 single-detached closures were 5+ years old). For single-detached homes in 2025, Calgary's and Edmonton's permit medians sit within a month of CMHC.</li>
       <li><b>Ongoing check you can do monthly:</b> after StatCan's monthly permits release (The Daily), the dashboard's headline should match The Daily's number within rounding once the 20th-of-month refresh runs.</li>
     </ul>
   </div>

@@ -330,6 +330,47 @@ footer a:hover{color:var(--amber2)}
       <p class="note">In plain terms: across Canada's big metro areas, a single-detached house took about 5 months from foundation to finish in 1990 and about 9 months in 2025; an apartment building went from about 11 months to about 23. The "all homes" line rose faster still (about 8 → 19 months), partly because more of what gets built now is apartments. Points based on fewer than 20 finished homes are left out, so small places and rare types show gaps rather than noise. Source: CMHC Starts and Completions Survey, read from CMHC's Housing Market Information Portal. Not available from Statistics Canada.</p>
       <p class="note" data-mode="advanced"><strong>Method.</strong> CMHC's monthly "Average Length of Construction (in months)" (HMIP tables 1.2.7 by dwelling type, 1.2.8 by intended market; "For: Census Metropolitan Areas", <code>MetType=Cmas</code>), 1990-01 onward. CMHC publishes no formal definition; we read it as the mean months from <em>start</em> (footings poured for the whole structure) to <em>completion</em> (all work done, or all but 10%) over units completed in the month. <strong>12-mo avg</strong> = Σ(months<sub>t</sub> × completions<sub>t</sub>) ÷ Σ completions<sub>t</sub> over the trailing 12 months, weighted by CMHC completions pulled at the same coverage, so a busy month counts more than a quiet one. Each point needs ≥ 20 completions (that month, or in the 12-month window), and a 12-month point needs ≥ 6 months with data; below that it's dropped. <strong>Gaps:</strong> CMHC shows 0.0 months where no time was recorded: all of 1992–1993 everywhere, plus scattered CMA months (8,660 cells in total). A zero-month build is impossible, so these are treated as missing. CMHC's own province, Canada and "All" figures still average those zeros in, which pulls them down in the affected months (230 months across 49 series sit below every one of their categories). We show CMHC's figures as published. <strong>Coverage:</strong> province and Canada values average their CMAs only, not rural areas or towns. PEI has no CMA, so it has no data. HMIP's "Ottawa" is the Ontario part of Ottawa-Gatineau; Gatineau is the Quebec part. CMHC has collected completions only in CMAs since 2023-01-01. No reliability codes are published for this table. Pipeline: <code>Python/construction_time_etl.py</code> → <code>construction_json/ctime/</code>; catalogue and caveats in <code>docs/HMIP_CATALOGUE.md</code> and <code>docs/CONSTRUCTION.md</code>.</p>
       <div id="ctime-table"></div>
+
+      <!-- City permit records beside CMHC (construction_json/city_build.json).
+           Shown only when the selected CMA contains a city with completion dates. -->
+      <div id="ctime-city" style="display:none">
+        <div class="card-title-row" style="margin-top:1.6rem">
+          <div class="card-title" id="ctime-city-title">CMHC vs the city’s own permit records</div>
+          <div class="card-controls">
+            <select id="ctime-city-pick" class="card-select" aria-label="City permit records"></select>
+            <select id="ctime-city-cls" class="card-select" aria-label="Dwelling type">
+              <option value="single">Single-detached</option>
+              <option value="semi">Semi-detached</option>
+              <option value="row">Row (townhouse)</option>
+              <option value="apartment">Apartment &amp; other</option>
+              <option value="all">All dwelling types</option>
+            </select>
+            <div class="seg-toggle" id="ctime-city-stat">
+              <button type="button" class="seg-btn active" data-stat="median">Median</button>
+              <button type="button" class="seg-btn" data-stat="mean">Average</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-legend-inline" id="ctime-city-legend" style="margin-bottom:.4rem"></div>
+        <div class="cw cw-xl" id="ctime-city-chart"></div>
+        <p class="note" id="ctime-city-note"></p>
+        <div id="ctime-city-table"></div>
+
+        <div class="card-title-row" style="margin-top:1.6rem">
+          <div class="card-title" id="ctime-size-title">Are new homes getting bigger?</div>
+          <div class="card-controls">
+            <div class="seg-toggle" id="ctime-size-mode">
+              <button type="button" class="seg-btn active" data-size="house">House floor area</button>
+              <button type="button" class="seg-btn" data-size="apt">Apartment building size</button>
+            </div>
+          </div>
+        </div>
+        <div class="cw cw-xl" id="ctime-size-chart"></div>
+        <p class="note" id="ctime-size-note"></p>
+
+        <p class="note">In plain terms: the city line uses the city’s own building permits for new homes, from the day the permit was issued to the day the city closed it (or, in Edmonton, granted occupancy). That is a different clock from CMHC’s, which runs from the foundation to the finished home. Permits are often issued a little before work starts and closed after people move in, so the city number usually runs longer. Read the two lines for whether they <em>move together</em>, not for an exact match. Each point is the homes finished that year. Years with fewer than 20 permits are left out. A size chart rising alongside build time doesn’t show that size is the cause: the mix of builders, labour and inspections changes too.</p>
+        <p class="note" data-mode="advanced"><strong>Method.</strong> New residential construction permits only (new building, ≥ 1 dwelling unit created), mapped onto CMHC’s four dwelling types from each city’s own type field. Duplexes, multiplexes and stacked townhouses count as apartments, as CMHC classes them, and so do the homes in mixed-use buildings. Secondary and backyard suites are left out and counted. Months = (end date − issue date) ÷ 30.4375 days, grouped by <strong>completion year</strong> to match CMHC. <strong>Median</strong> and <strong>Average</strong> are both weighted by dwelling units, like CMHC’s average: a 200-unit building counts 200 times. CMHC’s line is its monthly figure for the whole CMA, averaged over the calendar year and weighted by completions. Only permits whose status confirms completion are used. Calgary, Halifax and Toronto also stamp an end date on cancelled, expired, withdrawn or dormant permits, and those are excluded and counted. <strong>First year shown</strong> = first full year of the city’s issue records + the 95th-percentile build time (rounded up to whole years). Before that, only fast builds could have finished inside the records, so earlier years would read too short. Edmonton starts at 2022, when it began recording occupancy dates. <strong>Clean-up years</strong> are hidden: years in which more than a third of the permits closed had been issued over 5 years earlier. Toronto has been closing old files in bulk since 2024 (53% of its 2025 single-detached closures were 5+ years old). The table keeps their counts. <strong>All dwelling types</strong> is shown only when every type holding 10% or more of that year’s homes has enough permits of its own. <strong>Size:</strong> CMHC publishes no floor area. House size is the median floor area per single-detached home from the permit (Calgary <code>totalsqft</code>, Edmonton <code>floor_area</code>, Mississauga <code>APPL_AREA</code> m², Toronto <code>RESIDENTIAL</code> m²). Toronto’s field is read as gross floor area from its magnitudes, not from a published definition. Values outside 400–15,000 sq ft are excluded. Halifax records only the building footprint and Winnipeg no area at all. Apartment building size is the median homes per apartment permit with 5 or more homes. The floor keeps Toronto’s one-unit stacked-townhouse permits out. Every gate count is in <code>city_build.json</code>. Pipeline: <code>Python/city_build_time_etl.py</code>; full write-up in <code>docs/CONSTRUCTION.md</code>.</p>
+      </div>
     </div>
 
     <!-- 5 ▸ Residential vs non-residential -->
@@ -630,7 +671,8 @@ var PAL = {navy:'#245A96',amber:'#E8A124',green:'#1A7A55',blue:'#378ADD',purple:
 var state = { geo:'ca', pipelineMA:'ma6', dwellingShare:'abs', marketShare:'abs',
                resnonresReal:'nominal', worktypeReal:'constant', renoCMA:null,
                absorbMode:'units', bcpiBldg:null, ewrbYear:null,
-               ctimeGeo:null, ctimeBy:'dt', ctimeMA:'ma12' };
+               ctimeGeo:null, ctimeBy:'dt', ctimeMA:'ma12',
+               ctimeCity:null, ctimeCls:'single', ctimeStat:'median', ctimeSize:'house' };
 var dataCache = {}, currentData = null, contextData = null, metaData = null;
 var allLoaded = false, cmaSort = {col:'starts', dir:-1};
 
@@ -773,17 +815,22 @@ function timeChart(mountId,cfg){
   });
   if(yMin<0) svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(0),y2:Y(0),stroke:'#8A9BB0','stroke-width':1},svg);
   var yrSpan=Math.ceil((x1-x0)/12), yrStep=yrSpan>24?5:(yrSpan>12?2:1);
-  for(var y=Math.ceil(x0/12);y*12<=x1;y++){
+  /* annual series sit at mid-year (m = y*12+6): label the points themselves */
+  var yOff=cfg.annual?6:0;
+  for(var y=Math.ceil((x0-yOff)/12);y*12+yOff<=x1;y++){
     if(y%yrStep!==0) continue;
-    svgEl('text',{x:X(y*12),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+    svgEl('text',{x:X(y*12+yOff),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
   }
 
   cfg.series.forEach(function(s){
     if(!s.pts.length) return;
+    if(cfg.annual) s.pts.forEach(function(p){
+      if(p.m>=x0&&p.m<=x1) svgEl('circle',{cx:X(p.m),cy:Y(p.v),r:2.6,fill:s.color},svg);
+    });
     var d='', prev=null;
     s.pts.forEach(function(p){
       if(p.m<x0||p.m>x1) return;
-      d+=(prev==null||p.m-prev>((s.pts[1]?s.pts[1].m-s.pts[0].m:1)))?
+      d+=(prev==null||p.m-prev>(cfg.annual?12:(s.pts[1]?s.pts[1].m-s.pts[0].m:1)))?
         ' M'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1):
         ' L'+X(p.m).toFixed(1)+' '+Y(p.v).toFixed(1);
       prev=p.m;
@@ -806,7 +853,7 @@ function timeChart(mountId,cfg){
     if(m==null){ hover.style.display='none'; if(!fromLink) hideTip(); return; }
     hover.style.display=''; hover.setAttribute('x1',X(m)); hover.setAttribute('x2',X(m));
     if(fromLink) return;
-    var rows='<strong>'+miLabel(m)+'</strong>';
+    var rows='<strong>'+(cfg.annual?Math.floor(m/12)+(cfg.partialYear===Math.floor(m/12)?' (partial year)':''):miLabel(m))+'</strong>';
     cfg.series.forEach(function(s){
       var near=null;
       for(var i=0;i<s.pts.length;i++) if(s.pts[i].m===m){near=s.pts[i];break;}
@@ -819,6 +866,7 @@ function timeChart(mountId,cfg){
   ov.addEventListener('mousemove',function(e){
     var r=svg.getBoundingClientRect();
     var m=Math.round(x0+(e.clientX-r.left-M.l)/(W-M.l-M.r)*(x1-x0));
+    if(cfg.annual) m=Math.round((m-6)/12)*12+6;
     m=Math.max(x0,Math.min(x1,m));
     onHover(m,e.clientX,e.clientY,false);
     if(cfg.linkKey&&linkGroups[cfg.linkKey])
@@ -1227,10 +1275,141 @@ function renderCtime(){
     note+='Data through '+miLabel(mi(ctimeIndex.end))+', retrieved '+ctimeIndex.retrieved+'.';
     document.getElementById('ctime-note').textContent=note;
     dataTable('ctime-table',shown,{fmt:function(v){return v==null?'—':v.toFixed(1)}});
+    renderCtimeCity(code,d);
   }).catch(function(e){
+    document.getElementById('ctime-city').style.display='none';
     mount.innerHTML='<div class="section-loading">Couldn’t load construction time for this area.</div>';
     console.warn('ctime',code,e.message);
   });
+}
+
+/* ── City permit records beside CMHC (construction_json/city_build.json) ──
+   Annual, by COMPLETION year, new residential permits only, unit-weighted —
+   built by Python/city_build_time_etl.py to sit beside CMHC. Row format:
+   [year, permits, homes, median_mo, mean_mo, pct_closed_over_5y]; values
+   are null for small-n cells and for "clean-up years" (bulk closure of old
+   files). The CMHC line is the same CMA's monthly figure, completion-
+   weighted over each calendar year (>= CTIME_MIN_N completions, >= 6 months). */
+var cityBuild=null;
+var CTIME_CLS_LABEL={single:'Single-detached',semi:'Semi-detached',row:'Row (townhouse)',
+  apartment:'Apartment & other',all:'All dwelling types'};
+var CTIME_CLS_NOUN={single:'single-detached homes',semi:'semi-detached homes',row:'row homes',
+  apartment:'apartments',all:'homes of all types'};
+function cmhcAnnual(loc,cmp){
+  var cm={}, by={};
+  pts(cmp).forEach(function(p){cm[p.m]=p.v});
+  pts(loc).forEach(function(p){
+    var n=cm[p.m]; if(n==null||n<=0) return;
+    var y=Math.floor(p.m/12), b=by[y]||(by[y]={sw:0,sn:0,k:0});
+    b.sw+=p.v*n; b.sn+=n; b.k++;
+  });
+  return Object.keys(by).map(Number).sort(function(a,b){return a-b})
+    .filter(function(y){return by[y].sn>=CTIME_MIN_N&&by[y].k>=6})
+    .map(function(y){return {m:y*12+6,v:by[y].sw/by[y].sn,n:by[y].sn,k:by[y].k}});
+}
+function ctimeYearTable(mountId,cols,years){
+  var head='<tr><th>Completion year</th>'+cols.map(function(c){return '<th>'+c[0]+'</th>'}).join('')+'</tr>';
+  var rows=years.slice().reverse().map(function(y){
+    return '<tr><td>'+y+'</td>'+cols.map(function(c){return '<td>'+c[1](y)+'</td>'}).join('')+'</tr>';
+  }).join('');
+  document.getElementById(mountId).innerHTML='<details class="data-details"><summary>View as table</summary>'+
+    '<div class="data-tbl-wrap"><table class="data-tbl">'+head+rows+'</table></div></details>';
+}
+function renderCtimeCity(code,d){
+  var box=document.getElementById('ctime-city');
+  var keys=cityBuild&&cityBuild.cma_cities[code];
+  if(!keys||!keys.length){ box.style.display='none'; return; }
+  box.style.display='';
+  var pick=document.getElementById('ctime-city-pick');
+  if(pick.getAttribute('data-cma')!==code){
+    pick.innerHTML=keys.map(function(k){return '<option value="'+k+'">'+cityBuild.cities[k].label+'</option>'}).join('');
+    pick.setAttribute('data-cma',code);
+    pick.style.display=keys.length>1?'':'none';
+  }
+  if(keys.indexOf(state.ctimeCity)<0) state.ctimeCity=keys[0];
+  pick.value=state.ctimeCity;
+  document.getElementById('ctime-city-cls').value=state.ctimeCls;
+  var c=cityBuild.cities[state.ctimeCity], cls=state.ctimeCls, mean=state.ctimeStat==='mean';
+  var cc=c.classes[cls]||{rows:[],cleanup_years:[]}, si=mean?4:3;
+  var f1=function(v){return v==null?'—':v.toFixed(1)};
+  var closeWord=state.ctimeCity==='edmonton'?'occupancy granted':'permit closed';
+
+  /* 1 ▸ build time, CMHC vs city */
+  var cityPts=cc.rows.filter(function(r){return r[si]!=null})
+    .map(function(r){return {m:r[0]*12+6,v:r[si],n:r[2]}});
+  var cm=cmhcAnnual(d.series['loc_dt_'+cls],d.series['cmp_dt_'+cls]);
+  var lo=cc.rows.length?cc.rows[0][0]*12+6:null, hi=cc.rows.length?cc.rows[cc.rows.length-1][0]*12+6:null;
+  var cmIn=lo==null?[]:cm.filter(function(p){return p.m>=lo&&p.m<=hi});
+  var series=[
+    {label:'CMHC, '+ctimeGeoName(code)+' CMA (start → completion, average)',color:'#1C2B3A',dash:'5 3',pts:cmIn},
+    {label:c.label+' permits (issued → '+closeWord+', '+(mean?'average':'median')+')',color:PAL.amber,pts:cityPts}];
+  buildLegend(document.getElementById('ctime-city-legend'),series.map(function(s){
+    return {label:s.label+(s.pts.length?'':' (no data)'),color:s.color};}));
+  document.getElementById('ctime-city-title').textContent='CMHC vs '+c.label+' permits — '+
+    CTIME_CLS_LABEL[cls]+', months';
+  if(!cityPts.length){
+    document.getElementById('ctime-city-chart').innerHTML='<div class="section-loading">No year with at least '+
+      cityBuild.min_n+' usable completed new-home permits of this type in '+c.label+', so there is nothing to compare.</div>';
+  } else {
+    timeChart('ctime-city-chart',{series:series.filter(function(s){return s.pts.length}),annual:true,
+      xDomain:[lo,hi],partialYear:c.partial_year,fmt:f1,unitLabel:'mo',tipN:true});
+  }
+  var note=c.coverage+' ';
+  var y1=cc.rows.length?cc.rows[0][0]:null;
+  if(y1&&y1===cc.first_year) note+='Starts in '+y1+': '+(c.min_year_reason||('the city’s records begin '+
+    c.issue_history_start.slice(0,7)+', so earlier years would only hold the fast builds.'))+' ';
+  else if(y1) note+='The city’s completion dates for these homes start in '+y1+'. ';
+  if(cc.cleanup_years&&cc.cleanup_years.length) note+='Hidden as clean-up years: '+cc.cleanup_years.join(', ')+
+    '. In those years more than a third of the permits closed had been issued over 5 years earlier, '+
+    'so they date old files being closed, not homes being finished. ';
+  var cmBy={}; cm.forEach(function(p){cmBy[Math.floor(p.m/12)]=p});
+  var both=cc.rows.filter(function(r){return r[si]!=null&&cmBy[r[0]]&&r[0]!==c.partial_year});
+  if(both.length){
+    var L=both[both.length-1], cv=cmBy[L[0]].v;
+    note+='In '+L[0]+', '+CTIME_CLS_NOUN[cls]+' took '+f1(L[si])+' months by the permit clock ('+
+      fmtInt(L[2])+' homes) against CMHC’s '+f1(cv)+' months for the CMA, '+
+      (Math.abs(L[si]-cv)<0.5?'about the same. ':(f1(Math.abs(L[si]-cv))+' months '+(L[si]>cv?'longer':'shorter')+'. '));
+  }
+  if(c.partial_year) note+=c.partial_year+' is a partial year (through '+c.latest_completion.slice(0,7)+'). ';
+  var g=c.gates;
+  note+='Not counted: '+fmtInt(g.excluded_status)+' permits with an end date but a cancelled, expired or dormant status; '+
+    fmtInt(g.negative_days)+' ending before they were issued; '+fmtInt(g.unmapped_type)+' suites and other types outside CMHC’s four'+
+    (c.still_open!=null?'; '+fmtInt(c.still_open)+' still open (they’ll count in the year they close)':'')+'. '+
+    (c.open_note?c.open_note+' ':'')+'Retrieved '+c.retrieved+'.';
+  document.getElementById('ctime-city-note').textContent=note;
+  var yrs=cc.rows.map(function(r){return r[0]});
+  var rowBy={}; cc.rows.forEach(function(r){rowBy[r[0]]=r});
+  ctimeYearTable('ctime-city-table',[
+    ['CMHC CMA average (mo)',function(y){return cmBy[y]?f1(cmBy[y].v):'—'}],
+    ['City median (mo)',function(y){return f1(rowBy[y][3])}],
+    ['City average (mo)',function(y){return f1(rowBy[y][4])}],
+    ['Permits',function(y){return fmtInt(rowBy[y][1])}],
+    ['Homes',function(y){return fmtInt(rowBy[y][2])}],
+    ['Closed 5+ yrs after issue',function(y){return rowBy[y][5]+'%'+
+      (cc.cleanup_years.indexOf(y)>=0?' (clean-up year, hidden)':'')}]],yrs);
+
+  /* 2 ▸ size */
+  var house=state.ctimeSize==='house', sz=house?c.size.house_sqft:c.size.apt_units;
+  document.getElementById('ctime-size-title').textContent=house?
+    'Are new houses getting bigger? Median floor area of new single-detached homes, sq ft — '+c.label:
+    'Are apartment buildings getting bigger? Median homes per new apartment building — '+c.label;
+  var sNote='';
+  if(!sz){
+    document.getElementById('ctime-size-chart').innerHTML='<div class="section-loading">'+(c.area_reason||'No floor-area field.')+'</div>';
+  } else {
+    var sp=sz.rows.filter(function(r){return r[2]!=null}).map(function(r){return {m:r[0]*12+6,v:r[2],n:r[1]}});
+    if(!sp.length) document.getElementById('ctime-size-chart').innerHTML='<div class="section-loading">Fewer than '+
+      cityBuild.min_n+' permits a year with this measure.</div>';
+    else timeChart('ctime-size-chart',{series:[{label:house?'Median floor area':'Median homes per building',
+      color:PAL.green,pts:sp}],annual:true,partialYear:c.partial_year,yMin:0,
+      fmt:function(v){return fmtInt(v)},unitLabel:house?'sq ft':'homes',tipN:true});
+    if(house) sNote='Floor area per home from the permit, by year completed. Recorded on '+sz.coverage_pct+
+      '% of these permits; '+fmtInt(c.gates.size_out_of_range)+(c.gates.size_out_of_range===1?' value':' values')+' outside 400–15,000 sq ft excluded. ';
+    else sNote='Homes per new apartment permit, counting permits with 5 or more homes, by year completed. ';
+    var last=sp[sp.length-1]; if(last&&sp.length>1) sNote+='From '+fmtInt(sp[0].v)+' ('+Math.floor(sp[0].m/12)+') to '+
+      fmtInt(last.v)+' ('+Math.floor(last.m/12)+(Math.floor(last.m/12)===c.partial_year?', partial year':'')+').';
+  }
+  document.getElementById('ctime-size-note').textContent=sNote;
 }
 
 function renderResNonres(){
@@ -2238,7 +2417,9 @@ function renderOneMuniCity(k, city){
     document.getElementById('muni-build-year-note-'+k).innerHTML=
       'Median days from issuance to completion, by year issued (the current year is partial and skews low — '+
       'recently issued permits have had less time to reach completion).'+
-      (bt.coverage_note?' '+bt.coverage_note:'');
+      (bt.coverage_note?' '+bt.coverage_note:'')+
+      ' These panels cover every permit type. For new homes only, by year finished, beside CMHC’s figure, see '+
+      '<a href="#ctime-card">How long it takes to build</a>.';
   }else{
     bc.style.display='none';
   }
@@ -2425,6 +2606,12 @@ function boot(){
   wireToggle('ctime-ma','data-ma',function(v){state.ctimeMA=v;renderCtime();});
   document.getElementById('ctime-geo').addEventListener('change',function(e){state.ctimeGeo=e.target.value;renderCtime();});
   document.getElementById('ctime-by').addEventListener('change',function(e){state.ctimeBy=e.target.value;renderCtime();});
+  wireToggle('ctime-city-stat','data-stat',function(v){state.ctimeStat=v;renderCtime();});
+  wireToggle('ctime-size-mode','data-size',function(v){state.ctimeSize=v;renderCtime();});
+  document.getElementById('ctime-city-pick').addEventListener('change',function(e){state.ctimeCity=e.target.value;renderCtime();});
+  document.getElementById('ctime-city-cls').addEventListener('change',function(e){state.ctimeCls=e.target.value;renderCtime();});
+  loadJSON(BASE_URL+'city_build.json').then(function(cb){ cityBuild=cb; if(ctimeIndex&&currentData) renderCtime(); })
+    .catch(function(e){ console.warn('city_build.json unavailable:',e.message); });
   loadJSON(BASE_URL+'ctime/index.json').then(function(ix){
     ctimeIndex=ix; populateCtimeGeo(); if(currentData) renderCtime();
   }).catch(function(e){ ctimeIndexFailed=true; renderCtime(); console.warn('ctime/index.json unavailable:',e.message); });
