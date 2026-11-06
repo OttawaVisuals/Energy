@@ -84,6 +84,17 @@ jobs:
         working-directory: Python
         run: python construction_time_etl.py
 
+      # New-home build time from six cities' own permit records, on a basis
+      # built to sit beside CMHC's (new residential only, by completion year,
+      # unit-weighted) -> construction_json/city_build.json. NON-BLOCKING: a
+      # city whose portal fails keeps last month's block (seeded from
+      # gh-pages above) and the script exits 1 so the failure still shows.
+      - name: Run city build-time ETL (new homes, six city permit desks)
+        continue-on-error: true
+        timeout-minutes: 30
+        working-directory: Python
+        run: python city_build_time_etl.py
+
       # The cite-only figures (NRCan Greener Homes, CHBA Net Zero, CHBA HMI)
       # are hand-transcribed, not fetched — this step only re-confirms they
       # still appear on the publishers' live pages and rewrites programs.json.
