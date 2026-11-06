@@ -46,6 +46,7 @@ Run: python Python/build_retrofit_costs_json.py
 """
 
 import json
+import math
 import os
 
 import numpy as np
@@ -103,12 +104,23 @@ def clean_id(raw_id):
     return s
 
 
+def dollars(v):
+    """Per-home dollar figures ship as whole dollars (2026-11-06). They are
+    p10/p50/p90 screening estimates, so cents (and the 10+ float digits they
+    used to carry) are false precision; the page already shows whole dollars.
+    Dropping them cut this tree to ~64% of its size. Province/national
+    summaries are still computed from the unrounded values."""
+    # floor(v + 0.5), not round(): Python rounds .5 to even, the page's
+    # Math.round() rounds .5 up — this keeps per-home display identical.
+    return None if v is None else math.floor(v + 0.5)
+
+
 def home_row(h):
     row = [clean_id(h['id'])]
     for m in MEASURE_ORDER:
         v = h.get('measures', {}).get(m)
-        row += (v if v else [None, None, None])
-    row += (h.get('total') or [None, None, None])
+        row += ([dollars(x) for x in v] if v else [None, None, None])
+    row += [dollars(x) for x in (h.get('total') or [None, None, None])]
     row.append(ASHP_CLASS_CODES.get(h.get('ashp_class')))
     row.append(SOURCE_CODES.get(h.get('ashp_class_source')))
     bh = h.get('bau_heating')
@@ -117,8 +129,9 @@ def home_row(h):
     row.append(1 if h.get('bau_self_derived') else 0)
     row.append(WINDOW_CLASS_CODES.get(h.get('window_class')))
     row.append(SOURCE_CODES.get(h.get('window_class_source')))
-    row.append(h.get('annual_dollar_saved'))
-    row.append(h.get('payback_years'))
+    row.append(dollars(h.get('annual_dollar_saved')))
+    pb = h.get('payback_years')
+    row.append(None if pb is None else round(pb, 2))  # page shows 1 dp; 2 dp keeps medians stable
     flags = h.get('payback_flags') or []
     bitmask = sum(bit for name, bit in PBFUEL_BITS.items() if name in flags)
     row.append(bitmask or None)

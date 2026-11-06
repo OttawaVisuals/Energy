@@ -608,6 +608,25 @@ sessions — see the changelog entry below):**
 
 ## Changelog
 
+### 2026-11-06 per-home costs stored in whole dollars
+
+**Why.** Same site-size problem as `docs/RETROFITS.md` changelog 2026-11-06:
+`retrofit_costs_json` was 375 MB, much of it float digits such as `940.6531796817127`
+on figures that are 10th–90th percentile regression estimates.
+
+**What changed.** `build_retrofit_costs_json.py` `home_row()` writes per-measure
+Low/Mid/High costs, totals and annual $ saved as whole dollars, rounded half up
+(`floor(v + 0.5)`, the same rule as the page's `Math.round()`); payback to 2 dp.
+Province `_summary.json` and `_canada.json` are still computed from unrounded values and
+are byte-identical to before. Page methodology (advanced caveats) now says figures are in
+whole dollars.
+
+**Result.** 379 MB → 240 MB. **Checks:** a rebuild before the change reproduced the
+published tree exactly; after it, all 49.9 M cells equal the old value under the page's
+rounding (0 mismatches) and no payback changed. On screen, per-home figures, medians and
+payback are unchanged; totals, being sums of rounded figures, move by a few dollars (ON/L3R
+mid band: $46,006,719 → $46,006,718; per-measure sums by up to $33).
+
 ### 2026-09-25 — regenerated against the current matched pairs; extractor record choice fixed
 
 **Why.** The cost tree dated from 2026-07-31/08-04 and covered the old 1,451,433-pair
