@@ -11,10 +11,12 @@ the full province dataset. The existing client-side filter/render pipeline
 (applyFilters / render in retrofits.html) needs a small adapter to read this
 shape — see the loading-code update notes shared alongside this script.
 
-Dictionary encoding is intentionally NOT applied here: per-FSA files are
-small enough (median ~490 rows, largest observed 5,839 rows across all of
-Canada) that the string-vs-int savings aren't worth the extra fetch + decode
-step the old pipeline needed for whole-province CSVs. Strings ship as-is.
+Dictionary encoding: originally NOT applied here (per-FSA files were small
+enough that the string-vs-int savings weren't worth a decode step). Reversed
+2026-11-06: the tree reached 1,113 MB and pushed the published site over
+GitHub Pages' 1 GB limit, so each file is now encoded on write by
+fsa_json_codec.encode() — lossless, inline (no extra fetch), and decoded in
+assets/retrofits.js reconstructRows(). See fsa_json_codec.py for the format.
 
 OUTPUT FORMAT — array-of-arrays, not array-of-objects:
     {"columns": ["FSA","BldgType",...], "rows": [["L3R","Single Detached",...], ...]}
@@ -48,6 +50,8 @@ from pathlib import Path
 
 import pandas as pd
 import numpy as np
+
+from fsa_json_codec import encode as dict_encode
 
 # =============================================================================
 # CONFIG
@@ -362,7 +366,7 @@ def split_province(parquet_path, out_root, audit_totals=None):
             [coerce_value(v, c) for c, v in zip(cols_present, row)]
             for row in group[cols_present].itertuples(index=False, name=None)
         ]
-        payload = {'columns': cols_present, 'rows': rows}
+        payload = dict_encode({'columns': cols_present, 'rows': rows})
         out_path = os.path.join(prov_dir, f"{fsa}.json")
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))

@@ -690,11 +690,16 @@ function fetchJSON(url){
 // Reconstruct row objects from the {columns,rows} array-of-arrays format
 // the split_fsa_json.py pipeline emits (saves ~75% bytes vs array-of-objects
 // by not repeating ~50 key names on every row over the wire).
+// Optional payload.dict (2026-11-06, Python/fsa_json_codec.py): for a column
+// named there, each cell is an index into that column's list of strings, so
+// repeated text is stored once per file. Null stays null; files without
+// .dict decode as before.
 function reconstructRows(payload){
-  const cols=payload.columns;
+  const cols=payload.columns,dict=payload.dict||{};
+  const lut=cols.map(c=>dict[c]||null);
   return payload.rows.map(row=>{
     const obj={};
-    for(let i=0;i<cols.length;i++)obj[cols[i]]=row[i];
+    for(let i=0;i<cols.length;i++){const v=row[i],d=lut[i];obj[cols[i]]=d&&v!=null?d[v]:v;}
     return obj;
   });
 }

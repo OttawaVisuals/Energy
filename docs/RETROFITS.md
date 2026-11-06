@@ -388,6 +388,22 @@ Array-of-arrays to keep files small. The browser reconstructs row objects by zip
 Boolean-ish flag columns may arrive as `true`/`false` or `1`/`0`; the front-end's
 `flag()` helper normalises both.
 
+**Dictionary encoding (since 2026-11-06).** Files also carry a `dict` key. For each
+column named in it, row cells hold an integer index into that column's list of strings
+instead of the string itself (`null` stays `null`):
+
+```json
+{ "columns": ["FSA","BldgType","..."],
+  "dict":    { "FSA": ["T0A"], "BldgType": ["Row House","Single Detached"] },
+  "rows":    [[0, 1, "..."]] }
+```
+
+Written by `Python/fsa_json_codec.py` (called from `split_fsa_json.py`); a column is
+encoded only if all its non-null values are strings and encoding makes the file smaller.
+Lossless: every file is checked `decode(encode(x)) == x` before it is written. Readers:
+`assets/retrofits.js` `reconstructRows()` and `Python/list_ahri_numbers.py`. A file
+without `dict` still reads correctly.
+
 ### `province_json/<PROV>.json`
 
 ```json
@@ -802,6 +818,26 @@ build-on-top-of-`origin/gh-pages` pattern documented in
 ---
 
 ## Changelog
+
+### 2026-11-06 fsa_json dictionary-encoded to cut the published site size
+
+**Why.** The published site (`gh-pages`) had reached 1.76 GB, above GitHub Pages'
+documented 1 GB limit, and every Pages deploy repackages all of it (a 410 MB upload
+each time; the 14:00 deploy on 2026-11-06 timed out at 10 minutes). `fsa_json` was
+1,113 MB of that. Text columns repeat the same few strings on every row.
+
+**What changed.** New `Python/fsa_json_codec.py`; `split_fsa_json.py` now encodes each
+file on write (format above). This reverses the earlier "no dictionary encoding in Step 2"
+decision, which was made when files were small. `assets/retrofits.js` `reconstructRows()`
+decodes; `retrofits.html` loads `retrofits.js?v=2026-11-06` so a cached old script is not
+paired with new files. The existing tree was re-encoded in place with
+`python Python/fsa_json_codec.py fsa_json`; no ERS data was re-extracted.
+
+**Result.** 1,112 MB → 811 MB (1,685 files). **Checks:** every file lossless in Python;
+the page's decoder gives identical rows to the old files for one FSA per province (11);
+ON/L3R renders identical text in Simple and Advanced (all three cost bands);
+`split_fsa_json.py` run for PE reproduces the encoded files byte for byte;
+`list_ahri_numbers.py` finds the same 40 AHRI numbers.
 
 ### 2026-10-29 Province and Canada headline savings: median of per-home change
 

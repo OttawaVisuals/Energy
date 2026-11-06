@@ -1,6 +1,13 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-06**: **Published-site size, step 1 of 3.** `gh-pages` was 1.76 GB, over
+GitHub Pages' 1 GB limit, and each deploy repackages all of it (one timed out on 2026-11-06).
+`fsa_json` is now dictionary-encoded (1,112 → 811 MB, lossless, `Python/fsa_json_codec.py`)
+and per-home retrofit costs are whole dollars (379 → 240 MB). Site ≈ 1.32 GB, still over.
+Next, not yet decided: step 2, drop columns no page reads (needs a runtime audit, since column
+names are also built dynamically); step 3, serve the per-house trees from a separate site.
+See docs/RETROFITS.md and docs/RETROFIT_COSTS.md changelogs 2026-11-06.
 Updated **2026-11-06**: Cold Call opens new service calls with an emergency dispatch briefing. The timer starts when the player begins the call. Published 2026-11-06.
 Updated **2026-11-06**: Construction Tracker's "How long it takes to build" gets **CMHC vs
 city permit records**: when a CMA with permit completion dates is picked (Calgary, Edmonton,

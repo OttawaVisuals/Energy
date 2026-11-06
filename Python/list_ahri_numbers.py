@@ -31,6 +31,8 @@ import glob
 import json
 import os
 
+from fsa_json_codec import decode
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROVINCE_JSON_DIR = os.path.join(REPO_ROOT, "province_json")
 FSA_JSON_DIR = os.path.join(REPO_ROOT, "fsa_json")
@@ -62,7 +64,7 @@ def main():
     fsa_files = [p for p in fsa_files if not p.endswith("_index.json")]
     for ff in fsa_files:
         with open(ff, encoding="utf-8") as f:
-            data = json.load(f)
+            data = decode(json.load(f))  # fsa_json files are dictionary-encoded
         cols = data.get("columns", [])
         idxs = [cols.index(c) for c in ("Pre_HPAHRI", "Post_HPAHRI") if c in cols]
         if not idxs:
