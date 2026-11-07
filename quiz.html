@@ -83,10 +83,28 @@ h2.q{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(19px,2
 .choice.right{border-color:var(--green);background:var(--green-bg)}
 .choice.wrong{border-color:var(--red);background:var(--red-bg)}
 .choice small{font-weight:400;color:var(--muted);font-size:14px}
+.choice small.st{display:block;font-weight:600;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--text)}
+.choice.right small.st{color:var(--green)}.choice.wrong small.st{color:var(--red)}
+.choice small.st:empty{display:none}
 .choices.four{grid-template-columns:repeat(4,1fr)}
 .choices.four .choice{min-height:52px;padding:.5rem}
 @media(max-width:520px){.choices.four{grid-template-columns:1fr 1fr}}
 
+.pbank{display:flex;gap:8px;flex-wrap:wrap;min-height:58px;padding:6px;border:2px dashed var(--ctl);border-radius:var(--r-md);align-items:center;justify-content:center;margin-bottom:10px}
+.pbank.over,.pslot.over .pbox{border-color:var(--amber);background:#FFF6E3}
+.pcard{display:flex;align-items:center;gap:8px;border:2px solid var(--ctl);border-radius:var(--r-md);background:var(--white);padding:.35rem .7rem;font:inherit;font-weight:500;color:var(--text);cursor:grab;touch-action:none;user-select:none}
+.pcard.picked{border-color:var(--amber);box-shadow:0 0 0 3px rgba(232,161,36,.35)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end}
+.pslot{display:flex;flex-direction:column;gap:4px}
+.plab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:center}
+.pbox{border:2px solid var(--ctl);border-radius:var(--r-md);background:var(--surface);min-height:78px;display:flex;align-items:center;justify-content:center;padding:6px}
+.pslot.s0 .pbox{min-height:110px;background:#FFF6E3;border-color:var(--amber)}
+.pslot.s2 .pbox{min-height:60px}
+.pslot .pcard{flex-direction:column;text-align:center;width:100%;padding:.3rem .4rem;font-size:14px}
+.hole{border:0;background:none;font:inherit;color:var(--muted);cursor:pointer;width:100%;height:100%;min-height:44px}
+.pslot.right .pbox{border-color:var(--green);background:var(--green-bg)}.pslot.wrong .pbox{border-color:var(--red);background:var(--red-bg)}
+.pres{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font-size:14px}.pres small{color:var(--muted)}
+@media(max-width:520px){.pslot .pcard span,.pres b{font-size:13px;overflow-wrap:anywhere}}
 .rank-list{display:flex;flex-direction:column;gap:5px}
 .rank-row{display:flex;align-items:center;gap:10px;border:2px solid var(--ctl);border-radius:var(--r-md);padding:.3rem .7rem;background:var(--white)}
 .rank-row.dragging{opacity:.5}
@@ -351,12 +369,8 @@ function newRound(){
   loadQ();
 }
 function loadQ(){
-  var q=S.qs[S.i];S.answered=false;S.won=false;S.sel=null;S.est=null;S.order=null;
-  if(q.s==='rank'){
-    S.order=q.it.slice();
-    var sorted=q.it.slice().sort(function(a,b){return b[1]-a[1]});
-    if(S.order.every(function(r,i){return r===sorted[i]}))S.order.reverse();
-  }
+  var q=S.qs[S.i];S.answered=false;S.won=false;S.sel=null;S.est=null;S.pod=null;S.pick=null;
+  if(q.s==='rank')S.pod=[null,null,null];   // podium steps: 0 highest, 1 middle, 2 lowest
   if(q.s==='estimate'){S.est=50}
   render();
 }
@@ -365,7 +379,8 @@ function loadQ(){
 function maxIdx(q,col){var m=-Infinity,k=0;q.it.forEach(function(r,i){if(r[col]>m){m=r[col];k=i}});return k}
 function tolOf(q){return q.tol[S.cfg.diff]}
 function canCheck(q){
-  if(q.s==='rank'||q.s==='estimate')return true;
+  if(q.s==='estimate')return true;
+  if(q.s==='rank')return S.pod.every(function(r){return r});
   return S.sel!==null;
 }
 function grade(q){
@@ -373,7 +388,7 @@ function grade(q){
   if(q.s==='history')return S.sel===maxIdx(q,1);
   if(q.s==='gap')return S.sel===q.an;
   if(q.s==='insert')return S.sel===q.it.filter(function(a){return a[1]>q.tg[1]}).length;
-  if(q.s==='rank'){var s=q.it.slice().sort(function(a,b){return b[1]-a[1]});return S.order.every(function(r,i){return r===s[i]})}
+  if(q.s==='rank'){var s=q.it.slice().sort(function(a,b){return b[1]-a[1]});return S.pod.every(function(r,i){return r===s[i]})}
   if(q.s==='estimate')return Math.abs(S.est-q.it[0][1])<=tolOf(q)+1e-9;
   return false;
 }
@@ -383,7 +398,7 @@ function title(q){
   var m=mdefs[q.t+':'+q.m],L=m.label;
   switch(q.s){
     case 'compare':return 'Which comes out higher for '+L+'?';
-    case 'rank':return 'Put these in order by '+L+', highest first.';
+    case 'rank':return 'Which three come first? Rank them by '+L+'.';
     case 'insert':return 'Where does '+q.tg[0]+' fit for '+L+'?';
     case 'gap':return L.charAt(0).toUpperCase()+L.slice(1)+': about how many times bigger is the larger one?';
     case 'estimate':return q.pr;
@@ -393,7 +408,7 @@ function title(q){
 function helpText(q){
   switch(q.s){
     case 'compare':return 'Pick the one with the larger value.';
-    case 'rank':return 'Use the arrows (or drag) to reorder, then check.';
+    case 'rank':return 'Drag each card to a step, or tap a card and then a step. Highest goes on the tall step.';
     case 'insert':return 'The four are already ordered. Drag '+q.tg[0]+' into the slot where it belongs (or tap a slot).';
     case 'gap':return 'Choose the closest ratio.';
     case 'estimate':return 'Drag the slider. You are right if you land within ±'+tolOf(q)+' percentage points.';
@@ -430,6 +445,7 @@ function play(q){
       var cls=S.sel===i?' selected':'',mk='';
       if(S.answered){var win=maxIdx(q,1)===i;cls=win?' right':(S.sel===i?' wrong':'');mk=win?'<span class="mk" title="Correct">✓</span>':(S.sel===i?'<span class="mk" title="Your pick, not correct">✗</span>':'')}
       var sub=S.answered?'<small>'+esc(q.s==='history'?r[2]+' ('+r[3]+' → '+r[4]+')':r[2])+'</small>':'';
+      if(S.answered){var w=maxIdx(q,1)===i,mine=S.sel===i;sub+='<small class="st">'+(mine?(w?'Your choice · Correct':'Your choice · Incorrect'):(w?'Correct answer':''))+'</small>'}
       return '<button type="button" class="choice'+cls+'" data-i="'+i+'" aria-pressed="'+(S.sel===i)+'"'+dis+'>'+shp(r[0],'lg')+'<span>'+mk+esc(r[0])+'</span>'+sub+'</button>'}).join('')+'</div>';
   }
   if(q.s==='gap'){
@@ -442,10 +458,17 @@ function play(q){
   }
   if(q.s==='rank'){
     var sorted=q.it.slice().sort(function(a,b){return b[1]-a[1]}),mxv=sorted[0][1];
-    return '<div class="rankwrap"><div><div class="edge">Highest ↓</div><div class="rank-list">'+S.order.map(function(r,i){
-      var cls=S.answered?(sorted[i]===r?' right':' wrong'):'';
-      return '<div class="rank-row'+cls+'" data-i="'+i+'" draggable="'+(!S.answered)+'"><span class="rank-n">'+(i+1)+'</span>'+shp(r[0],'md',S.answered?.25+.75*r[1]/mxv:null)+'<span class="rank-name">'+esc(r[0])+'</span>'+
-        (S.answered?'<span class="rank-val"><span class="mk" title="'+(sorted[i]===r?'Correct place':'Wrong place')+'">'+(sorted[i]===r?'✓':'✗')+'</span>'+esc(r[2])+'</span>':'<span class="move"><button type="button" data-up="'+i+'" aria-label="Move '+esc(r[0])+' up"'+(i===0?' disabled':'')+'>▲</button> <button type="button" data-dn="'+i+'" aria-label="Move '+esc(r[0])+' down"'+(i===3?' disabled':'')+'>▼</button></span>')+'</div>'}).join('')+'</div><div class="edge">Lowest</div></div><div id="rev-r"></div></div>';
+    var card=function(r,k,ph){var on=S.pick===k;return '<button type="button" class="pcard'+(on?' picked':'')+'" data-k="'+k+'" aria-pressed="'+on+'"'+dis+'>'+shp(r[0],'md')+'<span>'+esc(r[0])+'</span></button>'};
+    var bank=q.it.map(function(r,k){return S.pod.indexOf(r)<0?card(r,k):''}).join('');
+    var names=['Highest','Middle','Lowest'];
+    var steps=[1,0,2].map(function(p){
+      var r=S.pod[p],h,cls='';
+      if(S.answered){var ok=sorted[p]===r;cls=ok?' right':' wrong';
+        h='<div class="pres">'+shp(r[0],'md',.25+.75*r[1]/mxv)+'<b>'+esc(r[0])+'</b><small><span class="mk">'+(ok?'✓':'✗')+'</span>'+esc(r[2])+'</small>'+(ok?'':'<small>should be '+names[sorted.indexOf(r)].toLowerCase()+'</small>')+'</div>'}
+      else if(r)h=card(r,q.it.indexOf(r));
+      else h='<button type="button" class="hole" data-hole="'+p+'"'+(S.pick===null?' tabindex="-1"':'')+'>'+(S.pick===null?'Drop here':'Place here')+'</button>';
+      return '<div class="pslot s'+p+cls+'" data-p="'+p+'"><div class="plab">'+names[p]+'</div><div class="pbox">'+h+'</div></div>'}).join('');
+    return '<div class="rankwrap"><div><div class="pbank'+(bank?'':' empty')+'" data-bank="1">'+(bank||'<span class="small">All placed. Drag a card back here to take it off.</span>')+'</div><div class="podium">'+steps+'</div></div><div id="rev-r"></div></div>';
   }
   if(q.s==='insert'){
     var right=q.it.filter(function(a){return a[1]>q.tg[1]}).length,out='';
@@ -469,14 +492,37 @@ function bind(q){
     el.addEventListener('click',function(){if(S.answered)return;S.sel=Number(el.dataset.i);$('play').innerHTML=play(q);bind(q);updateBtns(q)});
   });
   if(q.s==='rank'&&!S.answered){
-    g.querySelectorAll('[data-up]').forEach(function(b){b.onclick=function(){move(q,Number(b.dataset.up),-1)}});
-    g.querySelectorAll('[data-dn]').forEach(function(b){b.onclick=function(){move(q,Number(b.dataset.dn),1)}});
-    var from=null;
-    g.querySelectorAll('.rank-row').forEach(function(r){
-      r.ondragstart=function(){from=Number(r.dataset.i);r.classList.add('dragging')};
-      r.ondragend=function(){r.classList.remove('dragging')};
-      r.ondragover=function(e){e.preventDefault()};
-      r.ondrop=function(e){e.preventDefault();if(from===null)return;var to=Number(r.dataset.i);var a=S.order.splice(from,1)[0];S.order.splice(to,0,a);from=null;$('play').innerHTML=play(q);bind(q)};
+    var redraw=function(){$('play').innerHTML=play(q);bind(q);updateBtns(q)};
+    // place card k on step p: swaps with whoever is there (to the card's old step, or back to the bank)
+    var place=function(k,p){var it=q.it[k],src=S.pod.indexOf(it),occ=S.pod[p];S.pod[p]=it;if(src>=0)S.pod[src]=occ;S.pick=null};
+    var tap=function(k,p){   // p = step tapped (card on it, or empty hole), k = card tapped (or null)
+      if(k!==null&&p===null){S.pick=S.pick===k?null:k}            // bank card: pick up / put down
+      else if(S.pick===null){if(k!==null)S.pick=k}                // placed card: pick it up
+      else if(S.pick===k)S.pick=null;
+      else place(S.pick,p);
+      redraw();var f=g.querySelector(k!==null&&S.pick===k?'.pcard[data-k="'+k+'"]':'.pcard.picked');if(f)f.focus()};
+    g.querySelectorAll('.hole').forEach(function(h){h.addEventListener('click',function(){if(S.pick!==null)tap(null,Number(h.dataset.hole))})});
+    g.querySelectorAll('.pcard').forEach(function(c){
+      var k=Number(c.dataset.k),slot=c.closest('.pslot'),p=slot?Number(slot.dataset.p):null;
+      c.addEventListener('click',function(e){if(e.detail===0)tap(k,p)});   // keyboard (Enter/Space); pointers are handled below
+      c.addEventListener('pointerdown',function(e){
+        if(e.button>0)return;e.preventDefault();
+        var box=c.getBoundingClientRect(),dx=e.clientX-box.left,dy=e.clientY-box.top,x0=e.clientX,y0=e.clientY,moved=false,ghost=null,over=null;
+        function targetAt(x,y){var el=document.elementFromPoint(x,y);if(!el||!el.closest)return null;return el.closest('.pslot')||el.closest('.pbank')}
+        function mv(ev){
+          if(!moved&&Math.hypot(ev.clientX-x0,ev.clientY-y0)<6)return;
+          if(!moved){moved=true;ghost=c.cloneNode(true);ghost.classList.add('drag-ghost');ghost.style.width=box.width+'px';document.body.appendChild(ghost);c.style.opacity='.35'}
+          ghost.style.left=(ev.clientX-dx)+'px';ghost.style.top=(ev.clientY-dy)+'px';
+          var t=targetAt(ev.clientX,ev.clientY);if(t!==over){if(over)over.classList.remove('over');over=t;if(over)over.classList.add('over')}}
+        function up(ev){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);
+          if(over)over.classList.remove('over');
+          if(!moved){if(ev.type==='pointerup')tap(k,p);return}
+          ghost.remove();c.style.opacity='';var t=ev.type==='pointerup'?targetAt(ev.clientX,ev.clientY):null;
+          if(t&&t.classList.contains('pslot'))place(k,Number(t.dataset.p));
+          else if(t&&t.classList.contains('pbank')){var s=S.pod.indexOf(q.it[k]);if(s>=0)S.pod[s]=null;S.pick=null}
+          redraw()}
+        document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+      });
     });
   }
   if(q.s==='insert'&&!S.answered){
@@ -499,8 +545,6 @@ function bind(q){
   var r=$('estr');
   if(r)r.addEventListener('input',function(){S.est=Number(r.value);$('estv').textContent=r.value+'%'});
 }
-function move(q,i,d){var j=i+d;if(j<0||j>3)return;var a=S.order[i];S.order[i]=S.order[j];S.order[j]=a;$('play').innerHTML=play(q);bind(q);
-  var b=$('game').querySelector('[data-'+(d<0?'up':'dn')+'="'+j+'"]');if(b&&!b.disabled)b.focus()}
 function updateBtns(q){
   var ok=canCheck(q);
   $('hint').textContent=ok?'Ready when you are.':'Make a choice to continue.';
@@ -524,7 +568,7 @@ function reveal(q){
   }else if(q.s==='history'){
     rows=bars(q.it.slice().sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));
   }else if(q.s==='insert'||q.s==='rank'){
-    rows='';   // the ordered list above already shows every value
+    rows='';   // the podium / ladder above already shows every value
   }else{
     var all=q.it.slice();if(q.tg)all.push(q.tg);
     rows=bars(all.sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));

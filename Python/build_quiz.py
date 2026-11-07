@@ -362,13 +362,13 @@ def gen_measure(m):
 
     # rank ---------------------------------------------------------------
     rng = random.Random(pre + ":rank")
-    combos = [c for c in combinations(range(len(its)), 4) if ok(c)]
+    combos = [c for c in combinations(range(len(its)), 3) if ok(c)]   # three items: a podium
     if len(combos) > CAP:
         combos = rng.sample(combos, CAP)
     rq = []
     for c in combos:
         grp = sorted((its[k] for k in c), key=lambda i: -i["value"])
-        g = min(rel(grp[k]["value"], grp[k + 1]["value"]) for k in range(3))
+        g = min(rel(grp[k]["value"], grp[k + 1]["value"]) for k in range(2))
         shuffled = grp[:]
         rng.shuffle(shuffled)
         rq.append(base("rank", "-".join(i["id"] for i in sorted(grp, key=lambda i: i["id"])), g,

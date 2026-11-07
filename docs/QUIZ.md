@@ -20,6 +20,7 @@ Python/build_quiz_icons.py   # item icons (fuels, end uses, sectors, modes...) -
                        #   run automatically at the end of build_quiz.py; prints any bank item with
                        #   neither an outline nor an icon
 Python/fetch_lucide_icons.py # ONE-OFF: vendors the Lucide SVGs into assets/vendor/lucide/ (no network at build)
+Python/check_quiz.py   # invariant checks on the generated banks (run after build_quiz.py; exit 1 on failure)
 quiz.html              # fetches quiz_json/*, plays 10-question rounds; no logic about the data
 ```
 
@@ -32,7 +33,7 @@ Bank on 2026-11-07: CEUD 2,376 questions (822 KB), construction 627 (216 KB).
 | Style | What the player does | Right when |
 |---|---|---|
 | Head to head (`compare`) | pick the larger of two | value is the max |
-| Put in order (`rank`) | order four, highest first | exact order |
+| Put in order (`rank`) | drag three cards onto a podium (tall step = highest) | exact order |
 | Find its place (`insert`) | slot one item into four ordered others | correct gap |
 | Guess the gap (`gap`) | pick the ratio (4 options from a fixed scale) | nearest scale value to the true ratio |
 | Guess a share (`estimate`) | slider 0–100% | within ±15 / ±8 / ±3 pp (easy / medium / hard) |
@@ -110,6 +111,21 @@ Adding a topic: write `build_<topic>()` returning measures (see `build_ceud`), a
   Limits: one icon per item, so similar items (trucks, house types) rely on labels; Row/townhouse
   (`rows-3`) is the weakest metaphor; no "technologies" icons yet because heat-pump/retrofit
   topics are not in the bank (see Ideas).
+- **2026-11-07 — compared with Atlas Play (SimpleViz repo), borrowed two ideas.** (1) `check_quiz.py`
+  enforces the page's promises on all 3,003 questions (unique ids, ≥3% gaps, no display-rounding
+  ties, gap answer = closest option, every item has an icon/outline); a deliberate corruption test
+  confirmed it fails when it should. (2) Head-to-head and Then-vs-now tiles now say "Your choice ·
+  Correct / Incorrect" or "Correct answer" next to the value. Not borrowed: React/Anime.js/npm build
+  (repo invariant), CI-overlap guards (CEUD/CMHC have no intervals). Candidates still open: 3-place
+  a reference marker on the estimate slider, light/dark toggle.
+- **2026-11-07 — rank is now a three-place podium** (borrowed from Atlas Play). Banks regenerate with
+  3 items per rank question (was 4; adjacent-gap guard unchanged, now 2 gaps). Cards sit in a bank and
+  go onto Highest (tall, centre) / Middle / Lowest steps by pointer drag (mouse + touch), tap a card
+  then a step, or keyboard (Enter/Space). Dropping on an occupied step swaps; dragging back to the
+  bank removes. Check needs all three placed; after answering each step shows ✓/✗, the value and
+  where a wrong card belonged. Replaces the HTML5 drag list and ▲▼ arrows (the 34×30 px arrow
+  touch-target gap is gone; cards are ~40 px, holes 44 px). Verified at 1366×768 (fits, reveal beside
+  the podium) and 375 px (no horizontal overflow); the bank is now 3,037 questions.
 - **2026-11-07 — rank/insert capped at 60 sampled questions per measure** to keep the CEUD
   bank under 1 MB.
 - **2026-11-07 — design critique applied** (`design:design-critique`): Guess-the-gap shows the two
