@@ -14,6 +14,8 @@ non-expert player.
 ```
 Python/build_quiz.py   # reads ceud_json/ + construction_json/
                        #  -> quiz_json/meta.json, quiz_json/ceud.json, quiz_json/construction.json
+Python/build_quiz_shapes.py  # province / region outlines -> quiz_json/shapes.json (shapely + numpy;
+                       #   run automatically at the end of build_quiz.py, skipped if geo_json/ is missing)
 quiz.html              # fetches quiz_json/*, plays 10-question rounds; no logic about the data
 ```
 
@@ -82,8 +84,24 @@ Adding a topic: write `build_<topic>()` returning measures (see `build_ceud`), a
   no build step, no framework. The bank is pre-generated in Python so the page stays dumb.
 - **2026-11-07 — second topic = Construction** (clean annual series, supports Then-vs-Now),
   not Retrofits (ERS data is noisier; see the negative-savings finding).
+- **2026-11-07 — province outline icons.** Rank, compare, gap, insert, history and estimate show a
+  region outline when the item is a province or CEUD region (Atlantic, Territories, BC & Territories
+  drawn as one outline each). Built from the Statistics Canada FSA boundaries already in `geo_json/`
+  (+ Yukon from `lfsa000b21a_e.json`), unioned, Lambert-projected, parts under 0.5% of area dropped
+  (max ~5%, BC & Territories), each fitted to its own 100×100 frame, so shapes do **not** show
+  relative size. The page says so; it still works without `shapes.json`. 16 outlines, 112 KB.
+  After answering, rank-row outlines fill amber in proportion to the value. Rank, Guess the gap and
+  Find its place now put the explanation beside the question on screens ≥1100 / 1200 px wide so
+  everything stays above the fold at 1366×768 (stacked below that, where it may scroll).
 - **2026-11-07 — rank/insert capped at 60 sampled questions per measure** to keep the CEUD
   bank under 1 MB.
+- **2026-11-07 — design critique applied** (`design:design-critique`): Guess-the-gap shows the two
+  compared items as named cards; right/wrong marked with ✓/✗ not colour alone; muted grey and control
+  borders darkened to meet WCAG contrast (text ≥4.5:1, borders ≥3:1); end screen lists all 10 questions
+  with the true answer and a chart link; changing Topic/Difficulty/Style mid-round no longer resets the
+  round (notice offers "Start new round now"; difficulty is snapshotted at round start); "Check answer"
+  /"Next" bar is sticky; New round is a quiet button. Known gap: rank arrows (34×30 px) and slots
+  (26 px) are under 44 px touch targets, kept small to fit 1366×768 without scrolling.
 
 ## Ideas, not committed
 

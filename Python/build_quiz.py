@@ -499,7 +499,17 @@ def main():
             print(f"  {tm['id']}/{mid}: items {g['usable']}/{g['items']}, pairs {g['pairs']}, tied {g['tied']}, <3% gap {g['too_close']}")
 
 
+def build_shapes_step():
+    """Province outline icons (needs shapely + the geo_json/ trees). Skipped, not fatal, if missing."""
+    try:
+        import build_quiz_shapes
+        build_quiz_shapes.build()
+    except Exception as e:   # the quiz page works without shapes.json
+        print(f"  (province outlines skipped: {e})")
+
+
 TOPICS = [build_ceud, build_construction]
 
 if __name__ == "__main__":
     main()
+    build_shapes_step()
