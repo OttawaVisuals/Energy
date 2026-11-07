@@ -16,6 +16,10 @@ Python/build_quiz.py   # reads ceud_json/ + construction_json/
                        #  -> quiz_json/meta.json, quiz_json/ceud.json, quiz_json/construction.json
 Python/build_quiz_shapes.py  # province / region outlines -> quiz_json/shapes.json (shapely + numpy;
                        #   run automatically at the end of build_quiz.py, skipped if geo_json/ is missing)
+Python/build_quiz_icons.py   # item icons (fuels, end uses, sectors, modes...) -> quiz_json/icons.json;
+                       #   run automatically at the end of build_quiz.py; prints any bank item with
+                       #   neither an outline nor an icon
+Python/fetch_lucide_icons.py # ONE-OFF: vendors the Lucide SVGs into assets/vendor/lucide/ (no network at build)
 quiz.html              # fetches quiz_json/*, plays 10-question rounds; no logic about the data
 ```
 
@@ -86,13 +90,26 @@ Adding a topic: write `build_<topic>()` returning measures (see `build_ceud`), a
   not Retrofits (ERS data is noisier; see the negative-savings finding).
 - **2026-11-07 — province outline icons.** Rank, compare, gap, insert, history and estimate show a
   region outline when the item is a province or CEUD region (Atlantic, Territories, BC & Territories
-  drawn as one outline each). Built from the Statistics Canada FSA boundaries already in `geo_json/`
+  Atlantic and Territories drawn as one outline each; BC & Territories drawn as two outlines side by side, because their union read as a confusing blob). Built from the Statistics Canada FSA boundaries already in `geo_json/`
   (+ Yukon from `lfsa000b21a_e.json`), unioned, Lambert-projected, parts under 0.5% of area dropped
   (max ~5%, BC & Territories), each fitted to its own 100×100 frame, so shapes do **not** show
-  relative size. The page says so; it still works without `shapes.json`. 16 outlines, 112 KB.
+  relative size. The page says so; it still works without `shapes.json`. 15 outlines, 97 KB.
   After answering, rank-row outlines fill amber in proportion to the value. Rank, Guess the gap and
   Find its place now put the explanation beside the question on screens ≥1100 / 1200 px wide so
   everything stays above the fold at 1366×768 (stacked below that, where it may scroll).
+- **2026-11-07 — item icons (Lucide, tinted by category).** Fuels, end uses, home types, sectors,
+  commercial/industrial subsectors and transport modes get an icon on a tinted chip; provinces keep
+  their outlines (outlines win). Source: a hand-picked subset of [Lucide](https://lucide.dev)
+  v1.70.0 (ISC licence, vendored in `assets/vendor/lucide/` with its LICENSE, so the page loads
+  nothing from a CDN). Mapping name → icon + tint lives in `ICON_MAP` / `TINT` in
+  `build_quiz_icons.py`; the build prints coverage (every item in the bank is covered, 48 icons for 57
+  names, 15 KB). Tint is a category colour (gas amber, electricity blue, wood green...), never a value:
+  label and number always show. Page works without `icons.json`.
+  Bug found and fixed while verifying: a CSS class `.ghost` (drag clone) collided with `.btn.ghost`
+  and made "New round" fixed-position; drag clone is now `.drag-ghost`.
+  Limits: one icon per item, so similar items (trucks, house types) rely on labels; Row/townhouse
+  (`rows-3`) is the weakest metaphor; no "technologies" icons yet because heat-pump/retrofit
+  topics are not in the bank (see Ideas).
 - **2026-11-07 — rank/insert capped at 60 sampled questions per measure** to keep the CEUD
   bank under 1 MB.
 - **2026-11-07 — design critique applied** (`design:design-critique`): Guess-the-gap shows the two

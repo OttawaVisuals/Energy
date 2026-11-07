@@ -14,8 +14,8 @@ METHOD (kept simple on purpose)
   * Union each province's FSA polygons, project with a spherical Lambert
     conformal conic (standard parallels 49 N / 77 N, central meridian 91.87 W,
     the same family StatCan uses) so shapes look like a normal map of Canada.
-  * Composite codes follow CEUD's groupings: tr = YT+NT+NU, atl = NL+PE+NS+NB,
-    bct = BC+YT+NT+NU.
+  * Composite codes follow CEUD's groupings: tr = YT+NT+NU, atl = NL+PE+NS+NB (one outline each).
+    "BC & Territories" (bct) is two outlines side by side, BC and tr, not a union.
   * Drop parts smaller than MIN_PART (0.5%) of that region's area (tiny islands),
     simplify, drop lakes (interior rings), then FIT TO A 100x100 FRAME.
   * Each outline is fitted to its own frame: shapes do NOT show relative size.
@@ -43,7 +43,10 @@ MIN_PART = 0.005          # drop parts under 0.5% of the region's area
 SIMPLIFY = 0.0035         # of the frame (fraction of the longer side)
 GEO_FILES = {"AB": "ab", "BC": "bc", "MB": "mb", "NB": "nb", "NF": "nl", "NS": "ns",
              "NT": "nt", "NU": "nu", "ON": "on", "PE": "pe", "QC": "qc", "SK": "sk"}
-COMPOSITES = {"tr": ["yt", "nt", "nu"], "atl": ["nl", "pe", "ns", "nb"], "bct": ["bc", "yt", "nt", "nu"]}
+COMPOSITES = {"tr": ["yt", "nt", "nu"], "atl": ["nl", "pe", "ns", "nb"]}
+# A union of BC and the territories reads as one confusing blob, so "BC & Territories" is drawn as
+# two separate outlines side by side (the page does this from "multi").
+MULTI = {"bct": ["bc", "tr"]}
 
 _P1, _P2, _P0, _L0 = map(math.radians, (49.0, 77.0, 63.390675, -91.86666666666666))
 _N = math.log(math.cos(_P1) / math.cos(_P2)) / math.log(math.tan(math.pi / 4 + _P2 / 2) / math.tan(math.pi / 4 + _P1 / 2))
@@ -149,10 +152,10 @@ def build():
         d, om = to_path(g)
         shapes[code] = d
         omitted[code] = round(om, 4)
-    names = {n: c for n, c in region_names().items() if c in shapes}
+    names = {n: c for n, c in region_names().items() if c in shapes or c in MULTI}
     out = ROOT / "quiz_json"
     out.mkdir(exist_ok=True)
-    (out / "shapes.json").write_text(json.dumps({"shapes": shapes, "names": names, "omitted": omitted},
+    (out / "shapes.json").write_text(json.dumps({"shapes": shapes, "names": names, "multi": MULTI, "omitted": omitted},
                                                 ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     kb = (out / "shapes.json").stat().st_size / 1024
     print(f"shapes: {len(shapes)} outlines, {kb:.0f} KB; names mapped {len(names)}; "

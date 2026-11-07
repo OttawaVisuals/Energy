@@ -508,8 +508,20 @@ def build_shapes_step():
         print(f"  (province outlines skipped: {e})")
 
 
+def build_icons_step():
+    """Item icons (needs the vendored Lucide files). Skipped, not fatal, if missing."""
+    try:
+        import build_quiz_icons
+        build_quiz_icons.build()
+    except SystemExit:
+        print("  (item icons skipped: vendored Lucide icons missing)")
+    except Exception as e:   # the quiz page works without icons.json
+        print(f"  (item icons skipped: {e})")
+
+
 TOPICS = [build_ceud, build_construction]
 
 if __name__ == "__main__":
     main()
     build_shapes_step()
+    build_icons_step()
