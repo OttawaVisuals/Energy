@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Quiz — Canada's energy, in ten questions</title>
+<meta name="description" content="A ten-question quiz built from real Canadian energy and construction data: compare, rank, guess a share, then vs now. Every answer comes from NRCan and CMHC/Statistics Canada tables.">
+<meta property="og:title" content="Energy Quiz — Canada's energy, in ten questions">
+<meta property="og:description" content="Compare, rank and estimate with real data from NRCan's CEUD and CMHC housing starts. No timer, just perspective.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/quiz">
+<meta property="og:site_name" content="Ottawa Visuals">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap"></noscript>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--green-bg:#E4F3EC;--red:#B33A2E;--red-bg:#F8E6E3;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#8A9BB0;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:auto}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+a{color:var(--navy)}
+button,select{font-family:inherit;font-size:inherit}
+:focus-visible{outline:3px solid var(--amber2);outline-offset:2px}
+
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;height:48px;gap:12px}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--amber2);font-style:italic}
+.header-right{display:flex;gap:14px}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.6);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+
+.hero{background:var(--navy);padding:.9rem 1.5rem 1.5rem;text-align:center;color:var(--white)}
+.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:.7rem}
+.hero .eyebrow{margin-bottom:.2rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(22px,3.2vw,30px);line-height:1.15;letter-spacing:-.01em}
+.hero h1 em{color:var(--amber2)}
+.hero p{max-width:760px;margin:.4rem auto 0;color:rgba(255,255,255,.72);font-size:13.5px;line-height:1.45}
+
+main{max-width:1400px;margin:-.9rem auto 0;padding:0 1.25rem 2rem}
+.settings{display:flex;flex-wrap:wrap;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:.6rem .9rem;align-items:flex-end}
+.settings label{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:1 1 150px;min-width:140px}
+.settings select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 8px;background:var(--white);color:var(--text);text-transform:none;letter-spacing:0;font-size:14px}
+.btn{border:none;border-radius:var(--r-md);padding:10px 18px;cursor:pointer;font-weight:500;background:var(--navy);color:var(--white);display:inline-flex;gap:8px;align-items:center;justify-content:center;min-height:42px}
+.btn:hover:not(:disabled){background:#14366b}
+.btn:disabled{background:var(--border);color:var(--light);cursor:not-allowed}
+.btn.amber{background:var(--amber2);color:var(--navy)}
+.btn.amber:hover:not(:disabled){background:#f0b13c}
+.btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--border)}
+.btn.ghost:hover:not(:disabled){background:var(--surface)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;margin-top:12px;align-items:start}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:.9rem 1.3rem}
+.game-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;gap:8px;flex-wrap:wrap}
+.progress{display:flex;gap:4px;margin-bottom:.6rem}
+.progress span{flex:1;height:5px;border-radius:3px;background:var(--surface)}
+.progress .done{background:var(--navy)}
+.progress .current{background:var(--amber2)}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.5rem}
+.badge{font-size:11px;padding:2px 9px;border-radius:12px;border:1px solid var(--border);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.badge.easy{background:var(--green-bg);color:var(--green);border-color:transparent}
+.badge.medium{background:#FBF1DB;color:#8A5C08;border-color:transparent}
+.badge.hard{background:var(--red-bg);color:var(--red);border-color:transparent}
+.badge.modelled{background:#EDE9FB;color:#533AB7;border-color:transparent}
+.badge.measured{background:#E4EEF9;color:#1F5C99;border-color:transparent}
+h2.q{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(19px,2.4vw,24px);line-height:1.25;margin:.1rem 0 .2rem}
+.help{color:var(--muted);font-size:13.5px;margin-bottom:.7rem}
+.ctx{font-size:12px;color:var(--light);margin-bottom:.9rem}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.choices{grid-template-columns:1fr}}
+.choice{border:2px solid var(--border);background:var(--white);border-radius:var(--r-md);padding:.7rem .8rem;cursor:pointer;text-align:center;font-weight:500;font-size:16px;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.choice:hover:not(:disabled){border-color:var(--navy)}
+.choice.selected{border-color:var(--amber2);background:#FFF8E8}
+.choice.right{border-color:var(--green);background:var(--green-bg)}
+.choice.wrong{border-color:var(--red);background:var(--red-bg)}
+.choice small{font-weight:400;color:var(--muted);font-size:14px}
+.choices.four{grid-template-columns:repeat(4,1fr)}
+@media(max-width:520px){.choices.four{grid-template-columns:1fr 1fr}}
+
+.rank-list{display:flex;flex-direction:column;gap:5px}
+.rank-row{display:flex;align-items:center;gap:10px;border:2px solid var(--border);border-radius:var(--r-md);padding:.3rem .7rem;background:var(--white)}
+.rank-row.dragging{opacity:.5}
+.rank-row.right{border-color:var(--green);background:var(--green-bg)}
+.rank-row.wrong{border-color:var(--red);background:var(--red-bg)}
+.rank-n{width:24px;height:24px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.rank-name{flex:1;font-weight:500}
+.rank-val{color:var(--muted);font-size:14px}
+.move button{border:1px solid var(--border);background:var(--white);border-radius:6px;width:34px;height:30px;cursor:pointer;font-size:16px}
+.move button:disabled{opacity:.35;cursor:not-allowed}
+.edge{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--light);margin:2px 0}
+
+.insert{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:14px}
+@media(max-width:600px){.insert{grid-template-columns:1fr}}
+.target{border:2px dashed var(--amber);border-radius:var(--r-md);padding:1rem;text-align:center;background:#FFF8E8;align-self:start}
+.target b{display:block;font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:400}
+.ladder{display:flex;flex-direction:column;gap:3px}
+.anchor{border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:.25rem .7rem;display:flex;justify-content:space-between;font-weight:500}
+.anchor small{color:var(--muted);font-weight:400}
+.slot{border:2px dashed var(--border);background:transparent;border-radius:var(--r-sm);min-height:26px;font-size:12.5px;line-height:1.1;cursor:pointer;color:var(--muted);font-size:13px}
+.slot:hover:not(:disabled){border-color:var(--navy);color:var(--navy)}
+.slot.selected{border-color:var(--amber2);background:#FFF8E8;color:var(--text);font-weight:500}
+.slot.right{border-style:solid;border-color:var(--green);background:var(--green-bg);color:var(--green);font-weight:600}
+.slot.wrong{border-style:solid;border-color:var(--red);background:var(--red-bg);color:var(--red)}
+
+.est{padding:.4rem 0 .2rem}
+.est-val{font-family:'Fraunces',Georgia,serif;font-size:36px;font-weight:300;text-align:center;line-height:1.1}
+.est input[type=range]{width:100%;margin:.9rem 0 .2rem;accent-color:var(--amber)}
+.est .ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--light)}
+.est .tol{text-align:center;font-size:13px;color:var(--muted);margin-top:.5rem}
+.est-track{position:relative;height:14px;background:var(--surface);border-radius:7px;margin:1rem 0 .3rem}
+.est-track i{position:absolute;top:-3px;width:4px;height:20px;border-radius:2px}
+.est-band{position:absolute;top:0;height:14px;background:rgba(26,122,85,.25);border-radius:7px}
+
+.reveal{margin-top:.7rem;border-radius:var(--r-md);padding:.7rem 1rem;border:1px solid var(--border);font-size:14px;line-height:1.45}
+.reveal p+p{margin-top:.25rem}
+.reveal.win{background:var(--green-bg);border-color:#b9dccb}
+.reveal.lose{background:#FFF8E8;border-color:#efd9a3}
+.reveal strong{display:block;margin-bottom:.2rem}
+.bars{margin:.5rem 0 .3rem;display:flex;flex-direction:column;gap:3px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,170px) 1fr minmax(70px,auto);gap:8px;align-items:center;font-size:13px}
+.bar-row .track{background:rgba(11,37,69,.08);border-radius:4px;height:12px;overflow:hidden}
+.bar-row .fill{height:100%;background:var(--navy);border-radius:4px}
+.bar-row .fill.neg{background:var(--red)}
+.bar-row b{text-align:right;font-weight:600}
+.small{font-size:12px;color:var(--muted)}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:.7rem;flex-wrap:wrap}
+.actions .hint{font-size:13px;color:var(--muted)}
+
+.score{background:var(--navy);color:var(--white);border:none}
+.score .big{font-family:'Fraunces',Georgia,serif;font-size:38px;font-weight:300;line-height:1}
+.score .big small{font-size:18px;color:rgba(255,255,255,.55)}
+.score .row{display:flex;gap:22px;margin-top:.8rem}
+.score .row b{display:block;font-size:20px}
+.score .row span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.side-card{margin-top:12px;font-size:13px;color:var(--muted)}
+.side-card h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--navy);margin-bottom:.35rem}
+.side-card p+p{margin-top:.5rem}
+.summary{text-align:center;padding:1.2rem 0}
+.summary .big{font-family:'Fraunces',Georgia,serif;font-size:64px;font-weight:300}
+.summary h2{font-family:'Fraunces',Georgia,serif;font-weight:400;margin:.4rem 0}
+.summary p{color:var(--muted);margin:.6rem auto 1.1rem;max-width:420px}
+.loading,.err{padding:2rem;text-align:center;color:var(--muted)}
+
+.method{margin-top:24px}
+.method details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);margin-top:10px;box-shadow:var(--shadow)}
+.method summary{cursor:pointer;padding:.9rem 1.2rem;font-weight:600;color:var(--navy)}
+.method .body{padding:0 1.3rem 1.1rem;font-size:14px}
+.method .body h4{margin:1rem 0 .3rem;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)}
+.method .body p,.method .body li{margin-bottom:.45rem}
+.method .body ul{padding-left:1.2rem}
+.method code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.method table{border-collapse:collapse;width:100%;font-size:12.5px;margin:.4rem 0 .6rem}
+.method th,.method td{border-bottom:1px solid var(--border);text-align:left;padding:4px 6px;vertical-align:top}
+.method th{color:var(--muted);font-weight:500}
+.tablewrap{overflow-x:auto}
+footer{max-width:1040px;margin:0 auto;padding:1rem 1rem 2.5rem;font-size:12px;color:var(--light);text-align:center}
+@media(min-width:900px) and (max-height:860px){
+  .hero{padding:.5rem 1.5rem 1.1rem}.hero p{display:none}.hero .eyebrow{display:none}
+  .hero h1{font-size:22px}main{margin-top:-.7rem}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body data-energy-tool="quiz">
+<header>
+  <div class="logo">Energy <span>quiz</span></div>
+  <div class="header-right">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Ten questions · no timer</div>
+  <h1>How well do you know <em>Canada's energy?</em></h1>
+  <p>Every answer comes from real NRCan and CMHC / Statistics Canada tables, with the source shown.</p>
+</section>
+
+<main>
+  <div class="settings">
+    <label>Topic<select id="topic"><option value="all">All topics (mixed)</option></select></label>
+    <label>Difficulty<select id="diff">
+      <option value="easy">Easy · wider gaps</option>
+      <option value="medium" selected>Medium · moderate gaps</option>
+      <option value="hard">Hard · closer calls</option></select></label>
+    <label>Question style<select id="style"><option value="mixed">Mixed · every style once</option></select></label>
+    <button class="btn amber" id="restart" type="button">New round</button>
+  </div>
+
+  <div class="layout">
+    <section class="card" id="game" aria-label="Quiz"><div class="loading">Loading questions…</div></section>
+    <aside>
+      <div class="card score"><div class="eyebrow">Your round</div>
+        <div class="big"><span id="score">0</span><small> / 10</small></div>
+        <div class="row"><div><b id="streak">0</b><span>Streak</span></div><div><b id="best">0</b><span>Best round</span></div></div>
+      </div>
+      <div class="card side-card" id="side"></div>
+    </aside>
+  </div>
+
+  <div class="method">
+    <details id="m-simple" open><summary>How this works (plain language)</summary><div class="body">
+      <p>Each question is built by a script from the same data tables that power the other pages on this site. Nothing is typed in by hand, so the answer you see is the number in the table.</p>
+      <ul>
+        <li><b>Compare, rank, find its place:</b> you sort real numbers, such as how much energy each province's homes use.</li>
+        <li><b>Guess the gap:</b> pick roughly how many times bigger one is than the other.</li>
+        <li><b>Guess a share:</b> drag a slider to estimate a percentage. You are right if you land within the stated margin, which is wider on Easy and tighter on Hard.</li>
+        <li><b>Then vs now:</b> which one rose more, or fell less, between two years.</li>
+      </ul>
+      <p><b>Easy, medium and hard</b> mean how far apart the numbers are: close calls are harder. It is a rule of thumb, not something measured from players.</p>
+      <p><b>Modelled or measured?</b> Each question carries a badge. <i>Modelled</i> numbers are NRCan's estimates of how energy is used; <i>measured</i> numbers are counts, like homes started. Neither is a meter reading for your house.</p>
+      <p>Your best score is kept in your browser only. Nothing is sent anywhere.</p>
+    </div></details>
+    <details id="m-adv"><summary>Method, data and limits (advanced)</summary><div class="body" id="adv-body"><div class="loading">Loading…</div></div></details>
+  </div>
+</main>
+<footer>Part of the Energy tools collection · data refreshed manually · <a href="index.html">all tools</a></footer>
+
+<script>
+(function(){
+'use strict';
+var BASE='./quiz_json/';
+var STYLES={compare:'Head to head',insert:'Find its place',rank:'Put in order',gap:'Guess the gap',estimate:'Guess a share',history:'Then vs now'};
+var ICON={compare:'⇄',insert:'⤓',rank:'☰',gap:'×',estimate:'%',history:'↗'};
+var meta=null,topics={},bank=[],mdefs={};
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+/* ------------------------------------------------------------ state */
+var S={qs:[],i:0,score:0,streak:0,best:Number(store('energyquizBest'))||0,answered:false,won:false,done:false,
+       sel:null,order:null,est:null,queue:[],used:{}};
+$('best').textContent=S.best;
+
+/* ------------------------------------------------------------ loading */
+function get(url){return fetch(url).then(function(r){if(!r.ok)throw new Error(url);return r.json()})}
+get(BASE+'meta.json').then(function(m){
+  meta=m;
+  m.topics.forEach(function(t){var o=document.createElement('option');o.value=t.id;o.textContent=t.label;$('topic').appendChild(o)});
+  Object.keys(STYLES).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=STYLES[k];$('style').appendChild(o)});
+  return Promise.all(m.topics.map(function(t){return get(BASE+t.file).then(function(d){topics[t.id]=d;
+    Object.keys(d.measures).forEach(function(k){mdefs[t.id+':'+k]=d.measures[k]});
+    d.questions.forEach(function(q){bank.push(q)})})}));
+}).then(function(){renderAdvanced();newRound()}).catch(function(){
+  $('game').innerHTML='<div class="err">The question data could not be loaded. If you opened this file directly from disk, serve the folder over http instead. <button class="btn ghost" onclick="location.reload()">Try again</button></div>';
+});
+
+/* ------------------------------------------------------------ picking questions */
+function pool(style,diff,topic){
+  var p=bank.filter(function(q){return q.s===style&&(topic==='all'||q.t===topic)&&(q.s==='estimate'||q.d===diff)});
+  if(p.length)return p;
+  // honest fallback: nearest difficulty rather than an empty round
+  var order={easy:0,medium:1,hard:2};
+  p=bank.filter(function(q){return q.s===style&&(topic==='all'||q.t===topic)&&q.s!=='estimate'});
+  p.sort(function(a,b){return Math.abs(order[a.d]-order[diff])-Math.abs(order[b.d]-order[diff])});
+  return p.slice(0,40);
+}
+function pickQuestion(style){
+  var diff=$('diff').value,topic=$('topic').value;
+  var p=pool(style,diff,topic);
+  if(!p.length)return null;
+  var fresh=p.filter(function(q){return !S.used[q.id]&&!S.used['m:'+q.t+q.m]});
+  if(!fresh.length)fresh=p.filter(function(q){return !S.used[q.id]});
+  if(!fresh.length)fresh=p;
+  var q=fresh[Math.floor(Math.random()*fresh.length)];
+  S.used[q.id]=1;S.used['m:'+q.t+q.m]=1;
+  return q;
+}
+function nextStyle(){
+  var st=$('style').value;
+  if(st!=='mixed')return st;
+  var avail=Object.keys(STYLES).filter(function(s){return pool(s,$('diff').value,$('topic').value).length});
+  if(!S.queue.length)S.queue=shuffle(avail);
+  return S.queue.shift();
+}
+function newRound(){
+  S.qs=[];S.i=0;S.score=0;S.streak=0;S.done=false;S.queue=[];S.used={};
+  for(var n=0;n<10;n++){var q=pickQuestion(nextStyle());if(q)S.qs.push(q)}
+  if(!S.qs.length){$('game').innerHTML='<div class="err">No questions match these settings.</div>';return}
+  loadQ();
+}
+function loadQ(){
+  var q=S.qs[S.i];S.answered=false;S.won=false;S.sel=null;S.est=null;S.order=null;
+  if(q.s==='rank'){
+    S.order=q.it.slice();
+    var sorted=q.it.slice().sort(function(a,b){return b[1]-a[1]});
+    if(S.order.every(function(r,i){return r===sorted[i]}))S.order.reverse();
+  }
+  if(q.s==='estimate'){var t=q.tol[$('diff').value];S.est=50}
+  render();
+}
+
+/* ------------------------------------------------------------ grading */
+function maxIdx(q,col){var m=-Infinity,k=0;q.it.forEach(function(r,i){if(r[col]>m){m=r[col];k=i}});return k}
+function tolOf(q){return q.tol[$('diff').value]}
+function canCheck(q){
+  if(q.s==='rank'||q.s==='estimate')return true;
+  return S.sel!==null;
+}
+function grade(q){
+  if(q.s==='compare')return S.sel===maxIdx(q,1);
+  if(q.s==='history')return S.sel===maxIdx(q,1);
+  if(q.s==='gap')return S.sel===q.an;
+  if(q.s==='insert')return S.sel===q.it.filter(function(a){return a[1]>q.tg[1]}).length;
+  if(q.s==='rank'){var s=q.it.slice().sort(function(a,b){return b[1]-a[1]});return S.order.every(function(r,i){return r===s[i]})}
+  if(q.s==='estimate')return Math.abs(S.est-q.it[0][1])<=tolOf(q)+1e-9;
+  return false;
+}
+
+/* ------------------------------------------------------------ rendering */
+function title(q){
+  var m=mdefs[q.t+':'+q.m],L=m.label;
+  switch(q.s){
+    case 'compare':return 'Which comes out higher for '+L+'?';
+    case 'rank':return 'Put these in order by '+L+', highest first.';
+    case 'insert':return 'Where does '+q.tg[0]+' fit for '+L+'?';
+    case 'gap':return L.charAt(0).toUpperCase()+L.slice(1)+': about how many times bigger is the larger one?';
+    case 'estimate':return q.pr;
+    case 'history':return 'Which rose more (or fell less) in '+L+' from '+q.yr[0]+' to '+q.yr[1]+'?';
+  }
+}
+function helpText(q){
+  switch(q.s){
+    case 'compare':return 'Pick the one with the larger value.';
+    case 'rank':return 'Use the arrows (or drag) to reorder, then check.';
+    case 'insert':return 'The four are already ordered. Choose the slot where '+q.tg[0]+' belongs.';
+    case 'gap':return 'Choose the closest ratio.';
+    case 'estimate':return 'Drag the slider. You are right if you land within ±'+tolOf(q)+' percentage points.';
+    case 'history':return 'Compare the percentage change between the two years.';
+  }
+}
+function bars(rows,fmtRow){
+  var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v)}))||1;
+  return '<div class="bars" aria-label="Correct values">'+rows.map(function(r){
+    return '<div class="bar-row"><span>'+esc(r.n)+'</span><div class="track"><div class="fill'+(r.v<0?' neg':'')+'" style="width:'+(Math.abs(r.v)/mx*100)+'%"></div></div><b>'+esc(r.d)+'</b></div>'}).join('')+'</div>';
+}
+function render(){
+  var g=$('game');
+  if(S.done){
+    var w=S.score>=8?'Sharp. You know where the energy goes.':S.score>=5?'A solid feel for the numbers.':'Plenty of surprises waiting in the data.';
+    g.innerHTML='<div class="summary"><div class="eyebrow">Round complete</div><div class="big">'+S.score+'<small style="font-size:26px;color:var(--light)"> / 10</small></div><h2>'+w+'</h2><p>Each question linked to the page where you can explore that data. Try another round, or switch topic or difficulty.</p><button class="btn amber" id="again" type="button">Play another round</button></div>';
+    $('again').onclick=newRound;side(null);return;
+  }
+  var q=S.qs[S.i],m=mdefs[q.t+':'+q.m],t=topics[q.t].topic;
+  var h='<div class="game-top"><span>'+ICON[q.s]+' '+STYLES[q.s]+'</span><span>Question <b>'+String(S.i+1).padStart(2,'0')+'</b> / 10</span></div>';
+  h+='<div class="progress">'+S.qs.map(function(_,i){return '<span class="'+(i<S.i?'done':i===S.i?'current':'')+'"></span>'}).join('')+'</div>';
+  h+='<div class="badges">'+(q.s==='estimate'?'<span class="badge '+$('diff').value+'">±'+tolOf(q)+' pp</span>':'<span class="badge '+q.d+'">'+q.d+'</span>')+'<span class="badge '+t.basis+'">'+t.basis+'</span><span class="badge">'+esc(m.group)+' · '+m.year+'</span></div>';
+  h+='<h2 class="q">'+esc(title(q))+'</h2><p class="help">'+esc(helpText(q))+'</p>';
+  h+='<div id="play">'+play(q)+'</div><div id="rev"></div>';
+  h+='<div class="actions"><span class="hint" id="hint"></span><span id="btns"></span></div>';
+  g.innerHTML=h;bind(q);
+  if(S.answered)reveal(q);else updateBtns(q);
+  side(q);
+}
+function play(q){
+  var dis=S.answered?' disabled':'';
+  if(q.s==='compare'||q.s==='history'){
+    return '<div class="choices">'+q.it.map(function(r,i){
+      var cls=S.sel===i?' selected':'';
+      if(S.answered){var win=maxIdx(q,1)===i;cls=win?' right':(S.sel===i?' wrong':'')}
+      var sub=S.answered?'<small>'+esc(q.s==='history'?r[2]+' ('+r[3]+' → '+r[4]+')':r[2])+'</small>':'';
+      return '<button type="button" class="choice'+cls+'" data-i="'+i+'"'+dis+'>'+esc(r[0])+sub+'</button>'}).join('')+'</div>';
+  }
+  if(q.s==='gap'){
+    var pair=q.it.slice().sort(function(a,b){return b[1]-a[1]});
+    var ctx='<p class="small" style="margin-bottom:.6rem">'+esc(q.it[0][0])+' vs '+esc(q.it[1][0])+'</p>';
+    return ctx+'<div class="choices four">'+q.op.map(function(o,i){
+      var cls=S.sel===i?' selected':'';
+      if(S.answered)cls=i===q.an?' right':(S.sel===i?' wrong':'');
+      return '<button type="button" class="choice'+cls+'" data-i="'+i+'"'+dis+'>≈ '+o+'×</button>'}).join('')+'</div>';
+  }
+  if(q.s==='rank'){
+    var sorted=q.it.slice().sort(function(a,b){return b[1]-a[1]});
+    return '<div class="edge">Highest ↓</div><div class="rank-list">'+S.order.map(function(r,i){
+      var cls=S.answered?(sorted[i]===r?' right':' wrong'):'';
+      return '<div class="rank-row'+cls+'" data-i="'+i+'" draggable="'+(!S.answered)+'"><span class="rank-n">'+(i+1)+'</span><span class="rank-name">'+esc(r[0])+'</span>'+
+        (S.answered?'<span class="rank-val">'+esc(r[2])+'</span>':'<span class="move"><button type="button" data-up="'+i+'" aria-label="Move '+esc(r[0])+' up"'+(i===0?' disabled':'')+'>▲</button> <button type="button" data-dn="'+i+'" aria-label="Move '+esc(r[0])+' down"'+(i===3?' disabled':'')+'>▼</button></span>')+'</div>'}).join('')+'</div><div class="edge">Lowest</div>';
+  }
+  if(q.s==='insert'){
+    var right=q.it.filter(function(a){return a[1]>q.tg[1]}).length,out='';
+    for(var s=0;s<5;s++){
+      var cls=S.sel===s?' selected':'',label=S.sel===s?esc(q.tg[0]):'+ Place here';
+      if(S.answered){if(s===right){cls=' right';label='✓ '+esc(q.tg[0])+' · '+esc(q.tg[2])}else if(S.sel===s){cls=' wrong';label='✗ your pick'}}
+      out+='<button type="button" class="slot'+cls+'" data-i="'+s+'"'+dis+'>'+label+'</button>';
+      if(s<4)out+='<div class="anchor"><span>'+(s+1)+'. '+esc(q.it[s][0])+'</span>'+(S.answered?'<small>'+esc(q.it[s][2])+'</small>':'')+'</div>';
+    }
+    return '<div class="insert"><div><div class="target"><div class="small">Place this</div><b>'+esc(q.tg[0])+'</b></div><div id="rev-in"></div></div><div><div class="edge">Highest ↓</div><div class="ladder">'+out+'</div><div class="edge">Lowest</div></div></div>';
+  }
+  if(q.s==='estimate'){
+    return '<div class="est"><div class="est-val" id="estv">'+Math.round(S.est)+'%</div><input id="estr" type="range" min="0" max="100" step="1" value="'+Math.round(S.est)+'" aria-label="Your estimate in percent"'+dis+'><div class="ticks"><span>0%</span><span>50%</span><span>100%</span></div><div class="tol">Within ±'+tolOf(q)+' percentage points counts as right.</div></div>';
+  }
+  return '';
+}
+function bind(q){
+  var g=$('game');
+  g.querySelectorAll('[data-i]').forEach(function(el){
+    if(q.s==='rank')return;
+    el.addEventListener('click',function(){if(S.answered)return;S.sel=Number(el.dataset.i);$('play').innerHTML=play(q);bind(q);updateBtns(q)});
+  });
+  if(q.s==='rank'&&!S.answered){
+    g.querySelectorAll('[data-up]').forEach(function(b){b.onclick=function(){move(q,Number(b.dataset.up),-1)}});
+    g.querySelectorAll('[data-dn]').forEach(function(b){b.onclick=function(){move(q,Number(b.dataset.dn),1)}});
+    var from=null;
+    g.querySelectorAll('.rank-row').forEach(function(r){
+      r.ondragstart=function(){from=Number(r.dataset.i);r.classList.add('dragging')};
+      r.ondragend=function(){r.classList.remove('dragging')};
+      r.ondragover=function(e){e.preventDefault()};
+      r.ondrop=function(e){e.preventDefault();if(from===null)return;var to=Number(r.dataset.i);var a=S.order.splice(from,1)[0];S.order.splice(to,0,a);from=null;$('play').innerHTML=play(q);bind(q)};
+    });
+  }
+  var r=$('estr');
+  if(r)r.addEventListener('input',function(){S.est=Number(r.value);$('estv').textContent=r.value+'%'});
+}
+function move(q,i,d){var j=i+d;if(j<0||j>3)return;var a=S.order[i];S.order[i]=S.order[j];S.order[j]=a;$('play').innerHTML=play(q);bind(q);
+  var b=$('game').querySelector('[data-'+(d<0?'up':'dn')+'="'+j+'"]');if(b&&!b.disabled)b.focus()}
+function updateBtns(q){
+  var ok=canCheck(q);
+  $('hint').textContent=ok?'Ready when you are.':'Make a choice to continue.';
+  $('btns').innerHTML='<button type="button" class="btn" id="check"'+(ok?'':' disabled')+'>Check answer →</button>';
+  $('check').onclick=function(){check(q)};
+}
+function check(q){
+  if(S.answered||!canCheck(q))return;
+  S.won=grade(q);S.answered=true;
+  if(S.won){S.score++;S.streak++}else S.streak=0;
+  if(S.score>S.best){S.best=S.score;store('energyquizBest',String(S.best))}
+  $('best').textContent=S.best;
+  $('play').innerHTML=play(q);bind(q);reveal(q);side(q);
+  var rv=$('rev-in')||$('rev');if(rv&&rv.scrollIntoView)rv.scrollIntoView({behavior:'instant',block:'nearest'});
+}
+function reveal(q){
+  var m=mdefs[q.t+':'+q.m],t=topics[q.t].topic,src=t.source,rows='';
+  if(q.s==='estimate'){
+    var v=q.it[0][1],tol=tolOf(q);
+    rows='<div class="est-track" aria-label="Your guess versus the answer"><div class="est-band" style="left:'+Math.max(0,v-tol)+'%;width:'+(Math.min(100,v+tol)-Math.max(0,v-tol))+'%"></div><i style="left:calc('+v+'% - 2px);background:var(--green)" title="Answer"></i><i style="left:calc('+S.est+'% - 2px);background:var(--amber)" title="Your guess"></i></div><div class="small">Green = answer ('+esc(q.it[0][2])+'), amber = your guess ('+Math.round(S.est)+'%), shaded = counted as right.</div>';
+  }else if(q.s==='history'){
+    rows=bars(q.it.slice().sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));
+  }else if(q.s==='insert'||q.s==='rank'){
+    rows='';   // the ordered list above already shows every value
+  }else{
+    var all=q.it.slice();if(q.tg)all.push(q.tg);
+    rows=bars(all.sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));
+  }
+  var text=(q.s==='estimate'?'Your guess: '+Math.round(S.est)+'%. ':'')+q.ex;
+  (q.s==='insert'?$('rev-in'):$('rev')).innerHTML='<div class="reveal '+(S.won?'win':'lose')+'" role="status"><strong>'+(S.won?'Right on.':'A new piece of perspective.')+'</strong><p>'+esc(text)+'</p>'+rows+
+    '<p class="small">'+(rows&&q.s!=='estimate'?'Bars start at zero. ':'')+esc(m.note||'')+'</p><p class="small">Source: '+esc(src.label)+' · '+esc(src.vintage)+'. <a href="'+esc(t.page)+'">See it on the chart →</a></p></div>';
+  $('hint').textContent=S.score+' correct so far.';
+  $('btns').innerHTML='<button type="button" class="btn amber" id="next">'+(S.i===9?'See my results':'Next question')+' →</button>';
+  $('next').onclick=function(){if(S.i===9){S.done=true}else S.i++;if(S.done)render();else loadQ()};
+}
+function side(q){
+  $('score').textContent=S.score;$('streak').textContent=S.streak;
+  if(!q){$('side').innerHTML='<h3>Field notes</h3><p>Open the advanced notes below to see every source, year and the gates that removed questions.</p>';return}
+  var t=topics[q.t].topic,m=mdefs[q.t+':'+q.m];
+  $('side').innerHTML='<h3>Where this number is from</h3><p><b>'+esc(t.source.label)+'</b></p><p>'+esc(t.source.vintage)+'. Retrieved '+esc(t.source.retrieved)+'.</p><p>'+esc(t.source.note)+'</p><p><a href="'+esc(t.source.url)+'" target="_blank" rel="noopener">Original source ↗</a></p>';
+}
+$('restart').onclick=newRound;
+['topic','diff','style'].forEach(function(id){$(id).addEventListener('change',newRound)});
+
+/* ------------------------------------------------------------ advanced methodology (rendered from meta.json) */
+function renderAdvanced(){
+  var h='<h4>Pipeline</h4><p><code>Python/build_quiz.py</code> reads <code>ceud_json/</code> and <code>construction_json/</code> and writes a seeded question bank to <code>quiz_json/</code>. This page only plays the bank: it computes nothing about the data. Generated '+esc(meta.generated)+'. Full notes: <code>docs/QUIZ.md</code>.</p>';
+  h+='<h4>Rules every question must pass</h4><ul>'+
+   '<li>One year inside each question. Missing values are dropped, never filled with zero or borrowed from another year.</li>'+
+   '<li>Two items can only be compared if their values differ after display rounding <em>and</em> the relative gap <code>|A−B| / max(|A|,|B|)</code> is at least '+(meta.min_gap*100)+'%. Both gates are counted below.</li>'+
+   '<li>Difficulty (a heuristic, not player data): compare questions on wide-range measures use fixed cuts (≤25% gap hard, ≥65% easy); all other styles use thirds of the generated bank for that measure and style. Ranking scores the closest adjacent pair; insertion the closest target-to-anchor pair; then-vs-now scores the gap between indices (start year = 100).</li>'+
+   '<li>Estimates have no fixed difficulty. The tolerance is ±'+meta.estimate_tolerance_pp.easy+' / ±'+meta.estimate_tolerance_pp.medium+' / ±'+meta.estimate_tolerance_pp.hard+' percentage points on easy / medium / hard. Shares divide by the national total shown in each answer.</li>'+
+   '<li>Guess-the-gap offers four ratios from a fixed scale (1, 1.2, 1.5, 2, 3, 5, 10, 20, 30, 50, 100); the correct one is the scale value nearest the true ratio.</li></ul>';
+  meta.topics.forEach(function(t){
+    var st=Object.keys(t.by_style).map(function(k){return STYLES[k]+' '+t.by_style[k]}).join(' · ');
+    h+='<h4>'+esc(t.label)+' — '+t.questions.toLocaleString()+' questions</h4><p><b>'+esc(t.source.label)+'</b> ('+esc(t.basis)+'). '+esc(t.source.vintage)+'; retrieved '+esc(t.source.retrieved)+'. '+esc(t.source.note)+' <a href="'+esc(t.source.url)+'" target="_blank" rel="noopener">Source ↗</a></p><p class="small">'+esc(st)+'</p>';
+    var d=topics[t.id].measures;
+    h+='<div class="tablewrap"><table><tr><th>Measure</th><th>Usable items</th><th>Pairs</th><th>Tied</th><th>Gap &lt;3%</th><th>Caveat</th></tr>'+
+      Object.keys(t.guards).map(function(k){var g=t.guards[k],m=d[k];return '<tr><td>'+esc(m.label)+' <span class="small">('+m.year+')</span></td><td>'+g.usable+' / '+g.items+'</td><td>'+g.pairs+'</td><td>'+g.tied+'</td><td>'+g.too_close+'</td><td>'+esc(m.note||'')+'</td></tr>'}).join('')+'</table></div>';
+  });
+  h+='<h4>Limitations</h4><ul>'+
+   '<li><b>What the data cannot tell us:</b> CEUD figures are NRCan model estimates by sector, fuel and region; they say nothing about an individual building. GHG figures are direct (on-site) emissions only.</li>'+
+   '<li><b>What we assumed:</b> that a 3% relative gap is enough to count as a real difference at the precision shown, and that the gap-based difficulty roughly tracks how hard a question feels. Neither has been tested with players.</li>'+
+   '<li><b>What would change the answer:</b> a new CEUD release or revised CMHC/StatCan counts (the bank is regenerated on refresh); a different tie or gap threshold.</li>'+
+   '<li>Territories are not in the construction table, so provincial starts sum to slightly less than Canada. The CMHC intended-market split stops publishing after the early 2000s in our extract, so it is not used.</li></ul>';
+  $('adv-body').innerHTML=h;
+}
+})();
+</script>
+</body>
+</html>

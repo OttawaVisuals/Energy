@@ -205,6 +205,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <a href="#newhomes">🏡 New Homes</a>
       <a href="#ceud">📊 CEUD</a>
       <a href="#construction">🏗️ Construction</a>
+      <a href="#quiz">🎯 Quiz</a>
       <a href="#permits">🧱 Permits</a>
       <a href="#geothermal">🌍 Geothermal</a>
       <a href="#heatpump">🔥 Heat Pump</a>
@@ -972,6 +973,39 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <h4>A city is not its metro area</h4>
     <p>The City of Toronto excludes Peel, York, Durham and Halton. These series cannot be reconciled
     with the CMA figures on the Construction Tracker, and every card says so.</p>
+  </div></details>
+</section>
+
+<!-- ══════════════════ ENERGY QUIZ ══════════════════ -->
+<section id="quiz" class="card">
+  <div class="proj-head">
+    <h2>🎯 Energy Quiz</h2>
+    <span class="chip build">🔨 Built locally · not yet published (2026-11-07)</span>
+  </div>
+  <p><b>In one sentence:</b> a ten-question quiz built from the site's own CEUD and housing-starts
+  data: compare, rank, guess a share, or go back in time, then see the real number and its source.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">NRCan CEUD<small>2023 release, modelled estimates, via ceud_json/</small></div>
+    <div class="src">CMHC housing starts<small>StatCan 34-10-0151, calendar 2025 vs 2000, via construction_json/</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Question bank</b><span>Python/build_quiz.py generates seeded questions from the data (no hand-typed numbers)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Guards</b><span>Same year, no filled gaps, ties and gaps under 3% removed and counted</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>quiz.html plays rounds of 10; design adapted from the SimpleViz Atlas Play quiz</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <p>Six question styles (head to head, put in order, find its place, guess the gap, guess a
+    share, then vs now). Easy, medium and hard come from how close the two numbers are, a rule
+    of thumb that has not been tested with players. Each question carries a modelled or measured
+    badge. Vanilla JavaScript with no build step, per the repo rules (Atlas Play itself uses
+    React). Decisions and limits: <code>docs/QUIZ.md</code>.</p>
   </div></details>
 </section>
 

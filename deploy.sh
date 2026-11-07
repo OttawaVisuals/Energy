@@ -46,14 +46,14 @@ STAMP="$(date +%Y-%m-%d)"
 PATHS=(
   .nojekyll
   coldcall.html
-  index.html ceud.html construction.html districtenergy.html grid.html heatpump.html
+  index.html ceud.html construction.html districtenergy.html grid.html heatpump.html quiz.html
   newhomes.html permits.html project-atlas.html retrofit-insights.html retrofits.html
   tier-scatter.html
   assets
   functions
   fsa_json newhomes_fsa newhomes_json province_json insights_json
   retrofit_costs_json
-  ceud_json construction_json permits_json grid_json prices_json geo_json census_json
+  ceud_json construction_json quiz_json permits_json grid_json prices_json geo_json census_json
   districtenergy_json coldcall_json
   lookup FSA_Maps GridCapacity
   HeatPump/data/processed
