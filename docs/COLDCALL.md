@@ -168,3 +168,11 @@ A fresh service call opens with a short dispatch briefing. Start service call op
 ## Heat-loss formula note — 2026-11-09 (published 2026-11-09)
 
 Line 3's scenario heat-loss report ends with a handwritten sticky note: **Peak heat loss — UA × ΔT** (designer's request: "the formula and its name"). It appears with the report, once all five leaks are sealed, and helps players turn the report's Total UA and temperatures into the answer. Checked at 1440×900 (the right-hand column does not overflow) and 375 px wide; `Python/check_coldcall.cjs` passes. Published to the Energy Suite and escapepack.ca; the escapepack.ca sync also brought that copy up to date with the 2026-11-06 changes.
+
+## Calculator brackets and movable heat pump parts — 2026-11-09 (published 2026-11-09)
+
+Designer playtest feedback: the calculator refused `126*(21+25)`, and on Line 5 a placed part could not be dragged to another socket.
+
+- **Calculator:** `calcEval()` is now a small recursive-descent parser: + − × ÷ with precedence, brackets (nested), a leading or nested minus, and a number or `)` before `(` read as multiplication (`126(21+25)`). Still accepts `*`, `x`, `/` and thousands commas. An unbalanced bracket says "Close every bracket you open". The keypad gains ( ) keys in a standard 5-row layout (C ( ) ÷ / 7 8 9 × / 4 5 6 − / 1 2 3 + / 0 . ⌫ =).
+- **Line 5:** a placed part can be dragged to another socket (swapping if that socket is full) or onto the parts list to take it out. Dropping elsewhere leaves it in place with a hint. A plain click still takes the part back; parts lock once the loop runs.
+- **Checks:** 22 calculator expressions (node), typed and keypad input in the browser; real mouse drags for swap, move, return and the solved loop; `Python/check_coldcall.cjs` passes; no console errors. Touch dragging uses the same pointer events but was not tested on a real phone.

@@ -93,8 +93,8 @@ h1, h2, h3, p { margin: 0; }
 .calc-keys button:hover { background: #3a5160; }
 .calc-keys .op { background: #3a4a55; color: #e89a66; }
 .calc-keys .fn { background: #25343d; color: var(--on-dark-muted); }
-.calc-keys .eq { grid-row: span 2; height: auto; background: var(--copper); color: #fff; }
-.calc-keys .zero { grid-column: span 2; }
+.calc-keys .eq { background: var(--copper); color: #fff; }
+.calc-keys .br { color: var(--on-dark); font: 500 20px var(--sans); }
 
 /* Main: service call on the left, work table on the right */
 main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
@@ -454,7 +454,8 @@ main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 300p
 .loop.running .flowfx { opacity: 1; }
 .sticker { position: absolute; transform: translate(-50%, -50%); padding: 3px 8px; border-radius: 3px; background: #f4e27c; color: #2b2510; font: 600 12px/1.2 var(--sans); white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); pointer-events: none; }
 .socket { position: absolute; transform: translate(-50%, -50%); width: 22%; min-height: 52px; padding: 4px 8px; border-radius: 8px; border: 2px dashed rgba(255, 255, 255, .55); background: rgba(10, 18, 23, .78); color: var(--on-dark-muted); font: 700 14px/1.15 var(--sans); }
-.socket.filled { border: 2px solid #f3eee2; background: #f3eee2; color: var(--ink); }
+.socket.filled { border: 2px solid #f3eee2; background: #f3eee2; color: var(--ink); cursor: grab; touch-action: none; }
+.loop.running .socket.filled { cursor: default; }
 .socket.target { border-color: var(--copper); color: var(--on-dark); }
 .loop.running .socket.filled { border-color: #8fe0ae; }
 .p5-side { min-height: 0; overflow: hidden auto; display: flex; flex-direction: column; gap: 12px; padding: 2px 4px; }
@@ -925,11 +926,11 @@ button { transition:background-color .16s,border-color .16s,box-shadow .16s; }
   <p class="calc-prev" id="calcPrev" aria-live="polite"></p>
   <p class="calc-help">Type a calculation or use the keys. Enter = calculate.</p>
   <div class="calc-keys" id="calcKeys">
-    <button type="button" data-k="C" class="fn">C</button><button type="button" data-k="⌫" class="fn">&#9003;</button><button type="button" data-k="÷" class="op">&divide;</button><button type="button" data-k="×" class="op">&times;</button>
-    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="−" class="op">&minus;</button>
-    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="+" class="op">+</button>
-    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="=" class="eq">=</button>
-    <button type="button" data-k="0" class="zero">0</button><button type="button" data-k=".">.</button>
+    <button type="button" data-k="C" class="fn">C</button><button type="button" data-k="(" class="fn br">(</button><button type="button" data-k=")" class="fn br">)</button><button type="button" data-k="÷" class="op">&divide;</button>
+    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="×" class="op">&times;</button>
+    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="−" class="op">&minus;</button>
+    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="+" class="op">+</button>
+    <button type="button" data-k="0">0</button><button type="button" data-k=".">.</button><button type="button" data-k="⌫" class="fn" aria-label="Delete">&#9003;</button><button type="button" data-k="=" class="eq">=</button>
   </div>
 </div>
 
@@ -1382,7 +1383,7 @@ button { transition:background-color .16s,border-color .16s,box-shadow .16s; }
               <button type="button" class="socket" data-socket="br" style="left:80%;top:76.3%">empty</button>
               <button type="button" class="socket" data-socket="bl" style="left:20%;top:76.3%">empty</button>
             </div>
-            <p class="status" id="loopStatus" aria-live="polite">The arrows show which way the refrigerant flows. Drag a part onto a socket, or click a part and then a socket. Click a filled socket to take its part back.</p>
+            <p class="status" id="loopStatus" aria-live="polite">The arrows show which way the refrigerant flows. Drag a part onto a socket, or click a part and then a socket. Drag a placed part to move it; click it to take it back.</p>
           </div>
 
           <div class="p5-side">
@@ -2668,12 +2669,59 @@ PART_ORDER.forEach(k => {
   b.addEventListener("pointerup", finish);
   b.addEventListener("pointercancel", finish);
 });
-document.querySelectorAll("[data-socket]").forEach(b => b.addEventListener("click", () => {
-  const s = b.dataset.socket;
-  if (running5) return;
-  if (pick5 !== null) placePart(s, pick5);
-  else if (socket5[s]) { socket5[s] = null; checkLoop(); }
-}));
+// A placed part can be dragged straight to another socket (swapping with whatever is there) or back
+// onto the parts list, instead of having to take it out first.
+function moveSocketPart(from, to) {
+  const k = socket5[from];
+  if (!k || from === to || running5) return;
+  socket5[from] = socket5[to];
+  socket5[to] = k;
+  pick5 = null;
+  checkLoop();
+}
+let sockDrag = null, sockDragged = false;
+document.querySelectorAll("[data-socket]").forEach(b => {
+  b.addEventListener("click", () => {
+    if (sockDragged) { sockDragged = false; return; }
+    const s = b.dataset.socket;
+    if (running5) return;
+    if (pick5 !== null) placePart(s, pick5);
+    else if (socket5[s]) { socket5[s] = null; checkLoop(); }
+  });
+  b.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || running5 || pick5 !== null || !socket5[b.dataset.socket]) return;
+    sockDrag = { from: b.dataset.socket, x0: e.clientX, y0: e.clientY, ghost: null };
+    sockDragged = false;
+    b.setPointerCapture(e.pointerId);
+  });
+  b.addEventListener("pointermove", e => {
+    if (!sockDrag || sockDrag.from !== b.dataset.socket) return;
+    if (!sockDrag.ghost && Math.hypot(e.clientX - sockDrag.x0, e.clientY - sockDrag.y0) > 6) {
+      sockDrag.ghost = document.createElement("div");
+      sockDrag.ghost.className = "ghost-part";
+      sockDrag.ghost.textContent = PARTS[socket5[sockDrag.from]].name;
+      document.body.append(sockDrag.ghost);
+    }
+    if (sockDrag.ghost) { sockDrag.ghost.style.left = e.clientX + "px"; sockDrag.ghost.style.top = e.clientY + "px"; }
+  });
+  const finish = e => {
+    if (!sockDrag || sockDrag.from !== b.dataset.socket) return;
+    const d = sockDrag;
+    sockDrag = null;
+    if (!d.ghost) return; // a plain click: the click handler takes the part back
+    d.ghost.remove();
+    sockDragged = true;
+    setTimeout(() => { sockDragged = false; }, 0);
+    if (e.type !== "pointerup") return;
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    const to = hit?.closest("[data-socket]");
+    if (to) moveSocketPart(d.from, to.dataset.socket);
+    else if (hit?.closest("#partsBox")) { socket5[d.from] = null; checkLoop(); }
+    else say5("Drop the part on another socket to move it, or on the parts list to take it out.");
+  };
+  b.addEventListener("pointerup", finish);
+  b.addEventListener("pointercancel", finish);
+});
 $("copTemp").addEventListener("input", readCop);
 renderLoop();
 readCop();
@@ -2833,33 +2881,27 @@ setupPuzzle(6, {
 });
 
 /* ---------- Calculator ---------- */
-// Evaluates + − × ÷ with the usual precedence. Accepts *, x, / and thousands commas as typed.
+// Evaluates + − × ÷ and brackets with the usual precedence (a small recursive-descent parser).
+// Accepts *, x, / and thousands commas as typed; a leading or nested minus; and a number
+// or ")" right before "(" as multiplication, so 126(21+25) works like 126×(21+25).
 function calcEval(expr) {
-  const src = expr.replace(/,/g, "").replace(/[×x*]/g, "×").replace(/[÷/]/g, "÷").replace(/[−–]/g, "-").replace(/\s+/g, "");
-  const toks = src.match(/\d*\.?\d+|[+\-×÷]/g);
-  if (!toks || toks.join("") !== src) return null;
-  const nums = [], ops = [];
-  let expectNum = true, sign = 1;
-  for (const t of toks) {
-    if (expectNum) {
-      if (t === "-") { sign = -sign; continue; }
-      if (!/\d/.test(t)) return null;
-      nums.push(sign * parseFloat(t)); sign = 1; expectNum = false;
-    } else {
-      if (/\d/.test(t)) return null;
-      ops.push(t); expectNum = true;
-    }
-  }
-  if (expectNum) return null;
-  // × and ÷ first, then + and −, left to right
-  const n2 = [nums[0]], o2 = [];
-  ops.forEach((o, i) => {
-    if (o === "×") n2.push(n2.pop() * nums[i + 1]);
-    else if (o === "÷") n2.push(n2.pop() / nums[i + 1]);
-    else { o2.push(o); n2.push(nums[i + 1]); }
-  });
-  const v = o2.reduce((acc, o, i) => o === "+" ? acc + n2[i + 1] : acc - n2[i + 1], n2[0]);
-  return isFinite(v) ? v : null;
+  const src = expr.replace(/,/g, "").replace(/[×xX*]/g, "×").replace(/[÷/]/g, "÷").replace(/[−–—]/g, "-").replace(/\s+/g, "");
+  const raw = src.match(/\d*\.?\d+|[+\-×÷()]/g);
+  if (!raw || raw.join("") !== src) return null;
+  const t = [];
+  raw.forEach(k => { const p = t[t.length - 1]; if (p !== undefined && (/\d/.test(p) || p === ")") && (k === "(" || (p === ")" && /\d/.test(k)))) t.push("×"); t.push(k); });
+  let i = 0;
+  const sum = () => { let v = product(); while (t[i] === "+" || t[i] === "-") { const o = t[i++], r = product(); v = o === "+" ? v + r : v - r; } return v; };
+  const product = () => { let v = unit(); while (t[i] === "×" || t[i] === "÷") { const o = t[i++], r = unit(); v = o === "×" ? v * r : v / r; } return v; };
+  const unit = () => {
+    const k = t[i++];
+    if (k === "-") return -unit();
+    if (k === "+") return unit();
+    if (k === "(") { const v = sum(); if (t[i++] !== ")") throw 0; return v; }
+    if (k !== undefined && /\d/.test(k)) return parseFloat(k);
+    throw 0;
+  };
+  try { const v = sum(); return i === t.length && isFinite(v) ? v : null; } catch { return null; }
 }
 const calcFmt = v => (Math.round(v * 1e6) / 1e6).toLocaleString("en-CA", { maximumFractionDigits: 6 });
 function calcPress(k) {
@@ -2868,7 +2910,11 @@ function calcPress(k) {
   else if (k === "⌫") s.value = s.value.slice(0, -1);
   else if (k === "=") {
     const v = calcEval(s.value);
-    if (v === null) { $("calcPrev").textContent = "Can't calculate that"; return; }
+    if (v === null) {
+      const open = (s.value.match(/\(/g) || []).length, close = (s.value.match(/\)/g) || []).length;
+      $("calcPrev").textContent = open !== close ? "Close every bracket you open" : "Can't calculate that";
+      return;
+    }
     $("calcPrev").textContent = `${s.value} =`;
     s.value = calcFmt(v);
   } else s.value += k;
