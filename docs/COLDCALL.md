@@ -164,3 +164,7 @@ Layout refinement (2026-11-05). Reduced outer padding and gaps. Replaced decorat
 ## Emergency dispatch briefing — 2026-11-06 (published)
 
 A fresh service call opens with a short dispatch briefing. Start service call opens Line 1 and starts the timer. Reset and Play again return to the briefing. Saved progress and direct puzzle links enter the workbench with existing unlock rules.
+
+## Heat-loss formula note — 2026-11-09 (published 2026-11-09)
+
+Line 3's scenario heat-loss report ends with a handwritten sticky note: **Peak heat loss — UA × ΔT** (designer's request: "the formula and its name"). It appears with the report, once all five leaks are sealed, and helps players turn the report's Total UA and temperatures into the answer. Checked at 1440×900 (the right-hand column does not overflow) and 375 px wide; `Python/check_coldcall.cjs` passes. Published to the Energy Suite and escapepack.ca; the escapepack.ca sync also brought that copy up to date with the 2026-11-06 changes.

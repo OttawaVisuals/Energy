@@ -1,6 +1,7 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-09**: Cold Call line 3 gets a handwritten note, **Peak heat loss — UA × ΔT**, under the heat-loss report. Published 2026-11-09 (Energy Suite and escapepack.ca).
 Updated **2026-11-07**: **Energy Quiz** built locally (`quiz.html`, `Python/build_quiz.py` →
 `quiz_json/`), not yet published. Ten-question rounds, six question styles adapted from the
 SimpleViz Atlas Play geography quiz, two topics (CEUD and Construction) on one shared
