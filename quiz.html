@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Quiz — Canada's energy, in ten questions</title>
+<meta name="description" content="A ten-question quiz built from real Canadian energy and construction data: compare, rank, guess a share, then vs now. Every answer comes from NRCan and CMHC/Statistics Canada tables.">
+<meta property="og:title" content="Energy Quiz — Canada's energy, in ten questions">
+<meta property="og:description" content="Compare, rank and estimate with real data from NRCan's CEUD and CMHC housing starts. No timer, just perspective.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/quiz">
+<meta property="og:site_name" content="Ottawa Visuals">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&display=swap"></noscript>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B2545;--amber:#C8881A;--amber2:#E8A124;
+  --green:#1A7A55;--green-bg:#E4F3EC;--red:#B33A2E;--red-bg:#F8E6E3;
+  --cream:#F7F4EE;--surface:#E8EDF4;--border:#D2D8E3;
+  --text:#1C2B3A;--muted:#5C6E82;--light:#627286;--ctl:#7C8DA3;--white:#fff;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;
+  --shadow:0 1px 3px rgba(11,37,69,.08),0 4px 12px rgba(11,37,69,.05)
+}
+html{scroll-behavior:auto}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--text);font-size:15px;line-height:1.6}
+a{color:var(--navy)}
+button,select{font-family:inherit;font-size:inherit}
+:focus-visible{outline:3px solid var(--amber2);outline-offset:2px}
+
+header{background:var(--navy);padding:0 1.5rem;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;height:48px;gap:12px}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--white);letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--amber2);font-style:italic}
+.header-right{display:flex;gap:14px}
+.sibling-link{font-size:12px;color:rgba(255,255,255,.6);text-decoration:none;white-space:nowrap}
+.sibling-link:hover{color:var(--amber2)}
+
+.hero{background:var(--navy);padding:.9rem 1.5rem 1.5rem;text-align:center;color:var(--white)}
+.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber2);margin-bottom:.7rem}
+.hero .eyebrow{margin-bottom:.2rem}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:clamp(22px,3.2vw,30px);line-height:1.15;letter-spacing:-.01em}
+.hero h1 em{color:var(--amber2)}
+.hero p{max-width:760px;margin:.4rem auto 0;color:rgba(255,255,255,.72);font-size:13.5px;line-height:1.45}
+
+main{max-width:1400px;margin:-.9rem auto 0;padding:0 1.25rem 2rem}
+.settings{display:flex;flex-wrap:wrap;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:.6rem .9rem;align-items:flex-end}
+.settings label{display:flex;flex-direction:column;gap:2px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:1 1 150px;min-width:140px}
+.settings select{height:34px;border:1px solid var(--ctl);border-radius:var(--r-sm);padding:0 8px;background:var(--white);color:var(--text);text-transform:none;letter-spacing:0;font-size:14px}
+.btn{border:none;border-radius:var(--r-md);padding:10px 18px;cursor:pointer;font-weight:500;background:var(--navy);color:var(--white);display:inline-flex;gap:8px;align-items:center;justify-content:center;min-height:42px}
+.btn:hover:not(:disabled){background:#14366b}
+.btn:disabled{background:var(--border);color:var(--light);cursor:not-allowed}
+.btn.amber{background:var(--amber2);color:var(--navy)}
+.btn.amber:hover:not(:disabled){background:#f0b13c}
+.btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--border)}
+.btn.ghost:hover:not(:disabled){background:var(--surface)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;margin-top:12px;align-items:start}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:.9rem 1.3rem}
+.game-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;gap:8px;flex-wrap:wrap}
+.progress{display:flex;gap:4px;margin-bottom:.6rem}
+.progress span{flex:1;height:5px;border-radius:3px;background:var(--surface)}
+.progress .done{background:var(--navy)}
+.progress .current{background:var(--amber2)}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.5rem}
+.badge{font-size:12px;padding:2px 9px;border-radius:12px;border:1px solid var(--border);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.badge.easy{background:var(--green-bg);color:var(--green);border-color:transparent}
+.badge.medium{background:#FBF1DB;color:#8A5C08;border-color:transparent}
+.badge.hard{background:var(--red-bg);color:var(--red);border-color:transparent}
+.badge.modelled{background:#EDE9FB;color:#533AB7;border-color:transparent}
+.badge.measured{background:#E4EEF9;color:#1F5C99;border-color:transparent}
+h2.q{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(19px,2.4vw,24px);line-height:1.25;margin:.1rem 0 .2rem}
+.help{color:var(--muted);font-size:13.5px;margin-bottom:.7rem}
+.ctx{font-size:12px;color:var(--light);margin-bottom:.9rem}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.choices{grid-template-columns:1fr}}
+.choice{border:2px solid var(--ctl);background:var(--white);border-radius:var(--r-md);padding:.55rem .8rem;cursor:pointer;text-align:center;font-weight:500;font-size:16px;min-height:60px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.choice:hover:not(:disabled){border-color:var(--navy)}
+.choice.selected{border-color:var(--amber2);background:#FFF8E8}
+.choice.right{border-color:var(--green);background:var(--green-bg)}
+.choice.wrong{border-color:var(--red);background:var(--red-bg)}
+.choice small{font-weight:400;color:var(--muted);font-size:14px}
+.choice small.st{display:block;font-weight:600;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--text)}
+.choice.right small.st{color:var(--green)}.choice.wrong small.st{color:var(--red)}
+.choice small.st:empty{display:none}
+.choices.four{grid-template-columns:repeat(4,1fr)}
+.choices.four .choice{min-height:52px;padding:.5rem}
+@media(max-width:520px){.choices.four{grid-template-columns:1fr 1fr}}
+
+.pbank{display:flex;gap:8px;flex-wrap:wrap;min-height:58px;padding:6px;border:2px dashed var(--ctl);border-radius:var(--r-md);align-items:center;justify-content:center;margin-bottom:10px}
+.pbank.over,.pslot.over .pbox{border-color:var(--amber);background:#FFF6E3}
+.pcard{display:flex;align-items:center;gap:8px;border:2px solid var(--ctl);border-radius:var(--r-md);background:var(--white);padding:.35rem .7rem;font:inherit;font-weight:500;color:var(--text);cursor:grab;touch-action:none;user-select:none}
+.pcard.picked{border-color:var(--amber);box-shadow:0 0 0 3px rgba(232,161,36,.35)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end}
+.pslot{display:flex;flex-direction:column;gap:4px}
+.plab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:center}
+.pbox{border:2px solid var(--ctl);border-radius:var(--r-md);background:var(--surface);min-height:78px;display:flex;align-items:center;justify-content:center;padding:6px}
+.pslot.s0 .pbox{min-height:110px;background:#FFF6E3;border-color:var(--amber)}
+.pslot.s2 .pbox{min-height:60px}
+.pslot .pcard{flex-direction:column;text-align:center;width:100%;padding:.3rem .4rem;font-size:14px}
+.hole{border:0;background:none;font:inherit;color:var(--muted);cursor:pointer;width:100%;height:100%;min-height:44px}
+.pslot.right .pbox{border-color:var(--green);background:var(--green-bg)}.pslot.wrong .pbox{border-color:var(--red);background:var(--red-bg)}
+.pres{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font-size:14px}.pres small{color:var(--muted)}
+@media(max-width:520px){.pslot .pcard span,.pres b{font-size:13px;overflow-wrap:anywhere}}
+.rank-list{display:flex;flex-direction:column;gap:5px}
+.rank-row{display:flex;align-items:center;gap:10px;border:2px solid var(--ctl);border-radius:var(--r-md);padding:.3rem .7rem;background:var(--white)}
+.rank-row.dragging{opacity:.5}
+.rank-row.right{border-color:var(--green);background:var(--green-bg)}
+.rank-row.wrong{border-color:var(--red);background:var(--red-bg)}
+.rank-n{width:24px;height:24px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.rank-name{flex:1;font-weight:500}
+.rank-val{color:var(--muted);font-size:14px}
+.move button{border:1px solid var(--border);background:var(--white);border-radius:6px;width:34px;height:30px;cursor:pointer;font-size:16px}
+.move button:disabled{opacity:.35;cursor:not-allowed}
+.edge{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--light);margin:2px 0}
+
+.insert{display:grid;grid-template-columns:minmax(200px,260px) 1fr;gap:14px}
+.insert #rev-in{grid-column:1/-1}
+@media(min-width:1200px){.insert{grid-template-columns:190px minmax(0,1fr) 310px}.insert #rev-in{grid-column:auto}.insert .reveal{margin-top:0}}
+.rankwrap{display:block}
+@media(min-width:1100px){.rankwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr);gap:14px;align-items:start}.rankwrap .reveal{margin-top:0}}
+@media(max-width:600px){.insert{grid-template-columns:1fr}}
+.target{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border:2px dashed var(--amber);border-radius:var(--r-md);padding:1rem;text-align:center;background:#FFF8E8;align-self:start}
+.target b{display:block;font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:400}
+.ladder{display:flex;flex-direction:column;gap:2px}
+.anchor{border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:.15rem .7rem;display:flex;justify-content:space-between;font-weight:500}
+.anchor small{color:var(--muted);font-weight:400}
+.slot{border:2px dashed var(--ctl);background:transparent;border-radius:var(--r-sm);min-height:24px;font-size:12.5px;line-height:1.1;cursor:pointer;color:var(--muted);font-size:13px}
+.slot:hover:not(:disabled){border-color:var(--navy);color:var(--navy)}
+.slot.over{border-color:var(--amber2);background:#FFF8E8;color:var(--text)}
+.drag-ghost{position:fixed;z-index:99;pointer-events:none;opacity:.92;box-shadow:0 8px 24px rgba(11,37,69,.25);margin:0}
+.slot.selected{border-color:var(--amber2);background:#FFF8E8;color:var(--text);font-weight:500}
+.slot.right{border-style:solid;border-color:var(--green);background:var(--green-bg);color:var(--green);font-weight:600}
+.slot.wrong{border-style:solid;border-color:var(--red);background:var(--red-bg);color:var(--red)}
+
+.est{padding:.4rem 0 .2rem}
+.est-val{font-family:'Fraunces',Georgia,serif;font-size:36px;font-weight:300;text-align:center;line-height:1.1}
+.est input[type=range]{width:100%;margin:.9rem 0 .2rem;accent-color:var(--amber)}
+.est .ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--light)}
+.est .tol{text-align:center;font-size:13px;color:var(--muted);margin-top:.5rem}
+.est-track{position:relative;height:14px;background:var(--surface);border-radius:7px;margin:1rem 0 .3rem}
+.est-track i{position:absolute;top:-3px;width:4px;height:20px;border-radius:2px}
+.est-band{position:absolute;top:0;height:14px;background:rgba(26,122,85,.25);border-radius:7px}
+
+.reveal{margin-top:.7rem;border-radius:var(--r-md);padding:.7rem 1rem;border:1px solid var(--border);font-size:14px;line-height:1.45}
+.reveal p+p{margin-top:.25rem}
+.reveal.win{background:var(--green-bg);border-color:#b9dccb}
+.reveal.lose{background:#FFF8E8;border-color:#efd9a3}
+.reveal strong{display:block;margin-bottom:.2rem}
+.bars{margin:.5rem 0 .3rem;display:flex;flex-direction:column;gap:3px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,170px) 1fr minmax(70px,auto);gap:8px;align-items:center;font-size:13px}
+.bar-row .track{background:rgba(11,37,69,.08);border-radius:4px;height:12px;overflow:hidden}
+.bar-row .fill{height:100%;background:var(--navy);border-radius:4px}
+.bar-row .fill.neg{background:var(--red)}
+.bar-row b{text-align:right;font-weight:600}
+.small{font-size:12px;color:var(--muted)}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:.7rem;flex-wrap:wrap;position:sticky;bottom:0;background:var(--white);padding:.5rem 0 .1rem;z-index:5}
+.actions .hint{font-size:13px;color:var(--muted)}
+
+.score{background:var(--navy);color:var(--white);border:none}
+.score .big{font-family:'Fraunces',Georgia,serif;font-size:38px;font-weight:300;line-height:1}
+.score .big small{font-size:18px;color:rgba(255,255,255,.55)}
+.score .row{display:flex;gap:22px;margin-top:.8rem}
+.score .row b{display:block;font-size:20px}
+.score .row span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.side-card{margin-top:12px;font-size:13px;color:var(--muted)}
+.side-card h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--navy);margin-bottom:.35rem}
+.side-card p+p{margin-top:.5rem}
+.summary{text-align:center;padding:.2rem 0}
+.summary .big,.summary h2{display:inline-block;vertical-align:middle;margin:0 .5rem}
+.summary .eyebrow{margin-bottom:.2rem}
+.summary h2{font-size:22px}
+.summary .big{font-family:'Fraunces',Georgia,serif;font-size:48px;font-weight:300}
+.summary h2{font-family:'Fraunces',Georgia,serif;font-weight:400;margin:.4rem 0}
+.summary>p{color:var(--muted);margin:.4rem auto .6rem;max-width:520px}
+.loading,.err{padding:2rem;text-align:center;color:var(--muted)}
+
+.method{margin-top:24px}
+.method details{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);margin-top:10px;box-shadow:var(--shadow)}
+.method summary{cursor:pointer;padding:.9rem 1.2rem;font-weight:600;color:var(--navy)}
+.method .body{padding:0 1.3rem 1.1rem;font-size:14px}
+.method .body h4{margin:1rem 0 .3rem;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)}
+.method .body p,.method .body li{margin-bottom:.45rem}
+.method .body ul{padding-left:1.2rem}
+.method code{background:var(--surface);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.method table{border-collapse:collapse;width:100%;font-size:12.5px;margin:.4rem 0 .6rem}
+.method th,.method td{border-bottom:1px solid var(--border);text-align:left;padding:4px 6px;vertical-align:top}
+.method th{color:var(--muted);font-weight:500}
+.tablewrap{overflow-x:auto}
+footer{max-width:1040px;margin:0 auto;padding:1rem 1rem 2.5rem;font-size:12px;color:var(--light);text-align:center}
+.mk{font-weight:700;margin-right:6px}
+.shp{width:36px;height:36px;flex:none;display:block}
+.shp path{fill:var(--surface);stroke:var(--navy);stroke-width:1.3;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.shp.sm{width:20px;height:20px}.shp.md{width:34px;height:34px}.shp.lg{width:48px;height:48px}
+.shp.ico{padding:6px;border-radius:24%;box-sizing:border-box}
+.shp.ico.sm{padding:3px}.shp.ico.lg{padding:9px}
+.shp.ico path,.shp.ico circle,.shp.ico rect,.shp.ico line,.shp.ico polyline,.shp.ico polygon,.shp.ico ellipse{fill:none;stroke:currentColor;stroke-width:2;vector-effect:none}
+.shp.wide.sm{width:42px}.shp.wide.md{width:71px}.shp.wide.lg{width:101px}
+.choice .shp{margin:0 auto 2px}.target .shp{margin:4px auto 6px}
+.anc{display:flex;align-items:center;gap:8px}
+.est-head{display:flex;justify-content:center;align-items:center;gap:14px}
+.gc{display:flex;align-items:center;justify-content:center;gap:10px}.gc>span{display:block}
+.gapcards{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:.8rem}
+.gc{border:2px solid var(--ctl);border-radius:var(--r-md);padding:.35rem .8rem;text-align:left;font-family:'Fraunces',Georgia,serif;font-size:18px;line-height:1.25}
+.gc small{display:block;font-family:'Inter',system-ui,sans-serif;font-size:13px;color:var(--muted);min-height:1.4em}
+.gc.big{border-color:var(--navy);background:var(--surface)}
+@media(max-width:520px){.gapcards{grid-template-columns:1fr;gap:4px;text-align:center}.gc{font-size:16px}}
+.gc{min-width:0;overflow-wrap:anywhere}
+.gapcards .vs{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pend{margin-top:8px;background:#FFF8E8;border:1px solid #efd9a3;border-radius:var(--r-md);padding:.45rem .9rem;font-size:13.5px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.pend[hidden]{display:none}
+.review{list-style:none;display:grid;grid-template-columns:1fr;gap:4px 16px;text-align:left;margin:.6rem 0 .7rem;font-size:12.5px;line-height:1.35}
+@media(min-width:900px){.review{grid-template-columns:1fr 1fr}}
+.review li{display:grid;grid-template-columns:20px 1fr;gap:6px;border-bottom:1px solid var(--border);padding-bottom:3px}
+.review .ok{color:var(--green);font-weight:700}.review .no{color:var(--red);font-weight:700}
+.review b{display:block;font-weight:600;color:var(--navy)}.review span{color:var(--muted)}
+@media(min-width:900px) and (max-height:860px){
+  .hero{padding:.5rem 1.5rem 1.1rem}.hero p{display:none}.hero .eyebrow{display:none}
+  .hero h1{font-size:22px}main{margin-top:-.7rem}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3QLS1Q554N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3QLS1Q554N');
+</script>
+</head>
+<body data-energy-tool="quiz">
+<header>
+  <div class="logo">Energy <span>quiz</span></div>
+  <div class="header-right">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="ceud.html">↳ CEUD Explorer</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Ten questions · no timer</div>
+  <h1>How well do you know <em>Canada's energy?</em></h1>
+  <p>Every answer comes from real NRCan and CMHC / Statistics Canada tables, with the source shown.</p>
+</section>
+
+<main>
+  <div class="settings">
+    <label>Topic<select id="topic"><option value="all">All topics (mixed)</option></select></label>
+    <label>Difficulty<select id="diff">
+      <option value="easy">Easy · wider gaps</option>
+      <option value="medium" selected>Medium · moderate gaps</option>
+      <option value="hard">Hard · closer calls</option></select></label>
+    <label>Question style<select id="style"><option value="mixed">Mixed · every style once</option></select></label>
+    <button class="btn ghost" id="restart" type="button">New round</button>
+  </div>
+  <div class="pend" id="pend" hidden><span>Settings changed. They apply from your next round, so your score is safe.</span><button class="btn amber" id="pendgo" type="button">Start new round now</button></div>
+
+  <div class="layout">
+    <section class="card" id="game" aria-label="Quiz"><div class="loading">Loading questions…</div></section>
+    <aside>
+      <div class="card score"><div class="eyebrow">Your round</div>
+        <div class="big"><span id="score">0</span><small> / 10</small></div>
+        <div class="row"><div><b id="streak">0</b><span>Streak</span></div><div><b id="best">0</b><span>Best round</span></div></div>
+      </div>
+      <div class="card side-card" id="side"></div>
+    </aside>
+  </div>
+
+  <div class="method">
+    <details id="m-simple" open><summary>How this works (plain language)</summary><div class="body">
+      <p>Each question is built by a script from the same data tables that power the other pages on this site. Nothing is typed in by hand, so the answer you see is the number in the table.</p>
+      <ul>
+        <li><b>Compare, rank, find its place:</b> you sort real numbers, such as how much energy each province's homes use.</li>
+        <li><b>Guess the gap:</b> pick roughly how many times bigger one is than the other.</li>
+        <li><b>Guess a share:</b> drag a slider to estimate a percentage. You are right if you land within the stated margin, which is wider on Easy and tighter on Hard.</li>
+        <li><b>Then vs now:</b> which one rose more, or fell less, between two years.</li>
+      </ul>
+      <p><b>Easy, medium and hard</b> mean how far apart the numbers are: close calls are harder. It is a rule of thumb, not something measured from players.</p>
+      <p><b>Modelled or measured?</b> Each question carries a badge. <i>Modelled</i> numbers are NRCan's estimates of how energy is used; <i>measured</i> numbers are counts, like homes started. Neither is a meter reading for your house.</p>
+      <p>Your best score is kept in your browser only. Nothing is sent anywhere.</p>
+    </div></details>
+    <details id="m-adv"><summary>Method, data and limits (advanced)</summary><div class="body" id="adv-body"><div class="loading">Loading…</div></div></details>
+  </div>
+</main>
+<footer>Part of the Energy tools collection · data refreshed manually · icons: Lucide (ISC) · outlines: Statistics Canada · <a href="index.html">all tools</a></footer>
+
+<script>
+(function(){
+'use strict';
+var BASE='./quiz_json/';
+var STYLES={compare:'Head to head',insert:'Find its place',rank:'Put in order',gap:'Guess the gap',estimate:'Guess a share',history:'Then vs now'};
+var ICON={compare:'⇄',insert:'⤓',rank:'☰',gap:'×',estimate:'%',history:'↗'};
+var meta=null,topics={},bank=[],mdefs={},SH=null,IC=null;
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+/* ------------------------------------------------------------ state */
+var S={qs:[],i:0,score:0,streak:0,best:Number(store('energyquizBest'))||0,answered:false,won:false,done:false,
+       sel:null,order:null,est:null,queue:[],used:{},cfg:{diff:'medium'},results:[]};
+$('best').textContent=S.best;
+
+/* ------------------------------------------------------------ region outlines (optional: page works without shapes.json) */
+function shape(name,cls,op){
+  if(!SH)return '';var c=SH.names[name];if(!c)return '';
+  var st=op==null?'':' style="fill:#E8A124;fill-opacity:'+op.toFixed(2)+'"',m=SH.multi&&SH.multi[c];
+  if(m&&SH.shapes[m[0]]&&SH.shapes[m[1]])   // e.g. BC & Territories: two outlines side by side
+    return '<svg class="shp wide '+(cls||'')+'" viewBox="0 0 210 100" aria-hidden="true" focusable="false"><path d="'+SH.shapes[m[0]]+'"'+st+'/><path transform="translate(110 0)" d="'+SH.shapes[m[1]]+'"'+st+'/></svg>';
+  if(!SH.shapes[c])return '';
+  return '<svg class="shp '+(cls||'')+'" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="'+SH.shapes[c]+'"'+st+'/></svg>';
+}
+function rgba(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a.toFixed(2)+')'}
+function icon(name,cls,op){   // fuels, end uses, sectors, building types, modes: Lucide icon on a tinted chip
+  if(!IC)return '';var it=IC.items[name];if(!it||!IC.icons[it.i])return '';
+  var a=op==null?.12:.12+.4*Math.max(0,Math.min(1,op));
+  return '<svg class="shp ico '+(cls||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="color:'+it.c+';background:'+rgba(it.c,a)+'">'+IC.icons[it.i]+'</svg>';
+}
+function shp(name,cls,op){return shape(name,cls,op)||icon(name,cls,op)}
+function hasShapes(q){return !!SH&&q.it.concat(q.tg?[q.tg]:[]).some(function(r){return SH.names[r[0]]})}
+/* ------------------------------------------------------------ loading */
+function get(url){return fetch(url).then(function(r){if(!r.ok)throw new Error(url);return r.json()})}
+get(BASE+'meta.json').then(function(m){
+  meta=m;
+  m.topics.forEach(function(t){var o=document.createElement('option');o.value=t.id;o.textContent=t.label;$('topic').appendChild(o)});
+  Object.keys(STYLES).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=STYLES[k];$('style').appendChild(o)});
+  return Promise.all(m.topics.map(function(t){return get(BASE+t.file).then(function(d){topics[t.id]=d;
+    Object.keys(d.measures).forEach(function(k){mdefs[t.id+':'+k]=d.measures[k]});
+    d.questions.forEach(function(q){bank.push(q)})})}));
+}).then(function(){return get(BASE+'shapes.json').then(function(d){SH=d},function(){SH=null})}).then(function(){return get(BASE+'icons.json').then(function(d){IC=d},function(){IC=null})}).then(function(){renderAdvanced();newRound()}).catch(function(){
+  $('game').innerHTML='<div class="err">The question data could not be loaded. If you opened this file directly from disk, serve the folder over http instead. <button class="btn ghost" onclick="location.reload()">Try again</button></div>';
+});
+
+/* ------------------------------------------------------------ picking questions */
+function pool(style,diff,topic){
+  var p=bank.filter(function(q){return q.s===style&&(topic==='all'||q.t===topic)&&(q.s==='estimate'||q.d===diff)});
+  if(p.length)return p;
+  // honest fallback: nearest difficulty rather than an empty round
+  var order={easy:0,medium:1,hard:2};
+  p=bank.filter(function(q){return q.s===style&&(topic==='all'||q.t===topic)&&q.s!=='estimate'});
+  p.sort(function(a,b){return Math.abs(order[a.d]-order[diff])-Math.abs(order[b.d]-order[diff])});
+  return p.slice(0,40);
+}
+function pickQuestion(style){
+  var diff=$('diff').value,topic=$('topic').value;
+  var p=pool(style,diff,topic);
+  if(!p.length)return null;
+  var fresh=p.filter(function(q){return !S.used[q.id]&&!S.used['m:'+q.t+q.m]});
+  if(!fresh.length)fresh=p.filter(function(q){return !S.used[q.id]});
+  if(!fresh.length)fresh=p;
+  var q=fresh[Math.floor(Math.random()*fresh.length)];
+  S.used[q.id]=1;S.used['m:'+q.t+q.m]=1;
+  return q;
+}
+function nextStyle(){
+  var st=$('style').value;
+  if(st!=='mixed')return st;
+  var avail=Object.keys(STYLES).filter(function(s){return pool(s,$('diff').value,$('topic').value).length});
+  if(!S.queue.length)S.queue=shuffle(avail);
+  return S.queue.shift();
+}
+function newRound(){
+  S.qs=[];S.i=0;S.score=0;S.streak=0;S.done=false;S.queue=[];S.used={};S.results=[];S.cfg={diff:$('diff').value};$('pend').hidden=true;
+  for(var n=0;n<10;n++){var q=pickQuestion(nextStyle());if(q)S.qs.push(q)}
+  if(!S.qs.length){$('game').innerHTML='<div class="err">No questions match these settings.</div>';return}
+  loadQ();
+}
+function loadQ(){
+  var q=S.qs[S.i];S.answered=false;S.won=false;S.sel=null;S.est=null;S.pod=null;S.pick=null;
+  if(q.s==='rank')S.pod=[null,null,null];   // podium steps: 0 highest, 1 middle, 2 lowest
+  if(q.s==='estimate'){S.est=50}
+  render();
+}
+
+/* ------------------------------------------------------------ grading */
+function maxIdx(q,col){var m=-Infinity,k=0;q.it.forEach(function(r,i){if(r[col]>m){m=r[col];k=i}});return k}
+function tolOf(q){return q.tol[S.cfg.diff]}
+function canCheck(q){
+  if(q.s==='estimate')return true;
+  if(q.s==='rank')return S.pod.every(function(r){return r});
+  return S.sel!==null;
+}
+function grade(q){
+  if(q.s==='compare')return S.sel===maxIdx(q,1);
+  if(q.s==='history')return S.sel===maxIdx(q,1);
+  if(q.s==='gap')return S.sel===q.an;
+  if(q.s==='insert')return S.sel===q.it.filter(function(a){return a[1]>q.tg[1]}).length;
+  if(q.s==='rank'){var s=q.it.slice().sort(function(a,b){return b[1]-a[1]});return S.pod.every(function(r,i){return r===s[i]})}
+  if(q.s==='estimate')return Math.abs(S.est-q.it[0][1])<=tolOf(q)+1e-9;
+  return false;
+}
+
+/* ------------------------------------------------------------ rendering */
+function title(q){
+  var m=mdefs[q.t+':'+q.m],L=m.label;
+  switch(q.s){
+    case 'compare':return 'Which comes out higher for '+L+'?';
+    case 'rank':return 'Which three come first? Rank them by '+L+'.';
+    case 'insert':return 'Where does '+q.tg[0]+' fit for '+L+'?';
+    case 'gap':return L.charAt(0).toUpperCase()+L.slice(1)+': about how many times bigger is the larger one?';
+    case 'estimate':return q.pr;
+    case 'history':return 'Which rose more (or fell less) in '+L+' from '+q.yr[0]+' to '+q.yr[1]+'?';
+  }
+}
+function helpText(q){
+  switch(q.s){
+    case 'compare':return 'Pick the one with the larger value.';
+    case 'rank':return 'Drag each card to a step, or tap a card and then a step. Highest goes on the tall step.';
+    case 'insert':return 'The four are already ordered. Drag '+q.tg[0]+' into the slot where it belongs (or tap a slot).';
+    case 'gap':return 'Choose the closest ratio.';
+    case 'estimate':return 'Drag the slider. You are right if you land within ±'+tolOf(q)+' percentage points.';
+    case 'history':return 'Compare the percentage change between the two years.';
+  }
+}
+function bars(rows,fmtRow){
+  var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v)}))||1;
+  return '<div class="bars" aria-label="Correct values">'+rows.map(function(r){
+    return '<div class="bar-row"><span>'+esc(r.n)+'</span><div class="track"><div class="fill'+(r.v<0?' neg':'')+'" style="width:'+(Math.abs(r.v)/mx*100)+'%"></div></div><b>'+esc(r.d)+'</b></div>'}).join('')+'</div>';
+}
+function render(){
+  var g=$('game');
+  if(S.done){
+    var w=S.score>=8?'Sharp. You know where the energy goes.':S.score>=5?'A solid feel for the numbers.':'Plenty of surprises waiting in the data.';
+    g.innerHTML='<div class="summary"><div class="eyebrow">Round complete</div><div class="big">'+S.score+'<small style="font-size:22px;color:var(--light)"> / 10</small></div><h2>'+w+'</h2><ul class="review">'+S.results.map(function(r,i){return '<li><span class="'+(r.won?'ok':'no')+'" title="'+(r.won?'Correct':'Missed')+'">'+(r.won?'✓':'✗')+'</span><div><b>'+(i+1)+'. '+esc(STYLES[r.q.s])+' · '+esc(mdefs[r.q.t+':'+r.q.m].label)+'</b><span>'+esc(r.q.ex)+' <a href="'+esc(topics[r.q.t].topic.page)+'">chart →</a></span></div></li>'}).join('')+'</ul><button class="btn amber" id="again" type="button">Play another round</button></div>';
+    $('again').onclick=newRound;side(null);return;
+  }
+  var q=S.qs[S.i],m=mdefs[q.t+':'+q.m],t=topics[q.t].topic;
+  var h='<div class="game-top"><span>'+ICON[q.s]+' '+STYLES[q.s]+'</span><span>Question <b>'+String(S.i+1).padStart(2,'0')+'</b> / 10</span></div>';
+  h+='<div class="progress" role="img" aria-label="Question '+(S.i+1)+' of 10">'+S.qs.map(function(_,i){return '<span class="'+(i<S.i?'done':i===S.i?'current':'')+'"></span>'}).join('')+'</div>';
+  h+='<div class="badges">'+(q.s==='estimate'?'<span class="badge '+S.cfg.diff+'">±'+tolOf(q)+' pp</span>':'<span class="badge '+q.d+'">'+q.d+'</span>')+'<span class="badge '+t.basis+'">'+t.basis+'</span><span class="badge">'+esc(m.group)+' · '+m.year+'</span></div>';
+  h+='<h2 class="q">'+esc(title(q))+'</h2><p class="help">'+esc(helpText(q))+'</p>';
+  h+='<div id="play">'+play(q)+'</div><div id="rev"></div>';
+  h+='<div class="actions"><span class="hint" id="hint"></span><span id="btns"></span></div>';
+  g.innerHTML=h;bind(q);
+  if(S.answered)reveal(q);else updateBtns(q);
+  side(q);
+}
+function play(q){
+  var dis=S.answered?' disabled':'';
+  if(q.s==='compare'||q.s==='history'){
+    return '<div class="choices">'+q.it.map(function(r,i){
+      var cls=S.sel===i?' selected':'',mk='';
+      if(S.answered){var win=maxIdx(q,1)===i;cls=win?' right':(S.sel===i?' wrong':'');mk=win?'<span class="mk" title="Correct">✓</span>':(S.sel===i?'<span class="mk" title="Your pick, not correct">✗</span>':'')}
+      var sub=S.answered?'<small>'+esc(q.s==='history'?r[2]+' ('+r[3]+' → '+r[4]+')':r[2])+'</small>':'';
+      if(S.answered){var w=maxIdx(q,1)===i,mine=S.sel===i;sub+='<small class="st">'+(mine?(w?'Your choice · Correct':'Your choice · Incorrect'):(w?'Correct answer':''))+'</small>'}
+      return '<button type="button" class="choice'+cls+'" data-i="'+i+'" aria-pressed="'+(S.sel===i)+'"'+dis+'>'+shp(r[0],'lg')+'<span>'+mk+esc(r[0])+'</span>'+sub+'</button>'}).join('')+'</div>';
+  }
+  if(q.s==='gap'){
+    var bigI=maxIdx(q,1);
+    var cards='<div class="gapcards">'+q.it.map(function(r,i){return '<div class="gc'+(S.answered&&i===bigI?' big':'')+'">'+shp(r[0],'md')+'<span>'+esc(r[0])+'<small>'+(S.answered?esc(r[2]):'&nbsp;')+'</small></span></div>'}).join('<span class="vs">vs</span>')+'</div>';
+    return '<div class="rankwrap"><div>'+cards+'<div class="edge" style="margin-bottom:6px">Larger ÷ smaller ≈ ?</div><div class="choices four">'+q.op.map(function(o,i){
+      var cls=S.sel===i?' selected':'',mk='';
+      if(S.answered){cls=i===q.an?' right':(S.sel===i?' wrong':'');mk=i===q.an?'<span class="mk" title="Correct">✓</span>':(S.sel===i?'<span class="mk" title="Your pick, not correct">✗</span>':'')}
+      return '<button type="button" class="choice'+cls+'" data-i="'+i+'" aria-pressed="'+(S.sel===i)+'"'+dis+'><span>'+mk+'≈ '+o+'×</span></button>'}).join('')+'</div></div><div id="rev-g"></div></div>';
+  }
+  if(q.s==='rank'){
+    var sorted=q.it.slice().sort(function(a,b){return b[1]-a[1]}),mxv=sorted[0][1];
+    var card=function(r,k,ph){var on=S.pick===k;return '<button type="button" class="pcard'+(on?' picked':'')+'" data-k="'+k+'" aria-pressed="'+on+'"'+dis+'>'+shp(r[0],'md')+'<span>'+esc(r[0])+'</span></button>'};
+    var bank=q.it.map(function(r,k){return S.pod.indexOf(r)<0?card(r,k):''}).join('');
+    var names=['Highest','Middle','Lowest'];
+    var steps=[1,0,2].map(function(p){
+      var r=S.pod[p],h,cls='';
+      if(S.answered){var ok=sorted[p]===r;cls=ok?' right':' wrong';
+        h='<div class="pres">'+shp(r[0],'md',.25+.75*r[1]/mxv)+'<b>'+esc(r[0])+'</b><small><span class="mk">'+(ok?'✓':'✗')+'</span>'+esc(r[2])+'</small>'+(ok?'':'<small>should be '+names[sorted.indexOf(r)].toLowerCase()+'</small>')+'</div>'}
+      else if(r)h=card(r,q.it.indexOf(r));
+      else h='<button type="button" class="hole" data-hole="'+p+'"'+(S.pick===null?' tabindex="-1"':'')+'>'+(S.pick===null?'Drop here':'Place here')+'</button>';
+      return '<div class="pslot s'+p+cls+'" data-p="'+p+'"><div class="plab">'+names[p]+'</div><div class="pbox">'+h+'</div></div>'}).join('');
+    return '<div class="rankwrap"><div><div class="pbank'+(bank?'':' empty')+'" data-bank="1">'+(bank||'<span class="small">All placed. Drag a card back here to take it off.</span>')+'</div><div class="podium">'+steps+'</div></div><div id="rev-r"></div></div>';
+  }
+  if(q.s==='insert'){
+    var right=q.it.filter(function(a){return a[1]>q.tg[1]}).length,out='';
+    for(var s=0;s<5;s++){
+      var cls=S.sel===s?' selected':'',label=S.sel===s?esc(q.tg[0]):'Drop here';
+      if(S.answered){if(s===right){cls=' right';label='✓ '+esc(q.tg[0])+' · '+esc(q.tg[2])}else if(S.sel===s){cls=' wrong';label='✗ your pick'}}
+      out+='<button type="button" class="slot'+cls+'" data-i="'+s+'" aria-pressed="'+(S.sel===s)+'"'+dis+'>'+label+'</button>';
+      if(s<4)out+='<div class="anchor"><span class="anc">'+shp(q.it[s][0],'sm')+(s+1)+'. '+esc(q.it[s][0])+'</span>'+(S.answered?'<small>'+esc(q.it[s][2])+'</small>':'')+'</div>';
+    }
+    return '<div class="insert"><div class="target"><div class="small">Place this</div>'+shp(q.tg[0],'lg')+'<b>'+esc(q.tg[0])+'</b></div><div><div class="edge">Highest ↓</div><div class="ladder">'+out+'</div><div class="edge">Lowest</div></div><div id="rev-in"></div></div>';
+  }
+  if(q.s==='estimate'){
+    return '<div class="est"><div class="est-head">'+shp(q.it[0][0],'md')+'<div class="est-val" id="estv">'+Math.round(S.est)+'%</div></div><input id="estr" type="range" min="0" max="100" step="1" value="'+Math.round(S.est)+'" aria-label="Your estimate in percent"'+dis+'><div class="ticks"><span>0%</span><span>50%</span><span>100%</span></div><div class="tol">Within ±'+tolOf(q)+' percentage points counts as right.</div></div>';
+  }
+  return '';
+}
+function bind(q){
+  var g=$('game');
+  g.querySelectorAll('[data-i]').forEach(function(el){
+    if(q.s==='rank')return;
+    el.addEventListener('click',function(){if(S.answered)return;S.sel=Number(el.dataset.i);$('play').innerHTML=play(q);bind(q);updateBtns(q)});
+  });
+  if(q.s==='rank'&&!S.answered){
+    var redraw=function(){$('play').innerHTML=play(q);bind(q);updateBtns(q)};
+    // place card k on step p: swaps with whoever is there (to the card's old step, or back to the bank)
+    var place=function(k,p){var it=q.it[k],src=S.pod.indexOf(it),occ=S.pod[p];S.pod[p]=it;if(src>=0)S.pod[src]=occ;S.pick=null};
+    var tap=function(k,p){   // p = step tapped (card on it, or empty hole), k = card tapped (or null)
+      if(k!==null&&p===null){S.pick=S.pick===k?null:k}            // bank card: pick up / put down
+      else if(S.pick===null){if(k!==null)S.pick=k}                // placed card: pick it up
+      else if(S.pick===k)S.pick=null;
+      else place(S.pick,p);
+      redraw();var f=g.querySelector(k!==null&&S.pick===k?'.pcard[data-k="'+k+'"]':'.pcard.picked');if(f)f.focus()};
+    g.querySelectorAll('.hole').forEach(function(h){h.addEventListener('click',function(){if(S.pick!==null)tap(null,Number(h.dataset.hole))})});
+    g.querySelectorAll('.pcard').forEach(function(c){
+      var k=Number(c.dataset.k),slot=c.closest('.pslot'),p=slot?Number(slot.dataset.p):null;
+      c.addEventListener('click',function(e){if(e.detail===0)tap(k,p)});   // keyboard (Enter/Space); pointers are handled below
+      c.addEventListener('pointerdown',function(e){
+        if(e.button>0)return;e.preventDefault();
+        var box=c.getBoundingClientRect(),dx=e.clientX-box.left,dy=e.clientY-box.top,x0=e.clientX,y0=e.clientY,moved=false,ghost=null,over=null;
+        function targetAt(x,y){var el=document.elementFromPoint(x,y);if(!el||!el.closest)return null;return el.closest('.pslot')||el.closest('.pbank')}
+        function mv(ev){
+          if(!moved&&Math.hypot(ev.clientX-x0,ev.clientY-y0)<6)return;
+          if(!moved){moved=true;ghost=c.cloneNode(true);ghost.classList.add('drag-ghost');ghost.style.width=box.width+'px';document.body.appendChild(ghost);c.style.opacity='.35'}
+          ghost.style.left=(ev.clientX-dx)+'px';ghost.style.top=(ev.clientY-dy)+'px';
+          var t=targetAt(ev.clientX,ev.clientY);if(t!==over){if(over)over.classList.remove('over');over=t;if(over)over.classList.add('over')}}
+        function up(ev){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);
+          if(over)over.classList.remove('over');
+          if(!moved){if(ev.type==='pointerup')tap(k,p);return}
+          ghost.remove();c.style.opacity='';var t=ev.type==='pointerup'?targetAt(ev.clientX,ev.clientY):null;
+          if(t&&t.classList.contains('pslot'))place(k,Number(t.dataset.p));
+          else if(t&&t.classList.contains('pbank')){var s=S.pod.indexOf(q.it[k]);if(s>=0)S.pod[s]=null;S.pick=null}
+          redraw()}
+        document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+      });
+    });
+  }
+  if(q.s==='insert'&&!S.answered){
+    var tg=g.querySelector('.target');
+    tg.addEventListener('pointerdown',function(e){
+      if(e.button>0)return;e.preventDefault();
+      var box=tg.getBoundingClientRect(),dx=e.clientX-box.left,dy=e.clientY-box.top;
+      var ghost=tg.cloneNode(true);ghost.classList.add('drag-ghost');ghost.style.width=box.width+'px';
+      document.body.appendChild(ghost);tg.style.opacity='.35';
+      var over=null;
+      function slotAt(x,y){var el=document.elementFromPoint(x,y);return el&&el.closest?el.closest('.slot'):null}
+      function mv(ev){ghost.style.left=(ev.clientX-dx)+'px';ghost.style.top=(ev.clientY-dy)+'px';
+        var sl=slotAt(ev.clientX,ev.clientY);if(sl!==over){if(over)over.classList.remove('over');over=sl;if(over)over.classList.add('over')}}
+      function up(ev){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);
+        ghost.remove();tg.style.opacity='';var sl=slotAt(ev.clientX,ev.clientY);if(over)over.classList.remove('over');
+        if(sl&&ev.type==='pointerup'){S.sel=Number(sl.dataset.i);$('play').innerHTML=play(q);bind(q);updateBtns(q)}}
+      mv(e);document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+    });
+  }
+  var r=$('estr');
+  if(r)r.addEventListener('input',function(){S.est=Number(r.value);$('estv').textContent=r.value+'%'});
+}
+function updateBtns(q){
+  var ok=canCheck(q);
+  $('hint').textContent=ok?'Ready when you are.':'Make a choice to continue.';
+  $('btns').innerHTML='<button type="button" class="btn" id="check"'+(ok?'':' disabled')+'>Check answer →</button>';
+  $('check').onclick=function(){check(q)};
+}
+function check(q){
+  if(S.answered||!canCheck(q))return;
+  S.won=grade(q);S.answered=true;S.results[S.i]={q:q,won:S.won};
+  if(S.won){S.score++;S.streak++}else S.streak=0;
+  if(S.score>S.best){S.best=S.score;store('energyquizBest',String(S.best))}
+  $('best').textContent=S.best;
+  $('play').innerHTML=play(q);bind(q);reveal(q);side(q);
+  var rv=$('rev-in')||$('rev-r')||$('rev-g')||$('rev');if(rv&&rv.scrollIntoView)rv.scrollIntoView({behavior:'instant',block:'nearest'});
+}
+function reveal(q){
+  var m=mdefs[q.t+':'+q.m],t=topics[q.t].topic,src=t.source,rows='';
+  if(q.s==='estimate'){
+    var v=q.it[0][1],tol=tolOf(q);
+    rows='<div class="est-track" aria-label="Your guess versus the answer"><div class="est-band" style="left:'+Math.max(0,v-tol)+'%;width:'+(Math.min(100,v+tol)-Math.max(0,v-tol))+'%"></div><i style="left:calc('+v+'% - 2px);background:var(--green)" title="Answer"></i><i style="left:calc('+S.est+'% - 2px);background:var(--amber)" title="Your guess"></i></div><div class="small">Green = answer ('+esc(q.it[0][2])+'), amber = your guess ('+Math.round(S.est)+'%), shaded = counted as right.</div>';
+  }else if(q.s==='history'){
+    rows=bars(q.it.slice().sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));
+  }else if(q.s==='insert'||q.s==='rank'){
+    rows='';   // the podium / ladder above already shows every value
+  }else{
+    var all=q.it.slice();if(q.tg)all.push(q.tg);
+    rows=bars(all.sort(function(a,b){return b[1]-a[1]}).map(function(r){return{n:r[0],v:r[1],d:r[2]}}));
+  }
+  var text=(q.s==='estimate'?'Your guess: '+Math.round(S.est)+'%. ':'')+q.ex;
+  (q.s==='insert'?$('rev-in'):q.s==='rank'?$('rev-r'):q.s==='gap'?$('rev-g'):$('rev')).innerHTML='<div class="reveal '+(S.won?'win':'lose')+'" role="status"><strong><span class="mk">'+(S.won?'✓':'✗')+'</span>'+(S.won?'Right on.':'Not quite. A new piece of perspective.')+'</strong><p>'+esc(text)+'</p>'+rows+
+    '<p class="small">'+(rows&&q.s!=='estimate'?'Bars start at zero. ':'')+esc(m.note||'')+'</p><p class="small">Source: '+esc(src.label)+' · '+esc(src.vintage)+'. <a href="'+esc(t.page)+'">See it on the chart →</a></p></div>';
+  $('hint').textContent=S.score+' correct so far.';
+  $('btns').innerHTML='<button type="button" class="btn amber" id="next">'+(S.i===9?'See my results':'Next question')+' →</button>';
+  $('next').onclick=function(){if(S.i===9){S.done=true}else S.i++;if(S.done)render();else loadQ()};
+}
+function side(q){
+  $('score').textContent=S.score;$('streak').textContent=S.streak;
+  if(!q){$('side').innerHTML='<h3>Field notes</h3><p>Open the advanced notes below to see every source, year and the gates that removed questions.</p>';return}
+  var t=topics[q.t].topic,m=mdefs[q.t+':'+q.m];
+  $('side').innerHTML='<h3>Where this number is from</h3><p><b>'+esc(t.source.label)+'</b></p><p>'+esc(t.source.vintage)+'. Retrieved '+esc(t.source.retrieved)+'.</p><p>'+esc(t.source.note)+'</p><p><a href="'+esc(t.source.url)+'" target="_blank" rel="noopener">Original source ↗</a></p>'+(hasShapes(q)?'<p class="small">Outlines are fitted to their frames and are <b>not</b> drawn to relative size.</p>':'');
+}
+function inProgress(){return !S.done&&S.qs.length>0&&(S.i>0||S.answered)}
+$('restart').onclick=newRound;$('pendgo').onclick=newRound;
+['topic','diff','style'].forEach(function(id){$(id).addEventListener('change',function(){if(inProgress())$('pend').hidden=false;else newRound()})});
+
+/* ------------------------------------------------------------ advanced methodology (rendered from meta.json) */
+function renderAdvanced(){
+  var h='<h4>Pipeline</h4><p><code>Python/build_quiz.py</code> reads <code>ceud_json/</code> and <code>construction_json/</code> and writes a seeded question bank to <code>quiz_json/</code>. This page only plays the bank: it computes nothing about the data. Generated '+esc(meta.generated)+'. Full notes: <code>docs/QUIZ.md</code>.</p>';
+  h+='<h4>Rules every question must pass</h4><ul>'+
+   '<li>One year inside each question. Missing values are dropped, never filled with zero or borrowed from another year.</li>'+
+   '<li>Two items can only be compared if their values differ after display rounding <em>and</em> the relative gap <code>|A−B| / max(|A|,|B|)</code> is at least '+(meta.min_gap*100)+'%. Both gates are counted below.</li>'+
+   '<li>Difficulty (a heuristic, not player data): compare questions on wide-range measures use fixed cuts (≤25% gap hard, ≥65% easy); all other styles use thirds of the generated bank for that measure and style. Ranking scores the closest adjacent pair; insertion the closest target-to-anchor pair; then-vs-now scores the gap between indices (start year = 100).</li>'+
+   '<li>Estimates have no fixed difficulty. The tolerance is ±'+meta.estimate_tolerance_pp.easy+' / ±'+meta.estimate_tolerance_pp.medium+' / ±'+meta.estimate_tolerance_pp.hard+' percentage points on easy / medium / hard. Shares divide by the national total shown in each answer.</li>'+
+   '<li>Guess-the-gap offers four ratios from a fixed scale (1, 1.2, 1.5, 2, 3, 5, 10, 20, 30, 50, 100); the correct one is the scale value nearest the true ratio.</li></ul>';
+  meta.topics.forEach(function(t){
+    var st=Object.keys(t.by_style).map(function(k){return STYLES[k]+' '+t.by_style[k]}).join(' · ');
+    h+='<h4>'+esc(t.label)+' — '+t.questions.toLocaleString()+' questions</h4><p><b>'+esc(t.source.label)+'</b> ('+esc(t.basis)+'). '+esc(t.source.vintage)+'; retrieved '+esc(t.source.retrieved)+'. '+esc(t.source.note)+' <a href="'+esc(t.source.url)+'" target="_blank" rel="noopener">Source ↗</a></p><p class="small">'+esc(st)+'</p>';
+    var d=topics[t.id].measures;
+    h+='<div class="tablewrap"><table><tr><th>Measure</th><th>Usable items</th><th>Pairs</th><th>Tied</th><th>Gap &lt;3%</th><th>Caveat</th></tr>'+
+      Object.keys(t.guards).map(function(k){var g=t.guards[k],m=d[k];return '<tr><td>'+esc(m.label)+' <span class="small">('+m.year+')</span></td><td>'+g.usable+' / '+g.items+'</td><td>'+g.pairs+'</td><td>'+g.tied+'</td><td>'+g.too_close+'</td><td>'+esc(m.note||'')+'</td></tr>'}).join('')+'</table></div>';
+  });
+  h+='<h4>Limitations</h4><ul>'+
+   '<li><b>What the data cannot tell us:</b> CEUD figures are NRCan model estimates by sector, fuel and region; they say nothing about an individual building. GHG figures are direct (on-site) emissions only.</li>'+
+   '<li><b>What we assumed:</b> that a 3% relative gap is enough to count as a real difference at the precision shown, and that the gap-based difficulty roughly tracks how hard a question feels. Neither has been tested with players.</li>'+
+   '<li><b>What would change the answer:</b> a new CEUD release or revised CMHC/StatCan counts (the bank is regenerated on refresh); a different tie or gap threshold.</li>'+
+   '<li>Icons for fuels, end uses, sectors, building types and modes are a hand-picked subset of <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (ISC licence, vendored in <code>assets/vendor/lucide/</code>), mapped in <code>Python/build_quiz_icons.py</code>. Their tint is a category colour (for example gas amber, electricity blue, wood green) and carries no value: the label and number are always shown. One icon per item, so similar items (trucks, or the two house types) share a style and are told apart by their label.</li><li>Region outlines are unions of Statistics Canada FSA boundaries (<code>Python/build_quiz_shapes.py</code>), each fitted to its own frame, so they show shape only, not relative size. Parts under 0.5% of a region\'s area (small islands) are omitted: at most about 5% of area (British Columbia &amp; Territories). Combined CEUD regions are drawn as one outline (Atlantic, Territories) or, for BC &amp; Territories, as two outlines side by side.</li><li>Territories are not in the construction table, so provincial starts sum to slightly less than Canada. The CMHC intended-market split stops publishing after the early 2000s in our extract, so it is not used.</li></ul>';
+  $('adv-body').innerHTML=h;
+}
+})();
+</script>
+</body>
+</html>
