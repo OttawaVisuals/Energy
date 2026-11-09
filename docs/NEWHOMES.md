@@ -59,3 +59,7 @@ retrofit `province_json/` + `fsa_json/`.
 - Refreshes with the same ERS CSV drops as the Retrofit Explorer (no separate
   download); rerun the two scripts above after `ers_web_pipeline.py`'s source
   files update.
+
+## Published-size trim (2026-11-09)
+
+`newhomes_fsa/` was 139 MiB, over a quarter of it dead weight against GitHub Pages' 1 GB limit. `Python/newhomes_precompute.py` now ships 26 of the 102 columns (`_FSA_SHIPPED`): the ones `newhomes.html` and `newhomes_insights.py` read, audited including the `col('X')` and `p.col` keys. The other 76 (`Designed_*` twins of fuels, heat-loss parts, insulation and heat-pump fields, `GHG<fuel>`, `HeatLoss*`, `HeatAFUE`, `HPCOP` and similar) stay in `FSA_COLS_ALL`; add a name to `_FSA_SHIPPED` and re-run to ship it. Floats are also rounded by magnitude (>=100 whole, 10-100 one decimal, <10 two). Result: 139 to 39 MiB, rows and `_index.json` unchanged, largest value change 0.5. Not run in a browser.

@@ -81,6 +81,12 @@ trap 'rm -f "$IDX"' EXIT
 export GIT_INDEX_FILE="$IDX"
 
 git add -f "${PATHS[@]}"
+# Provincial grid emission-factor tables (~25 MiB): produced by the HeatPump pipeline
+# but not fetched by any page (heatpump*.html load grid_ef_annual.json). Kept on
+# local disk, unpublished since 2026-11-09 to stay under the Pages size limit.
+git rm -r -q --cached --ignore-unmatch -- \
+  HeatPump/data/processed/grid_ef_ab.json HeatPump/data/processed/grid_ef_on.json \
+  HeatPump/data/processed/grid_ef_qc.json
 TREE="$(git write-tree)"
 COMMIT="$(git commit-tree "$TREE" -m "Deploy site + data ($STAMP)${NOTE:+ — $NOTE}
 

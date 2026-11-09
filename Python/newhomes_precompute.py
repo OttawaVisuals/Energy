@@ -369,8 +369,9 @@ def build_province_json(df, province, out_dir):
     print(f"  {province}: {len(df):,} rows, {len(types)} types -> {os.path.getsize(p)/1024:.0f} KB")
 
 
-# raw-row columns shipped to the FSA view
-FSA_COLS = [
+# All raw-row columns available for the FSA view (what the parquet carries).
+# Only FSA_COLS (below) is shipped; see the note there.
+FSA_COLS_ALL = [
     'Year', 'BldgType', 'Storeys', 'FloorArea', 'ERSRating', 'EGHRating',
     'Tier', 'InScopeNBC', 'Improvement', 'CompliancePath', 'GHG', 'GHGI',
     'AirLeakage', 'EUI', 'HeatFuel', 'HeatType', 'SolarPV',
@@ -436,6 +437,22 @@ FSA_COLS = [
     'HPAHRI', 'Designed_HPAHRI',
 ]
 
+# raw-row columns shipped to the FSA view. 2026-11-09: trimmed from 102 to the 26
+# that newhomes.html and newhomes_insights.py actually read (audited, including
+# the col('X') / p.col keys), to shrink the published site (newhomes_fsa was
+# 143 MiB; the other 76 columns were ~70% of its bytes). The rest stay in
+# FSA_COLS_ALL: to ship one again, add its name here and re-run this script.
+_FSA_SHIPPED = {
+    'Year', 'BldgType', 'FloorArea', 'ERSRating', 'EGHRating', 'Tier',
+    'Improvement', 'CompliancePath', 'GHG', 'AirLeakage', 'EUI', 'HeatFuel',
+    'HeatType', 'SolarPV', 'Designed_ERSRating', 'Designed_AirLeakage',
+    'Designed_Tier', 'TotalEnergy', 'Designed_TotalEnergy', 'Electricity',
+    'RoofInsulation', 'WallInsulation', 'FoundationInsulation',
+    'FloorInsulation', 'HPType', 'HPAHRI',
+}
+FSA_COLS = [c for c in FSA_COLS_ALL if c in _FSA_SHIPPED]
+
+
 def jval(v, col):
     if v is None or (isinstance(v, float) and np.isnan(v)):
         return None
@@ -447,7 +464,10 @@ def jval(v, col):
     if isinstance(v, (np.integer,)): return int(v)
     if isinstance(v, (np.floating, float)):
         f = float(v)
-        return int(f) if f.is_integer() else round(f, 2)
+        # precision by magnitude (2026-11-09): >=100 whole, 10-100 1 dp, <10 2 dp
+        a = abs(f)
+        r = round(f) if a >= 100 else round(f, 1) if a >= 10 else round(f, 2)
+        return int(r) if float(r).is_integer() else r
     return v
 
 def split_fsa(df, province, out_root):

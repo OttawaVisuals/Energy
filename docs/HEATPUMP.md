@@ -81,3 +81,7 @@ both data trees need regenerating.
 - [grid.html](../grid.html) — what's powering the grid right now, same grid data
 - [retrofits.html](../retrofits.html) — EnerGuide retrofit outcomes, same ERS source
 - [ROADMAP.md](../ROADMAP.md) — current work and the decision record
+
+## Published-size trim (2026-11-09)
+
+(1) `grid_ef_ab.json`, `grid_ef_on.json`, `grid_ef_qc.json` (24.9 MiB) are no longer published: no page fetches them (the tool loads `grid_ef_annual.json`); `deploy.sh` excludes them and they stay on local disk. (2) `house_profiles_<city>.json` values are rounded by magnitude (>=100 whole, 10-100 one decimal, <10 two) and integral floats written as integers, in `build_city_house_profiles.py`: 56.8 to 48.9 MiB. The existing files were converted with the same rule rather than re-running the whole model; re-running would match except possibly an occasional last-digit difference from rounding twice. A null mask for the three cooling columns (67% null) would save a further ~3 MiB and was not done because it needs reader changes in `heatpump.html`, `heatpumpAC.html` and `engine.js`.

@@ -612,6 +612,17 @@ def process_city(city, ers_cache, houseid_city_df, cool_design_map, cooling_df):
     def n(v):
         return None if pd.isna(v) else round(float(v), 2)
 
+    def slim(v):
+        # 2026-11-09, to shrink the published site: precision by magnitude
+        # (>=100 whole, 10-100 1 dp, <10 2 dp) and integral floats as ints.
+        # ~14% off the house_profiles_* files; changes a value by at most 0.5
+        # of its last kept digit.
+        if not isinstance(v, float):
+            return v
+        x = abs(v)
+        r = round(v) if x >= 100 else round(v, 1) if x >= 10 else round(v, 2)
+        return int(r) if float(r).is_integer() else r
+
     rows = [
         [
             int(float(r.HOUSEID)),
@@ -631,6 +642,7 @@ def process_city(city, ers_cache, houseid_city_df, cool_design_map, cooling_df):
         ]
         for r in ok.itertuples(index=False)
     ]
+    rows = [[slim(v) for v in row] for row in rows]
 
     payload = {
         "meta": {
