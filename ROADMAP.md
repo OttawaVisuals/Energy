@@ -1,6 +1,7 @@
 # Energy Suite — Project Tracker & Roadmap
 
 The single source of truth for what's shipped, what's in flight, and what's next.
+Updated **2026-11-09**: **Energy Quiz listed on the landing page**: 12th tile ("Ten quick questions on how Canada uses energy and builds homes…", NRCan CEUD · CMHC, Play →) with new art `assets/icons/quiz.png` + `web/quiz.webp` (question card with a ticked answer and a 2-1-3 podium, drawn with Pillow in the Cold Call tile style; approved by Simon). This clears the "landing tile + icon" item in docs/QUIZ.md. Cold Call line 6 cost list now starts in two columns. Published 2026-11-09.
 Updated **2026-11-09**: Cold Call calculator handles brackets (`126*(21+25)`), with ( ) keys; Line 5 placed parts can be dragged to another socket or back to the parts list. Published 2026-11-09 (Energy Suite and escapepack.ca).
 Updated **2026-11-09**: Cold Call line 3 gets a handwritten note, **Peak heat loss — UA × ΔT**, under the heat-loss report. Published 2026-11-09 (Energy Suite and escapepack.ca).
 Updated **2026-11-07**: **Energy Quiz** built locally (`quiz.html`, `Python/build_quiz.py` →
