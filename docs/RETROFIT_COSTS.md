@@ -608,6 +608,16 @@ sessions — see the changelog entry below):**
 
 ## Changelog
 
+### 2026-11-09 cost files: six unread columns dropped, sparse rows
+
+**Why.** Published site 1,355 MiB vs GitHub Pages' 1 GB limit. About 65% of the cost files' bytes were the text `null,` (most homes need few measures: PV null in 96% of rows, HRV 97%, ASHP 84%).
+
+**What.** (1) `acs`, `bsd`, `wc`, `wcs`, `sav`, `pbFuel` are no longer shipped: no page code reads them (audited in `assets/retrofits.js`). Still computed upstream; re-add to `COLUMNS` and `home_row()` in `build_retrofit_costs_json.py` to ship one again. The page reads the per-measure `_l/_m/_h` costs, `Tot_*`, `ac`, `bh`, `bhs` and `pbY`. (2) Rows are sparse: `[id, mask0, mask1, <non-null values>]` (16 bits per mask word), payload key `"sparse":16`. The page rebuilds full-width rows in `retroExpand()` before anything reads them.
+
+**Result.** 236 MiB to 93 MiB. Lossless for the kept columns: all 1,685 data files decode to exactly the old rows minus the six columns; `_canada.json` unchanged; the JS decoder matched the Python decoder on ON/L3R (7,447 rows). Not checked in a browser (the preview refused localhost).
+
+**Limits.** The `acs`/`wcs`/`bsd` provenance tags (reported vs assumed default, self-derived baseline) are no longer in the per-home files; `bhs` is kept because the page shows it. `_dictionary.json` lost the matching entries.
+
 ### 2026-11-06 per-home costs stored in whole dollars
 
 **Why.** Same site-size problem as `docs/RETROFITS.md` changelog 2026-11-06:

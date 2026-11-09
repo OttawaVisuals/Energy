@@ -147,25 +147,27 @@ KEEP_COLS = [
     # same population as province mode's precomputed (unmasked) one or the
     # two views will disagree.
     'Post_HPCapacity47', 'Post_HPCapacity5',
-    'Post_HPHSPF2', 'Post_HPCertCOP5',
-    'Post_HPColdClimate', 'Post_HPBrand', 'Post_HPModel',
+    'Post_HPHSPF2',
 
     # Plan_*: the auditor's recommended-upgrade case (added 2026-08-11, see
     # ers_web_pipeline.py's "Added 2026-08-11" docstring note for sourcing).
-    # Staged ahead of the retrofits.html chart work (planned-vs-achieved
-    # energy, per-component follow-through) -- not yet read by any current
-    # chart, so no existing-JS-reference check applies to these like it does
-    # to the rest of KEEP_COLS.
-    'Plan_TotalEnergy', 'Plan_Electricity', 'Plan_NaturalGas',
-    'Plan_Oil', 'Plan_Propane',
-    'Plan_HeatElectricity', 'Plan_HeatNaturalGas', 'Plan_HeatOil',
-    'Plan_HeatPropane', 'Plan_HeatWood',
-    'Plan_HeatLoss', 'Plan_AirLeakage',
+    # Only the columns a current chart reads are kept (energy use intensity,
+    # follow-through card).
+    'Plan_TotalEnergy', 'Plan_AirLeakage',
     'Plan_RoofInsulation', 'Plan_WallInsulation',
     'Plan_FoundationInsulation', 'Plan_FloorInsulation',
-    'Plan_WindowCode', 'Plan_HeatFuel', 'Plan_HeatType',
-    'Plan_HPType', 'Plan_CCASHP',
 ]
+
+# DROPPED 2026-11-09 to shrink the published site (fsa_json was 812 MB; Pages
+# limit 1 GB). 19 columns that no page code reads (audited in assets/retrofits.js
+# and retrofits.html, including runtime-built names), ~14.5% of the bytes.
+# Still produced upstream (join_hp_capacity.py, ers_web_pipeline.py), so to
+# bring any back, add it to KEEP_COLS and re-run this script:
+#   Post_HPCertCOP5, Post_HPColdClimate, Post_HPBrand, Post_HPModel,
+#   Plan_Electricity, Plan_NaturalGas, Plan_Oil, Plan_Propane,
+#   Plan_HeatElectricity, Plan_HeatNaturalGas, Plan_HeatOil, Plan_HeatPropane,
+#   Plan_HeatWood, Plan_HeatLoss, Plan_WindowCode, Plan_HeatFuel,
+#   Plan_HeatType, Plan_HPType, Plan_CCASHP
 
 
 def title_case(s):
@@ -231,11 +233,16 @@ PRECISION_4_COLS = {'EnergySavingPct'}
 
 
 def _round_for(col, f):
+    """Precision by magnitude (2026-11-09, to shrink the published site):
+    |x| >= 100 -> whole number, 10 <= |x| < 100 -> 1 dp, |x| < 10 -> 2 dp.
+    Measured ~10.8% off fsa_json. Energy columns in INT_COLS are always whole
+    numbers; EnergySavingPct keeps 4 dp (1%-bin boundaries round from it)."""
     if col in INT_COLS:
         return round(f)
     if col in PRECISION_4_COLS:
         return round(f, 4)
-    r = round(f, 2)
+    a = abs(f)
+    r = round(f) if a >= 100 else round(f, 1) if a >= 10 else round(f, 2)
     return int(r) if float(r).is_integer() else r
 
 

@@ -42,6 +42,9 @@ pre-fuel was oil/propane/wood, priced at the national screening-constant
 fallback, not real province data) are kept, packed into one small bitmask
 column (pbFuel: 1=oil, 2=propane, 4=wood, OR'd — see _dictionary.json).
 
+SPARSE ROWS (2026-11-09): each row is [id, mask0, mask1, <non-null values>]; see
+sparsify(). Payload carries "sparse": 16 so a reader can tell the formats apart.
+
 Run: python Python/build_retrofit_costs_json.py
 """
 
@@ -65,8 +68,12 @@ COLUMNS = ['id']
 for m in MEASURE_ORDER:
     a = MEASURE_ABBR[m]
     COLUMNS += [f'{a}_l', f'{a}_m', f'{a}_h']
-COLUMNS += ['Tot_l', 'Tot_m', 'Tot_h', 'ac', 'acs', 'bh', 'bhs', 'bsd', 'wc', 'wcs',
-            'sav', 'pbY', 'pbFuel']
+# 2026-11-09: dropped acs, bsd, wc, wcs, sav, pbFuel -- no page code reads them
+# (assets/retrofits.js reads only the per-measure costs, Tot_*, ac, bh, bhs, pbY).
+# Their values are still computed upstream (retrofit_cost_estimate.py); add a
+# column back here and in home_row() to ship it again.
+COLUMNS += ['Tot_l', 'Tot_m', 'Tot_h', 'ac', 'bh', 'bhs', 'pbY']
+SPARSE_WIDTH = 16   # bits per mask word (kept < 32 so JS bit ops are safe)
 
 ASHP_CLASS_CODES = {'Centrally ducted': 1, 'Non-ducted, single-zone': 2, 'Non-ducted, multi-zone': 3}
 SOURCE_CODES = {'reported': 1, 'like_for_like': 1, 'assumed_default': 2}
@@ -82,15 +89,8 @@ PBFUEL_BITS = {'home_pre_fuel_oil_screening_rate': 1,
 
 DICTIONARY = {
     'ac': {str(v): k for k, v in ASHP_CLASS_CODES.items()},
-    'acs': {'1': 'reported', '2': 'assumed_default'},
     'bh': {str(v): k for k, v in BAU_HEATING_CODES.items()},
     'bhs': {'1': 'like_for_like', '2': 'assumed_default'},
-    'wc': {str(v): k for k, v in WINDOW_CLASS_CODES.items()},
-    'wcs': {'1': 'reported', '2': 'assumed_default'},
-    'pbFuel_bits': {'1': 'oil', '2': 'propane', '4': 'wood',
-                     'note': "this home's dominant pre-retrofit fuel among those bits was priced "
-                             "at a national screening-constant rate (no real per-province data yet) "
-                             "— see docs/RETROFIT_COSTS.md 'Utility rates'. Bits OR'd."},
     'columns': {c: c for c in COLUMNS},  # self-documenting column-name list
 }
 
@@ -122,20 +122,26 @@ def home_row(h):
         row += ([dollars(x) for x in v] if v else [None, None, None])
     row += [dollars(x) for x in (h.get('total') or [None, None, None])]
     row.append(ASHP_CLASS_CODES.get(h.get('ashp_class')))
-    row.append(SOURCE_CODES.get(h.get('ashp_class_source')))
-    bh = h.get('bau_heating')
-    row.append(BAU_HEATING_CODES.get(bh))
+    row.append(BAU_HEATING_CODES.get(h.get('bau_heating')))
     row.append(SOURCE_CODES.get(h.get('bau_heating_source')))
-    row.append(1 if h.get('bau_self_derived') else 0)
-    row.append(WINDOW_CLASS_CODES.get(h.get('window_class')))
-    row.append(SOURCE_CODES.get(h.get('window_class_source')))
-    row.append(dollars(h.get('annual_dollar_saved')))
     pb = h.get('payback_years')
     row.append(None if pb is None else round(pb, 2))  # page shows 1 dp; 2 dp keeps medians stable
-    flags = h.get('payback_flags') or []
-    bitmask = sum(bit for name, bit in PBFUEL_BITS.items() if name in flags)
-    row.append(bitmask or None)
     return row
+
+
+def sparsify(row):
+    """[id, v1, v2, ...] -> [id, mask0, mask1, ..., <non-null values in column order>].
+    Bit i of the mask words (SPARSE_WIDTH bits each, little-endian across words)
+    is set when column i+1 is non-null. ~65% of the bytes of the full-width
+    rows were the text 'null,' (measured 2026-11-09). Lossless; the page's
+    loader (retroExpand in assets/retrofits.js) rebuilds the full-width row."""
+    vals = row[1:]
+    nwords = -(-len(vals) // SPARSE_WIDTH)
+    masks = [0] * nwords
+    for i, v in enumerate(vals):
+        if v is not None:
+            masks[i // SPARSE_WIDTH] |= 1 << (i % SPARSE_WIDTH)
+    return [row[0]] + masks + [v for v in vals if v is not None]
 
 
 def pctl(arr, p):
@@ -201,8 +207,8 @@ def main():
 
         total_bytes = 0
         for fsa, hs in by_fsa.items():
-            rows = [home_row(h) for h in hs]
-            payload = {'columns': COLUMNS, 'rows': rows}
+            rows = [sparsify(home_row(h)) for h in hs]
+            payload = {'columns': COLUMNS, 'sparse': SPARSE_WIDTH, 'rows': rows}
             out_path = os.path.join(prov_dir, f'{fsa.replace("/", "_")}.json')
             text = json.dumps(payload, separators=(',', ':'))
             with open(out_path, 'w', encoding='utf-8') as f:

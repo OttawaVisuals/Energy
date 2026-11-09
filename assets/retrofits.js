@@ -1781,7 +1781,7 @@ const RETRO_MEASURES=[
 ];
 const RETRO_COLS=['id'];
 RETRO_MEASURES.forEach(m=>RETRO_COLS.push(`${m.abbr}_l`,`${m.abbr}_m`,`${m.abbr}_h`));
-RETRO_COLS.push('Tot_l','Tot_m','Tot_h','ac','acs','bh','bhs','bsd','wc','wcs','sav','pbY','pbFuel');
+RETRO_COLS.push('Tot_l','Tot_m','Tot_h','ac','bh','bhs','pbY');
 const RETRO_COL_IDX={};RETRO_COLS.forEach((c,i)=>RETRO_COL_IDX[c]=i);
 
 let RETRO_BAND=1; // 0=low(p10), 1=mid(p50), 2=high(p90)
@@ -1792,12 +1792,27 @@ function loadRetroDict(){
   if(!RETRO_DICT_PROMISE)RETRO_DICT_PROMISE=fetchJSON(`${RETRO_COST_JSON_BASE}_dictionary.json`).then(d=>{RETRO_DICT=d;return d;}).catch(()=>null);
   return RETRO_DICT_PROMISE;
 }
+// Sparse rows (build_retrofit_costs_json.py sparsify(), 2026-11-09): a payload
+// with "sparse":W holds [id, mask words..., non-null values]. Rebuild the
+// full-width row arrays so retroVal() and every caller stay unchanged.
+function retroExpand(payload){
+  const W=payload.sparse;
+  if(!W)return payload;
+  const n=payload.columns.length-1,words=Math.ceil(n/W);
+  const rows=payload.rows.map(r=>{
+    const out=new Array(n+1).fill(null);out[0]=r[0];
+    let k=1+words;
+    for(let i=0;i<n;i++){if((r[1+Math.floor(i/W)]>>(i%W))&1)out[i+1]=r[k++];}
+    return out;
+  });
+  return{columns:payload.columns,rows};
+}
 const RETRO_FSA_CACHE=new Map();
 function fetchRetroFsa(prov,fsa){
   const key=`${prov}|${fsa}`;
   if(RETRO_FSA_CACHE.has(key))return Promise.resolve(RETRO_FSA_CACHE.get(key));
   return fetchJSON(`${RETRO_COST_JSON_BASE}${prov}/${fsa}.json`)
-    .then(payload=>{RETRO_FSA_CACHE.set(key,payload);return payload;})
+    .then(payload=>{payload=retroExpand(payload);RETRO_FSA_CACHE.set(key,payload);return payload;})
     .catch(()=>{const empty={columns:RETRO_COLS,rows:[]};RETRO_FSA_CACHE.set(key,empty);return empty;});
 }
 const RETRO_SUMMARY_CACHE=new Map();
