@@ -165,6 +165,26 @@ Key decisions:
   blended in. `estimated_conductivity_wm`/`_class` are computed from
   whichever lithology won (well_log first, gsc_map only when well_log is
   absent) — kept consistent with the un-flagged wells.
+- **Well data quality band (§3.1b, rule agreed 2026-11-09).** `well_quality`
+  (`good` | `medium` | `bad`) says how complete a well's *own log* is for
+  estimating conductivity; it is not a statement about the ground. The GSC
+  fallback is deliberately **not** credited. A layer is *complete* when its
+  lithology is bucketable and its thickness (bottom − top) is > 0;
+  `lith_logged_cov` = complete-layer thickness ÷ `depth_m`.
+  - **good** — bedrock depth recorded AND every logged layer complete.
+  - **medium** — not good, but `lith_logged_cov` ≥ 0.5.
+  - **bad** — everything else (no logged lithology, < 50 % coverage, or no
+    total depth to measure coverage against).
+
+  Result on the 50,902 mapped wells: 34,351 good / 7,652 medium / 8,899 bad
+  (8,489 of the bad have no logged lithology at all, nearly all of them the
+  wells that currently rely on the GSC fallback). The 50 % line is a screening
+  choice, not literature-sourced; "complete" does not check that layers reach
+  the bottom of the hole. The band is **informational**: the interpolated
+  conductivity surface still includes bad wells via the GSC fallback.
+  `combine_wells.add_well_quality()` is the rule;
+  `apply_well_quality.py` applies it to an existing GeoPackage when the raw
+  tables are not on disk. The map colours wells by this band.
 - **Lithology buckets → thermal conductivity.** Decoded materials map to
   buckets, each with a mid-range conductivity (W/m·K) — **estimates from
   drillers' logs, not measurements**. The per-bucket values, their literature

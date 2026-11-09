@@ -491,6 +491,41 @@ def gsc_lithology_lookup(gsc_gdf, wells_needing_lith: gpd.GeoDataFrame) -> dict:
     return dict(zip(joined["WELL_ID"], joined["gsc_bucket"]))
 
 
+def add_well_quality(wells, formations):
+    """Add `well_quality` (good | medium | bad) and `lith_logged_cov` to wells.
+
+    Data-completeness band for the conductivity estimate (rule agreed
+    2026-11-09; README s3.1b). Only the driller's own log counts -- the GSC
+    mapped-geology fallback is deliberately NOT credited here.
+
+      A layer is "complete" when its lithology is bucketable (not "unknown")
+      and its thickness (bottom - top) is > 0.
+      lith_logged_cov = sum(thickness of complete layers) / depth_m.
+
+      good   : bedrock depth recorded AND every logged layer is complete
+      medium : not good, but lith_logged_cov >= 0.5
+      bad    : everything else (no logged lithology, <50% coverage, or no
+               total depth to measure coverage against)
+    """
+    f = formations.dropna(subset=["WELL_ID"]).copy()
+    f["_thick"] = f["bottom_depth_m"] - f["top_depth_m"]
+    f["_complete"] = (f["lithology"].notna() & (f["lithology"] != "unknown")
+                      & (f["_thick"] > 0))
+    all_complete = f.groupby("WELL_ID")["_complete"].all().rename("_all_complete")
+    logged = (f[f["_complete"]].groupby("WELL_ID")["_thick"].sum()
+                .rename("_logged_m"))
+    w = wells.drop(columns=[c for c in ("well_quality", "lith_logged_cov")
+                            if c in wells.columns])
+    w = (w.merge(all_complete, left_on="WELL_ID", right_index=True, how="left")
+          .merge(logged, left_on="WELL_ID", right_index=True, how="left"))
+    cov = w["_logged_m"] / w["depth_m"].where(w["depth_m"] > 0)
+    good = w["bedrock_depth_m"].notna() & (w["_all_complete"] == True)  # noqa: E712
+    medium = ~good & (cov >= 0.5)
+    w["lith_logged_cov"] = cov.round(3)
+    w["well_quality"] = np.where(good, "good", np.where(medium, "medium", "bad"))
+    return w.drop(columns=["_all_complete", "_logged_m"])
+
+
 def build_wells(src, lut, shp, formations, water, pump_tests):
     wwr = src.table("tblWWR", required=True)
     use1 = (wwr[col(wwr, "USE_1ST")].map(lambda x: decode(x, lut["water_use"]))
@@ -632,7 +667,10 @@ def build_wells(src, lut, shp, formations, water, pump_tests):
         return "unlikely"
     wells["open_loop"] = wells.apply(open_loop, axis=1)
 
-    gdf = gpd.GeoDataFrame(wells, geometry="geometry", crs=4326)
+    wells = add_well_quality(wells, formations)
+    print(f"  [wells] well_quality: {dict(wells['well_quality'].value_counts())}")
+
+    gdf =gpd.GeoDataFrame(wells, geometry="geometry", crs=4326)
     no_geom = gdf.geometry.isna().sum()
     print(f"  [wells] {len(gdf):,} wells; {no_geom:,} without shapefile geometry")
     return gdf

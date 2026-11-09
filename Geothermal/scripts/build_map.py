@@ -2,8 +2,8 @@
 build_map.py  (guide step 8)
 
 Build a single self-contained interactive map, Geothermal/output/index.html,
-from the processed layers. Leaflet comes from a CDN; all data is embedded
-inline so the file opens straight from disk.
+from the processed layers. Leaflet is vendored in assets/vendor/leaflet/ (the
+page loads it via ../../assets/...); all data is embedded inline.
 
 To keep the file size sane the two big layers are embedded as compact arrays
 instead of GeoJSON (the full-fidelity GeoJSON deliverables remain in
@@ -18,7 +18,8 @@ Data/processed/):
                        surface exactly and instantly.
     wells              [lon, lat, open_loop, yield_lpm, static_m, depth_m,
                         bedrock_m, bucket_idx, well_id, geometry_source_idx,
-                        bedrock_depth_source_idx, lithology_source_idx]
+                        bedrock_depth_source_idx, lithology_source_idx,
+                        quality_idx (0 bad / 1 medium / 2 good), logged_cov_pct]
                         (bucket_idx 0-13 per BUCKET_ORDER, -1 = unknown; the
                         well's conductivity is recomputed from κ(bucket) at
                         popup-open time. source idx 0/1/2 -> GS/BS/LS in
@@ -57,6 +58,7 @@ OPEN_LOOP = {"viable": 2, "possible": 1, "unlikely": 0}
 GEOM_SRC = {"shp": 0, "borehole": 1}
 BEDROCK_SRC = {None: 0, "shp": 1, "formations": 2}
 LITH_SRC = {None: 0, "well_log": 1, "gsc_map": 2}
+QUALITY = {"bad": 0, "medium": 1, "good": 2}      # well data-completeness band
 
 
 def jnum(v, nd):
@@ -123,14 +125,17 @@ def build_wells():
     bidx = {b: i for i, b in enumerate(BUCKET_ORDER)}
     lith = w["lithology"].fillna("unknown")
     rows = []
-    for geom, ol, yld, stat, dep, bed, li, wid, gs, bs, ls in zip(
+    for geom, ol, yld, stat, dep, bed, li, wid, gs, bs, ls, q, cov in zip(
             w.geometry, w["open_loop"], w["well_yield_lpm"], w["static_level_m"],
             w["depth_m"], w["bedrock_depth_m"], lith, w["WELL_ID"],
-            w["geometry_source"], w["bedrock_depth_source"], w["lithology_source"]):
+            w["geometry_source"], w["bedrock_depth_source"], w["lithology_source"],
+            w["well_quality"], w["lith_logged_cov"]):
         rows.append([round(geom.x, 5), round(geom.y, 5), OPEN_LOOP.get(ol, 0),
                      jnum(yld, 0), jnum(stat, 1), jnum(dep, 1), jnum(bed, 1),
                      bidx.get(li, -1), str(wid),
-                     GEOM_SRC.get(gs, 0), BEDROCK_SRC.get(bs, 0), LITH_SRC.get(ls, 0)])
+                     GEOM_SRC.get(gs, 0), BEDROCK_SRC.get(bs, 0), LITH_SRC.get(ls, 0),
+                     QUALITY.get(q, 0),
+                     None if pd.isna(cov) else int(round(float(cov) * 100))])
     return rows
 
 
@@ -229,6 +234,31 @@ def build_cond_ref():
     return out
 
 
+def build_kpi():
+    """Ribbon KPI: share of Hydro Ottawa feeder-served area with 0-1 MVA free.
+
+    Areas are unions of the OEB feeder polygons in UTM 18N (overlaps counted
+    once). `constrained_pct_served` = constrained / served; `_city` divides by
+    the City of Ottawa area instead (union of the DA boundaries). Only
+    ldc_name == 'Hydro Ottawa Limited' is used -- the raw file also carries
+    Ottawa River Power Corporation polygons (Deep River), which are not Ottawa.
+    """
+    cap = gpd.read_file(CAPACITY)
+    cap = cap[cap["ldc_name"] == "Hydro Ottawa Limited"].to_crs(32618)
+    cap["geometry"] = cap.buffer(0)
+    served = cap.union_all()
+    constrained = cap[cap["capacityrange"] == "0.0 - 1.0"].union_all()
+    da = HERE / "Data" / "processed" / "da_boundaries_ottawa.geojson"
+    city = gpd.read_file(da).to_crs(32618).union_all() if da.exists() else None
+    out = {"n_polys": int(len(cap)),
+           "constrained_pct_served": round(100 * constrained.area / served.area)}
+    if city is not None:
+        out["served_pct_city"] = round(100 * served.intersection(city).area / city.area)
+        out["constrained_pct_city"] = round(100 * constrained.intersection(city).area / city.area)
+    print(f"KPI: {out}")
+    return out
+
+
 def main():
     grid = build_grid()
     wells = build_wells()
@@ -246,6 +276,7 @@ def main():
         "ZONING": json.dumps(build_zoning() or empty_fc, separators=(",", ":")),
         "CITYPOT": json.dumps(build_city_potential() or empty_fc, separators=(",", ":")),
         "SEWERS": json.dumps(build_sewers() or [], separators=(",", ":")),
+        "KPI": json.dumps(build_kpi(), separators=(",", ":")),
     }
     for k, v in blobs.items():
         print(f"{k}: {len(v) / 1e6:.1f} MB")

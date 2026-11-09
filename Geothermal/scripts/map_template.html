@@ -16,22 +16,46 @@
 <meta name="twitter:image" content="https://ottawavisuals.github.io/Energy/assets/og/geothermal-v2.png">
 <link rel="icon" type="image/svg+xml" href="../../assets/favicons/geothermal.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicons/geothermal.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../../assets/vendor/leaflet/leaflet.css">
+<script src="../../assets/vendor/leaflet/leaflet.js"></script>
 <style>
   html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-  #map { height: 100%; }
+  /* header ribbon: back link, title, KPI chips */
+  #ribbon { position: fixed; top: 0; left: 0; right: 0; height: 44px; z-index: 2000;
+            display: flex; align-items: center; gap: 12px; padding: 0 12px;
+            background: #0B2545; color: #fff; font-size: 13px; box-sizing: border-box; }
+  #ribbon a.back { color: #fff; text-decoration: none; font-weight: 600; white-space: nowrap;
+                   padding: 5px 10px; border: 1px solid rgba(255,255,255,.4); border-radius: 6px; }
+  #ribbon a.back:hover { background: rgba(255,255,255,.14); }
+  #ribbon .ttl { font-weight: 700; font-size: 15px; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  #ribbon .kpis { display: flex; gap: 8px; margin-left: auto; min-width: 0; }
+  .kpi { background: rgba(255,255,255,.12); border-radius: 6px; padding: 3px 9px;
+         line-height: 1.2; white-space: nowrap; cursor: help; }
+  .kpi b { display: block; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 10px; opacity: .85; }
+  #map { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; }
   .panel {
-    position: absolute; z-index: 1000; background: rgba(255,255,255,.94);
+    position: absolute; z-index: 1000; background: rgba(255,255,255,.95);
     border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.3);
     padding: 10px 14px; font-size: 13px; line-height: 1.45;
   }
-  #title { top: 10px; left: 54px; max-width: 400px; }
-  #title h1 { margin: 0 0 2px; font-size: 16px; }
-  #title p { margin: 0; color: #444; font-size: 12px; }
-  #legend { bottom: 24px; left: 10px; max-width: 260px; }
-  #legend h3 { margin: 6px 0 3px; font-size: 12px; text-transform: uppercase;
-               letter-spacing: .04em; color: #333; }
+  /* left rail: one scrollable panel, legend sections shown only for active layers */
+  #rail { top: 54px; left: 10px; width: 272px; max-width: calc(100vw - 20px);
+          max-height: calc(100vh - 44px - 44px); overflow: auto; padding: 0; }
+  #railHead { display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer;
+              user-select: none; font-weight: 700; font-size: 13px; position: sticky; top: 0;
+              background: rgba(255,255,255,.98); border-bottom: 1px solid #ddd; }
+  #railHead .tw { transition: transform .12s; display: inline-block; }
+  #rail.open #railHead .tw { transform: rotate(90deg); }
+  #railBody { display: none; padding: 4px 12px 10px; }
+  #rail.open #railBody { display: block; }
+  .lg { display: none; padding: 6px 0; border-bottom: 1px solid #eee; }
+  .lg.on { display: block; }
+  .lg h3 { margin: 0 0 3px; font-size: 12px; text-transform: uppercase;
+           letter-spacing: .04em; color: #333; }
+  .lg .hint { font-size: 11px; color: #666; margin: 4px 0 0; }
+  #lgEmpty { font-size: 12px; color: #666; padding: 8px 0; }
   .row { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
   .sw { width: 14px; height: 14px; border-radius: 3px; flex: none;
         border: 1px solid rgba(0,0,0,.25); }
@@ -42,11 +66,10 @@
   .leaflet-popup-content table { border-collapse: collapse; }
   .leaflet-popup-content td { padding: 1px 8px 1px 0; vertical-align: top; }
   .leaflet-popup-content td:first-child { color: #555; }
-  #note { font-size: 11px; color: #666; margin-top: 6px; }
 
   /* Conductivity-assumptions panel (bottom-right) */
-  #assumptions { bottom: 24px; right: 10px; max-width: 320px;
-                 max-height: 74vh; display: flex; flex-direction: column; }
+  #assumptions { bottom: 24px; right: 10px; max-width: min(320px, calc(100vw - 20px));
+                 max-height: 60vh; display: flex; flex-direction: column; }
   #asmHead { cursor: pointer; user-select: none; font-size: 13px;
              display: flex; align-items: center; gap: 6px; }
   #asmHead .tw { transition: transform .12s; }
@@ -65,8 +88,7 @@
   #asmTable tr .srci { color: #7a7a7a; cursor: help; margin-left: 3px; }
   #asmReset { margin-top: 8px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
 
-  /* Suitability segment selector (top-left, under the title) */
-  #segsel { top: 96px; left: 54px; max-width: 300px; }
+  /* Suitability segment selector (inside the suitability legend section) */
   #segsel .seghdr { font-weight: 700; font-size: 12px; text-transform: uppercase;
                     letter-spacing: .04em; color: #333; margin-bottom: 4px; }
   #segsel label { display: flex; align-items: baseline; gap: 6px; margin: 3px 0;
@@ -78,64 +100,89 @@
 <script defer src="../../assets/visual-polish.js"></script>
 </head>
 <body data-energy-tool="geothermal">
+<div id="ribbon" role="banner">
+  <a class="back" href="../../index.html">&larr; All tools</a>
+  <span class="ttl">Ottawa Geothermal Feasibility</span>
+  <div class="kpis">
+    <div class="kpi" id="kpiWells" title=""><b>&mdash;</b><span>wells with good data</span></div>
+    <div class="kpi" id="kpiArea" title=""><b>&mdash;</b><span>of served area &le; 1 MVA</span></div>
+  </div>
+</div>
 <div id="map"></div>
 
-<div id="title" class="panel">
-<img class="map-title-art" src="../../assets/icons/web/geothermal.webp" alt="" width="512" height="216">
-  <h1>Ottawa Geothermal Feasibility</h1>
-  <p>WWIS water-well records &middot; lithology-estimated thermal conductivity &middot;
-     Hydro Ottawa feeder capacity (OEB CCIM)</p>
-</div>
+<div id="rail" class="panel open">
+  <div id="railHead"><span class="tw">&#9656;</span>Legend &amp; controls</div>
+  <div id="railBody">
+    <div id="lgEmpty">Switch layers on in the layer list (top-right) to see their legends.</div>
 
-<div id="segsel" class="panel">
-  <div class="seghdr">Suitability segment</div>
-  <label><input type="radio" name="seg" value="res" checked>
-    Residential &amp; small commercial <span>(1&ndash;10 tons)</span></label>
-  <label><input type="radio" name="seg" value="large">
-    Large buildings <span>(borefields, 50+ tons)</span></label>
-  <label><input type="radio" name="seg" value="district">
-    District energy <span>(demand + resource)</span></label>
-  <p class="seghint">Restyles the <b>Suitability</b> layer &mdash; enable it in the
-    layer list (top-right). Popups show this segment&rsquo;s factor breakdown.</p>
-</div>
+    <div class="lg" data-for="grid">
+      <h3>Thermal conductivity (est., W/m&middot;K)</h3>
+      <div class="row"><span class="sw" style="background:#d73027"></span>low &lt; 2.0<span class="cnt" id="cnt-low"></span></div>
+      <div class="row"><span class="sw" style="background:#fee08b"></span>medium 2.0&ndash;2.8<span class="cnt" id="cnt-medium"></span></div>
+      <div class="row"><span class="sw" style="background:#1a9850"></span>high &gt; 2.8<span class="cnt" id="cnt-high"></span></div>
+      <div class="row"><span class="sw" style="background:#999;opacity:.45"></span>low confidence (&lt;5 wells nearby)</div>
+      <p class="hint">Estimated from drillers&rsquo; lithology logs, not measured. Counts update live when you edit the assumptions panel.</p>
+    </div>
 
-<div id="legend" class="panel">
-  <h3>Thermal conductivity (est., W/m&middot;K)</h3>
-  <div class="row"><span class="sw" style="background:#d73027"></span>low &lt; 2.0<span class="cnt" id="cnt-low"></span></div>
-  <div class="row"><span class="sw" style="background:#fee08b"></span>medium 2.0&ndash;2.8<span class="cnt" id="cnt-medium"></span></div>
-  <div class="row"><span class="sw" style="background:#1a9850"></span>high &gt; 2.8<span class="cnt" id="cnt-high"></span></div>
-  <div class="row"><span class="sw" style="background:#999;opacity:.45"></span>low confidence (&lt;5 wells nearby)</div>
-  <h3 id="suit-hdr">Suitability &mdash; residential</h3>
-  <div class="row"><span class="sw" style="background:#6a51a3"></span>strong &ge; 75</div>
-  <div class="row"><span class="sw" style="background:#9e9ac8"></span>good 50&ndash;75</div>
-  <div class="row"><span class="sw" style="background:#cbc9e2"></span>fair 25&ndash;50</div>
-  <div class="row"><span class="sw" style="background:#f2f0f7"></span>poor &lt; 25</div>
-  <h3>Drilling difficulty (screening, 0&ndash;100)</h3>
-  <div class="row"><span class="sw" style="background:#ffffb2"></span>easy &lt; 25</div>
-  <div class="row"><span class="sw" style="background:#fd8d3c"></span>moderate 25&ndash;45</div>
-  <div class="row"><span class="sw" style="background:#bd0026"></span>difficult &ge; 45</div>
-  <h3>Open-loop feasibility (wells)</h3>
-  <div class="row"><span class="dot" style="background:#1a9850"></span>viable (SWL + yield &ge; 15 L/min)</div>
-  <div class="row"><span class="dot" style="background:#fdae61"></span>possible (SWL, yield unknown)</div>
-  <div class="row"><span class="dot" style="background:#bbb"></span>unlikely</div>
-  <h3>Feeder capacity (MVA)</h3>
-  <div class="row"><span class="sw" style="background:#d73027"></span>0&ndash;1</div>
-  <div class="row"><span class="sw" style="background:#fdae61"></span>1.1&ndash;3</div>
-  <div class="row"><span class="sw" style="background:#a6d96a"></span>3.1&ndash;5</div>
-  <div class="row"><span class="sw" style="background:#1a9850"></span>&gt; 5</div>
-  <h3>City open-loop potential</h3>
-  <div class="row"><span class="sw" style="background:#08519c"></span>high</div>
-  <div class="row"><span class="sw" style="background:#6baed6"></span>average</div>
-  <div class="row"><span class="sw" style="background:#c6dbef"></span>low</div>
-  <div class="row"><span class="sw" style="background:#dddddd"></span>none</div>
-  <h3>Other layers</h3>
-  <div class="row"><span class="sw" style="background:#7b3294;opacity:.5"></span>industrial / employment zoning</div>
-  <div class="row"><span class="sw" style="background:#555;height:3px;border:none"></span>trunk sanitary sewer</div>
-  <div class="row"><span class="sw" style="background:#8c510a;height:3px;border:none"></span>combined sewer</div>
-  <div id="note">Conductivity is estimated from drillers&rsquo; lithology logs, not
-  measured. Class counts above update live when you edit the assumptions panel.
-  Wells layer draws ~51k points &mdash; toggle it off if zoomed-out panning
-  feels slow.</div>
+    <div class="lg" data-for="suit">
+      <h3 id="suit-hdr">Suitability &mdash; residential</h3>
+      <div id="segsel">
+        <label><input type="radio" name="seg" value="res" checked>
+          Residential &amp; small commercial <span>(1&ndash;10 tons)</span></label>
+        <label><input type="radio" name="seg" value="large">
+          Large buildings <span>(borefields, 50+ tons)</span></label>
+        <label><input type="radio" name="seg" value="district">
+          District energy <span>(demand + resource)</span></label>
+      </div>
+      <div class="row"><span class="sw" style="background:#6a51a3"></span>strong &ge; 75</div>
+      <div class="row"><span class="sw" style="background:#9e9ac8"></span>good 50&ndash;75</div>
+      <div class="row"><span class="sw" style="background:#cbc9e2"></span>fair 25&ndash;50</div>
+      <div class="row"><span class="sw" style="background:#f2f0f7"></span>poor &lt; 25</div>
+      <p class="hint">Popups show this segment&rsquo;s factor breakdown.</p>
+    </div>
+
+    <div class="lg" data-for="diff">
+      <h3>Drilling difficulty (screening, 0&ndash;100)</h3>
+      <div class="row"><span class="sw" style="background:#ffffb2"></span>easy &lt; 25</div>
+      <div class="row"><span class="sw" style="background:#fd8d3c"></span>moderate 25&ndash;45</div>
+      <div class="row"><span class="sw" style="background:#bd0026"></span>difficult &ge; 45</div>
+    </div>
+
+    <div class="lg" data-for="wells">
+      <h3>Well data quality</h3>
+      <div class="row"><span class="dot" style="background:#00796b"></span>good (bedrock + full logged lithology)<span class="cnt" id="cnt-q2"></span></div>
+      <div class="row"><span class="dot" style="background:#f9c74f"></span>medium (lithology &ge; 50% of depth)<span class="cnt" id="cnt-q1"></span></div>
+      <div class="row"><span class="dot" style="background:#bbb"></span>bad (no logged lithology, or &lt; 50%)<span class="cnt" id="cnt-q0"></span></div>
+      <p class="hint">~51k points &mdash; toggle off if zoomed-out panning feels slow. The popup also shows each well&rsquo;s open-loop screen.</p>
+    </div>
+
+    <div class="lg" data-for="cap">
+      <h3>Feeder capacity (MVA)</h3>
+      <div class="row"><span class="sw" style="background:#d73027"></span>0&ndash;1</div>
+      <div class="row"><span class="sw" style="background:#fdae61"></span>1.1&ndash;3</div>
+      <div class="row"><span class="sw" style="background:#a6d96a"></span>3.1&ndash;5</div>
+      <div class="row"><span class="sw" style="background:#1a9850"></span>&gt; 5</div>
+    </div>
+
+    <div class="lg" data-for="city">
+      <h3>City open-loop potential</h3>
+      <div class="row"><span class="sw" style="background:#08519c"></span>high</div>
+      <div class="row"><span class="sw" style="background:#6baed6"></span>average</div>
+      <div class="row"><span class="sw" style="background:#c6dbef"></span>low</div>
+      <div class="row"><span class="sw" style="background:#dddddd"></span>none</div>
+    </div>
+
+    <div class="lg" data-for="zoning">
+      <h3>Zoning</h3>
+      <div class="row"><span class="sw" style="background:#7b3294;opacity:.5"></span>industrial / employment zoning</div>
+    </div>
+
+    <div class="lg" data-for="sewer">
+      <h3>Sewers</h3>
+      <div class="row"><span class="sw" style="background:#555;height:3px;border:none"></span>trunk sanitary sewer</div>
+      <div class="row"><span class="sw" style="background:#8c510a;height:3px;border:none"></span>combined sewer</div>
+    </div>
+  </div>
 </div>
 
 <div id="assumptions" class="panel">
@@ -149,7 +196,7 @@
     <table id="asmTable"></table>
     <button id="asmReset" type="button">Reset all to defaults</button>
     <p class="hint" style="margin-top:8px">Well marker <b>colours</b> encode
-      open-loop feasibility (not conductivity), so they stay fixed when you edit
+      data quality (not conductivity), so they stay fixed when you edit
       &kappa;. Each well&rsquo;s conductivity is recomputed from its lithology
       bucket when you open its popup.</p>
   </div>
@@ -166,11 +213,17 @@ const CAPACITY = /*__CAPACITY__*/;
 const ZONING = /*__ZONING__*/;
 const CITYPOT = /*__CITYPOT__*/;
 const SEWERS = /*__SEWERS__*/;
+const KPI = /*__KPI__*/;          // {served_pct_city, constrained_pct_served, constrained_pct_city, n_polys}
 
 // live per-bucket conductivity (edited via the assumptions panel)
 const KAPPA = CONDREF.map(r => r.default);
 
-const map = L.map('map', { preferCanvas: true }).setView([45.30, -75.75], 11);
+// pan/zoom limited to the data's bounding box (README s3.3: lon -76.36..-75.24, lat 44.96..45.61)
+const DATA_BOUNDS = L.latLngBounds([[44.96, -76.36], [45.61, -75.24]]);
+const map = L.map('map', {
+  preferCanvas: true, minZoom: 10,
+  maxBounds: DATA_BOUNDS.pad(0.1), maxBoundsViscosity: 1.0,
+}).setView([45.30, -75.75], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; OpenStreetMap contributors'
@@ -330,7 +383,9 @@ function restyleSuitability() {
 
 // ---- wells ---------------------------------------------------------------
 const OL_NAME = ['unlikely', 'possible', 'viable'];
-const OL_COLOR = ['#bbbbbb', '#fdae61', '#1a9850'];
+// well marker colour = data-completeness band (README s3.1b), index == build_map.py QUALITY
+const Q_NAME = ['bad', 'medium', 'good'];
+const Q_COLOR = ['#bbbbbb', '#f9c74f', '#00796b'];
 // source-flag labels, matching build_map.py's GEOM_SRC/BEDROCK_SRC/LITH_SRC dicts
 const GS_NAME = ['shapefile', 'borehole record'];
 const BS_NAME = ['&mdash;', 'shapefile', 'formations fallback'];
@@ -338,15 +393,16 @@ const LS_NAME = ['&mdash;', 'well log', 'GSC mapped geology'];
 const wellsLayer = L.layerGroup();
 {
   const canvas = L.canvas({ padding: 0.3 });
-  for (const [lon, lat, ol, yld, swl, dep, bed, bi, id, gs, bs, ls] of WELLS) {
+  for (const [lon, lat, ol, yld, swl, dep, bed, bi, id, gs, bs, ls, q, cov] of WELLS) {
     L.circleMarker([lat, lon], {
       renderer: canvas, radius: 3, weight: 0.5, color: '#333',
-      fillColor: OL_COLOR[ol], fillOpacity: 0.8,      // colour = open-loop, not conductivity
+      fillColor: Q_COLOR[q], fillOpacity: 0.8,        // colour = data quality, not conductivity
     }).bindPopup(() => {
       const cond = bi >= 0 ? round2(KAPPA[bi]) : null;   // recomputed from current KAPPA
       const lithName = bi >= 0 ? BUCKETS[bi] : 'unknown';
       return popupTable([
         ['Well ID', id],
+        ['Data quality', Q_NAME[q] + (cov === null ? '' : ` (logged lithology covers ${cov}% of depth)`)],
         ['Open loop', OL_NAME[ol]],
         ['Lithology', lithName + (ls ? ` (${LS_NAME[ls]})` : '')],
         ['Est. conductivity', fmt(cond, ' W/m&middot;K')],
@@ -424,7 +480,7 @@ L.control.layers(null, {
   'Thermal conductivity grid': gridLayer,
   'Suitability (by segment)': suitLayer,
   'Drilling difficulty (screening)': difficultyLayer,
-  'Wells (open-loop feasibility)': wellsLayer,
+  'Wells (data quality)': wellsLayer,
   'Hydro Ottawa feeder capacity': capacityLayer,
   'City open-loop potential': cityPotLayer,
   'Industrial / employment zoning': zoningLayer,
@@ -503,6 +559,52 @@ recomputeGrid = function () {
 };
 
 refreshLegend();   // initial class counts
+
+// ---- left rail: legend sections follow the active layers ------------------
+const LEGEND_LAYERS = { grid: gridLayer, suit: suitLayer, diff: difficultyLayer,
+  wells: wellsLayer, cap: capacityLayer, city: cityPotLayer, zoning: zoningLayer,
+  sewer: sewerLayer };
+function syncLegend() {
+  let any = false;
+  document.querySelectorAll('.lg').forEach(el => {
+    const on = map.hasLayer(LEGEND_LAYERS[el.dataset.for]);
+    el.classList.toggle('on', on);
+    any = any || on;
+  });
+  document.getElementById('lgEmpty').style.display = any ? 'none' : 'block';
+}
+map.on('overlayadd overlayremove', syncLegend);
+syncLegend();
+(function () {
+  const rail = document.getElementById('rail');
+  L.DomEvent.disableClickPropagation(rail);
+  L.DomEvent.disableScrollPropagation(rail);
+  document.getElementById('railHead').addEventListener('click', () => rail.classList.toggle('open'));
+  if (window.matchMedia('(max-width:640px)').matches) rail.classList.remove('open');
+})();
+
+// ---- ribbon KPIs ----------------------------------------------------------
+(function () {
+  const q = [0, 0, 0];
+  for (const w of WELLS) q[w[12]]++;
+  const n = WELLS.length, pct = v => Math.round(100 * v / n);
+  for (let i = 0; i < 3; i++)
+    document.getElementById('cnt-q' + i).textContent = q[i].toLocaleString();
+  const kw = document.getElementById('kpiWells');
+  kw.querySelector('b').textContent = pct(q[2]) + '% good';
+  kw.title = `Well data quality, ${n.toLocaleString()} mapped wells: ${q[2].toLocaleString()} good (${pct(q[2])}%), ` +
+    `${q[1].toLocaleString()} medium (${pct(q[1])}%), ${q[0].toLocaleString()} bad (${pct(q[0])}%). ` +
+    'Completeness of the driller\'s own lithology log, not ground quality.';
+  const ka = document.getElementById('kpiArea');
+  if (KPI && KPI.constrained_pct_served !== undefined) {
+    ka.querySelector('b').textContent = KPI.constrained_pct_served + '%';
+    ka.title = `${KPI.constrained_pct_served}% of the area covered by Hydro Ottawa feeder polygons has 0-1 MVA ` +
+      `available; that is ${KPI.constrained_pct_city}% of the whole City of Ottawa area. ` +
+      `Feeder-served area is ${KPI.served_pct_city}% of the city (OEB capacity map, ${KPI.n_polys} polygons).`;
+  } else {
+    ka.style.display = 'none';
+  }
+})();
 </script>
 </body>
 </html>

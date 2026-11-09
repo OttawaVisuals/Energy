@@ -58,6 +58,8 @@ WELL_COLS = {                       # source column -> output property
     "geometry_source": "geometry_source",
     "bedrock_depth_source": "bedrock_depth_source",
     "lithology_source": "lithology_source",
+    "well_quality": "well_quality",
+    "lith_logged_cov": "lith_logged_cov",
 }
 
 CAP_COLS = {
