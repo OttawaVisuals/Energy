@@ -32,6 +32,9 @@ OUTPUTS (data/interim/, gitignored)
                               `in_es` flag + ENERGY STAR ratings where matched.
   nhpr_eligible_summary.json  counts, match rates, distributions. Everything a
                               page would need; nothing else is read at load.
+  ../newheatpumps_json/scatter.json   one row per distinct (capacity at 47 F,
+                              capacity maintenance, COP at 5 F, compressor type)
+                              with how many Active / all AHRI numbers share it.
   ../newheatpumps_json/summary.json   the same summary, published to the site
                               (newheatpumps.html reads it; gitignored on main,
                               shipped via deploy.sh like every generated tree).
@@ -74,6 +77,9 @@ ES_CSV = ROOT / "data/raw/energystar/es_heat_pumps_2026-11-10.csv"
 OUT_CSV = ROOT / "data/interim/nhpr_eligible_joined.csv"
 OUT_JSON = ROOT / "data/interim/nhpr_eligible_summary.json"
 PUB_JSON = ROOT.parent / "newheatpumps_json/summary.json"
+PUB_SCATTER = ROOT.parent / "newheatpumps_json/scatter.json"
+CM_MAX = 1.30     # same screen as METHODOLOGY.md "Implausible ratings": flagged, counted, not plotted
+COP_MAX = 3.0
 
 ES_COLS = {
     "AHRI Reference Number": "ahri",
@@ -90,14 +96,22 @@ ES_COLS = {
 }
 NUM = ["seer2", "hspf2", "cap47", "cap17", "cap5", "cop5"]
 
-# Plain-language bins (open-ended top and bottom).
+# Fixed bins, open-ended at both ends (revised 2026-11-10: finer buckets).
+# Capacity 3,000 BTU/h steps; COP at 5 F in 0.1 steps (certified floor is 1.75,
+# and 8.7% of Active matched units sit at exactly 1.80, the lowest-reported
+# value, which the 0.1 bins make visible); HSPF2 in 0.5 steps (values are
+# reported at whole/half numbers, so 0.25 steps leave alternating empty bars).
+def _mk(edges, fmt, lo_label, hi_label):
+    labels = [lo_label] + [fmt(a, b) for a, b in zip(edges[:-1], edges[1:])] + [hi_label]
+    return [-1e9] + edges + [1e9], labels
+
+_cap_e = list(range(9000, 63001, 3000))
+_cop_e = [round(1.7 + 0.1 * i, 1) for i in range(0, 9)]          # 1.7 .. 2.5
+_hsp_e = [round(8.0 + 0.5 * i, 1) for i in range(0, 9)]           # 8.0 .. 12.0
 BINS = {
-    "cap47": ([0, 12000, 18000, 24000, 30000, 36000, 48000, 60000, 1e9],
-              ["<12k", "12-18k", "18-24k", "24-30k", "30-36k", "36-48k", "48-60k", "60k+"]),
-    "cop5": ([0, 1.5, 1.75, 2.0, 2.25, 2.5, 99],
-             ["<1.5", "1.5-1.75", "1.75-2.0", "2.0-2.25", "2.25-2.5", "2.5+"]),
-    "hspf2": ([0, 7.5, 8.0, 8.5, 9.0, 10.0, 99],
-              ["<7.5", "7.5-8", "8-8.5", "8.5-9", "9-10", "10+"]),
+    "cap47": _mk(_cap_e, lambda a, b: f"{a//1000}-{b//1000}k", "<9k", "63k+"),
+    "cop5": _mk(_cop_e, lambda a, b: f"{a:.1f}", "<1.7", "2.5+"),   # "1.7" = 1.7 up to under 1.8
+    "hspf2": _mk(_hsp_e, lambda a, b: f"{a:g}", "<8", "12+"),
 }
 
 
@@ -214,6 +228,41 @@ def main():
         "top_by_outdoor_models": {k: int(v) for k, v in bm.head(15).items()},
         "measure": "distinct outdoor model strings on the NRCan list",
     }
+    # --- COP floor spike, for the COP histogram footnote ---
+    ma = matched[matched["status"] == "Active"]
+    summary["cop5_floor"] = {
+        "active_matched": int(ma["cop5"].notna().sum()),
+        "exactly_1_80": int((ma["cop5"].round(2) == 1.80).sum()),
+        "below_1_80": int((ma["cop5"].round(2) < 1.80).sum()),
+    }
+    # --- scatter: capacity maintenance (cap5 / cap47) vs COP at 5 F ---
+    sc = matched.copy()
+    sc["cm"] = sc["cap5"] / sc["cap47"]
+    gate = {}
+    for label, sub_ in [("active", sc[sc["status"] == "Active"]), ("all", sc)]:
+        n = len(sub_)
+        no_cm = int(sub_["cm"].isna().sum())
+        hi_cm = int((sub_["cm"] > CM_MAX).sum())
+        hi_cop = int((sub_["cop5"] > COP_MAX).sum())
+        gate[label] = {"matched_units": n, "missing_capacity_47_or_5": no_cm,
+                       "capacity_maintenance_above_1_30_excluded": hi_cm,
+                       "cop_above_3_0_excluded": hi_cop}
+    ok = sc[sc["cm"].notna() & (sc["cm"] <= CM_MAX) & sc["cop5"].notna() & (sc["cop5"] <= COP_MAX)].copy()
+    ok["cmr"] = ok["cm"].round(3)
+    ok["stg"] = ok["es_staging"].fillna("Unknown")
+    ok["act"] = (ok["status"] == "Active").astype(int)
+    g = ok.groupby(["cap47", "cmr", "cop5", "stg"], dropna=False).agg(
+        n_all=("ahri", "size"), n_active=("act", "sum")).reset_index()
+    stg_codes = ["Continuously variable", "Two-stage", "Single stage", "Unknown"]
+    pts = [[round(float(r.cmr), 3), round(float(r.cop5), 2), int(r.cap47),
+            int(r.n_active), int(r.n_all), stg_codes.index(r.stg) if r.stg in stg_codes else 3]
+           for r in g.itertuples()]
+    gate["distinct_points"] = len(pts)
+    summary["scatter_gate"] = gate
+    PUB_SCATTER.write_text(json.dumps(
+        {"columns": ["capacity_maintenance", "cop_5f", "capacity_47f_btuh", "n_active", "n_all", "stage_code"],
+         "stage_codes": stg_codes, "generated": "2026-11-10", "points": pts},
+        separators=(",", ":")), encoding="utf-8")
     summary["generated"] = "2026-11-10"
     OUT_JSON.write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
     PUB_JSON.parent.mkdir(parents=True, exist_ok=True)

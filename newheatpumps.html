@@ -30,8 +30,11 @@ main{max-width:1280px;margin:0 auto;padding:1rem}
 .section-head h2{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:24px;color:var(--ink);margin:0 0 .25rem}
 .sec-sub{font-size:14px;color:var(--muted);max-width:80ch;margin:0}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:1rem}
-.chart-box{position:relative;height:280px}
-.chart-box.tall{height:420px}
+.chart-box{position:relative;height:340px}
+.chart-box.short{height:230px}
+.chart-box.tall{height:460px}
+.chart-box.scatter{height:560px}
+.chart-block{margin-bottom:1.6rem}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:1rem}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .stat-val{font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:300;color:var(--ink);line-height:1.1}
@@ -137,13 +140,24 @@ table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing
       </div>
     </div>
     <div id="scope-note" class="note" style="margin:-.4rem 0 .8rem"></div>
-    <div class="grid2">
-      <div><div class="card-title">Heating capacity at 47 °F (BTU/h)</div><div class="chart-box"><canvas id="c-cap"></canvas></div></div>
-      <div><div class="card-title">Efficiency at 5 °F (COP)</div><div class="chart-box"><canvas id="c-cop"></canvas></div></div>
-      <div><div class="card-title">Seasonal heating efficiency (HSPF2)</div><div class="chart-box"><canvas id="c-hspf"></canvas></div></div>
-      <div><div class="card-title">Compressor type</div><div class="chart-box"><canvas id="c-stage"></canvas></div></div>
-    </div>
+    <div class="chart-block"><div class="card-title">Heating capacity at 47 °F (BTU/h, 3,000-wide buckets)</div><div class="chart-box"><canvas id="c-cap"></canvas></div>
+      <p class="note">Peaks sit at the common nominal sizes (24,000 BTU/h is a 2-ton unit, 36,000 a 3-ton, 48,000 a 4-ton).</p></div>
+    <div class="chart-block"><div class="card-title">Efficiency at 5 °F (COP, 0.1-wide buckets; "1.8" means 1.8 up to under 1.9)</div><div class="chart-box"><canvas id="c-cop"></canvas></div>
+      <p class="note" id="cop-note"></p></div>
+    <div class="chart-block"><div class="card-title">Seasonal heating efficiency (HSPF2, 0.5-wide buckets)</div><div class="chart-box"><canvas id="c-hspf"></canvas></div>
+      <p class="note">Ratings are reported at whole and half numbers, so 0.5-wide buckets avoid showing empty gaps that are really a reporting habit.</p></div>
+    <div class="chart-block"><div class="card-title">Compressor type</div><div class="chart-box short"><canvas id="c-stage"></canvas></div></div>
     <p class="note"><b>Lab-rated, not measured in homes.</b> These are the certified ratings published through AHRI and republished by ENERGY STAR. COP is the heat delivered per unit of electricity; a higher number is better. Real performance depends on the house, the installation and the weather. Medians for the group shown: <span id="medians"></span>.</p>
+  </div>
+
+  <div class="section-head">
+    <h2>Cold-weather performance: efficiency vs capacity kept</h2>
+    <p class="sec-sub">Two ways a heat pump can be good in the cold: it keeps most of its heating capacity at 5 °F (right), and it is efficient while doing so (up). Each dot is a distinct combination of ratings; bigger dots are shared by more certified products.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">COP at 5 °F vs capacity maintenance</div><span class="badge" id="sc-scope"></span></div>
+    <div class="chart-box scatter"><canvas id="c-scatter"></canvas></div>
+    <p class="note"><b>Capacity maintenance</b> = heating capacity at 5 °F ÷ capacity at 47 °F: the share of its mild-weather output a unit still delivers in cold weather (0.80 means 80%). <b>Lab-rated, not measured in homes.</b> Dot size shows how many AHRI numbers (certified outdoor-plus-indoor combinations) share that exact set of ratings, not how many were sold. Hover a dot for its size and values. <span id="sc-gate"></span></p>
   </div>
 
   <div class="section-head">
@@ -194,6 +208,10 @@ table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing
       <p>Key: AHRI reference number, normalised to a string with any trailing <code>.0</code> removed. List rows are collapsed to one per AHRI number; ENERGY STAR rows likewise (preferring continuously variable over two-stage over single-stage when several exist; no AHRI number had disagreeing 5 °F capacity or COP across rows). 12 ENERGY STAR rows had a blank AHRI number and were excluded and counted. List entries with no ENERGY STAR match stay in the counts with no rating.</p>
       <h4>Fields used</h4>
       <p>Heating capacity at 47 °F (<code>Heating Capacity at 47°F (Btu/h)</code>), COP at 5 °F (<code>COP at 5°F</code>), <code>HSPF2 (Btu/Wh)</code>, <code>Compressor Staging</code>, <code>Cold Climate</code>, <code>Markets</code>. Ratings that are blank are counted as missing per field and left out of that chart (see the footnote counts in the JSON: <code>dist_*.missing</code>). Bins are fixed and open-ended at both ends.</p>
+      <h4>Buckets</h4>
+      <p>Heating capacity at 47 °F: 3,000 BTU/h wide from 9,000 to 63,000, open at both ends. COP at 5 °F: 0.1 wide from 1.7 to 2.5, open at both ends; a bucket labelled "1.8" holds 1.8 up to under 1.9. HSPF2: 0.5 wide from 8 to 12, open at both ends (0.25-wide buckets left alternating empty bars because ratings are reported at whole and half numbers).</p>
+      <h4>Cold-weather scatter</h4>
+      <p>Capacity maintenance = <code>Heating Capacity at 5°F</code> ÷ <code>Heating Capacity at 47°F</code>, the same metric as the heat pump tool's tiers. Rows with the same capacity at 47 °F, capacity maintenance (rounded to 0.001), COP at 5 °F and compressor type are drawn as one dot sized by the number of AHRI numbers sharing it (3,789 distinct dots across all matched units). Screening follows the heat pump tool: capacity maintenance above 1.30 or COP above 3.0 is excluded and counted on the page; units missing either capacity are counted, not plotted. Compressor type colours the dots. No tiers are drawn, because the COP axis piles up at the 1.80 reporting floor and cannot be split into thirds (see <code>HeatPump/METHODOLOGY.md</code>).</p>
       <h4>Brand measure</h4>
       <p>Distinct outdoor-model strings per brand among Active air-source entries, brand names upper-cased and trimmed. Related brands that sell the same outdoor model are not merged. It is a count of product lines on the list, not of units sold.</p>
       <h4>Measured vs modelled vs assumed</h4>
@@ -231,7 +249,7 @@ const BASE_URL='./';   // data ships on gh-pages next to this page (same origin)
 const DATA_URL=`${BASE_URL}newheatpumps_json/summary.json`;
 const PAL={};
 const charts={};
-let S=null,SCOPE='active';
+let S=null,SC=null,SCOPE='active';
 
 function readPalette(){
   const cs=getComputedStyle(document.documentElement);
@@ -300,13 +318,18 @@ function histChart(id,key){
     plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12,color:PAL.axis}},
       tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
 }
+function renderCopNote(){
+  const f=S.cop5_floor;
+  const share=pct(f.exactly_1_80,f.active_matched).toFixed(1);
+  $('cop-note').textContent=`Certified products must show at least 1.75 at 5 °F. Among Active units with ratings, ${fmt(f.exactly_1_80)} of ${fmt(f.active_matched)} (${share}%) report exactly 1.80 and only ${fmt(f.below_1_80)} report less, so the lower end of this chart is a floor, not a lack of data.`;
+}
 function renderHists(){
   const d=group();
   const total=d.n_units;
   $('scope-note').textContent=SCOPE==='active'
     ?`${fmt(total)} Active air-source products that have ENERGY STAR ratings.`
     :`${fmt(total)} air-source products (Active and Archived) that have ENERGY STAR ratings.`;
-  histChart('c-cap','cap47');histChart('c-cop','cop5');histChart('c-hspf','hspf2');
+  histChart('c-cap','cap47');histChart('c-cop','cop5');histChart('c-hspf','hspf2');renderCopNote();renderScatter();
   const st=d.compressor_staging, labs=Object.keys(st);
   const order=['Continuously variable','Two-stage','Single stage'].filter(k=>k in st).concat(labs.filter(k=>!['Continuously variable','Two-stage','Single stage'].includes(k)));
   mk('c-stage',{type:'bar',data:{labels:order,datasets:[{data:order.map(k=>pct(st[k],total)),backgroundColor:PAL.primary}]},
@@ -315,6 +338,26 @@ function renderHists(){
   const e=S.dist_all_es_canada_market.median;
   $('medians').textContent=`capacity ${fmt(d.median.cap47)} BTU/h, COP at 5 °F ${d.median.cop5.toFixed(2)}, HSPF2 ${d.median.hspf2.toFixed(1)}`
     +` (all ENERGY STAR sold in Canada: ${fmt(e.cap47)}, ${e.cop5.toFixed(2)}, ${e.hspf2.toFixed(1)})`;
+}
+
+function renderScatter(){
+  if(!SC)return;
+  const I={cm:0,cop:1,cap:2,na:3,nt:4,st:5}, key=SCOPE==='active'?I.na:I.nt;
+  const names=SC.stage_codes, cols=[PAL.primary,PAL.pos,PAL.secondary,PAL.muted];
+  const pts=SC.points.filter(p=>p[key]>0);
+  const maxN=Math.max(...pts.map(p=>p[key]));
+  const ds=names.map((nm,i)=>({label:nm,backgroundColor:cols[i]+'99',borderColor:cols[i],borderWidth:1,
+    data:pts.filter(p=>p[I.st]===i).map(p=>({x:p[I.cm],y:p[I.cop],r:3+9*Math.sqrt(p[key]/maxN),cap:p[I.cap],n:p[key]}))}))
+    .filter(d=>d.data.length);
+  mk('c-scatter',{type:'bubble',data:{datasets:ds},options:{
+    scales:{x:{title:{display:true,text:'Capacity maintenance (capacity at 5 °F ÷ capacity at 47 °F): keeps more of its output in the cold →',color:PAL.axis},min:0.5,max:1.3,grid:{color:PAL.grid}},
+            y:{title:{display:true,text:'COP at 5 °F: more efficient in the cold →',color:PAL.axis},suggestedMin:1.7,grid:{color:PAL.grid}}},
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12,color:PAL.axis}},
+      tooltip:{callbacks:{label:c=>{const r=c.raw;return [c.dataset.label,`Capacity at 47 °F: ${fmt(r.cap)} BTU/h`,`Capacity maintenance: ${r.x.toFixed(2)}`,`COP at 5 °F: ${r.y.toFixed(2)}`,`${fmt(r.n)} AHRI number${r.n===1?'':'s'}`];}}}}}});
+  const sg=S.scatter_gate[SCOPE==='active'?'active':'all'];
+  $('sc-scope').textContent=SCOPE==='active'?'Active entries':'Active + archived';
+  const plotted=pts.reduce((s,p)=>s+p[key],0);
+  $('sc-gate').textContent=`${fmt(plotted)} of ${fmt(sg.matched_units)} rated units plotted as ${fmt(pts.length)} distinct dots. Not plotted: ${fmt(sg.missing_capacity_47_or_5)} missing a capacity rating and ${fmt(sg.capacity_maintenance_above_1_30_excluded)} with capacity maintenance above 1.30 (screened as implausible, same rule as the heat pump tool); ${fmt(sg.cop_above_3_0_excluded)} had COP above 3.0.`;
 }
 function typeGroup(t){
   t=(t||'').toLowerCase();
@@ -346,9 +389,11 @@ function renderMatch(){
 }
 function renderAll(){renderKpis();renderHists();renderTypes();renderBrands();renderMatch();}
 
-fetch(DATA_URL).then(r=>{if(!r.ok)throw new Error('fetch '+r.status);return r.json();})
-  .then(j=>{S=j;renderAll();})
-  .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). The charts need newheatpumps_json/summary.json next to this page.';});
+const SCATTER_URL=`${BASE_URL}newheatpumps_json/scatter.json`;
+const getJ=u=>fetch(u).then(r=>{if(!r.ok)throw new Error('fetch '+r.status+': '+u);return r.json();});
+Promise.all([getJ(DATA_URL),getJ(SCATTER_URL)])
+  .then(([j,sc])=>{S=j;SC=sc;renderAll();})
+  .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). The charts need newheatpumps_json/summary.json and scatter.json next to this page.';});
 </script>
 </body>
 </html>

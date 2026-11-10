@@ -39,6 +39,14 @@ Raw files and both outputs are gitignored (`/HeatPump/data/**`, `/newheatpumps_j
   (18.2%); all 104,914 of 163,692 (64.1%). GSHP out of scope (air-source dataset).
 - Active matched medians: 32,400 BTU/h at 47 °F, COP 1.96 at 5 °F, HSPF2 9.0.
 
+## Charts (revised 2026-11-10)
+
+Histogram buckets: capacity 3,000 BTU/h, COP 0.1, HSPF2 0.5, open-ended at both ends. Scatter:
+COP at 5 °F vs capacity maintenance (`Heating Capacity at 5°F` ÷ `at 47°F`), one dot per
+distinct (capacity at 47 °F, maintenance, COP, compressor type), sized by AHRI-number count;
+screened like `HeatPump/METHODOLOGY.md` (maintenance > 1.30 or COP > 3.0 excluded and
+counted). Data: `newheatpumps_json/summary.json` + `scatter.json`.
+
 ## Honesty rails
 
 - **Lab-rated, not measured:** values are AHRI-certified ratings republished by ENERGY
