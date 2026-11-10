@@ -7,7 +7,7 @@ HEADERS = {
     "Origin": "https://gis.planview.ca",
     "User-Agent": "Mozilla/5.0",
 }
-WHERE = "ldc_name LIKE '%Ottawa%'"   # tighten after you see the distinct names below
+WHERE = "ldc_name = 'Hydro Ottawa Limited'"   # was LIKE '%Ottawa%', which also matched Ottawa River Power Corp (Deep River)
 
 def get(params):
     r = requests.get(QUERY, params=params, headers=HEADERS, timeout=60)
