@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- 2026-11-09: Energy Quiz landing tile + art published; Cold Call line 6 cost list two columns from the start. -->
+<!-- 2026-11-09: Cold Call calculator brackets + Line 5 drag-to-move parts. Published. -->
+<!-- 2026-11-09: Cold Call line 3 handwritten note: Peak heat loss = UA x Delta T. Published. -->
 <!-- 2026-11-06: Published-site size step 1: fsa_json dictionary-encoded (1,112 -> 811 MB), retrofit costs in whole dollars (379 -> 240 MB). Site 1,354 MB (saved 441 MB), still over the 1 GB Pages limit. Decision 2026-11-06: stay as-is, step 3 (separate data host) not pursued. See ROADMAP.md. -->
 <!-- 2026-11-06: Cold Call emergency dispatch briefing for fresh service calls. Published. -->
 <!-- 2026-11-05: Cold Call listed on the landing page (tile + art), still a playtest. See docs/COLDCALL.md. -->
@@ -205,6 +208,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <a href="#newhomes">🏡 New Homes</a>
       <a href="#ceud">📊 CEUD</a>
       <a href="#construction">🏗️ Construction</a>
+      <a href="#quiz">🎯 Quiz</a>
       <a href="#permits">🧱 Permits</a>
       <a href="#geothermal">🌍 Geothermal</a>
       <a href="#heatpump">🔥 Heat Pump</a>
@@ -495,7 +499,8 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <ul>
       <li><b>2026-07-19/20:</b> reworked the census card around a coverage gauge, added a Sources section, added a light/dark/colour-blind theme system, reworded the hero and trimmed the heat-pump aside.</li>
       <li><b>2026-07-21:</b> fixed the pre/post combo-chart's bar/area draw order and switched pre/post colours to red/green for clarity.</li>
-      <li><b>2026-07-22:</b> the AHRI heat-pump badge lookup (<code>lookup/ahri_numbers.json</code>) is now refreshed automatically every Monday via <code>ahri-refresh.yml</code>, re-checking existing certificates on a rolling basis (catches AHRI amending a certificate after the fact) instead of needing a manual rerun.</li>
+      <li><b>2026-07-22:</b> the AHRI heat-pump badge lookup (<code>lookup/ahri_numbers.json</code>) was refreshed automatically every Monday via <code>ahri-refresh.yml</code>, re-checking existing certificates on a rolling basis (catches AHRI amending a certificate after the fact) instead of needing a manual rerun.</li>
+      <li><b>2026-11-10:</b> <code>ahri-refresh.yml</code> retired. AHRI now blocks automated access (Cloudflare bot check, old API host gone), and the weekly run had been failing silently since 2026-08-17. <code>lookup/ahri_numbers.json</code> is a frozen snapshot of the last good run.</li>
       <li><b>2026-07-31:</b> the <b>Retrofit Costs</b> proof of concept went live inside the page — an estimated retrofit cost and payback per home, priced from outside the ERS data. See its own section below.</li>
       <li><b>2026-08-02:</b> emissions rebuilt on <b>4 selectable bases</b> instead of the audit's own half-populated figure (assumption card above), and a survivorship-bias bug in the factor derivation fixed — it had been overstating the national total by 12.8%.</li>
       <li><b>2026-08-03:</b> a hoverable <b>pipeline-overview diagram</b> added at the top of the advanced methodology, so the CSV → parquet → JSON → page path (and its emission-factor and cost branches) can be read at a glance rather than reconstructed from prose.</li>
@@ -972,6 +977,39 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <h4>A city is not its metro area</h4>
     <p>The City of Toronto excludes Peel, York, Durham and Halton. These series cannot be reconciled
     with the CMA figures on the Construction Tracker, and every card says so.</p>
+  </div></details>
+</section>
+
+<!-- ══════════════════ ENERGY QUIZ ══════════════════ -->
+<section id="quiz" class="card">
+  <div class="proj-head">
+    <h2>🎯 Energy Quiz</h2>
+    <span class="chip build">🔨 Built locally · not yet published (2026-11-07)</span>
+  </div>
+  <p><b>In one sentence:</b> a ten-question quiz built from the site's own CEUD and housing-starts
+  data: compare, rank, guess a share, or go back in time, then see the real number and its source.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="srcs">
+    <div class="src">NRCan CEUD<small>2023 release, modelled estimates, via ceud_json/</small></div>
+    <div class="src">CMHC housing starts<small>StatCan 34-10-0151, calendar 2025 vs 2000, via construction_json/</small></div>
+  </div>
+
+  <h3>How it was built</h3>
+  <div class="pipe">
+    <div class="step"><b>1 · Question bank</b><span>Python/build_quiz.py generates seeded questions from the data (no hand-typed numbers)</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>2 · Guards</b><span>Same year, no filled gaps, ties and gaps under 3% removed and counted</span></div>
+    <div class="arr">→</div>
+    <div class="step"><b>3 · One web page</b><span>quiz.html plays rounds of 10; design adapted from the SimpleViz Atlas Play quiz</span></div>
+  </div>
+
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <p>Six question styles (head to head, put in order, find its place, guess the gap, guess a
+    share, then vs now). Easy, medium and hard come from how close the two numbers are, a rule
+    of thumb that has not been tested with players. Each question carries a modelled or measured
+    badge. Vanilla JavaScript with no build step, per the repo rules (Atlas Play itself uses
+    React). Decisions and limits: <code>docs/QUIZ.md</code>.</p>
   </div></details>
 </section>
 
