@@ -110,9 +110,11 @@ files and Jekyll drops underscore-prefixed paths.
 | Workflow | Cadence | Data |
 |---|---|---|
 | `grid-refresh.yml` | weekly (Mon 13:00 UTC) | `grid_json/` |
-| `ahri-refresh.yml` | weekly (Mon 15:00 UTC) | `lookup/ahri_numbers.json` |
 | `construction-refresh.yml` | monthly (20th 14:00 UTC) | `construction_json/` |
 | `rates-refresh.yml` | monthly (3rd) | `prices_json/` |
+
+`ahri-refresh.yml` was retired 2026-11-10 (AHRI blocked automated access; see
+[ROADMAP.md](ROADMAP.md)). `lookup/ahri_numbers.json` is now a frozen snapshot.
 
 Everything else (ERS retrofit/new-homes data, CEUD, census, geothermal) refreshes
 manually — run orders are documented in each project's doc above.

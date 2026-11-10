@@ -1,3 +1,12 @@
+# RETIRED 2026-11-10 -- moved out of .github/workflows/ so it no longer runs.
+# Why: (1) AHRI retired the beta-ahrisearch.ahridirectory.org API host and now
+# serves /api/SearchConfiguration/* behind a Cloudflare bot check (403), so
+# refresh_ahri_lookup.py cannot fetch anything; (2) every scheduled run since
+# 2026-08-17 crashed with ValueError (empty AHRI_REFRESH_MAX_REQUESTS on
+# schedule events) but showed green, because `| tee` hid the exit code.
+# To revive: restore to .github/workflows/, default the env var with
+# `or "3000"`, add `set -o pipefail`, and confirm a licensed AHRI data route.
+
 name: Refresh AHRI heat-pump certificate lookup
 
 # Weekly refresh of lookup/ahri_numbers.json. Runs without the raw ERS CSVs
