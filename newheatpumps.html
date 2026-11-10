@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Heat Pumps — what's on Canada's rebate-eligible list?</title>
+<meta name="description" content="The federal National Heat Pump Rebate pays by product. See what is on the eligible list: sizes, cold-weather efficiency (COP at 5 °F), HSPF2, brands and system types, from NRCan's list joined to ENERGY STAR ratings.">
+<meta property="og:title" content="New Heat Pumps — what's on Canada's rebate-eligible list?">
+<meta property="og:description" content="Capacity, cold-weather efficiency, brands and system types of the heat pumps eligible for the National Heat Pump Rebate.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/newheatpumps">
+<meta property="og:site_name" content="Ottawa Visuals">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicons/heatpump.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/heatpump.png">
+<style>
+/* Reset, theme variables, header and hero live in assets/site-theme.css.
+   Every colour drawn into a canvas comes from PAL (readPalette), never a hex literal. */
+main{max-width:1280px;margin:0 auto;padding:1rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.85rem}
+.card-title-row .card-title{margin-bottom:0}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.section-head{margin:1.6rem 0 .8rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:24px;color:var(--ink);margin:0 0 .25rem}
+.sec-sub{font-size:14px;color:var(--muted);max-width:80ch;margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:1rem}
+.chart-box{position:relative;height:280px}
+.chart-box.tall{height:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-val{font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:300;color:var(--ink);line-height:1.1}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-sub{font-size:11px;color:var(--light);margin-top:2px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--muted);background:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;padding:5px 12px;border:0;background:var(--card);color:var(--text);cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.program{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.program div{font-size:13px;line-height:1.5;color:var(--text)}
+.program b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.warn{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px;margin:.8rem 0 0}
+table.simple{border-collapse:collapse;font-size:13px;width:100%}
+table.simple th,table.simple td{border-bottom:1px solid var(--border);padding:7px 8px;text-align:right}
+table.simple th:first-child,table.simple td:first-child{text-align:left}
+table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+#err{display:none;margin:1rem 0;padding:.8rem 1rem;border:1px solid var(--neg,#B33A2E);border-radius:var(--r-md);color:var(--text)}
+.sibling-link{font-size:13px}
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber)}
+.methodology details[open] summary::after{content:'–'}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
+.methodology .method-body p{margin:0 0 .6rem}
+.methodology .method-body code{background:var(--surface);color:var(--text);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+</style>
+<link rel="stylesheet" href="assets/visual-polish.css">
+<script defer src="assets/visual-polish.js"></script>
+</head>
+<body data-energy-tool="newheatpumps">
+<script>
+// Resolve the theme before any markup paints (no flash of the wrong theme).
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">newHeatPumps<span>Canada</span></div>
+    <div class="header-title">The rebate-eligible list</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="heatpump.html">↳ Heat pump tool</a>
+    <div class="header-badge">NRCan list · ENERGY STAR ratings</div>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="tool-heading"><h1>What's on the <em>rebate-eligible</em> heat pump list?</h1></div>
+  <p class="hero-sub">The federal National Heat Pump Rebate pays by product: a heat pump qualifies if it is on the government's eligible list. This page looks at that list — how big the units are, how well they hold up in the cold, who makes them, and what kinds of systems are on it.</p>
+</div>
+
+<main>
+  <div id="err" role="alert"></div>
+
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">The program, in brief</div><span class="badge">Federal program page dated 2026-11-05</span></div>
+    <div class="program">
+      <div><b>Payment</b>$2,000 per household; up to $10,000 if the household is below the median income for its province or territory and size.</div>
+      <div><b>What qualifies</b>A heat pump on the eligible list, bought from and installed by an HVAC contractor, at a home you own in Canada. One rebate per household. No energy audit required.</div>
+      <div><b>Dates</b>Installations count from 2026-11-01. Applications expected to open in early 2027. Program expected to close in March 2034.</div>
+      <div><b>Size</b>$2 billion, aimed at up to 820,000 households.</div>
+    </div>
+    <p class="warn">The program says its parameters are still being finalized and no payments are made until it launches. Nothing on this page is advice about which product to buy, and appearing on the list is not a performance endorsement.</p>
+  </div>
+
+  <div class="stats-grid" id="kpis"></div>
+
+  <div class="section-head">
+    <h2>How big, and how cold-capable?</h2>
+    <p class="sec-sub">Each bar is a share of the units in that group, so the shapes can be compared. The line compares against every ENERGY STAR heat pump sold in Canada (not only rebate-eligible ones, and not only cold-climate ones).</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row">
+      <div class="card-title">Rebate-eligible units with ENERGY STAR ratings</div>
+      <div class="seg" role="group" aria-label="Which list entries to include">
+        <button type="button" id="seg-active" aria-pressed="true" onclick="setScope('active')">Currently listed (Active)</button>
+        <button type="button" id="seg-all" aria-pressed="false" onclick="setScope('all')">Include archived</button>
+      </div>
+    </div>
+    <div id="scope-note" class="note" style="margin:-.4rem 0 .8rem"></div>
+    <div class="grid2">
+      <div><div class="card-title">Heating capacity at 47 °F (BTU/h)</div><div class="chart-box"><canvas id="c-cap"></canvas></div></div>
+      <div><div class="card-title">Efficiency at 5 °F (COP)</div><div class="chart-box"><canvas id="c-cop"></canvas></div></div>
+      <div><div class="card-title">Seasonal heating efficiency (HSPF2)</div><div class="chart-box"><canvas id="c-hspf"></canvas></div></div>
+      <div><div class="card-title">Compressor type</div><div class="chart-box"><canvas id="c-stage"></canvas></div></div>
+    </div>
+    <p class="note"><b>Lab-rated, not measured in homes.</b> These are the certified ratings published through AHRI and republished by ENERGY STAR. COP is the heat delivered per unit of electricity; a higher number is better. Real performance depends on the house, the installation and the weather. Medians for the group shown: <span id="medians"></span>.</p>
+  </div>
+
+  <div class="section-head">
+    <h2>What kinds of systems, from whom?</h2>
+    <p class="sec-sub">These two charts use the whole eligible list (Active entries), including units without ENERGY STAR ratings.</p>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">System types on the list (all entries)</div>
+      <div class="chart-box"><canvas id="c-type"></canvas></div>
+      <p class="note">Counted by AHRI number, which identifies one certified outdoor-plus-indoor combination, so ducted systems that pair one outdoor unit with many coils or furnaces are over-represented compared with ductless units.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Brands by number of distinct outdoor models (Active, air-source)</div>
+      <div class="chart-box tall"><canvas id="c-brand"></canvas></div>
+      <p class="note">Counts outdoor models, not sales and not market share. The same outdoor model is often sold under several names, so related brands (for example Carrier, Heil, Day &amp; Night, Comfortmaker, Arcoaire, Airquest) show similar numbers. <span id="brand-n"></span></p>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>How complete is this?</h2>
+    <p class="sec-sub">ENERGY STAR only certifies some products. Where a listed product is not in ENERGY STAR's data, we show no rating for it rather than guess.</p>
+  </div>
+  <div class="card">
+    <table class="simple" id="match"><thead><tr><th>Group</th><th>Products on list</th><th>With ENERGY STAR ratings</th><th>Share</th></tr></thead><tbody></tbody></table>
+    <p class="note">Ground-source (geothermal) heat pumps are on the list too but are not in the air-source ENERGY STAR data, so they are counted separately and not charted. Active/Archived is the status NRCan shows on its list; whether archived products remain eligible is not stated on the program page.</p>
+  </div>
+</main>
+
+<section class="methodology" aria-label="Simple methodology">
+  <details open>
+    <summary>How this works, in plain language</summary>
+    <div class="method-body">
+      <p>To get the federal heat pump rebate, the unit you install has to be on an official list kept by Natural Resources Canada. Each product on the list is identified by an <strong>AHRI number</strong>, a reference number the industry uses for a certified combination of outdoor and indoor equipment.</p>
+      <p>The list says what a product is, but not how well it performs. For that we look the same AHRI number up in <strong>ENERGY STAR's</strong> public product data, which republishes the certified size and efficiency figures. Where the number is found, the product is counted in the charts. Where it is not, it stays in the counts of what is on the list but has no rating.</p>
+      <p>The figures are <strong>laboratory ratings</strong> from the certification program, not measurements in real homes. This page describes the list; it does not tell you which heat pump to buy or what a rebate will pay for you.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Advanced methodology">
+  <details>
+    <summary>Advanced methodology — sources, join &amp; caveats</summary>
+    <div class="method-body">
+      <h4>Sources and vintage</h4>
+      <p><strong>Eligible list:</strong> NRCan Searchable Product List, product filter <code>HP_NHPR</code>, "Download all (CSV)", saved 2026-11-10. Fields: outside model, brand, inside model, furnace model, AHRI reference number, product group (<code>ccASHP</code> or <code>GSHP</code>), system type, status (<code>Active</code>/<code>Archived</code>). One row per model combination: 179,620 rows for 178,954 distinct AHRI numbers. No brand, group or status conflicts were found across rows sharing an AHRI number. <strong>Ratings:</strong> ENERGY STAR Certified Air-Source Heat Pumps (Socrata dataset <code>w7cv-9xjt</code>), CSV export saved 2026-11-10, 284,449 rows.</p>
+      <h4>Join</h4>
+      <p>Key: AHRI reference number, normalised to a string with any trailing <code>.0</code> removed. List rows are collapsed to one per AHRI number; ENERGY STAR rows likewise (preferring continuously variable over two-stage over single-stage when several exist; no AHRI number had disagreeing 5 °F capacity or COP across rows). 12 ENERGY STAR rows had a blank AHRI number and were excluded and counted. List entries with no ENERGY STAR match stay in the counts with no rating.</p>
+      <h4>Fields used</h4>
+      <p>Heating capacity at 47 °F (<code>Heating Capacity at 47°F (Btu/h)</code>), COP at 5 °F (<code>COP at 5°F</code>), <code>HSPF2 (Btu/Wh)</code>, <code>Compressor Staging</code>, <code>Cold Climate</code>, <code>Markets</code>. Ratings that are blank are counted as missing per field and left out of that chart (see the footnote counts in the JSON: <code>dist_*.missing</code>). Bins are fixed and open-ended at both ends.</p>
+      <h4>Brand measure</h4>
+      <p>Distinct outdoor-model strings per brand among Active air-source entries, brand names upper-cased and trimmed. Related brands that sell the same outdoor model are not merged. It is a count of product lines on the list, not of units sold.</p>
+      <h4>Measured vs modelled vs assumed</h4>
+      <p>Measured: none of this is field measurement. Rated: capacity, COP, HSPF2 (certification-test values). Reported: ENERGY STAR's copy of those values. Our earlier check against the AHRI directory found 5 °F capacities agree to within 2% on 3,447 models present in both. Assumed: nothing is modelled on this page.</p>
+      <h4>Limits</h4>
+      <p class="caveats"><b>What the data can't tell us:</b> how many units are installed or sold, which products homeowners choose, or real-world efficiency. <b>What we assumed:</b> that ENERGY STAR's republished figures match the AHRI certificate (verified on a sample, not all rows). <b>What would change the answer:</b> an updated NRCan list (it changes as products are added or archived), or a rebate rule that excludes archived products, which would make the "Active" view the right one.</p>
+      <p class="caveats">The ENERGY STAR-matched units are the ENERGY STAR-certified subset of the list: 95.5% of Active air-source entries but only 18.2% of Archived ones, so the "Include archived" view is weighted toward what ENERGY STAR still certifies. The comparison line (all ENERGY STAR units sold in Canada) includes non-cold-climate models, which is part of why rebate-eligible units show higher HSPF2.</p>
+      <p>Not used: the AHRI Directory itself. Its terms bar reuse of public-site data and it now blocks automated access, so no AHRI data is scraped. Pipeline: <code>HeatPump/pipeline/build_nhpr_eligible.py</code>. Full notes: <a href="https://github.com/OttawaVisuals/Energy/blob/main/docs/NEWHEATPUMPS.md" target="_blank" rel="noopener">NEWHEATPUMPS.md ↗</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Sources">
+  <details>
+    <summary>Sources</summary>
+    <div class="method-body">
+      <ul>
+        <li><a href="https://www.canada.ca/en/environment-climate-change/campaigns/one-million-home-energy-retrofits.html" target="_blank" rel="noopener">Environment and Climate Change Canada — National Heat Pump Rebate ↗</a> — program rules, amounts and dates.</li>
+        <li><a href="https://spl-lpi.nrcan-rncan.gc.ca/en-US/product/?product=HP_NHPR&amp;page=1" target="_blank" rel="noopener">NRCan Searchable Product List — NHPR eligible models ↗</a> — the eligible list (identified by AHRI number).</li>
+        <li><a href="https://data.energystar.gov/Active-Specifications/ENERGY-STAR-Certified-Air-Source-Heat-Pumps/w7cv-9xjt/data_preview" target="_blank" rel="noopener">ENERGY STAR Certified Air-Source Heat Pumps ↗</a> — certified ratings, matched by AHRI number.</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<footer>
+  Data: NRCan National Heat Pump Rebate eligible product list (2026-11-10) · ratings from ENERGY STAR (2026-11-10) · program details from Environment and Climate Change Canada (page dated 2026-11-05).
+</footer>
+<script defer src="assets/author-footer.js"></script>
+
+<!-- Chart.js v4.4.1 vendored same-origin (assets/) — no CDN/external runtime dependency. -->
+<script src="assets/chart.umd.js"></script>
+<script>
+const BASE_URL='./';   // data ships on gh-pages next to this page (same origin)
+const DATA_URL=`${BASE_URL}newheatpumps_json/summary.json`;
+const PAL={};
+const charts={};
+let S=null,SCOPE='active';
+
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  Object.assign(PAL,{primary:g('--d-primary'),secondary:g('--d-secondary'),pos:g('--d-pos'),
+    blue:g('--d-blue'),purple:g('--d-purple'),axis:g('--d-axis'),grid:g('--d-grid'),
+    text:g('--text'),muted:g('--muted'),card:g('--card'),border:g('--border')});
+  Chart.defaults.color=PAL.axis;
+}
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!['light','dark','cb'].includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  readPalette();syncThemeButtons(t);
+  if(S)renderAll();
+}
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.animation=false;   // preview renderers have no rAF — paint synchronously
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.maintainAspectRatio=false;
+readPalette();
+syncThemeButtons(document.documentElement.dataset.theme||'light');
+
+const $=id=>document.getElementById(id);
+const fmt=(v,d=0)=>v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:d});
+const pct=(n,t)=>t?(100*n/t):0;
+function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+function mk(k,cfg){dc(k);charts[k]=new Chart($(k),cfg);}
+
+function setScope(s){
+  SCOPE=s;
+  $('seg-active').setAttribute('aria-pressed',s==='active');
+  $('seg-all').setAttribute('aria-pressed',s==='all');
+  renderHists();
+}
+function group(d){return SCOPE==='active'?S.dist_matched_active:S.dist_matched_air_source;}
+
+function renderKpis(){
+  const m=S.match.air_source_active, g=S.by_status;
+  const d=S.dist_matched_active;
+  const items=[
+    [fmt(S.eligible_distinct_ahri),'products on the list','distinct AHRI numbers, air-source and ground-source'],
+    [fmt(g.Active),'currently listed (Active)',`${fmt(g.Archived)} archived`],
+    [fmt(S.by_product_group.ccASHP),'cold-climate air-source',`${fmt(S.by_product_group.GSHP)} ground-source`],
+    [pct(m.in_es,m.n).toFixed(1)+'%','of Active air-source have ENERGY STAR ratings',`${fmt(m.in_es)} of ${fmt(m.n)}`],
+    [fmt(d.median.cap47),'median heating capacity, BTU/h','at 47 °F, Active with ratings'],
+    [d.median.cop5.toFixed(2),'median COP at 5 °F','Active with ratings']
+  ];
+  $('kpis').innerHTML=items.map(([v,l,s])=>`<div class="stat-card"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div><div class="stat-sub">${s}</div></div>`).join('');
+}
+
+function histChart(id,key){
+  const a=group()[key], b=S.dist_all_es_canada_market[key];
+  const sa=a.counts.map(c=>pct(c,a.n)), sb=b.counts.map(c=>pct(c,b.n));
+  mk(id,{data:{labels:a.labels,datasets:[
+    {type:'bar',label:'Rebate-eligible (with ratings)',data:sa,backgroundColor:PAL.primary,order:2},
+    {type:'line',label:'All ENERGY STAR sold in Canada',data:sb,borderColor:PAL.secondary,backgroundColor:PAL.secondary,pointRadius:3,borderWidth:2,order:1}
+  ]},options:{scales:{y:{title:{display:true,text:'% of units',color:PAL.axis},grid:{color:PAL.grid},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12,color:PAL.axis}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
+}
+function renderHists(){
+  const d=group();
+  const total=d.n_units;
+  $('scope-note').textContent=SCOPE==='active'
+    ?`${fmt(total)} Active air-source products that have ENERGY STAR ratings.`
+    :`${fmt(total)} air-source products (Active and Archived) that have ENERGY STAR ratings.`;
+  histChart('c-cap','cap47');histChart('c-cop','cop5');histChart('c-hspf','hspf2');
+  const st=d.compressor_staging, labs=Object.keys(st);
+  const order=['Continuously variable','Two-stage','Single stage'].filter(k=>k in st).concat(labs.filter(k=>!['Continuously variable','Two-stage','Single stage'].includes(k)));
+  mk('c-stage',{type:'bar',data:{labels:order,datasets:[{data:order.map(k=>pct(st[k],total)),backgroundColor:PAL.primary}]},
+    options:{scales:{y:{title:{display:true,text:'% of units',color:PAL.axis},grid:{color:PAL.grid},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.parsed.y.toFixed(1)}% (${fmt(st[order[c.dataIndex]])} units)`}}}}});
+  const e=S.dist_all_es_canada_market.median;
+  $('medians').textContent=`capacity ${fmt(d.median.cap47)} BTU/h, COP at 5 °F ${d.median.cop5.toFixed(2)}, HSPF2 ${d.median.hspf2.toFixed(1)}`
+    +` (all ENERGY STAR sold in Canada: ${fmt(e.cap47)}, ${e.cop5.toFixed(2)}, ${e.hspf2.toFixed(1)})`;
+}
+function typeGroup(t){
+  t=(t||'').toLowerCase();
+  if(t.startsWith('water-to')||t.startsWith('brine'))return 'Ground-source (water / brine)';
+  if(t.startsWith('centrally ducted'))return 'Central ducted (furnace or coil)';
+  if(t.startsWith('mini-split, non')||t.startsWith('multi-split, non')||t.startsWith('multi-split heat recovery, non'))return 'Ductless mini / multi-split';
+  if(t.includes('ducted'))return 'Ducted mini / multi-split';
+  return 'Other';
+}
+function renderTypes(){
+  const g={};
+  Object.entries(S.by_system_type).forEach(([k,v])=>{const n=typeGroup(k);g[n]=(g[n]||0)+v;});
+  const keys=Object.keys(g).sort((a,b)=>g[b]-g[a]), tot=keys.reduce((s,k)=>s+g[k],0);
+  mk('c-type',{type:'bar',data:{labels:keys,datasets:[{data:keys.map(k=>pct(g[k],tot)),backgroundColor:PAL.primary}]},
+    options:{indexAxis:'y',scales:{x:{title:{display:true,text:'% of AHRI numbers on the list',color:PAL.axis},grid:{color:PAL.grid},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.parsed.x.toFixed(1)}% (${fmt(g[keys[c.dataIndex]])})`}}}}});
+}
+function titleCase(s){return s.length<=4?s:s.toLowerCase().replace(/(^|[\s&-])([a-z])/g,(m,a,b)=>a+b.toUpperCase());}
+function renderBrands(){
+  const b=S.brands_active_air_source, ks=Object.keys(b.top_by_outdoor_models);
+  mk('c-brand',{type:'bar',data:{labels:ks.map(titleCase),datasets:[{data:ks.map(k=>b.top_by_outdoor_models[k]),backgroundColor:PAL.primary}]},
+    options:{indexAxis:'y',scales:{x:{title:{display:true,text:'distinct outdoor models',color:PAL.axis},grid:{color:PAL.grid}},y:{grid:{display:false}}}}});
+  $('brand-n').textContent=`Top 15 of ${fmt(b.distinct_brands)} brands shown.`;
+}
+function renderMatch(){
+  const m=S.match, rows=[['Active air-source',m.air_source_active],['Archived air-source',m.air_source_archived],['All air-source',m.air_source_all]];
+  $('match').querySelector('tbody').innerHTML=rows.map(([l,r])=>`<tr><td>${l}</td><td>${fmt(r.n)}</td><td>${fmt(r.in_es)}</td><td>${r.pct}%</td></tr>`).join('')
+    +`<tr><td>Ground-source (not in this ENERGY STAR data)</td><td>${fmt(S.ground_source_out_of_scope)}</td><td>—</td><td>—</td></tr>`;
+}
+function renderAll(){renderKpis();renderHists();renderTypes();renderBrands();renderMatch();}
+
+fetch(DATA_URL).then(r=>{if(!r.ok)throw new Error('fetch '+r.status);return r.json();})
+  .then(j=>{S=j;renderAll();})
+  .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). The charts need newheatpumps_json/summary.json next to this page.';});
+</script>
+</body>
+</html>
