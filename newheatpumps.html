@@ -178,6 +178,18 @@ table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing
   </div>
 
   <div class="section-head">
+    <h2>Who could qualify, by postal area</h2>
+    <p class="sec-sub">Households that own their home. Everyone who owns can get the $2,000 rebate; the higher rebate (up to $10,000) also needs household after-tax income at or below a provincial threshold that depends on household size.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Look up a postal area (first three characters, e.g. K1A)</div>
+    <input id="fsa-in" type="text" maxlength="3" placeholder="K1A" aria-label="Forward sortation area" style="font-size:16px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);width:6em;text-transform:uppercase">
+    <div id="fsa-out" class="note" style="margin-top:.7rem"></div>
+    <table class="simple" id="pool" style="margin-top:1rem"><thead><tr><th>Province</th><th>Owner households</th><th>Share of all households</th><th>Higher tier, upper bound</th><th>Share of owners (upper bound)</th></tr></thead><tbody></tbody></table>
+    <p class="note"><b>Households, not people, and not applicants.</b> Census 2021 counts (2020 incomes). The higher-tier column is an <b>upper bound</b>: the census has no owner/renter income split, and owners earn more than renters, so fewer owners than shown are actually under the thresholds. It uses each postal area's own household incomes, so richer areas score lower. <span id="pool-gap"></span></p>
+  </div>
+
+  <div class="section-head">
     <h2>How complete is this?</h2>
     <p class="sec-sub">ENERGY STAR only certifies some products. Where a listed product is not in ENERGY STAR's data, we show no rating for it rather than guess.</p>
   </div>
@@ -193,6 +205,7 @@ table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing
     <div class="method-body">
       <p>To get the federal heat pump rebate, the unit you install has to be on an official list kept by Natural Resources Canada. Each product on the list is identified by an <strong>AHRI number</strong>, a reference number the industry uses for a certified combination of outdoor and indoor equipment.</p>
       <p>The list says what a product is, but not how well it performs. For that we look the same AHRI number up in <strong>ENERGY STAR's</strong> public product data, which republishes the certified size and efficiency figures. Where the number is found, the product is counted in the charts. Where it is not, it stays in the counts of what is on the list but has no rating.</p>
+      <p><strong>Who could qualify.</strong> Every household that owns its home can get the base $2,000 rebate, so we count owner households in each postal area from the 2021 Census. The higher rebate depends on household income compared with a limit for your province and household size, which the program derived from Census medians, so roughly half of all households sit below it. We estimate the higher-rebate group by counting how many households in each postal area fall below that limit and applying it to the area's owners. Because owners earn more than renters on average, this is a <strong>ceiling</strong>, not a count.</p>
       <p>The figures are <strong>laboratory ratings</strong> from the certification program, not measurements in real homes. This page describes the list; it does not tell you which heat pump to buy or what a rebate will pay for you.</p>
     </div>
   </details>
@@ -208,6 +221,8 @@ table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing
       <p>Key: AHRI reference number, normalised to a string with any trailing <code>.0</code> removed. List rows are collapsed to one per AHRI number; ENERGY STAR rows likewise (preferring continuously variable over two-stage over single-stage when several exist; no AHRI number had disagreeing 5 °F capacity or COP across rows). 12 ENERGY STAR rows had a blank AHRI number and were excluded and counted. List entries with no ENERGY STAR match stay in the counts with no rating.</p>
       <h4>Fields used</h4>
       <p>Heating capacity at 47 °F (<code>Heating Capacity at 47°F (Btu/h)</code>), COP at 5 °F (<code>COP at 5°F</code>), <code>HSPF2 (Btu/Wh)</code>, <code>Compressor Staging</code>, <code>Cold Climate</code>, <code>Markets</code>. Ratings that are blank are counted as missing per field and left out of that chart (see the footnote counts in the JSON: <code>dist_*.missing</code>). Bins are fixed and open-ended at both ends.</p>
+      <h4>Rebate pool (<code>HeatPump/pipeline/build_rebate_pool.py</code>)</h4>
+      <p><strong>Inputs:</strong> ECCC program page (read 2026-11-10: income thresholds by province and household size, 2025 dollars; owner of the home, any fuel, primary residence not required); StatCan table 98-10-0056-01 (household after-tax income group by household size, provinces, 2020 incomes); Census Profile FSA income brackets (characteristic IDs 281-300) and tenure (<code>fsa_census.json</code>). <strong>Steps:</strong> (1) the thresholds equal the census median after-tax household income for the same province and size times 1.1985 in all 65 cells, so they are divided by 1.1985 to compare with 2020 incomes; (2) per province, the share of households at or below each size-specific threshold, interpolated linearly within brackets, weighted by the province's size mix (about 49.7-49.9%); (3) because the FSA table has no household-size split, one income cut per province is found where the all-household distribution reaches that share; (4) FSA higher-tier estimate = <code>owner households</code> x the FSA's own share of households at or below the cut. <strong>Checks:</strong> household-size rows reconcile to province totals within census rounding; household-weighted FSA shares reproduce each province's share to 0.1 point. <strong>Limits:</strong> no owner/renter split in either income table (upper bound); 2020 incomes versus the program's 2025 tax-year test; household count, not people or applicants; rounding of census counts to multiples of 5; program criteria not final. Dropped areas are listed on the page.</p>
       <h4>Buckets</h4>
       <p>Heating capacity at 47 °F: 3,000 BTU/h wide from 9,000 to 63,000, open at both ends. COP at 5 °F: 0.1 wide from 1.7 to 2.5, open at both ends; a bucket labelled "1.8" holds 1.8 up to under 1.9. HSPF2: 0.5 wide from 8 to 12, open at both ends (0.25-wide buckets left alternating empty bars because ratings are reported at whole and half numbers).</p>
       <h4>Cold-weather scatter</h4>
@@ -249,7 +264,7 @@ const BASE_URL='./';   // data ships on gh-pages next to this page (same origin)
 const DATA_URL=`${BASE_URL}newheatpumps_json/summary.json`;
 const PAL={};
 const charts={};
-let S=null,SC=null,SCOPE='active';
+let RP=null,S=null,SC=null,SCOPE='active';
 
 function readPalette(){
   const cs=getComputedStyle(document.documentElement);
@@ -387,13 +402,32 @@ function renderMatch(){
   $('match').querySelector('tbody').innerHTML=rows.map(([l,r])=>`<tr><td>${l}</td><td>${fmt(r.n)}</td><td>${fmt(r.in_es)}</td><td>${r.pct}%</td></tr>`).join('')
     +`<tr><td>Ground-source (not in this ENERGY STAR data)</td><td>${fmt(S.ground_source_out_of_scope)}</td><td>—</td><td>—</td></tr>`;
 }
-function renderAll(){renderKpis();renderHists();renderTypes();renderBrands();renderMatch();}
+function renderPool(){
+  if(!RP)return;
+  const by={};
+  Object.values(RP.fsa).forEach(v=>{const b=by[v[0]]||(by[v[0]]={o:0,h:0,u:0});b.o+=v[1];b.h+=v[2];b.u+=v[4];});
+  const rows=Object.keys(by).sort((a,b)=>by[b].o-by[a].o).map(p=>{const b=by[p];
+    return `<tr><td>${p}</td><td>${fmt(b.o)}</td><td>${fmt(pct(b.o,b.h),1)}%</td><td>${fmt(b.u)}</td><td>${fmt(pct(b.u,b.o),1)}%</td></tr>`;});
+  const T=RP.totals;
+  rows.push(`<tr><td><b>Total</b></td><td><b>${fmt(T.owners)}</b></td><td><b>${fmt(pct(T.owners,T.households),1)}%</b></td><td><b>${fmt(T.higher_tier_upper_bound)}</b></td><td><b>${fmt(pct(T.higher_tier_upper_bound,T.owners),1)}%</b></td></tr>`);
+  document.querySelector('#pool tbody').innerHTML=rows.join('');
+  $('pool-gap').textContent=`${RP.dropped.length} postal areas are left out because the census has no tenure or income figures for them (suppressed): ${RP.dropped.map(d=>d.fsa).join(', ')}.`;
+}
+function lookupFsa(){
+  const k=$('fsa-in').value.trim().toUpperCase(), o=$('fsa-out');
+  if(k.length<3){o.textContent='';return;}
+  const v=RP&&RP.fsa[k];
+  if(v){o.textContent=`${k} (${v[0]}): ${fmt(v[1])} owner households, ${fmt(100*v[3],1)}% of its ${fmt(v[2])} households. Higher-tier upper bound: about ${fmt(v[4])} owner households (${fmt(100*v[5],1)}% of all households there); ${fmt(100*v[6],0)}% of all households in the area are under the provincial cut.`;}
+  else{const d=RP&&RP.dropped.find(x=>x.fsa===k);o.textContent=d?`${k}: no figures (${d.reason}).`:`${k}: not found.`;}
+}
+$('fsa-in').addEventListener('input',lookupFsa);
+function renderAll(){renderKpis();renderHists();renderTypes();renderBrands();renderMatch();renderPool();}
 
 const SCATTER_URL=`${BASE_URL}newheatpumps_json/scatter.json`;
 const getJ=u=>fetch(u).then(r=>{if(!r.ok)throw new Error('fetch '+r.status+': '+u);return r.json();});
-Promise.all([getJ(DATA_URL),getJ(SCATTER_URL)])
-  .then(([j,sc])=>{S=j;SC=sc;renderAll();})
-  .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). The charts need newheatpumps_json/summary.json and scatter.json next to this page.';});
+Promise.all([getJ(DATA_URL),getJ(SCATTER_URL),getJ(`${BASE_URL}newheatpumps_json/rebate_pool.json`)])
+  .then(([j,sc,rp])=>{S=j;SC=sc;RP=rp;renderAll();})
+  .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). The charts need newheatpumps_json/summary.json, scatter.json and rebate_pool.json next to this page.';});
 </script>
 </body>
 </html>

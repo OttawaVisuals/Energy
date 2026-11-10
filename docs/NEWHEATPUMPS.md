@@ -47,6 +47,18 @@ distinct (capacity at 47 °F, maintenance, COP, compressor type), sized by AHRI-
 screened like `HeatPump/METHODOLOGY.md` (maintenance > 1.30 or COP > 3.0 excluded and
 counted). Data: `newheatpumps_json/summary.json` + `scatter.json`.
 
+## Rebate pool by FSA (added 2026-11-10)
+
+`HeatPump/pipeline/build_rebate_pool.py` -> `newheatpumps_json/rebate_pool.json`.
+Base rebate: all owner households (Census tenure). Higher tier: owners x the FSA's
+share of households under a provincial income cut, an **upper bound** (no owner/renter
+income split in any census table). Thresholds (ECCC page, 2025 dollars) = census 2020
+median after-tax household income x 1.1985 in all 65 province x size cells, so they are
+deflated before use. One cut per province is found where the all-household distribution
+equals the size-weighted share (about 49.7-49.9%). 20 FSAs dropped (suppressed). Raw:
+`HeatPump/data/raw/statcan/98100056_en.zip` (5.6 GB uncompressed), program page saved at
+`HeatPump/data/raw/nrcan/program_page_2026-11-10.html`. Not CRA data: CRA has no tenure.
+
 ## Honesty rails
 
 - **Lab-rated, not measured:** values are AHRI-certified ratings republished by ENERGY
