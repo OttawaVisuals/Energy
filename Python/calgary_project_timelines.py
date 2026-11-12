@@ -31,12 +31,15 @@ INPUTS (City of Calgary open data, Socrata, Open Government Licence - Calgary)
 
 OUTPUT
     construction_json/calgary_project_timelines.json   (gitignored on main)
-        meta        sources, parameters, gates and every drop count
-        coverage    per building class x trade: share of buildings with a match
-        summary     per building class, buildings that have ALL FOUR trades:
-                    median days for the build, each trade's span, HVAC share
-                    (cells with fewer than MIN_N buildings are suppressed)
-        buildings   one compact record per building permit (no addresses)
+        meta        sources, parameters, gates and every drop count, period notes
+        coverage_pct  per period x building class x trade: share of buildings with a match
+        summary     per period x class, over buildings that have ALL FOUR trades
+                    matched and closed: median days for the build, each trade's
+                    span, HVAC share (cells under MIN_N buildings are suppressed).
+                    Periods: "2019-2024" (default: trade data complete, most
+                    buildings finished) and each single issue year.
+        buildings   one compact record (no addresses) for every building with all
+                    four trades closed; the rest are counted, not listed.
     Raw API pages are cached in Python/calgary_timeline_cache/ (scratch).
 
 METHOD
@@ -77,7 +80,7 @@ LIMITATIONS (also stated on any page that uses this)
     - No envelope / insulation / air-barrier milestone exists in the data.
 
 RUN
-    python Python/calgary_project_timelines.py [--years 2022] [--no-cache]
+    python Python/calgary_project_timelines.py [--years 2018-2026] [--no-cache]
 """
 import argparse
 import collections
@@ -99,6 +102,8 @@ PAGE = 50000
 WINDOW_DAYS = 450      # trade permit issue within +- this of building issue
 MIN_N = 10             # suppress summary cells below this many buildings
 OUTLIER_DAYS = 1500    # flag (not drop) any milestone this far from day 0
+COMPLETE_YEARS = (2019, 2024)  # default summary period: trade datasets cover all of 2019+, and
+                       # years up to 2024 have mostly finished (2018 trade coverage partial; 2025+ censored)
 EARLY_DAYS = 60        # flag a building if a trade permit predates it by more than this,
                        # or an inspection predates its issue date (re-issued / amended permits)
 
@@ -161,7 +166,7 @@ def med(v):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--years", default="2022", help="issue year(s), e.g. 2022 or 2021-2022")
+    ap.add_argument("--years", default="2018-2026", help="issue year(s), e.g. 2022 or 2021-2022")
     ap.add_argument("--no-cache", action="store_true")
     a = ap.parse_args()
     y0, _, y1 = a.years.partition("-")
@@ -215,7 +220,7 @@ def main():
             ambiguous += len(cands) > 1
             tl[min(cands)[1]][name][x["permitnum"]] = x
         drops[f"G2_{name}_trade_permits_pulled"] = len(t)
-        drops[f"G2_{name}_matched_to_a_2022_building"] = matched
+        drops[f"G2_{name}_matched_to_a_building"] = matched
         drops[f"G2_{name}_matched_ambiguously_nearest_chosen"] = ambiguous
         print(f"{name}: pulled {len(t)}, matched {matched} (ambiguous {ambiguous})", flush=True)
 
@@ -281,17 +286,17 @@ def main():
         out.append(rec)
     drops["flag_trade_milestones_beyond_%d_days_kept" % OUTLIER_DAYS] = outliers
 
-    # coverage + summary -----------------------------------------------------
-    cov, summ = {}, {}
-    for c in CLASSES:
-        rs = [r for r in out if r["class"] == c]
+    # coverage + summary, per period x class ----------------------------------
+    def is_full(r):
+        return bool(r["build_days"]) and len(r["trades"]) == 4 and             all(v["span"] is not None for v in r["trades"].values())
+
+    def summarize(rs):
         n = len(rs)
-        cov[c] = {"buildings": n,
-                  **{t: round(100 * sum(t in r["trades"] for r in rs) / n, 1) if n else None
-                     for t, *_ in TRADES},
-                  "with_inspections": round(100 * sum(bool(r["inspections"]) for r in rs) / n, 1) if n else None}
-        full = [r for r in rs if len(r["trades"]) == 4 and
-                all(v["span"] is not None for v in r["trades"].values()) and r["build_days"]]
+        cov = {"buildings": n,
+               **{t: round(100 * sum(t in r["trades"] for r in rs) / n, 1) if n else None
+                  for t, *_ in TRADES},
+               "with_inspections": round(100 * sum(bool(r["inspections"]) for r in rs) / n, 1) if n else None}
+        full = [r for r in rs if is_full(r)]
         s = {"all_four_trades_closed": len(full), "buildings": n}
         if len(full) >= MIN_N:
             s["build_days_median"] = med([r["build_days"] for r in full])
@@ -313,12 +318,34 @@ def main():
                     s[k.lower() + "_inspection_n"] = len(v)
         else:
             s["suppressed"] = f"fewer than {MIN_N} buildings with all four trades closed"
-        summ[c] = s
+        return cov, s
+
+    cy0, cy1 = COMPLETE_YEARS
+    periods = collections.OrderedDict()
+    periods[f"{cy0}-{cy1}"] = lambda y: cy0 <= y <= cy1
+    for yy in range(y0, y1 + 1):
+        periods[str(yy)] = (lambda v: (lambda y: y == v))(yy)
+    cov, summ = {}, {}
+    for pk, pred in periods.items():
+        cov[pk], summ[pk] = {}, {}
+        for c in CLASSES:
+            rs = [r for r in out if r["class"] == c and pred(int(r["issued"][:4]))]
+            cov[pk][c], summ[pk][c] = summarize(rs)
+
+    # ship only buildings with all four trades closed (what "one building" needs);
+    # the other buildings are counted in coverage / summary but not listed
+    keep = [r for r in out if is_full(r)]
+    drops["buildings_total"] = len(out)
+    drops["buildings_listed_all_four_trades_closed"] = len(keep)
 
     doc = {"meta": {
         "title": "Calgary new-construction project timelines",
         "generated": date.today().isoformat(), "city": "Calgary",
-        "issue_years": [y0, y1], "day_zero": "building permit issued",
+        "issue_years": [y0, y1], "complete_years": [cy0, cy1], "day_zero": "building permit issued",
+        "period_notes": {
+            str(y0): "Calgary's trade-permit datasets start between 2017-10 and 2018-08, so 2018 trade coverage is incomplete.",
+            str(y1): "Only buildings already completed are counted, so this year reads shorter than it will.",
+            str(y1 - 1): "Only buildings already completed are counted; slower builds are still open, so lengths read slightly short."},
         "match": f"address (originaladdress + locationaddresses), issue dates within +-{WINDOW_DAYS} days, nearest wins",
         "min_n_for_summary": MIN_N, "gates_and_drops": drops,
         "sources": {"building_permits": "c2es-76ed", "building_inspections": "8ced-xbvn",
@@ -329,14 +356,15 @@ def main():
             "Single-unit houses rarely have HVAC/plumbing/gas permits in the open data; summary excludes buildings missing any trade.",
             "Buildings with all four trades may differ from those without.",
             "Span = first trade permit issued to last closed across all matched permits.",
+            "Recent issue years only contain buildings already completed (right-censored).",
             "Address join is ours, not a city key; one city only; no envelope milestone exists."]},
-        "coverage_pct": cov, "summary": summ, "buildings": out}
+        "coverage_pct": cov, "summary": summ, "buildings": keep}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(doc, f, separators=(",", ":"))
     print(f"\nwrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB)")
     print(json.dumps(drops, indent=1))
-    print(json.dumps(summ, indent=1))
+    print(json.dumps(summ[f"{cy0}-{cy1}"], indent=1))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 2026-11-12: **Calgary project timelines** and a dedicated **construction length page**
 (`buildtime.html`): building permit, inspections and HVAC / plumbing / electrical / gas permits
-on one clock for 2022 new construction. See
+on one clock for 2018-2026 new construction, with a year selector. See
 [Calgary project timelines](#calgary-project-timelines-building--trade-permits-on-one-clock).
 
 2026-11-06: **CMHC vs city permit records** added under "How long it takes to build":
@@ -268,76 +268,103 @@ Calgary-timeout caveat as above until that fix lands.
 
 2026-11-12. First look at **how long each part of a build runs**, not just the whole thing:
 the building permit, its inspections and the separate HVAC, plumbing, electrical and gas
-permits, all placed on one timeline (day 0 = building permit issued). Calgary only, 2022
-new-construction permits. Shown on `buildtime.html`.
+permits, all placed on one timeline (day 0 = building permit issued). Calgary only, new
+construction permitted **2018 to 2026** (first published for 2022 only; extended to every
+year the data allows the same day). Shown on `buildtime.html`, with a year selector.
 
-**Plain language.** For big residential buildings (3+ homes) the median project took about
-428 days from permit to close. The HVAC permits run about 145 days of that, roughly a third
-(36%), starting around day 240, after the framing inspection (median day 211). Plumbing
-starts first (day 42), then electrical (89), gas (188) and HVAC last. Single houses almost
-never show their trade permits in the open data, so they can't be timed the same way.
+**Plain language.** For large residential buildings (3+ homes) permitted 2019 to 2024, the
+median project took about 372 days from permit to close. The HVAC permits run about 148
+days of that, roughly 45%, starting around day 174, after the framing inspection (median
+day 200). Plumbing starts first (day 29), then electrical (69), gas (147) and HVAC last.
+Single houses almost never show their trade permits in the open data, so they can't be timed
+the same way.
 
-| Building class (2022, new) | Buildings | With all 4 trades closed | Build (days) | HVAC span (days) | HVAC share |
+| Building class (2019-2024, new) | Buildings | With all 4 trades closed | Build (days) | HVAC span (days) | HVAC share |
 |---|---|---|---|---|---|
-| Residential 3+ homes (MURB) | 495 | 401 | 428 | 145 | 36% |
-| Residential 2 homes | 27 | 23 | 409 | 199 | 49% |
-| Residential 1 home or blank | 8,133 | 75 | 303 | 124 | 44% |
-| Non-residential | 129 | 46 | 450 | 205 | 45% |
+| Residential 3+ homes (MURB) | 2,697 | 2,254 | 372 | 148 | 45% |
+| Residential 2 homes | 97 | 70 | 410 | 190 | 52% |
+| Residential 1 home or blank | 47,127 | 336 | 225 | 124 | 65% |
+| Non-residential | 865 | 301 | 417 | 180 | 46% |
 
-Medians are per measure, so they do not add up to one real project's schedule.
+Medians are per measure, so they do not add up to one real project's schedule. The 1-home
+row rests on 336 of 47,127 buildings (0.7%) and should not be read as typical houses.
+
+**By year (MURB).** Build length (days) / HVAC share by year the building permit was issued:
+2018 365 / 43%, 2019 341 / 46%, 2020 320 / 50%, 2021 383 / 41%, 2022 432 / 36%, 2023 363 /
+46%, 2024 373 / 49%, 2025 312 / 54%, 2026 179 / 63%. The HVAC share moves 36% to 54% across
+2019-2025 with no steady trend; 2018, 2025 and 2026 are flagged (below).
+
+**Why the default is 2019-2024.** Calgary's trade-permit datasets start between 2017-10 and
+2018-08 (HVAC 2018-05-31), so 2018 trade coverage is incomplete (MURB HVAC match 46%, against
+80-97% from 2019 on). 2025 and 2026 are **right-censored**: only buildings already completed
+are counted, so slow builds are missing and the lengths read short (2026 median 179 days). A
+single year can still be picked on the page, with those notes shown.
 
 **Why Calgary.** It is the one city found (checked live 2026-11-12) that publishes trade
 permits as separate datasets and building-inspection results keyed to the building permit.
-Toronto's Mechanical(MS) and Plumbing(PS) permits are separate records, but 95% of a
-3,000-row Mechanical sample were "Building Permit Related(MS)", which close with the building
-permit, so they give no independent trade length.
+Winnipeg has a Trade Permits dataset (`urbd-qygv`, 378,656 rows 2010 to 2026, issue and final
+dates, street address; electrical and plumbing for houses and commercial, mechanical only
+for commercial) but it was **not tested** against its building permits. Toronto's
+Mechanical(MS) and Plumbing(PS) permits are separate records, but 95% of a 3,000-row
+Mechanical sample were "Building Permit Related(MS)", which close with the building permit,
+so they give no independent trade length. Edmonton, Vancouver, Ottawa, Halifax and
+Mississauga were not checked for trade permits or inspections.
 
 **Method.** `Python/calgary_project_timelines.py` → `construction_json/calgary_project_timelines.json`.
 - *Buildings:* `c2es-76ed` Building Permits, `workclass='New'`, `statuscurrent='Completed'`,
-  issued in 2022. Class from `housingunits` and `permitclassmapped`.
+  issued 2018 to 2026. Class from `housingunits` and `permitclassmapped`.
 - *Trades:* `cdrc-r4u8` (HVAC; has Rough / Final inspection dates), `5pvv-k7hn` (plumbing),
   `vxgy-id5s` (electrical), `tg24-jt7r` (gas), `workclassgroup='New'`.
 - *Inspections:* `8ced-xbvn`, joined on `externalfilenum` = building `permitnum`
   (foundation, framing, final, occupancy; first and last date per type).
 - *Join of trade to building:* by address. The trade permit's `originaladdress` against the
   building's `originaladdress` and every address in `locationaddresses`, issue dates within
-  ±450 days; nearest wins. `locationaddresses` matters: new-construction HVAC match went from
+  +-450 days; nearest wins. `locationaddresses` matters: new-construction HVAC match went from
   16% to 67% once it was used, because the building permit often carries a lot or parcel
   address in `originaladdress`.
 - *Per building and trade:* permits matched, first issued day, last closed day, span = last
-  closed − first issued across all matched permits (a MURB has a median of 5 HVAC permits).
-- *Summary:* only buildings with all four trades matched and closed. A trade missing from the
-  open data is a gap, not zero days. Cells under 10 buildings are suppressed.
+  closed - first issued across all matched permits (a MURB has a median of about 5 HVAC permits).
+- *Summary:* per period (2019-2024 and each single year) and class, only buildings with all
+  four trades matched and closed. A trade missing from the open data is a gap, not zero days.
+  Cells under 10 buildings are suppressed.
+- *File:* 2.4 MB. Only the 3,936 buildings with all four trades closed are listed (for the
+  page's "one building" view); the other 67,396 are counted in `coverage_pct` and `summary`
+  but not listed.
 
-**Gates and drops (all in the file's `meta`).** 8,784 building permits, 0 dropped for missing
-or inverted dates. Trade permits matched to a 2022 building: HVAC 2,753 of 8,164, plumbing
-6,246 of 20,637, electrical 16,294 of 57,444, gas 7,878 of 26,374 (the rest belong to
-buildings outside the 2022 set). Ambiguous matches (several buildings qualified; nearest
-chosen): 95 / 366 / 2,322 / 606. 8 buildings have a trade milestone over 1,500 days from day 0
-(kept). 147 of 8,784 buildings have no inspection rows.
+**Gates and drops (all in the file's `meta`).** 71,343 building permits, 11 dropped for
+missing or inverted dates. Trade permits matched to a building: HVAC 20,549 of 30,540,
+plumbing 48,804 of 73,194, electrical 127,894 of 207,610, gas 63,095 of 98,608 (the rest
+belong to buildings outside the set, e.g. alterations). Ambiguous matches (several buildings
+qualified; nearest chosen): 1,547 / 4,574 / 20,949 / 7,159. 427 buildings have a trade
+milestone over 1,500 days from day 0 (kept). 6,765 of 71,332 buildings have no inspection
+rows. Match counts from the first 2022-only run differ slightly from the all-years run
+(2022 MURB all-four 401 then, 392 now) because more candidate buildings are in play.
 
 **Early-flagged buildings.** A trade permit issued more than 60 days before the building
 permit, or an inspection dated before its issue date, suggests a re-issued or amended permit
-(e.g. `BP2018-…` issued in 2022). They stay in; 56 of 401 MURBs are flagged. Without them the
-MURB median build is 434 days and the HVAC share 34.6%, so the finding is not sensitive to
-them.
+(e.g. `BP2018-...` issued in 2022). They stay in; 395 of 2,254 MURBs are flagged. Without
+them the MURB build is 381 days and the HVAC share 41.9%, so the finding is not sensitive
+to them.
 
 **Limitations.**
 - *Can't tell us:* when work was physically done. Calgary's inspection dates are when the
   city inspected; closing dates are administrative (an HVAC permit often closes long after
-  the building does). There is no insulation / air-barrier / envelope milestone in the data.
-- *Can't tell us (coverage):* single houses. Only 4% / 4% / 13% / 30% have HVAC / plumbing /
-  gas / electrical permits matched in the open data, so houses are not representable; the
-  reason is unknown (lot-address filing, blanket permits or dataset gaps are possible,
-  untested).
-- *Assumed:* the address join is right (not hand-checked); ±450 days is our choice, not
+  the building does, so an HVAC span can even exceed the build). There is no insulation /
+  air-barrier / envelope milestone in the data.
+- *Can't tell us (coverage):* single houses. Only about 3% / 3% / 26% / 15% have HVAC /
+  plumbing / electrical / gas permits matched in the open data, so houses are not
+  representable; the reason is unknown (lot-address filing, blanket permits or dataset gaps
+  are possible, untested).
+- *Assumed:* the address join is right (not hand-checked); +-450 days is our choice, not
   validated; buildings with all four trades resemble those without (they may not).
-- *Would change the answer:* a city key linking trade permits to building permits, more years
-  (this is 2022 only), or another city publishing the same structure.
+- *Would change the answer:* a city key linking trade permits to building permits, another
+  city publishing the same structure, or the 2025-2026 buildings finishing.
 
-**Refresh.** Manual for now (not in any workflow). A few minutes from a cold cache (not timed); raw
-pages cache in `Python/calgary_timeline_cache/` (gitignored, scratch). Output is 2.7 MB,
-gitignored on `main`, published to `gh-pages` with the other data trees.
+**Refresh.** Manual for now (not in any workflow). A few minutes for 2022 alone from a cold
+cache; the 2018-2026 run (about 71k buildings, 400k trade permits, about 180 inspection
+queries) took several minutes (not timed). Raw pages cache in
+`Python/calgary_timeline_cache/` (gitignored, scratch); a rerun from cache takes under 2
+minutes. Output is gitignored on `main` and published to `gh-pages` with the other data trees.
 
 ## Data pipeline
 
