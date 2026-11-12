@@ -1,5 +1,10 @@
 # Construction Tracker
 
+2026-11-12: **Calgary project timelines** and a dedicated **construction length page**
+(`buildtime.html`): building permit, inspections and HVAC / plumbing / electrical / gas permits
+on one clock for 2022 new construction. See
+[Calgary project timelines](#calgary-project-timelines-building--trade-permits-on-one-clock).
+
 2026-11-06: **CMHC vs city permit records** added under "How long it takes to build":
 new-home build time from six cities' permits (new residential only, by completion year,
 unit-weighted) beside CMHC's, plus a house-size / apartment-building-size chart. See
@@ -258,6 +263,81 @@ Runs monthly in `construction-refresh.yml` as a **non-blocking, 30-minute-capped
 the construction-time step (about 5 minutes; Calgary pages ~157k rows). A city that fails
 keeps its previous block, with its own older `retrieved` date, and the script exits 1. Same
 Calgary-timeout caveat as above until that fix lands.
+
+## Calgary project timelines (building + trade permits on one clock)
+
+2026-11-12. First look at **how long each part of a build runs**, not just the whole thing:
+the building permit, its inspections and the separate HVAC, plumbing, electrical and gas
+permits, all placed on one timeline (day 0 = building permit issued). Calgary only, 2022
+new-construction permits. Shown on `buildtime.html`.
+
+**Plain language.** For big residential buildings (3+ homes) the median project took about
+428 days from permit to close. The HVAC permits run about 145 days of that, roughly a third
+(36%), starting around day 240, after the framing inspection (median day 211). Plumbing
+starts first (day 42), then electrical (89), gas (188) and HVAC last. Single houses almost
+never show their trade permits in the open data, so they can't be timed the same way.
+
+| Building class (2022, new) | Buildings | With all 4 trades closed | Build (days) | HVAC span (days) | HVAC share |
+|---|---|---|---|---|---|
+| Residential 3+ homes (MURB) | 495 | 401 | 428 | 145 | 36% |
+| Residential 2 homes | 27 | 23 | 409 | 199 | 49% |
+| Residential 1 home or blank | 8,133 | 75 | 303 | 124 | 44% |
+| Non-residential | 129 | 46 | 450 | 205 | 45% |
+
+Medians are per measure, so they do not add up to one real project's schedule.
+
+**Why Calgary.** It is the one city found (checked live 2026-11-12) that publishes trade
+permits as separate datasets and building-inspection results keyed to the building permit.
+Toronto's Mechanical(MS) and Plumbing(PS) permits are separate records, but 95% of a
+3,000-row Mechanical sample were "Building Permit Related(MS)", which close with the building
+permit, so they give no independent trade length.
+
+**Method.** `Python/calgary_project_timelines.py` → `construction_json/calgary_project_timelines.json`.
+- *Buildings:* `c2es-76ed` Building Permits, `workclass='New'`, `statuscurrent='Completed'`,
+  issued in 2022. Class from `housingunits` and `permitclassmapped`.
+- *Trades:* `cdrc-r4u8` (HVAC; has Rough / Final inspection dates), `5pvv-k7hn` (plumbing),
+  `vxgy-id5s` (electrical), `tg24-jt7r` (gas), `workclassgroup='New'`.
+- *Inspections:* `8ced-xbvn`, joined on `externalfilenum` = building `permitnum`
+  (foundation, framing, final, occupancy; first and last date per type).
+- *Join of trade to building:* by address. The trade permit's `originaladdress` against the
+  building's `originaladdress` and every address in `locationaddresses`, issue dates within
+  ±450 days; nearest wins. `locationaddresses` matters: new-construction HVAC match went from
+  16% to 67% once it was used, because the building permit often carries a lot or parcel
+  address in `originaladdress`.
+- *Per building and trade:* permits matched, first issued day, last closed day, span = last
+  closed − first issued across all matched permits (a MURB has a median of 5 HVAC permits).
+- *Summary:* only buildings with all four trades matched and closed. A trade missing from the
+  open data is a gap, not zero days. Cells under 10 buildings are suppressed.
+
+**Gates and drops (all in the file's `meta`).** 8,784 building permits, 0 dropped for missing
+or inverted dates. Trade permits matched to a 2022 building: HVAC 2,753 of 8,164, plumbing
+6,246 of 20,637, electrical 16,294 of 57,444, gas 7,878 of 26,374 (the rest belong to
+buildings outside the 2022 set). Ambiguous matches (several buildings qualified; nearest
+chosen): 95 / 366 / 2,322 / 606. 8 buildings have a trade milestone over 1,500 days from day 0
+(kept). 147 of 8,784 buildings have no inspection rows.
+
+**Early-flagged buildings.** A trade permit issued more than 60 days before the building
+permit, or an inspection dated before its issue date, suggests a re-issued or amended permit
+(e.g. `BP2018-…` issued in 2022). They stay in; 56 of 401 MURBs are flagged. Without them the
+MURB median build is 434 days and the HVAC share 34.6%, so the finding is not sensitive to
+them.
+
+**Limitations.**
+- *Can't tell us:* when work was physically done. Calgary's inspection dates are when the
+  city inspected; closing dates are administrative (an HVAC permit often closes long after
+  the building does). There is no insulation / air-barrier / envelope milestone in the data.
+- *Can't tell us (coverage):* single houses. Only 4% / 4% / 13% / 30% have HVAC / plumbing /
+  gas / electrical permits matched in the open data, so houses are not representable; the
+  reason is unknown (lot-address filing, blanket permits or dataset gaps are possible,
+  untested).
+- *Assumed:* the address join is right (not hand-checked); ±450 days is our choice, not
+  validated; buildings with all four trades resemble those without (they may not).
+- *Would change the answer:* a city key linking trade permits to building permits, more years
+  (this is 2022 only), or another city publishing the same structure.
+
+**Refresh.** Manual for now (not in any workflow). A few minutes from a cold cache (not timed); raw
+pages cache in `Python/calgary_timeline_cache/` (gitignored, scratch). Output is 2.7 MB,
+gitignored on `main`, published to `gh-pages` with the other data trees.
 
 ## Data pipeline
 
