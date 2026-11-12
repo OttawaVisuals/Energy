@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How Long Construction Takes — Canadian Build Times</title>
-<meta name="description" content="How long new homes take to build in Canada: CMHC's monthly series since 1990, six cities' own permit records, and a Calgary project timeline showing when each trade starts and finishes.">
+<meta name="description" content="How long new homes take to build in Canada: CMHC's monthly series since 1990, six cities' own permit records, and project timelines for Calgary and Winnipeg showing when each trade starts and finishes.">
 <meta property="og:title" content="How long construction takes — Canadian build times">
 <meta property="og:description" content="CMHC build times since 1990, city permit clocks, and a Calgary timeline of when HVAC, plumbing, electrical and gas work happens.">
 <meta property="og:type" content="website">
@@ -277,19 +277,23 @@ footer a:hover{color:var(--amber2)}
       </div>
     </div>
 
-  <!-- 2 ▸ Calgary project timeline -->
+  <!-- 2 ▸ Project timelines (Calgary, Winnipeg) -->
   <div class="section-head">
     <h2>Inside one project: when each part happens</h2>
-    <p class="sec-sub">Calgary, new construction permitted 2018 to 2026. The building permit, its inspections and the separate HVAC, plumbing, electrical and gas permits, all on one clock starting the day the building permit was issued.</p>
+    <p class="sec-sub" id="bt-sub">Calgary, new construction permitted 2018 to 2026. The building permit, its inspections and the separate HVAC, plumbing, electrical and gas permits, all on one clock starting the day the building permit was issued.</p>
   </div>
 
   <div class="card" id="bt-card">
-    <div id="bt-loading" class="section-loading">Loading Calgary project timelines…</div>
+    <div id="bt-loading" class="section-loading">Loading project timelines…</div>
     <div id="bt-body" style="display:none">
       <div class="card-title-row">
         <div class="card-title" id="bt-title">Typical project timeline</div>
         <div class="card-controls">
-          <select id="bt-cls" class="card-select" style="max-width:240px" aria-label="Building class"></select>
+          <select id="bt-city" class="card-select" aria-label="City">
+            <option value="calgary">Calgary</option>
+            <option value="winnipeg">Winnipeg</option>
+          </select>
+          <select id="bt-cls" class="card-select" style="max-width:260px" aria-label="Building type"></select>
           <select id="bt-year" class="card-select" style="max-width:220px" aria-label="Year the building permit was issued"></select>
           <div class="seg-toggle" id="bt-view">
             <button type="button" class="seg-btn active" data-view="median">Typical (medians)</button>
@@ -302,19 +306,22 @@ footer a:hover{color:var(--amber2)}
       <div class="stats-grid" id="bt-stats"></div>
       <p class="note" id="bt-which" style="margin:0 0 .5rem"></p>
       <div class="gantt-wrap"><div id="bt-chart"></div></div>
-      <p class="note" id="bt-axis">Days since the building permit was issued (day 0). Bars run from the first permit of that trade being issued to the last one closing. Dots mark inspections. On a phone, scroll the chart sideways.</p>
+      <p class="note" id="bt-axis"></p>
       <p class="note" id="bt-note"></p>
 
       <div class="card-title" style="margin-top:1.6rem">How many buildings have each trade in the open data</div>
       <div class="cma-tbl-wrap"><table class="cma-tbl" id="bt-cov"></table></div>
-      <p class="note">Share of Calgary's 2022 new buildings that have at least one permit of that trade matched to them. Single houses almost never do, so they cannot be timed this way. Large residential buildings mostly can. This gap is a finding about the data, not a zero.</p>
+      <p class="note">Share of the buildings in the selected period that have at least one new-build permit of that trade matched to them. A trade at 0% (for example mechanical for Winnipeg houses) means the city publishes no permits of that kind for that building type. These gaps are findings about the data, not zeros.</p>
 
       <div class="card-title" style="margin-top:1.6rem" id="bt-years-title">By year the permit was issued</div>
       <div class="cma-tbl-wrap"><table class="cma-tbl" id="bt-years"></table></div>
       <p class="note" id="bt-years-note"></p>
 
-      <p class="note">In plain terms: a building permit is only the start. Plumbers, electricians, gas fitters and HVAC contractors each pull their own permits, and the city inspects the building at several points. This page lines all of that up for the same building. In "Typical", each bar uses that part's own median, so the bars show typical timing across many buildings rather than one real schedule; "One building" shows a single real project. Dates are the city's records. A permit's closing date is when the city closed the file, which can be well after the work was done, so a long bar can mean waiting for paperwork as much as working. We found no insulation, air-sealing or other envelope milestone in any of these records.</p>
-      <p class="note" data-mode="advanced"><strong>Method.</strong> <code>Python/calgary_project_timelines.py</code> → <code>construction_json/calgary_project_timelines.json</code>. Buildings: City of Calgary Building Permits (<code>c2es-76ed</code>), <code>workclass='New'</code>, <code>statuscurrent='Completed'</code>, issued 2018–2026; class from <code>housingunits</code> and <code>permitclassmapped</code>. Trades: Mechanical (HVAC) <code>cdrc-r4u8</code>, Plumbing <code>5pvv-k7hn</code>, Electrical <code>vxgy-id5s</code>, Gas <code>tg24-jt7r</code> (all <code>workclassgroup='New'</code>). Inspections: Building Inspections Results <code>8ced-xbvn</code> joined on <code>externalfilenum</code> = <code>permitnum</code> (first date per type). <strong>Join:</strong> by address, the trade permit's <code>originaladdress</code> against the building's <code>originaladdress</code> and every address in <code>locationaddresses</code> (many new projects carry a lot address in the first, which is why this matters: new-construction HVAC matches went from 16% to 67%), issue dates within ±450 days, nearest building wins when several qualify. The address join is ours, not a city key, and has not been checked by hand. <strong>Per building and trade:</strong> permits matched, first issued day, last closed day, span = last closed − first issued across all matched permits (a 3+ unit building has a median of 5 HVAC permits). <strong>Summary:</strong> medians over buildings that have all four trades matched and closed, per year the building permit was issued; the default period is 2019–2024 because Calgary's trade datasets start between 2017-10 and 2018-08 (2018 trade coverage is incomplete) and 2025–2026 only contain buildings already finished, so they read short; a trade missing from the open data is treated as a gap, never as zero days; cells under 10 buildings are suppressed. <strong>HVAC share</strong> = HVAC span ÷ building permit length, median of the per-building ratios. <strong>Early-flagged:</strong> a trade permit issued more than 60 days before the building permit, or an inspection dated before its issue, suggests a re-issued or amended permit (e.g. a <code>BP2018-…</code> number issued in 2022). They stay in; the figure without them is shown beside the share. <strong>Gates and drops</strong> are all in the file's <code>meta</code>: <span id="bt-gates"></span> Licence: City of Calgary Open Data, Open Government Licence – Calgary. Write-up: <code>docs/CONSTRUCTION.md</code>.</p>
+      <p class="note" data-city="calgary">In plain terms: a building permit is only the start. Plumbers, electricians, gas fitters and HVAC contractors each pull their own permits, and the city inspects the building at several points. This page lines all of that up for the same building. In "Typical", each bar uses that part's own median, so the bars show typical timing across many buildings rather than one real schedule; "One building" shows a single real project. Dates are the city's records. A permit's closing date is when the city closed the file, which can be well after the work was done, so a long bar can mean waiting for paperwork as much as working. We found no insulation, air-sealing or other envelope milestone in any of these records.</p>
+      <p class="note" data-city="winnipeg" style="display:none">In plain terms: in Winnipeg the electrician and the plumber each pull their own permit for a new building, separate from the building permit, so they can be lined up with it. In "Typical", each bar uses that part's own median, so the bars show typical timing across many buildings rather than one real schedule; "One building" shows a single real project. Winnipeg's open data has no inspection dates, no gas permits and no heating-and-cooling permits for houses: its mechanical permits cover commercial and multi-residential buildings only. A permit is closed when the city closes the file, often long after people move in, so the bars partly show paperwork time. For permits issued from about 2020 the open data has almost no closing dates for trade permits, so only buildings permitted through 2018 can be timed. Row housing is not summarised because several building permits share one address. We found no insulation or other envelope milestone.</p>
+
+      <p class="note" data-mode="advanced" data-city="calgary"><strong>Method.</strong> <code>Python/calgary_project_timelines.py</code> → <code>construction_json/calgary_project_timelines.json</code>. Buildings: City of Calgary Building Permits (<code>c2es-76ed</code>), <code>workclass='New'</code>, <code>statuscurrent='Completed'</code>, issued 2018–2026; class from <code>housingunits</code> and <code>permitclassmapped</code>. Trades: Mechanical (HVAC) <code>cdrc-r4u8</code>, Plumbing <code>5pvv-k7hn</code>, Electrical <code>vxgy-id5s</code>, Gas <code>tg24-jt7r</code> (all <code>workclassgroup='New'</code>). Inspections: Building Inspections Results <code>8ced-xbvn</code> joined on <code>externalfilenum</code> = <code>permitnum</code> (first date per type). <strong>Join:</strong> by address, the trade permit's <code>originaladdress</code> against the building's <code>originaladdress</code> and every address in <code>locationaddresses</code> (many new projects carry a lot address in the first, which is why this matters: new-construction HVAC matches went from 16% to 67%), issue dates within ±450 days, nearest building wins when several qualify. The address join is ours, not a city key, and has not been checked by hand. <strong>Per building and trade:</strong> permits matched, first issued day, last closed day, span = last closed − first issued across all matched permits (a 3+ unit building has a median of 5 HVAC permits). <strong>Summary:</strong> medians over buildings that have all four trades matched and closed, per year the building permit was issued; the default period is 2019–2024 because Calgary's trade datasets start between 2017-10 and 2018-08 (2018 trade coverage is incomplete) and 2025–2026 only contain buildings already finished, so they read short; a trade missing from the open data is treated as a gap, never as zero days; cells under 10 buildings are suppressed. <strong>HVAC share</strong> = HVAC span ÷ building permit length, median of the per-building ratios. <strong>Early-flagged:</strong> a trade permit issued more than 60 days before the building permit, or an inspection dated before its issue, suggests a re-issued or amended permit (e.g. a <code>BP2018-…</code> number issued in 2022). They stay in; the figure without them is shown beside the share. <strong>Gates and drops</strong> are all in the file's <code>meta</code>: <span class="bt-gates"></span> Licence: City of Calgary Open Data, Open Government Licence – Calgary. Write-up: <code>docs/CONSTRUCTION.md</code>.</p>
+      <p class="note" data-mode="advanced" data-city="winnipeg" style="display:none"><strong>Method.</strong> <code>Python/winnipeg_project_timelines.py</code> → <code>construction_json/winnipeg_project_timelines.json</code>. Buildings: City of Winnipeg Detailed Building Permit Data (<code>it4w-cpf4</code>), <code>work_type='Construct New'</code>, <code>status='Closed'</code> with a final date on or after the issue date, issued 2010–2026. Types: Housing by <code>sub_type</code> (single-detached with attached garage, single-detached, duplex / side by side, row housing), Multi-Residential, and all non-residential. Accessory structures (garages, sheds) and other residential types are excluded and counted. Trades: Trade Permits (<code>urbd-qygv</code>): electrical and plumbing (residential and commercial) and mechanical (commercial, work type <code>M1 - HVAC</code>), <strong>new-build work types only</strong> (e.g. <code>SFD New</code>, <code>Plumb New SFD</code>, <code>Wire New Bldg</code>, <code>New Multi-family Dwelling</code>). Later work at the same address (<code>Additional Wiring</code>, <code>Air Conditioner</code>, <code>Rewire</code>, <code>Lower Level</code>…), annual and sign-only electrical permits, and fire-sprinkler or high-hazard mechanical permits are excluded and counted; a first run without this filter gave electrical spans of about 300 days on a 520-day build, which was later work being matched. <strong>Join:</strong> by street address (number + name + type), issue dates within ±450 days, nearest building wins when several qualify (counted). The address join is ours, not a city key, and has not been checked by hand. <strong>Per building and trade:</strong> permits matched, first issued day, last closed day, span = last closed − first issued. <strong>Summary:</strong> medians over buildings with every trade their type needs matched and closed (electrical and plumbing for housing; plus mechanical for multi-residential and non-residential), per year issued. <strong>Default period 2011–2018:</strong> the open data has a final date for 91–97% of electrical and plumbing permits issued 2010–2018, 82% for 2019, 40% for 2020 and about 1% from 2021 (<code>meta.trade_closure_pct_by_year</code>), so later buildings cannot be timed and the few that can are not typical. <strong>Row housing is not summarised:</strong> several building permits share one street address (a permit per unit, probably), a trade permit attaches to only one of them, and only 21% show any trade (98.9% of row-housing addresses do have trade permits at some date). <strong>Share of the build:</strong> mechanical span ÷ permit length where mechanical is required, electrical span ÷ permit length for housing (no HVAC permit exists for houses). Cells under 10 buildings are suppressed. <strong>Early-flagged:</strong> a trade permit issued more than 60 days before the building permit. <strong>Gates and drops</strong> are all in the file's <code>meta</code>: <span class="bt-gates"></span> Licence: building permits Open Government Licence – Winnipeg (as used in the existing permits pipeline); trade permits Canada Open Government Licence (dataset metadata). Write-up: <code>docs/CONSTRUCTION.md</code>.</p>
     </div>
   </div>
 
@@ -324,9 +331,11 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="card">
     <ul class="limits-list">
-      <li><strong>What the data can't tell us.</strong> When work was physically finished: closing dates are administrative, and inspection dates are when the city inspected, not when the work was done. Why single houses lack trade permits in the open data (lot-address filing, blanket permits or dataset gaps are all possible; we did not test them). Anything about insulation or the building envelope.</li>
-      <li><strong>What we assumed.</strong> That the address join links the right permits, that a ±450-day window around the building permit is wide enough, and that buildings with all four trades are like those without. Only the last is likely to be false.</li>
-      <li><strong>What would change the answer.</strong> A city key linking trade permits to building permits, or another city publishing the same structure. Recent years only hold buildings that have already finished, so 2025 and 2026 read shorter than they will once the slower builds close. Toronto's mechanical and plumbing permits are separate records, but mostly close with the building permit, so they cannot give an independent trade length.</li>
+      <li><strong>What the data can't tell us.</strong> When work was physically finished: closing dates are administrative, so a long bar can be paperwork. Anything about insulation, air-sealing or the building envelope.</li>
+      <li data-city="calgary"><strong>Calgary.</strong> Inspection dates are when the city inspected, not when the work was done. Why single houses lack trade permits in the open data (lot-address filing, blanket permits or dataset gaps are all possible; we did not test them).</li>
+      <li data-city="winnipeg" style="display:none"><strong>Winnipeg.</strong> No inspection dates, no gas permits, and no HVAC permits for houses (mechanical is commercial and multi-residential only). The open data has a closing date for almost no trade permit issued from about 2020, so only buildings permitted through 2018 can be timed. Row housing cannot be summarised because several building permits share one address.</li>
+      <li><strong>What we assumed.</strong> That the address join links the right permits, that a ±450-day window around the building permit is wide enough, and that buildings with all their trades are like those without. Only the last is likely to be false.</li>
+      <li><strong>What would change the answer.</strong> A city key linking trade permits to building permits, another city publishing the same structure, or the recent years finishing. Toronto's mechanical and plumbing permits are separate records but mostly close with the building permit, so they cannot give an independent trade length. Edmonton, Vancouver, Ottawa, Halifax and Mississauga were not checked.</li>
       <li><strong>Measured, modelled, assumed.</strong> Everything on this page is measured from city and CMHC records. The only modelling is the medians and the 12-month averages. CMHC's start and completion definitions are our reading of an unpublished definition.</li>
     </ul>
   </div>
@@ -336,7 +345,7 @@ footer a:hover{color:var(--amber2)}
 <div class="chart-tip" id="chart-tip"></div>
 
 <footer>
-  <div>Sources: <a href="https://www03.cmhc-schl.gc.ca/hmip-pimh/">CMHC Housing Market Information Portal</a> (Starts and Completions Survey) · City open-data portals for Calgary, Edmonton, Winnipeg, Halifax, Toronto and Mississauga · <a href="https://data.calgary.ca/">City of Calgary Open Data</a> (Open Government Licence – Calgary)</div>
+  <div>Sources: <a href="https://www03.cmhc-schl.gc.ca/hmip-pimh/">CMHC Housing Market Information Portal</a> (Starts and Completions Survey) · City open-data portals for Calgary, Edmonton, Winnipeg, Halifax, Toronto and Mississauga · <a href="https://data.calgary.ca/">City of Calgary Open Data</a> (Open Government Licence – Calgary) · <a href="https://data.winnipeg.ca/">City of Winnipeg Open Data</a></div>
   <div id="footer-updated"></div>
   <div>Built as part of <a href="ceud.html">Ottawa Visuals</a> · not affiliated with CMHC or any city</div>
 </footer>
@@ -779,20 +788,45 @@ function renderCtimeCity(code,d){
 }
 
 
-/* ── Calgary project timelines ──────────────────────────────────────── */
-var bt=null, btFailed=false;
-var btState={cls:'Residential 3+ units (MURB)', year:null, view:'median', bld:null};
-var BT_LABEL={'Residential 3+ units (MURB)':'Residential, 3+ homes (MURB)',
+/* ── Project timelines (Calgary, Winnipeg) ──────────────────────────────
+   One file per city, same shape. The file's meta carries the page contract
+   (trades, classes, class_labels, class_trades = trades REQUIRED per type,
+   share_trade, has_inspections); the Calgary file predates it, so the
+   defaults below are Calgary's. */
+var BT_CITIES={
+  calgary:{name:'Calgary',file:'calgary_project_timelines.json',defaultCls:'Residential 3+ units (MURB)',
+    sub:'Calgary, new construction permitted 2018 to 2026. The building permit, its inspections and the separate HVAC, plumbing, electrical and gas permits, all on one clock starting the day the building permit was issued.',
+    periodWhy:'2018 is left out because Calgary’s trade-permit data starts mid-2018, and 2025–2026 because they only hold buildings that have already finished.',
+    noteSuffix:' (unfinished builds missing)'},
+  winnipeg:{name:'Winnipeg',file:'winnipeg_project_timelines.json',defaultCls:'Multi-residential',
+    sub:'Winnipeg, new construction permitted 2010 to 2026. The building permit and the separate electrical, plumbing and (commercial) mechanical permits, on one clock starting the day the building permit was issued. Winnipeg publishes no inspection dates, gas permits or residential HVAC permits.',
+    periodWhy:'2010 is left out because Winnipeg’s trade permits start in 2010, and 2019 onward because the open data has a final date for few trade permits issued from about 2020 (82% for 2019, 40% for 2020, about 1% after), so most buildings cannot be timed.',
+    noteSuffix:' (few trade permits closed)'}
+};
+var btData={}, btFailed={};
+var btState={city:'calgary', cls:null, year:null, view:'median', bld:null};
+var CAL_LABEL={'Residential 3+ units (MURB)':'Residential, 3+ homes (MURB)',
   'Residential 2 units':'Residential, 2 homes','Residential 1 unit/none':'Residential, 1 home or blank',
   'Non-residential':'Non-residential'};
-var BT_TRADES=['Plumbing','Electrical','Gas','HVAC'];
-var BT_COL={Plumbing:PAL.blue,Electrical:PAL.green,Gas:PAL.gray,HVAC:PAL.amber};
+var BT_COL={Plumbing:PAL.blue,Electrical:PAL.green,Gas:PAL.gray,HVAC:PAL.amber,Mechanical:PAL.amber};
 var BT_INSP=[['Foundation','Foundation inspection'],['Framing','Framing inspection'],['Final','Final inspection']];
 
+function B(){ return btData[btState.city]; }
+function btM(){
+  var m=B().meta, trades=m.trades||['Plumbing','Electrical','Gas','HVAC'];
+  var firstPeriod=Object.keys(B().summary)[0];
+  return {trades:trades,
+    classes:m.classes||Object.keys(B().summary[firstPeriod]),
+    label:function(c){ return (m.class_labels||CAL_LABEL)[c]||c; },
+    tlabel:function(t){ return (m.trade_labels||{})[t]||t; },
+    need:function(c){ return (m.class_trades||{})[c]||trades; },
+    share:function(c){ return (m.share_trade||{})[c]||'HVAC'; },
+    insp:m.has_inspections!==false};
+}
 function btPeriodLabel(k){ return k.indexOf('-')>0?k.replace('-','–')+' (complete years)':k; }
 function btPeriodNote(k){
-  if(k.indexOf('-')>0) return '2018 is left out because Calgary’s trade-permit data starts mid-2018, and 2025–2026 because they only hold buildings that have already finished. Pick a single year to see them.';
-  return bt.meta.period_notes[k]||'';
+  if(k.indexOf('-')>0) return BT_CITIES[btState.city].periodWhy+' Pick a single year to see them.';
+  return B().meta.period_notes[k]||'';
 }
 function btInPeriod(k,issued){
   var y=+issued.slice(0,4), p=k.split('-');
@@ -800,7 +834,8 @@ function btInPeriod(k,issued){
 }
 function btYearOptionLabel(k){
   if(k.indexOf('-')>0) return btPeriodLabel(k);
-  return k+(bt.meta.period_notes[k]?(+k===bt.meta.issue_years[0]?' (partial trade data)':' (unfinished builds missing)'):'');
+  var m=B().meta;
+  return k+(m.period_notes[k]?(+k===m.issue_years[0]?' (partial trade data)':BT_CITIES[btState.city].noteSuffix):'');
 }
 function dayTxt(v){ return v==null?'—':(v<0?'−'+Math.abs(Math.round(v)):''+Math.round(v)); }
 
@@ -848,11 +883,11 @@ function ganttChart(mountId,rows,opts){
 }
 
 function btFull(b){
-  return b.build_days!=null&&Object.keys(b.trades).length===4&&
-    BT_TRADES.every(function(t){return b.trades[t].span!=null});
+  var need=btM().need(b['class']);
+  return b.build_days!=null&&need.every(function(t){return b.trades[t]&&b.trades[t].span!=null});
 }
 function btBuildings(){
-  return bt.buildings.filter(function(b){return b['class']===btState.cls&&btInPeriod(btState.year,b.issued)&&btFull(b)})
+  return B().buildings.filter(function(b){return b['class']===btState.cls&&btInPeriod(btState.year,b.issued)&&btFull(b)})
     .sort(function(a,b){return (a.community||'').localeCompare(b.community||'')||a.permit.localeCompare(b.permit)});
 }
 function btStat(label,value,sub){
@@ -860,126 +895,162 @@ function btStat(label,value,sub){
     '</div><div class="stat-sub"><span>'+(sub||'')+'</span></div></div>';
 }
 function btCoverage(){
-  var head='<tr><th>Building class</th><th>Buildings</th><th>HVAC</th><th>Plumbing</th><th>Electrical</th><th>Gas</th><th>Inspections</th></tr>';
-  var rows=Object.keys(bt.coverage_pct[btState.year]).map(function(k){
-    var c=bt.coverage_pct[btState.year][k], sel=k===btState.cls?' class="is-selected"':'';
-    var p=function(v){return v==null?'—':v.toFixed(0)+'%'};
-    return '<tr'+sel+'><td>'+BT_LABEL[k]+'</td><td>'+fmtInt(c.buildings)+'</td><td>'+p(c.HVAC)+'</td><td>'+p(c.Plumbing)+
-      '</td><td>'+p(c.Electrical)+'</td><td>'+p(c.Gas)+'</td><td>'+p(c.with_inspections)+'</td></tr>';
+  var M=btM(), b=B(), P=btState.year;
+  var head='<tr><th>Building type</th><th>Buildings</th>'+M.trades.map(function(t){return '<th>'+M.tlabel(t)+'</th>'}).join('')+
+    (M.insp?'<th>Inspections</th>':'')+'</tr>';
+  var p=function(v){return v==null?'—':v.toFixed(0)+'%'};
+  var rows=M.classes.map(function(k){
+    var c=b.coverage_pct[P][k];
+    return '<tr'+(k===btState.cls?' class="is-selected"':'')+'><td>'+M.label(k)+'</td><td>'+fmtInt(c.buildings)+'</td>'+
+      M.trades.map(function(t){return '<td>'+p(c[t])+'</td>'}).join('')+(M.insp?'<td>'+p(c.with_inspections)+'</td>':'')+'</tr>';
   }).join('');
   document.getElementById('bt-cov').innerHTML=head+rows;
-  /* by-year table for the picked class */
-  var ys=Object.keys(bt.summary).filter(function(k){return k.indexOf('-')<0});
-  var yh='<tr><th>Year issued</th><th>Buildings</th><th>With all 4 trades</th><th>Build (days)</th><th>HVAC span (days)</th><th>HVAC share</th></tr>';
+  /* by-year table for the picked type */
+  var st=M.share(btState.cls), stl=M.tlabel(st);
+  var ys=Object.keys(b.summary).filter(function(k){return k.indexOf('-')<0});
+  var yh='<tr><th>Year issued</th><th>Buildings</th><th>With every trade needed</th><th>Build (days)</th><th>'+stl+' span (days)</th><th>'+stl+' share</th></tr>';
   var yr=ys.map(function(k){
-    var q=bt.summary[k][btState.cls], cov=bt.coverage_pct[k][btState.cls], sup=q.build_days_median==null;
-    var note=bt.meta.period_notes[k]?' *':'';
-    return '<tr'+(k===btState.year?' class="is-selected"':'')+'><td>'+k+note+'</td><td>'+fmtInt(cov.buildings)+'</td><td>'+fmtInt(q.all_four_trades_closed)+
-      '</td><td>'+(sup?'—':fmtInt(q.build_days_median))+'</td><td>'+(sup?'—':fmtInt(q.HVAC_span_median))+'</td><td>'+
-      (sup?'—':q.HVAC_span_share_of_build_pct_median.toFixed(0)+'%')+'</td></tr>';
+    var q=b.summary[k][btState.cls], cov=b.coverage_pct[k][btState.cls], sup=q.build_days_median==null;
+    return '<tr'+(k===P?' class="is-selected"':'')+'><td>'+k+(b.meta.period_notes[k]?' *':'')+'</td><td>'+fmtInt(cov.buildings)+'</td><td>'+fmtInt(q.all_four_trades_closed)+
+      '</td><td>'+(sup?'—':fmtInt(q.build_days_median))+'</td><td>'+(sup?'—':fmtInt(q[st+'_span_median']))+'</td><td>'+
+      (sup?'—':q[st+'_span_share_of_build_pct_median'].toFixed(0)+'%')+'</td></tr>';
   }).join('');
   document.getElementById('bt-years').innerHTML=yh+yr;
-  document.getElementById('bt-years-title').textContent='By year the permit was issued — '+BT_LABEL[btState.cls];
-  document.getElementById('bt-years-note').textContent='* '+bt.meta.period_notes[bt.meta.issue_years[0]]+' '+
-    bt.meta.period_notes[bt.meta.issue_years[1]]+' Years with fewer than '+bt.meta.min_n_for_summary+' buildings that have all four trades show a dash.';
+  document.getElementById('bt-years-title').textContent='By year the permit was issued — '+M.label(btState.cls);
+  var notes=Object.keys(b.meta.period_notes).sort().map(function(k){return k+': '+b.meta.period_notes[k]}).join(' ');
+  document.getElementById('bt-years-note').textContent='* '+notes+' Years with fewer than '+b.meta.min_n_for_summary+' buildings that have every trade needed show a dash.';
+}
+function btGatesText(g){
+  var T=btM().trades;
+  if(btState.city==='winnipeg'){
+    return fmtInt(g.G0_new_construction_building_permits)+' new-construction building permits pulled; not used: '+
+      fmtInt(g.G1_not_closed_still_open)+' still open, '+fmtInt(g.G1_not_closed_incomplete_inspection)+' closed with an incomplete inspection process, '+
+      fmtInt(g.G1_excluded_accessory_or_other_residential)+' accessory structures or other residential types, '+
+      fmtInt((g.G1_missing_or_inverted_dates||0)+(g.G1_no_address||0))+' with missing or inverted dates or no address. '+
+      fmtInt(g.G2_trade_permits_pulled)+' trade permits pulled; excluded as not new-build work: electrical '+fmtInt(g.G2_excluded_not_new_build_work_Electrical)+
+      ', plumbing '+fmtInt(g.G2_excluded_not_new_build_work_Plumbing)+', mechanical '+fmtInt(g.G2_excluded_not_new_build_work_Mechanical)+
+      '; excluded by type: '+fmtInt((g.G2_excluded_permit_type_Electrical_Signs_Only||0)+(g.G2_excluded_permit_type_Electrical_Annual||0))+' sign-only or annual electrical. '+
+      'Matched to a building: '+T.map(function(t){return t+' '+fmtInt(g['G3_'+t+'_matched_to_a_building'])+' of '+fmtInt(g['G3_'+t+'_trade_permits_in_scope'])}).join(', ')+
+      '; ambiguous matches, nearest chosen: '+T.map(function(t){return fmtInt(g['G3_'+t+'_matched_ambiguously_nearest_chosen'])}).join(' / ')+'; '+
+      fmtInt(g.flag_trade_milestones_beyond_1500_days_kept)+' trade milestones over 1,500 days from day 0 (kept); '+
+      fmtInt(g.buildings_listed_all_required_trades_closed)+' of '+fmtInt(g.buildings_total)+' buildings have every trade they need closed and are listed for the one-building view.';
+  }
+  return fmtInt(g.G1_dropped_missing_or_inverted_dates)+' of '+fmtInt(g.G0_new_completed_building_permits)+
+    ' building permits dropped for missing or inverted dates; trade permits matched to a building: '+
+    T.map(function(t){return t+' '+fmtInt(g['G2_'+t+'_matched_to_a_building'])+' of '+fmtInt(g['G2_'+t+'_trade_permits_pulled'])}).join(', ')+
+    ' (the rest belong to buildings outside the set); ambiguous matches, nearest chosen: '+
+    T.map(function(t){return fmtInt(g['G2_'+t+'_matched_ambiguously_nearest_chosen'])}).join(' / ')+'; '+
+    fmtInt(g.flag_trade_milestones_beyond_1500_days_kept)+' buildings have a trade milestone over 1,500 days from day 0 (kept); '+
+    fmtInt(g.buildings_listed_all_four_trades_closed)+' of '+fmtInt(g.buildings_total)+' buildings have all four trades closed and are listed for the one-building view.';
 }
 function renderBT(){
-  if(btFailed){
-    document.getElementById('bt-loading').textContent='Calgary project timelines are unavailable right now.';
+  var cfg=BT_CITIES[btState.city];
+  if(btFailed[btState.city]){
+    document.getElementById('bt-loading').style.display='';
+    document.getElementById('bt-loading').textContent=cfg.name+' project timelines are unavailable right now.';
+    document.getElementById('bt-body').style.display='none';
     return;
   }
-  if(!bt) return;
+  if(!B()) return;
+  var M=btM(), b=B();
   document.getElementById('bt-loading').style.display='none';
   document.getElementById('bt-body').style.display='';
-  var cls=btState.cls, s=bt.summary[btState.year][cls], one=btState.view==='one', yl=btPeriodLabel(btState.year);
-  document.getElementById('bt-year').value=btState.year;
+  var cls=btState.cls, P=btState.year, s=b.summary[P][cls], one=btState.view==='one', yl=btPeriodLabel(P);
+  var st=M.share(cls), stl=M.tlabel(st), need=M.need(cls), trades=M.trades.filter(function(t){return need.indexOf(t)>=0});
+  document.getElementById('bt-city').value=btState.city;
+  document.getElementById('bt-year').value=P;
   document.getElementById('bt-cls').value=cls;
+  document.getElementById('bt-sub').textContent=cfg.sub;
+  document.getElementById('bt-axis').textContent='Days since the building permit was issued (day 0). Bars run from the first permit of that trade being issued to the last one closing.'+
+    (M.insp?' Dots mark inspections.':'')+' On a phone, scroll the chart sideways.';
   document.getElementById('bt-bld').style.display=one?'':'none';
-  document.querySelectorAll('#bt-view .seg-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===btState.view)});
+  document.querySelectorAll('#bt-view .seg-btn').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-view')===btState.view)});
   var rows=[], stats='', note='', which='';
   function tradeTip(t,from,span,n){
-    return '<strong>'+t+'</strong><br>first permit issued: day '+dayTxt(from)+'<br>last permit closed: day '+dayTxt(from+span)+
+    return '<strong>'+M.tlabel(t)+'</strong><br>first permit issued: day '+dayTxt(from)+'<br>last permit closed: day '+dayTxt(from+span)+
       '<br>span: '+dayTxt(span)+' days'+(n!=null?'<br>'+n:'');
   }
   if(!one){
-    document.getElementById('bt-title').textContent='Typical project timeline — '+BT_LABEL[cls]+', '+yl;
+    document.getElementById('bt-title').textContent=cfg.name+' — typical project timeline — '+M.label(cls)+', '+yl;
     if(s.suppressed){
-      document.getElementById('bt-chart').innerHTML='<div class="section-loading">Only '+s.all_four_trades_closed+
-        ' of '+fmtInt(s.buildings)+' buildings in “'+BT_LABEL[cls]+'” have all four trades in the open data, '+
-        'fewer than 10, so no typical timeline is shown. The table below shows what is available.</div>';
+      document.getElementById('bt-chart').innerHTML='<div class="section-loading">Not shown for “'+M.label(cls)+'”, '+yl+': '+s.suppressed+
+        ' ('+fmtInt(s.all_four_trades_closed)+' of '+fmtInt(s.buildings)+' buildings have every trade needed matched and closed.) The tables below show what is available.</div>';
       document.getElementById('bt-stats').innerHTML=btStat('Buildings',fmtInt(s.buildings),'')+
-        btStat('With all four trades',fmtInt(s.all_four_trades_closed),'suppressed under 10');
+        btStat('With every trade needed',fmtInt(s.all_four_trades_closed),'');
       document.getElementById('bt-note').textContent='';
       document.getElementById('bt-which').textContent='';
       btCoverage(); return;
     }
     rows.push({label:'Building permit',color:PAL.navy,from:0,to:s.build_days_median,
       tip:'<strong>Building permit</strong><br>issued → closed, median '+dayTxt(s.build_days_median)+' days'});
-    BT_INSP.forEach(function(k){
+    if(M.insp) BT_INSP.forEach(function(k){
       var key=k[0].toLowerCase()+'_inspection_first_median', n=s[k[0].toLowerCase()+'_inspection_n'];
       if(s[key]==null){ rows.push({label:k[1],sub:1,none:'fewer than 10 buildings with this inspection'}); return; }
       rows.push({label:k[1],sub:1,x:s[key],color:PAL.navy,
         tip:'<strong>'+k[1]+'</strong><br>first one: median day '+dayTxt(s[key])+'<br>'+fmtInt(n)+' buildings'});
     });
-    BT_TRADES.forEach(function(t){
+    trades.forEach(function(t){
       var f=s[t+'_first_issued_median'], sp=s[t+'_span_median'];
-      rows.push({label:t,color:BT_COL[t],from:f,to:f+sp,
+      rows.push({label:M.tlabel(t).replace(' (commercial only)',''),color:BT_COL[t],from:f,to:f+sp,
         tip:tradeTip(t,f,sp,'medians, '+fmtInt(s.all_four_trades_closed)+' buildings')});
     });
-    var share=s.HVAC_span_share_of_build_pct_median;
-    stats=btStat('Buildings in this class',fmtInt(s.buildings),'new, completed, permitted '+yl)+
-      btStat('With all four trades',fmtInt(s.all_four_trades_closed),Math.round(100*s.all_four_trades_closed/s.buildings)+'% of the class')+
+    var share=s[st+'_span_share_of_build_pct_median'], shx=s[st+'_span_share_excl_early_pct_median'];
+    stats=btStat('Buildings of this type',fmtInt(s.buildings),'new, completed, permitted '+yl)+
+      btStat('With every trade needed',fmtInt(s.all_four_trades_closed),Math.round(100*s.all_four_trades_closed/s.buildings)+'% of the type · '+trades.join(', '))+
       btStat('Building permit length',fmtInt(s.build_days_median)+' d','median, issued → closed')+
-      btStat('HVAC share of the build',share.toFixed(0)+'%','HVAC span ÷ permit length'+
-        (s.HVAC_span_share_excl_early_pct_median!=null?' · <strong>'+s.HVAC_span_share_excl_early_pct_median.toFixed(0)+'%</strong> without '+s.early_flagged_n+' early-flagged':''));
-    note='Median over the '+fmtInt(s.all_four_trades_closed)+' buildings in “'+BT_LABEL[cls]+'” that have all four trades matched and closed. '+
-      (s.early_flagged_n?s.early_flagged_n+' of them are early-flagged (a trade permit or inspection predates the building permit, usually a re-issued permit); they are kept, and the share without them is shown. ':'')+
-      'Each bar is that part’s own median, so the bars do not add up to one real project’s schedule. '+btPeriodNote(btState.year)+' Retrieved '+bt.meta.generated+'.';
-    which='Switch to “One building” to see a real project, including its HVAC rough-in and final inspection dates.';
+      btStat(stl.replace(' (commercial only)','')+' share of the build',share.toFixed(0)+'%',st+' span ÷ permit length'+
+        (shx!=null?' · <strong>'+shx.toFixed(0)+'%</strong> without '+s.early_flagged_n+' early-flagged':''));
+    note='Median over the '+fmtInt(s.all_four_trades_closed)+' buildings in “'+M.label(cls)+'” that have every trade needed matched and closed. '+
+      (s.early_flagged_n?s.early_flagged_n+' of them are early-flagged (a trade permit '+(M.insp?'or inspection ':'')+'predates the building permit, usually a re-issued permit); they are kept, and the share without them is shown. ':'')+
+      'Each bar is that part’s own median, so the bars do not add up to one real project’s schedule. '+btPeriodNote(P)+' Retrieved '+b.meta.generated+'.';
+    which='Switch to “One building” to see a real project'+(M.insp?', including its HVAC rough-in and final inspection dates.':'.');
   } else {
     var list=btBuildings();
     var sel=document.getElementById('bt-bld');
-    if(sel.getAttribute('data-cls')!==btState.year+'|'+cls){
-      sel.innerHTML=list.map(function(b){
-        return '<option value="'+b.permit+'">'+(b.community||'—')+' · '+b.units+' homes · '+b.permit+'</option>';
+    var skey=btState.city+'|'+P+'|'+cls;
+    if(sel.getAttribute('data-cls')!==skey){
+      sel.innerHTML=list.map(function(x){
+        return '<option value="'+x.permit+'">'+(x.community||'—')+' · '+(x.units?x.units+' homes · ':'')+x.permit+'</option>';
       }).join('');
-      sel.setAttribute('data-cls',btState.year+'|'+cls);
+      sel.setAttribute('data-cls',skey);
     }
     if(!list.length){
-      document.getElementById('bt-chart').innerHTML='<div class="section-loading">No building in this class and period has all four trades.</div>';
+      document.getElementById('bt-chart').innerHTML='<div class="section-loading">No building of this type and period has every trade needed matched and closed.</div>';
       document.getElementById('bt-stats').innerHTML=''; document.getElementById('bt-note').textContent=''; document.getElementById('bt-which').textContent='';
       btCoverage(); return;
     }
-    var b=list.filter(function(x){return x.permit===btState.bld})[0];
-    if(!b){ b=list[0]; btState.bld=b.permit; }
-    sel.value=b.permit;
-    document.getElementById('bt-title').textContent='One building — '+b.permit;
-    rows.push({label:'Building permit',color:PAL.navy,from:0,to:b.build_days,
-      tip:'<strong>Building permit</strong><br>issued '+b.issued+'<br>closed day '+dayTxt(b.build_days)});
-    BT_INSP.forEach(function(k){
-      var i=b.inspections[k[0]];
+    var x=list.filter(function(y){return y.permit===btState.bld})[0];
+    if(!x){ x=list[0]; btState.bld=x.permit; }
+    sel.value=x.permit;
+    document.getElementById('bt-title').textContent=cfg.name+' — one building — '+x.permit;
+    rows.push({label:'Building permit',color:PAL.navy,from:0,to:x.build_days,
+      tip:'<strong>Building permit</strong><br>issued '+x.issued+'<br>closed day '+dayTxt(x.build_days)});
+    if(M.insp) BT_INSP.forEach(function(k){
+      var i=x.inspections[k[0]];
       if(!i){ rows.push({label:k[1],sub:1,none:'no inspection record'}); return; }
       rows.push({label:k[1],sub:1,x:i.first,color:PAL.navy,
         tip:'<strong>'+k[1]+'</strong><br>first: day '+dayTxt(i.first)+(i.last!==i.first?'<br>last: day '+dayTxt(i.last):'')});
     });
-    BT_TRADES.forEach(function(t){
-      var tr=b.trades[t], marks=[];
+    trades.forEach(function(t){
+      var tr=x.trades[t], marks=[];
       if(t==='HVAC'){
         if(tr.rough_first!=null) marks.push({x:tr.rough_first});
         if(tr.final_last!=null) marks.push({x:tr.final_last});
       }
-      rows.push({label:t,color:BT_COL[t],from:tr.first_issued,to:tr.last_closed,marks:marks,
+      rows.push({label:M.tlabel(t).replace(' (commercial only)',''),color:BT_COL[t],from:tr.first_issued,to:tr.last_closed,marks:marks,
         tip:tradeTip(t,tr.first_issued,tr.span,tr.permits+(tr.permits===1?' permit':' permits')+
           (tr.open_permits?', '+tr.open_permits+' still open':'')+
           (t==='HVAC'&&tr.rough_first!=null?'<br>rough inspection: day '+dayTxt(tr.rough_first):'')+
           (t==='HVAC'&&tr.final_last!=null?'<br>final inspection: day '+dayTxt(tr.final_last):''))});
     });
-    stats=btStat('Homes',fmtInt(b.units),b.community||'')+
-      btStat('Building permit length',fmtInt(b.build_days)+' d','issued '+b.issued)+
-      btStat('HVAC span',fmtInt(b.trades.HVAC.span)+' d',b.trades.HVAC.permits+(b.trades.HVAC.permits===1?' permit':' permits'))+
-      btStat('HVAC share of the build',(100*b.trades.HVAC.span/b.build_days).toFixed(0)+'%','HVAC span ÷ permit length');
-    note=(b.early?'<span class="flag">early-flagged</span> A trade permit or inspection predates this building permit, which usually means the permit was re-issued or amended, so the days before 0 are real records, not errors. ':'')+
-      'Real dates from the city’s records, not medians. The open circles on the HVAC bar are its rough-in and final inspections. An HVAC permit that closes after the building permit is common: the file is closed administratively.';
+    var sh=x.trades[st];
+    stats=btStat('Homes',x.units?fmtInt(x.units):'—',x.community||'')+
+      btStat('Building permit length',fmtInt(x.build_days)+' d','issued '+x.issued)+
+      btStat(stl.replace(' (commercial only)','')+' span',fmtInt(sh.span)+' d',sh.permits+(sh.permits===1?' permit':' permits'))+
+      btStat(stl.replace(' (commercial only)','')+' share of the build',(100*sh.span/x.build_days).toFixed(0)+'%',st+' span ÷ permit length');
+    note=(x.early?'<span class="flag">early-flagged</span> A trade permit '+(M.insp?'or inspection ':'')+'predates this building permit, which usually means the permit was re-issued or amended, so the days before 0 are real records, not errors. ':'')+
+      'Real dates from the city’s records, not medians. '+(M.insp?'The open circles on the HVAC bar are its rough-in and final inspections. ':'')+
+      'A trade permit that closes after the building permit is common: the file is closed administratively.';
     which='';
   }
   document.getElementById('bt-stats').innerHTML=stats;
@@ -987,6 +1058,29 @@ function renderBT(){
   document.getElementById('bt-which').textContent=which;
   ganttChart('bt-chart',rows);
   btCoverage();
+  document.querySelectorAll('[data-city]').forEach(function(el){ el.style.display=el.getAttribute('data-city')===btState.city?'':'none'; });
+  document.querySelectorAll('.bt-gates').forEach(function(el){
+    if(el.parentNode.getAttribute('data-city')===btState.city) el.textContent=btGatesText(b.meta.gates_and_drops);
+  });
+}
+function btLoad(city){
+  if(btData[city]) return Promise.resolve(btData[city]);
+  return loadJSON(BASE_URL+BT_CITIES[city].file).then(function(d){ btData[city]=d; return d; });
+}
+function btSetCity(city){
+  btLoad(city).then(function(d){
+    btFailed[city]=false;
+    btState.city=city;
+    var M=btM(), cfg=BT_CITIES[city];
+    document.getElementById('bt-cls').innerHTML=M.classes.map(function(k){return '<option value="'+k+'">'+M.label(k)+'</option>'}).join('');
+    document.getElementById('bt-year').innerHTML=Object.keys(d.summary).sort(function(a,b){
+      return (a.indexOf('-')>0?0:1)-(b.indexOf('-')>0?0:1)||a.localeCompare(b)}).map(function(k){
+      return '<option value="'+k+'">'+btYearOptionLabel(k)+'</option>'}).join('');
+    btState.cls=M.classes.indexOf(cfg.defaultCls)>=0?cfg.defaultCls:M.classes[0];
+    btState.year=d.meta.complete_years[0]+'-'+d.meta.complete_years[1];
+    btState.bld=null;
+    renderBT();
+  }).catch(function(e){ btFailed[city]=true; btState.city=city; renderBT(); console.warn(city+' timelines unavailable:',e.message); });
 }
 
 /* ── view mode, boot ─────────────────────────────────────────────────── */
@@ -1012,26 +1106,10 @@ function boot(){
     document.getElementById('footer-updated').textContent='CMHC data through '+miLabel(mi(ix.end))+', retrieved '+ix.retrieved;
   }).catch(function(e){ ctimeIndexFailed=true; renderCtime(); console.warn('ctime/index.json unavailable:',e.message); });
 
-  /* Calgary timelines */
-  var sel=document.getElementById('bt-cls');
-  loadJSON(BASE_URL+'calgary_project_timelines.json').then(function(d){
-    bt=d;
-    var cks=Object.keys(d.summary[Object.keys(d.summary)[0]]);
-    sel.innerHTML=cks.map(function(k){return '<option value="'+k+'">'+BT_LABEL[k]+'</option>'}).join('');
-    var ysel=document.getElementById('bt-year');
-    ysel.innerHTML=Object.keys(d.summary).sort(function(a,b){return (a.indexOf('-')>0?0:1)-(b.indexOf('-')>0?0:1)||a.localeCompare(b)}).map(function(k){return '<option value="'+k+'">'+btYearOptionLabel(k)+'</option>'}).join('');
-    btState.year=d.meta.complete_years[0]+'-'+d.meta.complete_years[1];
-    var g=d.meta.gates_and_drops, T=['HVAC','Plumbing','Electrical','Gas'];
-    document.getElementById('bt-gates').textContent=fmtInt(g.G1_dropped_missing_or_inverted_dates)+' of '+fmtInt(g.G0_new_completed_building_permits)+
-      ' building permits dropped for missing or inverted dates; trade permits matched to a building: '+
-      T.map(function(t){return t+' '+fmtInt(g['G2_'+t+'_matched_to_a_building'])+' of '+fmtInt(g['G2_'+t+'_trade_permits_pulled'])}).join(', ')+
-      ' (the rest belong to buildings outside the set); ambiguous matches, nearest chosen: '+
-      T.map(function(t){return fmtInt(g['G2_'+t+'_matched_ambiguously_nearest_chosen'])}).join(' / ')+'; '+
-      fmtInt(g.flag_trade_milestones_beyond_1500_days_kept)+' buildings have a trade milestone over 1,500 days from day 0 (kept); '+
-      fmtInt(g.buildings_listed_all_four_trades_closed)+' of '+fmtInt(g.buildings_total)+' buildings have all four trades closed and are listed for the one-building view.';
-    renderBT();
-  }).catch(function(e){ btFailed=true; renderBT(); console.warn('calgary_project_timelines.json unavailable:',e.message); });
-  sel.addEventListener('change',function(e){ btState.cls=e.target.value; btState.bld=null; renderBT(); });
+  /* project timelines (Calgary first; Winnipeg loads when picked) */
+  btSetCity('calgary');
+  document.getElementById('bt-city').addEventListener('change',function(e){ btSetCity(e.target.value); });
+  document.getElementById('bt-cls').addEventListener('change',function(e){ btState.cls=e.target.value; btState.bld=null; renderBT(); });
   document.getElementById('bt-year').addEventListener('change',function(e){ btState.year=e.target.value; btState.bld=null; renderBT(); });
   document.getElementById('bt-bld').addEventListener('change',function(e){ btState.bld=e.target.value; renderBT(); });
   wireToggle('bt-view','data-view',function(v){ btState.view=v; renderBT(); });

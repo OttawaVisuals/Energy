@@ -2,7 +2,7 @@
 
 2026-11-12: **Calgary project timelines** and a dedicated **construction length page**
 (`buildtime.html`): building permit, inspections and HVAC / plumbing / electrical / gas permits
-on one clock for 2018-2026 new construction, with a year selector. See
+on one clock for 2018-2026 new construction, with a year selector; **Winnipeg** added the same day (2011-2018). See
 [Calgary project timelines](#calgary-project-timelines-building--trade-permits-on-one-clock).
 
 2026-11-06: **CMHC vs city permit records** added under "How long it takes to build":
@@ -300,15 +300,12 @@ row rests on 336 of 47,127 buildings (0.7%) and should not be read as typical ho
 are counted, so slow builds are missing and the lengths read short (2026 median 179 days). A
 single year can still be picked on the page, with those notes shown.
 
-**Why Calgary.** It is the one city found (checked live 2026-11-12) that publishes trade
-permits as separate datasets and building-inspection results keyed to the building permit.
-Winnipeg has a Trade Permits dataset (`urbd-qygv`, 378,656 rows 2010 to 2026, issue and final
-dates, street address; electrical and plumbing for houses and commercial, mechanical only
-for commercial) but it was **not tested** against its building permits. Toronto's
-Mechanical(MS) and Plumbing(PS) permits are separate records, but 95% of a 3,000-row
-Mechanical sample were "Building Permit Related(MS)", which close with the building permit,
-so they give no independent trade length. Edmonton, Vancouver, Ottawa, Halifax and
-Mississauga were not checked for trade permits or inspections.
+**Why Calgary first.** It is the one city found (checked live 2026-11-12) that publishes
+trade permits as separate datasets *and* building-inspection results keyed to the building
+permit. Winnipeg is added below. Toronto's Mechanical(MS) and Plumbing(PS) permits are
+separate records, but 95% of a 3,000-row Mechanical sample were "Building Permit
+Related(MS)", which close with the building permit, so they give no independent trade
+length. Edmonton, Vancouver, Ottawa, Halifax and Mississauga were not checked.
 
 **Method.** `Python/calgary_project_timelines.py` → `construction_json/calgary_project_timelines.json`.
 - *Buildings:* `c2es-76ed` Building Permits, `workclass='New'`, `statuscurrent='Completed'`,
@@ -365,6 +362,51 @@ cache; the 2018-2026 run (about 71k buildings, 400k trade permits, about 180 ins
 queries) took several minutes (not timed). Raw pages cache in
 `Python/calgary_timeline_cache/` (gitignored, scratch); a rerun from cache takes under 2
 minutes. Output is gitignored on `main` and published to `gh-pages` with the other data trees.
+
+## Winnipeg project timelines (added 2026-11-12)
+
+Same idea as Calgary, on `buildtime.html` (city selector). `Python/winnipeg_project_timelines.py`
+-> `construction_json/winnipeg_project_timelines.json` (5.7 MB; 14,913 listed buildings).
+
+**What Winnipeg has.** Building permits `it4w-cpf4` (`work_type='Construct New'`, closed with a
+final date) and Trade Permits `urbd-qygv` (378,656 rows 2010-2026; electrical and plumbing for
+houses and commercial, mechanical for commercial only). **No inspection dates, no gas permits,
+no HVAC permits for houses.** So houses show plumbing and electrical only; multi-residential
+and non-residential also show mechanical.
+
+**Join.** Street address (number + name + type), +-450 days, nearest wins (ambiguous counted).
+Two filters were needed after the first test: (1) accessory structures (garages, sheds) and
+other residential types are excluded from the buildings (20,664 counted); (2) trade permits are
+limited to **new-build work types** (`SFD New`, `Plumb New SFD`, `Wire New Bldg`...). Without (2)
+electrical spans were about 300 days on a 520-day build because later work at the same address
+(additional wiring, air conditioner, rewire) was being matched.
+
+**Findings (issued 2011-2018, median).** Single-detached 484 days permit length, electrical span
+254 days (68% share; plumbing alongside); with attached garage 575 / 279; duplex 515 / 231.
+Multi-residential 531 days, mechanical 332 days (68%), 209 of 301 buildings have every trade
+closed. Non-residential 348 days, mechanical 225 (269 of 683). Plumbing and electrical coverage
+is 97-99% for houses; mechanical 0% for houses by design of the data, 79% / 61% for multi-
+residential / non-residential.
+
+**Why 2011-2018 only.** The open data has a final date for 91-97% of electrical and plumbing
+permits issued 2010-2018, **82% for 2019, 40% for 2020 and about 1% from 2021**
+(`meta.trade_closure_pct_by_year`). Later buildings cannot be timed and the few that can are
+not typical, so the default is 2011-2018 and every later year is selectable with a note. We
+do not know whether the city stopped recording or stopped publishing the dates.
+
+**Row housing is not summarised.** Several building permits share one street address (a permit
+per unit, probably) and a trade permit attaches to only one of them; only 21% of the 2,701
+row-housing buildings show any trade although 98.9% of their addresses have trade permits at
+some date. Coverage is shown, durations are suppressed. A grouping-by-address approach could
+fix it; not done.
+
+**Limitations.** *Can't tell us:* when work was physically done (closing is administrative;
+no inspections); envelope work. *Assumed:* the address join is right (not hand-checked);
++-450 days; buildings with every trade resemble those without. *Would change the answer:* a
+city key between trade and building permits, final dates for post-2019 trade permits, or
+per-unit grouping for row housing. Licence: building permits Open Government Licence –
+Winnipeg; trade permits Canada Open Government Licence (dataset metadata). Refresh: manual;
+raw pages cache in `Python/winnipeg_timeline_cache/` (gitignored, scratch).
 
 ## Data pipeline
 
