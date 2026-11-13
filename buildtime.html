@@ -332,7 +332,20 @@ footer a:hover{color:var(--amber2)}
   </div>
   <div class="card" id="hv-card">
     <div id="hv-body" style="display:none">
-      <div class="card-title" id="hv-title"></div>
+      <div class="card-title-row">
+        <div class="card-title" id="hv-title"></div>
+        <div class="card-controls">
+          <select id="hv-size" class="card-select" style="max-width:240px" aria-label="Building size to show">
+            <option value="All sizes">All sizes (one line)</option>
+            <option value="3–5 homes">3–5 homes</option>
+            <option value="6–11 homes">6–11 homes</option>
+            <option value="12–29 homes">12–29 homes</option>
+            <option value="30–99 homes">30–99 homes</option>
+            <option value="100+ homes">100+ homes</option>
+            <option value="__all">Compare all sizes</option>
+          </select>
+        </div>
+      </div>
       <div class="chart-legend-inline" id="hv-legend" style="margin-bottom:.4rem"></div>
       <div class="cw cw-xl" id="hv-chart"></div>
       <p class="note" id="hv-note"></p>
@@ -1107,11 +1120,13 @@ function renderHvac(){
     var pts=[]; for(var y=y0;y<=y1;y++){ var c=cell(bd.lo,bd.hi,function(q){return q===y}); if(c.v!=null) pts.push({m:y*12+6,v:c.v,n:c.n}); }
     if(pts.length) series.push({label:bd.k,color:bd.c,pts:pts,dash:bd.dash});
   });
+  var sel=document.getElementById('hv-size').value;
+  if(sel!=='__all') series=series.filter(function(x){return x.label===sel});
   document.getElementById('hv-body').style.display='';
   document.getElementById('hv-sub').textContent=BT_CITIES[city].name+': how many days the '+tl+' permits of a building stay open (first issued → last closed), by the year the building permit was issued and the number of homes in the building.';
   document.getElementById('hv-title').textContent=BT_CITIES[city].name+' — '+tl+' permit span by building size, '+y0+'–'+y1;
   buildLegend(document.getElementById('hv-legend'),series.map(function(s){return {color:s.color,label:s.label}}));
-  if(!series.length){ document.getElementById('hv-chart').innerHTML='<div class="section-loading">No building size has at least '+minN+' buildings in a year.</div>'; }
+  if(!series.length){ document.getElementById('hv-chart').innerHTML='<div class="section-loading">'+(sel==='__all'?'No building size':'“'+sel+'”')+' does not have '+minN+' or more buildings with every trade closed in any complete year'+(sel==='__all'?'':' in '+BT_CITIES[city].name)+'. Pick another size.</div>'; }
   else timeChart('hv-chart',{series:series,annual:true,xDomain:[y0*12+6,y1*12+6],fmt:fmtInt,unitLabel:'days',tipN:true,yMin:0});
   document.getElementById('hv-note').textContent='Median days, '+y0+'–'+y1+' (the complete years). A line is missing a year where fewer than '+minN+' buildings of that size have every trade closed.'+
     (city==='winnipeg'?' Winnipeg has only about 20–35 such buildings a year, so most sizes are blank and the lines are noisy.':'');
@@ -1184,6 +1199,7 @@ function boot(){
 
   /* project timelines (Calgary first; Winnipeg loads when picked) */
   btSetCity('calgary');
+  document.getElementById('hv-size').addEventListener('change',function(){ if(B()) renderHvac(); });
   document.getElementById('bt-city').addEventListener('change',function(e){ btSetCity(e.target.value); });
   document.getElementById('bt-cls').addEventListener('change',function(e){ btState.cls=e.target.value; btState.bld=null; renderBT(); });
   document.getElementById('bt-year').addEventListener('change',function(e){ btState.year=e.target.value; btState.bld=null; renderBT(); });
