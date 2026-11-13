@@ -325,6 +325,30 @@ footer a:hover{color:var(--amber2)}
     </div>
   </div>
 
+  <!-- 2b ▸ HVAC length by year and building size -->
+  <div class="section-head">
+    <h2>Does HVAC take longer in bigger buildings?</h2>
+    <p class="sec-sub" id="hv-sub"></p>
+  </div>
+  <div class="card" id="hv-card">
+    <div id="hv-body" style="display:none">
+      <div class="card-title" id="hv-title"></div>
+      <div class="chart-legend-inline" id="hv-legend" style="margin-bottom:.4rem"></div>
+      <div class="cw cw-xl" id="hv-chart"></div>
+      <p class="note" id="hv-note"></p>
+
+      <div class="card-title" style="margin-top:1.6rem" id="hv-band-title"></div>
+      <div class="cma-tbl-wrap"><table class="cma-tbl" id="hv-band"></table></div>
+
+      <div class="card-title" style="margin-top:1.6rem" id="hv-year-title"></div>
+      <div class="cma-tbl-wrap"><table class="cma-tbl" id="hv-year"></table></div>
+      <p class="note" id="hv-year-note"></p>
+
+      <p class="note">In plain terms: this follows one number, how many days the heating, ventilation and cooling permits for a building stay open, from the first one being issued to the last one closing, and splits it by how many homes the building has. Small buildings are often filed as one HVAC permit per home (a median of 4 to 6 permits), while the biggest buildings usually have a single permit for the whole building, so the table also shows permits per building. Each dot is a typical (median) building for that year and size; sizes with fewer than 10 buildings in a year are left blank rather than guessed. Only buildings whose every required trade permit is closed are counted, which leaves out the slowest builds, so real spans are somewhat longer than shown.</p>
+      <p class="note" data-mode="advanced"><strong>Method.</strong> Computed in the page from the building list in the city file (<code>buildings[]</code>: <code>class</code>, <code>units</code> = <code>housingunits</code> in Calgary and <code>dwelling_units_created</code> in Winnipeg, <code>issued</code>, <code>trades.&lt;trade&gt;.span</code>). Population: the city's 3+ home residential class (Calgary "Residential 3+ units (MURB)"; Winnipeg "Multi-residential") and only buildings listed in the file, i.e. every trade needed matched and closed. Span = last HVAC (Winnipeg: mechanical) permit closed − first issued, across all matched permits. Size bands by units: 3–5, 6–11, 12–29, 30–99, 100+; cell median over buildings issued that year; cells under 10 buildings suppressed. The chart shows only the complete-year range of each city (the same period defaults as above); other years are in the table, marked with an asterisk. <strong>Selection effect:</strong> requiring every trade to be closed under-represents slow builds, and more so for recent years. <strong>Not a causal estimate:</strong> bands also differ in building type (townhouse blocks vs towers) and in how many permits are filed per building.</p>
+    </div>
+  </div>
+
   <!-- 3 ▸ limits -->
   <div class="section-head">
     <h2>What these numbers can't tell us</h2>
@@ -1063,6 +1087,57 @@ function renderBT(){
     if(el.parentNode.getAttribute('data-city')===btState.city) el.textContent=btGatesText(b.meta.gates_and_drops);
   });
 }
+/* ── HVAC span by year × building size ─────────────────────────────── */
+var HV_BANDS=[{k:'3–5 homes',lo:3,hi:5,c:PAL.blue},{k:'6–11 homes',lo:6,hi:11,c:PAL.green},
+  {k:'12–29 homes',lo:12,hi:29,c:PAL.amber},{k:'30–99 homes',lo:30,hi:99,c:PAL.red},{k:'100+ homes',lo:100,hi:1e9,c:PAL.purple}];
+var HV_CLS={calgary:'Residential 3+ units (MURB)',winnipeg:'Multi-residential'};
+function med(a){ if(!a.length) return null; a=a.slice().sort(function(x,y){return x-y}); var h=a.length>>1; return a.length%2?a[h]:(a[h-1]+a[h])/2; }
+function renderHvac(){
+  var city=btState.city, b=B(), m=b.meta, cls=HV_CLS[city], t=(city==='winnipeg')?'Mechanical':'HVAC', tl=(city==='winnipeg')?'mechanical':'HVAC';
+  var minN=m.min_n_for_summary||10;
+  var bl=b.buildings.filter(function(x){return x['class']===cls&&x.units&&x.trades[t]&&x.trades[t].span!=null});
+  var y0=m.complete_years[0], y1=m.complete_years[1];
+  var years=[]; Object.keys(b.summary).forEach(function(k){ if(k.indexOf('-')<0) years.push(+k); }); years.sort();
+  function cell(lo,hi,yf){
+    var v=bl.filter(function(x){var u=x.units,y=+x.issued.slice(0,4); return u>=lo&&u<=hi&&yf(y)}).map(function(x){return x.trades[t].span});
+    return {n:v.length,v:v.length>=minN?med(v):null};
+  }
+  var series=[], rows='';
+  HV_BANDS.concat([{k:'All sizes',lo:3,hi:1e9,c:PAL.gray,dash:'5 4'}]).forEach(function(bd){
+    var pts=[]; for(var y=y0;y<=y1;y++){ var c=cell(bd.lo,bd.hi,function(q){return q===y}); if(c.v!=null) pts.push({m:y*12+6,v:c.v,n:c.n}); }
+    if(pts.length) series.push({label:bd.k,color:bd.c,pts:pts,dash:bd.dash});
+  });
+  document.getElementById('hv-body').style.display='';
+  document.getElementById('hv-sub').textContent=BT_CITIES[city].name+': how many days the '+tl+' permits of a building stay open (first issued → last closed), by the year the building permit was issued and the number of homes in the building.';
+  document.getElementById('hv-title').textContent=BT_CITIES[city].name+' — '+tl+' permit span by building size, '+y0+'–'+y1;
+  buildLegend(document.getElementById('hv-legend'),series.map(function(s){return {color:s.color,label:s.label}}));
+  if(!series.length){ document.getElementById('hv-chart').innerHTML='<div class="section-loading">No building size has at least '+minN+' buildings in a year.</div>'; }
+  else timeChart('hv-chart',{series:series,annual:true,xDomain:[y0*12+6,y1*12+6],fmt:fmtInt,unitLabel:'days',tipN:true,yMin:0});
+  document.getElementById('hv-note').textContent='Median days, '+y0+'–'+y1+' (the complete years). A line is missing a year where fewer than '+minN+' buildings of that size have every trade closed.'+
+    (city==='winnipeg'?' Winnipeg has only about 20–35 such buildings a year, so most sizes are blank and the lines are noisy.':'');
+  /* band table over the complete years */
+  var bh='<tr><th>Homes in building</th><th>Buildings</th><th>'+tl+' permits (median)</th><th>'+tl+' span (days)</th><th>Building permit (days)</th><th>'+tl+' share</th></tr>';
+  var inP=function(y){return y>=y0&&y<=y1};
+  var br=HV_BANDS.map(function(bd){
+    var xs=bl.filter(function(x){return x.units>=bd.lo&&x.units<=bd.hi&&inP(+x.issued.slice(0,4))&&x.build_days>0});
+    if(xs.length<minN) return '<tr><td>'+bd.k+'</td><td>'+xs.length+'</td><td colspan="4">fewer than '+minN+' buildings</td></tr>';
+    return '<tr><td>'+bd.k+'</td><td>'+fmtInt(xs.length)+'</td><td>'+fmtInt(med(xs.map(function(x){return x.trades[t].permits})))+'</td><td>'+
+      fmtInt(med(xs.map(function(x){return x.trades[t].span})))+'</td><td>'+fmtInt(med(xs.map(function(x){return x.build_days})))+'</td><td>'+
+      med(xs.map(function(x){return 100*x.trades[t].span/x.build_days})).toFixed(0)+'%</td></tr>';
+  }).join('');
+  document.getElementById('hv-band-title').textContent='By building size, all complete years together ('+y0+'–'+y1+')';
+  document.getElementById('hv-band').innerHTML=bh+br;
+  /* year x band table, all years */
+  var yh='<tr><th>Year issued</th>'+HV_BANDS.map(function(bd){return '<th>'+bd.k+'</th>'}).join('')+'<th>All sizes</th></tr>';
+  var yr=years.map(function(y){
+    var note=m.period_notes[String(y)]?' *':'';
+    var cs=HV_BANDS.concat([{lo:3,hi:1e9}]).map(function(bd){var c=cell(bd.lo,bd.hi,function(q){return q===y}); return '<td>'+(c.v==null?'<span style="opacity:.5">'+(c.n?'n='+c.n:'—')+'</span>':fmtInt(c.v)+' <span style="opacity:.55;font-size:.85em">(n='+c.n+')</span>')+'</td>'}).join('');
+    return '<tr><td>'+y+note+'</td>'+cs+'</tr>';
+  }).join('');
+  document.getElementById('hv-year-title').textContent='Median '+tl+' span (days) by year and size';
+  document.getElementById('hv-year').innerHTML=yh+yr;
+  document.getElementById('hv-year-note').textContent='* '+Object.keys(m.period_notes).sort().map(function(k){return k+': '+m.period_notes[k]}).join(' ')+' Grey n= means fewer than '+minN+' buildings, so no median is shown.';
+}
 function btLoad(city){
   if(btData[city]) return Promise.resolve(btData[city]);
   return loadJSON(BASE_URL+BT_CITIES[city].file).then(function(d){ btData[city]=d; return d; });
@@ -1080,6 +1155,7 @@ function btSetCity(city){
     btState.year=d.meta.complete_years[0]+'-'+d.meta.complete_years[1];
     btState.bld=null;
     renderBT();
+    renderHvac();
   }).catch(function(e){ btFailed[city]=true; btState.city=city; renderBT(); console.warn(city+' timelines unavailable:',e.message); });
 }
 
