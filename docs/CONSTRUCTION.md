@@ -423,6 +423,7 @@ buildings 127 d (2021) to 152 d (2025). **Reading caveat:** small buildings are 
 HVAC permit per home, large ones as a single permit, so span is not comparable like for like.
 **Winnipeg:** only 30-99 homes has 10+ buildings in most years (about 10-19 a year), so the
 size breakdown is not supportable; a 2011-2018 band table is shown for reference.
+**Spread (2026-11-13):** a size dropdown picks one size; each year then draws a box-and-whisker (box = 25th to 75th percentile, orange line = median, whiskers = 10th to 90th percentile, n in the tooltip), "Compare all sizes" keeps the median lines. Whiskers are percentiles, not min/max, so single odd permits do not stretch the chart.
 **Limits:** every-trade-closed selection removes slow builds (more so in recent years); the 100+
 band is 65 buildings, 2020's 100+ cell (695 d, n=10) is an outlier; no causal claim.
 
