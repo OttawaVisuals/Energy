@@ -337,11 +337,11 @@ footer a:hover{color:var(--amber2)}
         <div class="card-controls">
           <select id="hv-size" class="card-select" style="max-width:240px" aria-label="Building size to show">
             <option value="All sizes">All sizes (one line)</option>
-            <option value="3–5 homes">3–5 homes</option>
-            <option value="6–11 homes">6–11 homes</option>
-            <option value="12–29 homes">12–29 homes</option>
-            <option value="30–99 homes">30–99 homes</option>
-            <option value="100+ homes">100+ homes</option>
+            <option value="3–5 dwelling units">3–5 dwelling units</option>
+            <option value="6–11 dwelling units">6–11 dwelling units</option>
+            <option value="12–29 dwelling units">12–29 dwelling units</option>
+            <option value="30–99 dwelling units">30–99 dwelling units</option>
+            <option value="100+ dwelling units">100+ dwelling units</option>
             <option value="__all">Compare all sizes</option>
           </select>
         </div>
@@ -357,7 +357,7 @@ footer a:hover{color:var(--amber2)}
       <div class="cma-tbl-wrap"><table class="cma-tbl" id="hv-year"></table></div>
       <p class="note" id="hv-year-note"></p>
 
-      <p class="note">In plain terms: this follows one number, how many days the heating, ventilation and cooling permits for a building stay open, from the first one being issued to the last one closing, and splits it by how many homes the building has. Small buildings are often filed as one HVAC permit per home (a median of 4 to 6 permits), while the biggest buildings usually have a single permit for the whole building, so the table also shows permits per building. Each dot is a typical (median) building for that year and size; sizes with fewer than 10 buildings in a year are left blank rather than guessed. Only buildings whose every required trade permit is closed are counted, which leaves out the slowest builds, so real spans are somewhat longer than shown.</p>
+      <p class="note">In plain terms: this follows one number, how many days the heating, ventilation and cooling permits for a building stay open, from the first one being issued to the last one closing, and splits it by how many dwelling units (separate homes) the building has. Small buildings are often filed as one HVAC permit per dwelling unit (a median of 4 to 6 permits), while the biggest buildings usually have a single permit for the whole building, so the table also shows permits per building. “Building” here means one building permit, which can cover an apartment building or a block of townhouses; the data does not say which. A dwelling unit is one separate home (an apartment, a townhouse, a suite). Each dot is a typical (median) building for that year and size; sizes with fewer than 10 buildings in a year are left blank rather than guessed. Only buildings whose every required trade permit is closed are counted, which leaves out the slowest builds, so real spans are somewhat longer than shown.</p>
       <p class="note" data-mode="advanced"><strong>Method.</strong> Computed in the page from the building list in the city file (<code>buildings[]</code>: <code>class</code>, <code>units</code> = <code>housingunits</code> in Calgary and <code>dwelling_units_created</code> in Winnipeg, <code>issued</code>, <code>trades.&lt;trade&gt;.span</code>). Population: the city's 3+ home residential class (Calgary "Residential 3+ units (MURB)"; Winnipeg "Multi-residential") and only buildings listed in the file, i.e. every trade needed matched and closed. Span = last HVAC (Winnipeg: mechanical) permit closed − first issued, across all matched permits. Size bands by units: 3–5, 6–11, 12–29, 30–99, 100+; cell median over buildings issued that year; cells under 10 buildings suppressed. The chart shows only the complete-year range of each city (the same period defaults as above); other years are in the table, marked with an asterisk. <strong>Selection effect:</strong> requiring every trade to be closed under-represents slow builds, and more so for recent years. <strong>Not a causal estimate:</strong> bands also differ in building type (townhouse blocks vs towers) and in how many permits are filed per building.</p>
     </div>
   </div>
@@ -842,8 +842,8 @@ var BT_CITIES={
 };
 var btData={}, btFailed={};
 var btState={city:'calgary', cls:null, year:null, view:'median', bld:null};
-var CAL_LABEL={'Residential 3+ units (MURB)':'Residential, 3+ homes (MURB)',
-  'Residential 2 units':'Residential, 2 homes','Residential 1 unit/none':'Residential, 1 home or blank',
+var CAL_LABEL={'Residential 3+ units (MURB)':'Residential, 3+ dwelling units (MURB)',
+  'Residential 2 units':'Residential, 2 dwelling units','Residential 1 unit/none':'Residential, 1 dwelling unit or blank',
   'Non-residential':'Non-residential'};
 var BT_COL={Plumbing:PAL.blue,Electrical:PAL.green,Gas:PAL.gray,HVAC:PAL.amber,Mechanical:PAL.amber};
 var BT_INSP=[['Foundation','Foundation inspection'],['Framing','Framing inspection'],['Final','Final inspection']];
@@ -1047,7 +1047,7 @@ function renderBT(){
     var skey=btState.city+'|'+P+'|'+cls;
     if(sel.getAttribute('data-cls')!==skey){
       sel.innerHTML=list.map(function(x){
-        return '<option value="'+x.permit+'">'+(x.community||'—')+' · '+(x.units?x.units+' homes · ':'')+x.permit+'</option>';
+        return '<option value="'+x.permit+'">'+(x.community||'—')+' · '+(x.units?x.units+' dwelling units · ':'')+x.permit+'</option>';
       }).join('');
       sel.setAttribute('data-cls',skey);
     }
@@ -1081,7 +1081,7 @@ function renderBT(){
           (t==='HVAC'&&tr.final_last!=null?'<br>final inspection: day '+dayTxt(tr.final_last):''))});
     });
     var sh=x.trades[st];
-    stats=btStat('Homes',x.units?fmtInt(x.units):'—',x.community||'')+
+    stats=btStat('Dwelling units',x.units?fmtInt(x.units):'—',x.community||'')+
       btStat('Building permit length',fmtInt(x.build_days)+' d','issued '+x.issued)+
       btStat(stl.replace(' (commercial only)','')+' span',fmtInt(sh.span)+' d',sh.permits+(sh.permits===1?' permit':' permits'))+
       btStat(stl.replace(' (commercial only)','')+' share of the build',(100*sh.span/x.build_days).toFixed(0)+'%',st+' span ÷ permit length');
@@ -1101,8 +1101,8 @@ function renderBT(){
   });
 }
 /* ── HVAC span by year × building size ─────────────────────────────── */
-var HV_BANDS=[{k:'3–5 homes',lo:3,hi:5,c:PAL.blue},{k:'6–11 homes',lo:6,hi:11,c:PAL.green},
-  {k:'12–29 homes',lo:12,hi:29,c:PAL.amber},{k:'30–99 homes',lo:30,hi:99,c:PAL.red},{k:'100+ homes',lo:100,hi:1e9,c:PAL.purple}];
+var HV_BANDS=[{k:'3–5 dwelling units',lo:3,hi:5,c:PAL.blue},{k:'6–11 dwelling units',lo:6,hi:11,c:PAL.green},
+  {k:'12–29 dwelling units',lo:12,hi:29,c:PAL.amber},{k:'30–99 dwelling units',lo:30,hi:99,c:PAL.red},{k:'100+ dwelling units',lo:100,hi:1e9,c:PAL.purple}];
 var HV_CLS={calgary:'Residential 3+ units (MURB)',winnipeg:'Multi-residential'};
 function med(a){ if(!a.length) return null; a=a.slice().sort(function(x,y){return x-y}); var h=a.length>>1; return a.length%2?a[h]:(a[h-1]+a[h])/2; }
 function pct(a,q){ a=a.slice().sort(function(x,y){return x-y}); var i=(a.length-1)*q, f=Math.floor(i), c=Math.ceil(i); return a[f]+(a[c]-a[f])*(i-f); }
@@ -1152,7 +1152,7 @@ function renderHvac(){
   var sel=document.getElementById('hv-size').value;
   if(sel!=='__all') series=series.filter(function(x){return x.label===sel});
   document.getElementById('hv-body').style.display='';
-  document.getElementById('hv-sub').textContent=BT_CITIES[city].name+': how many days the '+tl+' permits of a building stay open (first issued → last closed), by the year the building permit was issued and the number of homes in the building.';
+  document.getElementById('hv-sub').textContent=BT_CITIES[city].name+': how many days the '+tl+' permits of a building stay open (first issued → last closed), by the year the building permit was issued and the number of dwelling units in the building.';
   document.getElementById('hv-title').textContent=BT_CITIES[city].name+' — '+tl+' permit span by building size, '+y0+'–'+y1;
   buildLegend(document.getElementById('hv-legend'),series.map(function(s){return {color:s.color,label:s.label}}));
   if(!series.length){ document.getElementById('hv-chart').innerHTML='<div class="section-loading">'+(sel==='__all'?'No building size':'“'+sel+'”')+' does not have '+minN+' or more buildings with every trade closed in any complete year'+(sel==='__all'?'':' in '+BT_CITIES[city].name)+'. Pick another size.</div>'; }
@@ -1165,7 +1165,7 @@ function renderHvac(){
   document.getElementById('hv-note').textContent=(sel==='__all'?'Median days, ':'Each box: the middle half of buildings (25th to 75th percentile); orange line = median; whiskers = 10th to 90th percentile; dashed line joins the medians. ')+y0+'–'+y1+' (the complete years). A year is missing where fewer than '+minN+' buildings of that size have every trade closed.'+
     (city==='winnipeg'?' Winnipeg has only about 20–35 such buildings a year, so most sizes are blank and the lines are noisy.':'');
   /* band table over the complete years */
-  var bh='<tr><th>Homes in building</th><th>Buildings</th><th>'+tl+' permits (median)</th><th>'+tl+' span (days)</th><th>Building permit (days)</th><th>'+tl+' share</th></tr>';
+  var bh='<tr><th>Dwelling units in building</th><th>Buildings</th><th>'+tl+' permits (median)</th><th>'+tl+' span (days)</th><th>Building permit (days)</th><th>'+tl+' share</th></tr>';
   var inP=function(y){return y>=y0&&y<=y1};
   var br=HV_BANDS.map(function(bd){
     var xs=bl.filter(function(x){return x.units>=bd.lo&&x.units<=bd.hi&&inP(+x.issued.slice(0,4))&&x.build_days>0});

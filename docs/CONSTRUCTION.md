@@ -411,17 +411,17 @@ raw pages cache in `Python/winnipeg_timeline_cache/` (gitignored, scratch).
 ## HVAC span by building size (added 2026-11-13)
 
 `buildtime.html` section "Does HVAC take longer in bigger buildings?": median HVAC (Winnipeg:
-mechanical) span by year issued and by number of homes (3-5, 6-11, 12-29, 30-99, 100+), computed in
+mechanical) span by year issued and by number of dwelling units (3-5, 6-11, 12-29, 30-99, 100+), computed in
 the page from the `buildings[]` lists of the two city files (no pipeline change). Population: the
-3+ home class, buildings with every needed trade closed; cells under 10 buildings suppressed;
+3+ dwelling unit class, buildings with every needed trade closed; cells under 10 buildings suppressed;
 chart shows each city's complete-year period.
 
-**Calgary, 2019-2024 (median span / HVAC permits per building):** 3-5 homes 139 d / 4; 6-11 homes
-147 d / 6; 12-29 homes 174 d / 12; 30-99 homes 190 d / 1; 100+ homes 358 d / 1. Over time the
+**Calgary, 2019-2024 (median span / HVAC permits per building):** 3-5 dwelling units 139 d / 4; 6-11 dwelling units
+147 d / 6; 12-29 dwelling units 174 d / 12; 30-99 dwelling units 190 d / 1; 100+ dwelling units 358 d / 1. Over time the
 all-sizes span is flat to slightly up (about 135 d in 2019-2021, 150-158 d in 2022-2025); 3-5 home
 buildings 127 d (2021) to 152 d (2025). **Reading caveat:** small buildings are typically filed one
-HVAC permit per home, large ones as a single permit, so span is not comparable like for like.
-**Winnipeg:** only 30-99 homes has 10+ buildings in most years (about 10-19 a year), so the
+HVAC permit per dwelling unit, large ones as a single permit, so span is not comparable like for like.
+**Winnipeg:** only 30-99 dwelling units has 10+ buildings in most years (about 10-19 a year), so the
 size breakdown is not supportable; a 2011-2018 band table is shown for reference.
 **Spread (2026-11-13):** a size dropdown picks one size; each year then draws a box-and-whisker (box = 25th to 75th percentile, orange line = median, whiskers = 10th to 90th percentile, n in the tooltip), "Compare all sizes" keeps the median lines. Whiskers are percentiles, not min/max, so single odd permits do not stretch the chart.
 **Limits:** every-trade-closed selection removes slow builds (more so in recent years); the 100+
