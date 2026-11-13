@@ -1105,6 +1105,35 @@ var HV_BANDS=[{k:'3–5 homes',lo:3,hi:5,c:PAL.blue},{k:'6–11 homes',lo:6,hi:1
   {k:'12–29 homes',lo:12,hi:29,c:PAL.amber},{k:'30–99 homes',lo:30,hi:99,c:PAL.red},{k:'100+ homes',lo:100,hi:1e9,c:PAL.purple}];
 var HV_CLS={calgary:'Residential 3+ units (MURB)',winnipeg:'Multi-residential'};
 function med(a){ if(!a.length) return null; a=a.slice().sort(function(x,y){return x-y}); var h=a.length>>1; return a.length%2?a[h]:(a[h-1]+a[h])/2; }
+function pct(a,q){ a=a.slice().sort(function(x,y){return x-y}); var i=(a.length-1)*q, f=Math.floor(i), c=Math.ceil(i); return a[f]+(a[c]-a[f])*(i-f); }
+/* box-and-whisker per year: box = 25th–75th percentile, line = median, whiskers = 10th–90th */
+function boxChart(mountId,boxes,x0,x1,label){
+  var mount=document.getElementById(mountId); mount.innerHTML='';
+  var W=mount.clientWidth||800, H=mount.clientHeight||260, M={t:8,r:14,b:22,l:48};
+  var svg=svgEl('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H},mount);
+  var yMax=Math.max.apply(null,boxes.map(function(b){return b.p90}))*1.05||1;
+  var X=function(y){return M.l+(y-x0+.5)/(x1-x0+1)*(W-M.l-M.r)};
+  var Y=function(v){return M.t+(1-v/yMax)*(H-M.t-M.b)};
+  niceTicks(yMax).forEach(function(t){
+    svgEl('line',{x1:M.l,x2:W-M.r,y1:Y(t),y2:Y(t),'class':'axis-line'},svg);
+    svgEl('text',{x:M.l-6,y:Y(t)+3,'text-anchor':'end','class':'axis-text'},svg).textContent=t;
+  });
+  for(var y=x0;y<=x1;y++) svgEl('text',{x:X(y),y:H-6,'text-anchor':'middle','class':'axis-text'},svg).textContent=y;
+  var bw=Math.min(46,(W-M.l-M.r)/(x1-x0+1)*.55);
+  var d='';
+  boxes.forEach(function(b){ d+=(d?' L':'M')+X(b.y).toFixed(1)+' '+Y(b.med).toFixed(1); });
+  svgEl('path',{d:d,fill:'none',stroke:PAL.gray,'stroke-width':1.2,'stroke-dasharray':'3 3'},svg);
+  boxes.forEach(function(b){
+    var g=svgEl('g',{},svg), x=X(b.y);
+    svgEl('line',{x1:x,x2:x,y1:Y(b.p90),y2:Y(b.p10),stroke:PAL.navy,'stroke-width':1.5},g);
+    [b.p10,b.p90].forEach(function(v){ svgEl('line',{x1:x-bw/4,x2:x+bw/4,y1:Y(v),y2:Y(v),stroke:PAL.navy,'stroke-width':1.5},g); });
+    svgEl('rect',{x:x-bw/2,y:Y(b.q3),width:bw,height:Math.max(1,Y(b.q1)-Y(b.q3)),fill:PAL.navy,'fill-opacity':.22,stroke:PAL.navy,'stroke-width':1.5},g);
+    svgEl('line',{x1:x-bw/2,x2:x+bw/2,y1:Y(b.med),y2:Y(b.med),stroke:PAL.amber,'stroke-width':3},g);
+    var hit=svgEl('rect',{x:x-bw/2-6,y:M.t,width:bw+12,height:H-M.t-M.b,fill:'transparent'},g);
+    hit.addEventListener('mousemove',function(e){ showTip('<strong>'+b.y+' · '+label+'</strong> (n='+fmtInt(b.n)+')<br>median: '+fmtInt(b.med)+' days<br>middle half (25th–75th): '+fmtInt(b.q1)+'–'+fmtInt(b.q3)+'<br>10th–90th percentile: '+fmtInt(b.p10)+'–'+fmtInt(b.p90),e.clientX,e.clientY); });
+    hit.addEventListener('mouseleave',hideTip);
+  });
+}
 function renderHvac(){
   var city=btState.city, b=B(), m=b.meta, cls=HV_CLS[city], t=(city==='winnipeg')?'Mechanical':'HVAC', tl=(city==='winnipeg')?'mechanical':'HVAC';
   var minN=m.min_n_for_summary||10;
@@ -1113,7 +1142,7 @@ function renderHvac(){
   var years=[]; Object.keys(b.summary).forEach(function(k){ if(k.indexOf('-')<0) years.push(+k); }); years.sort();
   function cell(lo,hi,yf){
     var v=bl.filter(function(x){var u=x.units,y=+x.issued.slice(0,4); return u>=lo&&u<=hi&&yf(y)}).map(function(x){return x.trades[t].span});
-    return {n:v.length,v:v.length>=minN?med(v):null};
+    return {n:v.length,v:v.length>=minN?med(v):null,a:v};
   }
   var series=[], rows='';
   HV_BANDS.concat([{k:'All sizes',lo:3,hi:1e9,c:PAL.gray,dash:'5 4'}]).forEach(function(bd){
@@ -1127,8 +1156,13 @@ function renderHvac(){
   document.getElementById('hv-title').textContent=BT_CITIES[city].name+' — '+tl+' permit span by building size, '+y0+'–'+y1;
   buildLegend(document.getElementById('hv-legend'),series.map(function(s){return {color:s.color,label:s.label}}));
   if(!series.length){ document.getElementById('hv-chart').innerHTML='<div class="section-loading">'+(sel==='__all'?'No building size':'“'+sel+'”')+' does not have '+minN+' or more buildings with every trade closed in any complete year'+(sel==='__all'?'':' in '+BT_CITIES[city].name)+'. Pick another size.</div>'; }
-  else timeChart('hv-chart',{series:series,annual:true,xDomain:[y0*12+6,y1*12+6],fmt:fmtInt,unitLabel:'days',tipN:true,yMin:0});
-  document.getElementById('hv-note').textContent='Median days, '+y0+'–'+y1+' (the complete years). A line is missing a year where fewer than '+minN+' buildings of that size have every trade closed.'+
+  else if(sel==='__all') timeChart('hv-chart',{series:series,annual:true,xDomain:[y0*12+6,y1*12+6],fmt:fmtInt,unitLabel:'days',tipN:true,yMin:0});
+  else {
+    var bd0=HV_BANDS.filter(function(z){return z.k===sel})[0]||{lo:3,hi:1e9}, boxes=[];
+    for(var yy=y0;yy<=y1;yy++){ var cc=cell(bd0.lo,bd0.hi,function(q){return q===yy}); if(cc.v!=null) boxes.push({y:yy,n:cc.n,med:cc.v,q1:pct(cc.a,.25),q3:pct(cc.a,.75),p10:pct(cc.a,.1),p90:pct(cc.a,.9)}); }
+    boxChart('hv-chart',boxes,y0,y1,sel);
+  }
+  document.getElementById('hv-note').textContent=(sel==='__all'?'Median days, ':'Each box: the middle half of buildings (25th to 75th percentile); orange line = median; whiskers = 10th to 90th percentile; dashed line joins the medians. ')+y0+'–'+y1+' (the complete years). A year is missing where fewer than '+minN+' buildings of that size have every trade closed.'+
     (city==='winnipeg'?' Winnipeg has only about 20–35 such buildings a year, so most sizes are blank and the lines are noisy.':'');
   /* band table over the complete years */
   var bh='<tr><th>Homes in building</th><th>Buildings</th><th>'+tl+' permits (median)</th><th>'+tl+' span (days)</th><th>Building permit (days)</th><th>'+tl+' share</th></tr>';
