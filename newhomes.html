@@ -424,7 +424,7 @@ footer a:hover{color:var(--amber2)}
       <button id="map-zoom-in" type="button" aria-label="Zoom in" onclick="zoomFsaMapBy(0.7)">+</button>
       <button id="map-zoom-out" type="button" aria-label="Zoom out" onclick="zoomFsaMapBy(1/0.7)">–</button>
     </div>
-    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
+    <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors © <a href="https://www.esri.com/en-us/legal/copyright-trademarks" target="_blank" rel="noopener">Esri</a></div>
     <div id="map-tip" style="display:none;position:fixed;background:rgba(11,37,69,0.92);color:#fff;font-size:12px;font-family:Inter,sans-serif;padding:7px 11px;border-radius:6px;pointer-events:none;z-index:200;line-height:1.6;white-space:nowrap"></div>
   </div>
 </div>
@@ -1710,7 +1710,7 @@ function y2lat(y,z){const n=Math.PI-2*Math.PI*y/(256*Math.pow(2,z));return 180/M
 function pickTileZoom(a,b,c,d,tW,tH){for(let z=15;z>=2;z--){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(d,z)-lat2y(c,z);if(w<=tW&&h<=tH)return z;}return 2;}
 function pickSharperZoom(a,b,c,d,tW,tH,mz){for(let z=2;z<=mz;z++){const w=lon2x(b,z)-lon2x(a,z),h=lat2y(d,z)-lat2y(c,z);if(w>=tW&&h>=tH)return z;}return mz;}
 const TILE_SUB=['a','b','c','d'];
-function tileUrl(z,x,y){return`https://${TILE_SUB[(x+y)%4]}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;}
+function tileUrl(z,x,y){return`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${y}/${x}`;} // Esri Light Gray (CARTO now watermarks "API KEY REQUIRED", 2026-11-19); max native zoom 16
 let MAP_STATE=null,_mapTipEl=null,_mapDragged=false;
 function toggleFsaMapCard(show){$('fsa-map-card').style.display=show?'':'none';}
 // ── Explore-the-map toggle (mirrors retrofits.html) ─────────────────
@@ -1791,7 +1791,7 @@ function loadSharpTiles(bbox){
   const g=document.getElementById('fsa-map-sharp-tiles');if(!g)return;if(!MAP_STATE){g.innerHTML='';return;}
   const{z:baseZ,prov}=MAP_STATE;const[ox,oy]=MAP_STATE.origin||[0,0];const[px0,py0,px1,py1]=bbox;
   const minLon=x2lon(px0+ox,baseZ),maxLon=x2lon(px1+ox,baseZ),maxLat=y2lat(py0+oy,baseZ),minLat=y2lat(py1+oy,baseZ);
-  const z2=pickSharperZoom(minLon,maxLon,maxLat,minLat,900,900,17);if(z2<=baseZ){g.innerHTML='';return;}
+  const z2=pickSharperZoom(minLon,maxLon,maxLat,minLat,900,900,16);if(z2<=baseZ){g.innerHTML='';return;}
   const scale=Math.pow(2,baseZ-z2);const wX0=lon2x(minLon,z2),wX1=lon2x(maxLon,z2),wY0=lat2y(maxLat,z2),wY1=lat2y(minLat,z2);
   const tmnX=Math.floor(wX0/256)-1,tmxX=Math.floor(wX1/256)+1,tmnY=Math.floor(wY0/256)-1,tmxY=Math.floor(wY1/256)+1;
   let m='';for(let ty=tmnY;ty<=tmxY;ty++)for(let tx=tmnX;tx<=tmxX;tx++){const x=tx*256*scale-ox,y=ty*256*scale-oy,size=256*scale;m+=`<image href="${tileUrl(z2,tx,ty)}" x="${x}" y="${y}" width="${size}" height="${size}"></image>`;}
