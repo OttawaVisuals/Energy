@@ -11,6 +11,23 @@
    "vintage": "2026-07-01 (page's own 'Updated' date)",
    "reason": "Primary source (canada-utility-rates scrape) caught giving a stale SK rate (9.28 c/kWh dated 2025-01-01 vs SaskPower's own current 15.476 c/kWh effective 2026-02-01, ~67% understated, was flagged 'high confidence'). Re-fetching the primary source did not fix it, confirming the gap is upstream, not a cache issue.",
    "status": "Electricity only. Not independently re-verified province-by-province (SK is the one exception — matches SaskPower's own PDF exactly). Needs further investigation before this confidence should be raised."
+  },
+  "heating_oil_propane": {
+   "name": "NRCan Prices by City -- 'Canada' national-average column (Furnace Oil / Auto Propane)",
+   "url": "https://www2.nrcan.gc.ca/eneene/sources/pripri/prices_bycity_e.cfm",
+   "vintage": "week ending 2026-11-17, hand-copied 2026-11-19",
+   "method": "one national figure per fuel applied to every province; latest week, taxes included",
+   "caveat": "Oil is volatile (157 c/L Jan 2026, 231 Mar, 230 Nov). Not provincial."
+  },
+  "heating_wood": {
+   "name": "Canadian Biomass Magazine -- North America heating wood pellet market update, 2Q 2025",
+   "url": "https://www.canadianbiomassmagazine.ca/north-america-heating-wood-pellet-market-update-2q-2025/",
+   "method": "single flat $290/ton figure applied to every province",
+   "assumptions": [
+    "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+    "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+    "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+   ]
   }
  },
  "method": {
@@ -30,7 +47,10 @@
  },
  "units": {
   "electricity": "cents_per_kwh (energy-only where available, else blog's all-in blended headline — see per-province notes)",
-  "natural_gas": "dollars_per_m3 (marginal, carbon excluded); fixed_monthly_cad"
+  "natural_gas": "dollars_per_m3 (marginal, carbon excluded); fixed_monthly_cad",
+  "heating_oil": "cad_per_litre",
+  "propane": "cad_per_litre",
+  "heating_wood": "cad_per_kwh (delivered heat content)"
  },
  "provinces": {
   "AB": {
@@ -188,6 +208,48 @@
       "ab_commodity_estimate_added_dollars_per_gj": 2.25
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "BC": {
@@ -259,6 +321,48 @@
       "carbon_excluded_dollars_per_m3": 0.1179
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "MB": {
@@ -319,6 +423,48 @@
       "carbon_excluded_dollars_per_m3": 0.0
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "NB": {
@@ -378,6 +524,48 @@
       "fixed_monthly_cad": 18.0,
       "carbon_excluded_dollars_per_m3": 0.1262
      }
+    ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
     ]
    }
   },
@@ -441,6 +629,48 @@
       }
      ]
     }
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "NS": {
@@ -501,6 +731,48 @@
       "carbon_excluded_dollars_per_m3": 0.1262
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "NT": {
@@ -552,6 +824,48 @@
       }
      ]
     }
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "NU": {
@@ -589,6 +903,48 @@
       }
      ]
     }
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "ON": {
@@ -1221,6 +1577,48 @@
       "carbon_excluded_dollars_per_m3": 0.1239
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "PE": {
@@ -1258,6 +1656,48 @@
       }
      ]
     }
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "QC": {
@@ -1318,6 +1758,48 @@
       "carbon_excluded_dollars_per_m3": 0.1262
      }
     ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   },
   "SK": {
@@ -1377,6 +1859,48 @@
       "fixed_monthly_cad": 23.5,
       "carbon_excluded_dollars_per_m3": 0.1239
      }
+    ]
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
     ]
    }
   },
@@ -1440,6 +1964,48 @@
       }
      ]
     }
+   },
+   "heating_oil": {
+    "cad_per_litre": 2.304,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 230.4,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "propane": {
+    "cad_per_litre": 1.291,
+    "n_cities": 0,
+    "source": "canada_average_nrcan",
+    "confidence": "low",
+    "notes": [
+     "National average (NRCan 'Canada' column, week ending 2026-11-17), applied to every province -- not a provincial price."
+    ],
+    "sources": [
+     {
+      "city": "Canada (national average)",
+      "cents_per_litre": 129.1,
+      "period": "2026-11-17"
+     }
+    ]
+   },
+   "heating_wood": {
+    "cad_per_kwh": 0.06,
+    "source": "canadian_biomass_magazine_flat",
+    "confidence": "low",
+    "notes": [
+     "Price assumed CAD per short ton (2,000 lb); source is a chart image, not machine-readable.",
+     "Energy content assumed 16.5 million BTU/ton HHV (premium wood pellets).",
+     "$290/ton / 4,835.7 kWh/ton = $0.0600/kWh. May be wholesale, not residential retail."
+    ]
    }
   }
  }

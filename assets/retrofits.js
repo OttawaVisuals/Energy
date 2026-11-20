@@ -192,8 +192,13 @@ function fetchPriceVec(prov){
   });
 }
 // Annual energy $ (volumetric only) for one home row at prefix 'Pre'|'Post'.
+// Returns null (NOT a $0-fuel total) when the home burns a fuel this province has
+// no price for -- a missing price must drop the home and be counted, never
+// silently price that fuel at $0 (2026-11-19: ON oil homes looked cheaper than
+// they are). Mirrored in precompute_province_stats.py add_cost_columns().
 function homeCost(r,prefix,pv){
   const k=key=>num(r[`${prefix}_${key}`])||0;
+  if((k('NaturalGas')>0&&!pv.gas)||(k('Oil')>0&&!pv.oil)||(k('Propane')>0&&!pv.propane)||(k('Wood')>0&&!pv.wood))return null;
   return k('Electricity')*pv.elec
        + k('NaturalGas')/KWH_PER_M3_GAS*pv.gas
        + k('Oil')/KWH_PER_L_OIL*pv.oil
@@ -1741,10 +1746,12 @@ function renderCost(){
   setCostCardVisible(true);
   const pv=COST_PV;
   const pre=[],post=[],deltas=[];
+  let unpriced=0;
   FILTERED.forEach(r=>{
     const cp=homeCost(r,'Pre',pv);
-    if(!(cp>0))return;                 // no priced energy for this home — skip
     const cq=homeCost(r,'Post',pv);
+    if(cp===null||cq===null){unpriced++;return;}   // burns a fuel with no price — skip + count
+    if(!(cp>0))return;                 // no priced energy for this home — skip
     pre.push(cp);post.push(cq);deltas.push(cp-cq);
   });
   const preM=median(pre),postM=median(post),svM=median(deltas);
@@ -1754,7 +1761,8 @@ function renderCost(){
     <div class="eui-stat"><div class="eui-val eui-pre-val">${preM!=null?fmtMoney(Math.round(preM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">Before, typical home</span><span class="cap-advanced">Pre-retrofit median</span><br>$/yr</div></div>
     <div class="eui-arrow-big">→</div>
     <div class="eui-stat"><div class="eui-val eui-post-val">${postM!=null?fmtMoney(Math.round(postM)):'—'}</div><div class="eui-lbl"><span class="cap-simple">After, typical home</span><span class="cap-advanced">Post-retrofit median</span><br>$/yr</div></div>
-    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home</span></div></div>`:''}`;
+    ${svStr!=null?`<div style="margin-left:auto;text-align:right"><div class="eui-saving">${svStr}</div><div style="font-size:12px;color:var(--muted)">$/yr · <span class="cap-simple">typical home</span><span class="cap-advanced">median home's own saving</span></div></div>`:''}
+    ${unpriced?`<div style="flex-basis:100%;font-size:12px;color:var(--muted)">${unpriced.toLocaleString()} of ${FILTERED.length.toLocaleString()} homes left out: they burn a fuel with no price for this province.</div>`:''}`;
   const costBins=vals=>{const b={};vals.forEach(v=>{if(v>COST_CAP)return;const k=Math.floor(v/BINS.cost)*BINS.cost;b[k]=(b[k]||0)+1;});return b;};
   const preBins=costBins(pre),postBins=costBins(post);
   const deltaBins={};
