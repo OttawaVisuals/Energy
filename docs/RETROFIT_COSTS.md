@@ -608,6 +608,14 @@ sessions — see the changelog entry below):**
 
 ## Changelog
 
+### 2026-11-19 oil / propane / wood prices were missing (priced at $0); refilled with national figures
+
+- **Bug:** the retrofits.html "Energy bill" card showed K1S as $2,839 → $2,839 with a −$196 saving. `utility_rates_reference.json/.csv` had empty `heating_oil`, `propane` and `heating_wood` for every province (the `add_oil_propane_rates.py` layer was lost, most likely overwritten by a later re-run of `utility_rates_reference.py` — not confirmed), and `homeCost()` turned a missing price into $0. In K1S 299 of 2,104 homes burned oil before the retrofit (about 18 GWh, 2 GWh after) and 127 burned wood.
+- **Fix, data:** new `Python/apply_canada_fuel_rates.py` writes one national figure per fuel into every province: furnace oil 230.4 c/L and auto propane 129.1 c/L (NRCan Prices by City, "Canada" column, week ending 2026-11-17, taxes included), wood $0.0600/kWh (the flat estimate from `add_oil_propane_rates.py`). Tagged low-confidence, `canada_average_nrcan`. Oil is volatile (157 c/L in Jan 2026, 231 in Mar, 230 in Nov); the latest week was chosen because the card says "current rates". Decision by Simon, 2026-11-19.
+- **Fix, code:** `homeCost()` (`assets/retrofits.js`) returns null when a home burns a fuel with no price; `renderCost()` skips it and prints "N of M homes left out". `precompute_province_stats.py` mirrors the rule (NaN, dropped). The saving KPI label now reads "median home's own saving" because the median of per-home savings is not the difference of the two medians.
+- **Result (K1S, local replication of the page math):** pre $3,067, post $2,834, median per-home saving $317 (difference of medians $233).
+- **Not done:** `province_json` is not regenerated yet, so province mode still shows the old numbers. NL, NT, NU, PE and YT have no natural-gas price (their gas homes are now skipped and counted rather than priced at $0).
+
 ### 2026-11-09 cost files: six unread columns dropped, sparse rows
 
 **Why.** Published site 1,355 MiB vs GitHub Pages' 1 GB limit. About 65% of the cost files' bytes were the text `null,` (most homes need few measures: PV null in 96% of rows, HRV 97%, ASHP 84%).

@@ -281,11 +281,16 @@ def add_cost_columns(df, pv):
         o = num(df.get(f'{prefix}_Oil')).fillna(0)
         p = num(df.get(f'{prefix}_Propane')).fillna(0)
         w = num(df.get(f'{prefix}_Wood')).fillna(0)
-        return (e * pv['elec']
-                + g / KWH_PER_M3_GAS * pv['gas']
-                + o / KWH_PER_L_OIL * pv['oil']
-                + p / KWH_PER_L_PROP * pv['propane']
-                + w * pv['wood'])
+        total = (e * pv['elec']
+                 + g / KWH_PER_M3_GAS * pv['gas']
+                 + o / KWH_PER_L_OIL * pv['oil']
+                 + p / KWH_PER_L_PROP * pv['propane']
+                 + w * pv['wood'])
+        # Mirror of homeCost() guard in retrofits.js: a fuel burned but unpriced
+        # -> NaN (home dropped by the cpre>0 / nan filters), never priced at $0.
+        unpriced = ((g > 0) & (not pv['gas'])) | ((o > 0) & (not pv['oil'])) \
+            | ((p > 0) & (not pv['propane'])) | ((w > 0) & (not pv['wood']))
+        return total.where(~unpriced)
     df = df.copy()
     df['_CostPre'] = bill('Pre')
     df['_CostPost'] = bill('Post')
@@ -411,7 +416,9 @@ def compute_slice(df):
     if '_CostPre' in df.columns:
         cpre = df['_CostPre'].to_numpy(dtype=float)
         cpost = df['_CostPost'].to_numpy(dtype=float)
-        valid = cpre > 0  # drop homes with no priced energy (all-zero fuel data)
+        # drop homes with no priced energy (all-zero fuel data) or an unpriced
+        # fuel on either side (NaN) -- same rule as renderCost() in retrofits.js
+        valid = (cpre > 0) & ~np.isnan(cpost)
         cpre_v, cpost_v = cpre[valid], cpost[valid]
         cdelta_all = cpre_v - cpost_v
         out['cost_pre_median'] = median(cpre_v)
