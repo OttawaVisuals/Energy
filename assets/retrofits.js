@@ -3775,15 +3775,15 @@ function pickSharperZoom(minLon,maxLon,minLat,maxLat,targetW,targetH,maxZoom){
   }
   return maxZoom;
 }
-// CARTO "light_all" basemap instead of standard OSM tiles: a near-greyscale
+// Esri "World Light Gray Base" instead of standard OSM tiles: a near-greyscale
 // style with far less visual detail, so the choropleth colours stay readable
 // on top of it (the full OSM style fought the data for attention). Same
-// slippy-map tile grid, so nothing else changes. Free tier requires the
-// OSM + CARTO attribution kept below the map.
-const TILE_URL_SUBDOMAINS=['a','b','c','d'];
+// slippy-map tile grid (note Esri's {z}/{y}/{x} order). Replaced CARTO
+// light_all on 2026-11-19: CARTO now stamps "API KEY REQUIRED" on every tile.
+// No key needed; keep the Esri attribution below the map. Max native zoom is
+// 16 (callers cap pickSharperZoom at 16).
 function tileUrl(z,x,y){
-  const sub=TILE_URL_SUBDOMAINS[(x+y)%TILE_URL_SUBDOMAINS.length];
-  return`https://${sub}.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;
+  return`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
 }
 
 let MAP_STATE=null; // {prov, z, origin:[ox,oy], features:[{fsa,d,bbox}], fullViewBox, indexByFsa, tilesD}
@@ -4016,7 +4016,7 @@ function loadSharpTiles(pixelBbox){
   const[px0,py0,px1,py1]=pixelBbox;
   const minLon=x2lon(px0+ox,baseZ),maxLon=x2lon(px1+ox,baseZ);
   const maxLat=y2lat(py0+oy,baseZ),minLat=y2lat(py1+oy,baseZ);
-  const z2=pickSharperZoom(minLon,maxLon,minLat,maxLat,900,900,17);
+  const z2=pickSharperZoom(minLon,maxLon,minLat,maxLat,900,900,16);
   if(z2<=baseZ){g.innerHTML='';return;}
   const scale=Math.pow(2,baseZ-z2); // <1 — size of one z2 tile in base-z units
   const worldX0=lon2x(minLon,z2),worldX1=lon2x(maxLon,z2);

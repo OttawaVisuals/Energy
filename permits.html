@@ -309,7 +309,7 @@ footer a:hover{color:var(--amber2)}
           <button type="button" class="map-btn" id="map-out" title="Zoom out">−</button>
           <button type="button" class="map-btn" id="map-reset" title="Reset view">⤢</button>
         </div>
-        <div class="map-attrib">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
+        <div class="map-attrib">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://www.esri.com/en-us/legal/copyright-trademarks" target="_blank" rel="noopener">Esri</a></div>
       </div>
       <div class="map-legend" id="map-legend"></div>
       <p class="note" id="map-note"></p>
@@ -490,7 +490,7 @@ footer a:hover{color:var(--amber2)}
 <footer>
   Built by <a href="https://github.com/OttawaVisuals/Energy">Ottawa Visuals</a> ·
   Municipal open data from nine Canadian cities, each under its own open licence ·
-  Basemap © OpenStreetMap contributors, © CARTO ·
+  Basemap © Esri, OpenStreetMap contributors ·
   <a href="construction.html">Construction Tracker</a> ·
   <span id="footer-stamp"></span>
 </footer>
@@ -982,7 +982,8 @@ function lat2y(lat,z){
   return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*256;
 }
 function tileUrl(z,x,y){
-  return 'https://'+TILE_SUB[(x+y)%4]+'.basemaps.cartocdn.com/light_all/'+z+'/'+x+'/'+y+'.png';
+  // Esri Light Gray (CARTO now watermarks "API KEY REQUIRED", 2026-11-19); max native zoom 16
+  return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/'+z+'/'+y+'/'+x;
 }
 var MAP=null;
 
