@@ -4,6 +4,7 @@
 <!-- 2026-11-09: Energy Quiz landing tile + art published; Cold Call line 6 cost list two columns from the start. -->
 <!-- 2026-11-09: Cold Call calculator brackets + Line 5 drag-to-move parts. Published. -->
 <!-- 2026-11-09: Cold Call line 3 handwritten note: Peak heat loss = UA x Delta T. Published. -->
+<!-- 2026-11-13: HVAC span by building size added to buildtime.html. 2026-11-12: Construction length page (buildtime.html) + Calgary and Winnipeg project timelines (building permit, inspections, HVAC/plumbing/electrical/gas permits on one clock). Built locally, not published. See ROADMAP.md. -->
 <!-- 2026-11-06: Published-site size step 1: fsa_json dictionary-encoded (1,112 -> 811 MB), retrofit costs in whole dollars (379 -> 240 MB). Site 1,354 MB (saved 441 MB), still over the 1 GB Pages limit. Decision 2026-11-06: stay as-is, step 3 (separate data host) not pursued. See ROADMAP.md. -->
 <!-- 2026-11-06: Cold Call emergency dispatch briefing for fresh service calls. Published. -->
 <!-- 2026-11-05: Cold Call listed on the landing page (tile + art), still a playtest. See docs/COLDCALL.md. -->
@@ -213,6 +214,7 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
       <a href="#geothermal">🌍 Geothermal</a>
       <a href="#heatpump">🔥 Heat Pump</a>
       <a href="#grid">⚡ Grid</a>
+      <a href="#costofpeak">💲 Cost of Peak</a>
       <a href="#districtenergy">🏙️ District Energy</a>
       <a href="#todo">🗺️ What's left</a>
     </nav>
@@ -1040,6 +1042,8 @@ table.remain tr td:first-child{font-weight:700;color:var(--navy);white-space:now
     <div class="src">Bank of Canada<small>overnight rate (Valet API, series V39079)</small></div>
     <div class="src">CMHC HMIP (not StatCan)<small>construction time in months + completions, monthly since 1990, Canada · 10 provinces · 42 CMAs, CMA-only coverage (construction_time_etl.py, added 2026-11-05; monthly in the refresh workflow as a non-blocking step)</small></div>
     <div class="src">City permits vs CMHC<small>new-home build time from six cities' permits (Calgary, Edmonton, Winnipeg, Halifax, Toronto, Mississauga), by completion year and unit-weighted to sit beside CMHC, plus house floor area and apartment building size (city_build_time_etl.py, added 2026-11-06; monthly, non-blocking)</small></div>
+    <div class="src">Calgary project timelines<small>building permit, building inspections and separate HVAC / plumbing / electrical / gas permits on one clock, 2018-2026 new construction with a year selector (calgary_project_timelines.py, added 2026-11-12, extended to all years the same day; manual refresh, shown on buildtime.html). City of Calgary Open Data, Open Government Licence – Calgary. Measured from city records; single houses rarely have trade permits in the open data, so large residential buildings carry the finding</small></div>
+    <div class="src">Winnipeg project timelines<small>building permit and separate electrical / plumbing / (commercial) mechanical trade permits on one clock, joined by address, new construction issued 2011-2018 by default (winnipeg_project_timelines.py, added 2026-11-12; manual refresh, shown on buildtime.html). City of Winnipeg Open Data. Trade permits have final dates only through about 2019, no inspections or house HVAC permits exist, and row housing is not summarised</small></div>
   </div>
 
   <h3>How it was built</h3>
@@ -1748,6 +1752,20 @@ Tbalance = solved so the simulated year reproduces the audited annual energy</sp
       </div></li>
     </ul>
   </div>
+</section>
+
+<section id="costofpeak" class="card">
+  <div class="proj-head">
+    <h2>💲 Cost of Peak</h2>
+    <span class="chip">🛠️ Built locally, not published</span>
+  </div>
+  <p><b>In one sentence:</b> what one new kilowatt of winter peak costs in Ontario if every added kW is met with new generation plus new wires and land, set against the IESO plan. Built 2026-11-24.</p>
+  <h3>Status</h3>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">costofpeak_etl.py + JSON</span><div class="track"><div class="fill f-done" style="width:100%"></div></div><span class="pct">done</span></div>
+  <div class="pb"><span style="min-width:11.5em;font-weight:600;font-size:.85rem">costofpeak.html page</span><div class="track"><div class="fill f-done" style="width:90%"></div></div><span class="pct">built, unpublished</span></div>
+  <details class="method"><summary>Full methodology, in plain language</summary><div class="d-inner">
+    <p>Plant costs come from the IESO 2026 Annual Planning Outlook (2025 CAD) and NREL's 2024 ATB (2022 USD). Each is divided by the share of nameplate that counts at winter peak (IESO winter effective &divide; installed). Wires and land come from the FortisBC Kelowna Electrification Case Study (Table 4-4) divided by the added peak (our arithmetic), with other published estimates shown beside it. A load-factor panel turns the annual cost of peak into $ per MWh sold. See <code>docs/COSTOFPEAK.md</code>.</p>
+  </div></details>
 </section>
 
 <section id="districtenergy" class="card">

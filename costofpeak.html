@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cost of Peak — what does a new kilowatt of winter peak cost?</title>
+<meta name="description" content="If heating electrifies, every added kilowatt of peak demand needs new capacity and new wires. Compare generator costs (IESO, NREL), the grid upgrades around them (FortisBC Kelowna study), and what the IESO plan itself costs.">
+<meta property="og:title" content="Cost of Peak — what does a new kilowatt of winter peak cost?">
+<meta property="og:description" content="Generator costs, greenhouse gases and grid-upgrade costs for each kilowatt of new peak demand, set against Ontario's planned build-out.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ottawavisuals.github.io/Energy/costofpeak">
+<meta property="og:site_name" content="Ottawa Visuals">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="assets/site-theme.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicons/grid.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/grid.png">
+<style>
+/* Reset, theme variables, header and hero live in assets/site-theme.css.
+   Every colour drawn into a canvas comes from PAL (readPalette), never a hex literal. */
+main{max-width:1280px;margin:0 auto;padding:1rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.card-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:.85rem}
+.card-title-row .card-title{margin-bottom:0}
+.note{font-size:12px;color:var(--light);margin-top:10px;line-height:1.5}
+.section-head{margin:1.6rem 0 .8rem}
+.section-head h2{font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:24px;color:var(--ink);margin:0 0 .25rem}
+.sec-sub{font-size:14px;color:var(--muted);max-width:80ch;margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:1rem}
+.chart-box{position:relative;height:340px}
+.chart-box.short{height:230px}
+.chart-box.tall{height:460px}
+.chart-box.scatter{height:560px}
+.chart-block{margin-bottom:1.6rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:1rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem 1rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.stat-val{font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:300;color:var(--ink);line-height:1.1}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-sub{font-size:11px;color:var(--light);margin-top:2px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--muted);background:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;padding:5px 12px;border:0;background:var(--card);color:var(--text);cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.program{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.program div{font-size:13px;line-height:1.5;color:var(--text)}
+.program b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.warn{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px;margin:.8rem 0 0}
+table.simple{border-collapse:collapse;font-size:13px;width:100%}
+table.simple th,table.simple td{border-bottom:1px solid var(--border);padding:7px 8px;text-align:right}
+table.simple th:first-child,table.simple td:first-child{text-align:left}
+table.simple th{font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+#err{display:none;margin:1rem 0;padding:.8rem 1rem;border:1px solid var(--neg,#B33A2E);border-radius:var(--r-md);color:var(--text)}
+.sibling-link{font-size:13px}
+.methodology{max-width:1280px;margin:1rem auto 0;padding:0 1rem}
+.methodology details{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.methodology summary{cursor:pointer;list-style:none;padding:.75rem 1rem;font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:300;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.methodology summary::-webkit-details-marker{display:none}
+.methodology summary::after{content:'+';font-family:'Inter',sans-serif;font-size:22px;color:var(--amber)}
+.methodology details[open] summary::after{content:'–'}
+.methodology .method-body{padding:0 1rem .85rem;font-size:14px;line-height:1.65;color:var(--text)}
+.methodology .method-body h4{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .4rem}
+.methodology .method-body p{margin:0 0 .6rem}
+.methodology .method-body code{background:var(--surface);color:var(--text);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.methodology .method-body .caveats{border-left:3px solid var(--amber);padding-left:12px;color:var(--muted);font-size:13px}
+</style>
+<style>
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.ctl label{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.ctl select,.ctl input[type=number]{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 8px}
+.effgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:.8rem}
+.effgrid label{font-size:12px;letter-spacing:0;text-transform:none}
+.sticky{position:sticky;top:0;z-index:5}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;margin-left:6px;border:1px solid var(--border);color:var(--muted)}
+.pill.m{border-color:var(--d-primary);color:var(--d-primary)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.big{font-family:'Fraunces',Georgia,serif;font-size:30px;font-weight:300;color:var(--ink)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:1rem}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin:.4rem 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+</style>
+<link rel="stylesheet" href="assets/visual-polish.css">
+<script defer src="assets/visual-polish.js"></script>
+</head>
+<body data-energy-tool="costofpeak">
+<script>
+(function(){
+  var t=null;
+  try{t=localStorage.getItem('theme');}catch(e){}
+  if(t!=='light'&&t!=='dark'&&t!=='cb'){
+    t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  document.documentElement.dataset.theme=t;
+})();
+</script>
+
+<header>
+  <div class="header-left">
+    <div class="logo">costOfPeak<span>Ontario</span></div>
+    <div class="header-title">What a new peak kW costs</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a class="sibling-link" href="index.html">⌂ All tools</a>
+    <a class="sibling-link" href="grid.html">↳ Grid dashboard</a>
+    <div class="header-badge">IESO · NREL · FortisBC</div>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme="light" aria-pressed="false" title="Light" aria-label="Light theme" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark theme" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.6 8.6 0 019.4 3.5a8.6 8.6 0 1011.1 11.1z"/></svg>
+      </button>
+      <button type="button" class="theme-btn" data-theme="cb" aria-pressed="false" title="Colour-blind friendly" aria-label="Colour-blind friendly theme" onclick="setTheme('cb')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1.9 12S5.6 5.3 12 5.3 22.1 12 22.1 12 18.4 18.7 12 18.7 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="tool-heading"><h1>What does a new kilowatt of <em>winter peak</em> cost?</h1></div>
+  <p class="hero-sub">When more homes heat with electricity, the grid has to meet a higher winter peak. Here we take one simple rule, <b>every added kilowatt is met with new generation plus new wires</b>, and price it using Ontario's own planning numbers, NREL's technology costs, and a utility study of the grid upgrades. Then we ask what the peak costs per unit of electricity sold.</p>
+</div>
+
+<main>
+  <div id="err" role="alert"></div>
+
+  <div class="card sticky">
+    <div class="card-title-row"><div class="card-title">Settings (apply to every section below)</div><span class="badge" id="vintage"></span></div>
+    <div class="ctl">
+      <label>Cost year
+        <select id="year"><option>2030</option><option selected>2035</option><option>2040</option><option>2045</option><option>2050</option></select></label>
+      <label>USD → CAD (NREL costs)
+        <select id="fx"><option value="1.30">1.30</option><option value="1.35" selected>1.35</option><option value="1.40">1.40</option><option value="1.333">1.33 (IESO 2027+ forecast)</option></select></label>
+      <label>Show costs as
+        <select id="view"><option value="once" selected>One-time investment ($)</option><option value="annual">Annualized ($ per year)</option></select></label>
+      <label>Peak you are adding (MW)
+        <input id="mw" type="number" min="1" step="10" value="100"></label>
+      <label>Discount rate (for annualizing)
+        <input id="rate" type="number" min="0" max="20" step="0.5" value="6"></label>
+      <label>Wires &amp; land life, years
+        <input id="tdlife" type="number" min="10" max="80" step="5" value="40"></label>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="section-head">
+    <h2>1 · What Ontario's grid has today</h2>
+    <p class="sec-sub">Installed capacity is what the plant could produce at best. The winter figure is what the IESO counts on when the system is stressed. A wind farm, for example, is counted at only about a quarter of its nameplate in winter, and solar at zero.</p>
+  </div>
+  <div class="card">
+    <div class="stats-grid" id="kpi1"></div>
+    <div class="chart-box"><canvas id="c-fleet"></canvas></div>
+    <div class="legend" id="lg-fleet"></div>
+    <p class="note"><b>Source:</b> IESO 2026 Annual Planning Outlook, Data Tables Figures 2, 7 and 8 (installed capacity 2026; winter effective capacity 2026–27; seasonal peak demand). Imports, bioenergy and demand response are in the data but not drawn. <span class="pill m">measured/planning data</span></p>
+  </div>
+
+  <!-- 2 -->
+  <div class="section-head">
+    <h2>2 · What the IESO plans to add</h2>
+    <p class="sec-sub">Capacity in 2050, split into what exists or is committed today and what is new. The scenario changes how fast Ontario's demand grows.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Installed capacity: 2026 vs 2050 (MW)</div>
+      <div class="seg" id="seg-scn" role="group" aria-label="Demand scenario">
+        <button type="button" data-v="reference" aria-pressed="true">Reference</button>
+        <button type="button" data-v="high" aria-pressed="false">High demand</button>
+        <button type="button" data-v="low" aria-pressed="false">Low demand</button></div></div>
+    <div class="chart-box tall"><canvas id="c-plan"></canvas></div>
+    <div class="legend"><span><i style="background:var(--d-axis)"></i>2026 installed</span><span><i style="background:var(--d-blue)"></i>existing/committed still running in 2050</span><span><i style="background:var(--d-primary)"></i>new by 2050</span></div>
+    <p class="note" id="plan-note"></p>
+  </div>
+
+  <!-- 3 -->
+  <div class="section-head">
+    <h2>3 · What a kilowatt of each kind of plant costs</h2>
+    <p class="sec-sub">Two independent sources side by side: the IESO's Ontario numbers (Canadian dollars, 2025) and NREL's US technology baseline (US dollars, 2022, converted with the rate you chose). Costs are per kilowatt of <b>nameplate</b> capacity; the next sections adjust for what counts at winter peak.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title" id="t-cost">Cost per kW of plant</div><span class="badge">CAD</span></div>
+    <div class="chart-box tall"><canvas id="c-gen"></canvas></div>
+    <div class="legend"><span><i style="background:var(--d-primary)"></i>IESO (Ontario, 2025 CAD)</span><span><i style="background:var(--d-blue)"></i>NREL (US, 2022 USD × rate)</span></div>
+    <p class="note" id="gen-note"></p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Greenhouse gases over each plant's whole life</div><span class="badge">g CO₂e per kWh</span></div>
+    <table class="simple" id="ghg"><thead><tr><th>Technology</th><th>NREL 2021 median</th><th>IPCC low</th><th>IPCC median</th><th>IPCC high</th></tr></thead><tbody></tbody></table>
+    <p class="note">Lifecycle means everything from building the plant and fuel supply (including leaked methane) to running it. These are published literature values for typical plants, <b>not</b> Ontario measurements; Ontario's own grid-average intensity covers operations only. Neither source reports simple-cycle gas separately, and the NREL battery figure is per kWh delivered, without the electricity used to charge it. <span class="pill">modelled / literature</span></p>
+  </div>
+
+  <!-- 4 -->
+  <div class="section-head">
+    <h2>4 · The wires and land around the plant</h2>
+    <p class="sec-sub">New peak also needs substations, feeders, transmission lines and the land under them. FortisBC modelled Kelowna, a city with little spare capacity, electrifying 25%, 50% and 100% of its gas heat.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">FortisBC Kelowna Electrification Case Study — project costs</div><span class="badge">CAD millions</span></div>
+    <table class="simple" id="fortis"><thead><tr><th>Case (2040)</th><th>Peak (MW)</th><th>Added vs 472 MW</th><th>Grid upgrades</th><th>Land</th><th>Total</th><th>Per added kW</th></tr></thead><tbody></tbody></table>
+    <p class="note" id="fortis-note"></p>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="card-title">Other published estimates</div>
+      <table class="simple" id="td-other"><thead><tr><th>Source</th><th>Figure</th></tr></thead><tbody></tbody></table>
+      <p class="note">We found no published Ontario figure for wires cost per kW of added peak. The Ontario number below is an annual <i>avoided-cost</i> value, a different quantity, so it is shown but not mixed with capital costs. Distribution costs per kW fall steeply as the project gets larger.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Which wires estimate to use in section 5</div>
+      <div class="ctl" style="grid-template-columns:1fr">
+        <label>Wires and land estimate
+          <select id="td">
+            <option value="none">None (generation only)</option>
+            <option value="f0" selected>FortisBC Kelowna — 25% case</option>
+            <option value="f1">FortisBC Kelowna — 50% case</option>
+            <option value="f2">FortisBC Kelowna — 100% case</option>
+            <option value="pge2">PG&amp;E (California) median — 2–4 MW projects</option>
+            <option value="pge8">PG&amp;E (California) median — 8 MW or larger</option>
+            <option value="dunsky">Ontario avoided-cost value (IESO/Dunsky) — annual only</option>
+          </select></label>
+        <label>Land, FortisBC cases only
+          <select id="land"><option value="low" selected>Low (today's land values)</option><option value="high">High (future land values)</option></select></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section-head">
+    <h2>5 · The cost of one new kilowatt of winter peak</h2>
+    <p class="sec-sub">Every added peak kilowatt must be covered by capacity that is actually there on the coldest evening. So each plant's cost is divided by the share of its nameplate that counts in winter (editable below), then the wires and land cost is added.</p>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Cost per kW of winter peak, by how it is met</div>
+      <div class="seg" id="seg-basis" role="group" aria-label="Cost source">
+        <button type="button" data-v="ieso" aria-pressed="true">IESO costs</button>
+        <button type="button" data-v="nrel" aria-pressed="false">NREL costs</button></div></div>
+    <div class="chart-box tall"><canvas id="c-stack"></canvas></div>
+    <div class="legend"><span><i style="background:var(--d-primary)"></i>generation</span><span><i style="background:var(--d-purple)"></i>wires &amp; land</span></div>
+    <div class="card-title" style="margin-top:1rem">Share of nameplate that counts at winter peak (default: IESO 2026–27 winter effective ÷ installed)</div>
+    <div class="effgrid" id="eff"></div>
+    <table class="simple" id="stack-tbl" style="margin-top:1rem"><thead><tr><th>How it is met</th><th>Generation</th><th>Wires &amp; land</th><th>Total per kW</th><th id="th-tot">Total for your peak</th></tr></thead><tbody></tbody></table>
+    <p class="note" id="stack-note"></p>
+    <div class="stats-grid" style="margin-top:1rem" id="kpi5"></div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section-head">
+    <h2>6 · What the IESO plan itself costs</h2>
+    <p class="sec-sub">The IESO publishes the total cost of the electricity system under its plan, and its own estimate of what a kilowatt of capacity costs each year. Both are shown as published. We add one rough figure of our own, labelled as such.</p>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="card-title-row"><div class="card-title">Total system cost, reference scenario</div><span class="badge">nominal $ billions</span></div>
+      <div class="chart-box"><canvas id="c-sys"></canvas></div>
+      <p class="note" id="sys-note"></p>
+    </div>
+    <div class="card">
+      <div class="card-title-row"><div class="card-title">IESO's own cost of a kilowatt of capacity</div><span class="badge">2025 $ per kW-year</span></div>
+      <div class="chart-box"><canvas id="c-capc"></canvas></div>
+      <p class="note">Total yearly cost of the new-build portfolio divided by the capacity it effectively adds. Bars in the early years use the capacity-auction price. "Summer" or "Winter" is the season in which the IESO finds a shortfall that year, which matters here because electric heating loads the <i>winter</i>.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title-row"><div class="card-title">Our rough build-out estimate, reference scenario to 2050</div><span class="badge">ours · modelled</span></div>
+    <table class="simple" id="build"><thead><tr><th>Resource</th><th>New MW by 2050</th><th>Cost per kW (cost year)</th><th>Overnight capital ($ billions)</th></tr></thead><tbody></tbody></table>
+    <p class="note" id="build-note"></p>
+  </div>
+
+  <!-- 7 -->
+  <div class="section-head">
+    <h2>7 · Peak versus utilization</h2>
+    <p class="sec-sub">A kilowatt of peak capacity costs the same whether it runs one hour or all year, so the cost <i>per kilowatt-hour sold</i> depends on how many hours it sells. Utilities want a low peak but a high load factor (average demand ÷ peak demand). Electric heating tends to do the opposite.</p>
+  </div>
+  <div class="card">
+    <div class="stats-grid" id="kpi7"></div>
+    <div class="ctl" style="margin-bottom:.8rem">
+      <label>Load factor of the added load (%)<input id="lf" type="number" min="5" max="100" step="1" value="35"></label>
+      <label>Peak cost basis
+        <select id="lfbasis"><option value="stack" selected>Section 5 selection below</option><option value="iesocap">IESO capacity cost (section 6)</option></select></label>
+      <label id="lfpick-wrap">Section 5 option
+        <select id="lfpick"></select></label>
+    </div>
+    <div class="seg" id="seg-lf" role="group" aria-label="Load factor presets" style="margin-bottom:.8rem">
+      <button type="button" data-v="sys">Ontario system today</button>
+      <button type="button" data-v="100">Flat all-year load</button>
+      <button type="button" data-v="35">Heating-only load (assumed 35%)</button></div>
+    <div class="chart-box"><canvas id="c-lf"></canvas></div>
+    <p class="note" id="lf-note"></p>
+  </div>
+</main>
+
+<section class="methodology" aria-label="Simple methodology">
+  <details open>
+    <summary>How this works, in plain language</summary>
+    <div class="method-body">
+      <p>We start from one simple idea: if homes that burned gas switch to electric heat pumps, they add to the coldest-evening demand on the grid. For each extra kilowatt of that peak, someone has to build a power plant (or a battery) <i>and</i> the wires and land to deliver it.</p>
+      <p><b>The plant.</b> We take what the IESO and NREL say it costs to build each kind of plant, per kilowatt. Then we ask how much of a plant you can count on at the winter peak. A gas plant is close to 90% available, a wind farm about a quarter, a battery about half, solar none. The cost per <i>winter-peak</i> kilowatt is the plant cost divided by that share.</p>
+      <p><b>The wires and land.</b> FortisBC studied Kelowna and estimated what upgrades and land would cost if its gas heat moved to electricity. We divide their total by the extra peak they modelled. You can switch to other published numbers.</p>
+      <p><b>One-time or yearly.</b> The one-time view is the investment needed when the peak arrives. The yearly view spreads that investment over the plant's life at the discount rate you choose.</p>
+      <p><b>Cost per kWh.</b> Peak capacity is paid for once per kilowatt, so the more hours a year that kilowatt is used, the cheaper each kilowatt-hour. That is why a flat load is cheap to serve and a winter-heating-only load is not.</p>
+      <p>These are planning-level numbers from public sources, not a forecast of anyone's bill. Where a number is our own arithmetic, the page says so. For the full list of assumptions see the advanced section.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Advanced methodology">
+  <details>
+    <summary>Advanced methodology — formulas, sources &amp; caveats</summary>
+    <div class="method-body">
+      <h4>Sources and vintage</h4>
+      <p><strong>IESO 2026 Annual Planning Outlook</strong> (report 2026-03-20; capacity-expansion modules 2026-09): <code>Annual-Planning-Outlook-Data-Tables.xlsx</code> (Figures 2, 5–8); <code>Capacity-Expansion-Scenario-and-Outcomes-Data.xlsx</code> (Figures 1–3, <code>Levelized Cost and Components</code>, <code>Elec Cost by Component</code>); <code>Marginal-Energy-Costs-and-Capacity-Costs.xlsx</code> (Table 1 capacity cost); <code>Fuel-Cost.xlsx</code> (USD/CAD 0.73–0.75). IESO levelized costs are 2025 CAD per nameplate kW; system costs are nominal. <strong>NREL 2024 ATB v4</strong> workbook (data.openei.org/submissions/6006, CC BY 4.0), sheets <code>Summary_CAPEX</code>, <code>Summary_FOM</code>; Moderate cost case, R&amp;D financial case (no tax credits), 2022 USD.</p>
+      <h4>Formulas</h4>
+      <p>Annualizing: <code>CRF = r / (1 − (1+r)<sup>−n</sup>)</code>. NREL annual cost per nameplate kW = <code>CAPEX × FX × CRF(r, n) + FOM × FX</code>, with n = 30 (NREL's recovery period). IESO's annual figure is its own published <code>Levelized Cost ($/kW-yr)</code>, which embeds IESO's financing and tax-credit assumptions and a 20–75-year economic life by plant type, so the two annual figures are <i>not</i> on an identical financial basis. Wind and hydro show the median across IESO's zones. Wires and land annual = one-time × <code>CRF(r, tdlife)</code>.</p>
+      <p>Winter-peak cost per kW = <code>(plant cost per nameplate kW ÷ winter share) + wires and land per kW</code>. Winter share defaults to IESO winter effective capacity 2026–27 ÷ 2026 installed capacity, by fuel (Figures 7 and 8). Storage is IESO's own storage line (0.6 of 1.2 GW). Variable fuel and O&amp;M are not in the capacity cost.</p>
+      <p>FortisBC per added kW = <code>(Table 4-2 upgrades + Table 4-3 land) ÷ (case peak − 472 MW)</code>, where 472 MW is Kelowna's 2040 winter peak with zero electrification (Fortis Figure 3-3). Per-kW values (about $5,300–7,100, $4,500–6,100 and $2,700–3,600 for low–high land) are <b>our arithmetic</b>, not Fortis's. Cost steps at 550 MW and 950 MW (new 500 kV lines), so per-kW falls with size.</p>
+      <p>Cost per MWh of peak = <code>annual $/kW-yr ÷ (8.76 × load factor)</code>. Ontario's system load factor is mean ÷ peak of IESO monthly demand for complete calendar years in <code>grid_json/grid_on_history.json</code> (<code>Python/grid_history_etl.py</code>); it ranges 0.66–0.70 for 2021–2025.</p>
+      <h4>Measured vs modelled vs assumed</h4>
+      <p>Measured: Ontario demand history (load factor). Planning data: IESO capacity and cost forecasts. Literature: NREL/IPCC technology costs and lifecycle greenhouse gases. Assumed: winter shares (editable), the 35% heating-only load factor (illustrative until real hourly data replaces it), annualizing rate and life. Ours: per-kW Fortis conversion, build-out capital estimate (new MW × overnight cost in the chosen year, undiscounted, constant 2025 CAD, ignores transmission-to-site and demand response).</p>
+      <h4>Limits</h4>
+      <p class="caveats"><b>What the data can't tell us:</b> hourly load shapes of electrified homes, real cold-climate heat pump performance, and any Ontario-specific wires cost per kW. <b>What we assumed:</b> every added kW needs new capacity (true only once spare capacity is gone; IESO says Ontario needs new capacity in any case); Kelowna's wires costs transfer to other places (they will not: the filing is for a capacity-short city with agricultural-land limits and was prepared by a gas utility); the Dunsky Ontario value is an annual avoided cost and not a capital cost. FortisBC's wires costs exclude upgrades to BC Hydro's system and Indigenous consultation. The IESO's own cost of capacity assumes the winter-peaking years only from 2042. <b>What would change the answer:</b> hourly utility data for the load factor, lab heat pump curves for the peak itself, a lower-cost local wires estimate, or a different marginal plant.</p>
+      <p><b>Not reported:</b> lifecycle greenhouse gases for simple-cycle gas (neither NREL nor IPCC reports it separately). Pipeline: <code>Python/costofpeak_etl.py</code> → <code>costofpeak_json/costofpeak.json</code>. Project doc: <code>docs/COSTOFPEAK.md</code>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="methodology" aria-label="Sources">
+  <details>
+    <summary>Sources</summary>
+    <div class="method-body">
+      <ul>
+        <li><a href="https://www.ieso.ca/Sector-Participants/Planning-and-Forecasting/Annual-Planning-Outlook" target="_blank" rel="noopener">IESO — 2026 Annual Planning Outlook ↗</a> (data workbooks).</li>
+        <li><a href="https://data.openei.org/submissions/6006" target="_blank" rel="noopener">NREL — 2024 Annual Technology Baseline, electricity ↗</a>, DOI 10.25984/2377191, CC BY 4.0.</li>
+        <li><a href="https://www.cdn.fortisbc.com/libraries/docs/default-source/about-us-documents/regulatory-affairs-documents/gas-utility/230224-fei-2022-ltgrp-fortisbc-additional-evidence-ff.pdf" target="_blank" rel="noopener">FortisBC — Kelowna Electrification Case Study, 2023-02-24 ↗</a> (Tables 4-2, 4-3, 4-4).</li>
+        <li><a href="https://escholarship.org/uc/item/8kt4g6cb" target="_blank" rel="noopener">Elmallah, Brockway &amp; Callaway (2022), PG&amp;E distribution upgrade costs ↗</a>.</li>
+        <li><a href="https://ieso.ca/-/media/Files/IESO/Document-Library/engage/derps/derps-20220930-final-report-volume-2.pdf" target="_blank" rel="noopener">Dunsky for IESO — Ontario DER Potential Study, Vol. 2 ↗</a>.</li>
+        <li><a href="https://www.nrel.gov/docs/fy21osti/80580.pdf" target="_blank" rel="noopener">NREL — Life Cycle GHG Emissions from Electricity Generation: Update (2021) ↗</a>; <a href="https://www.ipcc.ch/site/assets/uploads/2018/02/ipcc_wg3_ar5_annex-iii.pdf" target="_blank" rel="noopener">IPCC AR5 WG3 Annex III ↗</a>.</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<footer>
+  IESO data: Copyright © 2004-2026 Independent Electricity System Operator, all rights reserved. This information is subject to the Terms of Use set out in the IESO's website (<a href="https://www.ieso.ca/en/Terms-of-Use" target="_blank" rel="noopener">ieso.ca</a>). This page reports IESO figures as published and is not endorsed by the IESO. · NREL ATB: CC BY 4.0 · FortisBC filing and other studies cited above.
+</footer>
+<script defer src="assets/author-footer.js"></script>
+
+<script src="assets/chart.umd.js"></script>
+<script>
+const BASE_URL='./';
+const DATA_URL=`${BASE_URL}costofpeak_json/costofpeak.json`;
+const PAL={};
+const charts={};
+let D=null,SCN='reference',BASIS='ieso',LFPRESET=null;
+let EFF={};   // winter share by fuel key, user-editable
+
+function readPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  Object.assign(PAL,{primary:g('--d-primary'),secondary:g('--d-secondary'),pos:g('--d-pos'),
+    blue:g('--d-blue'),purple:g('--d-purple'),axis:g('--d-axis'),grid:g('--d-grid'),
+    text:g('--text'),muted:g('--muted'),card:g('--card'),border:g('--border')});
+  Chart.defaults.color=PAL.axis;
+}
+function syncThemeButtons(t){
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    const on=b.dataset.theme===t;
+    b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setTheme(t){
+  if(!['light','dark','cb'].includes(t))t='light';
+  document.documentElement.dataset.theme=t;
+  try{localStorage.setItem('theme',t);}catch(e){}
+  readPalette();syncThemeButtons(t);
+  if(D)renderAll();
+}
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.animation=false;
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.maintainAspectRatio=false;
+readPalette();
+syncThemeButtons(document.documentElement.dataset.theme||'light');
+
+const $=id=>document.getElementById(id);
+const fmt=(v,d=0)=>v==null||isNaN(v)?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:d});
+const money=(v,d=0)=>v==null||!isFinite(v)?'—':'$'+fmt(v,d);
+function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+function mk(k,cfg){dc(k);charts[k]=new Chart($(k),cfg);}
+const med=a=>{a=a.filter(x=>x!=null).sort((x,y)=>x-y);if(!a.length)return null;const m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;};
+const crf=(r,n)=>r===0?1/n:r/(1-Math.pow(1+r,-n));
+const Y=()=>$('year').value, FX=()=>+$('fx').value, MW=()=>Math.max(1,+$('mw').value||1);
+const RATE=()=>Math.max(0,+$('rate').value||0)/100, TDLIFE=()=>Math.max(5,+$('tdlife').value||40);
+const ANNUAL=()=>$('view').value==='annual';
+const scaleOpts=(title)=>({grid:{color:PAL.grid},ticks:{color:PAL.axis},title:title?{display:true,text:title,color:PAL.axis}:undefined});
+
+// ---- technologies shown in sections 3 and 5
+const TECH=[
+ {k:'scgt',label:'Gas, simple cycle',ieso:['Gas','SCGT'],nrel:'Gas combustion turbine (F-frame)',eff:'gas'},
+ {k:'ccgt',label:'Gas, combined cycle',ieso:['Gas','CCGT'],nrel:'Gas combined cycle (F-frame)',eff:'gas'},
+ {k:'bess',label:'Battery, 4-hour',ieso:['BESS','4-Hr Li-Ion'],nrel:'Battery, 4-hour (utility)',eff:'storage'},
+ {k:'solar',label:'Solar PV',ieso:['Solar','Solar'],nrel:'Solar PV (utility, class 5)',eff:'solar'},
+ {k:'wind',label:'Wind (onshore)',ieso:['Wind',null],nrel:'Wind (land-based, class 4)',eff:'wind'},
+ {k:'hydro',label:'Hydro (new)',ieso:['Hydroelectric',null],nrel:'Hydropower (NPD 1)',eff:'hydro'},
+ {k:'nuc',label:'Nuclear',ieso:['Nuclear','Nuclear'],nrel:'Nuclear (large)',eff:'nuclear'}
+];
+const EFFMAP={gas:'Gas/Oil',storage:'Storage',solar:'Solar',wind:'Wind',hydro:'Hydroelectric',nuclear:'Nuclear'};
+const EFFLABEL={gas:'Gas',storage:'Battery',solar:'Solar',wind:'Wind',hydro:'Hydro',nuclear:'Nuclear'};
+
+function iesoVal(t,key,yr){
+  const L=D.ieso.levelized_cad2025[t.ieso[0]];if(!L)return null;
+  const subs=t.ieso[1]?[t.ieso[1]]:Object.keys(L);
+  return med(subs.map(s=>L[s]&&L[s][key]?L[s][key][String(yr)]:null));
+}
+function nrelVal(t,key,yr){
+  const n=D.nrel[t.nrel];return n&&n[key]?n[key][String(yr)]:null;
+}
+// per nameplate kW, CAD
+function genOnce(t,basis,yr){
+  if(basis==='ieso')return iesoVal(t,'occ',yr);
+  const c=nrelVal(t,'capex',yr);return c==null?null:c*FX();
+}
+function genAnnual(t,basis,yr){
+  if(basis==='ieso')return iesoVal(t,'levelized',yr);
+  const c=nrelVal(t,'capex',yr),f=nrelVal(t,'fom',yr);
+  return c==null?null:(c*crf(RATE(),30)+(f||0))*FX();
+}
+
+// ---- wires & land, $ per added kW
+function tdPerKw(){
+  const v=$('td').value, F=D.fortis, land=$('land').value;
+  const out={label:'',once:null,annual:null,note:''};
+  if(v==='none'){out.label='no wires cost';out.once=0;out.annual=0;return out;}
+  if(v[0]==='f'){
+    const c=F.cases[+v[1]], dmw=c.peak_mw-F.baseline_peak_mw_2040_no_electrification;
+    const tot=c.system_upgrades_m+(land==='low'?c.land_low_m:c.land_high_m);
+    out.once=tot*1000/dmw;out.annual=out.once*crf(RATE(),TDLIFE());
+    out.label=`FortisBC Kelowna ${c.label}, ${land} land`;out.note='CAD, 2021 land dollars';return out;
+  }
+  if(v.startsWith('pge')){
+    const r=D.td_other.find(x=>x.id==='elmallah').rows[v==='pge2'?2:4];
+    out.once=(r[1]+r[2])*FX();out.annual=out.once*crf(RATE(),TDLIFE());
+    out.label=`PG&E median ${r[0]} (feeder + substation), USD→CAD`;out.note='distribution only, no transmission or land';return out;
+  }
+  if(v==='dunsky'){
+    const d=D.td_other.find(x=>x.id==='dunsky');
+    out.annual=(d.transmission_per_mw_day+d.distribution_per_mw_day)*365/1000;out.once=null;
+    out.label='Ontario avoided-cost value (annual only)';out.note='2021 CAD; an avoided cost, not a capital cost';return out;
+  }
+}
+
+// ---- section 1
+function renderFleet(){
+  const I=D.ieso, inst=I.installed_2026_gw, wk=Object.keys(I.winter_effective_gw.Nuclear)[0], sk=Object.keys(I.summer_effective_gw.Nuclear)[0];
+  const fuels=['Nuclear','Gas/Oil','Hydroelectric','Wind','Solar','Storage'];
+  const tot=Object.values(inst).reduce((a,b)=>a+b,0);
+  const win=I.winter_effective_gw, sum=I.summer_effective_gw;
+  const wt=Object.keys(win).filter(k=>k!=='Total').map(k=>win[k][wk]).reduce((a,b)=>a+b,0);
+  const pk=I.peak_demand_gw;
+  $('kpi1').innerHTML=[
+    [fmt(tot,1)+' GW','installed capacity, 2026','all fuels'],
+    [fmt(wt,1)+' GW','counted on at winter peak',`${fmt(100*wt/tot)}% of installed`],
+    [fmt(pk['Reference Scenario - Winter Peak']['2026'],1)+' GW','2026 winter peak demand','reference scenario'],
+    [fmt(pk['Reference Scenario - Winter Peak']['2035'],1)+' GW','2035 winter peak demand',`vs ${fmt(pk['Reference Scenario - Summer Peak']['2035'],1)} GW summer`]
+  ].map(([v,l,s])=>`<div class="stat-card"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div><div class="stat-sub">${s}</div></div>`).join('');
+  mk('c-fleet',{type:'bar',data:{labels:fuels.map(f=>f==='Gas/Oil'?'Gas / oil':f==='Hydroelectric'?'Hydro':f),datasets:[
+    {label:'Installed 2026',data:fuels.map(f=>inst[f]),backgroundColor:PAL.axis},
+    {label:'Summer effective',data:fuels.map(f=>sum[f]?sum[f][sk]:null),backgroundColor:PAL.blue},
+    {label:'Winter effective',data:fuels.map(f=>win[f]?win[f][wk]:null),backgroundColor:PAL.primary}]},
+    options:{plugins:{legend:{display:true,position:'bottom'}},scales:{x:scaleOpts(),y:scaleOpts('GW')}}});
+}
+
+// ---- section 2
+function renderPlan(){
+  const B=D.ieso.buildout_2050_mw[SCN], inst=D.ieso.installed_2026_gw;
+  const rows=['Nuclear','Gas','Hydroelectric','Wind','Solar','Storage','Demand Response'];
+  const map={Gas:'Gas/Oil'};
+  mk('c-plan',{type:'bar',data:{labels:rows.map(r=>r==='Hydroelectric'?'Hydro':r),datasets:[
+    {label:'2026 installed',stack:'a',data:rows.map(r=>(inst[map[r]||r]??0)*1000||null),backgroundColor:PAL.axis},
+    {label:'Existing/committed in 2050',stack:'b',data:rows.map(r=>B[r]?.existing_committed??null),backgroundColor:PAL.blue},
+    {label:'New by 2050',stack:'b',data:rows.map(r=>B[r]?.new??null),backgroundColor:PAL.primary}]},
+    options:{plugins:{legend:{display:false}},scales:{x:scaleOpts(),y:scaleOpts('MW')}}});
+  const t=B.Total||{};
+  $('plan-note').innerHTML=`<b>${SCN==='reference'?'Reference':SCN==='high'?'High-demand':'Low-demand'} scenario:</b> ${fmt(t.total)} MW installed in 2050, of which ${fmt(t.new)} MW is new, against about ${fmt(Object.values(inst).reduce((a,b)=>a+b,0)*1000)} MW installed in 2026. Storage and demand response are new resources; "demand response" is customers reducing load at peak, and has no 2026 figure in these tables. Source: IESO Capacity Expansion module, Figures 1–3. <span class="pill m">planning data</span>`;
+}
+
+// ---- section 3
+function renderGen(){
+  const yr=Y(), an=ANNUAL();
+  $('t-cost').textContent=an?'Annualized cost per kW of plant ($/kW-year)':'Overnight capital cost per kW of plant ($/kW)';
+  const f=an?genAnnual:genOnce;
+  const labels=TECH.map(t=>t.label);
+  const a=TECH.map(t=>f(t,'ieso',yr)), b=TECH.map(t=>f(t,'nrel',yr));
+  mk('c-gen',{type:'bar',data:{labels,datasets:[
+    {label:'IESO',data:a,backgroundColor:PAL.primary},{label:'NREL',data:b,backgroundColor:PAL.blue}]},
+    options:{plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw==null?'not published for this year':money(c.raw)}`}}},
+      scales:{x:scaleOpts(),y:scaleOpts(an?'$ / kW-year':'$ / kW')}}});
+  const miss=TECH.filter((t,i)=>a[i]==null||b[i]==null).map(t=>t.label);
+  $('gen-note').innerHTML=`Cost year ${yr}. ${an?'IESO: its published levelized cost. NREL: our annualization of NREL capital cost at your discount rate over 30 years, plus fixed O&amp;M.':'IESO: overnight capital cost. NREL: capital cost.'} Wind and hydro: IESO figure is the median across its zones, NREL figure is one resource class (wind class 4, hydropower NPD 1), so they are not like-for-like. ${miss.length?'No value for that year: '+miss.join(', ')+' (e.g. IESO only prices nuclear from 2040).':''} IESO's annual (levelized) wind and hydro figures include the transmission needed to connect remote zones, but its overnight figures do not, so the two views differ for those plants. <span class="pill m">planning data</span><span class="pill">modelled</span>`;
+  const G=D.ghg.rows, R=[];
+  Object.keys(G).forEach(k=>{const g=G[k];R.push(`<tr><td>${k}</td><td class="num">${g.nrel==null?'not reported':fmt(g.nrel)}</td>${g.ipcc?g.ipcc.map(x=>`<td class="num">${fmt(x,x<10?1:0)}</td>`).join(''):'<td class="num">—</td><td class="num">—</td><td class="num">—</td>'}</tr>`);});
+  document.querySelector('#ghg tbody').innerHTML=R.join('');
+}
+
+// ---- section 4
+function renderTd(){
+  const F=D.fortis, base=F.baseline_peak_mw_2040_no_electrification;
+  document.querySelector('#fortis tbody').innerHTML=F.cases.map(c=>{
+    const d=c.peak_mw-base, lo=(c.system_upgrades_m+c.land_low_m), hi=(c.system_upgrades_m+c.land_high_m);
+    return `<tr><td>${c.label}</td><td class="num">${fmt(c.peak_mw)}</td><td class="num">${fmt(d)} MW</td><td class="num">${fmt(c.system_upgrades_m)}</td><td class="num">${fmt(c.land_low_m)}–${fmt(c.land_high_m)}</td><td class="num">${fmt(lo)}–${fmt(hi)}</td><td class="num"><b>${money(lo*1000/d)}–${money(hi*1000/d)}</b></td></tr>`;}).join('');
+  $('fortis-note').innerHTML=`Kelowna's 2040 winter peak with no electrification is ${base} MW. "Per added kW" is <b>our arithmetic</b> (total ÷ added MW), not a figure FortisBC publishes. Excluded by the filing: upgrades to BC Hydro's system, Indigenous consultation, cost of energy. In the same filing, two local gas turbines plus a 25 MW battery (173 MW, about $350 million) are priced for generation alone. <span class="pill m">utility estimate, preliminary</span>`;
+  const e=D.td_other.find(x=>x.id==='elmallah'), d=D.td_other.find(x=>x.id==='dunsky'), p=D.td_other.find(x=>x.id==='priyadarshan');
+  const rows=[
+    [`<a href="${e.url}" target="_blank" rel="noopener">PG&amp;E planned upgrades ↗</a><br><span class="note">distribution only, US$ (feeder / substation bank medians)</span>`,
+      e.rows.map(r=>`${r[0]}: ${money(r[1])} / ${money(r[2])} per kW`).join('<br>')],
+    [`<a href="${d.url}" target="_blank" rel="noopener">Ontario avoided cost (IESO/Dunsky) ↗</a><br><span class="note">annual value, 2021 CAD, not a capital cost</span>`,
+      `Transmission $${d.transmission_per_mw_day}/MW-day (about ${money(d.transmission_per_mw_day*0.365,0)}/kW-yr)<br>Distribution $${d.distribution_per_mw_day}/MW-day (about ${money(d.distribution_per_mw_day*0.365,1)}/kW-yr)`],
+    [`<a href="${p.url}" target="_blank" rel="noopener">US-wide distribution study ↗</a><br><span class="note">distribution only, US$</span>`,
+      `About ${money(p.low_kw)}–${money(p.high_kw)} per kW (our arithmetic from $350–790 billion for 600 GW)`]
+  ];
+  document.querySelector('#td-other tbody').innerHTML=rows.map(r=>`<tr><td style="text-align:left">${r[0]}</td><td style="text-align:left">${r[1]}</td></tr>`).join('');
+}
+
+// ---- section 5
+function effInputs(){
+  const I=D.ieso, wk=Object.keys(I.winter_effective_gw.Nuclear)[0];
+  Object.keys(EFFMAP).forEach(k=>{if(EFF[k]==null){const inst=I.installed_2026_gw[EFFMAP[k]], w=I.winter_effective_gw[EFFMAP[k]];EFF[k]=inst?Math.min(1,(w?w[wk]:0)/inst):0;}});
+  $('eff').innerHTML=Object.keys(EFFMAP).map(k=>`<label>${EFFLABEL[k]} (%)<input type="number" min="0" max="100" step="1" data-eff="${k}" value="${Math.round(EFF[k]*100)}"></label>`).join('');
+  $('eff').querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{EFF[i.dataset.eff]=Math.max(0,Math.min(1,(+i.value)/100));renderStack();renderLf();}));
+}
+function stackRows(){
+  const yr=Y(),an=ANNUAL(),td=tdPerKw(),tdv=an?td.annual:td.once;
+  return TECH.map(t=>{
+    const g=(an?genAnnual:genOnce)(t,BASIS,yr), e=EFF[t.eff];
+    if(g==null||!e)return {t,gen:null,td:tdv,tot:null,why:g==null?'no published cost for this year':'no capacity counted at winter peak'};
+    const gen=g/e; return {t,gen,td:tdv,tot:gen+(tdv||0)};
+  });
+}
+function renderStack(){
+  const an=ANNUAL(),td=tdPerKw(),R=stackRows(),ok=R.filter(r=>r.tot!=null);
+  const unit=an?'$/kW-year':'$/kW';
+  mk('c-stack',{type:'bar',data:{labels:ok.map(r=>r.t.label),datasets:[
+    {label:'Generation',data:ok.map(r=>r.gen),backgroundColor:PAL.primary,stack:'s'},
+    {label:'Wires & land',data:ok.map(r=>r.td||0),backgroundColor:PAL.purple,stack:'s'}]},
+    options:{indexAxis:'y',scales:{x:{...scaleOpts(unit),stacked:true},y:{...scaleOpts(),stacked:true}},
+      plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money(c.raw)}`}}}}});
+  const tot=(v)=>v==null?'—':(an?money(v*MW()*1000/1e6,1)+' M/yr':money(v*MW()*1000/1e6,0)+' M');
+  $('th-tot').textContent=`Total for ${fmt(MW())} MW`;
+  document.querySelector('#stack-tbl tbody').innerHTML=R.map(r=>r.tot==null?
+    `<tr><td>${r.t.label}</td><td colspan="4" style="text-align:left;color:var(--muted)">${r.why}</td></tr>`:
+    `<tr><td>${r.t.label}</td><td class="num">${money(r.gen)}</td><td class="num">${r.td==null?'n/a':money(r.td)}</td><td class="num"><b>${money(r.tot)}</b></td><td class="num">${tot(r.tot)}</td></tr>`).join('');
+  $('stack-note').innerHTML=`${BASIS==='ieso'?'IESO costs (2025 CAD)':'NREL costs (2022 USD × '+FX()+')'}, cost year ${Y()}, ${an?'annualized':'one-time'}. Wires and land: <b>${td.label}</b>${td.note?' ('+td.note+')':''}. Generation = plant cost per nameplate kW ÷ winter share. Variable fuel and O&amp;M are excluded: this is the cost of <i>having</i> capacity, not of running it. A plant that cannot supply peak (solar) is not shown. ${!an&&$('td').value==='dunsky'?'The Ontario avoided-cost value has no one-time form, so the wires bar is empty in this view.':''}`;
+  const best=ok.slice().sort((a,b)=>a.tot-b.tot)[0], worst=ok.slice().sort((a,b)=>b.tot-a.tot)[0];
+  const iesoCap=D.ieso.capacity_cost_cad2025[Y()];
+  $('kpi5').innerHTML=[
+    best?[money(best.tot),`lowest: ${best.t.label}`,unit+' of winter peak']:null,
+    worst?[money(worst.tot),`highest: ${worst.t.label}`,unit+' of winter peak']:null,
+    iesoCap?[money(iesoCap.capacity_cost_kw_yr),`IESO's own capacity cost, ${Y()}`,`$/kW-year · need in that year: ${iesoCap.system_need}`]:null
+  ].filter(Boolean).map(([v,l,s])=>`<div class="stat-card"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div><div class="stat-sub">${s}</div></div>`).join('');
+  // options for section 7
+  const sel=$('lfpick'), cur=sel.value;
+  sel.innerHTML=ok.map(r=>`<option value="${r.t.k}">${r.t.label}</option>`).join('');
+  if(ok.some(r=>r.t.k===cur))sel.value=cur;
+}
+
+// ---- section 6
+function renderPlanCost(){
+  const S=D.ieso.system_cost_nominal_bn.Reference, yrs=Object.keys(S['Total Cost']);
+  const comp=['Generation','Transmission','Distribution','Wholesale','Conservation'], cols=[PAL.primary,PAL.purple,PAL.blue,PAL.secondary,PAL.pos];
+  mk('c-sys',{type:'bar',data:{labels:yrs,datasets:comp.map((c,i)=>({label:c,data:yrs.map(y=>S[c]?S[c][y]:null),backgroundColor:cols[i],stack:'s'}))},
+    options:{plugins:{legend:{display:true,position:'bottom'}},scales:{x:{...scaleOpts(),stacked:true,ticks:{color:PAL.axis,maxTicksLimit:9}},y:{...scaleOpts('$ billions, nominal'),stacked:true}}}});
+  const t=S['Total Cost'], tr=S['Transmission'], di=S['Distribution'];
+  $('sys-note').innerHTML=`Total cost of electricity in Ontario rises from $${fmt(t['2026'],1)} billion (2026) to $${fmt(t['2035'],1)} billion (2035) and $${fmt(t['2050'],1)} billion (2050). Transmission goes from $${fmt(tr['2026'],1)} to $${fmt(tr['2035'],1)} billion and distribution from $${fmt(di['2026'],1)} to $${fmt(di['2035'],1)} billion by 2035. These are IESO's totals for <i>everything</i> the plan buys, in nominal dollars, and are not a cost of the peak alone. IESO: "Long-term Forecast of Electricity Cost by Component". <span class="pill m">planning data</span>`;
+  const C=D.ieso.capacity_cost_cad2025, cy=Object.keys(C);
+  mk('c-capc',{type:'bar',data:{labels:cy,datasets:[{data:cy.map(y=>C[y].capacity_cost_kw_yr),
+    backgroundColor:cy.map(y=>C[y].system_need==='Winter'?PAL.primary:C[y].system_need==='Summer'?PAL.blue:PAL.axis)}]},
+    options:{plugins:{tooltip:{callbacks:{label:c=>`${money(c.raw)} per kW-year · need: ${C[cy[c.dataIndex]].system_need}`}}},scales:{x:{...scaleOpts(),ticks:{color:PAL.axis,maxTicksLimit:10}},y:scaleOpts('$ / kW-year')}}});
+  // build-out estimate
+  const B=D.ieso.buildout_2050_mw.reference, yr=Y();
+  const lines=[['Gas','scgt','Gas (priced as simple cycle)'],['Storage','bess','Battery, 4-hour'],['Solar','solar','Solar'],['Wind','wind','Wind'],['Hydroelectric','hydro','Hydro'],['Nuclear','nuc','Nuclear']];
+  let sum=0,gaps=[];
+  const html=lines.map(([k,tk,lab])=>{
+    const mw=B[k]?.new||0, t=TECH.find(x=>x.k===tk);
+    let c=iesoVal(t,'occ',yr), note='';
+    if(c==null){c=iesoVal(t,'occ',2040);note=' (2040 value; not priced earlier)';}
+    const cost=mw*c*1000/1e9; sum+=cost;
+    return `<tr><td>${lab}</td><td class="num">${fmt(mw)}</td><td class="num">${money(c)}${note}</td><td class="num">${fmt(cost,1)}</td></tr>`;}).join('');
+  document.querySelector('#build tbody').innerHTML=html+`<tr><td><b>Total</b></td><td></td><td></td><td class="num"><b>${fmt(sum,1)}</b></td></tr>`;
+  $('build-note').innerHTML=`<b>Ours, rough:</b> new MW by 2050 × IESO overnight cost in ${yr} (constant 2025 CAD, undiscounted). Capital only: no fuel, O&amp;M, interest, transmission to remote sites, or replacement of retiring plants. Demand response (${fmt(B['Demand Response']?.new)} MW) has no capital cost in the IESO tables and is left out. This is <i>not</i> the IESO's estimate of its plan's cost, which is the chart above. <span class="pill">ours · modelled</span>`;
+}
+
+// ---- section 7
+function sysLf(){const L=D.load_factor_on, ys=Object.keys(L);return L[ys[ys.length-1]].load_factor;}
+function lfCost(){ // annual $/kW-yr of the chosen peak resource
+  if($('lfbasis').value==='iesocap'){const c=D.ieso.capacity_cost_cad2025[Y()];return {v:c?c.capacity_cost_kw_yr:null,label:`IESO capacity cost ${Y()}`};}
+  const R=stackRows(),k=$('lfpick').value,r=R.find(x=>x.t.k===k);
+  const an=ANNUAL();
+  if(!r||r.tot==null)return {v:null,label:''};
+  // always use annual terms for the per-kWh view
+  const t=r.t,g=genAnnual(t,BASIS,Y()),e=EFF[t.eff],td=tdPerKw();
+  return {v:g/e+(td.annual||0),label:`${t.label}, ${BASIS.toUpperCase()} costs, with ${td.label}`};
+}
+function renderLf(){
+  const lf=Math.max(.05,Math.min(1,(+$('lf').value||35)/100)), c=lfCost(), L=D.load_factor_on, ly=Object.keys(L), last=L[ly[ly.length-1]];
+  const perMwh=c.v==null?null:c.v/(8.76*lf);
+  const cap=D.ieso.capacity_cost_cad2025[Y()], eng=cap?cap.winter_on_peak_mwh:null;
+  $('kpi7').innerHTML=[
+    [(100*last.load_factor).toFixed(0)+'%',`Ontario system load factor, ${ly[ly.length-1]}`,`${fmt(last.mean_mw)} MW average ÷ ${fmt(last.peak_mw)} MW peak`],
+    [perMwh==null?'—':money(perMwh,0)+'/MWh',`peak cost per MWh sold at ${Math.round(lf*100)}% load factor`,c.label||'pick an option'],
+    [eng==null?'—':money(eng,0)+'/MWh',`IESO winter on-peak energy price, ${Y()}`,'marginal cost of energy only, 2025 CAD']
+  ].map(([v,l,s])=>`<div class="stat-card"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div><div class="stat-sub">${s}</div></div>`).join('');
+  const xs=[];for(let i=10;i<=100;i+=5)xs.push(i);
+  const ds=[{type:'line',label:'peak cost per MWh',data:xs.map(x=>c.v==null?null:c.v/(8.76*x/100)),borderColor:PAL.primary,backgroundColor:PAL.primary,pointRadius:0,borderWidth:2}];
+  if(eng!=null)ds.push({type:'line',label:'IESO winter on-peak energy price',data:xs.map(()=>eng),borderColor:PAL.axis,borderDash:[6,4],pointRadius:0,borderWidth:1.5});
+  ds.push({type:'scatter',label:'selected',data:[{x:Math.round(lf*100),y:perMwh}],backgroundColor:PAL.purple,pointRadius:7});
+  ds.push({type:'scatter',label:'Ontario system',data:[{x:Math.round(last.load_factor*100),y:c.v==null?null:c.v/(8.76*last.load_factor)}],backgroundColor:PAL.blue,pointRadius:7});
+  mk('c-lf',{type:'bar',data:{labels:xs,datasets:ds},options:{plugins:{legend:{display:true,position:'bottom'}},
+    scales:{x:{...scaleOpts('load factor (%)'),type:'linear',min:10,max:100},y:scaleOpts('$ per MWh sold'),}}});
+  $('lf-note').innerHTML=`Ontario's load factor is measured: mean ÷ peak of IESO monthly demand, ${ly.slice(-5).map(y=>y+' '+(100*L[y].load_factor).toFixed(0)+'%').join(', ')}. The 35% heating-only value is an <b>illustrative assumption</b>, not a measurement; real hourly data from heat pump homes would replace it. A load factor below the system's means each kW of new peak is spread over fewer kWh. Peak cost per MWh = annual cost per kW ÷ (8.76 × load factor); it excludes fuel and wholesale energy, which are paid on top. Hybrid systems or storage that shave the peak raise the load factor of what is left. <span class="pill m">measured (system)</span><span class="pill">assumed (added load)</span>`;
+}
+
+function renderAll(){
+  $('vintage').textContent=`IESO 2026 APO · NREL ATB 2024 · read ${D.meta.generated}`;
+  renderFleet();renderPlan();renderGen();renderTd();renderStack();renderPlanCost();renderLf();
+}
+
+// ---- wiring
+['year','fx','view','mw','rate','tdlife','td','land'].forEach(id=>$(id).addEventListener('input',()=>{if(D)renderAll();}));
+['lf','lfbasis','lfpick'].forEach(id=>$(id).addEventListener('input',()=>{if(D)renderLf();}));
+function seg(id,fn){$(id).querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  $(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b.dataset.v);}));}
+seg('seg-scn',v=>{SCN=v;renderPlan();});
+seg('seg-basis',v=>{BASIS=v;renderStack();renderLf();});
+seg('seg-lf',v=>{$('lf').value=v==='sys'?Math.round(100*sysLf()):v;renderLf();});
+
+fetch(DATA_URL).then(r=>{if(!r.ok)throw new Error('fetch '+r.status);return r.json();})
+ .then(j=>{D=j;effInputs();renderAll();})
+ .catch(e=>{const el=$('err');el.style.display='block';el.textContent='Could not load the data ('+e.message+'). This page needs costofpeak_json/costofpeak.json next to it.';});
+</script>
+</body>
+</html>
