@@ -319,6 +319,18 @@ All handled in the pipeline, all listed in `meta.json → known_source_quirks`:
 
 ---
 
+## Public funders: GMF and CIB (added 2026-11-25)
+
+Section "Who is paying" on the page, between the project cards and the planned-systems table.
+
+- **Pipeline:** `Python/district_funders_etl.py` -> `districtenergy_json/funded_projects.json` (`{meta, gmf[], cib[]}`). Resumable; GMF detail pages cached in `Python/gmf_cache/` (scratch).
+- **GMF** (Green Municipal Fund, FCM): info.gmf-fmv.ca is a Power Pages portal with no API (`/_odata` not exposed). We walk `/en-US/ProjectSearch/?page=N` (1,165 projects, 10 per page; the keyword filter is ignored) for card fields, then `/projectdetails/?id=GUID` for `Project value`, `Grant amount`, `Loan amount`. 1,165 collected, 0 detail failures.
+- **CIB** (Canada Infrastructure Bank): public GraphQL `entries(type:"project")`, 131 projects. Section handle is `projects`, entry type `project`. `commitment` is free text, parsed to CAD millions; 9 unparsed (null, raw string kept).
+- **"District energy" rule:** GMF sub-sector starts with "District Energy" (63 projects: 48 feasibility studies, 12 capital, 3 pilot); CIB name contains "District Energy" (3: Markham, Enwave, Lulu Island). Name-only for CIB, so retrofit programmes by district energy operators (e.g. Creative Energy Retrofits) are under "All funded projects".
+- **Licensing, decided 2026-11-25: facts + links only.** CIB terms of use bar copying or republishing site content without written consent; GMF terms returned 403 and could not be read. Only names, places, types, dates and dollar amounts are kept, each linked to its source page; no descriptions or images. A judgment call, not legal clearance. Possible follow-up: ask CIB and FCM for written consent.
+- **Not used:** the Azure Maps key visible in GMF's page source.
+- **Limits:** amounts are as reported by the funder; a GMF study is not a built system; a CIB commitment is a ceiling.
+
 ## Outputs
 
 | File | Size | Contents |
@@ -330,6 +342,7 @@ All handled in the pipeline, all listed in `meta.json → known_source_quirks`:
 | `report_2023.json` | 20 KB | copy of the curated report tables |
 | `projects.json` | 9 KB | copy of the curated project list |
 | `meta.json` | 3 KB | provenance, QA counts, file-vs-report delta |
+| `funded_projects.json` | 630 KB | GMF + CIB project facts and links (see section above) |
 
 ---
 
