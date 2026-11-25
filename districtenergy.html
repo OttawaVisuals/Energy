@@ -430,6 +430,9 @@ details.data-details[open] summary::before{content:'▾ '}
     <div class="filters">
       <div class="f-grp"><label class="f-lab" for="fd-scope">Show</label><select id="fd-scope"><option value="de">District energy only</option><option value="all">All funded projects</option></select></div>
       <div class="f-grp"><label class="f-lab" for="fd-src">Funder</label><select id="fd-src"><option value="">GMF and CIB</option><option value="GMF">GMF only</option><option value="CIB">CIB only</option></select></div>
+      <div class="f-grp"><label class="f-lab" for="fd-stage">Stage</label><select id="fd-stage"><option value="">Studies and projects</option><option value="study">Studies and plans only</option><option value="project">Built or piloted only</option></select></div>
+      <div class="f-grp"><label class="f-lab" for="fd-fuel">Energy source (GMF's label)</label><select id="fd-fuel"></select></div>
+      <div class="f-grp"><label class="f-lab" for="fd-band">Project value</label><select id="fd-band"><option value="">Any size</option><option value="0">Under $250k</option><option value="1">$250k – $1M</option><option value="2">$1M – $5M</option><option value="3">Over $5M</option></select></div>
       <div class="f-grp"><label class="f-lab" for="fd-search">Search</label><input type="search" id="fd-search" placeholder="Name, place or partner…" autocomplete="off"></div>
       <span class="result-count" id="fd-count"></span>
     </div>
@@ -1411,11 +1414,13 @@ const escH=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;'
 const usd=n=>n==null?null:(n>=1e6?'$'+(n/1e6).toFixed(1)+'M':'$'+Math.round(n/1e3)+'k');
 function fundingRows(){
   const F=D.funding; if(!F) return [];
-  const g=F.gmf.map(x=>({src:'GMF',de:/^District Energy/i.test(x.subsector||''),name:x.name,url:x.url,
+  const g=F.gmf.map(x=>({src:'GMF',de:/^District Energy/i.test(x.subsector||''),stage:x.stage,fuel:x.fuel_gmf||'',
+    band:x.project_value==null?null:x.project_value<250e3?0:x.project_value<1e6?1:x.project_value<5e6?2:3,
+    cap:x.capacity?x.capacity.label+' ('+x.capacity.scope+')':'',value:x.project_value,name:x.name,url:x.url,
     where:x.municipality||'—',kind:[x.type,x.subsector].filter(Boolean).join(' · '),
     when:x.timeline||'—',status:x.status||'—',grant:x.grant,loan:x.loan,value:x.project_value,
     amt:[x.grant!=null&&x.grant>0?'grant '+usd(x.grant):null,x.loan!=null&&x.loan>0?'loan '+usd(x.loan):null].filter(Boolean).join(' + ')||'—'}));
-  const c=F.cib.map(x=>({src:'CIB',de:/district energy/i.test(x.name),name:x.name,url:x.url,
+  const c=F.cib.map(x=>({src:'CIB',de:/district energy/i.test(x.name),stage:'project',fuel:'',band:null,cap:'',value:null,name:x.name,url:x.url,
     where:x.location||(x.provinces||[]).join(', ')||'—',kind:(x.sectors||[]).join(', '),
     when:'—',status:(x.commitment_raw||'').replace(/^.*?\(([^)]*)\).*$/,'$1')===x.commitment_raw?'—':(x.commitment_raw||'').replace(/^.*?\(([^)]*)\).*$/,'$1'),
     musd:x.commitment_musd,amt:x.commitment_raw||'—',partner:x.partner}));
@@ -1426,32 +1431,43 @@ function drawFunding(){
   if(!D.funding){document.getElementById('funding-card').style.display='none';return;}
   const scope=document.getElementById('fd-scope').value, src=document.getElementById('fd-src').value,
         q=document.getElementById('fd-search').value.trim().toLowerCase();
-  const rows=fundingRows().filter(r=>(scope==='all'||r.de)&&(!src||r.src===src)&&
+  const fuelSel=document.getElementById('fd-fuel'), fuel=fuelSel.value, stage=document.getElementById('fd-stage').value,
+        band=document.getElementById('fd-band').value;
+  if(fuelSel.options.length<2){ /* GMF's own sub-sector labels, listed once */
+    const fs=[...new Set(D.funding.gmf.map(x=>x.fuel_gmf).filter(Boolean))].sort();
+    fuelSel.innerHTML='<option value="">Any source</option>'+fs.map(f=>`<option>${escH(f)}</option>`).join('');
+  }
+  const rows=fundingRows().filter(r=>(scope==='all'||r.de)&&(!src||r.src===src)&&(!stage||r.stage===stage)&&
+    (!fuel||r.fuel===fuel)&&(band===''||r.band===+band)&&
     (!q||(r.name+' '+r.where+' '+(r.partner||'')).toLowerCase().includes(q)));
   const gm=rows.filter(r=>r.src==='GMF'), cb=rows.filter(r=>r.src==='CIB');
   const gGrant=gm.reduce((s,r)=>s+(r.grant||0),0), gLoan=gm.reduce((s,r)=>s+(r.loan||0),0);
   const cN=cb.filter(r=>r.musd!=null), cSum=cN.reduce((s,r)=>s+r.musd,0);
-  const nStudy=gm.filter(r=>/study|plan/i.test(r.kind)).length;
+  const nStudy=gm.filter(r=>r.stage==='study').length, nBuilt=gm.length-nStudy;
+  const vS=gm.filter(r=>r.stage==='study').reduce((s,r)=>s+(r.value||0),0), vB=gm.filter(r=>r.stage!=='study').reduce((s,r)=>s+(r.value||0),0);
   document.getElementById('fd-kpis').innerHTML=[
-    {v:gm.length,l:'GMF projects',n:nStudy+' are studies or plans, not built systems'},
+    {v:gm.length,l:'GMF projects',n:nStudy+' studies/plans ('+(usd(vS)||'$0')+' total value) · '+nBuilt+' built or piloted ('+(usd(vB)||'$0')+')'},
     {v:usd(gGrant+gLoan)||'$0',l:'GMF grants + loans',n:usd(gGrant)+' grant · '+usd(gLoan)+' loan · as reported'},
     {v:cb.length,l:'CIB projects',n:cN.length+' with a parsed dollar commitment'},
     {v:cN.length?'$'+(cSum>=1000?(cSum/1000).toFixed(2)+'B':Math.round(cSum)+'M'):'—',l:'CIB commitments',n:'headline figure, not all drawn yet'},
   ].map(x=>`<div class="kpi"><div class="kpi-val">${x.v}</div><div class="kpi-lab">${x.l}</div><div class="kpi-n">${x.n}</div></div>`).join('');
   const MAX=200, shown=rows.slice(0,MAX);
-  t.innerHTML=`<thead><tr><th>Funder</th><th>Project (link)</th><th>Where</th><th>Type</th><th>Timeline / status</th><th>Amount</th></tr></thead>
+  t.innerHTML=`<thead><tr><th>Funder</th><th>Project (link)</th><th>Where</th><th>Type</th><th>Timeline / status</th><th>Amount</th><th>Project value</th><th>Reported capacity</th></tr></thead>
     <tbody>${shown.map(r=>`<tr><td>${r.src}</td>
       <td><a href="${escH(r.url)}" target="_blank" rel="noopener">${escH(r.name)}</a></td>
-      <td class="dim">${escH(r.where)}</td><td class="dim">${escH(r.kind)}</td>
-      <td class="dim">${escH(r.src==='GMF'?r.when+' · '+r.status:r.status)}</td><td class="dim">${escH(r.amt)}</td></tr>`).join('')}</tbody>`;
+      <td class="dim">${escH(r.where)}</td><td class="dim">${escH((r.stage==='study'&&r.src==='GMF'?'Study/plan · ':r.src==='GMF'?'Built/piloted · ':'')+r.kind)}</td>
+      <td class="dim">${escH(r.src==='GMF'?r.when+' · '+r.status:r.status)}</td><td class="dim">${escH(r.amt)}</td>
+      <td class="dim">${escH(usd(r.value)||'—')}</td><td class="dim">${escH(r.cap||'—')}</td></tr>`).join('')}</tbody>`;
   document.getElementById('fd-count').textContent=rows.length+' project'+(rows.length===1?'':'s')+(rows.length>MAX?' (first '+MAX+' shown)':'');
   const m=D.funding.meta;
   document.getElementById('fd-note').innerHTML=
     `Source: funders' own project databases, pulled ${escH(m.generated)} (GMF ${m.gmf_collected} projects, CIB ${m.cib_collected}). Amounts are as reported by the funder — <b>reported, not measured</b>. `+
     `A GMF feasibility study is not a built system, and a CIB commitment is a ceiling, not money spent. CIB's "district energy" tag here is by project name only, so related projects with other names (for example retrofit programmes) sit under "All funded projects". `+
+    `<b>Stage</b> comes from GMF's own project type (feasibility study, plan, design or evaluation study = study; capital project or pilot = built or piloted). <b>Energy source</b> is GMF's own sub-sector label, not ours; CIB projects have none. <b>Project value</b> is total cost in dollars, a proxy for size and not capacity. `+
+    `<b>Reported capacity</b> is hand-entered for the only 3 non-study GMF projects that state a plant size in MW (the other 12 do not, so they are blank, not estimated). `+
     `Only facts and links are shown; no descriptions are copied from either site.`;
 }
-['fd-scope','fd-src'].forEach(i=>document.getElementById(i).addEventListener('change',()=>D.agg&&drawFunding()));
+['fd-scope','fd-src','fd-stage','fd-fuel','fd-band'].forEach(i=>document.getElementById(i).addEventListener('change',()=>D.agg&&drawFunding()));
 document.getElementById('fd-search').addEventListener('input',()=>D.agg&&drawFunding());
 function drawPlanned(){
   const planned=D.fac.filter(f=>f.status==='Planned')
