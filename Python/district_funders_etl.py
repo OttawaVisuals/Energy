@@ -25,6 +25,9 @@ INPUTS
 
 OUTPUT (districtenergy_json/, gitignored on main, published to gh-pages)
   funded_projects.json   {meta, gmf:[...], cib:[...]}; meta carries counts + drops
+  Derived fields on each GMF row: stage (study|project, from GMF's `type`), fuel_gmf
+  (GMF's own District Energy sub-sector label), capacity (hand-entered, from
+  districtenergy/curated/gmf_capacity.json: only 3 projects state a plant MW).
   Python/gmf_cache/      raw detail-page cache (scratch, never a deliverable)
 
 HONESTY
@@ -180,8 +183,26 @@ def cib_amount_musd(s):
     return v * 1000 if unit == "billion" else v if unit == "million" else v / 1e6
 
 
+STUDY_TYPES = {"Feasibility Study", "Plan", "Program Design Study", "Program Evaluation Study"}
+
+
+def stage_of(gmf_type):
+    """'study' = feasibility study / plan / design or evaluation study (nothing built);
+    'project' = capital project, pilot, monitoring or recommissioning work."""
+    return "study" if gmf_type in STUDY_TYPES else "project"
+
+
+def fuel_of(subsector):
+    """GMF's own sub-sector label for district energy ('District Energy - Biomass' -> 'Biomass').
+    This is GMF's category, not ours; None for non-district-energy rows."""
+    m = re.match(r"District Energy\s*-\s*(.+)$", subsector or "")
+    return m.group(1).strip() if m else None
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
+    cap_fp = os.path.join(ROOT, "districtenergy", "curated", "gmf_capacity.json")
+    capacity = json.load(open(cap_fp, encoding="utf-8")) if os.path.exists(cap_fp) else {}
     drops = {"gmf_detail_failed": 0, "gmf_search_count_mismatch": 0,
              "cib_no_amount_parsed": 0}
 
@@ -219,6 +240,9 @@ def main():
             drops["gmf_detail_failed"] += 1
         row = dict(c)
         row["url"] = f"{GMF}/projectdetails/?id={gid}"
+        row["stage"] = stage_of(c["type"])
+        row["fuel_gmf"] = fuel_of(c["subsector"])
+        row["capacity"] = capacity.get(gid)
         row.update({k: (d or {}).get(k) for k in
                     ("project_value", "grant", "loan", "project_number", "population")})
         gmf.append(row)
