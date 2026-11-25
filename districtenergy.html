@@ -424,6 +424,20 @@ details.data-details[open] summary::before{content:'▾ '}
 
   <div id="projects"></div>
 
+  <div class="card" id="funding-card">
+    <div class="card-title">Who is paying: public funding from GMF and CIB</div>
+    <p class="sub-note" style="margin-top:0">Two federal funders back community energy projects: the Green Municipal Fund (GMF, run by the Federation of Canadian Municipalities) and the Canada Infrastructure Bank (CIB). This lists their projects as <b>facts and links only</b> — click a name to read the funder's own page.</p>
+    <div class="filters">
+      <div class="f-grp"><label class="f-lab" for="fd-scope">Show</label><select id="fd-scope"><option value="de">District energy only</option><option value="all">All funded projects</option></select></div>
+      <div class="f-grp"><label class="f-lab" for="fd-src">Funder</label><select id="fd-src"><option value="">GMF and CIB</option><option value="GMF">GMF only</option><option value="CIB">CIB only</option></select></div>
+      <div class="f-grp"><label class="f-lab" for="fd-search">Search</label><input type="search" id="fd-search" placeholder="Name, place or partner…" autocomplete="off"></div>
+      <span class="result-count" id="fd-count"></span>
+    </div>
+    <div class="kpi-row" id="fd-kpis" style="margin:.8rem 0"></div>
+    <div class="tbl-wrap"><table class="dt" id="fd-tbl"></table></div>
+    <p class="note" id="fd-note"></p>
+  </div>
+
   <div class="card">
     <div class="card-title">Planned systems in the inventory</div>
     <div class="tbl-wrap"><table class="dt" id="planned-tbl"></table></div>
@@ -578,6 +592,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><strong>Two: the data isn't all from the same year.</strong> Each system's entry records the year its numbers refer to, and those run from 2014 to 2023. A third of the entries are from 2017. "The 2023 inventory" is really a decade of snapshots stacked together, which is CEEDC's own stated caveat, not a criticism.</p>
       <p><strong>Three: the public file is smaller than the report.</strong> Some operators' figures are confidential, so they're in CEEDC's analysis but not in the file anyone can download. That means our totals are lower than the published ones. We show both, side by side, rather than picking whichever looks better.</p>
       <p>Where a number could not be verified, it is left blank rather than estimated. Where a system reported "no", that is shown differently from a system that simply never answered.</p>
+      <p><strong>The funding table is separate.</strong> It comes from the public project lists of two federal funders, the Green Municipal Fund and the Canada Infrastructure Bank, not from CEEDC. We copy only the facts (name, place, type, dates, dollar amounts) and link to each funder's page. Dollar figures are what the funder reports, and many GMF entries are studies, not built systems.</p>
     </div>
   </div>
 
@@ -592,6 +607,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><b>Implied capacity factor</b> = <code>de_*_production</code> ÷ (<code>de_*_capacity</code> × 8760), computed only where both are present and non-zero. Values above 100% are flagged in <code>meta.json</code>, not silently clipped. CEEDC's own averages run 13–20%; their stated reasons are short seasons, redundancy, planned expansion and retired-but-retained capital.</p>
       <p><b>Known source quirks, all handled in the pipeline and listed in <code>meta.json</code>:</b> the Metadata sheet's "Detail" column is offset from its "Field" column by 4 rows from row 60 onward (so <code>geo_used</code> reads as "Solid Biomass" and <code>waste_used</code> as "Spent Pulping Liquor" if taken at face value — the fuel labels here are the corrected mapping, cross-checked against the legend CEEDC's dashboard renders); the Metadata sheet documents an <code>npri</code> field the data sheet lacks and omits the <code>operator</code> field it has; <code>municipality_type</code> ships in mixed case; facility and city names carry stray double and trailing spaces.</p>
       <p><b>Geometry.</b> Province outlines are unioned from the repo's existing per-province FSA polygons (<code>geo_json/*.json</code>) and simplified to 0.03°. Yukon has no <code>geo_json</code> file, so its outline is reprojected from the national FSA file with the same inverse-Lambert used by <code>Python/canada_boundary.py</code>. All 254 facilities carry coordinates in the source and all fall inside Canada; none are geocoded here.</p>
+      <p><b>Funders (GMF, CIB).</b> <code>Python/district_funders_etl.py</code> → <code>districtenergy_json/funded_projects.json</code>. GMF: info.gmf-fmv.ca is a Power Pages portal with no API (<code>/_odata</code> not exposed); we walk <code>/ProjectSearch/?page=N</code> (1,165 projects at 10 per page) for card fields, then each <code>/projectdetails/?id=GUID</code> for <code>Project value</code>, <code>Grant amount</code> and <code>Loan amount</code>. CIB: public GraphQL <code>entries(type:"project")</code> (131 projects; section handle is <code>projects</code>). "District energy" = GMF sub-sector prefix "District Energy" (63 projects) or CIB name containing "District Energy" (3). CIB <code>commitment</code> is free text ("$218 million (financial close)"): parsed to CAD millions, 9 unparsed kept as null with the raw string. <b>Licensing:</b> CIB terms bar republishing without written consent and GMF terms returned 403, so only facts and links are published (decision 2026-11-25), a judgment call and not legal clearance. Drop counts in <code>meta.drops</code>.</p>
       <p><b>Pipeline:</b> <a href="Python/district_energy_etl.py" target="_blank" rel="noopener">Python/district_energy_etl.py</a> · <b>Docs:</b> <a href="docs/DISTRICT_ENERGY.md" target="_blank" rel="noopener">docs/DISTRICT_ENERGY.md</a> · <b>QA counts and the file-vs-report delta:</b> <code>districtenergy_json/meta.json</code>.</p>
     </div>
   </div>
@@ -1387,6 +1403,56 @@ function drawProjects(){
     box.appendChild(d);
   });
 }
+/* ── Public funding (GMF + CIB): facts + links only ──────────────────────
+   Built by Python/district_funders_etl.py. "District energy" = GMF sub-sector
+   starts with "District Energy"; CIB name contains "District Energy". A plain,
+   visible rule — the scope menu shows everything else too. */
+const escH=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const usd=n=>n==null?null:(n>=1e6?'$'+(n/1e6).toFixed(1)+'M':'$'+Math.round(n/1e3)+'k');
+function fundingRows(){
+  const F=D.funding; if(!F) return [];
+  const g=F.gmf.map(x=>({src:'GMF',de:/^District Energy/i.test(x.subsector||''),name:x.name,url:x.url,
+    where:x.municipality||'—',kind:[x.type,x.subsector].filter(Boolean).join(' · '),
+    when:x.timeline||'—',status:x.status||'—',grant:x.grant,loan:x.loan,value:x.project_value,
+    amt:[x.grant!=null&&x.grant>0?'grant '+usd(x.grant):null,x.loan!=null&&x.loan>0?'loan '+usd(x.loan):null].filter(Boolean).join(' + ')||'—'}));
+  const c=F.cib.map(x=>({src:'CIB',de:/district energy/i.test(x.name),name:x.name,url:x.url,
+    where:x.location||(x.provinces||[]).join(', ')||'—',kind:(x.sectors||[]).join(', '),
+    when:'—',status:(x.commitment_raw||'').replace(/^.*?\(([^)]*)\).*$/,'$1')===x.commitment_raw?'—':(x.commitment_raw||'').replace(/^.*?\(([^)]*)\).*$/,'$1'),
+    musd:x.commitment_musd,amt:x.commitment_raw||'—',partner:x.partner}));
+  return g.concat(c);
+}
+function drawFunding(){
+  const t=document.getElementById('fd-tbl'); if(!t) return;
+  if(!D.funding){document.getElementById('funding-card').style.display='none';return;}
+  const scope=document.getElementById('fd-scope').value, src=document.getElementById('fd-src').value,
+        q=document.getElementById('fd-search').value.trim().toLowerCase();
+  const rows=fundingRows().filter(r=>(scope==='all'||r.de)&&(!src||r.src===src)&&
+    (!q||(r.name+' '+r.where+' '+(r.partner||'')).toLowerCase().includes(q)));
+  const gm=rows.filter(r=>r.src==='GMF'), cb=rows.filter(r=>r.src==='CIB');
+  const gGrant=gm.reduce((s,r)=>s+(r.grant||0),0), gLoan=gm.reduce((s,r)=>s+(r.loan||0),0);
+  const cN=cb.filter(r=>r.musd!=null), cSum=cN.reduce((s,r)=>s+r.musd,0);
+  const nStudy=gm.filter(r=>/study|plan/i.test(r.kind)).length;
+  document.getElementById('fd-kpis').innerHTML=[
+    {v:gm.length,l:'GMF projects',n:nStudy+' are studies or plans, not built systems'},
+    {v:usd(gGrant+gLoan)||'$0',l:'GMF grants + loans',n:usd(gGrant)+' grant · '+usd(gLoan)+' loan · as reported'},
+    {v:cb.length,l:'CIB projects',n:cN.length+' with a parsed dollar commitment'},
+    {v:cN.length?'$'+(cSum>=1000?(cSum/1000).toFixed(2)+'B':Math.round(cSum)+'M'):'—',l:'CIB commitments',n:'headline figure, not all drawn yet'},
+  ].map(x=>`<div class="kpi"><div class="kpi-val">${x.v}</div><div class="kpi-lab">${x.l}</div><div class="kpi-n">${x.n}</div></div>`).join('');
+  const MAX=200, shown=rows.slice(0,MAX);
+  t.innerHTML=`<thead><tr><th>Funder</th><th>Project (link)</th><th>Where</th><th>Type</th><th>Timeline / status</th><th>Amount</th></tr></thead>
+    <tbody>${shown.map(r=>`<tr><td>${r.src}</td>
+      <td><a href="${escH(r.url)}" target="_blank" rel="noopener">${escH(r.name)}</a></td>
+      <td class="dim">${escH(r.where)}</td><td class="dim">${escH(r.kind)}</td>
+      <td class="dim">${escH(r.src==='GMF'?r.when+' · '+r.status:r.status)}</td><td class="dim">${escH(r.amt)}</td></tr>`).join('')}</tbody>`;
+  document.getElementById('fd-count').textContent=rows.length+' project'+(rows.length===1?'':'s')+(rows.length>MAX?' (first '+MAX+' shown)':'');
+  const m=D.funding.meta;
+  document.getElementById('fd-note').innerHTML=
+    `Source: funders' own project databases, pulled ${escH(m.generated)} (GMF ${m.gmf_collected} projects, CIB ${m.cib_collected}). Amounts are as reported by the funder — <b>reported, not measured</b>. `+
+    `A GMF feasibility study is not a built system, and a CIB commitment is a ceiling, not money spent. CIB's "district energy" tag here is by project name only, so related projects with other names (for example retrofit programmes) sit under "All funded projects". `+
+    `Only facts and links are shown; no descriptions are copied from either site.`;
+}
+['fd-scope','fd-src'].forEach(i=>document.getElementById(i).addEventListener('change',()=>D.agg&&drawFunding()));
+document.getElementById('fd-search').addEventListener('input',()=>D.agg&&drawFunding());
 function drawPlanned(){
   const planned=D.fac.filter(f=>f.status==='Planned')
     .sort((a,b)=>(a.prov+a.name).localeCompare(b.prov+b.name));
@@ -1442,6 +1508,7 @@ function renderAll(){
   drawHonesty();
   applyFilters();
   drawProjects();
+  drawFunding();
   drawPlanned();
 }
 function boot(){
@@ -1453,7 +1520,9 @@ function boot(){
     fetchJSON(DE+'projects.json'),
     fetchJSON(DE+'meta.json'),
     fetchJSON(DE+'ief_context.json').catch(()=>[]),
-  ]).then(([fac,agg,outline,report,projects,meta,ctx])=>{
+    fetchJSON(DE+'funded_projects.json').catch(()=>null),
+  ]).then(([fac,agg,outline,report,projects,meta,ctx,funding])=>{
+    D.funding=funding;
     D.fac=fac; D.agg=agg; D.outline=outline; D.report=report;
     D.projects=projects; D.meta=meta; D.ctx=ctx; D.filtered=fac;
     document.getElementById('loading-msg').style.display='none';
