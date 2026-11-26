@@ -111,6 +111,40 @@ min/mean/max beyond, over a rolling ~12-month window. Validation and
 source-reference notes are in the script's docstring; the emission-factor
 methodology is documented in [HeatPump/METHODOLOGY.md](../HeatPump/METHODOLOGY.md).
 
+## Biomass heat section (2026-11-26)
+
+National section on `grid.html` (not tied to the province selector): installed
+heat capacity of commercial/institutional biomass boilers by province, fuel,
+fuel source and install period.
+
+```
+Python/bioheat_etl.py     # -> grid_json/bioheat.json (112 KB, gitignored on main)
+                          #   input: NRCan/CanmetENERGY "Commercial and Institutional
+                          #   Bioheat Database 2023, Public Version" (Excel printed
+                          #   to PDF; 643 rows). Manual run; the file does not change
+                          #   between survey updates.
+```
+
+- **Totals:** 643 systems, 475 MWth. Quebec 190 MWth, BC 68, Ontario 49.
+- **Parse rails:** closed vocabularies for sector, fuel type and fuel source;
+  the script exits non-zero on a missing, duplicated or unparsed row number.
+  Source typos fixed ("Herbaceaous"; one "Hogfuel sawmill" cell split); 23 blank
+  fuel sources kept as "Not stated"; four one-off source labels kept as written.
+- **What it is not:** capacity as surveyed, not metered output. No tonnes of wood,
+  no production, no imports/exports, no residential wood heat.
+- **Why no volume or trade:** Simon (2026-11-26) says StatCan publishes no
+  biomass series. Not independently checked (StatCan WDS was timing out); table
+  25-10-0029 "Renewable fuels" was never opened.
+- **Licence decision (2026-11-26):** the Torchlight page states no licence and
+  the NRCan report PDF could not be fetched (HTTP 202, empty, bot gate). Treated
+  as public NRCan data because NRCan links it
+  (natural-resources.canada.ca/energy-sources/renewable-energy/bioenergy-systems);
+  this is Simon's call, not a found licence. Cite NRCan/CanmetENERGY.
+- **Open:** electricity, natural gas, propane and fuel oil production/import/export
+  (candidate StatCan tables 25-10-0021, 25-10-0055 (inactive, ends 2025-12),
+  25-10-0081, 25-10-0029; metadata checked 2026-11-26, no values pulled).
+  `deploy.sh` already publishes `grid_json/`, so `bioheat.json` ships with it.
+
 ## The page
 
 Chrome/theme (header, hero, Simple/Advanced toggle, light/dark/colour-blind
@@ -126,5 +160,5 @@ Sections: KPI row (latest hour) · last-24-hours chart pair · last-12-months
 daily min/mean/max band · the average-vs-marginal interactive explainer
 (links to heatpump.html) · Advanced-only typical-day-by-season chart (see
 `build_grid_seasonal.py` above) · Alberta staleness banner · Quebec static
-context card · sources accordion. Reciprocal link added from heatpump.html's
+context card · biomass-heat capacity (national, 2026-11-26) · sources accordion. Reciprocal link added from heatpump.html's
 header back to grid.html.

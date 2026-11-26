@@ -92,6 +92,13 @@ main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 2.5rem}
 .basis-link:hover{text-decoration:underline}
 
 /* ── QC context card ── */
+.bio-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.4rem}
+.bio-h{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:.5rem}
+.bio-row{display:grid;grid-template-columns:minmax(7.5rem,11.5rem) 1fr 4.6rem;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.bio-row .bio-l{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bio-row .bio-t{background:var(--d-track,rgba(128,128,128,.15));border-radius:3px;height:12px}
+.bio-row .bio-f{background:var(--f-wood);height:100%;border-radius:3px;min-width:2px}
+.bio-row .bio-v{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 .qc-card{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}
 .qc-big{font-family:'Fraunces',Georgia,serif;font-size:2.2rem;font-weight:300;color:var(--green);line-height:1}
 .qc-copy{flex:1;min-width:260px;font-size:13.5px;color:var(--text);line-height:1.6}
@@ -364,6 +371,38 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><b id="qc-headline">Loading…</b></p>
       <p id="qc-sub" style="color:var(--muted);margin-top:4px"></p>
       <div class="qc-years" id="qc-years"></div>
+    </div>
+  </div>
+
+  <!-- ── Biomass heat (national, commercial/institutional capacity) ── -->
+  <div id="bioheat-wrap" style="display:none">
+    <div class="section-head">
+      <h2>Biomass heat: who burns wood, and where</h2>
+      <p class="sec-sub">Canada-wide (not tied to the province selector). Wood-fired boilers in schools, hospitals, farms, businesses and apartment buildings: how much heat they can deliver, not how much wood they burn.</p>
+    </div>
+    <div class="card">
+      <div class="card-title-row"><span class="card-title" id="bio-title">Loading…</span></div>
+      <div class="bio-cols">
+        <div><div class="bio-h">By province</div><div id="bio-prov" class="bio-bars"></div></div>
+        <div><div class="bio-h">By fuel</div><div id="bio-fuel" class="bio-bars"></div></div>
+      </div>
+      <div data-mode="advanced" class="bio-cols" style="margin-top:1.1rem">
+        <div><div class="bio-h">Where the fuel comes from</div><div id="bio-src" class="bio-bars"></div></div>
+        <div><div class="bio-h">Capacity installed, by 5-year period</div><div id="bio-year" class="bio-bars"></div></div>
+      </div>
+      <p class="note"><b>Measured vs modelled:</b> capacity is as reported to NRCan's survey, not metered output. <b>Not in this data:</b> tonnes of wood burned, production, imports or exports, and wood stoves in homes. Statistics Canada publishes no biomass supply series, so there is no fuel-volume or trade figure here.</p>
+      <details class="data-details" style="margin-top:.6rem">
+        <summary>How this was built</summary>
+        <div style="margin-top:.6rem;font-size:13px;color:var(--text);line-height:1.7">
+          <p data-mode="simple-only"><b>In plain terms:</b> Natural Resources Canada keeps a list of larger buildings with wood-fired heating, and the list was last updated in 2023. For each one it records the town, the type of building, the kind of wood fuel and the size of the boiler. We added up the boiler sizes by province and by fuel. Bigger boiler means more heat on a cold day, not more wood actually burned. Homes with their own wood stove or furnace are not on the list.</p>
+          <div data-mode="advanced">
+            <p><b>Source:</b> NRCan / CanmetENERGY, <i>Commercial and Institutional Bioheat Database 2023, Public Version</i> (643 numbered rows; created 2014, updated since), published via <a href="https://natural-resources.canada.ca/energy-sources/renewable-energy/bioenergy-systems" target="_blank" rel="noopener">NRCan's bioenergy systems page</a> and hosted at <a href="https://torchlightbioresources.com/canadian-bioheat-database" target="_blank" rel="noopener">TorchLight Bioresources</a>. The source states no licence; we treat it as public NRCan data.</p>
+            <p><b>Fields:</b> installed thermal capacity in kW<sub>th</sub> (summed, shown as MW<sub>th</sub>), fuel type, fuel source, install year, heat-only vs CHP, sector. The file is an Excel sheet printed to PDF, so <a href="Python/bioheat_etl.py" target="_blank" rel="noopener">Python/bioheat_etl.py</a> parses it against closed vocabularies and fails if any row number is missing, duplicated or unparsed.</p>
+            <p><b>Source corrections:</b> "Herbaceaous" spelled "Herbaceous"; one "Hogfuel sawmill" cell split into fuel and source; 23 rows with a blank fuel source are shown as "Not stated"; four one-off source labels ("Other", "Farm - manure", "Food processing residue", "Torrefied wood pellets") kept as written.</p>
+            <p><b>Limits:</b> a survey-built list can miss systems or keep retired ones; install year is not a commissioning guarantee; Quebec's share partly reflects how thoroughly it was surveyed. Docs: <a href="docs/GRID.md" target="_blank" rel="noopener">docs/GRID.md</a>.</p>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -1048,6 +1087,37 @@ function renderQC(){
   ).join('')+(qc.meta.years_missing&&qc.meta.years_missing.length?`<span class="qc-year">${qc.meta.years_missing.join(', ')} missing from source</span>`:'');
 }
 
+function bioBars(id,entries,unit){
+  // entries: [[label,{systems,kwth}]]; bars scaled to the largest in the list
+  const max=Math.max(...entries.map(e=>e[1].kwth),1);
+  document.getElementById(id).innerHTML=entries.map(([l,v])=>{
+    const mw=v.kwth/1000;
+    return `<div class="bio-row" title="${v.systems} systems"><span class="bio-l">${l}</span>`+
+      `<span class="bio-t"><span class="bio-f" style="display:block;width:${(v.kwth/max*100).toFixed(1)}%"></span></span>`+
+      `<span class="bio-v">${mw>=10?mw.toFixed(0):mw.toFixed(1)} MW</span></div>`;
+  }).join('');
+}
+function renderBioheat(){
+  const b=DATA.BIO,wrap=document.getElementById('bioheat-wrap');
+  if(!b){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const t=b.totals;
+  document.getElementById('bio-title').textContent=
+    `${t.systems} systems · ${(t.kwth/1000).toFixed(0)} MW of heat capacity · NRCan database, 2023`;
+  const byKw=o=>Object.entries(o).sort((a,b)=>b[1].kwth-a[1].kwth);
+  const PN={AB:'Alberta',BC:'British Columbia',MB:'Manitoba',NB:'New Brunswick',NL:'Newfoundland and Labrador',NS:'Nova Scotia',NT:'Northwest Territories',NU:'Nunavut',ON:'Ontario',PE:'Prince Edward Island',QC:'Quebec',SK:'Saskatchewan',YT:'Yukon'};
+  bioBars('bio-prov',byKw(b.by_province).map(([k,v])=>[PN[k]||k,v]));
+  bioBars('bio-fuel',byKw(b.by_fuel));
+  bioBars('bio-src',byKw(b.by_source));
+  // installs by 5-year band (systems per band, not capacity)
+  const bands={};
+  Object.entries(b.by_install_year).forEach(([y,v])=>{
+    const s=Math.floor(y/5)*5,k=s<2000?'Before 2000':`${s}–${Math.min(s+4,2023)}`;
+    bands[k]=bands[k]||{systems:0,kwth:0};bands[k].systems+=v.systems;bands[k].kwth+=v.kwth;
+  });
+  bioBars('bio-year',Object.entries(bands));
+}
+
 function renderAll(){
   renderKPIs();
   renderHistMix();
@@ -1075,7 +1145,9 @@ function boot(){
     fetchJSON(GRID_JSON_BASE+'typical_day_ab.json').catch(()=>null),
     fetchJSON(GRID_JSON_BASE+'grid_on_history.json').catch(()=>null),
     fetchJSON(GRID_JSON_BASE+'grid_ab_history.json').catch(()=>null),
-  ]).then(([on,ab,qc,meta,tOn,tAb,histOn,histAb])=>{
+    fetchJSON(GRID_JSON_BASE+'bioheat.json').catch(()=>null),
+  ]).then(([on,ab,qc,meta,tOn,tAb,histOn,histAb,bio])=>{
+    DATA.BIO=bio;
     DATA.ON=on; DATA.AB=ab; DATA.QC=qc; DATA.META=meta;
     DATA.TYPICAL.ON=tOn; DATA.TYPICAL.AB=tAb;
     DATA.HIST.ON=histOn; DATA.HIST.AB=histAb;
@@ -1084,6 +1156,7 @@ function boot(){
     document.getElementById('meta-generated').textContent=
       'Last data refresh: '+new Date(meta.generated_at).toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'});
     renderQC();
+    renderBioheat();
     renderAll();
   }).catch(err=>{
     document.getElementById('loading-msg').style.display='none';
