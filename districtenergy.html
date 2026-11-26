@@ -102,8 +102,16 @@ table.dt th.num,table.dt td.num{text-align:right;font-variant-numeric:tabular-nu
 table.dt td{padding:.45rem .6rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
 table.dt tbody tr:hover{background:var(--surface)}
 table.dt .dim{color:var(--light)}
-.ft-tbl td.num{position:relative;min-width:6.5rem}
-.ft-tbl .ft-b{position:absolute;left:.6rem;bottom:3px;height:3px;border-radius:2px;background:var(--ft-c,var(--amber));opacity:.75;max-width:calc(100% - 1.2rem)}
+.ft-legend{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;font-size:12px;color:var(--muted);margin:.2rem 0 .7rem}
+.ft-legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ft-chart{display:grid;grid-template-columns:minmax(6.5rem,11rem) 1fr;gap:.55rem .8rem;align-items:center}
+.ft-name{font-size:12.5px;color:var(--text);line-height:1.25}
+.ft-pair{display:flex;flex-direction:column;gap:3px}
+.ft-bar{display:flex;height:13px;background:var(--d-track);border-radius:3px;overflow:hidden}
+.ft-seg{height:100%;min-width:0}
+.ft-lab{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-top:-1px;flex-wrap:wrap}
+.ft-tag{font-size:10.5px;color:var(--light)}
+@media(max-width:640px){.ft-chart{grid-template-columns:1fr;gap:.15rem}.ft-name{margin-top:.7rem;font-weight:500}}
 .ft-tbl tr.ft-can td{font-weight:600;background:var(--surface)}
 table.dt th.sortable{cursor:pointer;user-select:none}
 table.dt th.sortable:hover{color:var(--ink)}
@@ -463,9 +471,12 @@ details.data-details[open] summary::before{content:'▾ '}
     <div class="filters">
       <div class="f-grp"><label class="f-lab" for="ft-fuel">Fuel</label><select id="ft-fuel"></select></div>
       <div class="f-grp"><label class="f-lab" for="ft-year">Year</label><select id="ft-year"></select></div>
+      <div class="f-grp"><label class="f-lab" for="ft-view">Show</label><select id="ft-view"><option value="total">Total (PJ)</option><option value="pct">Share (%)</option></select></div>
       <span class="result-count" id="ft-count"></span>
     </div>
-    <div class="tbl-wrap"><table class="dt ft-tbl" id="ft-tbl"></table></div>
+    <div class="ft-legend" id="ft-legend"></div>
+    <div id="ft-chart" class="ft-chart"></div>
+    <div class="tbl-wrap" data-mode="advanced" style="margin-top:1rem"><table class="dt ft-tbl" id="ft-tbl"></table></div>
     <p class="note" id="ft-note"></p>
     <p class="note"><b>Measured:</b> Statistics Canada's reported flows. <b>Converted:</b> everything is shown in petajoules (PJ) so fuels compare; electricity and propane are converted from MWh and m&sup3;, and the propane factor is an assumption. <b>Not available:</b> wood and other biomass. Statistics Canada has no wood volume or trade series, and its "renewable fuels" row is liquid biofuels. A dash means Statistics Canada published no value for that cell (usually confidential), not zero.</p>
   </div>
@@ -1529,42 +1540,74 @@ function drawKPIs(){
 /* ── Fuel supply and trade (StatCan, all provinces) ─────────────────────── */
 const FT_COLOR={gas:'--f-gas',electricity:'--f-elec',light_fuel_oil:'--f-oil',heavy_fuel_oil:'--f-oil',propane:'--f-propane'};
 const FT_NOTE={
-  gas:'Natural gas. "Sent out" is gas leaving Canada; flows between provinces are in the last column (Advanced).',
-  electricity:'Electricity. "Brought in" and "sent out" are trade with the United States; flows between provinces are in the last column (Advanced). "Made here" is generation.',
+  gas:'Natural gas. "Abroad" means leaving or entering Canada; flows between provinces are counted separately.',
+  electricity:'Electricity. "Made here" is generation. "Abroad" is trade with the United States; flows between provinces are counted separately.',
   light_fuel_oil:'Light fuel oil, the closest Statistics Canada category to home heating oil (an assumption, not their label).',
   heavy_fuel_oil:'Heavy fuel oil, used mainly by industry and ships; shown for completeness.',
-  propane:'Propane, summed from monthly volumes; "made here" is gas-plant plus refinery output. Energy converted at an assumed 25.6 MJ per litre. Statistics Canada reports no flows between provinces for propane.'};
+  propane:'Propane, summed from monthly volumes; "made here" is gas-plant plus refinery output, converted at an assumed 25.6 MJ per litre. Statistics Canada reports no flows between provinces for propane, so none are shown and the supply bar may be understated.'};
 function ftFmt(v){
   if(v==null)return '<span class="dim" title="Statistics Canada published no value (usually confidential), not zero">—</span>';
   const a=Math.abs(v);
   return (a>=100?Math.round(v).toLocaleString('en-CA'):a>=10?v.toFixed(1):v.toFixed(2));
 }
+/* One province's numbers -> two stacks. Supply = made here + brought in from abroad + received from other provinces (net, if positive).
+   Where it goes = sent abroad + sent to other provinces (net, if negative) + left in the province (derived: supply minus what leaves). */
+function ftSplit(fuel,v){
+  const [p,i,e,x0]=v, noX=fuel==='propane', x=noX?0:x0;
+  const made=p||0, abroad=i||0, pin=Math.max(x||0,0), pout=Math.max(-(x||0),0), sent=e||0;
+  const supply=made+abroad+pin;
+  const supplyOk=p!=null&&i!=null&&x!=null;
+  const keptRaw=supply-sent-pout;
+  const keptOk=supplyOk&&e!=null&&keptRaw>=-1e-9;
+  const miss=[p==null&&'made here',i==null&&'brought in',e==null&&'sent abroad',(!noX&&x0==null)&&'flows between provinces'].filter(Boolean);
+  return {made,abroad,pin,pout,sent,supply,supplyOk,kept:keptOk?Math.max(keptRaw,0):null,keptNeg:supplyOk&&e!=null&&keptRaw<-1e-9,miss};
+}
 function drawFuelTrade(){
   const card=document.getElementById('ft-card'),T=D.ft;
   if(!T){card.style.display='none';return;}
   card.style.display='block';
-  const fs=document.getElementById('ft-fuel'),ys=document.getElementById('ft-year');
+  const fs=document.getElementById('ft-fuel'),ys=document.getElementById('ft-year'),vs=document.getElementById('ft-view');
   if(!fs.options.length){
     fs.innerHTML=Object.entries(T.meta.fuels).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
     fs.onchange=()=>{ys.innerHTML='';drawFuelTrade();};
-    ys.onchange=drawFuelTrade;
+    ys.onchange=drawFuelTrade; vs.onchange=drawFuelTrade;
   }
   const fuel=fs.value,years=T.meta.years[fuel];
   if(!ys.options.length){
     ys.innerHTML=years.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
   }
-  const y=ys.value;
+  const y=ys.value,pct=vs.value==='pct';
   const rows=T.meta.geos.map(g=>[g,(T.data[fuel][g]||{})[y]||[null,null,null,null]]);
-  const prov=rows.filter(r=>r[0]!=='Canada');
-  const mx=[0,1,2].map(i=>Math.max(1e-9,...prov.map(r=>Math.abs(r[1][i]||0))));
+  const prov=rows.filter(r=>r[0]!=='Canada'), can=rows[0][1];
+  const S=prov.map(([g,v])=>[g,v,ftSplit(fuel,v)]);
+  const scale=Math.max(1e-9,...S.map(([,,s])=>Math.max(s.supply,s.sent+s.pout+(s.kept||0))));
+  const C={made:`var(${FT_COLOR[fuel]})`,abroad:'var(--d-primary)',prov:'var(--d-purple)',kept:'var(--border)'};
+  document.getElementById('ft-card').style.setProperty('--ft-c',C.made);
+  document.getElementById('ft-legend').innerHTML=
+    `<span><b>Top bar, where it comes from:</b> <i style="background:${C.made}"></i>made here <i style="background:${C.abroad}"></i>brought in from abroad <i style="background:${C.prov}"></i>from other provinces</span>`+
+    `<span><b>Bottom bar, where it goes:</b> <i style="background:${C.abroad}"></i>sent abroad <i style="background:${C.prov}"></i>to other provinces <i style="background:${C.kept};outline:1px solid var(--light)"></i>left in the province (derived)</span>`;
+  const seg=(val,col,den,label)=>{
+    if(!(val>0))return '';
+    const w=(val/den*100);
+    return `<span class="ft-seg" style="width:${w.toFixed(2)}%;background:${col}" title="${label}: ${ftFmt(val).replace(/<[^>]+>/g,'')} PJ"></span>`;
+  };
+  const chart=S.map(([g,v,s])=>{
+    const den=pct?(s.supplyOk&&s.supply>0?s.supply:null):scale;
+    const top=den?seg(s.made,C.made,den,'Made here')+seg(s.abroad,C.abroad,den,'Brought in from abroad')+seg(s.pin,C.prov,den,'From other provinces'):'';
+    const bot=den&&!(pct&&s.keptNeg)?seg(s.sent,C.abroad,den,'Sent abroad')+seg(s.pout,C.prov,den,'To other provinces')+(s.kept!=null?seg(s.kept,C.kept,den,'Left in the province'):''):'';
+    const nums=`Supply ${s.supplyOk?ftFmt(s.supply):ftFmt(s.supply>0?s.supply:null)+(s.supply>0?'+':'')} PJ · sent abroad ${ftFmt(v[2])} · to other provinces ${ftFmt(s.pout>0?s.pout:(fuel==='propane'||v[3]==null?null:0))} · left ${ftFmt(s.kept)}`;
+    const tag=pct&&!den?`<span class="ft-tag">Share not shown: ${s.miss.join(', ')||'no supply'} not published</span>`
+      :s.miss.length?`<span class="ft-tag">Not published: ${s.miss.join(', ')}</span>`
+      :s.keptNeg?`<span class="ft-tag">More leaves than is made or brought in (stock changes, losses, or flows between provinces not reported)${pct?', so the bottom bar is not drawn':', so "left" is not shown'}</span>`:'';
+    return `<div class="ft-name">${g}</div><div class="ft-pair"><div class="ft-bar">${top}</div><div class="ft-bar">${bot}</div><div class="ft-lab"><span>${nums}</span>${tag}</div></div>`;
+  }).join('');
+  document.getElementById('ft-chart').innerHTML=chart;
   const tbl=document.getElementById('ft-tbl');
-  tbl.style.setProperty('--ft-c',`var(${FT_COLOR[fuel]})`);
-  const cell=(v,i,g)=>`<td class="num">${ftFmt(v)}${v!=null&&i<3&&g!=='Canada'?`<span class="ft-b" style="width:${(Math.abs(v)/mx[i]*100).toFixed(1)}%"></span>`:''}</td>`;
-  tbl.innerHTML=`<thead><tr><th>Province or territory</th><th class="num">Made here (PJ)</th><th class="num">Brought in (PJ)</th><th class="num">Sent out (PJ)</th><th class="num" data-mode="advanced">Net from other provinces (PJ)</th></tr></thead><tbody>`+
-    rows.map(([g,v])=>`<tr class="${g==='Canada'?'ft-can':''}"><td>${g}</td>${cell(v[0],0,g)}${cell(v[1],1,g)}${cell(v[2],2,g)}<td class="num" data-mode="advanced">${ftFmt(v[3])}</td></tr>`).join('')+'</tbody>';
-  const miss=prov.filter(r=>r[1].slice(0,3).some(x=>x==null)).length;
-  document.getElementById('ft-count').textContent=`${y} · ${miss} of ${prov.length} provinces and territories have at least one blank`;
-  document.getElementById('ft-note').textContent=FT_NOTE[fuel]+(fuel==='propane'||fuel==='light_fuel_oil'||fuel==='heavy_fuel_oil'?' Provincial rows can sum to less than the Canada row because blanks are not filled in.':'');
+  tbl.innerHTML=`<thead><tr><th>Province or territory</th><th class="num">Made here (PJ)</th><th class="num">Brought in (PJ)</th><th class="num">Sent out (PJ)</th><th class="num">Net from other provinces (PJ)</th></tr></thead><tbody>`+
+    rows.map(([g,v])=>`<tr class="${g==='Canada'?'ft-can':''}"><td>${g}</td>${v.map(x=>`<td class="num">${ftFmt(x)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+  document.getElementById('ft-count').innerHTML=`${y} · Canada: made ${ftFmt(can[0])} · brought in ${ftFmt(can[1])} · sent out ${ftFmt(can[2])} PJ`;
+  document.getElementById('ft-note').textContent=FT_NOTE[fuel]+' '+(pct?'Share view: each bar is scaled to that province\'s own supply, so it shows mix, not size. ':'Total view: all bars share one scale, so lengths compare across provinces; small provinces are thin. ')+
+    '"Left in the province" is supply minus what leaves; it also absorbs stock changes, losses and fuel used in production, so it is not consumption. Provincial rows can sum to less than the Canada row because blanks are not filled in.';
 }
 
 function renderAll(){
