@@ -332,6 +332,19 @@ Section "Who is paying" on the page, between the project cards and the planned-s
 - **Not used:** the Azure Maps key visible in GMF's page source.
 - **Limits:** amounts are as reported by the funder; a GMF study is not a built system; a CIB commitment is a ceiling.
 
+## Fuel supply and trade (added 2026-11-26)
+
+Section "Where Canada's fuels come from", at the end of section 02, after "What operators say they're considering next". Moved here from the Grid page by decision on 2026-11-26 (it fits district energy fuel choice better); the Grid page keeps only its biomass-heat capacity section.
+
+- **Pipeline:** `Python/fuel_trade_etl.py` -> `districtenergy_json/fuel_trade.json` (41 KB, `{meta, data[fuel][geo][year] = [production, imports, exports, net_transfer_in]}` in PJ). Downloads StatCan full-table CSVs into `Python/fueltrade_cache/` (scratch, gitignored). Manual run, about once a year.
+- **Fuels and tables:** natural gas, light fuel oil, heavy fuel oil from 25-10-0029 (TJ, annual, 2005-2025); electricity from 25-10-0021 (MWh; generation, US imports and exports, interprovincial receipts minus deliveries, 2005-2025); propane from 25-10-0081 (monthly m3, summed to calendar years, only years with all 12 months for every flow, so 2019-2025; 2026 partial year dropped).
+- **Conversions:** TJ/1000, MWh x 3.6 GJ/MWh, propane m3 x 25.60 GJ/m3 (assumed HOT2000-internal factor, see memory note on fuel factors). Labelled "converted" on the page.
+- **All 13 provinces and territories plus Canada.** The aggregates "Atlantic provinces" and "Yukon, NT and Nunavut" are excluded (double counting).
+- **Checks (`meta.checks`):** 0029 electricity exports vs 0021: 194 cells compared, 21 differ by more than 2% (18 before 2018; the 3 recent ones are rounding on values near zero), so the page uses 0021 for electricity throughout. Provinces summed vs the Canada row: electricity 0%; gas up to 11% in some years (0% in 2024); light fuel oil, heavy fuel oil and propane far lower than Canada, because StatCan suppresses cells. Suppressed cells stay null and show as a dash, never zero. Missing cells: gas 81, light fuel oil 502, heavy fuel oil 402, propane 664, electricity 7.
+- **Biomass: none.** The page says why: no StatCan wood volume or trade series (Simon's statement; not independently confirmed beyond the table's "Renewable fuels" row, which at 80 PJ of Canadian production is liquid biofuels, not wood).
+- **Limits.** Not consumption and not a supply balance. "Imports" and "exports" follow StatCan's labels (international); flows between provinces are a separate column shown in Advanced. Light fuel oil as "closest to home heating oil" is our assumption, not StatCan's label. Propane production is blank for Ontario and BC in 2025 (suppressed or incomplete months), so provinces sum to well under Canada. Not checked against an outside source such as CER or ECCC.
+- **Lesson:** a StatCan WDS coordinate pull of 25-10-0029 returned values shifted onto the wrong fuel rows; the full-table CSV was correct. Use the CSV.
+
 ## Outputs
 
 | File | Size | Contents |
@@ -344,6 +357,7 @@ Section "Who is paying" on the page, between the project cards and the planned-s
 | `projects.json` | 9 KB | copy of the curated project list |
 | `meta.json` | 3 KB | provenance, QA counts, file-vs-report delta |
 | `funded_projects.json` | 630 KB | GMF + CIB project facts and links (see section above) |
+| `fuel_trade.json` | 41 KB | StatCan production, imports, exports, interprovincial transfers by province, 5 fuels, PJ (see "Fuel supply and trade") |
 
 ---
 

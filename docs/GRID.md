@@ -140,9 +140,8 @@ Python/bioheat_etl.py     # -> grid_json/bioheat.json (112 KB, gitignored on mai
   as public NRCan data because NRCan links it
   (natural-resources.canada.ca/energy-sources/renewable-energy/bioenergy-systems);
   this is Simon's call, not a found licence. Cite NRCan/CanmetENERGY.
-- **Open:** electricity, natural gas, propane and fuel oil production/import/export
-  (candidate StatCan tables 25-10-0021, 25-10-0055 (inactive, ends 2025-12),
-  25-10-0081, 25-10-0029; metadata checked 2026-11-26, no values pulled).
+- **Fuel production / imports / exports:** built on the District Energy page
+  instead (decision 2026-11-26), see `docs/DISTRICT_ENERGY.md`. Not on this page.
   `deploy.sh` already publishes `grid_json/`, so `bioheat.json` ships with it.
 
 ## The page
