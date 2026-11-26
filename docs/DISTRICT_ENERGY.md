@@ -346,6 +346,20 @@ Section "Where Canada's fuels come from", at the end of section 02, after "What 
 - **Limits.** Not consumption and not a supply balance. "Imports" and "exports" follow StatCan's labels (international); flows between provinces are a separate column shown in Advanced. Light fuel oil as "closest to home heating oil" is our assumption, not StatCan's label. Propane production is blank for Ontario and BC in 2025 (suppressed or incomplete months), so provinces sum to well under Canada. Not checked against an outside source such as CER or ECCC.
 - **Lesson:** a StatCan WDS coordinate pull of 25-10-0029 returned values shifted onto the wrong fuel rows; the full-table CSV was correct. Use the CSV.
 
+## Pipelines points map (added 2026-11-26)
+
+Section "Pipelines: what flows, and where incidents happened", after "Where Canada's fuels come from".
+
+- **Pipeline:** `Python/pipeline_etl.py` -> `districtenergy_json/pipelines.json` (542 KB: `meta`, columnar `incidents`, `flows`, `no_coords`). Downloads to `Python/pipeline_cache/` (gitignored). Both inputs are CER open data, Open Government Licence - Canada.
+- **Incidents:** dataset fd17f08f, `pipeline-incidents-data.csv` (cp1252), 2,039 rows, 2008-2026, quarterly updates. Volume is numeric for 594; 252 "Not Provided" and 1,193 "Not Applicable" (no release) stay null. 362 rows carry the CER's own Significant flag. One record is in Maine (kept).
+- **Flows:** dataset dc343c43, 19 per-pipeline files (gas daily, oil monthly), per-year means of throughput and capacity in 1000 m3/d with n. "Full" year = 360+ days or 12 months. Oil product rows summed per month; repeated capacity taken once. Dots sum same pipeline + key point + direction; different directions are never summed.
+- **Gaps (quantified):** 98 groups, 35 without coordinates (Enbridge Mainline, Trans Mountain, Trans-Northern, Line 9, Southern Lights, Montreal, Westspur, Brunswick). Listed in the Advanced view, not placed, not geocoded by us.
+- **Source fix:** Suffield key points have positive longitudes (+110.481, +110.797); sign flipped, recorded in `meta.coordinate_fixes`.
+- **Decision (Simon, 2026-11-26): points now, lines later or never.** The CER publishes no open route geometry we could find. Its interactive map draws pipelines from a WMS at `services.gdmpipelines.com` (web map `c0f51bf0...`, layer "Regulated Pipelines (EN)", licence field "None"). Not an open dataset, so not used; same stance as NEEP (no direct calls to undocumented services). Open item: ask the CER (the ArcGIS item owner is their GIS staff) for a geometry file or permission.
+- **Not used:** `apportionment.csv` (nominations, not flow); archived Trans Mountain file (overlaps the current file). Data dictionary calls gas capacity GJ/d but the column is 1000 m3/d; the column name is used.
+- **Limits.** Federally regulated systems only (most local gas distribution is provincial). Key points are measurement locations, not the whole line, so never add them up. Gas and oil m3 are not energy-comparable, and incident release volumes mix gas and liquid m3. Annual means hide peaks; a few points average slightly above 100% of reported capacity (not explained by us). The national map has no zoom, so the dots cluster in the south.
+- **Refresh:** `python -I Python/pipeline_etl.py --refresh`, then republish `pipelines.json` to gh-pages. CER updates incidents quarterly.
+
 ## Outputs
 
 | File | Size | Contents |
@@ -359,6 +373,7 @@ Section "Where Canada's fuels come from", at the end of section 02, after "What 
 | `meta.json` | 3 KB | provenance, QA counts, file-vs-report delta |
 | `funded_projects.json` | 630 KB | GMF + CIB project facts and links (see section above) |
 | `fuel_trade.json` | 41 KB | StatCan production, imports, exports, interprovincial transfers by province, 5 fuels, PJ (see "Fuel supply and trade") |
+| `pipelines.json` | 542 KB | CER incidents (2,039) and flow key points (63 mapped, 35 without coordinates) (see "Pipelines points map") |
 
 ---
 
