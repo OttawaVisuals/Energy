@@ -465,11 +465,10 @@ details.data-details[open] summary::before{content:'▾ '}
   </div>
 
   <h3 class="subhead subhead-lg">Where Canada's fuels come from</h3>
-  <p class="sub-note">What a province makes, brings in and sends out of each heating fuel. A district energy system can only burn what its province can get. Every province and territory, from Statistics Canada.</p>
+  <p class="sub-note">How much of each heating fuel Canada makes, imports and exports in a year, from Statistics Canada. Canada-wide for now: the province split is left out because Statistics Canada counts trade where fuel crosses the border, so a province served through a neighbour shows no imports of its own.</p>
 
   <div class="card" id="ft-card" style="display:none">
     <div class="filters">
-      <div class="f-grp"><label class="f-lab" for="ft-fuel">Fuel</label><select id="ft-fuel"></select></div>
       <div class="f-grp"><label class="f-lab" for="ft-year">Year</label><select id="ft-year"></select></div>
       <div class="f-grp"><label class="f-lab" for="ft-view">Show</label><select id="ft-view"><option value="total">Total (PJ)</option><option value="pct">Share (%)</option></select></div>
       <span class="result-count" id="ft-count"></span>
@@ -478,7 +477,7 @@ details.data-details[open] summary::before{content:'▾ '}
     <div id="ft-chart" class="ft-chart"></div>
     <div class="tbl-wrap" data-mode="advanced" style="margin-top:1rem"><table class="dt ft-tbl" id="ft-tbl"></table></div>
     <p class="note" id="ft-note"></p>
-    <p class="note"><b>Measured:</b> Statistics Canada's reported flows. <b>Converted:</b> everything is shown in petajoules (PJ) so fuels compare; electricity and propane are converted from MWh and m&sup3;, and the propane factor is an assumption. <b>Not available:</b> wood and other biomass. Statistics Canada has no wood volume or trade series, and its "renewable fuels" row is liquid biofuels. A dash means Statistics Canada published no value for that cell (usually confidential), not zero.</p>
+    <p class="note"><b>Measured:</b> Statistics Canada's reported production, imports and exports. <b>Converted:</b> everything is shown in petajoules (PJ) so fuels compare; electricity and propane are converted from MWh and m&sup3;, and the propane factor is an assumption. <b>Not available:</b> wood and other biomass. Statistics Canada has no wood volume or trade series, and its "renewable fuels" row is liquid biofuels. Flows between provinces cancel out nationally, so they are not shown.</p>
   </div>
 
   <!-- ══ 03 Policy & barriers ══ -->
@@ -623,7 +622,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><strong>Two: the data isn't all from the same year.</strong> Each system's entry records the year its numbers refer to, and those run from 2014 to 2023. A third of the entries are from 2017. "The 2023 inventory" is really a decade of snapshots stacked together, which is CEEDC's own stated caveat, not a criticism.</p>
       <p><strong>Three: the public file is smaller than the report.</strong> Some operators' figures are confidential, so they're in CEEDC's analysis but not in the file anyone can download. That means our totals are lower than the published ones. We show both, side by side, rather than picking whichever looks better.</p>
       <p>Where a number could not be verified, it is left blank rather than estimated. Where a system reported "no", that is shown differently from a system that simply never answered.</p>
-      <p><strong>The fuel table is separate too.</strong> It comes from Statistics Canada's national energy tables, not from CEEDC. For each province it shows how much of a fuel is made there, brought in and sent out, all converted to the same energy unit (petajoules) so fuels can be compared. It says nothing about how much each province burns, and it has nothing on wood, because Statistics Canada does not publish wood volumes or trade.</p>
+      <p><strong>The fuel chart is separate too.</strong> It comes from Statistics Canada's national energy tables, not from CEEDC. For each heating fuel it shows how much Canada makes, imports and exports in a year, all converted to the same energy unit (petajoules) so fuels can be compared. It covers Canada as a whole only: Statistics Canada counts trade where fuel crosses the border, so a province-by-province split can make a province look like it imports nothing when its gas simply arrived through a neighbour. It says nothing about how much is burned, and it has nothing on wood, because Statistics Canada does not publish wood volumes or trade.</p>
       <p><strong>The funding table is separate.</strong> It comes from the public project lists of two federal funders, the Green Municipal Fund and the Canada Infrastructure Bank, not from CEEDC. We copy only the facts (name, place, type, dates, dollar amounts) and link to each funder's page. Dollar figures are what the funder reports, and many GMF entries are studies, not built systems.</p>
     </div>
   </div>
@@ -640,7 +639,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><b>Known source quirks, all handled in the pipeline and listed in <code>meta.json</code>:</b> the Metadata sheet's "Detail" column is offset from its "Field" column by 4 rows from row 60 onward (so <code>geo_used</code> reads as "Solid Biomass" and <code>waste_used</code> as "Spent Pulping Liquor" if taken at face value — the fuel labels here are the corrected mapping, cross-checked against the legend CEEDC's dashboard renders); the Metadata sheet documents an <code>npri</code> field the data sheet lacks and omits the <code>operator</code> field it has; <code>municipality_type</code> ships in mixed case; facility and city names carry stray double and trailing spaces.</p>
       <p><b>Geometry.</b> Province outlines are unioned from the repo's existing per-province FSA polygons (<code>geo_json/*.json</code>) and simplified to 0.03°. Yukon has no <code>geo_json</code> file, so its outline is reprojected from the national FSA file with the same inverse-Lambert used by <code>Python/canada_boundary.py</code>. All 254 facilities carry coordinates in the source and all fall inside Canada; none are geocoded here.</p>
       <p><b>Funders (GMF, CIB).</b> <code>Python/district_funders_etl.py</code> → <code>districtenergy_json/funded_projects.json</code>. GMF: info.gmf-fmv.ca is a Power Pages portal with no API (<code>/_odata</code> not exposed); we walk <code>/ProjectSearch/?page=N</code> (1,165 projects at 10 per page) for card fields, then each <code>/projectdetails/?id=GUID</code> for <code>Project value</code>, <code>Grant amount</code> and <code>Loan amount</code>. CIB: public GraphQL <code>entries(type:"project")</code> (131 projects; section handle is <code>projects</code>). "District energy" = GMF sub-sector prefix "District Energy" (63 projects) or CIB name containing "District Energy" (3). CIB <code>commitment</code> is free text ("$218 million (financial close)"): parsed to CAD millions, 9 unparsed kept as null with the raw string. <b>Licensing:</b> CIB terms bar republishing without written consent and GMF terms returned 403, so only facts and links are published (decision 2026-11-25), a judgment call and not legal clearance. Drop counts in <code>meta.drops</code>.</p>
-      <p><b>Fuel supply and trade.</b> <a href="Python/fuel_trade_etl.py" target="_blank" rel="noopener">Python/fuel_trade_etl.py</a> &rarr; <code>districtenergy_json/fuel_trade.json</code>. StatCan full-table CSVs: 25-10-0029 (TJ, annual; gas, light and heavy fuel oil), 25-10-0021 (MWh, annual; electricity: generation, US imports and exports, interprovincial receipts minus deliveries), 25-10-0081 (m&sup3;, monthly; propane = field + refinery production, imports, exports, summed to calendar years with all 12 months present for every flow). Conversions: TJ/1000, MWh &times; 3.6 GJ/MWh, propane m&sup3; &times; 25.60 GJ/m&sup3; (assumed HOT2000-internal factor). Suppressed cells stay null; aggregate regions ("Atlantic provinces", "Yukon, NT and Nunavut") are excluded to avoid double counting. Checks in <code>meta.checks</code>: electricity exports in 0029 match 0021 except 21 of 194 cells, all but three before 2018, and the recent ones are rounding on values near zero; the electricity column uses 0021 throughout. Province sums match the Canada row for electricity and, in 2024, for gas; light fuel oil, heavy fuel oil and propane provinces sum to less than Canada because of suppressed cells. Imports and exports follow StatCan's labels; transfers between provinces are a separate column.</p>
+      <p><b>Fuel supply and trade (Canada-wide).</b> <a href="Python/fuel_trade_etl.py" target="_blank" rel="noopener">Python/fuel_trade_etl.py</a> &rarr; <code>districtenergy_json/fuel_trade.json</code> (also holds provinces; the page uses the Canada row only). StatCan full-table CSVs: 25-10-0029 (TJ, annual; gas, light and heavy fuel oil), 25-10-0021 (MWh, annual; electricity: generation, US imports and exports), 25-10-0081 (m&sup3;, monthly; propane = field + refinery production, imports, exports, summed to calendar years with all 12 months present for every flow). Conversions: TJ/1000, MWh &times; 3.6 GJ/MWh, propane m&sup3; &times; 25.60 GJ/m&sup3; (assumed HOT2000-internal factor). <b>Left in Canada</b> = made + imported &minus; exported, derived, and it absorbs stock changes, losses and fuel used in production. <b>Why no provinces:</b> in 25-10-0029 net inter-regional transfers sum to zero across provinces every year checked, and a province served through a neighbour (Nova Scotia gas via New Brunswick, 25 PJ in 2025) has blank imports and a matching transfer instead; the table appears to record trade where fuel crosses the border (an inference: its notes define transfers but not imports). Checks in <code>meta.checks</code>: electricity exports in 0029 match 0021 except 21 of 194 cell-years, 18 before 2018, the recent ones rounding on near-zero values; the page uses 0021 for electricity.</p>
       <p><b>Pipeline:</b> <a href="Python/district_energy_etl.py" target="_blank" rel="noopener">Python/district_energy_etl.py</a> · <b>Docs:</b> <a href="docs/DISTRICT_ENERGY.md" target="_blank" rel="noopener">docs/DISTRICT_ENERGY.md</a> · <b>QA counts and the file-vs-report delta:</b> <code>districtenergy_json/meta.json</code>.</p>
     </div>
   </div>
@@ -1540,74 +1539,58 @@ function drawKPIs(){
 /* ── Fuel supply and trade (StatCan, all provinces) ─────────────────────── */
 const FT_COLOR={gas:'--f-gas',electricity:'--f-elec',light_fuel_oil:'--f-oil',heavy_fuel_oil:'--f-oil',propane:'--f-propane'};
 const FT_NOTE={
-  gas:'Natural gas. "Abroad" means leaving or entering Canada; flows between provinces are counted separately.',
-  electricity:'Electricity. "Made here" is generation. "Abroad" is trade with the United States; flows between provinces are counted separately.',
-  light_fuel_oil:'Light fuel oil, the closest Statistics Canada category to home heating oil (an assumption, not their label).',
-  heavy_fuel_oil:'Heavy fuel oil, used mainly by industry and ships; shown for completeness.',
-  propane:'Propane, summed from monthly volumes; "made here" is gas-plant plus refinery output, converted at an assumed 25.6 MJ per litre. Statistics Canada reports no flows between provinces for propane, so none are shown and the supply bar may be understated.'};
+  gas:'Natural gas.',
+  electricity:'Electricity: "made" is generation; imports and exports are trade with the United States.',
+  light_fuel_oil:'Light fuel oil is the closest Statistics Canada category to home heating oil (our assumption, not their label).',
+  heavy_fuel_oil:'Heavy fuel oil is used mainly by industry and ships; shown for completeness.',
+  propane:'Propane is summed from monthly volumes; "made" is gas-plant plus refinery output, converted at an assumed 25.6 MJ per litre.'};
 function ftFmt(v){
-  if(v==null)return '<span class="dim" title="Statistics Canada published no value (usually confidential), not zero">—</span>';
+  if(v==null)return '<span class="dim" title="Statistics Canada published no value">—</span>';
   const a=Math.abs(v);
   return (a>=100?Math.round(v).toLocaleString('en-CA'):a>=10?v.toFixed(1):v.toFixed(2));
 }
-/* One province's numbers -> two stacks. Supply = made here + brought in from abroad + received from other provinces (net, if positive).
-   Where it goes = sent abroad + sent to other provinces (net, if negative) + left in the province (derived: supply minus what leaves). */
-function ftSplit(fuel,v){
-  const [p,i,e,x0]=v, noX=fuel==='propane', x=noX?0:x0;
-  const made=p||0, abroad=i||0, pin=Math.max(x||0,0), pout=Math.max(-(x||0),0), sent=e||0;
-  const supply=made+abroad+pin;
-  const supplyOk=p!=null&&i!=null&&x!=null;
-  const keptRaw=supply-sent-pout;
-  const keptOk=supplyOk&&e!=null&&keptRaw>=-1e-9;
-  const miss=[p==null&&'made here',i==null&&'brought in',e==null&&'sent abroad',(!noX&&x0==null)&&'flows between provinces'].filter(Boolean);
-  return {made,abroad,pin,pout,sent,supply,supplyOk,kept:keptOk?Math.max(keptRaw,0):null,keptNeg:supplyOk&&e!=null&&keptRaw<-1e-9,miss};
-}
+const ftPlain=h=>String(h).replace(/<[^>]+>/g,'');
+/* Canada-wide. Top bar = supply (made in Canada + imported). Bottom bar = where it goes (exported + left in Canada).
+   "Left in Canada" is derived = made + imported - exported. Flows between provinces cancel out nationally. */
 function drawFuelTrade(){
   const card=document.getElementById('ft-card'),T=D.ft;
   if(!T){card.style.display='none';return;}
   card.style.display='block';
-  const fs=document.getElementById('ft-fuel'),ys=document.getElementById('ft-year'),vs=document.getElementById('ft-view');
-  if(!fs.options.length){
-    fs.innerHTML=Object.entries(T.meta.fuels).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
-    fs.onchange=()=>{ys.innerHTML='';drawFuelTrade();};
+  const ys=document.getElementById('ft-year'),vs=document.getElementById('ft-view');
+  if(!ys.options.length){
+    const all=[...new Set(Object.values(T.meta.years).flat())].sort((a,b)=>b-a);
+    ys.innerHTML=all.map(y=>`<option value="${y}">${y}</option>`).join('');
     ys.onchange=drawFuelTrade; vs.onchange=drawFuelTrade;
   }
-  const fuel=fs.value,years=T.meta.years[fuel];
-  if(!ys.options.length){
-    ys.innerHTML=years.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
-  }
   const y=ys.value,pct=vs.value==='pct';
-  const rows=T.meta.geos.map(g=>[g,(T.data[fuel][g]||{})[y]||[null,null,null,null]]);
-  const prov=rows.filter(r=>r[0]!=='Canada'), can=rows[0][1];
-  const S=prov.map(([g,v])=>[g,v,ftSplit(fuel,v)]);
-  const scale=Math.max(1e-9,...S.map(([,,s])=>Math.max(s.supply,s.sent+s.pout+(s.kept||0))));
-  const C={made:`var(${FT_COLOR[fuel]})`,abroad:'var(--d-primary)',prov:'var(--d-purple)',kept:'var(--border)'};
-  document.getElementById('ft-card').style.setProperty('--ft-c',C.made);
+  const rows=Object.entries(T.meta.fuels).map(([k,label])=>{
+    const v=(T.data[k].Canada||{})[y];
+    if(!v||v[0]==null||v[1]==null||v[2]==null)return {k,label,v:null};
+    const [p,i,e]=v,supply=p+i,kept=supply-e;
+    return {k,label,v,p,i,e,supply,kept:kept>=0?kept:null};
+  });
+  const scale=Math.max(1e-9,...rows.filter(r=>r.v).map(r=>r.supply));
+  const C={abroad:'var(--d-primary)',kept:'var(--border)'};
   document.getElementById('ft-legend').innerHTML=
-    `<span><b>Top bar, where it comes from:</b> <i style="background:${C.made}"></i>made here <i style="background:${C.abroad}"></i>brought in from abroad <i style="background:${C.prov}"></i>from other provinces</span>`+
-    `<span><b>Bottom bar, where it goes:</b> <i style="background:${C.abroad}"></i>sent abroad <i style="background:${C.prov}"></i>to other provinces <i style="background:${C.kept};outline:1px solid var(--light)"></i>left in the province (derived)</span>`;
+    `<span><b>Top bar, where it comes from:</b> <i style="background:linear-gradient(90deg,var(--f-gas),var(--f-elec),var(--f-oil),var(--f-propane))"></i>made in Canada (colour = the fuel) <i style="background:${C.abroad}"></i>imported</span>`+
+    `<span><b>Bottom bar, where it goes:</b> <i style="background:${C.abroad}"></i>exported <i style="background:${C.kept};outline:1px solid var(--light)"></i>left in Canada (derived)</span>`;
   const seg=(val,col,den,label)=>{
     if(!(val>0))return '';
-    const w=(val/den*100);
-    return `<span class="ft-seg" style="width:${w.toFixed(2)}%;background:${col}" title="${label}: ${ftFmt(val).replace(/<[^>]+>/g,'')} PJ"></span>`;
+    return `<span class="ft-seg" style="width:${(val/den*100).toFixed(2)}%;background:${col}" title="${label}: ${ftPlain(ftFmt(val))} PJ"></span>`;
   };
-  const chart=S.map(([g,v,s])=>{
-    const den=pct?(s.supplyOk&&s.supply>0?s.supply:null):scale;
-    const top=den?seg(s.made,C.made,den,'Made here')+seg(s.abroad,C.abroad,den,'Brought in from abroad')+seg(s.pin,C.prov,den,'From other provinces'):'';
-    const bot=den&&!(pct&&s.keptNeg)?seg(s.sent,C.abroad,den,'Sent abroad')+seg(s.pout,C.prov,den,'To other provinces')+(s.kept!=null?seg(s.kept,C.kept,den,'Left in the province'):''):'';
-    const nums=`Supply ${s.supplyOk?ftFmt(s.supply):ftFmt(s.supply>0?s.supply:null)+(s.supply>0?'+':'')} PJ · sent abroad ${ftFmt(v[2])} · to other provinces ${ftFmt(s.pout>0?s.pout:(fuel==='propane'||v[3]==null?null:0))} · left ${ftFmt(s.kept)}`;
-    const tag=pct&&!den?`<span class="ft-tag">Share not shown: ${s.miss.join(', ')||'no supply'} not published</span>`
-      :s.miss.length?`<span class="ft-tag">Not published: ${s.miss.join(', ')}</span>`
-      :s.keptNeg?`<span class="ft-tag">More leaves than is made or brought in (stock changes, losses, or flows between provinces not reported)${pct?', so the bottom bar is not drawn':', so "left" is not shown'}</span>`:'';
-    return `<div class="ft-name">${g}</div><div class="ft-pair"><div class="ft-bar">${top}</div><div class="ft-bar">${bot}</div><div class="ft-lab"><span>${nums}</span>${tag}</div></div>`;
+  document.getElementById('ft-chart').innerHTML=rows.map(r=>{
+    if(!r.v)return `<div class="ft-name">${r.label}</div><div class="ft-pair"><div class="ft-bar"></div><div class="ft-lab"><span class="ft-tag">No Statistics Canada value for ${y}</span></div></div>`;
+    const den=pct?r.supply:scale,m=`var(${FT_COLOR[r.k]})`;
+    const top=seg(r.p,m,den,'Made in Canada')+seg(r.i,C.abroad,den,'Imported');
+    const bot=seg(r.e,C.abroad,den,'Exported')+(r.kept!=null?seg(r.kept,C.kept,den,'Left in Canada'):'');
+    const tag=r.kept==null?`<span class="ft-tag">More was exported than made or imported (stock changes, losses), so "left" is not shown</span>`:'';
+    return `<div class="ft-name">${r.label}</div><div class="ft-pair"><div class="ft-bar">${top}</div><div class="ft-bar">${bot}</div><div class="ft-lab"><span>Made ${ftFmt(r.p)} · imported ${ftFmt(r.i)} · exported ${ftFmt(r.e)} · left in Canada ${ftFmt(r.kept)} PJ</span>${tag}</div></div>`;
   }).join('');
-  document.getElementById('ft-chart').innerHTML=chart;
-  const tbl=document.getElementById('ft-tbl');
-  tbl.innerHTML=`<thead><tr><th>Province or territory</th><th class="num">Made here (PJ)</th><th class="num">Brought in (PJ)</th><th class="num">Sent out (PJ)</th><th class="num">Net from other provinces (PJ)</th></tr></thead><tbody>`+
-    rows.map(([g,v])=>`<tr class="${g==='Canada'?'ft-can':''}"><td>${g}</td>${v.map(x=>`<td class="num">${ftFmt(x)}</td>`).join('')}</tr>`).join('')+'</tbody>';
-  document.getElementById('ft-count').innerHTML=`${y} · Canada: made ${ftFmt(can[0])} · brought in ${ftFmt(can[1])} · sent out ${ftFmt(can[2])} PJ`;
-  document.getElementById('ft-note').textContent=FT_NOTE[fuel]+' '+(pct?'Share view: each bar is scaled to that province\'s own supply, so it shows mix, not size. ':'Total view: all bars share one scale, so lengths compare across provinces; small provinces are thin. ')+
-    '"Left in the province" is supply minus what leaves; it also absorbs stock changes, losses and fuel used in production, so it is not consumption. Provincial rows can sum to less than the Canada row because blanks are not filled in.';
+  document.getElementById('ft-tbl').innerHTML=`<thead><tr><th>Fuel</th><th class="num">Made (PJ)</th><th class="num">Imported (PJ)</th><th class="num">Exported (PJ)</th><th class="num">Left in Canada (PJ, derived)</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><td>${r.label}</td><td class="num">${ftFmt(r.v?r.p:null)}</td><td class="num">${ftFmt(r.v?r.i:null)}</td><td class="num">${ftFmt(r.v?r.e:null)}</td><td class="num">${ftFmt(r.v?r.kept:null)}</td></tr>`).join('')+'</tbody>';
+  document.getElementById('ft-count').textContent=`${y} · Canada, petajoules (PJ)`;
+  document.getElementById('ft-note').textContent=Object.values(FT_NOTE).join(' ')+' '+(pct?'Share view: each fuel is scaled to its own supply, so it shows mix, not size. ':'Total view: all fuels share one scale, so lengths compare across fuels; the small ones are thin. ')+
+    '"Left in Canada" is made plus imported minus exported; it also absorbs stock changes, losses and fuel used in production, so it is not consumption.';
 }
 
 function renderAll(){
