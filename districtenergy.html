@@ -138,6 +138,12 @@ table.dt th.sortable.desc::after{content:'▼'}
 .map-pt.ctx{stroke:none;pointer-events:none}
 .map-legend{position:absolute;left:10px;bottom:10px;background:var(--map-attr-bg);border-radius:var(--r-sm);padding:.5rem .6rem;font-size:11px;color:var(--muted);line-height:1.7;backdrop-filter:blur(3px)}
 .map-legend .chart-legend-dot{border-radius:50%}
+@media(max-width:640px){#pl-legend{position:static;border-radius:0}}
+.pl-inc{cursor:pointer;stroke:var(--map-stroke);stroke-width:.4}
+.pl-inc.sig{stroke:var(--d-neg);stroke-width:1.3}
+.pl-flow{cursor:pointer;stroke:var(--map-stroke);stroke-width:.8}
+.pl-flow.none{fill:none;stroke-dasharray:2 2;stroke:var(--d-tick)}
+.map-legend .dia{display:inline-block;width:9px;height:9px;transform:rotate(45deg) scale(.8);margin-right:5px;vertical-align:baseline}
 
 /* Facility detail panel */
 .fac-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem 1rem;margin-top:.9rem;font-size:13px;display:none}
@@ -480,6 +486,28 @@ details.data-details[open] summary::before{content:'▾ '}
     <p class="note"><b>Measured:</b> Statistics Canada's reported production, imports and exports. <b>Converted:</b> everything is shown in petajoules (PJ) so fuels compare; electricity and propane are converted from MWh and m&sup3;, and the propane factor is an assumption. <b>Not available:</b> wood and other biomass. Statistics Canada has no wood volume or trade series, and its "renewable fuels" row is liquid biofuels. Flows between provinces cancel out nationally, so they are not shown.</p>
   </div>
 
+  <h3 class="subhead subhead-lg">Pipelines: what flows, and where incidents happened</h3>
+  <p class="sub-note">The big gas and oil pipelines regulated by the Canada Energy Regulator (CER). The map shows two things: <b>diamonds</b> where the pipeline operators report how much flows (bigger = more), and <b>circles</b> where the CER has recorded an incident. It shows points only, not the pipeline routes, because the CER does not publish its route lines as open data.</p>
+
+  <div class="card" id="pl-card" style="display:none">
+    <div class="filters">
+      <div class="f-grp"><label class="f-lab" for="pl-iyear">Incident year</label><select id="pl-iyear"></select></div>
+      <div class="f-grp"><label class="f-lab" for="pl-itype">Incident type</label><select id="pl-itype"></select></div>
+      <div class="f-grp"><label class="f-lab" for="pl-sig">Significant only</label><input type="checkbox" id="pl-sig"></div>
+      <div class="f-grp"><label class="f-lab" for="pl-fyear">Flow year</label><select id="pl-fyear"></select></div>
+      <span class="result-count" id="pl-count"></span>
+    </div>
+    <div class="map-wrap">
+      <svg id="pl-map" viewBox="0 0 900 520" role="img" aria-label="Map of Canada Energy Regulator pipeline flow measurement points and incidents"></svg>
+      <div class="map-legend" id="pl-legend"></div>
+    </div>
+    <p class="note" id="pl-note"></p>
+    <p class="note" id="pl-ghg"></p>
+    <div class="tbl-wrap" data-mode="advanced" style="margin-top:1rem"><table class="dt" id="pl-tbl"></table></div>
+    <div class="tbl-wrap" data-mode="advanced" style="margin-top:1rem"><table class="dt" id="pl-tbl0"></table></div>
+    <p class="note"><b>Measured:</b> flows are the volumes pipeline companies report to the CER at fixed measuring points; incidents are the CER's own incident records, 2008 to 2026. <b>Not on the map:</b> the pipeline routes, provincially regulated lines (most local gas distribution), and any point a company reports without coordinates (listed in the Advanced view, never placed by us). <b>Don't add up the diamonds:</b> the same gas is counted at each point it passes. Gas and oil volumes are both in thousand cubic metres a day but do not carry the same energy, and incident release volumes mix gas and liquid cubic metres the same way. <b>Averages hide peaks:</b> an average says nothing about the busiest day. A few points average slightly over 100% of their reported capacity; we show the figures as reported and do not know why.</p>
+  </div>
+
   <!-- ══ 03 Policy & barriers ══ -->
   <div class="section-head" id="sec-policy">
     <span class="sec-num">03</span>
@@ -623,6 +651,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><strong>Three: the public file is smaller than the report.</strong> Some operators' figures are confidential, so they're in CEEDC's analysis but not in the file anyone can download. That means our totals are lower than the published ones. We show both, side by side, rather than picking whichever looks better.</p>
       <p>Where a number could not be verified, it is left blank rather than estimated. Where a system reported "no", that is shown differently from a system that simply never answered.</p>
       <p><strong>The fuel chart is separate too.</strong> It comes from Statistics Canada's national energy tables, not from CEEDC. For each heating fuel it shows how much Canada makes, imports and exports in a year, all converted to the same energy unit (petajoules) so fuels can be compared. It covers Canada as a whole only: Statistics Canada counts trade where fuel crosses the border, so a province-by-province split can make a province look like it imports nothing when its gas simply arrived through a neighbour. It says nothing about how much is burned, and it has nothing on wood, because Statistics Canada does not publish wood volumes or trade.</p>
+      <p><strong>The pipeline map is separate too.</strong> It uses two open files from the Canada Energy Regulator. One records every reportable incident on the pipelines it regulates since 2008 (fires, leaks, injuries and similar). The other lists how much gas or oil pipeline companies report moving past certain measuring points. We plot those points and incidents where the regulator says they are. Under the map we turn the reported gas-leak volumes into a rough methane figure. It is a floor, not a total: about a third of gas incidents gave no volume, the regulator does not say how its volumes were measured, and routine venting and small leaks are not incidents at all. We do not draw the pipelines themselves, because the regulator does not publish their routes as open data. Only the big federally regulated pipelines are included, so most local gas lines are missing. Where a company gave no coordinates for a measuring point, it is listed but not placed on the map. Where a leak volume was not recorded, it says so instead of showing zero.</p>
       <p><strong>The funding table is separate.</strong> It comes from the public project lists of two federal funders, the Green Municipal Fund and the Canada Infrastructure Bank, not from CEEDC. We copy only the facts (name, place, type, dates, dollar amounts) and link to each funder's page. Dollar figures are what the funder reports, and many GMF entries are studies, not built systems.</p>
     </div>
   </div>
@@ -639,6 +668,7 @@ details.data-details[open] summary::before{content:'▾ '}
       <p><b>Known source quirks, all handled in the pipeline and listed in <code>meta.json</code>:</b> the Metadata sheet's "Detail" column is offset from its "Field" column by 4 rows from row 60 onward (so <code>geo_used</code> reads as "Solid Biomass" and <code>waste_used</code> as "Spent Pulping Liquor" if taken at face value — the fuel labels here are the corrected mapping, cross-checked against the legend CEEDC's dashboard renders); the Metadata sheet documents an <code>npri</code> field the data sheet lacks and omits the <code>operator</code> field it has; <code>municipality_type</code> ships in mixed case; facility and city names carry stray double and trailing spaces.</p>
       <p><b>Geometry.</b> Province outlines are unioned from the repo's existing per-province FSA polygons (<code>geo_json/*.json</code>) and simplified to 0.03°. Yukon has no <code>geo_json</code> file, so its outline is reprojected from the national FSA file with the same inverse-Lambert used by <code>Python/canada_boundary.py</code>. All 254 facilities carry coordinates in the source and all fall inside Canada; none are geocoded here.</p>
       <p><b>Funders (GMF, CIB).</b> <code>Python/district_funders_etl.py</code> → <code>districtenergy_json/funded_projects.json</code>. GMF: info.gmf-fmv.ca is a Power Pages portal with no API (<code>/_odata</code> not exposed); we walk <code>/ProjectSearch/?page=N</code> (1,165 projects at 10 per page) for card fields, then each <code>/projectdetails/?id=GUID</code> for <code>Project value</code>, <code>Grant amount</code> and <code>Loan amount</code>. CIB: public GraphQL <code>entries(type:"project")</code> (131 projects; section handle is <code>projects</code>). "District energy" = GMF sub-sector prefix "District Energy" (63 projects) or CIB name containing "District Energy" (3). CIB <code>commitment</code> is free text ("$218 million (financial close)"): parsed to CAD millions, 9 unparsed kept as null with the raw string. <b>Licensing:</b> CIB terms bar republishing without written consent and GMF terms returned 403, so only facts and links are published (decision 2026-11-25), a judgment call and not legal clearance. Drop counts in <code>meta.drops</code>.</p>
+      <p><b>Pipelines map.</b> <a href="Python/pipeline_etl.py" target="_blank" rel="noopener">Python/pipeline_etl.py</a> &rarr; <code>districtenergy_json/pipelines.json</code>. CER open data, Open Government Licence &ndash; Canada. <b>Incidents:</b> <code>pipeline-incidents-data.csv</code> (dataset fd17f08f, cp1252, 2,039 rows 2008&ndash;2026, quarterly). Release volume is numeric for 594 rows; 252 are &ldquo;Not Provided&rdquo; and 1,193 &ldquo;Not Applicable&rdquo; (no release); both stay null, never 0. <code>Significant</code> is the CER&rsquo;s own flag (362 rows). <code>Release Type</code> (Gas / Liquid / Miscellaneous / Not Applicable) drives the type filter. One record is in Maine. <b>Flows:</b> 19 per-pipeline files from <code>throughput-capacity/</code> (dataset dc343c43): gas reports daily, oil monthly, into per-year means with n; a year is &ldquo;full&rdquo; at &ge;360 days or 12 months. Oil product rows are summed per month; capacity (repeated on each product row) is taken once. Rows with the same pipeline, key point and direction are summed for the dot (different directions never are); the tooltip shows the trade-type split. Never sum across key points. Gas capacity uses the <code>Capacity (1000 m&sup3;/d)</code> column although the data dictionary calls it GJ/d. <b>Gaps:</b> 98 pipeline/key-point/direction groups, 35 with no coordinates (Enbridge Mainline, Trans Mountain, Trans-Northern, Line 9, Southern Lights, Montreal, Westspur, Brunswick); listed, not placed, not geocoded by us. <b>One source fix, logged in <code>meta.coordinate_fixes</code>:</b> Suffield&rsquo;s two key points carry positive longitudes (+110.481, +110.797); sign flipped. <b>Not used:</b> <code>apportionment.csv</code> (nominations, not flow) and the archived Trans Mountain file (overlaps the current one). <b>Methane floor.</b> Incidents with <code>Release Type</code> = Gas and <code>Substance</code> in {Natural Gas &ndash; Sweet, Natural Gas &ndash; Sour, Fuel Gas} (615 rows, 384 with a numeric volume = 70,472,150 m&sup3;; propane, NGL and mixed HVP are excluded as not methane). CO&#8322;e = volume &times; methane share &times; 0.68 kg/m&sup3; &times; 28. <b>Assumptions, none from the CER:</b> methane share 80 / 90 / 97% (low / central / high; the dictionary gives no composition); 0.68 kg/m&sup3; is methane near 15 &deg;C and 1 atm; GWP 28 is the IPCC AR5 100-year value. The CER dictionary defines the field only as &ldquo;the approximate volume released in cubic meters&rdquo;, with no standard-conditions statement, so the volume basis is unknown and the range does not cover it. Result for all years: 1.21 Mt CO&#8322;e (1.07&ndash;1.30); the largest incident (INC2013-146, 16.5 million m&sup3;) is 23% of it. 231 gas incidents with no volume are not counted. Not computed against the ECCC inventory. <b>Route lines:</b> the CER&rsquo;s interactive map draws pipelines from a WMS on a third-party host with no stated licence; it is not an open dataset, so it is not used. Projection and outlines are reused from the facility map above.</p>
       <p><b>Fuel supply and trade (Canada-wide).</b> <a href="Python/fuel_trade_etl.py" target="_blank" rel="noopener">Python/fuel_trade_etl.py</a> &rarr; <code>districtenergy_json/fuel_trade.json</code> (also holds provinces; the page uses the Canada row only). StatCan full-table CSVs: 25-10-0029 (TJ, annual; gas, light and heavy fuel oil), 25-10-0021 (MWh, annual; electricity: generation, US imports and exports), 25-10-0081 (m&sup3;, monthly; propane = field + refinery production, imports, exports, summed to calendar years with all 12 months present for every flow). Conversions: TJ/1000, MWh &times; 3.6 GJ/MWh, propane m&sup3; &times; 25.60 GJ/m&sup3; (assumed HOT2000-internal factor). <b>Left in Canada</b> = made + imported &minus; exported, derived, and it absorbs stock changes, losses and fuel used in production. <b>Why no provinces:</b> in 25-10-0029 net inter-regional transfers sum to zero across provinces every year checked, and a province served through a neighbour (Nova Scotia gas via New Brunswick, 25 PJ in 2025) has blank imports and a matching transfer instead; the table appears to record trade where fuel crosses the border (an inference: its notes define transfers but not imports). Checks in <code>meta.checks</code>: electricity exports in 0029 match 0021 except 21 of 194 cell-years, 18 before 2018, the recent ones rounding on near-zero values; the page uses 0021 for electricity.</p>
       <p><b>Pipeline:</b> <a href="Python/district_energy_etl.py" target="_blank" rel="noopener">Python/district_energy_etl.py</a> · <b>Docs:</b> <a href="docs/DISTRICT_ENERGY.md" target="_blank" rel="noopener">docs/DISTRICT_ENERGY.md</a> · <b>QA counts and the file-vs-report delta:</b> <code>districtenergy_json/meta.json</code>.</p>
     </div>
@@ -1593,9 +1623,148 @@ function drawFuelTrade(){
     '"Left in Canada" is made plus imported minus exported; it also absorbs stock changes, losses and fuel used in production, so it is not consumption.';
 }
 
+/* ── Pipelines points map (CER open data) ──────────────────────────────
+   Diamonds = flow measurement points (one per location; sub-flows with the same
+   pipeline + key point + direction are summed, different directions never are).
+   Circles = incidents. Reuses the Canada map projection (LCC / proj / fitMap). */
+const PL={iy:'all',it:'all',fy:null,sig:false};
+const PLG={subs:['Natural Gas - Sweet','Natural Gas - Sour','Fuel Gas'],dens:0.68,gwp:28,share:[0.80,0.90,0.97]};
+const plEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plV=v=>v==null?'—':(v>=100?Math.round(v).toLocaleString('en-CA'):v.toFixed(1));
+function plIncidents(){
+  const F=D.pl.meta.incident_fields;
+  return D.pl.incidents.map(r=>{const o={};F.forEach((k,i)=>o[k]=r[i]);return o;});
+}
+function plFlowGroups(y){
+  const locs=new Map();
+  D.pl.flows.forEach(f=>{
+    const k=f.lat+','+f.lon;
+    if(!locs.has(k))locs.set(k,{lat:f.lat,lon:f.lon,subs:new Map()});
+    const L=locs.get(k),sk=f.pipeline+'|'+f.kp+'|'+f.dir;
+    if(!L.subs.has(sk))L.subs.set(sk,{pipeline:f.pipeline,kp:f.kp,dir:f.dir,commodity:f.commodity,parts:[]});
+    L.subs.get(sk).parts.push(f);
+  });
+  return [...locs.values()].map(L=>{
+    const subs=[...L.subs.values()].map(s=>{
+      const got=s.parts.filter(p=>p.years[y]);
+      if(!got.length)return {...s,has:false};
+      const tp=got.reduce((a,p)=>a+p.years[y].tp,0);
+      const caps=got.map(p=>p.years[y].cap).filter(v=>v!=null), av=got.map(p=>p.years[y].avail).filter(v=>v!=null);
+      return {...s,has:true,tp,cap:caps.length?Math.max(...caps):null,avail:av.length?Math.max(...av):null,
+        n:Math.min(...got.map(p=>p.years[y].n)),full:got.every(p=>p.years[y].full),
+        detail:got.map(p=>({trade:p.trade,tp:p.years[y].tp}))};
+    });
+    return {lat:L.lat,lon:L.lon,subs};
+  });
+}
+function plInit(){
+  if(!D.pl)return;
+  const inc=D.pl.incidents,ys=[...new Set(inc.map(r=>r[1]))].sort(),last=ys[ys.length-1];
+  document.getElementById('pl-iyear').innerHTML='<option value="all">All years ('+ys[0]+'–'+last+')</option>'+
+    ys.slice().reverse().map(y=>`<option value="${y}">${y}${y===last?' (to date)':''}</option>`).join('');
+  document.getElementById('pl-itype').innerHTML='<option value="all">All incidents</option><option value="Gas">Gas release</option><option value="Liquid">Liquid release</option><option value="Miscellaneous">Other release</option><option value="Not Applicable">No release (fire, injury, etc.)</option>';
+  const fy=new Set();
+  D.pl.flows.forEach(f=>Object.entries(f.years).forEach(([y,v])=>{if(v.full)fy.add(+y);}));
+  const fl=[...fy].sort((a,b)=>b-a); PL.fy=String(fl[0]);
+  document.getElementById('pl-fyear').innerHTML=fl.map(y=>`<option value="${y}">${y}</option>`).join('');
+  ['pl-iyear','pl-itype','pl-fyear'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{
+    PL[{'pl-iyear':'iy','pl-itype':'it','pl-fyear':'fy'}[id]]=e.target.value; drawPipelines();}));
+  document.getElementById('pl-sig').addEventListener('change',e=>{PL.sig=e.target.checked;drawPipelines();});
+  document.getElementById('pl-map').addEventListener('click',e=>{if(e.target.id==='pl-map'||e.target.classList.contains('map-prov'))hideTip();});
+  document.getElementById('pl-card').style.display='';
+}
+function drawPipelines(){
+  const card=document.getElementById('pl-card'); if(!D.pl||!card)return;
+  const svg=document.getElementById('pl-map'); clear(svg); const p=pal();
+  if(!MAPFIT)fitMap();
+  const g0=el('g',{});
+  Object.values(D.outline).forEach(rings=>rings.forEach(ring=>{
+    g0.appendChild(el('path',{d:'M'+ring.map(([lo,la])=>proj(lo,la).map(v=>v.toFixed(1)).join(',')).join('L')+'Z',class:'map-prov'}));
+  }));
+  svg.appendChild(g0);
+  // incidents
+  const cs=getComputedStyle(document.documentElement);
+  const cGas=cs.getPropertyValue('--f-gas').trim(),cOil=cs.getPropertyValue('--f-oil').trim();
+  const inc=plIncidents().filter(r=>(PL.iy==='all'||String(r.year)===PL.iy)&&(PL.it==='all'||r.release_type===PL.it)&&(!PL.sig||r.significant));
+  const gI=el('g',{});
+  inc.slice().sort((a,b)=>(b.volume_m3||0)-(a.volume_m3||0)).forEach(r=>{
+    const [x,y]=proj(r.lon,r.lat);
+    const rad=r.volume_m3?Math.max(2.4,Math.min(9,1.6+Math.sqrt(r.volume_m3)*0.35)):2.2;
+    const vol=r.volume_m3!=null?plV(r.volume_m3)+' m³ released':(r.release_type==='Not Applicable'?'No release':'Release volume not provided');
+    const html=`<b>${plEsc(r.number)}</b> (${r.year})${r.significant?' · <b>significant</b>':''}<br>${plEsc(r.centre)}, ${plEsc(r.prov)}<br>${plEsc(r.company)}<br>`+
+      `${plEsc(r.types)}${r.substance&&r.substance!=='Not Applicable'?' · '+plEsc(r.substance):''}<br>${vol}<br>`+
+      `<span style="opacity:.75">What: ${plEsc(r.what)}<br>Why: ${plEsc(r.why)}</span>`;
+    const n=el('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:rad.toFixed(1),fill:p.ink,opacity:.42,class:'pl-inc'+(r.significant?' sig':'')});
+    hoverable(n,html); n.addEventListener('click',e=>{e.stopPropagation();showTip(e,html);});
+    gI.appendChild(n);
+  });
+  svg.appendChild(gI);
+  // flows
+  const groups=plFlowGroups(PL.fy);
+  const max={gas:1,oil:1};
+  groups.forEach(L=>L.subs.forEach(s=>{if(s.has)max[s.commodity]=Math.max(max[s.commodity],s.tp);}));
+  const gF=el('g',{}); let nHas=0;
+  groups.forEach(L=>{
+    const [x,y]=proj(L.lon,L.lat);
+    const withData=L.subs.filter(s=>s.has);
+    const com=(withData[0]||L.subs[0]).commodity;
+    let r=6;
+    if(withData.length){r=Math.max(...withData.map(s=>4.5+Math.sqrt(s.tp/max[s.commodity])*11));nHas++;}
+    const html=L.subs.map(s=>{
+      const head=`<b>${plEsc(s.pipeline)}</b><br>${plEsc(s.kp)} · ${plEsc(s.dir||'direction not stated')}`;
+      if(!s.has)return head+`<br><span style="opacity:.75">No throughput reported for ${PL.fy}</span>`;
+      const capTxt=s.cap!=null?`capacity ${plV(s.cap)}${s.tp&&s.cap?` (${Math.round(s.tp/s.cap*100)}% used on average)`:''}`:
+        (s.avail!=null?`available capacity ${plV(s.avail)}`:'no capacity reported');
+      const parts=s.detail.length>1?'<br><span style="opacity:.75">'+s.detail.map(d=>plEsc(d.trade||'—')+' '+plV(d.tp)).join(' · ')+'</span>':'';
+      return head+`<br>${PL.fy} average ${plV(s.tp)} thousand m³/day · ${capTxt}${parts}`+
+        `<br><span style="opacity:.75">${s.n} ${s.commodity==='gas'?'days':'months'} reported${s.full?'':' (partial year)'}</span>`;
+    }).join('<hr style="border:0;border-top:1px solid var(--border);margin:.35rem 0">');
+    const d=`M${x.toFixed(1)},${(y-r).toFixed(1)}L${(x+r).toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${(y+r).toFixed(1)}L${(x-r).toFixed(1)},${y.toFixed(1)}Z`;
+    const n=el('path',{d,class:'pl-flow'+(withData.length?'':' none'),fill:com==='gas'?cGas:cOil,opacity:withData.length?.88:1});
+    hoverable(n,html); n.addEventListener('click',e=>{e.stopPropagation();showTip(e,html);});
+    gF.appendChild(n);
+  });
+  svg.appendChild(gF);
+  const nVol=inc.filter(r=>r.volume_m3!=null).length,nSig=inc.filter(r=>r.significant).length;
+  document.getElementById('pl-count').textContent=`${fmt(inc.length)} incidents shown (${fmt(nSig)} significant)`;
+  document.getElementById('pl-legend').innerHTML=
+    `<span class="dia" style="background:${cGas}"></span>Gas flow point &nbsp;<span class="dia" style="background:${cOil}"></span>Oil flow point<br>`+
+    `<span class="chart-legend-dot" style="background:${p.ink};opacity:.5"></span> Incident (bigger = larger release) &nbsp;`+
+    `<span class="chart-legend-dot" style="background:transparent;border:1.5px solid ${p.neg}"></span> Significant<br>`+
+    `<span style="opacity:.75">Diamond size = ${PL.fy} average flow, scaled separately for gas and oil</span>`;
+  document.getElementById('pl-note').innerHTML=
+    `${nVol} of ${fmt(inc.length)} incidents shown have a release volume; the rest are fires, injuries and similar with no release, or the volume was not provided (the tooltip says which). `+
+    `${nHas} of ${groups.length} flow locations reported in ${PL.fy}. ${D.pl.no_coords.length} further reporting points have no coordinates and cannot be mapped (Advanced view).`;
+  // methane floor from reported gas-release volumes (assumption-driven; see methodology)
+  const gasInc=inc.filter(r=>r.release_type==='Gas'&&PLG.subs.includes(r.substance));
+  const gv=gasInc.filter(r=>r.volume_m3!=null), tot=gv.reduce((a,r)=>a+r.volume_m3,0), big=gv.reduce((a,r)=>Math.max(a,r.volume_m3),0);
+  const co2e=sh=>tot*sh*PLG.dens*PLG.gwp/1e9;
+  const mt=x=>x>=1?x.toFixed(2)+' Mt':Math.round(x*1000).toLocaleString('en-CA')+' kt';
+  document.getElementById('pl-ghg').innerHTML=gasInc.length?
+    `<b>Methane in reported gas releases (a floor, not a pipeline emissions total):</b> about <b>${mt(co2e(PLG.share[1]))} CO&#8322;e</b> (${mt(co2e(PLG.share[0]))} to ${mt(co2e(PLG.share[2]))}) from ${fmt(gv.length)} natural-gas incidents that gave a volume (${fmt(tot)} m&sup3;). `+
+    `${fmt(gasInc.length-gv.length)} more gave no volume and are not counted. The largest single incident is ${tot?Math.round(big/tot*100):0}% of this. `+
+    `<span style="opacity:.8">Assumes the CER's volumes are at standard conditions (the CER does not say), methane is ${Math.round(PLG.share[0]*100)}&ndash;${Math.round(PLG.share[2]*100)}% of the gas, ${PLG.dens} kg per m&sup3; of methane, and ${PLG.gwp} times CO&#8322; over 100 years. The range covers gas composition only, not the unknown volume basis. Propane and liquids, burned gas, venting and small leaks are not included.</span>`
+    :'<b>Methane estimate:</b> no natural-gas release incidents in this selection.';
+  // advanced tables
+  const rows=[];
+  groups.forEach(L=>L.subs.forEach(s=>rows.push(s)));
+  rows.sort((a,b)=>a.pipeline.localeCompare(b.pipeline)||a.kp.localeCompare(b.kp)||a.dir.localeCompare(b.dir));
+  document.getElementById('pl-tbl').innerHTML=
+    `<thead><tr><th>Pipeline</th><th>Key point</th><th>Direction</th><th>Fuel</th><th class="num">${PL.fy} avg flow</th><th class="num">Capacity</th><th class="num">Used</th><th class="num">Days / months</th></tr></thead><tbody>`+
+    rows.map(s=>`<tr><td>${plEsc(s.pipeline)}</td><td>${plEsc(s.kp)}</td><td>${plEsc(s.dir||'—')}</td><td>${s.commodity}</td>`+
+      (s.has?`<td class="num">${plV(s.tp)}</td><td class="num">${plV(s.cap!=null?s.cap:s.avail)}${s.cap==null&&s.avail!=null?' (avail.)':''}</td><td class="num">${s.cap&&s.tp?Math.round(s.tp/s.cap*100)+'%':'—'}</td><td class="num">${s.n}${s.full?'':' (partial)'}</td>`:
+      `<td class="num" colspan="4"><span class="dim">not reported in ${PL.fy}</span></td>`)+`</tr>`).join('')+'</tbody>';
+  const nc=D.pl.no_coords.map(f=>{
+    const ys=Object.keys(f.years).sort(),ly=ys[ys.length-1];
+    return `<tr><td>${plEsc(f.pipeline)}</td><td>${plEsc(f.kp)}</td><td>${f.commodity}</td><td class="num">${ly||'—'}</td><td class="num">${ly?plV(f.years[ly].tp):'—'}</td></tr>`;}).join('');
+  document.getElementById('pl-tbl0').innerHTML=
+    `<caption style="text-align:left;font-weight:600;padding:.3rem 0">Reporting points with no coordinates in the CER file (${D.pl.no_coords.length}) — listed, not mapped</caption>`+
+    `<thead><tr><th>Pipeline</th><th>Reporting point</th><th>Fuel</th><th class="num">Latest year</th><th class="num">Avg flow that year</th></tr></thead><tbody>${nc}</tbody>`;
+}
 function renderAll(){
   drawKPIs();
   drawFuelTrade();
+  drawPipelines();
   drawDiagram();
   drawGenLadder();
   drawGenScatter();
@@ -1625,8 +1794,9 @@ function boot(){
     fetchJSON(DE+'ief_context.json').catch(()=>[]),
     fetchJSON(DE+'funded_projects.json').catch(()=>null),
     fetchJSON(DE+'fuel_trade.json').catch(()=>null),
-  ]).then(([fac,agg,outline,report,projects,meta,ctx,funding,ft])=>{
-    D.funding=funding; D.ft=ft;
+    fetchJSON(DE+'pipelines.json').catch(()=>null),
+  ]).then(([fac,agg,outline,report,projects,meta,ctx,funding,ft,pl])=>{
+    D.funding=funding; D.ft=ft; D.pl=pl;
     D.fac=fac; D.agg=agg; D.outline=outline; D.report=report;
     D.projects=projects; D.meta=meta; D.ctx=ctx; D.filtered=fac;
     document.getElementById('loading-msg').style.display='none';
@@ -1635,6 +1805,7 @@ function boot(){
       `Data generated ${new Date(meta.generated_at).toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'})} `+
       `from CEEDC's published files (dashboard last updated ${meta.source.dashboard_last_updated}; report ${meta.source.report_published}).`;
     buildFilters();
+    plInit();
     renderAll();
     syncNav();
   }).catch(err=>{
