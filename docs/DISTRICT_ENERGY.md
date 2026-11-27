@@ -361,6 +361,18 @@ Section "Pipelines: what flows, and where incidents happened", after "Where Cana
 - **Limits.** Federally regulated systems only (most local gas distribution is provincial). Key points are measurement locations, not the whole line, so never add them up. Gas and oil m3 are not energy-comparable, and incident release volumes mix gas and liquid m3. Annual means hide peaks; a few points average slightly above 100% of reported capacity (not explained by us). The national map has no zoom, so the dots cluster in the south.
 - **Refresh:** `python -I Python/pipeline_etl.py --refresh`, then republish `pipelines.json` to gh-pages. CER updates incidents quarterly.
 
+## Pipe cost card (added 2026-11-27)
+
+Section 01, "What does the pipe cost?", after "One pipe, two pipes, or more". Hand-transcribed static HTML: no pipeline, no JSON. Two simple-view paragraphs, a comparison table, a supplier note and sources; an Advanced card holds the detail.
+
+- **Mississauga.** FVB Energy, *City of Mississauga District Energy Study*, final 2023-03-22, Tables 17 and 19 (pp. 54-55). Text extracted with `pdftotext -layout` (the web-fetch tool only returned raw PDF bytes). Class D preliminary (-25%/+50%), 2022$, includes contractor OH&P, construction management, engineering and 15% contingency, excludes taxes. 10,840 trench metres, $57.6M, **$5,300/tm**; phases 770 m $2,651; 1,950 m $6,327; 2,920 m $7,182; 1,210 m $4,852; 2,570 m $5,416; 860 m $1,688; 560 m $1,818. The $/tm column was verified by dividing each total by its length (the PDF's table text was scrambled). 4-pipe trench (hot and chilled). Pipe: pre-insulated steel (CSA B51, 1,600 kPa, 95 C) with PEX or PE-RT optional on the hot side, HDPE for cooling. Piping is about 15% of the $381.8M total. Trenchless is stated at 3x or more of open trench. No manufacturer named; Appendix C is not in the published PDF (the file ends at Appendix A drawings).
+- **Port Alberni.** Farallon Consultants Limited (S. Salter, P.Eng.), 2012-07-16, Appendix 3, pp. 58-59. 3,000 m: 880 m on roads at $300/m + 2,120 m off-road at $250/m = $794,000; piping and mechanical $1,443,000 (**about $481/m**, derived by us); connections and ETS $1,285,000; subtotal $3,522,000 (all verified by arithmetic). Basis is the City's trenching experience and comparable projects checked against RETScreen, not vendor quotes. 3-line system. Contingency 20%, engineering 15%, project management 10% are listed as inputs; whether the subtotal includes them is unconfirmed.
+- **Supplier.** GF Urecon (GF Piping Systems), Canadian since 1969, plant in Calmar, AB (plant location from an older mining-industry listing, not reconfirmed); distributes Kingspan LOGSTOR rigid and flexible pipe (EN 253). No other Canadian maker found by one standard web search each; Perma-Pipe, Thermacor, Isoplus and Rehau not checked.
+- **Decisions (Simon, 2026-11-27):** publish facts and links only, no table copies (judgment call, not legal clearance); name GF Urecon.
+- **Limits.** What the data can't tell us: what Canadian projects paid, cost by pipe diameter. What we assumed: nothing added, not inflation-adjusted. What would change the answer: a measured cost from a built system, or Mississauga's pipe-size appendix. The two benchmarks differ in decade, setting and pipe count and are not put on one axis.
+- **Not found:** Courtenay BC 2013 (Farallon, Table 6, "Capital Cost Summary, Distribution Piping"): the courtenay.ca PDF returned 404 on 2026-11-27. Alberta "district energy and cogen" paper and the DEA Technology Data catalogue were surfaced by search but not read.
+- **Refresh:** none (static). Revisit if a Canadian built-system cost or a pipe-size breakdown becomes available.
+
 ## Outputs
 
 | File | Size | Contents |
@@ -402,6 +414,8 @@ and cooling supplied are hard to estimate, and many systems show energy per unit
 floor area *above* provincial averages. The page reproduces that limitation
 rather than working around it. **No efficiency comparison, no GHG-savings claim
 and no cost-benefit number is derived from the CEEDC data.**
+
+§01's pipe cost card (added 2026-11-27) follows the same rule: two feasibility-study benchmarks, each attributed and labelled modelled, none derived from CEEDC data.
 
 §03 does discuss cost and emissions, but every figure there is attributed to an
 outside source and labelled for what it is — one project's engineering estimate,
